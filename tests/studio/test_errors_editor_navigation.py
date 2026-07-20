@@ -31,3 +31,26 @@ def test_open_component_action_delegates_to_helper(monkeypatch):
 
     assert called["error"] is err
     assert called["context"] is editor._context
+
+
+def test_reveal_instance_action_delegates_to_helper(monkeypatch):
+    import haybale_studio.editors.errors_editor as mod
+
+    called = {}
+
+    def fake_reveal(error, context):
+        called["error"] = error
+        return True
+
+    monkeypatch.setattr(mod, "reveal_instance", fake_reveal)
+
+    editor = mod.ErrorsEditor.__new__(mod.ErrorsEditor)
+    editor._context = MagicMock()
+    err = HaywireException.create("x")
+    err.enrich(graph_id="/tmp/g.haywire", node_id="n1")
+    err.ledger_seq = 3
+    editor._entries_by_seq = {3: err}
+
+    editor._reveal_instance(3)
+
+    assert called["error"] is err

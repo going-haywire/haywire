@@ -30,7 +30,11 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
-from haybale_studio.editors.error_navigation import open_component, open_file_in_studio
+from haybale_studio.editors.error_navigation import (
+    open_component,
+    open_file_in_studio,
+    reveal_instance,
+)
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.session.handlers import react_on
@@ -213,6 +217,12 @@ class ErrorsEditor(BaseEditor):
                     on_click=lambda s=seq: self._open_component(s),
                     auto_close=True,
                 )
+            if entry.can_reveal_instance():
+                ui.menu_item(
+                    "Show in graph",
+                    on_click=lambda s=seq: self._reveal_instance(s),
+                    auto_close=True,
+                )
             if seen:
                 ui.menu_item("Mark unseen", on_click=lambda s=seq: self._mark_unseen(s), auto_close=True)
             else:
@@ -345,6 +355,14 @@ class ErrorsEditor(BaseEditor):
         if entry is None or self._context is None:
             return
         open_component(entry, self._context)
+
+    def _reveal_instance(self, seq: int) -> None:
+        """Reveal the graph and select the node/edge this error came from."""
+        entry = self._entries_by_seq.get(seq)
+        if entry is None or self._context is None:
+            return
+        if not reveal_instance(entry, self._context):
+            ui.notify("Component no longer in the graph", type="info", position="top-right")
 
     def _publish_changed(self) -> None:
         """Broadcast a triage mutation so every session's editor re-renders.
