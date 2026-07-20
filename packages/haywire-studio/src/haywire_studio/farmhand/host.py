@@ -28,7 +28,9 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
 from nicegui import app as nicegui_app
 
+from haywire.core.docs.canons import list_canon_areas, read_canon
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
+from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
 from .auth import BearerTokenMiddleware, connection_command, ensure_token
@@ -178,6 +180,50 @@ class FarmhandHost:
             if isinstance(result, dict) and "summary" not in result:
                 result = {"summary": f"{name}: ok", **result}
             return [types.TextContent(type="text", text=json.dumps(result, default=str))]
+
+        @self._server.list_resources()
+        async def list_resources() -> list[types.Resource]:
+            self._track_session()
+            resources = [
+                types.Resource(
+                    uri=f"farmhand://docs/canon/{area}",  # type: ignore[arg-type]
+                    name=f"{area} authoring canon",
+                    mimeType="text/markdown",
+                )
+                for area in list_canon_areas()
+            ]
+            registry = self._library_service.injector.get(LibraryRegistry)
+            for lib_id in registry.list_names():
+                if not registry.is_library_enabled(lib_id):
+                    continue
+                folder = Path(registry.get_library_identity(lib_id).folder_path)
+                for slug, filename in (("overview", "OVERVIEW.md"), ("quickref", "QUICKREF.md")):
+                    if (folder / filename).exists():
+                        resources.append(
+                            types.Resource(
+                                uri=f"farmhand://library/{lib_id}/{slug}",  # type: ignore[arg-type]
+                                name=f"{lib_id} {slug}",
+                                mimeType="text/markdown",
+                            )
+                        )
+            return resources
+
+        @self._server.read_resource()
+        async def read_resource(uri) -> str:
+            self._track_session()
+            text = str(uri)
+            if text.startswith("farmhand://docs/canon/"):
+                return read_canon(text.rsplit("/", 1)[1])
+            if text.startswith("farmhand://library/"):
+                _, _, rest = text.partition("farmhand://library/")
+                lib_id, _, slug = rest.partition("/")
+                filename = {"overview": "OVERVIEW.md", "quickref": "QUICKREF.md"}.get(slug)
+                registry = self._library_service.injector.get(LibraryRegistry)
+                if filename and lib_id in registry.list_names():
+                    path = Path(registry.get_library_identity(lib_id).folder_path) / filename
+                    if path.exists():
+                        return path.read_text(encoding="utf-8")
+            raise Exception(f"[resource_not_found] No resource at '{text}'")
 
     def _track_session(self) -> None:
         try:
