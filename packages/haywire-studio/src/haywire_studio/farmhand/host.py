@@ -187,7 +187,8 @@ class FarmhandHost:
 
     # -- mount + lifespan ----------------------------------------------
 
-    def mount(self, port: int) -> None:
+    def mount(self, port: int, app_target: Any = None) -> None:
+        target = app_target if app_target is not None else nicegui_app
         token = ensure_token(Path(self._workspace_root))
         security = TransportSecuritySettings(
             allowed_hosts=[f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"],
@@ -199,9 +200,12 @@ class FarmhandHost:
             assert self._session_manager is not None
             await self._session_manager.handle_request(scope, receive, send)
 
-        nicegui_app.mount("/mcp", BearerTokenMiddleware(asgi, token))
-        nicegui_app.on_startup(self._on_startup)
-        nicegui_app.on_shutdown(self._on_shutdown)
+        target.mount("/mcp", BearerTokenMiddleware(asgi, token))
+        # The NiceGUI app drives the runner via its own lifespan hooks; a test
+        # harness (FastAPI app_target) drives _on_startup/_on_shutdown itself.
+        if target is nicegui_app:
+            nicegui_app.on_startup(self._on_startup)
+            nicegui_app.on_shutdown(self._on_shutdown)
 
         hint = connection_command(port, token)
         logger.info(f"Farmhand MCP server will serve at /mcp — connect with:\n  {hint}")
