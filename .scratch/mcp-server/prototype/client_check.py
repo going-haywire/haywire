@@ -46,9 +46,8 @@ async def main() -> None:
             print(f"create           -> {created['created']!r} affinity={created['affinity']}")
 
             after = _tool_json(await session.call_tool("studio_list_graphs", {}))
-            print(
-                f"list after       -> count={after['count']} entries={[e['display_name'] for e in after['entries']]}"
-            )
+            names = [e["display_name"] for e in after["entries"]]
+            print(f"list after       -> count={after['count']} entries={names}")
 
     print("== 3) studio surfaces AFTER MCP traffic ==")
     async with httpx.AsyncClient() as c:

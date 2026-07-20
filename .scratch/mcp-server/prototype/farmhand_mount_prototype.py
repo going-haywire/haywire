@@ -13,7 +13,6 @@ Check:  uv run python .scratch/mcp-server/prototype/client_check.py
 """
 
 import asyncio
-import contextlib
 import threading
 
 from nicegui import app, ui
