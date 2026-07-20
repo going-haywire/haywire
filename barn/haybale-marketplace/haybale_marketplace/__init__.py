@@ -1,6 +1,7 @@
 from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
+from haywire.core.farmhand import FarmhandRegistry
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
 from haywire.core.state import LibraryStateRegistry
@@ -39,6 +40,12 @@ class Library(BaseLibrary):
         self.add_folder_to_registry(
             folder_path=str(base_path / "state"),
             registry_cls=LibraryStateRegistry,
+        )
+
+        # Register MCP tools (canonical order: after state — tools reference marketplace states)
+        self.add_folder_to_registry(
+            folder_path=str(base_path / "farmhands"),
+            registry_cls=FarmhandRegistry,
         )
 
         self.add_folder_to_registry(
