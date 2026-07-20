@@ -773,3 +773,54 @@ class DissolveRerouteAction(CompositeAction):
                 )
 
         super().__init__(actions, description or "Dissolve reroute")
+
+
+class SetPropertyAction(ActionBase):
+    """Undoable set of a node property addressed by (node_id, name).
+
+    ``name`` resolves against the node's ports first (port id -> port value),
+    then against its settings bags (field name -> settings-bag write). This is
+    the one deliberate new core mutation surface mandated by the Farmhand spec:
+    the raw settings/port write paths are non-undoable and not id-addressable.
+    """
+
+    def __init__(self, graph: BaseGraph, node_id: str, name: str, value: Any):
+        super().__init__(description=f"Set '{name}' on {node_id}")
+        self.graph = graph
+        self.node_id = node_id
+        self.name = name
+        self.new_value = value
+        self._old_value: Any = None
+
+    def _resolve(self) -> Tuple[Any, str, Optional[str]]:
+        """Return (node, kind, accessor) where kind is 'port' or 'setting'."""
+        wrapper = self.graph.get_node_wrapper(self.node_id)
+        if wrapper is None:
+            raise ValueError(f"Node '{self.node_id}' not found")
+        node = wrapper.node
+        if self.name in node.ports:
+            return node, "port", None
+        for accessor in type(node)._settings_bags:
+            bag = getattr(node, accessor)
+            if self.name in type(bag)._property_settings():
+                return node, "setting", accessor
+        raise ValueError(f"Node '{self.node_id}' has no port or setting named '{self.name}'")
+
+    def _execute_impl(self) -> None:
+        node, kind, accessor = self._resolve()
+        if kind == "port":
+            self._old_value = node.ports[self.name].get_value()
+            node.ports[self.name].set_value(self.new_value)
+        else:
+            assert accessor is not None  # kind == "setting" always carries an accessor
+            bag = getattr(node, accessor)
+            self._old_value = getattr(bag, self.name)
+            setattr(bag, self.name, self.new_value)
+
+    def _undo_impl(self) -> None:
+        node, kind, accessor = self._resolve()
+        if kind == "port":
+            node.ports[self.name].set_value(self._old_value)
+        else:
+            assert accessor is not None  # kind == "setting" always carries an accessor
+            setattr(getattr(node, accessor), self.name, self._old_value)

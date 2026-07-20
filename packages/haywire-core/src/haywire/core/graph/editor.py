@@ -16,6 +16,7 @@ from haywire.core.undo.actions.graph_actions import (
     PasteClipboardAction,
     SplitEdgeWithRerouteAction,
     DissolveRerouteAction,
+    SetPropertyAction,
 )
 
 logger = logging.getLogger(__name__)
@@ -140,6 +141,24 @@ class Editor:
             return True
         except Exception as e:
             logger.error(f"Error moving nodes to absolute positions: {e}")
+            return False
+
+    def set_property(self, node_id: str, name: str, value: Any) -> bool:
+        """Set a port value or settings-bag field on a node, undo-recorded.
+
+        ``name`` resolves to a port id first, then a settings-bag field name.
+        Returns False (without mutating) if the node or name is unknown.
+        """
+        try:
+            action = SetPropertyAction(self.graph, node_id, name, value)
+            # Pre-validate: the history manager swallows execute() failures, so
+            # resolve the target up front to distinguish a real set from a miss.
+            action._resolve()
+            self.history_manager.add_action(action)
+            logger.info(f"Set property {name!r} on node {node_id}")
+            return True
+        except Exception as e:
+            logger.error(f"Error setting property {name!r} on {node_id}: {e}")
             return False
 
     def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:
