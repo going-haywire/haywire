@@ -7,12 +7,9 @@ from typing import TYPE_CHECKING, Any, ClassVar, Optional
 from haywire.core.farmhand.schema import derive_input_schema
 
 if TYPE_CHECKING:
-    # FarmhandContext lands in Task 6 (farmhand/context.py); until then the
-    # forward reference resolves to Any so this module type-checks standalone.
+    from haywire.core.farmhand.context import FarmhandContext
     from haywire.core.farmhand.identity import FarmhandIdentity
     from haywire.core.library.identity import LibraryIdentity
-
-    FarmhandContext = Any
 
 
 class Farmhand:
