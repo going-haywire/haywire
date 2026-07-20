@@ -1,5 +1,5 @@
 import os
-from typing import Any, cast
+from typing import Any, Callable, cast
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -15,6 +15,7 @@ def _create_detail_row(
     monospace: bool = False,
     file_path: str | None = None,
     line_number: int | None = None,
+    on_open_in_studio: Callable[[str, "int | None"], None] | None = None,
 ):
     """Helper to create a consistent detail row with optional file open button"""
     classes = "text-xs " + ("font-mono" if monospace else "")
@@ -45,9 +46,19 @@ def _create_detail_row(
                                 f"navigator.clipboard.writeText({p!r})"
                             ),
                         ).props("flat dense size=sm").tooltip("Copy file path")
+                        if on_open_in_studio is not None:
+                            ui.button(
+                                icon=hui.icon.node_source,
+                                on_click=lambda fp=file_path, ln=line_number: on_open_in_studio(fp, ln),
+                            ).props("flat dense size=sm").tooltip("Open in Studio")
 
 
-def render_error_details(error: HaywireException, parent_container=None) -> Any:
+def render_error_details(
+    error: HaywireException,
+    parent_container=None,
+    *,
+    on_open_in_studio: Callable[[str, "int | None"], None] | None = None,
+) -> Any:
     """
     Render detailed error information for a HaywireException.
 
@@ -57,6 +68,8 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
     Args:
         error: The HaywireException to render
         parent_container: Optional parent container to render into. If None, creates a new column.
+        on_open_in_studio: Optional callback ``(file_path, line_number) -> None`` invoked when the
+            user clicks "Open in Studio". When ``None`` (the default), that button is omitted.
 
     Returns:
         The container with rendered error details
@@ -173,6 +186,7 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                 monospace=True,
                                 file_path=error.filename,
                                 line_number=error.line_number,
+                                on_open_in_studio=on_open_in_studio,
                             )
 
                             if error.line_number:
@@ -227,6 +241,13 @@ def render_error_details(error: HaywireException, parent_container=None) -> Any:
                                                     _open_file_in_editor(f, ln)
                                                 ),
                                             ).props("flat dense size=xs").tooltip("Open in editor")
+                                            if on_open_in_studio is not None:
+                                                ui.button(
+                                                    icon=hui.icon.node_source,
+                                                    on_click=lambda f=filename, ln=line_number: (
+                                                        on_open_in_studio(f, ln)
+                                                    ),
+                                                ).props("flat dense size=xs").tooltip("Open in Studio")
 
                                     # File path (truncated if too long)
                                     display_path = filename
