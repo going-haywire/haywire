@@ -14,6 +14,18 @@ from tests.farmhand.conftest import call_tool_json
 pytestmark = pytest.mark.integration
 
 
+@pytest.fixture(autouse=True)
+def _restore_new_counter():
+    """create_graph increments the persistent HaystackSettings.new_counter on the
+    ambient (session-scoped server) registry; restore it so unrelated settings
+    tests that assert the default still pass regardless of run order."""
+    from haybale_haystack.settings.haystack_settings import HaystackSettings
+
+    before = HaystackSettings().new_counter
+    yield
+    HaystackSettings().new_counter = before
+
+
 def _call(farmhand_call, tool: str, args: dict):
     async def scenario(session, init):
         return await session.call_tool(tool, args)
