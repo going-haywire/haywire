@@ -1,9 +1,14 @@
-"""Navigation helpers: error → component definition / involved file.
+"""Navigation helpers: error → component definition / involved file / graph instance.
 
-These translate a HaywireException's string locators into studio navigation
-(active_component for the CONTEXT-slot source viewer; Reveal(CodeEditor) for
-a file in the MAIN slot). Instance navigation (graph reveal + select) lives in
-the same package but is a separate helper (see reveal_instance)."""
+open_component/open_file_in_studio translate a HaywireException's string
+locators into direct studio navigation (active_component for the CONTEXT-slot
+source viewer; Reveal(CodeEditor) for a file in the MAIN slot). reveal_instance
+publishes a session-local RevealGraphInstance signal instead — the actual
+resolve-and-select logic lives in GraphEditor (each open tab in this session
+self-matches against its own live BaseGraph.graph_id). Session-local, not
+cross-session: this is a personal navigation click, so it must only affect
+the session that clicked it, never a peer session that happens to have the
+same graph open."""
 
 from __future__ import annotations
 
@@ -40,42 +45,22 @@ def open_file_in_studio(filepath: str, line_number: "int | None", context: "Sess
     context.session.publish(Reveal(editor=CodeEditor, binding_id=str(path), label=path.name))
 
 
-def reveal_instance(error: "HaywireException", context: "SessionContext") -> bool:
-    """Reveal the graph the error occurred in and select the offending instance.
+def reveal_instance(error: "HaywireException", context: "SessionContext") -> None:
+    """Ask every open GraphEditor in THIS session to reveal+select this
+    error's instance, if it's theirs.
 
-    Node errors select ``active_node``; edge/adapter errors select
-    ``active_edge``. Everything is re-resolved live from the current graph
-    state — nothing is held from error-time — so a hot-reloaded / closed graph
-    degrades to a no-op returning False (caller greys the menu item)."""
+    Publishes RevealGraphInstance (session-local — see its docstring for
+    why) and returns immediately — there is no synchronous way to know
+    whether any GraphEditor in this session claimed it (fire-and-forget).
+    No-op if the error doesn't carry enough locator fields to reveal
+    anything (no user-visible feedback either way; see RevealGraphInstance's
+    docstring for the rationale)."""
     if not error.can_reveal_instance():
-        return False
+        return
 
-    from haywire.core.session.signals import Reveal, SelectionMoved
-    from haybale_haystack.state.haystack_state import HaystackState
-    from haybale_graph_editor.state.edit_state import EditState
-    from haybale_graph_editor.editors.graph_editor import GraphEditor
+    from haywire.core.session.signals import RevealGraphInstance
 
     assert error.graph_id is not None  # can_reveal_instance guarantees it
-    entry = context.app_data[HaystackState].get_by_id(error.graph_id)
-    if entry is None:
-        return False  # graph closed / hot-reloaded away
-
-    graph = entry.graph
-    edit_state = context.data[EditState]
-
-    if error.node_id is not None:
-        node_wrapper = graph.get_node_wrapper(error.node_id)
-        if node_wrapper is None:
-            return False  # node gone
-        edit_state.active_node = node_wrapper
-    elif error.edge_id is not None:
-        edge_wrapper = graph.edge_wrappers.get(error.edge_id)
-        if edge_wrapper is None:
-            return False  # edge gone
-        edit_state.active_edge = edge_wrapper
-    else:
-        return False  # unreachable given can_reveal_instance()
-
-    context.session.publish(Reveal(editor=GraphEditor, binding_id=error.graph_id, label=entry.display_name))
-    context.session.publish(SelectionMoved())
-    return True
+    context.session.publish(
+        RevealGraphInstance(graph_id=error.graph_id, node_id=error.node_id, edge_id=error.edge_id)
+    )
