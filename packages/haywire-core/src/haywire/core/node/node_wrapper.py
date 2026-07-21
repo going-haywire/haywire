@@ -329,6 +329,8 @@ class NodeWrapper:
                 registry_key=self.registry_key,
                 class_name=node_cls.__name__,
                 library_identity=node_cls.class_library,
+                node_id=self._node_id,
+                graph_id=self._graph.graph_id,
             )
             self._state.error_instantiate.log()
             self._state.is_instantiated = False
@@ -365,6 +367,7 @@ class NodeWrapper:
                 message=f"Failed to initialize node '{self.registry_key}'",
             ).enrich(
                 node_id=self._node_id,
+                graph_id=self._graph.graph_id,
                 registry_key=self.registry_key,
                 module_name=node_cls.__module__,
                 library_identity=node_cls.class_library,
@@ -397,6 +400,7 @@ class NodeWrapper:
             if not is_valid and error_message:
                 self._state.error_structural = HaywireException.create(message=error_message).enrich(
                     node_id=self._node_id,
+                    graph_id=self._graph.graph_id,
                     registry_key=self.registry_key,
                     module_name=node_cls.__module__,
                     library_identity=node_cls.class_library,
@@ -415,6 +419,7 @@ class NodeWrapper:
                 exception=e, message=f"Structural validation failed: {e}"
             ).enrich(
                 node_id=self._node_id,
+                graph_id=self._graph.graph_id,
                 registry_key=self.registry_key,
                 module_name=node_cls.__module__,
                 library_identity=node_cls.class_library,
@@ -454,6 +459,8 @@ class NodeWrapper:
                     ).enrich(
                         module_name=self._node_cls.__module__,
                         registry_key=self.registry_key,
+                        node_id=self._node_id,
+                        graph_id=self._graph.graph_id,
                         operation="Node Test Execution",
                         category="Node Execution Error",
                         suggestions=[
@@ -469,7 +476,12 @@ class NodeWrapper:
         except Exception as e:
             self._state.error_test = HaywireException.from_exception(
                 exception=e, message=f"Node test execution failed: {e}"
-            ).enrich(operation="Node Test Execution", category="Node Execution Error")
+            ).enrich(
+                operation="Node Test Execution",
+                category="Node Execution Error",
+                node_id=self._node_id,
+                graph_id=self._graph.graph_id,
+            )
             self._state.error_test.log()
             self._state.has_test_passed = False
 
@@ -499,7 +511,8 @@ class NodeWrapper:
                             f"from the registry and can no longer be used."
                         ),
                     ).enrich(
-                        _node_id=self._node_id,
+                        node_id=self._node_id,
+                        graph_id=self._graph.graph_id,
                         registry_key=self.registry_key,
                         module_name=lc_event.module_name,
                         library_identity=lc_event.library_identity,
