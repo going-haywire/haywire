@@ -26,7 +26,13 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.handlers import react_on
-from haywire.core.session.signals import ActiveGraphMoved, GraphDataMutated
+from haywire.core.session.signals import (
+    ActiveGraphMoved,
+    GraphDataMutated,
+    Reveal,
+    RevealGraphInstance,
+    SelectionMoved,
+)
 
 from ..editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
 from ..editors.graph_save_as import open_graph_save_as_dialog
@@ -57,6 +63,7 @@ class GraphEditor(BaseEditor):
 
     Signals consumed:
         ``GraphDataMutated`` — sync canvas from another session.
+        ``RevealGraphInstance`` — select a node/edge if this tab's graph matches.
 
     Signals emitted:
         ``ActiveGraphMoved`` — on tab focus, via on_focus().
@@ -113,6 +120,45 @@ class GraphEditor(BaseEditor):
         """
         self._recover_stale_binding_id(context)
         self._update_header(context)
+
+    @react_on(RevealGraphInstance)
+    def _on_reveal_graph_instance(self, context: "SessionContext", event: "RevealGraphInstance") -> None:
+        """Self-check: is this tab's graph the one the signal is about?
+
+        Every open GraphEditor in THIS session receives this signal
+        (RevealGraphInstance is session-local — see its docstring for why
+        it must not reach peer sessions). Compares event.graph_id against
+        this tab's own live BaseGraph.graph_id directly — never a Haystack
+        binding_id — so there is no id-namespace mismatch to get wrong.
+        Silent no-op if this isn't the matching graph, or the specific
+        node/edge inside it is gone (fire-and-forget; the caller has no way
+        to know whether anyone in this session claimed the signal).
+        """
+        if self._canvas_manager is None:
+            return
+        graph = self._canvas_manager.graph
+        if graph.graph_id != event.graph_id:
+            return
+
+        edit_state = context.data[EditState]
+
+        if event.node_id is not None:
+            node_wrapper = graph.get_node_wrapper(event.node_id)
+            if node_wrapper is None:
+                return  # node gone
+            edit_state.active_node = node_wrapper
+        elif event.edge_id is not None:
+            edge_wrapper = graph.edge_wrappers.get(event.edge_id)
+            if edge_wrapper is None:
+                return  # edge gone
+            edit_state.active_edge = edge_wrapper
+        else:
+            return  # graph_id-only broadcast, nothing to select
+
+        context.session.publish(
+            Reveal(editor=GraphEditor, binding_id=self.wrapper._binding_id, label=graph.name)
+        )
+        context.session.publish(SelectionMoved())
 
     def _recover_stale_binding_id(self, context: "SessionContext") -> None:
         """Re-key this tab if its ``binding_id`` was rekeyed elsewhere.
