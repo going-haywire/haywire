@@ -49,39 +49,100 @@ def _port_direction(port) -> str:
     return "config"
 
 
-def _node_row(wrapper) -> dict:
+def _port_type_key(port) -> str | None:
+    """The concrete data-type registry key (e.g. 'visiongraph:rgb_frame'), or None.
+
+    flow_type only distinguishes data/exec/callback; this names the actual type
+    flowing through the port. Defensive: type_cls or its class_identity can be
+    absent on edge cases, so miss quietly rather than raise inside a read tool.
+    """
+    identity = getattr(port.type_cls, "class_identity", None)
+    return getattr(identity, "registry_key", None)
+
+
+def _port_row(pid: str, port, detail: bool) -> dict:
+    row = {"id": pid, "direction": _port_direction(port), "flow_type": port.flow_type.value}
+    if detail:
+        row.update(
+            {
+                "data_type": _port_type_key(port),
+                "allow_multiple_links": port.allow_multiple_links,
+                "is_linked": port.is_linked(),
+                "link_count": len(port._get_linked_edges_uuid()),
+                "use_mode": port.use_mode,
+                "promoted": port.promoted,
+                "has_widget": port.widget_key is not None,
+                "is_linked_lazy": port.is_linked_lazy,
+            }
+        )
+    return row
+
+
+def _node_row(wrapper, detail: bool = False) -> dict:
     node = wrapper.node
     return {
         "node_id": wrapper.node_id,
         "registry_key": node.class_identity.registry_key,
-        "ports": [
-            {"id": pid, "direction": _port_direction(port), "flow_type": port.flow_type.value}
-            for pid, port in node.ports.items()
-        ],
+        "ports": [_port_row(pid, port, detail) for pid, port in node.ports.items()],
     }
 
 
-def _edge_row(edge) -> dict:
-    return {
+def _edge_error(edge) -> str | None:
+    """The edge's main error message (state-prioritised), or None when healthy."""
+    err = edge.state.get_error()
+    return getattr(err, "message", None) if err is not None else None
+
+
+def _edge_row(edge, detail: bool = False) -> dict:
+    row = {
         "edge_id": edge.edge_id,
         "source_node": edge.source_node_id,
         "outlet": edge.outlet_port_id,
         "sink_node": edge.sink_node_id,
         "inlet": edge.inlet_port_id,
+        "flow_type": edge.edge_type.value,  # "data" | "control" | "callback"
     }
+    if detail:
+        # chain_adapter_keys is the BUILT chain (ordered adapter registry keys):
+        # empty => endpoints type-compatible (direct); non-empty => coercion inserted.
+        adapters = list(edge.edge.chain_adapter_keys)
+        row.update(
+            {
+                "is_functional": edge.is_functional(),
+                "is_linked": edge.state.is_linked,
+                "is_lazy": edge.is_lazy,
+                "adapter_chain": adapters,
+                "has_adapters": bool(adapters),
+                "error": _edge_error(edge),
+            }
+        )
+    return row
 
 
 @farmhand(
     label="Query graph",
-    description="Nodes (with ports) and edges of an open graph.",
+    description=(
+        "Nodes (with ports) and edges of an open graph. Pass detail=true for the full "
+        "per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, "
+        "promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
+        "is_lazy, adapter_chain, has_adapters, error); default returns the base id/direction/"
+        "flow_type per port and id/topology/flow_type per edge."
+    ),
     registry_id="query_graph",
     annotations=_READ_ONLY,
 )
 class GraphEditorQueryGraphTool(Farmhand):
-    async def run(self, ctx: FarmhandContext, binding_id: str, limit: int = 100, offset: int = 0) -> dict:
+    async def run(
+        self,
+        ctx: FarmhandContext,
+        binding_id: str,
+        limit: int = 100,
+        offset: int = 0,
+        detail: bool = False,
+    ) -> dict:
         editor = _editor(ctx, binding_id)
-        nodes = [_node_row(w) for w in editor.list_node_wrappers()]
-        edges = [_edge_row(e) for e in editor.list_edges()]
+        nodes = [_node_row(w, detail) for w in editor.list_node_wrappers()]
+        edges = [_edge_row(e, detail) for e in editor.list_edges()]
         total = len(nodes)
         page = nodes[offset : offset + limit]
         return {

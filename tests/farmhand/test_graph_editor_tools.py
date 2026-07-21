@@ -7,6 +7,7 @@ from tests.farmhand.conftest import call_tool_json
 pytestmark = pytest.mark.integration
 
 NODE_KEY = "example:node:MathOP"  # a registered node with FLOAT data inlets
+CALLBACK_NODE_KEY = "testing:node:EdgeLinkTestNode"  # has callback_outlet + callback_inlet
 
 
 @pytest.fixture(autouse=True)
@@ -47,6 +48,156 @@ def test_add_query_remove(farmhand_call):
         _call(farmhand_call, "graph_editor_remove_elements", {"binding_id": bid, "nodes": [node_id]})
         after = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
         assert after["total"] == 0
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_query_detail_adds_port_setup_fields(farmhand_call):
+    """detail=true enriches each port with its setup; default stays 3-field."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = call_tool_json(
+            _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+        )["node_id"]
+
+        # Default call: only the three base fields, no detail keys leaked.
+        plain = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        plain_node = next(n for n in plain["nodes"] if n["node_id"] == node_id)
+        for port in plain_node["ports"]:
+            assert set(port) == {"id", "direction", "flow_type"}
+
+        # detail=true: the tier-1/2 setup fields are present and typed sensibly.
+        detailed = call_tool_json(
+            _call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid, "detail": True})
+        )
+        node = next(n for n in detailed["nodes"] if n["node_id"] == node_id)
+        detail_keys = {
+            "data_type",
+            "allow_multiple_links",
+            "is_linked",
+            "link_count",
+            "use_mode",
+            "promoted",
+            "has_widget",
+            "is_linked_lazy",
+        }
+        inlet = next(p for p in node["ports"] if p["direction"] == "inlet")
+        assert detail_keys <= set(inlet)
+        # A freshly added node has no edges: nothing linked anywhere.
+        assert inlet["is_linked"] is False
+        assert inlet["link_count"] == 0
+        assert inlet["promoted"] is False
+        # A concrete data type resolves to a registry key (not None) on data ports.
+        data_port = next(p for p in node["ports"] if p["flow_type"] == "data")
+        assert isinstance(data_port["data_type"], str) and ":" in data_port["data_type"]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_query_labels_callback_ports_and_edges(farmhand_call):
+    """Callback ports carry flow_type='callback'; the edge between them is self-labeled."""
+    bid = _new_graph(farmhand_call)
+    try:
+        src = call_tool_json(
+            _call(
+                farmhand_call,
+                "graph_editor_add_node",
+                {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
+            )
+        )["node_id"]
+        sink = call_tool_json(
+            _call(
+                farmhand_call,
+                "graph_editor_add_node",
+                {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
+            )
+        )["node_id"]
+        _call(
+            farmhand_call,
+            "graph_editor_connect",
+            {
+                "binding_id": bid,
+                "source_node_id": src,
+                "outlet": "callback_outlet",
+                "sink_node_id": sink,
+                "inlet": "callback_inlet",
+            },
+        )
+
+        graph = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+
+        # The edge is self-labeled — no port join needed to classify it.
+        cb_edges = [e for e in graph["edges"] if e["flow_type"] == "callback"]
+        assert len(cb_edges) == 1
+        assert cb_edges[0]["outlet"] == "callback_outlet"
+        assert cb_edges[0]["inlet"] == "callback_inlet"
+
+        # And the ports themselves report flow_type='callback'.
+        src_node = next(n for n in graph["nodes"] if n["node_id"] == src)
+        outlet = next(p for p in src_node["ports"] if p["id"] == "callback_outlet")
+        assert outlet["flow_type"] == "callback"
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
+    """detail=true enriches edges with health + the built adapter chain.
+
+    Connecting TEST_BOOL -> TEST_FLOAT forces a two-hop coercion, so the edge's
+    adapter_chain is the ordered list of the adapters the framework inserted.
+    """
+    bid = _new_graph(farmhand_call)
+    try:
+        a = call_tool_json(
+            _call(
+                farmhand_call,
+                "graph_editor_add_node",
+                {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
+            )
+        )["node_id"]
+        b = call_tool_json(
+            _call(
+                farmhand_call,
+                "graph_editor_add_node",
+                {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
+            )
+        )["node_id"]
+        # bool_outlet (TEST_BOOL) -> float_inlet (TEST_FLOAT): needs BoolToInt + IntToFloat.
+        _call(
+            farmhand_call,
+            "graph_editor_connect",
+            {
+                "binding_id": bid,
+                "source_node_id": a,
+                "outlet": "bool_outlet",
+                "sink_node_id": b,
+                "inlet": "float_inlet",
+            },
+        )
+
+        # Default edges: no detail keys.
+        plain = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        assert set(plain["edges"][0]) == {
+            "edge_id",
+            "source_node",
+            "outlet",
+            "sink_node",
+            "inlet",
+            "flow_type",
+        }
+
+        detailed = call_tool_json(
+            _call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid, "detail": True})
+        )
+        edge = detailed["edges"][0]
+        assert edge["is_functional"] is True
+        assert edge["is_linked"] is True
+        assert edge["error"] is None
+        assert edge["has_adapters"] is True
+        assert edge["adapter_chain"] == [
+            "testing:adapter:BoolToIntAdapter",
+            "testing:adapter:IntToFloatAdapter",
+        ]
     finally:
         _close(farmhand_call, bid)
 
