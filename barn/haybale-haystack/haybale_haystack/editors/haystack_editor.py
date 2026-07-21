@@ -20,10 +20,12 @@ from haywire.core.session.signals import (
     Close,
     GraphDataMutated,
     Reveal,
+    RevealGraphInstance,
 )
 from haywire.ui.modals import confirm_modal, pick_modal, rename_modal
 
 from haybale_graph_editor.state.edit_state import EditState
+from haybale_graph_editor.state.graph_app_state import GraphAppState
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_graph_editor.editors.graph_save_as import open_graph_save_as_dialog
 
@@ -82,6 +84,38 @@ class HaystackEditor(BaseEditor):
         ``Close`` lifecycle commands.
         """
         self._on_haystack_teardown(context, event)
+
+    @react_on(RevealGraphInstance)
+    def _on_reveal_graph_instance_reopen(
+        self, context: "SessionContext", event: "RevealGraphInstance"
+    ) -> None:
+        """Reopen a loaded-but-tabless graph so it can receive future selects.
+
+        RevealGraphInstance is session-local, and every GraphEditor tab open
+        in THIS session already self-matches against it (see GraphEditor.
+        _on_reveal_graph_instance). This handler covers the case that leaves
+        uncovered: the graph is loaded (registered in the app-global
+        GraphAppState — reading it here is safe even though the signal
+        itself is session-local, since GraphAppState tracks which graphs
+        exist, not which session is looking at them) but no GraphEditor tab
+        is currently open for it IN THIS SESSION — closing a tab does not
+        unregister the graph (that only happens via HaystackState.
+        remove_entry), so the two states are decoupled and, within this
+        session, a plain signal alone would reach no one.
+
+        Accepted gap: this only re-opens the tab via Reveal (idempotent —
+        find-or-add — even if a GraphEditor in this session also matched
+        and already self-revealed). It does NOT retroactively select the
+        node/edge in the freshly-constructed GraphEditor, which was not
+        alive to receive the original signal.
+        """
+        graph_app_state = context.app_data[GraphAppState]
+        for container in graph_app_state.all_containers():
+            if container.editor.graph.graph_id == event.graph_id:
+                context.session.publish(
+                    Reveal(editor=GraphEditor, binding_id=container.binding_id, label=container.display_name)
+                )
+                return
 
     def _on_haystack_teardown(self, context: "SessionContext", signal: "HaystackTeardown") -> None:
         """Translate the teardown fact into local tab-close lifecycle commands.
