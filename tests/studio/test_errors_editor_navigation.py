@@ -33,6 +33,32 @@ def test_open_component_action_delegates_to_helper(monkeypatch):
     assert called["context"] is editor._context
 
 
+def test_open_file_action_delegates_to_helper(monkeypatch):
+    import haybale_studio.editors.errors_editor as mod
+
+    called = {}
+
+    def fake_open_file_in_studio(filepath, line_number, context):
+        called["filepath"] = filepath
+        called["line_number"] = line_number
+        called["context"] = context
+
+    monkeypatch.setattr(mod, "open_file_in_studio", fake_open_file_in_studio)
+
+    editor = mod.ErrorsEditor.__new__(mod.ErrorsEditor)
+    editor._context = MagicMock()
+    err = HaywireException.create("x")
+    err.enrich(filename="/tmp/thing.py", line_number=12)
+    err.ledger_seq = 5
+    editor._entries_by_seq = {5: err}
+
+    editor._open_file(5)
+
+    assert called["filepath"] == "/tmp/thing.py"
+    assert called["line_number"] == 12
+    assert called["context"] is editor._context
+
+
 def test_reveal_instance_action_delegates_to_helper(monkeypatch):
     import haybale_studio.editors.errors_editor as mod
 

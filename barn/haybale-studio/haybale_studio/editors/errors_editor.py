@@ -211,6 +211,12 @@ class ErrorsEditor(BaseEditor):
         with ui.context_menu():
             ui.menu_item("Show details", on_click=lambda s=seq: self._show_details(s), auto_close=True)
             ui.separator()
+            if entry.has_source_location():
+                ui.menu_item(
+                    "Open file",
+                    on_click=lambda s=seq: self._open_file(s),
+                    auto_close=True,
+                )
             if entry.can_open_component():
                 ui.menu_item(
                     "Open component",
@@ -219,7 +225,7 @@ class ErrorsEditor(BaseEditor):
                 )
             if entry.can_reveal_instance():
                 ui.menu_item(
-                    "Show in graph",
+                    "Reveal in Graph",
                     on_click=lambda s=seq: self._reveal_instance(s),
                     auto_close=True,
                 )
@@ -349,6 +355,14 @@ class ErrorsEditor(BaseEditor):
         self._render_detail()
         self._publish_changed()
 
+    def _open_file(self, seq: int) -> None:
+        """Open this error's source file in the studio's MAIN-slot CodeEditor."""
+        entry = self._entries_by_seq.get(seq)
+        if entry is None or self._context is None:
+            return
+        assert entry.filename is not None  # has_source_location() gates the menu item
+        open_file_in_studio(entry.filename, entry.line_number, self._context)
+
     def _open_component(self, seq: int) -> None:
         """Point the component source viewer at this error's component."""
         entry = self._entries_by_seq.get(seq)
@@ -357,12 +371,11 @@ class ErrorsEditor(BaseEditor):
         open_component(entry, self._context)
 
     def _reveal_instance(self, seq: int) -> None:
-        """Reveal the graph and select the node/edge this error came from."""
+        """Ask every open GraphEditor to reveal+select this error's instance."""
         entry = self._entries_by_seq.get(seq)
         if entry is None or self._context is None:
             return
-        if not reveal_instance(entry, self._context):
-            ui.notify("Component no longer in the graph", type="info", position="top-right")
+        reveal_instance(entry, self._context)
 
     def _publish_changed(self) -> None:
         """Broadcast a triage mutation so every session's editor re-renders.
