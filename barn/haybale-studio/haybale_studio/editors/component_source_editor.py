@@ -150,8 +150,6 @@ class ComponentSourceEditor(BaseEditor):
         return app.library_service.lookup_component_class(registry_key)
 
     def _compute_is_editable(self, context: "SessionContext") -> bool:
-        from haywire.core.library.install_type import InstallType
-
         if not self._registry_key:
             return False
         app = context.app
@@ -159,7 +157,7 @@ class ComponentSourceEditor(BaseEditor):
             return False
         lib_id = self._registry_key.split(":", 1)[0]
         install_type = app.library_service.get_library_registry().get_library_install_type(lib_id)
-        return install_type == InstallType.EDITABLE
+        return install_type is not None and install_type.is_editable()
 
     def _read_buffer(self) -> None:
         text = self._read_file(self._path)

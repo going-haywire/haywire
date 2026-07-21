@@ -11,3 +11,15 @@ class InstallType(Enum):
     REGULAR = "regular"  # Installed in site-packages
     EDITABLE = "editable"  # Installed with -e flag
     FOLDER = "folder"  # Discovered via folder scanning
+
+    def is_editable(self) -> bool:
+        """True when a library's component source may be edited in place.
+
+        THE single authority for "can I rewrite this component's source?" —
+        used by both the source editor (read-only badge) and Farmhand's write
+        tool. Only EDITABLE qualifies: a pip ``-e`` install whose ``__file__``
+        still points at the developer's on-disk source, which the framework
+        also hot-reloads. REGULAR (site-packages) is immutable; FOLDER is the
+        framework-owned builtin library, not user-editable.
+        """
+        return self is InstallType.EDITABLE

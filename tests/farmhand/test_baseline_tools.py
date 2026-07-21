@@ -18,10 +18,10 @@ def _ambient(library_system, tmp_path):
     """All baseline tools resolve services from the ambient DI context.
 
     library_system wires the injector but not the ambient workspace_root (that
-    is HaywireApp's job in the real app), so set it here. It points at an empty
-    tmp dir so no folder-installed library counts as "project-local" — the
-    barn libraries live under the repo root, which would otherwise make them
-    project-local writable targets in these tests.
+    is HaywireApp's job in the real app), so set it here to an empty tmp dir.
+    Note: the write gate keys off install_type (editable), NOT the workspace
+    root, so the barn/haybale-* editable libraries ARE writable targets here
+    regardless of this path — that is the intent of an editable install.
     """
     from haywire.core.di import context as di_context
 
@@ -90,27 +90,34 @@ def test_read_component_source_is_line_numbered():
     assert result["path"].endswith(".py")
 
 
-def test_write_component_source_rejects_non_project_library():
-    from haybale_studio.farmhands.authoring import StudioWriteComponentSourceTool
+# The write gate is `project_local_libraries` / `resolve_target_library`. Test the
+# gate DECISION directly rather than driving the full write tool: a real write lands
+# in the target library's actual on-disk folder (library_folder resolves to the real
+# barn path — there is no test isolation for it), which would litter a shared barn
+# library with artifacts. The gate function is the unit that actually changed.
+
+
+def test_editable_library_is_a_writable_target():
+    """An editable (pip -e) barn library is authorable — that is the intent of -e.
+
+    The barn/haybale-* libraries are editable installs, so the gate must accept
+    them regardless of the workspace root.
+    """
+    from haybale_studio.farmhands._helpers import project_local_libraries, resolve_target_library
+
+    locals_ = project_local_libraries(FarmhandContext())
+    assert "testing" in locals_, f"editable library 'testing' should be writable, got {locals_}"
+    # resolve_target_library returns it without raising the gate error.
+    assert resolve_target_library(FarmhandContext(), "testing") == "testing"
+
+
+def test_write_gate_rejects_unknown_library():
+    """A library that is not an editable, in-repo install is rejected by name."""
+    from haybale_studio.farmhands._helpers import resolve_target_library
 
     with pytest.raises(FarmhandError) as exc_info:
-        run_tool(
-            StudioWriteComponentSourceTool,
-            library="testing",  # barn test library is not a project-local library target
-            kind="node",
-            filename="hacked.py",
-            source="print('no')",
-        )
-    assert exc_info.value.code in ("not_project_library", "no_project_library")
-
-
-def test_scaffold_requires_a_project_library():
-    from haybale_studio.farmhands.authoring import StudioScaffoldComponentTool
-
-    with pytest.raises(FarmhandError) as exc_info:
-        run_tool(StudioScaffoldComponentTool, kind="node", name="my_node")
-    assert exc_info.value.code == "no_project_library"  # test workspace has none -> haywire init hint
-    assert "haywire init" in exc_info.value.message
+        resolve_target_library(FarmhandContext(), "__does_not_exist__")
+    assert exc_info.value.code == "not_project_library"
 
 
 def test_verify_component_ok_for_registered_node():

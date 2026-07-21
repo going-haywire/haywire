@@ -6,7 +6,6 @@ from pathlib import Path
 from typing import Any
 
 from haywire.core.farmhand import FarmhandContext, FarmhandError
-from haywire.core.library.install_type import InstallType
 from haywire.core.library.registry import LibraryRegistry
 
 
@@ -79,14 +78,21 @@ def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
 
 
 def project_local_libraries(ctx: FarmhandContext) -> list[str]:
-    """Libraries installed from a folder inside this workspace (haywire init layout)."""
+    """Libraries Farmhand may author into: the EDITABLE (pip ``-e``) installs.
+
+    Uses ``InstallType.is_editable()`` — the SAME authority the source editor's
+    read-only badge consults (ComponentSourceEditor._compute_is_editable) — so the
+    UI "Edit" button and this write gate can never disagree. An editable install
+    IS the developer's on-disk source (that is the point of ``-e``), and the
+    framework hot-reloads it; Farmhand may write it regardless of whether its path
+    sits under the current workspace root. REGULAR (site-packages, immutable) and
+    FOLDER (framework-owned builtin) are excluded.
+    """
     registry = ctx.registry(LibraryRegistry)
-    workspace = str(ctx.workspace_root())
     result = []
     for lib_id in registry.list_names():
         install_type = registry.get_library_install_type(lib_id)
-        source = registry.get_library_source(lib_id) or ""
-        if install_type == InstallType.FOLDER and source.startswith(workspace):
+        if install_type is not None and install_type.is_editable():
             result.append(lib_id)
     return sorted(result)
 

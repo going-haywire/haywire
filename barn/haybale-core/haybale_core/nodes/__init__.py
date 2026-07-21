@@ -1,4 +1,3 @@
-from .error_node import ErrorNode
 from .for_loop import ForLoopNode
 from .print_terminal import PrintTerminalMessageNode
 from .print_ui_log import PrintLogNode
@@ -12,7 +11,6 @@ from .events.tick_event import TickEventNode
 __all__ = [
     "BeginPlayNode",
     "ControlSwitch",
-    "ErrorNode",
     "ForLoopNode",
     "PrintLogNode",
     "PrintTerminalMessageNode",
