@@ -125,14 +125,8 @@ class GraphEditor(BaseEditor):
     def _on_reveal_graph_instance(self, context: "SessionContext", event: "RevealGraphInstance") -> None:
         """Self-check: is this tab's graph the one the signal is about?
 
-        Every open GraphEditor in THIS session receives this signal
-        (RevealGraphInstance is session-local — see its docstring for why
-        it must not reach peer sessions). Compares event.graph_id against
-        this tab's own live BaseGraph.graph_id directly — never a Haystack
-        binding_id — so there is no id-namespace mismatch to get wrong.
-        Silent no-op if this isn't the matching graph, or the specific
-        node/edge inside it is gone (fire-and-forget; the caller has no way
-        to know whether anyone in this session claimed the signal).
+        Compares event.graph_id against. Silent no-op if this isn't 
+        the matching graph, or the specific node/edge inside it is gone 
         """
         if self._canvas_manager is None:
             return

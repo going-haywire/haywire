@@ -91,18 +91,6 @@ class HaystackEditor(BaseEditor):
     ) -> None:
         """Reopen a loaded-but-tabless graph so it can receive future selects.
 
-        RevealGraphInstance is session-local, and every GraphEditor tab open
-        in THIS session already self-matches against it (see GraphEditor.
-        _on_reveal_graph_instance). This handler covers the case that leaves
-        uncovered: the graph is loaded (registered in the app-global
-        GraphAppState — reading it here is safe even though the signal
-        itself is session-local, since GraphAppState tracks which graphs
-        exist, not which session is looking at them) but no GraphEditor tab
-        is currently open for it IN THIS SESSION — closing a tab does not
-        unregister the graph (that only happens via HaystackState.
-        remove_entry), so the two states are decoupled and, within this
-        session, a plain signal alone would reach no one.
-
         Accepted gap: this only re-opens the tab via Reveal (idempotent —
         find-or-add — even if a GraphEditor in this session also matched
         and already self-revealed). It does NOT retroactively select the
