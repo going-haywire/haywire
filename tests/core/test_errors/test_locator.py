@@ -35,6 +35,22 @@ def test_can_open_component_requires_registry_key():
     assert _exc(registry_key="lib:node:Foo").can_open_component() is True
 
 
+def test_has_source_location_requires_both_fields():
+    assert _exc().has_source_location() is False
+    assert _exc(filename="/tmp/x.py").has_source_location() is False
+    assert _exc(line_number=12).has_source_location() is False
+    assert _exc(filename="/tmp/x.py", line_number=12).has_source_location() is True
+
+
+def test_has_source_location_rejects_pseudo_filenames():
+    # A hot-reload import failure inside <frozen importlib._bootstrap> (or
+    # similarly <string>/<stdin>) has no real file for "Open file" to open —
+    # every real frame in the traceback was framework code, so extract()'s
+    # last-resort fallback picked the only frame left, a Python pseudo-file.
+    assert _exc(filename="<frozen importlib._bootstrap>", line_number=911).has_source_location() is False
+    assert _exc(filename="<string>", line_number=1).has_source_location() is False
+
+
 def test_can_reveal_instance_requires_graph_plus_node_or_edge():
     # graph_id alone is not enough — need something to select inside it.
     assert _exc().enrich(graph_id="/tmp/g.haywire").can_reveal_instance() is False

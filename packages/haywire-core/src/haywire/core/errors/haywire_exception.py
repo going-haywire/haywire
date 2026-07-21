@@ -910,8 +910,16 @@ class HaywireException(Exception):
         return True  # All errors go to event log
 
     def has_source_location(self) -> bool:
-        """Do we have source code to display?"""
-        return self.filename is not None and self.line_number is not None
+        """Do we have source code to display?
+
+        Excludes Python pseudo-filenames (``<frozen importlib._bootstrap>``,
+        ``<string>``, ``<stdin>``, ...) — the last-resort frame in
+        ``extract()`` can pick one of these when every real frame in the
+        traceback was filtered out as framework code, and there is no file
+        on disk for "Open file" to open."""
+        if self.filename is None or self.line_number is None:
+            return False
+        return not self.filename.startswith("<")
 
     def has_suggestions(self) -> bool:
         """Do we have user actions?"""
