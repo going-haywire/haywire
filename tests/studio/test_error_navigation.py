@@ -19,6 +19,19 @@ def test_open_component_sets_active_component():
     assert ctx.active_component == "lib:node:Foo"
 
 
+def test_open_component_reveals_component_source_editor():
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+    from haybale_studio.editors.error_navigation import open_component
+
+    ctx = MagicMock()
+    err = HaywireException.create("x", registry_key="lib:node:Foo")
+    open_component(err, ctx)
+
+    ctx.session.publish.assert_called_once()
+    published = ctx.session.publish.call_args[0][0]
+    assert published.editor is ComponentSourceEditor
+
+
 def test_open_component_noop_without_registry_key():
     from haybale_studio.editors.error_navigation import open_component
 

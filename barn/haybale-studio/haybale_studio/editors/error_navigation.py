@@ -1,8 +1,11 @@
 """Navigation helpers: error → component definition / involved file / graph instance.
 
 open_component/open_file_in_studio translate a HaywireException's string
-locators into direct studio navigation (active_component for the CONTEXT-slot
-source viewer; Reveal(CodeEditor) for a file in the MAIN slot). reveal_instance
+locators into direct studio navigation (active_component + Reveal(
+ComponentSourceEditor) for the CONTEXT-slot source viewer; Reveal(CodeEditor)
+for a file in the MAIN slot). Both publish Reveal so a collapsed slot pops
+open rather than only updating content the user isn't looking at.
+reveal_instance
 publishes a session-local RevealGraphInstance signal instead — the actual
 resolve-and-select logic lives in GraphEditor (each open tab in this session
 self-matches against its own live BaseGraph.graph_id). Session-local, not
@@ -21,13 +24,24 @@ if TYPE_CHECKING:
 
 
 def open_component(error: "HaywireException", context: "SessionContext") -> bool:
-    """Point the CONTEXT-slot component source viewer at this error's component.
+    """Point the CONTEXT-slot component source viewer at this error's component
+    and force it into view.
 
     Sets ``active_component = registry_key`` (the ComponentSourceEditor follows
-    it). Returns False if the error has no registry_key."""
+    it) and publishes ``Reveal(editor=ComponentSourceEditor)`` so a collapsed
+    CONTEXT slot pops open (``IconSlot._expands_on_reveal``) instead of only
+    updating content the user may not be looking at. ComponentSourceEditor is
+    ``OpenBehavior.REQUIRED`` (one uncloseable instance, no binding_id), so the
+    reveal always resolves to the existing singleton tab. Returns False if the
+    error has no registry_key."""
     if not error.can_open_component():
         return False
+
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+    from haywire.core.session.signals import Reveal
+
     context.active_component = error.registry_key
+    context.session.publish(Reveal(editor=ComponentSourceEditor))
     return True
 
 
