@@ -8,6 +8,7 @@ from haywire.core.farmhand import (
     FarmhandError,
     ToolAnnotations,
     farmhand,
+    truncation_note,
 )
 from haywire.core.session.signals import GraphDataMutated
 
@@ -61,10 +62,14 @@ class HaystackListGraphsTool(Farmhand):
             if not any(part.startswith(".") for part in p.relative_to(root).parts)
         )
         total = len(on_disk)
+        files = on_disk[offset : offset + limit]
         return {
-            "summary": f"{len(open_rows)} graphs open, {total} .haywire files on disk.",
+            "summary": (
+                f"{len(open_rows)} graphs open, {total} .haywire files on disk."
+                f"{truncation_note(len(files), total, offset)}"
+            ),
             "open": open_rows,
-            "files": on_disk[offset : offset + limit],
+            "files": files,
             "total": total,
         }
 

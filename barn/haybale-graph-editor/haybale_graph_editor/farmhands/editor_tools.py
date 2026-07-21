@@ -13,6 +13,7 @@ from haywire.core.farmhand import (
     FarmhandError,
     ToolAnnotations,
     farmhand,
+    truncation_note,
 )
 from haywire.core.node.promotion import demote_setting, promote_setting
 from haywire.core.session.signals import GraphDataMutated
@@ -82,9 +83,13 @@ class GraphEditorQueryGraphTool(Farmhand):
         nodes = [_node_row(w) for w in editor.list_node_wrappers()]
         edges = [_edge_row(e) for e in editor.list_edges()]
         total = len(nodes)
+        page = nodes[offset : offset + limit]
         return {
-            "summary": f"{total} nodes, {len(edges)} edges in {binding_id}.",
-            "nodes": nodes[offset : offset + limit],
+            "summary": (
+                f"{total} nodes, {len(edges)} edges in {binding_id}."
+                f"{truncation_note(len(page), total, offset)}"
+            ),
+            "nodes": page,
             "edges": edges,
             "total": total,
         }

@@ -5,6 +5,7 @@ from haywire.core.farmhand.context import FarmhandContext
 from haywire.core.farmhand.decorator import farmhand
 from haywire.core.farmhand.errors import FarmhandError
 from haywire.core.farmhand.identity import FarmhandIdentity, ToolAnnotations
+from haywire.core.farmhand.pagination import truncation_note
 from haywire.core.farmhand.registry import FarmhandRegistry
 from haywire.core.farmhand.schema import derive_input_schema
 
@@ -17,4 +18,5 @@ __all__ = [
     "ToolAnnotations",
     "derive_input_schema",
     "farmhand",
+    "truncation_note",
 ]

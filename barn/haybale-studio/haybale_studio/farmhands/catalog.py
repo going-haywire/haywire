@@ -5,7 +5,13 @@ from __future__ import annotations
 import inspect
 from typing import Any
 
-from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
+from haywire.core.farmhand import (
+    Farmhand,
+    FarmhandContext,
+    ToolAnnotations,
+    farmhand,
+    truncation_note,
+)
 from haywire.core.library.registry import LibraryRegistry
 
 from ._helpers import kind_registry_map, page, resolve_component_class
@@ -36,7 +42,11 @@ class StudioListLibrariesTool(Farmhand):
                 }
             )
         rows, total = page(rows, limit, offset)
-        return {"summary": f"{total} libraries installed.", "libraries": rows, "total": total}
+        return {
+            "summary": f"{total} libraries installed.{truncation_note(len(rows), total, offset)}",
+            "libraries": rows,
+            "total": total,
+        }
 
 
 @farmhand(
@@ -68,7 +78,11 @@ class StudioListComponentsTool(Farmhand):
                 rows.append({"registry_key": key, "library": parts[0], "kind": seg, "name": parts[2]})
         rows.sort(key=lambda r: r["registry_key"])
         rows, total = page(rows, limit, offset)
-        return {"summary": f"{total} components match.", "components": rows, "total": total}
+        return {
+            "summary": f"{total} components match.{truncation_note(len(rows), total, offset)}",
+            "components": rows,
+            "total": total,
+        }
 
 
 @farmhand(
