@@ -1,9 +1,10 @@
-"""studio_get_errors — query the error ledger."""
+"""studio_get_errors / studio_dismiss_errors — query and triage the error ledger."""
 
 from __future__ import annotations
 
 from haywire.core.errors.ledger import get_error_ledger
-from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
+from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, ToolAnnotations, farmhand
+from haywire.core.session.signals import ErrorLedgerChanged
 
 
 @farmhand(
@@ -42,3 +43,47 @@ class StudioGetErrorsTool(Farmhand):
             # deleted. A client polling with since_seq below this has a gap.
             "first_retained_seq": result.first_retained_seq,
         }
+
+
+@farmhand(
+    label="Dismiss errors",
+    description="Dismiss ledger entries: pass seq=<n> to remove one, or all=true to clear every "
+    "retained entry. Removal is permanent for that entry but leaves the monotonic cursor "
+    "untouched, so incremental since_seq polling stays correct. Broadcasts so open studio "
+    "Errors editors refresh. Dismissing an absent seq is a no-op (idempotent).",
+    registry_id="dismiss_errors",
+    annotations=ToolAnnotations(destructive_hint=True, idempotent_hint=True),
+)
+class StudioDismissErrorsTool(Farmhand):
+    async def run(
+        self,
+        ctx: FarmhandContext,
+        seq: int | None = None,
+        all: bool = False,
+    ) -> dict:
+        # Exactly one target: a single seq, or the whole retained window. Both
+        # (or neither) is ambiguous — reject rather than guess.
+        if all and seq is not None:
+            raise FarmhandError(
+                "invalid_args", "Pass either seq=<n> or all=true, not both.", {"seq": str(seq)}
+            )
+        if not all and seq is None:
+            raise FarmhandError("invalid_args", "Pass seq=<n> to dismiss one entry, or all=true.")
+
+        ledger = get_error_ledger()
+        if all:
+            before = ledger.query(limit=0).total
+            ledger.clear()
+            summary = f"Cleared {before} ledger entries."
+        else:
+            # delete() is a no-op if the seq is absent (already dismissed or
+            # evicted) — mirror that in the summary rather than erroring.
+            present = any(e.ledger_seq == seq for e in ledger.query(limit=ledger.current_seq).entries)
+            ledger.delete(seq)  # type: ignore[arg-type]  # seq is not None on this branch
+            summary = f"Dismissed entry {seq}." if present else f"No entry {seq} to dismiss."
+
+        # Caller-owned cross-session refresh: ErrorLedgerChanged carries no
+        # payload — every session's Errors editor re-reads the ledger. Matches
+        # the editor's own mutate-then-broadcast triage contract.
+        ctx.broadcast(ErrorLedgerChanged())
+        return {"summary": summary, "cursor": ledger.current_seq}

@@ -150,7 +150,53 @@ def test_get_errors_returns_ledger_page():
     assert "message" in entry
 
 
-def test_registry_holds_exactly_nine_studio_tools(library_system):
+def test_dismiss_errors_removes_one_entry():
+    from haybale_studio.farmhands.errors import StudioDismissErrorsTool, StudioGetErrorsTool
+
+    from haywire.core.errors.haywire_exception import HaywireException
+    from haywire.core.errors.ledger import get_error_ledger
+
+    seq = HaywireException.create("dismiss-one test error").log().ledger_seq
+    assert any(e.ledger_seq == seq for e in get_error_ledger().query(limit=10_000).entries)
+
+    result = run_tool(StudioDismissErrorsTool, seq=seq)
+    assert result["summary"] == f"Dismissed entry {seq}."
+    # Entry is gone, but the monotonic cursor is untouched.
+    assert not any(e.ledger_seq == seq for e in get_error_ledger().query(limit=10_000).entries)
+    assert run_tool(StudioGetErrorsTool)["cursor"] >= seq
+
+
+def test_dismiss_absent_seq_is_idempotent_noop():
+    from haybale_studio.farmhands.errors import StudioDismissErrorsTool
+
+    result = run_tool(StudioDismissErrorsTool, seq=999_999)
+    assert result["summary"] == "No entry 999999 to dismiss."
+
+
+def test_dismiss_all_clears_the_ledger():
+    from haybale_studio.farmhands.errors import StudioDismissErrorsTool, StudioGetErrorsTool
+
+    from haywire.core.errors.haywire_exception import HaywireException
+
+    HaywireException.create("clear-all test error").log()
+    run_tool(StudioDismissErrorsTool, all=True)
+    assert run_tool(StudioGetErrorsTool)["total"] == 0
+
+
+def test_dismiss_requires_exactly_one_target():
+    from haybale_studio.farmhands.errors import StudioDismissErrorsTool
+
+    # Neither seq nor all.
+    with pytest.raises(FarmhandError) as exc_info:
+        run_tool(StudioDismissErrorsTool)
+    assert exc_info.value.code == "invalid_args"
+    # Both seq and all.
+    with pytest.raises(FarmhandError) as exc_info:
+        run_tool(StudioDismissErrorsTool, seq=1, all=True)
+    assert exc_info.value.code == "invalid_args"
+
+
+def test_registry_holds_exactly_ten_studio_tools(library_system):
     from haywire.core.farmhand import FarmhandRegistry
 
     registry = library_system.injector.get(FarmhandRegistry)
@@ -165,4 +211,5 @@ def test_registry_holds_exactly_nine_studio_tools(library_system):
         "studio:farmhand:write_component_source",
         "studio:farmhand:verify_component",
         "studio:farmhand:get_errors",
+        "studio:farmhand:dismiss_errors",
     }
