@@ -65,6 +65,36 @@ class SelectionMoved(Signal):
     """
 
 
+@dataclass(frozen=True, kw_only=True)
+class RevealGraphInstance(Signal):
+    """Ask every open GraphEditor in THIS session: "is this graph yours? If
+    so, select this node/edge."
+
+    Deliberately session-local (no cross_session override — inherits the
+    base class's default False). A click on "Reveal in Graph" is a personal
+    navigation intent ("take me there"), not a global fact like an error
+    being logged — GraphAppState/HaystackState are app-global (the same
+    graph object can be open in more than one session at once), but this
+    signal must NOT reach into a peer session and steal their selection or
+    pop their tab to the front. Session-local delivery means only this
+    session's own GraphEditor/HaystackEditor subscribers ever see it, which
+    is exactly how HaystackEditor's own Reveal-on-row-click already behaves.
+
+    graph_id compares against BaseGraph.graph_id directly (never a Haystack
+    binding_id) — each GraphEditor holds a live BaseGraph and can compare
+    graph-id-to-graph-id with no HaystackState involvement, which is exactly
+    what avoids the binding_id/graph_id mismatch this signal replaces.
+
+    Fire-and-forget within this session: there is no acknowledgment. If no
+    open GraphEditor's graph matches, or the node/edge inside a matching
+    graph is gone, nothing happens — no error, no notification.
+    """
+
+    graph_id: str
+    node_id: Optional[str] = None
+    edge_id: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Data + lifecycle
 # ---------------------------------------------------------------------------

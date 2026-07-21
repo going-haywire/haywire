@@ -15,6 +15,7 @@ from .descriptor import signal_field
 from .vocabulary import (
     ActiveGraphMoved,
     SelectionMoved,
+    RevealGraphInstance,
     GraphDataMutated,
     LibraryCatalogChanged,
     ErrorLogged,
@@ -37,6 +38,7 @@ __all__ = [
     # Observations
     "ActiveGraphMoved",
     "SelectionMoved",
+    "RevealGraphInstance",
     "GraphDataMutated",
     "LibraryCatalogChanged",
     "ErrorLogged",
