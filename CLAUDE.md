@@ -2,7 +2,7 @@
 
 Haywire is a Blueprint-inspired visual programming system with a **dual-flow model**: control pins define execution order, data pins pass values.
 
-This project uses Python with NiceGUI framework, reactive property descriptors, and a custom settings/theme system. The codebase has a haywire DI framework. Do not introduce patterns that conflict with the existing reactive props system.
+This project uses Python with NiceGUI framework. The codebase has a haywire DI framework. Do not introduce patterns that have no existing equivalent: check in related code for existing architectural approaches before design.
 
 When working on architecture or design patterns, do NOT assume singleton patterns, library ownership models, or registration paths. Ask for confirmation before implementing architectural decisions that affect class hierarchies or dependency injection.
 
@@ -10,7 +10,9 @@ When working on architecture or design patterns, do NOT assume singleton pattern
 
 When user runs a slash command or skill, execute it immediately without asking clarifying questions. If the skill loads context, treat it as context — don't interpret it as a user request for configuration.
 
-Before editing any file, read it first. Before modifying a function, grep for all callers. Research before you edit. 
+Before editing any file, read it first. Before modifying a function, grep for all callers. Research before you edit.
+
+When reporting to me, be extremly concise and sacrifice grammar for the sake of concision.
 
 ### Package Layout
 

@@ -1,0 +1,276 @@
+#!/usr/bin/env python3
+"""studioctl — start/stop/status a local Haywire studio for Farmhand access.
+
+The studio serves the NiceGUI app AND the Farmhand MCP endpoint on port 8082
+(``/mcp``). This tool lets an agent (or a human) bring that server up and down
+without touching Claude Code's own MCP client — Farmhand is then driven over
+HTTP by the sibling ``farmhand`` script.
+
+Lifecycle discipline (why this won't stomp your GUI studio):
+- ``start`` is idempotent: if :8082 is already listening it reports the running
+  server and exits 0 without spawning a second one.
+- ``stop`` only kills a studio THIS tool started, tracked by a PID file under
+  ``.haywire/studioctl.pid``. A studio you launched yourself (``uv run haywire``
+  in a terminal, or the VS Code app) has no PID file here and is left alone,
+  unless you pass ``--force`` (which kills whatever holds :8082).
+
+Zero third-party deps — stdlib only. Run from anywhere; the workspace root is
+derived from this script's location (…/.claude/skills/haywire-live-studio/…).
+"""
+
+from __future__ import annotations
+
+import argparse
+import os
+import signal
+import socket
+import subprocess
+import sys
+import time
+from pathlib import Path
+
+PORT = 8082
+HOST = "127.0.0.1"
+
+
+def workspace_root() -> Path:
+    # scripts/ -> haywire-live-studio -> skills -> .claude -> <repo root>
+    return Path(__file__).resolve().parents[4]
+
+
+def haywire_dir() -> Path:
+    d = workspace_root() / ".haywire"
+    d.mkdir(parents=True, exist_ok=True)
+    return d
+
+
+def pid_file() -> Path:
+    return haywire_dir() / "studioctl.pid"
+
+
+def log_file() -> Path:
+    return haywire_dir() / "studioctl.log"
+
+
+def token_file() -> Path:
+    return haywire_dir() / "farmhand_token"
+
+
+def port_open() -> bool:
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.settimeout(0.25)
+        return s.connect_ex((HOST, PORT)) == 0
+
+
+def pid_alive(pid: int) -> bool:
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    except PermissionError:
+        return True
+    return True
+
+
+def read_tracked_pid() -> int | None:
+    f = pid_file()
+    if not f.exists():
+        return None
+    try:
+        pid = int(f.read_text().strip())
+    except (ValueError, OSError):
+        return None
+    return pid if pid_alive(pid) else None
+
+
+def owner_of_port() -> int | None:
+    """PID holding :8082 via lsof, or None. Best-effort (lsof may be absent)."""
+    try:
+        out = subprocess.run(
+            ["lsof", "-nP", f"-iTCP@{HOST}:{PORT}", "-sTCP:LISTEN", "-t"],
+            capture_output=True,
+            text=True,
+            timeout=5,
+        ).stdout.strip()
+    except (FileNotFoundError, subprocess.SubprocessError):
+        return None
+    for line in out.splitlines():
+        if line.strip().isdigit():
+            return int(line.strip())
+    return None
+
+
+def cmd_start(args: argparse.Namespace) -> int:
+    if port_open():
+        tracked = read_tracked_pid()
+        who = f"tracked pid {tracked}" if tracked else "not tracked by studioctl (your own instance)"
+        print(f"studio already up on {HOST}:{PORT} ({who}) — reusing it.")
+        _print_token()
+        return 0
+
+    root = workspace_root()
+    log = log_file()
+    print(f"starting studio in {root} … (log: {log})")
+    with log.open("w") as lf:
+        proc = subprocess.Popen(
+            ["uv", "run", "haywire"],
+            cwd=str(root),
+            stdout=lf,
+            stderr=subprocess.STDOUT,
+            stdin=subprocess.DEVNULL,
+            start_new_session=True,  # detach from this process group
+        )
+    pid_file().write_text(str(proc.pid))
+
+    deadline = time.time() + args.timeout
+    while time.time() < deadline:
+        if proc.poll() is not None:
+            print(f"studio process exited early (code {proc.returncode}). Tail of log:")
+            _tail(log, 20)
+            pid_file().unlink(missing_ok=True)
+            return 1
+        if port_open():
+            print(f"studio up on {HOST}:{PORT} (pid {proc.pid}).")
+            _print_token()
+            return 0
+        time.sleep(0.4)
+
+    print(f"timed out after {args.timeout}s waiting for :{PORT}. Tail of log:")
+    _tail(log, 20)
+    return 1
+
+
+def _signal_group(pid: int, sig: int) -> None:
+    """Signal the process group (studio was started with start_new_session), or
+    fall back to the bare pid if the group is already gone."""
+    try:
+        os.killpg(os.getpgid(pid), sig)
+    except (ProcessLookupError, PermissionError):
+        try:
+            os.kill(pid, sig)
+        except ProcessLookupError:
+            pass
+
+
+def cmd_stop(args: argparse.Namespace) -> int:
+    tracked = read_tracked_pid()
+    target = tracked
+    label = "tracked studio"
+
+    if target is None:
+        if not port_open():
+            print("no studio running (nothing tracked, :8082 closed).")
+            pid_file().unlink(missing_ok=True)
+            return 0
+        if not args.force:
+            owner = owner_of_port()
+            print(
+                f":{PORT} is held by pid {owner} but studioctl did not start it "
+                "(likely your GUI/terminal studio). Refusing to kill it.\n"
+                "Pass --force to stop whatever holds the port."
+            )
+            return 1
+        target = owner_of_port()
+        label = "port owner (--force)"
+        if target is None:
+            print("could not resolve the port owner to kill.")
+            return 1
+
+    print(f"stopping {label} pid {target} …")
+    # Escalation: SIGINT is the studio's designed shutdown path (run() catches
+    # KeyboardInterrupt for a clean teardown); SIGTERM/SIGKILL are fallbacks.
+    for sig, grace, note in (
+        (signal.SIGINT, 12.0, "SIGINT (clean shutdown)"),
+        (signal.SIGTERM, 6.0, "SIGTERM"),
+        (signal.SIGKILL, 0.0, "SIGKILL"),
+    ):
+        if not pid_alive(target) and not port_open():
+            break
+        print(f"  → {note}")
+        _signal_group(target, sig)
+        if sig == signal.SIGKILL:
+            break
+        deadline = time.time() + grace
+        while time.time() < deadline:
+            if not port_open() and not pid_alive(target):
+                print("studio stopped.")
+                pid_file().unlink(missing_ok=True)
+                return 0
+            time.sleep(0.4)
+
+    pid_file().unlink(missing_ok=True)
+    if port_open():
+        print("warning: :8082 still open after SIGKILL — a different process may hold it.")
+        return 1
+    print("studio stopped.")
+    return 0
+
+
+def cmd_status(args: argparse.Namespace) -> int:
+    up = port_open()
+    tracked = read_tracked_pid()
+    print(f"port {HOST}:{PORT}: {'OPEN' if up else 'closed'}")
+    if tracked:
+        print(f"tracked pid: {tracked} (alive)")
+    elif pid_file().exists():
+        print("tracked pid: stale (process gone) — run stop or start to clean up")
+    else:
+        print("tracked pid: none (any running studio is yours, not studioctl's)")
+    if up and not tracked:
+        owner = owner_of_port()
+        if owner:
+            print(f"port owner: pid {owner} (external — GUI/terminal studio)")
+    if up:
+        _print_token()
+    return 0
+
+
+def cmd_restart(args: argparse.Namespace) -> int:
+    cmd_stop(args)
+    time.sleep(0.5)
+    return cmd_start(args)
+
+
+def _print_token() -> None:
+    f = token_file()
+    if f.exists():
+        print(f"farmhand token: {f.read_text().strip()}  (file: {f})")
+    else:
+        print("farmhand token: not yet written (studio still initializing?)")
+
+
+def _tail(path: Path, n: int) -> None:
+    try:
+        lines = path.read_text(errors="replace").splitlines()
+    except OSError:
+        return
+    for line in lines[-n:]:
+        print("  | " + line)
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(prog="studioctl", description=__doc__)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sp = sub.add_parser("start", help="start the studio if not already up (idempotent)")
+    sp.add_argument("--timeout", type=float, default=45.0, help="seconds to wait for :8082")
+    sp.set_defaults(func=cmd_start)
+
+    sp = sub.add_parser("stop", help="stop the studio started by studioctl")
+    sp.add_argument("--force", action="store_true", help="kill whatever holds :8082 (even a GUI studio)")
+    sp.set_defaults(func=cmd_stop)
+
+    sp = sub.add_parser("status", help="show whether the studio is up and who owns it")
+    sp.set_defaults(func=cmd_status)
+
+    sp = sub.add_parser("restart", help="stop then start")
+    sp.add_argument("--timeout", type=float, default=45.0, help="seconds to wait for :8082")
+    sp.add_argument("--force", action="store_true", help="force-stop before restarting")
+    sp.set_defaults(func=cmd_restart)
+
+    args = p.parse_args()
+    return args.func(args)
+
+
+if __name__ == "__main__":
+    sys.exit(main())

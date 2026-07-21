@@ -1,0 +1,257 @@
+#!/usr/bin/env python3
+"""farmhand — a tiny MCP client for the running Haywire studio's /mcp endpoint.
+
+Drives the Farmhand MCP server over HTTP so an agent can list and call studio
+tools WITHOUT going through Claude Code's own MCP client (which only connects at
+session startup and is awkward to reconnect mid-session). Bring the studio up
+with the sibling ``studioctl start`` first.
+
+Each invocation is a fresh, self-contained MCP session: it POSTs ``initialize``,
+sends ``notifications/initialized``, then the requested method — all in one
+process. Stateless per call, which is simpler and reliable for a CLI (one extra
+round-trip locally is negligible).
+
+Auth + port are discovered automatically: the bearer token is read from
+``.haywire/farmhand_token`` (same file the studio writes on startup). The
+endpoint is ``http://127.0.0.1:8082/mcp/`` — note the trailing slash; a bare
+``/mcp`` 307-redirects and most POST clients drop the body on redirect.
+
+Zero third-party deps — stdlib http.client only.
+
+Subcommands:
+  tools                       list tool names + one-line descriptions
+  tools --json                full tool schemas as JSON
+  call <name> [JSON|-]        call a tool; args as a JSON object literal or '-' for stdin
+  resources                   list resource URIs
+  read <uri>                  read a resource's text
+  raw <method> [JSON|-]       send any MCP method with raw params (escape hatch)
+"""
+
+from __future__ import annotations
+
+import argparse
+import http.client
+import json
+import sys
+from pathlib import Path
+from typing import NoReturn
+
+HOST = "127.0.0.1"
+PORT = 8082
+PATH = "/mcp/"  # trailing slash is required
+PROTOCOL_VERSION = "2025-11-25"
+
+
+def workspace_root() -> Path:
+    return Path(__file__).resolve().parents[4]
+
+
+def read_token() -> str:
+    f = workspace_root() / ".haywire" / "farmhand_token"
+    if not f.exists():
+        die(f"token file not found at {f} — is the studio running? (studioctl start)")
+    return f.read_text().strip()
+
+
+def die(msg: str, code: int = 1) -> NoReturn:
+    print(f"farmhand: {msg}", file=sys.stderr)
+    sys.exit(code)
+
+
+class MCPError(Exception):
+    pass
+
+
+def _parse_sse(body: str) -> dict:
+    """Pull the JSON out of an SSE 'data:' line (server replies text/event-stream)."""
+    for line in body.splitlines():
+        if line.startswith("data:"):
+            return json.loads(line[len("data:") :].strip())
+    # Some responses are plain JSON (e.g. 202 with empty body handled by caller)
+    body = body.strip()
+    if body:
+        return json.loads(body)
+    return {}
+
+
+class Session:
+    def __init__(self, token: str):
+        self.token = token
+        self.session_id: str | None = None
+        self._id = 0
+
+    def _headers(self) -> dict[str, str]:
+        h = {
+            "Authorization": f"Bearer {self.token}",
+            "Content-Type": "application/json",
+            "Accept": "application/json, text/event-stream",
+        }
+        if self.session_id:
+            h["mcp-session-id"] = self.session_id
+        return h
+
+    def _post(self, payload: dict) -> tuple[int, dict[str, str], str]:
+        conn = http.client.HTTPConnection(HOST, PORT, timeout=30)
+        try:
+            conn.request("POST", PATH, body=json.dumps(payload), headers=self._headers())
+            resp = conn.getresponse()
+            data = resp.read().decode("utf-8", errors="replace")
+            headers = {k.lower(): v for k, v in resp.getheaders()}
+            return resp.status, headers, data
+        except ConnectionRefusedError:
+            die(f"connection refused on {HOST}:{PORT} — studio not running? (studioctl start)")
+        finally:
+            conn.close()
+
+    def _rpc(self, method: str, params: dict | None = None) -> dict:
+        self._id += 1
+        payload: dict = {"jsonrpc": "2.0", "id": self._id, "method": method}
+        if params is not None:
+            payload["params"] = params
+        status, headers, body = self._post(payload)
+        if status == 401:
+            die("401 unauthorized — token mismatch. Restart studio or re-read the token file.")
+        if status >= 400:
+            raise MCPError(f"HTTP {status} on {method}: {body[:400]}")
+        if "mcp-session-id" in headers and not self.session_id:
+            self.session_id = headers["mcp-session-id"]
+        msg = _parse_sse(body)
+        if "error" in msg:
+            raise MCPError(f"{method} → {msg['error']}")
+        return msg.get("result", {})
+
+    def _notify(self, method: str) -> None:
+        # Notifications carry no id and expect a 202 with empty body.
+        self._post({"jsonrpc": "2.0", "method": method})
+
+    def initialize(self) -> dict:
+        result = self._rpc(
+            "initialize",
+            {
+                "protocolVersion": PROTOCOL_VERSION,
+                "capabilities": {},
+                "clientInfo": {"name": "farmhand-cli", "version": "0.1.0"},
+            },
+        )
+        self._notify("notifications/initialized")
+        return result
+
+
+def _load_session() -> Session:
+    s = Session(read_token())
+    s.initialize()
+    return s
+
+
+def _args_object(raw: str | None) -> dict:
+    if raw is None:
+        return {}
+    if raw == "-":
+        raw = sys.stdin.read()
+    raw = raw.strip()
+    if not raw:
+        return {}
+    try:
+        obj = json.loads(raw)
+    except json.JSONDecodeError as e:
+        die(f"arguments must be a JSON object: {e}")
+    if not isinstance(obj, dict):
+        die("arguments must be a JSON object (e.g. '{\"text\": \"hi\"}')")
+    return obj
+
+
+def cmd_tools(args: argparse.Namespace) -> int:
+    s = _load_session()
+    tools = s._rpc("tools/list").get("tools", [])
+    if args.json:
+        print(json.dumps(tools, indent=2))
+        return 0
+    for t in tools:
+        desc = (t.get("description") or "").splitlines()[0] if t.get("description") else ""
+        print(f"{t['name']:32}  {desc}")
+    print(f"\n{len(tools)} tools.", file=sys.stderr)
+    return 0
+
+
+def cmd_call(args: argparse.Namespace) -> int:
+    s = _load_session()
+    result = s._rpc("tools/call", {"name": args.name, "arguments": _args_object(args.args)})
+    is_error = result.get("isError", False)
+    for block in result.get("content", []):
+        if block.get("type") == "text":
+            text = block.get("text", "")
+            # Tool results are usually a JSON string; pretty-print if so.
+            try:
+                print(json.dumps(json.loads(text), indent=2))
+            except (json.JSONDecodeError, TypeError):
+                print(text)
+        else:
+            print(json.dumps(block, indent=2))
+    return 2 if is_error else 0
+
+
+def cmd_resources(args: argparse.Namespace) -> int:
+    s = _load_session()
+    resources = s._rpc("resources/list").get("resources", [])
+    if args.json:
+        print(json.dumps(resources, indent=2))
+        return 0
+    for r in resources:
+        print(f"{r.get('uri', '')}  —  {r.get('name', '')}")
+    print(f"\n{len(resources)} resources.", file=sys.stderr)
+    return 0
+
+
+def cmd_read(args: argparse.Namespace) -> int:
+    s = _load_session()
+    result = s._rpc("resources/read", {"uri": args.uri})
+    for block in result.get("contents", []):
+        if "text" in block:
+            print(block["text"])
+        else:
+            print(json.dumps(block, indent=2))
+    return 0
+
+
+def cmd_raw(args: argparse.Namespace) -> int:
+    s = _load_session()
+    params = _args_object(args.params) if args.params is not None else None
+    print(json.dumps(s._rpc(args.method, params), indent=2))
+    return 0
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(prog="farmhand", description=__doc__)
+    sub = p.add_subparsers(dest="cmd", required=True)
+
+    sp = sub.add_parser("tools", help="list tools")
+    sp.add_argument("--json", action="store_true", help="full schemas as JSON")
+    sp.set_defaults(func=cmd_tools)
+
+    sp = sub.add_parser("call", help="call a tool")
+    sp.add_argument("name")
+    sp.add_argument("args", nargs="?", help="JSON object of arguments, or '-' for stdin")
+    sp.set_defaults(func=cmd_call)
+
+    sp = sub.add_parser("resources", help="list resources")
+    sp.add_argument("--json", action="store_true")
+    sp.set_defaults(func=cmd_resources)
+
+    sp = sub.add_parser("read", help="read a resource by uri")
+    sp.add_argument("uri")
+    sp.set_defaults(func=cmd_read)
+
+    sp = sub.add_parser("raw", help="send any MCP method (escape hatch)")
+    sp.add_argument("method")
+    sp.add_argument("params", nargs="?", help="JSON params object, or '-' for stdin")
+    sp.set_defaults(func=cmd_raw)
+
+    args = p.parse_args()
+    try:
+        return args.func(args)
+    except MCPError as e:
+        die(str(e))
+
+
+if __name__ == "__main__":
+    sys.exit(main())
