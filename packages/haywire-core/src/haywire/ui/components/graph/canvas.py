@@ -27,6 +27,7 @@ _CANVAS_SETTING_PROPS: dict[str, str] = {
     "grid_size": "grid-size",
     "grid_subdivisions": "grid-subdivisions",
     "snap_to_grid": "snap-to-grid",
+    "snap_scale_to_grid": "snap-scale-to-grid",
 }
 
 # Hover-magnifier settings → Vue prop names. The magnifier lives in canvas.vue

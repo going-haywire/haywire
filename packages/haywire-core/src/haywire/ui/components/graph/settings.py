@@ -50,3 +50,9 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         description="Snap nodes to grid when moving",
         category="ui.canvas",
     )
+    snap_scale_to_grid = setting[BOOL](
+        True,
+        label="Snap Scale to Grid",
+        description="Snap the dragged edge to the grid when resizing a node",
+        category="ui.canvas",
+    )

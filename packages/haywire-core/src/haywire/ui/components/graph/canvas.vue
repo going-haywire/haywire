@@ -70,6 +70,7 @@ export default {
         gridSize:         { type: Number,  default: 20 },
         gridSubdivisions: { type: Number,  default: 5 },
         snapToGrid:       { type: Boolean, default: true },
+        snapScaleToGrid:  { type: Boolean, default: true },
         // Hover magnifier (readability aid; see _setupHoverObserver).
         hoverScaleEnabled:    { type: Boolean, default: true },
         hoverScaleMax:        { type: Number,  default: 1.5 },
@@ -437,16 +438,39 @@ export default {
             // axis hit its floor → return that axis to auto.
             let actualW = startW, actualH = startH;
 
+            // Snap the DRAGGED EDGE to the same grid step a node drag uses
+            // (gridSize / gridSubdivisions), so resize and drag obey one grid.
+            // We snap the moving edge's position (fixedEdge ± size), then derive
+            // the size from it — so the edge under the cursor lands on a grid
+            // line whatever the node's prior alignment. Gated on its OWN flag
+            // (snapScaleToGrid), independent of node-move snapping; off ⇒ raw px.
+            // The fixed edges (right when dragging left, etc.):
+            const fixedRight = startLeft + startW;   // used when movesX
+            const fixedBottom = startTop + startH;   // used when movesY
+            const subSz = this.snapScaleToGrid ? this.gridSize / this.gridSubdivisions : 0;
+            const snap = (v) => subSz > 0 ? Math.round(v / subSz) * subSz : v;
+
             const onMove = (ev) => {
                 const dx = (ev.clientX - startX) / scale;
                 const dy = (ev.clientY - startY) / scale;
                 let left = startLeft, top = startTop;
                 if (affW) {
-                    // No drag floor — clamp only to > 0 (keep positive).
-                    intentW = movesX ? Math.max(1, startW - dx) : Math.max(1, startW + dx);
+                    // No drag floor — clamp only to > 0 (keep positive). Snap the
+                    // moving edge: the left edge when movesX, else the right edge.
+                    if (movesX) {
+                        const newLeft = snap(startLeft + dx);
+                        intentW = Math.max(1, fixedRight - newLeft);
+                    } else {
+                        intentW = Math.max(1, snap(startLeft + startW + dx) - startLeft);
+                    }
                 }
                 if (affH) {
-                    intentH = movesY ? Math.max(1, startH - dy) : Math.max(1, startH + dy);
+                    if (movesY) {
+                        const newTop = snap(startTop + dy);
+                        intentH = Math.max(1, fixedBottom - newTop);
+                    } else {
+                        intentH = Math.max(1, snap(startTop + startH + dy) - startTop);
+                    }
                 }
                 // Min-size on the slot (never width/height — content may need
                 // more room and must expand the node, not get clipped).
