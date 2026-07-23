@@ -73,7 +73,7 @@ class GraphCanvasManager:
             session=self._session,
             visual_layer=self.visual_layer,
         )
-        self.interactions = InteractionHandlers(editor=self.editor)
+        self.interactions = InteractionHandlers(editor=self.editor, session=self._session)
 
         context_menu_provider = SessionContextMenuProvider(
             context=self._session.context,

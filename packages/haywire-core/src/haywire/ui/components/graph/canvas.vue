@@ -21,6 +21,29 @@
         <!-- Node container slot -->
         <div id="node-container" ref="nodeContainer" class="node-container" :style="nodeContainerTransform">
             <slot></slot>
+
+            <!-- Single-node resize gadget (content space; pan/zoom transforms it
+                 with the nodes). Wrapper is pointer-events:none so it never eats
+                 canvas gestures; only the 8 grips are interactive. -->
+            <div
+                v-if="resizeGadget.visible"
+                class="hw-resize-gadget"
+                data-testid="resize-gadget"
+                :style="{
+                    position: 'absolute',
+                    left: resizeGadget.left + 'px',
+                    top: resizeGadget.top + 'px',
+                    width: resizeGadget.width + 'px',
+                    height: resizeGadget.height + 'px',
+                    pointerEvents: 'none',
+                }"
+            >
+                <div v-for="h in ['top','bottom','left','right','top-left','top-right','bottom-left','bottom-right']"
+                     :key="h"
+                     class="hw-resize-grip"
+                     :data-handle="h"
+                     @mousedown="onResizeGripDown($event, h)"></div>
+            </div>
         </div>
 
     </div>
@@ -114,7 +137,13 @@ export default {
 
             // Toolbar gesture tracking — true while a pan/zoom drag is in progress
             // so we suppress and restore the selection-bounds toolbar during gestures.
-            _toolbarHiddenForGesture: false
+            _toolbarHiddenForGesture: false,
+
+            // Single-node resize gadget: an 8-handle transform box drawn in
+            // content space (inside #node-container) around the sole selected
+            // node. Zero per-node DOM — one gadget total. See _fitResizeGadget /
+            // onResizeGripDown. left/top/width/height are content-space px.
+            resizeGadget: { visible: false, nodeId: null, left: 0, top: 0, width: 0, height: 0 }
         };
     },
 
@@ -233,7 +262,11 @@ export default {
                             if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
                                 console.log(`-->  _setupObservers(): ${nodeId}`);
                                 this._updateEdgesForNode(nodeId);
-                            } 
+                                // Keep the resize gadget glued to the node it tracks.
+                                if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
+                                    this._fitResizeGadget();
+                                }
+                            }
                         }
                     }
                 });
@@ -285,6 +318,201 @@ export default {
                 scheduleEdgeUpdates();
                 this._onNodeHoverLeave(lodElement);
             });
+
+            // Measure the host slot for AUTO axes and write the size back to props.
+            this._attachSizeObserver(nodeElement);
+        },
+
+        _attachSizeObserver(nodeElement) {
+            // The host slot (.ui-node-slot) carries the applied size + clip and
+            // the data-size-adapt stamp (see UINode._apply_size). An auto axis
+            // has no inline size, so the slot hugs content and we report the
+            // measured offset back into props; a manual axis is user-owned and
+            // is skipped. Idempotent: disconnect-then-attach.
+            const slot = nodeElement.querySelector('.ui-node-slot');
+            if (!slot) return;
+            const nodeId = nodeElement.getAttribute('data-node-id');
+            if (!nodeId) return;
+            if (slot.__hwSizeObs) slot.__hwSizeObs.disconnect();
+
+            const emit = () => {
+                if (window.__hwResizeDragging) return;      // a gadget drag owns the axis
+                // Selection can grow the node (widgets appear) after the gadget
+                // was fitted — keep the gadget hugging the slot's live size.
+                if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
+                    this._fitResizeGadget();
+                }
+                const mode = slot.getAttribute('data-size-adapt') || 'auto';
+                const autoW = (mode === 'auto' || mode === 'manual_height');
+                const autoH = (mode === 'auto' || mode === 'manual_width');
+                const width = autoW ? slot.offsetWidth : null;
+                const height = autoH ? slot.offsetHeight : null;
+                if (width === null && height === null) return;
+                this.emitCanvasEvent(EventCreators.createNodeMeasured(nodeId, width, height));
+            };
+
+            const obs = new ResizeObserver(emit);
+            obs.observe(slot);
+            slot.__hwSizeObs = obs;
+        },
+
+        // =============================================================================
+        // RESIZE GADGET (single-node, 8 handles, content space)
+        // =============================================================================
+
+        /** Return the node's [data-node-id] container and its .ui-node-slot child,
+         *  or null if either is missing. Position lives on the container (left/top);
+         *  applied size + clip live on the slot. */
+        _resizeParts(nodeId) {
+            const container = document.querySelector(`[data-node-id="${nodeId}"]`);
+            if (!container) return null;
+            const slot = container.querySelector('.ui-node-slot');
+            if (!slot) return null;
+            return { container, slot };
+        },
+
+        _fitResizeGadget() {
+            const ids = Array.from(this.selectionState.selectedNodes);
+            if (ids.length !== 1) { this.resizeGadget.visible = false; return; }
+            const nodeId = ids[0];
+            const parts = this._resizeParts(nodeId);
+            if (!parts) { this.resizeGadget.visible = false; return; }
+            const { container, slot } = parts;
+            // A tracked node holds its REAL size: the gadget is fit from layout
+            // size, which the hover-magnify transform doesn't change — snap any
+            // active magnify back (and _magnifySuppressedFor blocks new ones).
+            const lod = container.querySelector('.zoom-pan-lod0');
+            if (lod && lod._magnified) {
+                if (lod._magnifyExitTimer) { clearTimeout(lod._magnifyExitTimer); lod._magnifyExitTimer = null; }
+                this._clearMagnify(lod);
+            }
+            // Content-space position is the container's inline left/top (the same
+            // space #node-container — and thus the gadget — lives in).
+            const left = parseFloat(container.style.left) || 0;
+            const top = parseFloat(container.style.top) || 0;
+            this.resizeGadget = {
+                visible: true, nodeId,
+                left, top, width: slot.offsetWidth, height: slot.offsetHeight,
+            };
+        },
+
+        onResizeGripDown(e, handle) {
+            e.preventDefault();
+            e.stopPropagation();
+            const nodeId = this.resizeGadget.nodeId;
+            const parts = this._resizeParts(nodeId);
+            if (!parts) return;
+            const { container, slot } = parts;
+            window.__hwResizeDragging = true;
+
+            const scale = this.zoomState.zoom || 1;
+            const startX = e.clientX, startY = e.clientY;
+            const startW = slot.offsetWidth, startH = slot.offsetHeight;
+            const startLeft = parseFloat(container.style.left) || 0;
+            const startTop = parseFloat(container.style.top) || 0;
+            const movesX = handle.includes('left');
+            const movesY = handle.includes('top');
+            const affW = handle !== 'top' && handle !== 'bottom';
+            const affH = handle !== 'left' && handle !== 'right';
+
+            // Merge the dragged axis with any axis already manual, so a height
+            // drag on a manual_width node yields 'manual' instead of silently
+            // dropping the width lock. Stamp the merged mode immediately: the
+            // card-fill CSS keys off data-size-adapt, and stamping only at
+            // commit would leave the card clamped (max-w-sm) during the drag.
+            const prevMode = slot.getAttribute('data-size-adapt') || 'auto';
+            const manW = affW || prevMode === 'manual_width' || prevMode === 'manual';
+            const manH = affH || prevMode === 'manual_height' || prevMode === 'manual';
+            const size_adapt = (manW && manH) ? 'manual' : manW ? 'manual_width' : 'manual_height';
+            slot.setAttribute('data-size-adapt', size_adapt);
+
+            // The dragged size is the user's intended MINIMUM (see
+            // UINode._apply_size) — the slot may refuse to go below its
+            // content size. Track the intent separately from the gadget, which
+            // always shows the slot's ACTUAL size (so a shrink drag visibly
+            // "resists" at the content floor instead of detaching).
+            let intentW = startW, intentH = startH;
+            // Last actual slot size seen in onMove (the content floor when a
+            // shrink is resisted). Compared to intent at commit to decide if an
+            // axis hit its floor → return that axis to auto.
+            let actualW = startW, actualH = startH;
+
+            const onMove = (ev) => {
+                const dx = (ev.clientX - startX) / scale;
+                const dy = (ev.clientY - startY) / scale;
+                let left = startLeft, top = startTop;
+                if (affW) {
+                    // No drag floor — clamp only to > 0 (keep positive).
+                    intentW = movesX ? Math.max(1, startW - dx) : Math.max(1, startW + dx);
+                }
+                if (affH) {
+                    intentH = movesY ? Math.max(1, startH - dy) : Math.max(1, startH + dy);
+                }
+                // Min-size on the slot (never width/height — content may need
+                // more room and must expand the node, not get clipped).
+                if (affW) { slot.style.minWidth = intentW + 'px'; slot.style.width = ''; }
+                if (affH) { slot.style.minHeight = intentH + 'px'; slot.style.height = ''; }
+                // Read back what the layout actually produced (content floor).
+                actualW = slot.offsetWidth; actualH = slot.offsetHeight;
+                // Pin the opposite edge using the ACTUAL size, so a resisted
+                // shrink doesn't slide the node.
+                if (movesX) left = startLeft + (startW - actualW);
+                if (movesY) top = startTop + (startH - actualH);
+                container.style.left = left + 'px';
+                container.style.top = top + 'px';
+                this.resizeGadget.left = left; this.resizeGadget.top = top;
+                this.resizeGadget.width = actualW; this.resizeGadget.height = actualH;
+                this._updateEdgesForNode(nodeId);
+            };
+            const onUp = () => {
+                document.removeEventListener('mousemove', onMove, true);
+                document.removeEventListener('mouseup', onUp, true);
+                window.__hwResizeDragging = false;
+
+                // Per-axis floor detection: if the user dragged an axis below
+                // its content floor, that axis returns to AUTO — the gadget was
+                // "stuck". Measure the TRUE content floor by clearing the inline
+                // min and reading the content-driven size (the running actualW
+                // can equal intent while shrinking freely, so it can't tell
+                // "shrank" from "stuck" on its own). Restore the drag min right
+                // after so nothing visibly flickers before the commit restyles.
+                const SLOP = 4;  // px — a hair below the floor shouldn't reset
+                let floorW = actualW, floorH = actualH;
+                if (affW) {
+                    slot.style.minWidth = '';
+                    floorW = slot.offsetWidth;
+                    slot.style.minWidth = intentW + 'px';
+                }
+                if (affH) {
+                    slot.style.minHeight = '';
+                    floorH = slot.offsetHeight;
+                    slot.style.minHeight = intentH + 'px';
+                }
+                const wHitFloor = affW && intentW < floorW - SLOP;
+                const hHitFloor = affH && intentH < floorH - SLOP;
+                const keepW = manW && !wHitFloor;
+                const keepH = manH && !hHitFloor;
+                const commitMode = (keepW && keepH) ? 'manual'
+                                 : keepW ? 'manual_width'
+                                 : keepH ? 'manual_height' : 'auto';
+                // A reset axis leaves its prop untouched — the ResizeObserver
+                // repopulates it from content within a frame (the existing
+                // return-to-auto semantics). Send the intent for kept axes, the
+                // content floor for reset axes.
+                const width = keepW ? intentW : floorW;
+                const height = keepH ? intentH : floorH;
+
+                let posX = null, posY = null;
+                if (movesX || movesY) {
+                    posX = parseFloat(container.style.left) || startLeft;
+                    posY = parseFloat(container.style.top) || startTop;
+                }
+                this.emitCanvasEvent(
+                    EventCreators.createUserResizeEnd(nodeId, width, height, commitMode, posX, posY)
+                );
+            };
+            document.addEventListener('mousemove', onMove, true);
+            document.addEventListener('mouseup', onUp, true);
         },
 
         // ── Hover magnifier ───────────────────────────────────────────────────
@@ -314,6 +542,17 @@ export default {
             return this.dragState.isDragging;
         },
 
+        /** True if THIS node must not magnify: the resize gadget tracks it.
+         *  The gadget is fit from layout size (offsetWidth/Height), which a
+         *  magnify transform doesn't change — a magnified tracked node would
+         *  render larger than its gadget. A node under resize focus holds its
+         *  real size. */
+        _magnifySuppressedFor(lodElement) {
+            if (!this.resizeGadget.visible) return false;
+            const container = lodElement.closest('[data-node-id]');
+            return !!container && container.dataset.nodeId === this.resizeGadget.nodeId;
+        },
+
         _onNodeHoverEnter(lodElement) {
             // Clear any pending release so re-entering keeps it magnified.
             if (lodElement._magnifyExitTimer) {
@@ -321,15 +560,16 @@ export default {
                 lodElement._magnifyExitTimer = null;
             }
             if (!this.hoverScaleEnabled) return;
-            if (this._magnifySuppressed()) return;
+            if (this._magnifySuppressed() || this._magnifySuppressedFor(lodElement)) return;
             // Already magnified (re-enter after a cancelled exit) — nothing to do.
             if (lodElement._magnified) return;
 
             const arm = () => {
                 lodElement._magnifyEnterTimer = null;
                 // Re-check on fire: pointer may have moved / a gesture may have
-                // started during the dwell.
-                if (!this.hoverScaleEnabled || this._magnifySuppressed()) return;
+                // started during the dwell (e.g. the node got selected).
+                if (!this.hoverScaleEnabled || this._magnifySuppressed()
+                    || this._magnifySuppressedFor(lodElement)) return;
                 const scale = this._magnifyScaleForZoom();
                 if (scale <= 1.0) return;  // nothing to do at/above cutoff
                 this._applyMagnify(lodElement, scale);
@@ -539,6 +779,11 @@ export default {
             const nodeElement = document.querySelector(`[data-node-id="${nodeId}"]`);
             if (nodeElement) {
                 this._updateEdgesForNode(nodeId);
+                // Server-driven move (undo/redo, arrange, farmhand): keep the
+                // resize gadget glued to the node it tracks.
+                if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
+                    this._fitResizeGadget();
+                }
             }
         },
 
@@ -698,6 +943,9 @@ export default {
             const active = data.active || { kind: '', id: '' };
             this._setActive(active.kind, active.id);
 
+            // Show the resize gadget only for a single-node selection.
+            this._fitResizeGadget();
+
             console.log(`🔄 Synced selections: ${(nodes || []).length} nodes, ${(connections || []).length} connections`);
         },
 
@@ -723,6 +971,11 @@ export default {
         _syncNodeRedraw(data) {
             const { nodeId } = data;
             this._addNodeObserver(nodeId);
+            // A redraw may have changed the node's measured size; refit the
+            // gadget if it's tracking this node.
+            if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
+                this._fitResizeGadget();
+            }
         },
 
         _syncEdgesUpdate(data) {
@@ -785,6 +1038,15 @@ export default {
 
             // Invalidate cached container rect at the start of every gesture
             this._cachedNodeContainerRect = null;
+
+            // 0b. Skip resize-gadget grips — onResizeGripDown owns the gesture.
+            //     Grips overlap the node's drag area (negative offsets), and the
+            //     body capture listener runs before the grip's bubble-phase
+            //     @mousedown, so this guard (not stopPropagation) is what keeps a
+            //     grip drag from also starting a node move / box-select.
+            if (target.closest('.hw-resize-grip')) {
+                return;
+            }
 
             // 1. Skip if clicking inside a popup - let popup handle it.
             //    This must run before active-mode so popup interactions
@@ -1242,6 +1504,11 @@ export default {
                         element.element.style.left = `${newX}px`;
                         element.element.style.top = `${newY}px`;
                         this._updateEdgesForNode(element.id);
+                        // Keep the resize gadget glued to the node it tracks
+                        // (the drag writes style directly — no observer fires).
+                        if (this.resizeGadget.visible && this.resizeGadget.nodeId === element.id) {
+                            this._fitResizeGadget();
+                        }
                     }
                 }
             });
@@ -1444,6 +1711,10 @@ export default {
                 activeEdgeId
             ));
             this._emitSelectionBounds();
+            // Local (interactive) selection path — refit the resize gadget. The
+            // programmatic path refits from _syncSelections. The gadget's own
+            // "exactly one node" guard keeps this correct for any selection size.
+            this._fitResizeGadget();
         },
 
         /** The visible viewport rect of the ZoomPanContainer (overflow:hidden),
@@ -2736,6 +3007,55 @@ export default {
     border-radius: 2px;
 }
 
+/* Single-node resize gadget: a thin accent outline + 8 edge/corner grips.
+   Wrapper is pointer-events:none (set inline); only the grips are interactive.
+   Colors ride the selection token (falls back to the accent) — no hardcoded
+   blues (design rule). */
+.hw-resize-gadget {
+    --hw-grip: var(--hw-node-selected, var(--hw-accent, #4a90e2));
+    z-index: 1002;
+    outline: 1px solid color-mix(in srgb, var(--hw-grip) 70%, transparent);
+    outline-offset: 0;
+}
+
+.hw-resize-grip {
+    position: absolute;
+    pointer-events: auto;
+    z-index: 1003;
+}
+
+/* Edge grips: invisible strips spanning the edge (hit area only). */
+.hw-resize-grip[data-handle="right"]  { top: 0; right: -4px; width: 8px; height: 100%; cursor: ew-resize; background: transparent; }
+.hw-resize-grip[data-handle="left"]   { top: 0; left: -4px; width: 8px; height: 100%; cursor: ew-resize; background: transparent; }
+.hw-resize-grip[data-handle="bottom"] { left: 0; bottom: -4px; height: 8px; width: 100%; cursor: ns-resize; background: transparent; }
+.hw-resize-grip[data-handle="top"]    { left: 0; top: -4px; height: 8px; width: 100%; cursor: ns-resize; background: transparent; }
+
+/* Corner grips: hollow circles — canvas-fill center, accent ring, so they
+   read over any node content. Centered on the corner via a -50% offset. */
+.hw-resize-grip[data-handle="bottom-right"],
+.hw-resize-grip[data-handle="top-left"],
+.hw-resize-grip[data-handle="top-right"],
+.hw-resize-grip[data-handle="bottom-left"] {
+    width: 11px;
+    height: 11px;
+    border-radius: 50%;
+    background: var(--hw-canvas-bg, #12141a);
+    border: 1.5px solid var(--hw-grip);
+    box-sizing: border-box;
+    transition: transform 0.08s ease, background 0.08s ease;
+}
+.hw-resize-grip[data-handle="bottom-right"] { right: 0; bottom: 0; transform: translate(50%, 50%);   cursor: nwse-resize; }
+.hw-resize-grip[data-handle="top-left"]     { left: 0;  top: 0;    transform: translate(-50%, -50%); cursor: nwse-resize; }
+.hw-resize-grip[data-handle="top-right"]    { right: 0; top: 0;    transform: translate(50%, -50%);  cursor: nesw-resize; }
+.hw-resize-grip[data-handle="bottom-left"]  { left: 0;  bottom: 0; transform: translate(-50%, 50%);  cursor: nesw-resize; }
+
+/* Hover: fill the circle and swell slightly (compose with the corner's own
+   translate so the dot stays centered on its corner). */
+.hw-resize-grip[data-handle="bottom-right"]:hover { background: var(--hw-grip); transform: translate(50%, 50%)   scale(1.25); }
+.hw-resize-grip[data-handle="top-left"]:hover     { background: var(--hw-grip); transform: translate(-50%, -50%) scale(1.25); }
+.hw-resize-grip[data-handle="top-right"]:hover    { background: var(--hw-grip); transform: translate(50%, -50%)  scale(1.25); }
+.hw-resize-grip[data-handle="bottom-left"]:hover  { background: var(--hw-grip); transform: translate(-50%, 50%)  scale(1.25); }
+
 .graph-canvas.box-selecting {
     cursor: crosshair !important;
 }
@@ -2881,6 +3201,26 @@ path.connection-invalid {
 
 path.connection-warning {
     filter: drop-shadow(0 0 4px rgba(245, 158, 11, 0.5));
+}
+
+/* Manual-size axes are user MINIMUMS applied to the host slot (min-width /
+   min-height in UINode._apply_size); content needing more space expands the
+   node — nothing clips. The card must track the slot both ways, so the skin's
+   own clamps (w-full min-w-64 max-w-sm) are released. Flex mechanics (the
+   slot is a flex column) rather than percentages: `align-self: stretch` fills
+   the cross axis (width) whatever the slot resolves to, `flex: 1 0 auto`
+   grows the card into a min-height slot without ever shrinking below its
+   content. */
+.ui-node-slot[data-size-adapt="manual"] .node-card,
+.ui-node-slot[data-size-adapt="manual_width"] .node-card {
+    align-self: stretch !important;
+    width: auto !important;
+    min-width: 0 !important;
+    max-width: none !important;
+}
+.ui-node-slot[data-size-adapt="manual"] .node-card,
+.ui-node-slot[data-size-adapt="manual_height"] .node-card {
+    flex: 1 0 auto !important;
 }
 
 [data-node-id] .widget-container {

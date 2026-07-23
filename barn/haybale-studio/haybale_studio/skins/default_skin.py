@@ -104,10 +104,6 @@ class DefaultNodeSkin(NodeSkin):
                             port_type=PortType.INLET,
                         )
 
-        # Add resize handle in bottom-right corner
-        if self._ui_settings.show_resize_handle:
-            self._add_resize_handle(main_card, wrapper)
-
     def _render_port_hierarchy(self, ports: List[DataPort], wrapper: NodeWrapper, port_type: PortType):
         """
         Render ports with hierarchical group structure.

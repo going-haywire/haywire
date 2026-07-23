@@ -103,6 +103,37 @@ class UserDragEndEvent(BaseGraphEvent):
     nodes: List[str]  # List of node IDs that were dragged
 
 
+@graph_event(
+    "userResizeEnd",
+    category="user",
+    description="User finished resizing a node via the gadget",
+)
+@dataclass
+class UserResizeEndEvent(BaseGraphEvent):
+    nodeId: str
+    width: float
+    height: float
+    size_adapt: str
+    # Present only for top/left/relevant-corner drags that also moved the origin
+    # (resize + move composition, opposite edge pinned). None = size-only commit.
+    posX: Optional[float] = None
+    posY: Optional[float] = None
+
+
+@graph_event(
+    "nodeMeasured",
+    category="user",
+    description="A node's host slot was measured by the ResizeObserver (auto-axis write-back)",
+)
+@dataclass
+class NodeMeasuredEvent(BaseGraphEvent):
+    nodeId: str
+    # Only the AUTO axes are reported; a manual axis is owned by the user and
+    # is omitted so measurement never overwrites it. None = axis is manual.
+    width: Optional[float] = None
+    height: Optional[float] = None
+
+
 @graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")
 @dataclass
 class NodeCreateRequestEvent(BaseGraphEvent):

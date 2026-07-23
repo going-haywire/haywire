@@ -188,55 +188,6 @@ class NodeSkin(BaseSkin, ABC):
             if self._ui_settings.show_tooltips:
                 add_pin_tooltip(pin_el, pin)
 
-    def _add_resize_handle(self, main_card: ui.card, wrapper: NodeWrapper):
-        """Add a draggable resize handle to the bottom-right corner."""
-
-        # Resize handle element
-        with (
-            ui.element("div")
-            .classes("resize-handle")
-            .style(
-                "position: absolute; "
-                "bottom: 0; "
-                "right: 0; "
-                "width: 16px; "
-                "height: 16px; "
-                "cursor: nwse-resize; "
-                "background: linear-gradient(135deg, transparent 50%, var(--hw-ghost-pin) 50%); "
-                "z-index: 1000;"
-            ) as handle
-        ):
-            # Add JavaScript for drag functionality
-            handle.on(
-                "mousedown",
-                js_handler="""
-                (e) => {
-                    e.preventDefault();
-                    e.stopPropagation();
-                    
-                    const card = e.target.closest('.node-card');
-                    const startX = e.clientX;
-                    const startWidth = parseInt(getComputedStyle(card).width);
-                    
-                    const onMouseMove = (e) => {
-                        const newWidth = startWidth + (e.clientX - startX);
-                        if (newWidth >= 256) { // min-w-64 = 256px
-                            card.style.width = newWidth + 'px';
-                            card.style.maxWidth = 'none';
-                        }
-                    };
-                    
-                    const onMouseUp = () => {
-                        document.removeEventListener('mousemove', onMouseMove);
-                        document.removeEventListener('mouseup', onMouseUp);
-                    };
-                    
-                    document.addEventListener('mousemove', onMouseMove);
-                    document.addEventListener('mouseup', onMouseUp);
-                }
-            """,
-            )
-
     def _render_root_ghost_pins(self, wrapper: NodeWrapper):
         """
         Render inline ghost pins into the current flex-row context (the header row).

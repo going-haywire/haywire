@@ -28,13 +28,6 @@ class NodeSkinSettings(LibrarySettings):
         description="Display tooltips on port hover",
         category="visibility",
     )
-    show_resize_handle = setting[BOOL](
-        True,
-        label="Show Resize Handle",
-        description="Display the drag handle for resizing nodes",
-        category="visibility",
-    )
-
     # Pin geometry
     pin_gutter = setting[INT](
         20,

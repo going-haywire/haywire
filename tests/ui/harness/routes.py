@@ -134,6 +134,24 @@ def _build_dynamic_graph(node_factory):
     return graph, editor, dyn
 
 
+def _build_size_graph(node_factory):
+    """A single node, for the node-sizing gadget/measure tests.
+
+    One TestPrintNode is enough: the sizing feature is per-node and needs no
+    edges. Returns (graph, editor, node) so the route can drive size props and
+    the test can select/resize it. See test_node_size_measure / test_resize_gadget.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("size_fixture", "Size Fixture")
+    editor = Editor(graph, node_factory)
+
+    node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
+    assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
+    return graph, editor, node
+
+
 class _HarnessProjectState:
     """Minimal IProjectState stand-in for harness routes that need a Session.
 
@@ -447,6 +465,49 @@ def register_routes(library_service) -> None:
         ui.button("restore-port", on_click=lambda: _set_port_count(2)).props('data-testid="restore-port"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="dynamic")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-size
+    #
+    # A single node on the full editor stack, for the node-sizing feature:
+    #   - the host slot applies per-axis MINIMUM size (UINode._apply_size);
+    #     content needing more space expands the node — nothing clips
+    #   - the ResizeObserver measures auto axes back into props
+    #   - the single-node 8-handle resize gadget in canvas.vue
+    # Server-side buttons set size props deterministically so a browser test can
+    # assert the slot honors the minimum (manual) / hugs content (auto) without
+    # reaching into the editor from JS. Backs test_node_sizing.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-size")
+    async def graph_size_page():
+        graph, editor, node = _build_size_graph(library_service.get_node_factory())
+        node_id = node.node_id
+
+        def _set_manual_width_140() -> None:
+            editor.set_property(node_id, "size_adapt", "manual_width")
+            editor.set_property(node_id, "width", 140.0)
+
+        def _set_manual_width_500() -> None:
+            editor.set_property(node_id, "size_adapt", "manual_width")
+            editor.set_property(node_id, "width", 500.0)
+
+        def _set_auto() -> None:
+            editor.set_property(node_id, "size_adapt", "auto")
+
+        # Controls outside the canvas so they never intercept canvas gestures.
+        ui.button("size-manual-width", on_click=_set_manual_width_140).props(
+            'data-testid="size-manual-width"'
+        )
+        ui.button("size-manual-width-wide", on_click=_set_manual_width_500).props(
+            'data-testid="size-manual-width-wide"'
+        )
+        ui.button("size-auto", on_click=_set_auto).props('data-testid="size-auto"')
+        # Expose the single node's id so the test can target it directly.
+        ui.label(node_id).props(f'id="size-node-id" data-testid="size-node-id" data-node="{node_id}"')
+
+        _mount_graph_canvas(library_service, graph, editor, testid="size")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

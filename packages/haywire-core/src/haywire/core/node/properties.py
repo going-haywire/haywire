@@ -13,7 +13,7 @@ from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
 from haywire.core.skin.settings import _node_skin_choices
-from haywire.barn.builtin.types import BOOL, COLOR, FLOAT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, FLOAT, STRING
 
 
 class NodeProperties(NodeSettings):
@@ -121,10 +121,29 @@ class NodeProperties(NodeSettings):
 
     posX = setting[FLOAT](0.0, order=10, category="layout")
     posY = setting[FLOAT](0.0, order=20, category="layout")
-    width = setting[FLOAT](0.0, order=30, category="layout")
-    height = setting[FLOAT](0.0, order=40, category="layout")
-    width_min = setting[FLOAT](-1.0, order=50, category="layout")
-    height_min = setting[FLOAT](-1.0, order=60, category="layout")
+    # Size — a valid pair from birth (200/200 bootstrap for headless nodes).
+    # size_adapt discriminates per axis: an "auto" axis is measured from render
+    # (written back by the ResizeObserver in ui_node.py); a "manual" axis is
+    # fixed by the user's resize gadget. Applied to the host slot as a
+    # style-write — see UINode._apply_size (no card redraw). width/height stay
+    # OUT of REDRAW_FIELDS.
+    width = setting[INT](200, order=30, category="layout")
+    height = setting[INT](200, order=40, category="layout")
+    size_adapt = setting[CHOICES](
+        "auto",
+        widget_config={
+            "options": {
+                "auto": "Auto",
+                "manual_width": "Manual width · auto height",
+                "manual_height": "Manual height · auto width",
+                "manual": "Manual (both)",
+            }
+        },
+        label="Size Adapt",
+        description="Per-axis manual control of node card size",
+        order=50,
+        category="layout",
+    )
 
     # -----------------------------------------------------------------
     # Convenience helpers

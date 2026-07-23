@@ -65,6 +65,35 @@ def test_set_settings_field_and_undo(graph_and_editor):
     assert bag.persistent_value == before
 
 
+def test_prefer_setting_beats_port_name_collision(graph_and_editor):
+    """A port named like a settings field (e.g. a 'width' outlet colliding with
+    props.width) must not swallow a prefer_setting write — regression: the
+    resize commit didn't stick on nodes with width/height outlets."""
+    from haywire.barn.builtin.types import FLOAT
+
+    graph, editor = graph_and_editor
+    wrapper = _add_node(editor)
+    node = wrapper.node
+    node.add(FLOAT.as_outlet("width", label="Width"))
+    node.ports["width"].set_value(7.0)
+    props_before = node.props.width
+
+    # Default resolution: port wins.
+    assert editor.set_property(wrapper.node_id, "width", 999.0) is True
+    assert node.ports["width"].get_value() == 999.0
+    assert node.props.width == props_before
+
+    # prefer_setting: the settings bag wins.
+    assert editor.set_property(wrapper.node_id, "width", 333.0, prefer_setting=True) is True
+    assert node.props.width == 333.0
+    assert node.ports["width"].get_value() == 999.0  # port untouched
+
+    # Undo restores the bag write, not the port.
+    assert editor.undo() is True
+    assert node.props.width == props_before
+    assert node.ports["width"].get_value() == 999.0
+
+
 def test_unknown_node_returns_false(graph_and_editor):
     _, editor = graph_and_editor
     assert editor.set_property("no_such_node", "x", 1) is False

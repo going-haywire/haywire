@@ -68,6 +68,8 @@ class UINode:
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
+        self._subscribe_size_fields()
+
     @property
     def position(self) -> Optional[tuple[float, float]]:
         return self._position
@@ -198,6 +200,7 @@ class UINode:
                     self.current_ui_card.append(error)  # Append error details if any
 
                 self._emit_sync_event_redraw()
+                self._apply_size()
 
                 return True  # Render successful
         except Exception as e:
@@ -222,6 +225,55 @@ class UINode:
             ).enrich(registry_key=renderer_name).log()
 
             return False
+
+    def _on_size_field_change(self, _value: Any, _old: Any) -> None:
+        """A width/height/size_adapt change → restyle the slot. NEVER a redraw.
+
+        This is the loop-breaker: measurement (ResizeObserver) writes props,
+        which lands here and only restyles the slot — no card rebuild, so no
+        re-measure cascade.
+        """
+        self._apply_size()
+
+    def _subscribe_size_fields(self) -> None:
+        """Watch the three size-affecting props for the style-write path."""
+        props = self.wrapper.node.props
+        for field_name in ("width", "height", "size_adapt"):
+            props.subscribe_field(field_name, self._on_size_field_change)
+
+    def _apply_size(self) -> None:
+        """Apply per-axis size to the host slot as a style-write (no card redraw).
+
+        A ``manual`` axis is a user-defined MINIMUM: written as inline
+        ``min-width``/``min-height``, so the node draws at that size but content
+        needing more space expands it — nothing is ever clipped (pins, widgets
+        and attached edges stay intact). An ``auto`` axis carries no inline
+        size, so the slot sizes to its card's content and the ResizeObserver
+        (see :meth:`_attach_size_observer`) measures it back into props.
+        ``data-size-adapt`` is stamped so the client-side observer can skip
+        manual axes and the card-fill CSS (canvas.vue) can key off it.
+
+        Idempotent: called after every render and on every size-field change.
+        """
+        if not self.container_slot:
+            return
+        props = self.wrapper.node.props
+        mode = props.size_adapt
+        manual_w = mode in ("manual_width", "manual")
+        manual_h = mode in ("manual_height", "manual")
+
+        decls: list[str] = []
+        if manual_w:
+            decls.append(f"min-width: {props.width}px")
+        if manual_h:
+            decls.append(f"min-height: {props.height}px")
+
+        # replace= (not add=) so the write is authoritative every call: an
+        # auto axis clears any inline width/height a prior manual mode left,
+        # rather than merging stale declarations.
+        self.container_slot.style(replace="; ".join(decls))
+        self.container_slot._props["data-size-adapt"] = mode
+        self.container_slot.update()
 
     def _emit_sync_event_redraw(self):
         """

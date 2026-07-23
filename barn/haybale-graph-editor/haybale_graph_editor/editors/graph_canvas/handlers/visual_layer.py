@@ -22,6 +22,7 @@ from haywire.core.node import BaseNode
 
 from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
+    NodeMeasuredEvent,
     NodeCreateRequestEvent,
     SplitEdgeWithRerouteEvent,
     DissolveRerouteEvent,
@@ -379,6 +380,27 @@ class VisualLayerHandlers:
     # -------------------------------------------------------------------------
     # Event handlers — graph mutation requests
     # -------------------------------------------------------------------------
+
+    @handles_event(NodeMeasuredEvent)
+    def process_node_measured(self, event: NodeMeasuredEvent):
+        """Write a measured auto-axis size back into the node's props.
+
+        The ResizeObserver (see UINode._attach_size_observer) reports
+        offsetWidth/offsetHeight for AUTO axes only; a manual axis is omitted
+        (``None``) so measurement never clobbers a user-fixed size. The write
+        goes straight to ``props`` (NOT through the editor) so it is not
+        undoable and does not trigger a card redraw — it lands on the size
+        subscriber (UINode._on_size_field_change), which only restyles the
+        slot. Epsilon-gated ~1px so sub-pixel jitter doesn't churn props.
+        """
+        ui_node = self.node_panels.get(event.nodeId)
+        if ui_node is None:
+            return
+        props = ui_node.wrapper.node.props
+        if event.width is not None and abs(event.width - props.width) > 1.0:
+            props.width = float(event.width)
+        if event.height is not None and abs(event.height - props.height) > 1.0:
+            props.height = float(event.height)
 
     @handles_event(UserRemoveEvent)
     def process_element_removal(self, event: UserRemoveEvent):

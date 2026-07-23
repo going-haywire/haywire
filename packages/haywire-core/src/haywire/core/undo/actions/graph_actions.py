@@ -782,14 +782,20 @@ class SetPropertyAction(ActionBase):
     then against its settings bags (field name -> settings-bag write). This is
     the one deliberate new core mutation surface mandated by the Farmhand spec:
     the raw settings/port write paths are non-undoable and not id-addressable.
+
+    ``prefer_setting=True`` flips the resolution order (settings bags first),
+    for callers that mean a settings field even when a port shares the name —
+    e.g. the resize commit writing ``props.width`` on a node that also has a
+    ``width`` outlet.
     """
 
-    def __init__(self, graph: BaseGraph, node_id: str, name: str, value: Any):
+    def __init__(self, graph: BaseGraph, node_id: str, name: str, value: Any, prefer_setting: bool = False):
         super().__init__(description=f"Set '{name}' on {node_id}")
         self.graph = graph
         self.node_id = node_id
         self.name = name
         self.new_value = value
+        self.prefer_setting = prefer_setting
         self._old_value: Any = None
 
     def _resolve(self) -> Tuple[Any, str, Optional[str]]:
@@ -798,11 +804,25 @@ class SetPropertyAction(ActionBase):
         if wrapper is None:
             raise ValueError(f"Node '{self.node_id}' not found")
         node = wrapper.node
-        if self.name in node.ports:
-            return node, "port", None
-        for accessor in type(node)._settings_bags:
-            bag = getattr(node, accessor)
-            if self.name in type(bag)._property_settings():
+
+        def _find_bag() -> Optional[str]:
+            for accessor in type(node)._settings_bags:
+                bag = getattr(node, accessor)
+                if self.name in type(bag)._property_settings():
+                    return accessor
+            return None
+
+        if self.prefer_setting:
+            accessor = _find_bag()
+            if accessor is not None:
+                return node, "setting", accessor
+            if self.name in node.ports:
+                return node, "port", None
+        else:
+            if self.name in node.ports:
+                return node, "port", None
+            accessor = _find_bag()
+            if accessor is not None:
                 return node, "setting", accessor
         raise ValueError(f"Node '{self.node_id}' has no port or setting named '{self.name}'")
 

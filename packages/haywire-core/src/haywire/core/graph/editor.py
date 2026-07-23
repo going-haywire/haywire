@@ -143,14 +143,17 @@ class Editor:
             logger.error(f"Error moving nodes to absolute positions: {e}")
             return False
 
-    def set_property(self, node_id: str, name: str, value: Any) -> bool:
+    def set_property(self, node_id: str, name: str, value: Any, prefer_setting: bool = False) -> bool:
         """Set a port value or settings-bag field on a node, undo-recorded.
 
-        ``name`` resolves to a port id first, then a settings-bag field name.
+        ``name`` resolves to a port id first, then a settings-bag field name;
+        ``prefer_setting=True`` flips that order for callers that mean a
+        settings field even when a port shares the name (e.g. the resize
+        commit writing ``props.width`` on a node with a ``width`` outlet).
         Returns False (without mutating) if the node or name is unknown.
         """
         try:
-            action = SetPropertyAction(self.graph, node_id, name, value)
+            action = SetPropertyAction(self.graph, node_id, name, value, prefer_setting=prefer_setting)
             # Pre-validate: the history manager swallows execute() failures, so
             # resolve the target up front to distinguish a real set from a miss.
             action._resolve()

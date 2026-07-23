@@ -7,7 +7,11 @@ window.GraphEvents = {
     USER_DRAG_START: 'userDragStart', // User started dragging nodes
     USER_DRAG_UPDATE: 'userDragUpdate', // User is dragging nodes
     USER_DRAG_END: 'userDragEnd', // User finished dragging nodes
+    USER_RESIZE_END: 'userResizeEnd', // User finished resizing a node via the gadget
+    NODE_MEASURED: 'nodeMeasured', // A node's host slot was measured by the ResizeObserver (auto-axis write-back)
     NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
+    SPLIT_EDGE_WITH_REROUTE: 'splitEdgeWithReroute', // Split a data edge and insert a reroute node from the edge context menu
+    DISSOLVE_REROUTE: 'dissolveReroute', // Dissolve a reroute node and bridge its connections
     EDGE_CREATED: 'edgeCreated', // New connection created
     EDGE_CLICKED: 'edgeClicked', // Connection clicked
     ELEMENT_REDRAW: 'elementRedraw', // redraw selected element
@@ -19,7 +23,6 @@ window.GraphEvents = {
     USER_REMOVE: 'userRemove', // User wants to remove elements
     USER_COPY_SELECTED: 'userCopySelected', // Copy selected elements to clipboard
     CONTEXT_MENU_CANVAS: 'contextMenuCanvas', // Canvas context menu triggered
-    CONTEXT_MENU_NODE: 'contextMenuNode', // Node context menu triggered
     CONTEXT_MENU_EDGE: 'contextMenuEdge', // Connection context menu triggered
     CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
     CONTEXT_MENU_CUSTOM: 'contextMenuCustom', // Custom-scope context menu triggered via data-hw-custom-menu-focus-id attribute
@@ -78,12 +81,52 @@ window.EventCreators = {
     };
   },
 
+  createUserResizeEnd(nodeId, width, height, size_adapt, posX, posY, sessionId = 'default') {
+    return {
+      event_type: 'userResizeEnd',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodeId, width, height, size_adapt, posX, posY },
+      requires_broadcast: true
+    };
+  },
+
+  createNodeMeasured(nodeId, width, height, sessionId = 'default') {
+    return {
+      event_type: 'nodeMeasured',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { nodeId, width, height },
+      requires_broadcast: true
+    };
+  },
+
   createNodeCreateRequest(registryKey, position, pending_connection, sessionId = 'default') {
     return {
       event_type: 'nodeCreateRequest',
       source_session_id: sessionId,
       timestamp: Date.now(),
       data: { registryKey, position, pending_connection },
+      requires_broadcast: true
+    };
+  },
+
+  createSplitEdgeWithReroute(edge_id, position, sessionId = 'default') {
+    return {
+      event_type: 'splitEdgeWithReroute',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { edge_id, position },
+      requires_broadcast: true
+    };
+  },
+
+  createDissolveReroute(node_id, sessionId = 'default') {
+    return {
+      event_type: 'dissolveReroute',
+      source_session_id: sessionId,
+      timestamp: Date.now(),
+      data: { node_id },
       requires_broadcast: true
     };
   },
@@ -198,16 +241,6 @@ window.EventCreators = {
     };
   },
 
-  createContextMenuNode(screenX, screenY, canvasX, canvasY, nodeId, sessionId = 'default') {
-    return {
-      event_type: 'contextMenuNode',
-      source_session_id: sessionId,
-      timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY, nodeId },
-      requires_broadcast: true
-    };
-  },
-
   createContextMenuEdge(screenX, screenY, canvasX, canvasY, edge_id, atSinkEnd, sessionId = 'default') {
     return {
       event_type: 'contextMenuEdge',
@@ -276,8 +309,28 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
+  validateUserResizeEnd(data) {
+    const requiredFields = ["nodeId", "width", "height", "size_adapt", "posX", "posY"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateNodeMeasured(data) {
+    const requiredFields = ["nodeId", "width", "height"];
+    return requiredFields.every(field => field in data);
+  },
+
   validateNodeCreateRequest(data) {
     const requiredFields = ["registryKey", "position", "pending_connection"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateSplitEdgeWithReroute(data) {
+    const requiredFields = ["edge_id", "position"];
+    return requiredFields.every(field => field in data);
+  },
+
+  validateDissolveReroute(data) {
+    const requiredFields = ["node_id"];
     return requiredFields.every(field => field in data);
   },
 
@@ -333,11 +386,6 @@ window.EventValidators = {
 
   validateContextMenuCanvas(data) {
     const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "pendingPinId", "pendingNodeId", "pendingPinDir", "pendingFlowType", "pendingDataType"];
-    return requiredFields.every(field => field in data);
-  },
-
-  validateContextMenuNode(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId"];
     return requiredFields.every(field => field in data);
   },
 
