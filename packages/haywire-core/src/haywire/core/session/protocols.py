@@ -17,6 +17,7 @@ if TYPE_CHECKING:
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.node.factory import NodeFactory
     from haywire.ui.panel.registry import PanelRegistry
+    from haywire.ui.skin.factory import SkinFactory
     from haywire.ui.widget.factory import WidgetFactory
 
 
@@ -33,6 +34,7 @@ class IProjectState(Protocol):
     node_registry: "NodeRegistry"
     node_factory: "NodeFactory"
     panel_registry: "PanelRegistry"
+    skin_factory: "SkinFactory"
     widget_factory: "WidgetFactory"
     library_state_container: "LibraryStateContainer"
     """Pool of live LibraryState instances."""

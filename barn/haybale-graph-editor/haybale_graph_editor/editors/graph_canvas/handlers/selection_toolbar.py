@@ -30,6 +30,7 @@ from ..event_handlers import handles_event
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
     from haywire.core.session.session import Session
+    from haywire.ui.panel import BasePanel
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.components.popup import Popup
 
@@ -73,7 +74,7 @@ class SelectionToolbarProvider:
         # The panel set currently rendered into the popup. Repositioning during a
         # pan/zoom must NOT rebuild this DOM — only a change in the visible panel
         # set (e.g. a different selection) warrants a teardown + re-render.
-        self._rendered_panels: Optional[List[type]] = None
+        self._rendered_panels: Optional[List[type[BasePanel]]] = None
 
     # ------------------------------------------------------------------
     # Public interface
@@ -146,7 +147,7 @@ class SelectionToolbarProvider:
     # Panel collection
     # ------------------------------------------------------------------
 
-    def _collect_toolbar_panels(self) -> List[type]:
+    def _collect_toolbar_panels(self) -> List[type[BasePanel]]:
         """Query registry for panels matching ToolbarActions and SelectionContextActions
         against ToolbarFocus, deduplicated and sorted by order.
         """
@@ -156,8 +157,8 @@ class SelectionToolbarProvider:
             ToolbarActions,
         )
 
-        seen: set[type] = set()
-        combined: List[type] = []
+        seen: set[type[BasePanel]] = set()
+        combined: List[type[BasePanel]] = []
 
         for action_protocol in (ToolbarActions, SelectionContextActions):
             panels = self._panel_registry.get_panels_for_action(action_protocol, ToolbarFocus)
@@ -190,7 +191,7 @@ class SelectionToolbarProvider:
         popup.open()
         return popup
 
-    def _render_into_popup(self, panel_classes: List[type]) -> None:
+    def _render_into_popup(self, panel_classes: List[type[BasePanel]]) -> None:
         """Clear popup content and render panels into a horizontal ui.row."""
         from nicegui import ui
 

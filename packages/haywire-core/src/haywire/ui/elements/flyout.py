@@ -25,7 +25,7 @@ the mechanics. The typical pattern::
 from __future__ import annotations
 
 from contextlib import contextmanager
-from typing import Iterator, List
+from typing import Generator, List
 
 from nicegui import ui
 
@@ -35,9 +35,22 @@ FLYOUT_Z = "z-index: 7100"
 # Flyout to the right of the anchor, cascading rightward for nested submenus.
 FLYOUT_PROPS = 'anchor="top end" self="top start"'
 
+
+class FlyoutMenu(ui.menu):
+    """A ``ui.menu`` that tracks its child flyouts for depth-first cascade-close.
+
+    ``_child_flyouts`` is the one-level-deeper sibling group opened beneath this
+    flyout; ``close_flyout`` walks it to dismiss descendants before closing self.
+    """
+
+    def __init__(self, *, value: bool = False) -> None:
+        super().__init__(value=value)
+        self._child_flyouts: FlyoutSiblings = []
+
+
 # A sibling group: the open-flyout set for one menu level. Opening any member
 # closes the others (and their descendants), leaving one open path from the root.
-FlyoutSiblings = List[ui.menu]
+FlyoutSiblings = List[FlyoutMenu]
 
 
 def menu_item_tooltip(item: ui.menu_item, text: str) -> None:
@@ -54,14 +67,14 @@ def menu_item_tooltip(item: ui.menu_item, text: str) -> None:
     item.on("mouseleave", lambda _: tip.run_method("hide"))
 
 
-def close_flyout(submenu: ui.menu) -> None:
+def close_flyout(submenu: FlyoutMenu) -> None:
     """Close ``submenu`` and any open descendant flyouts (depth-first)."""
-    for child in getattr(submenu, "_child_flyouts", ()):
+    for child in submenu._child_flyouts:
         close_flyout(child)
     submenu.close()
 
 
-def open_on_hover(anchor: ui.menu_item, submenu: ui.menu, siblings: FlyoutSiblings) -> None:
+def open_on_hover(anchor: ui.menu_item, submenu: FlyoutMenu, siblings: FlyoutSiblings) -> None:
     """Open ``submenu`` on hover of ``anchor``, closing its sibling flyouts.
 
     Quasar's QMenu opens on its anchor's *click*, not hover, so we open it
@@ -81,7 +94,7 @@ def open_on_hover(anchor: ui.menu_item, submenu: ui.menu, siblings: FlyoutSiblin
 
 
 @contextmanager
-def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> Iterator[FlyoutSiblings]:
+def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> Generator[FlyoutSiblings]:
     """Render one hover-opening category flyout and yield its child sibling group.
 
     Creates a ``ui.menu_item`` anchor (with a right-arrow affordance) whose nested
@@ -101,12 +114,13 @@ def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> 
         with ui.item_section().props("side"):
             ui.icon("keyboard_arrow_right")
 
-        submenu = ui.menu().props(f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
+        submenu = FlyoutMenu()
+        submenu.props(f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
         # Child flyouts form their own sibling group, one level deeper.
         child_siblings: FlyoutSiblings = []
         with submenu:
             yield child_siblings
 
-        submenu._child_flyouts = child_siblings  # type: ignore[attr-defined]
+        submenu._child_flyouts = child_siblings
         siblings.append(submenu)
         open_on_hover(item, submenu, siblings)

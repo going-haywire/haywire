@@ -160,7 +160,8 @@ class GraphCanvasManager:
         handler = self._event_handlers.get(event_type)
 
         if handler:
-            logger.debug(f"🔧 Calling handler for {event_type}: {handler.__name__}")
+            handler_name = getattr(handler, "__name__", repr(handler))
+            logger.debug(f"🔧 Calling handler for {event_type}: {handler_name}")
             try:
                 handler(event)
             except Exception as e:

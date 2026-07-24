@@ -16,7 +16,7 @@ from __future__ import annotations
 
 import asyncio
 from pathlib import Path
-from typing import Any, Awaitable, Callable, Optional, TypeVar, cast
+from typing import Any, Awaitable, Callable, Optional, TYPE_CHECKING, TypeVar, cast
 
 from haywire.core.di.context import (
     get_library_state_container,
@@ -24,16 +24,22 @@ from haywire.core.di.context import (
     get_workspace_root,
 )
 
+if TYPE_CHECKING:
+    from haywire.core.state.base import AppState
+
 T = TypeVar("T")
+S = TypeVar("S", bound="AppState")
 
 
 class FarmhandContext:
     def __init__(self, progress_reporter: Optional[Callable[[str], Awaitable[None]]] = None):
         self._progress_reporter = progress_reporter
 
-    def state(self, state_cls: type[T]) -> T:
+    def state(self, state_cls: type[S]) -> S:
         """Resolve an AppState instance (e.g. HaystackState) from the DI container."""
-        return cast(T, get_library_state_container().get(state_cls))
+        result = get_library_state_container().get(state_cls)
+        assert result is not None, f"No state registered for {state_cls.__name__}"
+        return result
 
     def registry(self, registry_cls: type[T]) -> T:
         """Resolve a framework singleton (registries, factories) from the global injector."""

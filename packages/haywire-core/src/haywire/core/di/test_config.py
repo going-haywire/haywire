@@ -152,9 +152,10 @@ def create_test_settings_registry(
         })
     """
     from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
+    from haywire.core.types.interface import IType
 
     # define() now requires an IType; map a predefined value's Python type to one.
-    _py_to_itype = {bool: BOOL, int: INT, float: FLOAT, str: STRING}
+    _py_to_itype: dict[type, type[IType]] = {bool: BOOL, int: INT, float: FLOAT, str: STRING}
 
     registry = SettingsRegistry()
 

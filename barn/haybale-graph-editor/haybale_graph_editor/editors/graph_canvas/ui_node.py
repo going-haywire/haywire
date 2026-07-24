@@ -342,7 +342,6 @@ class UINode:
                 self.container.delete()
             except Exception as e:
                 logger.warning(f"Failed to delete node container: {e}", exc_info=True)
-            self.container = None
 
     def is_rendered(self) -> bool:
         """Check if the node is currently rendered."""

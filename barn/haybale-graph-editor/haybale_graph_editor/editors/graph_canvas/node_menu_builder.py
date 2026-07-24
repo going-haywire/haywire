@@ -127,7 +127,8 @@ class NodeMenuBuilder:
         btn.props("flat dense align=left")
         btn.classes("w-full justify-start px-3 py-1.5 hw-text-body hw-list-item-hover text-sm")
         if self._on_context_click is not None:
-            btn.on("contextmenu.prevent", lambda ni=node_info: self._on_context_click(ni))
+            cb = self._on_context_click
+            btn.on("contextmenu.prevent", lambda ni=node_info: cb(ni))
 
         with btn:
             if deprecation_warning:
@@ -157,7 +158,7 @@ class NodeMenuBuilder:
                 if node_info:
                     self._create_menu_item_for_node(node_info)
 
-    def _build_hierarchical_menu(self, siblings: List[ui.menu]):
+    def _build_hierarchical_menu(self, siblings: FlyoutSiblings):
         """Build hierarchical menu using menu paths from node identities.
 
         ``siblings`` is the open-flyout group for this level: the top-level
@@ -252,7 +253,8 @@ class NodeMenuBuilder:
         ).props("dense")
 
         if self._on_context_click is not None:
-            menu_item.on("contextmenu.prevent", lambda ni=node_info: self._on_context_click(ni))
+            cb = self._on_context_click
+            menu_item.on("contextmenu.prevent", lambda ni=node_info: cb(ni))
 
         with menu_item:
             if deprecation_warning:

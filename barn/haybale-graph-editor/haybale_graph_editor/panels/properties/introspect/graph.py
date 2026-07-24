@@ -42,7 +42,7 @@ class GraphInfoPanel(BasePanel):
         with layout:
             try:
                 nodes = graph.list_node_wrappers()
-                edges = graph.list_edge_wrappers
+                edges = graph.list_edge_wrappers()
                 node_count = len(nodes) if hasattr(nodes, "__len__") else "?"
                 edge_count = len(edges) if hasattr(edges, "__len__") else "?"
                 graph_name = getattr(graph, "name", None) or getattr(graph, "graph_id", "?")

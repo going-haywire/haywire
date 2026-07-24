@@ -599,7 +599,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._store_definition(name, d, category=category)
         logger.debug(f"Auto-defined setting from file: {name}")
 
-    def _resolve_itype_for_python_type(self, py_type: type) -> type | None:
+    def _resolve_itype_for_python_type(self, py_type: type) -> "type[IType] | None":
         """Resolve an inferred Python type to its registered IType.
 
         Used only by the runtime/settings-file auto-define path. Prefers the global
@@ -620,7 +620,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
         from haywire.barn.builtin.types import BOOL, FLOAT, INT, STRING
 
-        return {bool: BOOL, int: INT, float: FLOAT, str: STRING}.get(py_type)
+        mapping: dict[type, type[IType]] = {bool: BOOL, int: INT, float: FLOAT, str: STRING}
+        return mapping.get(py_type)
 
     def _notify_changes(self, old_effective: dict[str, tuple]) -> None:
         """Notify subscribers of changed effective values after a settings file reload."""
@@ -713,7 +714,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self,
         name: str,
         default: Any,
-        type_: type,
+        type_: type[IType],
         label: str | None = None,
         description: str = "",
         category: str = "root",

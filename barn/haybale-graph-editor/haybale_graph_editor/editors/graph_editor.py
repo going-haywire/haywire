@@ -42,6 +42,7 @@ from ..protocols import GraphContainer  # noqa: F401  (used in type annotations)
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
+    from haywire.core.session.protocols import IProjectState
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -84,7 +85,7 @@ class GraphEditor(BaseEditor):
     def __init__(self, wrapper):
         super().__init__(wrapper)
         self._canvas_manager: Optional[GraphCanvasManager] = None
-        self._project_state = None
+        self._project_state: Optional["IProjectState"] = None
         self._context: Optional["SessionContext"] = None
         self._canvas_wrapper = None  # ui.element — cleared on graph switch
         self._graph_name_label = None  # ui.label in the header
@@ -125,8 +126,8 @@ class GraphEditor(BaseEditor):
     def _on_reveal_graph_instance(self, context: "SessionContext", event: "RevealGraphInstance") -> None:
         """Self-check: is this tab's graph the one the signal is about?
 
-        Compares event.graph_id against. Silent no-op if this isn't 
-        the matching graph, or the specific node/edge inside it is gone 
+        Compares event.graph_id against. Silent no-op if this isn't
+        the matching graph, or the specific node/edge inside it is gone
         """
         if self._canvas_manager is None:
             return
@@ -271,6 +272,7 @@ class GraphEditor(BaseEditor):
     def _build_canvas(self, context: "SessionContext") -> None:
         """Instantiate a GraphCanvasManager inside _canvas_wrapper."""
         app = self._project_state
+        assert app is not None
         entry = self._get_entry(context)
         assert entry is not None
 
@@ -315,7 +317,10 @@ class GraphEditor(BaseEditor):
             self.wrapper.force_close()
             return
         if entry.path is not None:
-            root = Path(self._project_state.workspace_root)
+            app = self._project_state
+            if app is None:
+                return
+            root = Path(app.workspace_root)
             try:
                 rel = str(entry.path.relative_to(root))
             except ValueError:
