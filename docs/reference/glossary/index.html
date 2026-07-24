@@ -2613,6 +2613,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#error-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#clipboard-copypaste-new" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -2628,6 +2639,17 @@
     <span class="md-ellipsis">
       
         Library &amp; Plugin System
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#farmhand-mcp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Farmhand — MCP server
       
     </span>
   </a>
@@ -3081,6 +3103,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#error-navigation" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Error Navigation
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#clipboard-copypaste-new" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3096,6 +3129,17 @@
     <span class="md-ellipsis">
       
         Library &amp; Plugin System
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#farmhand-mcp-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Farmhand — MCP server
       
     </span>
   </a>
@@ -3693,6 +3737,24 @@
 </tbody>
 </table>
 <hr />
+<h2 id="error-navigation">Error Navigation<a class="headerlink" href="#error-navigation" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>error locator</strong></td>
+<td>The set of stable <strong>string ids</strong> a <code>HaywireException</code> optionally carries so the UI can navigate back to what the error was about: <code>registry_key</code> (<code>&lt;library&gt;:&lt;kind&gt;:&lt;id&gt;</code> — the component <em>definition</em>), <code>graph_id</code> (the graph's <code>binding_id</code>), <code>node_id</code> / <code>edge_id</code> (the offending <em>instance</em>). Locators are ids, never live wrapper/graph objects — the exception outlives them (hot-reload, graph close, off-thread logging), so navigation re-resolves the live target at click time and degrades gracefully when it is gone.</td>
+<td>—</td>
+</tr>
+</tbody>
+</table>
+<hr />
 <h2 id="clipboard-copypaste-new">Clipboard &amp; Copy/Paste <em>(new)</em><a class="headerlink" href="#clipboard-copypaste-new" title="Permanent link">&para;</a></h2>
 <p>The copy/paste subsystem moves a selection of nodes and edges between graphs — within a session, across sessions, and across separate Studio processes on the same machine — by serializing a slice of the graph to JSON on the OS system clipboard.</p>
 <table>
@@ -3862,6 +3924,34 @@
 <td><strong>NodeWarning</strong></td>
 <td>An advisory record on <code>NodeWrapperState.warnings</code> (distinct from errors; does not affect <code>is_valid()</code>). First writer is the Compatibility Warning feature (<code>kind="compatibility"</code>).</td>
 <td>node error (errors invalidate; warnings advise)</td>
+</tr>
+</tbody>
+</table>
+<hr />
+<h2 id="farmhand-mcp-server">Farmhand — MCP server<a class="headerlink" href="#farmhand-mcp-server" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Farmhand</strong></td>
+<td>The Haywire MCP server subsystem through which AI-agent clients operate the studio via library-contributed tools. First-degree citizen of haywire: the host (transport mounted at <code>/mcp</code> on the studio app, session registry, <code>mcp</code> SDK dependency) lives in haywire-studio; the SDK-free contribution seam (<code>FarmhandRegistry</code>, <code>Farmhand</code>/<code>@farmhand</code>, <code>FarmhandContext</code>) lives in haywire-core. The <code>studio_*</code> baseline tools ship in barn/haybale-studio (library id <code>studio</code>), so they register through the same folder-scan mechanism as every other library's tools.</td>
+<td>MCP server (ambiguous — any third-party MCP server), agent API</td>
+</tr>
+<tr>
+<td><strong>farmhand</strong></td>
+<td>A haywire MCP tool: one callable capability a <strong>Library</strong> contributes to Farmhand. A <strong>Component</strong> kind — a <code>Farmhand</code> subclass decorated <code>@farmhand</code> in the library's <code>farmhands/</code> folder, registered via <code>FarmhandRegistry</code>, keyed <code>{lib_id}:farmhand:{name}</code>, surfaced to agents as <code>{lib_id}_{name}</code> (<code>studio</code> prefix belongs to haybale-studio's baseline). "MCP tool" remains the protocol-facing synonym (what <code>tools/list</code> returns).</td>
+<td>chore, command, contribution</td>
+</tr>
+<tr>
+<td><strong>Error ledger</strong></td>
+<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>studio_get_errors</code> and <code>studio_verify_component</code>.</td>
+<td>error log (file logs are unqueryable), exception history</td>
 </tr>
 </tbody>
 </table>
@@ -4521,6 +4611,21 @@
 <td><strong>Graph Canvas</strong></td>
 <td>The Vue/NiceGUI hybrid component where nodes and edges are visually displayed and edited. See <a href="../../architecture/studio/canvas/canvas-arch/">architecture/studio/canvas</a></td>
 <td>Canvas (acceptable shorthand), viewport</td>
+</tr>
+<tr>
+<td><strong>Host slot</strong></td>
+<td>The <code>.ui-node-slot</code> (<code>ui.column</code>, one per node, stable <code>id</code>) that the graph-editor wraps around a node's card. It <strong>owns the applied size</strong>: <code>UINode._apply_size</code> writes a manual axis as a <strong>minimum</strong> (<code>min-width</code>/<code>min-height</code>, never a hard size and never <code>overflow</code> — content that needs more room expands the node, so pins/widgets/edges never clip) here (never on the card), stamps <code>data-size-adapt</code>, and it is what the <code>ResizeObserver</code> measures and the resize gadget targets. Skins are size-agnostic; size and measurement live here.</td>
+<td>node slot, card wrapper</td>
+</tr>
+<tr>
+<td><strong>size_adapt</strong></td>
+<td>The per-node, per-axis mode (<code>"auto"</code> · <code>"manual_width"</code> · <code>"manual_height"</code> · <code>"manual"</code>, default <code>"auto"</code>) on <code>NodeProperties</code> deciding whether a card axis is <strong>measured-from-render</strong> (<code>auto</code> — the host-slot <code>ResizeObserver</code> writes the measured offset into <code>props.width</code>/<code>height</code>) or <strong>fixed-by-the-user</strong> (<code>manual</code> — set via the resize gadget). One <code>props.width</code>/<code>height</code> pair; <code>size_adapt</code> says which axis the observer owns vs. which the user fixed.</td>
+<td>size mode, resize mode</td>
+</tr>
+<tr>
+<td><strong>Resize gadget</strong></td>
+<td>The single-node, 8-handle JS transform box drawn in <code>canvas.vue</code> (content space, inside <code>#node-container</code>) around a lone-node selection. Fixes node size by dragging a grip — <strong>zero per-node DOM</strong> (one gadget total). A top/left drag pins the opposite edge (resize + move composition). On release it emits <code>UserResizeEndEvent</code>, committed by <code>process_resize_end</code> as one undoable fence (size + optional move). Replaces the old per-node <code>_add_resize_handle</code> (removed).</td>
+<td>resize handle (removed), size box</td>
 </tr>
 <tr>
 <td><strong>hui</strong></td>
