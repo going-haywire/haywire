@@ -6,7 +6,7 @@ build-backend = "hatchling.build"
 name = "haywire-studio"
 version = "0.0.25"
 description = "Haywire Node Editor Application"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {text = "MIT"}
 authors = [
     {name = "Haywire Team"}
@@ -35,7 +35,7 @@ include = [
 ]
 
 [tool.mypy]
-python_version = "3.11"
+python_version = "3.12"
 
 [[tool.mypy.overrides]]
 module = ["toml", "haywire.*"]

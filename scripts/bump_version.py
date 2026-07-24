@@ -16,7 +16,7 @@ import argparse
 import difflib
 import re
 import sys
-import tomllib  # type: ignore[import-not-found]  # stdlib 3.11+; mypy config pins 3.10
+import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
