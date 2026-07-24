@@ -14,28 +14,9 @@ recorded below as a re-check, so we re-evaluate it against a newer ty rather tha
 
 ---
 
-## Step 1 — drive `ty check` to zero
+## STEP 1:
 
-Run: `uv run ty check packages/ barn/`. A 2026-07-24 pass (ty 0.0.44, then bumped to 0.0.63)
-took the count **28 → 9** by fixing every diagnostic that had an honest fix — **no `# ty: ignore`
-added**. mypy stays clean throughout (410 files). Two of the fixes were latent bugs ty surfaced:
-
-- `IProjectState` was missing `skin_factory` (protocol gap; the app defined it) — added it.
-- `introspect/graph.py` called `graph.list_edge_wrappers` without `()` — edge count was always
-  `"?"`. Fixed.
-
-The rest were real type improvements: honest `Optional`/narrowing on `graph_editor._project_state`;
-`type[BasePanel]` throughout `selection_toolbar`; narrowed-closure locals in `node_menu_builder`;
-`getattr(handler, "__name__", …)` in `graph_canvas_manager`; `type[IType]` bounds in
-`settings/registry` (surfaced a loose caller in `di/test_config`); deleting a dead
-`self.container = None` in `ui_node` so its type is honestly non-Optional; an `AppState`-bound
-TypeVar + explicit None-assert on `FarmhandContext.state()` (replacing a `cast` that hid both an
-unbounded type and a swallowed `None`); and a **`FlyoutMenu(ui.menu)` typed subclass** in
-`ui/elements/flyout.py` that retired the `_child_flyouts` monkey-patch, tightened
-`FlyoutSiblings → List[FlyoutMenu]` (which caught a stale `List[ui.menu]` in `node_menu_builder`),
-and modernized the `@contextmanager` return type (`Iterator → Generator`).
-
-### Re-check list — the remaining 9 (no honest fix under current ty; re-evaluate on upgrade)
+Re-check list — the remaining 9 (no honest fix under current ty; re-evaluate on upgrade)
 
 Each is either a ty pre-1.0 gap (code is correct, mypy agrees) or a deliberate framework-boundary
 pattern already `# type: ignore`'d for mypy. **Do not `# ty: ignore` these while ty is pre-1.0** —
