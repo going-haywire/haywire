@@ -215,6 +215,20 @@ class HaywireApp:
         self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root)
         self.farmhand_host.mount(port)
 
+        # Write the sidecar identity file so a later process (the farmhand4claude
+        # plugin startup script) can identify which project owns this studio on
+        # this port. Must never break studio launch.
+        from pathlib import Path
+
+        from haywire_studio.farmhand.identity import write_identity
+
+        try:
+            write_identity(Path(self.workspace_root), port)
+        except Exception:
+            logging.getLogger(__name__).warning(
+                "Farmhand: failed to write studio identity sidecar", exc_info=True
+            )
+
     def save_workspace(self, shell=None, active_graph_path=None) -> None:
         """Save workspace snapshot atomically.
 
