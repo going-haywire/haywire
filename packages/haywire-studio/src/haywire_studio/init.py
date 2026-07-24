@@ -103,7 +103,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
         "project": {
             "name": _project_root_name(name),
             "version": "0.1.0",
-            "requires-python": ">=3.11",
+            "requires-python": ">=3.12",
             "dependencies": [
                 f"haywire-studio{pin}",
                 f"haybale-marketplace{pin}",
@@ -156,7 +156,7 @@ haywire-core = {{ path = "{dev_repo}/packages/haywire-core", editable = true }}
 name = "{lib_name}"
 version = "0.0.1"
 description = "Local library for {name} project"
-requires-python = ">=3.11"
+requires-python = ">=3.12"
 license = {{text = "MIT"}}
 
 dependencies = ["haywire-core{pin}"]

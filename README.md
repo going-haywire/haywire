@@ -16,8 +16,9 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 
 ### Prerequisites
 
-- Python 3.10+
+- Python 3.12+
 - [uv](https://docs.astral.sh/uv/getting-started/installation/) package manager
+- [git](https://git-scm.com/) (for version control and sharing projects)
 
 ### Create a New Project
 

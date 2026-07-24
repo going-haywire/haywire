@@ -119,7 +119,7 @@ class TestProjectPyproject:
 
     def test_python_version(self, scaffold_project):
         data = toml.loads((scaffold_project / "pyproject.toml").read_text())
-        assert data["project"]["requires-python"] == ">=3.11"
+        assert data["project"]["requires-python"] == ">=3.12"
 
     def test_dependencies(self, scaffold_project):
         from haywire_studio.init import _release_pin
