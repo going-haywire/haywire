@@ -3157,7 +3157,7 @@
 <p>Both are explained in <a href="../../components/nodes/node-canon/">components/nodes</a> §3.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <h3 id="port-shapes-declaration">Port shapes — declaration<a class="headerlink" href="#port-shapes-declaration" title="Permanent link">&para;</a></h3>
-<p>Source: <a href="../../barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py"><code>barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py</code></a></p>
+<p>Source: <a href="../../barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py"><code>testing:node:EdgeLinkTestNode</code></a></p>
 <p><code>EdgeLinkTestNode</code> exercises every port shape in <code>init()</code>: primitive inlets and outlets, <code>ArrayType[T]</code> outlets, <code>PooledType[T]</code> inlets, and <code>EXEC</code> for control flow. It is purpose-built as a connection testbed, so its <code>worker</code> is intentionally empty:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@node</span><span class="p">(</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Edge Link TestNode&quot;</span><span class="p">,</span>
@@ -3310,7 +3310,7 @@
 </tbody>
 </table>
 <h3 id="pooled-worker-access">Pooled worker access<a class="headerlink" href="#pooled-worker-access" title="Permanent link">&para;</a></h3>
-<p>Source: <a href="../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py"><code>barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py</code></a></p>
+<p>Source: <a href="../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py"><code>testing:node:TestEmitCallbackNode</code></a></p>
 <p><code>TestEmitCallbackNode</code> shows how a pooled inlet is consumed in a worker: the value arrives as a <code>dict</code>, iterated to dispatch to multiple listeners. It also demonstrates <code>on_change</code> on a pooled inlet, <code>post_init()</code> for non-serializable state, and <code>GROUP.as_config</code> for a collapsible config section:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@node</span><span class="p">(</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test Emit Callback&quot;</span><span class="p">,</span>

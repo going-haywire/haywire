@@ -2755,6 +2755,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#baked-docs" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Baked docs
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#ci-phase-on-tag-push-v" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3092,17 +3103,43 @@ documentation only; if it ever disagrees with this section, the section wins.</p
 <li>The skill patches every <code>pyproject.toml</code> referenced by <code>publish_order + lockstep_unpublished</code>:</li>
 <li><code>[project] version = "0.0.2"</code></li>
 <li>All <code>~=</code> inter-package constraints updated to the new floor (e.g. <code>haywire-core~=0.0.2</code>).</li>
+<li>The skill re-locks (<code>uv lock</code>) and <strong>bakes the docs</strong>
+   (<code>scripts/bake_docs.py --version v0.0.2</code>) — this regenerates the gitignored
+   <code>packages/haywire-core/src/haywire/_baked_docs/</code> tree the haywire-core wheel
+   ships as <code>haywire/docs/</code> (see <a href="#baked-docs">Baked docs</a> below). The bake runs
+   <em>after</em> the bump because it embeds the new tag in source-file GitHub URLs.</li>
 <li>The skill shows a unified diff of every changed file and asks for confirmation.</li>
-<li>On confirm: commit (<code>chore: release v0.0.2</code>), tag (<code>v0.0.2</code>), push branch + tag.</li>
+<li>On confirm: commit (<code>chore: release v0.0.2</code>), then a local
+   <code>uv build --package haywire-core</code> smoke to prove the wheel builds from the
+   baked docs before tagging, then tag (<code>v0.0.2</code>) and hand the push to the author.</li>
 <li>CI takes over.</li>
 </ol>
-<p>Until the <code>/haywire-release</code> skill ships (separate plan — spec T8), run the steps manually:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bump_version.py<span class="w"> </span><span class="m">0</span>.0.2
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>git<span class="w"> </span>add<span class="w"> </span>packages/*/pyproject.toml<span class="w"> </span>barn/*/pyproject.toml<span class="w"> </span>uv.lock
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;chore: release v0.0.2&quot;</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>git<span class="w"> </span>tag<span class="w"> </span>v0.0.2
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>main<span class="w"> </span>v0.0.2
+<p>To run the local phase manually (without the skill):</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not integration&quot;</span><span class="w"> </span>-q<span class="w">                 </span><span class="c1"># gate</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bump_version.py<span class="w"> </span><span class="m">0</span>.0.2<span class="w"> </span>--yes<span class="w">     </span><span class="c1"># bump every pyproject</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>lock<span class="w">                                                </span><span class="c1"># re-pin uv.lock</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>uv<span class="w"> </span>run<span class="w"> </span>python<span class="w"> </span>scripts/bake_docs.py<span class="w"> </span>--version<span class="w"> </span>v0.0.2<span class="w">    </span><span class="c1"># bake docs (AFTER the bump)</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>git<span class="w"> </span>add<span class="w"> </span>-u<span class="w">                                             </span><span class="c1"># baked dir is gitignored</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>git<span class="w"> </span>commit<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;chore: release v0.0.2&quot;</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>uv<span class="w"> </span>build<span class="w"> </span>--package<span class="w"> </span>haywire-core<span class="w">                        </span><span class="c1"># smoke: wheel builds from baked docs</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>git<span class="w"> </span>tag<span class="w"> </span>v0.0.2
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>git<span class="w"> </span>push<span class="w"> </span>origin<span class="w"> </span>HEAD<span class="w"> </span>v0.0.2
 </span></code></pre></div>
+<h3 id="baked-docs">Baked docs<a class="headerlink" href="#baked-docs" title="Permanent link">&para;</a></h3>
+<p>Farmhand serves the full <code>docs/</code> tree to an attached agent as MCP resources. Raw
+<code>docs/</code> is unservable — <code>--8&lt;--</code> snippet directives, relative cross-links, and
+source-file links that don't resolve over MCP — so <code>scripts/bake_docs.py</code> bakes
+every <code>docs/*.md</code> to pure markdown (snippets expanded; <code>.md</code> links →
+<code>farmhand://docs/...</code>; source links → versioned GitHub <code>blob</code>/<code>tree</code> URLs) into a
+gitignored <code>packages/haywire-core/src/haywire/_baked_docs/</code> mirror. The
+haywire-core wheel force-includes that mirror as <code>haywire/docs/</code>; the sdist
+includes it too, so the from-sdist wheel build finds it.</p>
+<p>The bake is <strong>not</strong> committed (the output is generated), so it must run as part of
+each release — which is why it lives in the local phase above, keyed to the new
+tag. A <code>pytest</code> gate (<code>tests/farmhand/test_doc_keys_resolve.py</code>) asserts every
+hand-authored <code>lib:kind:id</code> registry key in the docs resolves, failing CI on
+drift. In a dev checkout, running the bake once makes a from-source studio serve
+the baked docs too; otherwise it falls back to the raw <code>docs/</code> tree.</p>
 <h3 id="ci-phase-on-tag-push-v">CI phase (on tag push <code>v*.*.*</code>)<a class="headerlink" href="#ci-phase-on-tag-push-v" title="Permanent link">&para;</a></h3>
 <h4 id="job-1-gate">Job 1 — gate<a class="headerlink" href="#job-1-gate" title="Permanent link">&para;</a></h4>
 <div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>pytest<span class="w"> </span>-m<span class="w"> </span><span class="s2">&quot;not integration&quot;</span>
