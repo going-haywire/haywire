@@ -12,6 +12,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
+from haywire.core.docs.canons import canon_uri
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.farmhand import (
     Farmhand,
@@ -29,7 +30,7 @@ from ._helpers import (
     resolve_target_library,
 )
 
-_NODE_TEMPLATE = '''"""{name} — scaffolded by Farmhand. Authoring reference: farmhand://docs/canon/nodes"""
+_NODE_TEMPLATE = '''"""{name} — scaffolded by Farmhand. Authoring reference: {canon_uri}"""
 
 from haywire.core.node import BaseNode, NodeType, node
 from haywire.barn.builtin.types import FLOAT
@@ -47,7 +48,7 @@ class {class_name}(BaseNode):
 
 _GENERIC_TEMPLATE = '''"""{name} — scaffolded by Farmhand.
 
-Kind: {kind}. Authoring reference: farmhand://docs/canon/{canon_area}
+Kind: {kind}. Authoring reference: {canon_uri}
 Replace this stub with a {kind} component per the canon; the library's
 folder scan registers it automatically once the class is decorated.
 """
@@ -57,14 +58,17 @@ folder scan registers it automatically once the class is decorated.
 def _template(kind: str, name: str) -> str:
     class_name = "".join(part.capitalize() for part in name.split("_"))
     if kind == "node":
-        return _NODE_TEMPLATE.format(name=name, label=class_name, class_name=class_name)
-    return _GENERIC_TEMPLATE.format(name=name, kind=kind, canon_area=KIND_FOLDERS[kind])
+        return _NODE_TEMPLATE.format(
+            name=name, label=class_name, class_name=class_name, canon_uri=canon_uri("node")
+        )
+    return _GENERIC_TEMPLATE.format(name=name, kind=kind, canon_uri=canon_uri(kind))
 
 
 @farmhand(
     label="Scaffold component",
     description="Write a canon-conformant skeleton for any component kind into a project-local "
-    "library; returns the path and expected registry key. Read farmhand://docs/canon/{kind} first.",
+    "library; returns the path and expected registry key. Read the kind's canon first — find it "
+    "via the farmhand://docs/_manifest index (e.g. components/nodes/node-canon.md).",
     registry_id="scaffold_component",
     annotations=ToolAnnotations(),
 )

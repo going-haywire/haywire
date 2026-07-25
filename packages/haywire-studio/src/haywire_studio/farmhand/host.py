@@ -28,7 +28,7 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
 from nicegui import app as nicegui_app
 
-from haywire.core.docs.canons import list_canon_areas, read_canon
+from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
@@ -184,13 +184,23 @@ class FarmhandHost:
         @self._server.list_resources()
         async def list_resources() -> list[types.Resource]:
             self._track_session()
+            # The full baked docs tree: a manifest index plus one resource per
+            # file. The manifest lets the agent survey the corpus (path + title)
+            # without reading every file.
             resources = [
                 types.Resource(
-                    uri=f"farmhand://docs/canon/{area}",  # type: ignore[arg-type]
-                    name=f"{area} authoring canon",
+                    uri="farmhand://docs/_manifest",  # type: ignore[arg-type]
+                    name="docs manifest (index of all doc paths + titles)",
+                    mimeType="application/json",
+                )
+            ]
+            resources += [
+                types.Resource(
+                    uri=f"farmhand://docs/{rel_path}",  # type: ignore[arg-type]
+                    name=rel_path,
                     mimeType="text/markdown",
                 )
-                for area in list_canon_areas()
+                for rel_path in list_docs()
             ]
             registry = self._library_service.injector.get(LibraryRegistry)
             for lib_id in registry.list_names():
@@ -212,8 +222,11 @@ class FarmhandHost:
         async def read_resource(uri) -> str:
             self._track_session()
             text = str(uri)
-            if text.startswith("farmhand://docs/canon/"):
-                return read_canon(text.rsplit("/", 1)[1])
+            if text == "farmhand://docs/_manifest":
+                return json.dumps(doc_manifest(), indent=2)
+            if text.startswith("farmhand://docs/"):
+                rel_path = text[len("farmhand://docs/") :]
+                return read_doc(rel_path)
             if text.startswith("farmhand://library/"):
                 _, _, rest = text.partition("farmhand://library/")
                 lib_id, _, slug = rest.partition("/")
