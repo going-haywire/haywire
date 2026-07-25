@@ -17,7 +17,7 @@ The node authoring API — the `@node` decorator, lifecycle hooks, the worker co
 
 A CONTROL node has at least one EXEC inlet *and* outlet. When it has **multiple** EXEC inlets, the worker uses `context.control_pin` to discover which one fired and dispatch accordingly.
 
-Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py)
+Source: [`testing:node:TestEmitCallbackNode`](../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py)
 
 `TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `PooledType[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
@@ -31,7 +31,7 @@ Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.
 
 A DATA node has **no EXEC ports**. It runs only when a downstream CONTROL node demands one of its outputs. Its worker returns `None` and writes results via `self.out(...)`.
 
-Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py)
+Source: [`testing:node:TestAddFloatNode`](../../barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py)
 
 `TestAddFloatNode` is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns `None`:
 
@@ -47,7 +47,7 @@ An EVENT node has no EXEC inlet either, but unlike DATA it is an **entry point**
 
 ### System event
 
-Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py)
+Source: [`testing:node:TestBeginPlayNode`](../../barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py)
 
 `TestBeginPlayNode` fires once when execution starts, emitting the current timestamp:
 
@@ -61,7 +61,7 @@ Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 
 `event_subscription` also accepts `CallbackEvent(event_name=...)`, which lets one node trigger another by name. A callback listener needs a matching emitter, so we show the pair together.
 
-**Listener** — source: [`barn/haybale-example/haybale_example/nodes/emits/custom_callback.py`](../../barn/haybale-example/haybale_example/nodes/emits/custom_callback.py)
+**Listener** — source: [`example:node:CustomCallbackNode`](../../barn/haybale-example/haybale_example/nodes/emits/custom_callback.py)
 
 `CustomCallbackNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
 
@@ -69,7 +69,7 @@ Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 --8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:custom_callback_node"
 ```
 
-**Emitter** — source: [`barn/haybale-example/haybale_example/nodes/emits/emit_callback.py`](../../barn/haybale-example/haybale_example/nodes/emits/emit_callback.py)
+**Emitter** — source: [`example:node:EmitCallbackNode`](../../barn/haybale-example/haybale_example/nodes/emits/emit_callback.py)
 
 `EmitCallbackNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
 
@@ -91,7 +91,7 @@ For the framework's dispatch model — assembly-time wiring, FlowType.CALLBACK, 
 
 A LOOPBACK node fires an EXEC outlet, control flows through downstream nodes, and **returns to the same node** to run its worker again. The role-defining marker is `needs_loopback=True` on the body outlet.
 
-Source: [`barn/haybale-core/haybale_core/nodes/for_loop.py`](../../barn/haybale-core/haybale_core/nodes/for_loop.py)
+Source: [`core:node:ForLoopNode`](../../barn/haybale-core/haybale_core/nodes/for_loop.py)
 
 `ForLoopNode` iterates from `start` to `end` with a configurable `step`. A second EXEC inlet (`break_loop`) provides early exit:
 

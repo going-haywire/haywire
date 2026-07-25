@@ -435,7 +435,7 @@ The callback fires on any change — local writes, global writes from other plac
 
 ## 4. Live examples from the codebase
 
-**LibrarySettings** — source: [`barn/haybale-testing/haybale_testing/settings/testing.py`](../../../barn/haybale-testing/haybale_testing/settings/testing.py)
+**LibrarySettings** — source: [`testing:setting:TestingSettings`](../../../barn/haybale-testing/haybale_testing/settings/testing.py)
 
 `TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `FLOAT`, `INT`, `STRING`, `BOOL`, `CHOICES`, `COLOR`, `VEC2I`, `VEC3F` field types, `min`/`max`, `widget_config`, `category`:
 
@@ -443,7 +443,7 @@ The callback fires on any change — local writes, global writes from other plac
 --8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:testing_settings"
 ```
 
-**NodeSettings with every descriptor** — source: [`barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py)
+**NodeSettings with every descriptor** — source: [`testing:node:SettingsNode`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py)
 
 `SettingsNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
 

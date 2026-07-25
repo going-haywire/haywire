@@ -129,7 +129,7 @@ Three single-step adapters that form a chain: `TEST_BOOL → TEST_INT → TEST_F
 --8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:float_to_string_adapter"
 ```
 
-**Compound type adapter** — `MapsStringType → ArrayType` from [`barn/haybale-example/haybale_example/adapters/compound_adapters.py`](../../../barn/haybale-example/haybale_example/adapters/compound_adapters.py). Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
+**Compound type adapter** — `MapsStringType → ArrayType` from [`example:adapter:MapsStringArrayAdapter`](../../../barn/haybale-example/haybale_example/adapters/compound_adapters.py). Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:maps_string_array_adapter"

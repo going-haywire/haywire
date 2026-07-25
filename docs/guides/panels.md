@@ -58,7 +58,7 @@ panels/
 
 Introspect panels register against focus objects (e.g. `NodeFocus`, `EdgeFocus`) and render read-only identity or state information in the PropertiesEditor.
 
-Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py)
+Source: [`graph_editor:panel:NodeInfoPanel`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py)
 
 `NodeInfoPanel` shows the selected node's label, class name, and node ID:
 
@@ -72,7 +72,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intro
 
 Settings panels register against settings-scope focuses (`CanvasFocus`, `AppFocus`, `ExecutionFocus`) and render a schema using `render_schema()` in the PropertiesEditor.
 
-Source: [`barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`](../../barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py)
+Source: [`studio:panel:CanvasSettingsPanel`](../../barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py)
 
 `CanvasSettingsPanel` renders the entire `CanvasSettings` schema into the panel:
 
@@ -86,7 +86,7 @@ Source: [`barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py
 
 Canvas menu panels register against `CanvasFocus` with `actions=CanvasContextActions` and surface on right-click on empty canvas space.
 
-Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py)
+Source: [`graph_editor:panel:CreateNodeMenuPanel`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py)
 
 `CreateNodeMenuPanel` renders the full node-creation menu with search:
 
@@ -100,7 +100,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canva
 
 Selection menu panels register against `SelectionFocus` and surface when one or more nodes or edges are selected.
 
-Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py)
+Source: [`graph_editor:panel:DeleteSelectionMenuPanel`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py)
 
 `DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step:
 
@@ -114,7 +114,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selec
 
 Toolbar panels register against `ToolbarFocus` and contribute a single icon button to the floating toolbar that appears over a canvas selection.
 
-Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py)
+Source: [`graph_editor:panel:CopyToolbarPanel`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py)
 
 `CopyToolbarPanel` renders a single copy icon:
 
@@ -135,7 +135,7 @@ The skin writes these attributes on the rendered node card or pin element. The f
 
 `NodeContextActions` (an empty marker protocol in `context_menu_actions.py`) is the skin extension point for `data-hw-custom-menu-focus-id`. `PortContextActions` is the equivalent for `data-hw-port-menu-focus-id`.
 
-Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py)
+Source: [`graph_editor:panel:PortInfoMenuPanel`](../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py)
 
 `PortInfoMenuPanel` shows port metadata (id, description, flow type, data type) in the port context menu:
 
@@ -149,7 +149,7 @@ Source: [`barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/
 
 File browser menu panels register against `FileFocus` (from haybale-studio) and surface in the FileBrowser's right-click menu.
 
-Source: [`barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py`](../../barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py)
+Source: [`haystack:panel:OpenInHaystackMenuPanel`](../../barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py)
 
 `OpenInHaystackMenuPanel` opens a `.haywire` graph file in the GraphEditor:
 

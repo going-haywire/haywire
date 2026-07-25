@@ -140,7 +140,7 @@ Both are explained in [components/nodes](../components/nodes/node-canon.md) §3.
 
 ### Port shapes — declaration
 
-Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py)
+Source: [`testing:node:EdgeLinkTestNode`](../../barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py)
 
 `EdgeLinkTestNode` exercises every port shape in `init()`: primitive inlets and outlets, `ArrayType[T]` outlets, `PooledType[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
 
@@ -162,7 +162,7 @@ What this example covers for port shapes:
 
 ### Pooled worker access
 
-Source: [`barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`](../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py)
+Source: [`testing:node:TestEmitCallbackNode`](../../barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py)
 
 `TestEmitCallbackNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `GROUP.as_config` for a collapsible config section:
 
