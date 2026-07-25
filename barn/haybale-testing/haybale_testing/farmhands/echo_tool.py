@@ -3,6 +3,7 @@
 from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
 
 
+# --8<-- [start:echo_tool]
 @farmhand(
     label="Echo",
     description="Echo text back (canned read tool).",
@@ -12,3 +13,6 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, fa
 class EchoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, text: str) -> dict:
         return {"echo": text}
+
+
+# --8<-- [end:echo_tool]

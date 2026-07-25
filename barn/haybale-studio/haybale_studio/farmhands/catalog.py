@@ -6,6 +6,7 @@ import inspect
 from collections import Counter
 from typing import Any
 
+from haywire.core.docs.canons import canon_uri
 from haywire.core.farmhand import (
     Farmhand,
     FarmhandContext,
@@ -25,6 +26,7 @@ def _is_synthetic_library(lib_id: str) -> bool:
     return lib_id.startswith("__") and lib_id.endswith("__")
 
 
+# --8<-- [start:list_libraries_tool]
 @farmhand(
     label="List libraries",
     description="Installed libraries: id, label, version, description, tags, enabled. "
@@ -63,6 +65,9 @@ class StudioListLibrariesTool(Farmhand):
             "libraries": rows,
             "total": total,
         }
+
+
+# --8<-- [end:list_libraries_tool]
 
 
 _KIND_ENUM = sorted(kind_registry_map())
@@ -172,7 +177,8 @@ class StudioListComponentsTool(Farmhand):
 
 @farmhand(
     label="Describe component",
-    description="One component's identity and docstring. For nodes: read before graph_editor_add_node.",
+    description="One component's identity and docstring, plus the canon_doc_uri for its kind's "
+    "authoring guide. For nodes: read before graph_editor_add_node.",
     registry_id="describe_component",
     annotations=_READ_ONLY,
 )
@@ -180,10 +186,12 @@ class StudioDescribeComponentTool(Farmhand):
     async def run(self, ctx: FarmhandContext, registry_key: str) -> dict:
         cls = resolve_component_class(ctx, registry_key)
         identity = getattr(cls, "class_identity", None)
+        kind = registry_key.split(":")[1]
         return {
             "summary": f"{registry_key}: {getattr(identity, 'label', cls.__name__)}",
             "registry_key": registry_key,
             "class_name": cls.__name__,
+            "canon_doc_uri": canon_uri(kind),
             "label": getattr(identity, "label", cls.__name__),
             "description": getattr(identity, "description", ""),
             "docstring": inspect.getdoc(cls) or "",

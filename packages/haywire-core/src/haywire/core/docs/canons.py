@@ -56,6 +56,7 @@ _KIND_TO_AREA = {
     "panel": "panels",
     "editor": "editors",
     "state": "states",
+    "farmhand": "farmhands",
 }
 
 

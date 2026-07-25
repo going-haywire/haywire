@@ -45,6 +45,7 @@ class StudioGetErrorsTool(Farmhand):
         }
 
 
+# --8<-- [start:dismiss_errors_tool]
 @farmhand(
     label="Dismiss errors",
     description="Dismiss ledger entries: pass seq=<n> to remove one, or all=true to clear every "
@@ -87,3 +88,6 @@ class StudioDismissErrorsTool(Farmhand):
         # the editor's own mutate-then-broadcast triage contract.
         ctx.broadcast(ErrorLedgerChanged())
         return {"summary": summary, "cursor": ledger.current_seq}
+
+
+# --8<-- [end:dismiss_errors_tool]
