@@ -55,7 +55,66 @@ def test_list_components_filters_by_library_and_kind():
 
     result = run_tool(StudioListComponentsTool, library="testing", kind="node")
     assert result["total"] >= 1
-    assert all(k.startswith("testing:node:") for k in [c["registry_key"] for c in result["components"]])
+    rows = result["components"]
+    assert all(set(row) == {"registry_key", "label", "description"} for row in rows)
+    assert all(row["registry_key"].startswith("testing:node:") for row in rows)
+
+
+def test_list_components_search_matches_label_or_description():
+    from haybale_studio.farmhands.catalog import StudioDescribeComponentTool, StudioListComponentsTool
+
+    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    key = listing["components"][0]["registry_key"]
+    label = run_tool(StudioDescribeComponentTool, registry_key=key)["label"]
+
+    found = run_tool(StudioListComponentsTool, search=label)
+    assert key in {row["registry_key"] for row in found["components"]}
+
+    empty = run_tool(StudioListComponentsTool, search="zzz_no_component_should_match_this_zzz")
+    assert empty["total"] == 0
+
+
+def test_list_components_excludes_hidden_by_default():
+    from haybale_studio.farmhands.catalog import StudioListComponentsTool
+
+    visible = run_tool(StudioListComponentsTool, library="builtin", kind="node")
+    keys = {row["registry_key"] for row in visible["components"]}
+    assert "builtin:node:RerouteNode" not in keys
+
+    with_hidden = run_tool(StudioListComponentsTool, library="builtin", kind="node", include_hidden=True)
+    keys_with_hidden = {row["registry_key"] for row in with_hidden["components"]}
+    assert "builtin:node:RerouteNode" in keys_with_hidden
+
+
+def test_list_components_excludes_system_library_by_default():
+    """__system__ is the derive_library_identity() fallback for unparented classes
+    (e.g. FrameworkSettings); whether any are registered depends on which other
+    settings modules already imported in this session, so assert the filtering
+    guarantee rather than a specific key's presence.
+    """
+    from haybale_studio.farmhands.catalog import StudioListComponentsTool
+
+    visible = run_tool(StudioListComponentsTool, limit=10_000)
+    assert all(not row["registry_key"].startswith("__") for row in visible["components"])
+
+    with_system = run_tool(StudioListComponentsTool, include_system=True, limit=10_000)
+    assert len(with_system["components"]) >= len(visible["components"])
+
+
+def test_list_components_count_only_groups_by_library_and_kind():
+    from haybale_studio.farmhands.catalog import StudioListComponentsTool
+
+    result = run_tool(StudioListComponentsTool, library="testing", kind="node", count_only=True)
+    assert "components" not in result
+    assert result["counts"]["testing"]["node"] == result["total"]
+    assert result["total"] >= 1
+
+
+def test_list_libraries_excludes_system_library_by_default():
+    from haybale_studio.farmhands.catalog import StudioListLibrariesTool
+
+    result = run_tool(StudioListLibrariesTool, limit=1000)
+    assert all(not row["id"].startswith("__") for row in result["libraries"])
 
 
 def test_describe_component_returns_identity_and_doc():
