@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-core"
 label = "Core"
-min_version = "0.0.25"
+min_version = "0.0.27"
 description = "Fundamental components for hayire graphs"
 author = "maybites"
 source = "pypi"
