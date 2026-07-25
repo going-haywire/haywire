@@ -63,6 +63,13 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
+      # The haywire-core wheel force-includes the gitignored (never-committed)
+      # _baked_docs/ tree as haywire/docs/, so it must be regenerated before the
+      # build. The trigger tag is vTEST-X.Y.Z; strip the TEST- so the baked
+      # GitHub URLs match the real release's vX.Y.Z shape.
+      - name: Bake docs for the haywire-core wheel
+        run: uv run python scripts/bake_docs.py --version "${GITHUB_REF_NAME/vTEST-/v}"
+
       - name: Read pip_publish_order from [tool.haywire.release]
         id: read-config
         run: |
