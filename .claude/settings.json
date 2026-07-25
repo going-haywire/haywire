@@ -7,11 +7,7 @@
       "Bash(mkdir -p tests/barn/builtin packages/haywire-core/src/haywire/barn/builtin)",
       "Bash(git rm *)",
       "Bash(git stash *)",
-      "Bash(python3)",
-      "Bash(PYTHONPATH=\"/private/tmp/claude-253604802/-Volumes-Ddrive-06-open-tracking-tool-haywire-haywire-repo/94f4387e-a8ba-47b9-ac0e-5199af2d3a6f/scratchpad\" uv run pytest -q -p reverse_order_plugin --maxfail=20)",
-      "Bash(PYTHONPATH=\"/private/tmp/claude-253604802/-Volumes-Ddrive-06-open-tracking-tool-haywire-haywire-repo/94f4387e-a8ba-47b9-ac0e-5199af2d3a6f/scratchpad\" uv run pytest -q -p reverse_order_plugin)",
-      "Bash(PYTHONPATH=\"/private/tmp/claude-253604802/-Volumes-Ddrive-06-open-tracking-tool-haywire-haywire-repo/94f4387e-a8ba-47b9-ac0e-5199af2d3a6f/scratchpad\" uv run pytest -q --no-header -p reverse_order_plugin tests/core/test_graph/test_store_strategy.py)",
-      "Bash(PYTHONPATH=\"/private/tmp/claude-253604802/-Volumes-Ddrive-06-open-tracking-tool-haywire-haywire-repo/94f4387e-a8ba-47b9-ac0e-5199af2d3a6f/scratchpad\" uv run pytest -q -p callback_probe_plugin -s)"
+      "Bash(python3)"
     ],
     "additionalDirectories": [
       "/tmp",
