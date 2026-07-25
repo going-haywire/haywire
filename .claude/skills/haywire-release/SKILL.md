@@ -196,7 +196,7 @@ Tell the user:
 
 Offer three options:
 
-- **Yes, do it.** Proceeds to steps 6–8.
+- **Yes, do it.** Proceeds to steps 6–9 (including the Step 6.5 wheel smoke).
 - **No, abort.** The working tree is still clean; just stop.
 - **Apply the bump but don't commit/tag/push yet.** Runs
   `scripts/bump_version.py <NEW_VERSION> --yes`, then stops. The user can inspect
@@ -224,6 +224,23 @@ Expected: `uv.lock` is rewritten with the new versions for all bumped packages.
 (`haybale-visiongraph` lives in its own repo and is excluded from the workspace in
 `[tool.uv.workspace].exclude`, so it never appears in the lock or the bump.)
 
+Then bake the docs. `scripts/bake_docs.py` regenerates the gitignored
+`packages/haywire-core/src/haywire/_baked_docs/` tree that the haywire-core wheel
+force-includes as `haywire/docs`. The bake rewrites source-file links to
+versioned GitHub blob URLs (`.../blob/v<NEW_VERSION>/...`), so it **MUST run after
+the bump** — otherwise the URLs embed the previous release's tag:
+
+```bash
+uv run python scripts/bake_docs.py --version v<NEW_VERSION>
+```
+
+Expected: `Baked 70 docs → …/_baked_docs (version v<NEW_VERSION>)`. A few `WARN`
+lines for prose that looks link-shaped (e.g. `setting[str](...)`) are normal.
+The output dir is gitignored, so it does **not** appear in the commit — it's
+consumed at wheel-build time (Step 6.5 and CI). If the script raises
+`SnippetMissingError`, a snippet source in `docs/` moved; STOP and fix the
+`--8<--` path before releasing.
+
 Then stage the bumped files plus the freshly-locked file and commit:
 
 ```bash
@@ -248,7 +265,36 @@ following the convention keeps `git log --oneline` searchable for past releases.
 
 After `uv lock`, `uv.lock` will always have changed (the version lines moved), so it's
 part of the staged set — confirm it's in the commit with `git diff --cached --name-only`
-(expect exactly 11 paths: 10 `pyproject.toml` + `uv.lock`).
+(expect exactly 11 paths: 10 `pyproject.toml` + `uv.lock`). The baked docs are
+gitignored, so they are correctly absent from this set.
+
+### Step 6.5 — wheel-build smoke (before tag)
+
+Build the haywire-core wheel locally to prove it builds from the baked docs
+*before* tagging. `uv build` builds the wheel from an extracted sdist; a broken
+docs force-include (the v0.0.26 failure) or a missing bake surfaces here as a
+build error instead of blowing up in CI after the tag is already public:
+
+```bash
+uv build --package haywire-core
+```
+
+Expected: `Successfully built dist/haywire_core-<NEW_VERSION>-py3-none-any.whl`.
+Then confirm the baked docs actually landed in the wheel:
+
+```bash
+unzip -l dist/haywire_core-<NEW_VERSION>-py3-none-any.whl | grep -c 'haywire/docs/'
+```
+
+Expected: a non-zero count (currently 70 — one per `docs/*.md`). If the build
+fails or the count is 0, STOP: the bake didn't run or the force-include is
+misconfigured. Do NOT tag. Clean up the smoke artifacts afterward:
+
+```bash
+rm -f dist/haywire_core-<NEW_VERSION>-py3-none-any.whl dist/haywire_core-<NEW_VERSION>.tar.gz
+```
+
+(These are gitignored under `dist/`, but removing them keeps the tree tidy.)
 
 ### Step 7 — create the tag
 

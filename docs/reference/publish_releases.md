@@ -120,19 +120,48 @@ default_tags = []
 3. The skill patches every `pyproject.toml` referenced by `publish_order + lockstep_unpublished`:
    - `[project] version = "0.0.2"`
    - All `~=` inter-package constraints updated to the new floor (e.g. `haywire-core~=0.0.2`).
-4. The skill shows a unified diff of every changed file and asks for confirmation.
-5. On confirm: commit (`chore: release v0.0.2`), tag (`v0.0.2`), push branch + tag.
-6. CI takes over.
+4. The skill re-locks (`uv lock`) and **bakes the docs**
+   (`scripts/bake_docs.py --version v0.0.2`) — this regenerates the gitignored
+   `packages/haywire-core/src/haywire/_baked_docs/` tree the haywire-core wheel
+   ships as `haywire/docs/` (see [Baked docs](#baked-docs) below). The bake runs
+   *after* the bump because it embeds the new tag in source-file GitHub URLs.
+5. The skill shows a unified diff of every changed file and asks for confirmation.
+6. On confirm: commit (`chore: release v0.0.2`), then a local
+   `uv build --package haywire-core` smoke to prove the wheel builds from the
+   baked docs before tagging, then tag (`v0.0.2`) and hand the push to the author.
+7. CI takes over.
 
-Until the `/haywire-release` skill ships (separate plan — spec T8), run the steps manually:
+To run the local phase manually (without the skill):
 
 ```sh
-uv run python scripts/bump_version.py 0.0.2
-git add packages/*/pyproject.toml barn/*/pyproject.toml uv.lock
+uv run pytest -m "not integration" -q                 # gate
+uv run python scripts/bump_version.py 0.0.2 --yes     # bump every pyproject
+uv lock                                                # re-pin uv.lock
+uv run python scripts/bake_docs.py --version v0.0.2    # bake docs (AFTER the bump)
+git add -u                                             # baked dir is gitignored
 git commit -m "chore: release v0.0.2"
+uv build --package haywire-core                        # smoke: wheel builds from baked docs
 git tag v0.0.2
-git push origin main v0.0.2
+git push origin HEAD v0.0.2
 ```
+
+### Baked docs
+
+Farmhand serves the full `docs/` tree to an attached agent as MCP resources. Raw
+`docs/` is unservable — `--8<--` snippet directives, relative cross-links, and
+source-file links that don't resolve over MCP — so `scripts/bake_docs.py` bakes
+every `docs/*.md` to pure markdown (snippets expanded; `.md` links →
+`farmhand://docs/...`; source links → versioned GitHub `blob`/`tree` URLs) into a
+gitignored `packages/haywire-core/src/haywire/_baked_docs/` mirror. The
+haywire-core wheel force-includes that mirror as `haywire/docs/`; the sdist
+includes it too, so the from-sdist wheel build finds it.
+
+The bake is **not** committed (the output is generated), so it must run as part of
+each release — which is why it lives in the local phase above, keyed to the new
+tag. A `pytest` gate (`tests/farmhand/test_doc_keys_resolve.py`) asserts every
+hand-authored `lib:kind:id` registry key in the docs resolves, failing CI on
+drift. In a dev checkout, running the bake once makes a from-source studio serve
+the baked docs too; otherwise it falls back to the raw `docs/` tree.
 
 ### CI phase (on tag push `v*.*.*`)
 
