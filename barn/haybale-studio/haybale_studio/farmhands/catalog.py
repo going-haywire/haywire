@@ -102,7 +102,7 @@ def _matches_search(identity: Any, query_lower: str) -> bool:
 @farmhand(
     label="List components",
     description="ALWAYS pass at least one of kind=/library=/search= — omitting all three "
-    "returns every installed component (100+) and is almost never what you want. "
+    "returns every installed component (100+) and is slow and almost never what you want. "
     "Component catalog, filterable and searchable.\n"
     "Start with count_only=true to see totals per library/kind before listing rows — the "
     "cheapest way to survey scope.\n"
