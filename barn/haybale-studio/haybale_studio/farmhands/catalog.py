@@ -101,15 +101,19 @@ def _matches_search(identity: Any, query_lower: str) -> bool:
 
 @farmhand(
     label="List components",
-    description="Component catalog, filterable by library and/or kind (registry prefix-scan) "
-    "and/or search (substring match against label/description/search_tags — same algorithm "
-    "as the node-menu search). "
-    f"kind is one of: {', '.join(_KIND_ENUM)}. Pass kind=/library=/search= to scope the "
-    "result — omitting all three returns every installed component and can be large. Hidden "
-    "components (e.g. internal reroute/error nodes) and synthetic libraries (dunder ids "
-    "like '__system__') are excluded by default; set include_hidden=true / "
-    "include_system=true to see them. Pass count_only=true for grouped totals instead of rows "
-    "— useful for surveying scope before listing.",
+    description="ALWAYS pass at least one of kind=/library=/search= — omitting all three "
+    "returns every installed component (100+) and is almost never what you want. "
+    "Component catalog, filterable and searchable.\n"
+    "Start with count_only=true to see totals per library/kind before listing rows — the "
+    "cheapest way to survey scope.\n"
+    f"kind: one of {', '.join(_KIND_ENUM)}\n"
+    "library: exact library id (see studio_list_libraries)\n"
+    "search: substring match against label/description/search_tags (same algorithm as the "
+    "node-menu search)\n"
+    "count_only: return counts grouped by library/kind instead of rows\n"
+    "include_hidden: include internal components (e.g. reroute/error nodes), excluded by default\n"
+    "include_system: include synthetic libraries (dunder ids like '__system__'), excluded by "
+    "default",
     registry_id="list_components",
     annotations=_READ_ONLY,
 )
@@ -168,8 +172,17 @@ class StudioListComponentsTool(Farmhand):
             for key, identity in matches
         ]
         rows, total = page(rows, limit, offset)
+        summary = f"{total} components match.{truncation_note(len(rows), total, offset)}"
+        if total > limit:
+            # This call was truncated — the caller is either scanning everything
+            # unfiltered or has a wide search; either way a scoping tip pays for
+            # itself. Skipped when the page already covers the whole result (a
+            # legitimately small unfiltered query shouldn't be nagged).
+            summary += (
+                " Tip: pass kind=/library=/search= to narrow this, or count_only=true to see totals first."
+            )
         return {
-            "summary": f"{total} components match.{truncation_note(len(rows), total, offset)}",
+            "summary": summary,
             "components": rows,
             "total": total,
         }

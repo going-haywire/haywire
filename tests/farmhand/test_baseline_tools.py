@@ -110,6 +110,26 @@ def test_list_components_count_only_groups_by_library_and_kind():
     assert result["total"] >= 1
 
 
+def test_list_components_truncated_result_gets_scoping_tip():
+    """An unfiltered/wide call that overflows `limit` gets a tip appended to its
+    summary — the trigger is truncation (total > limit), not "no filters passed",
+    so a legitimately small unfiltered query isn't nagged (see the sibling test).
+    """
+    from haybale_studio.farmhands.catalog import StudioListComponentsTool
+
+    result = run_tool(StudioListComponentsTool, limit=1)
+    assert result["total"] > 1
+    assert "Tip:" in result["summary"]
+
+
+def test_list_components_untruncated_result_has_no_tip():
+    from haybale_studio.farmhands.catalog import StudioListComponentsTool
+
+    result = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=10_000)
+    assert result["total"] <= 10_000
+    assert "Tip:" not in result["summary"]
+
+
 def test_list_libraries_excludes_system_library_by_default():
     from haybale_studio.farmhands.catalog import StudioListLibrariesTool
 
