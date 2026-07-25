@@ -2646,10 +2646,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#farmhand-mcp-server" class="md-nav__link">
+  <a href="#farmhand-the-ai-harness" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Farmhand — MCP server
+        Farmhand — the AI harness
       
     </span>
   </a>
@@ -3136,10 +3136,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#farmhand-mcp-server" class="md-nav__link">
+  <a href="#farmhand-the-ai-harness" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Farmhand — MCP server
+        Farmhand — the AI harness
       
     </span>
   </a>
@@ -3928,7 +3928,8 @@
 </tbody>
 </table>
 <hr />
-<h2 id="farmhand-mcp-server">Farmhand — MCP server<a class="headerlink" href="#farmhand-mcp-server" title="Permanent link">&para;</a></h2>
+<h2 id="farmhand-the-ai-harness">Farmhand — the AI harness<a class="headerlink" href="#farmhand-the-ai-harness" title="Permanent link">&para;</a></h2>
+<p><strong>Farmhand</strong> is Haywire's umbrella term for the AI harness that helps and supports a user with Haywire. It spans three surfaces of one concept, disambiguated by qualifier: the <strong>Farmhand server</strong> (in-studio MCP host), the <strong>farmhand</strong> tools (library-contributed capabilities), and the <strong>Farmhand plugin</strong> (the Claude Code side — proxy + onboarding skills). "Farmhand" unqualified means the whole harness.</p>
 <table>
 <thead>
 <tr>
@@ -3940,12 +3941,32 @@
 <tbody>
 <tr>
 <td><strong>Farmhand</strong></td>
-<td>The Haywire MCP server subsystem through which AI-agent clients operate the studio via library-contributed tools. First-degree citizen of haywire: the host (transport mounted at <code>/mcp</code> on the studio app, session registry, <code>mcp</code> SDK dependency) lives in haywire-studio; the SDK-free contribution seam (<code>FarmhandRegistry</code>, <code>Farmhand</code>/<code>@farmhand</code>, <code>FarmhandContext</code>) lives in haywire-core. The <code>studio_*</code> baseline tools ship in barn/haybale-studio (library id <code>studio</code>), so they register through the same folder-scan mechanism as every other library's tools.</td>
-<td>MCP server (ambiguous — any third-party MCP server), agent API</td>
+<td>The whole AI harness that helps/supports a user with Haywire — spanning the in-studio MCP server, the library-contributed tools, and the Claude Code plugin (proxy + skills). Qualify when a specific surface is meant (Farmhand <em>server</em> / <em>plugin</em> / <em>proxy</em>).</td>
+<td>MCP server alone (that's the server surface only), agent API</td>
+</tr>
+<tr>
+<td><strong>Farmhand server</strong></td>
+<td>The in-studio MCP server subsystem through which AI-agent clients operate the studio via library-contributed tools. The host (transport mounted at <code>/mcp</code> on the studio app, session registry, <code>mcp</code> SDK dependency) lives in haywire-studio; the SDK-free contribution seam (<code>FarmhandRegistry</code>, <code>Farmhand</code>/<code>@farmhand</code>, <code>FarmhandContext</code>) lives in haywire-core. The <code>studio_*</code> baseline tools ship in barn/haybale-studio (library id <code>studio</code>), registering through the same folder-scan mechanism as every other library's tools.</td>
+<td>MCP server (ambiguous — any third-party MCP server)</td>
+</tr>
+<tr>
+<td><strong>Farmhand plugin</strong> (<code>farmhand4claude</code>)</td>
+<td>The <strong>Claude-Code-only</strong> plugin distributed from <code>github.com/going-haywire/farmhand4claude</code> (npm <code>@going-haywire/farmhand4claude</code>): the <strong>Farmhand proxy</strong> (stdio↔HTTP MCP bridge) plus beginner <strong>onboarding skills</strong>. A graduating on-ramp (bootstrap → first graph → first library → first share), not a permanent power-user surface — that remains the <code>haywire-live-studio</code> skill. The "4claude" scopes the <em>plugin</em>, not the concept: skills are CC-specific, so the plugin is too; the proxy alone is portable to any MCP harness but is not the advertised path.</td>
+<td>Farmhand (unqualified, when the plugin specifically is meant)</td>
+</tr>
+<tr>
+<td><strong>Farmhand proxy</strong></td>
+<td>The stdio MCP server Claude Code spawns at session start that bridges to the Farmhand server's HTTP <code>/mcp</code>, forwarding tool/resource calls and re-emitting <code>list_changed</code> so studio tools appear mid-session with no reconnect. Reads the bearer token lazily from <code>&lt;ws&gt;/.haywire/farmhand_token</code>; runs in down-mode (a <code>farmhand_studio_status</code> sentinel) until the studio comes up.</td>
+<td>bridge, gateway (gateway is the SDK's word for the pattern, not this component)</td>
+</tr>
+<tr>
+<td><strong>Studio identity sidecar</strong> (<code>studio.json</code>)</td>
+<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code>, <code>host</code>, <code>role</code>, <code>url</code>. Lets a later process (the farmhand4claude plugin's startup script) identify which project owns the studio on a port and decide to reuse / ask / clean up. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. Sits beside <code>farmhand_token</code>.</td>
+<td>pid file (studioctl's is a bare integer; this is structured identity)</td>
 </tr>
 <tr>
 <td><strong>farmhand</strong></td>
-<td>A haywire MCP tool: one callable capability a <strong>Library</strong> contributes to Farmhand. A <strong>Component</strong> kind — a <code>Farmhand</code> subclass decorated <code>@farmhand</code> in the library's <code>farmhands/</code> folder, registered via <code>FarmhandRegistry</code>, keyed <code>{lib_id}:farmhand:{name}</code>, surfaced to agents as <code>{lib_id}_{name}</code> (<code>studio</code> prefix belongs to haybale-studio's baseline). "MCP tool" remains the protocol-facing synonym (what <code>tools/list</code> returns).</td>
+<td>A haywire MCP tool: one callable capability a <strong>Library</strong> contributes to the Farmhand server. A <strong>Component</strong> kind — a <code>Farmhand</code> subclass decorated <code>@farmhand</code> in the library's <code>farmhands/</code> folder, registered via <code>FarmhandRegistry</code>, keyed <code>{lib_id}:farmhand:{name}</code>, surfaced to agents as <code>{lib_id}_{name}</code> (<code>studio</code> prefix belongs to haybale-studio's baseline). "MCP tool" remains the protocol-facing synonym (what <code>tools/list</code> returns).</td>
 <td>chore, command, contribution</td>
 </tr>
 <tr>
