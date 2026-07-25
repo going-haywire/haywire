@@ -155,6 +155,13 @@ def bake(out_dir: Path, version: str) -> int:
         shutil.rmtree(out_dir)
     out_dir.mkdir(parents=True)
 
+    # Restore the committed .gitkeep. The directory is force-included into the
+    # haywire-core wheel, so it must exist in a fresh checkout or every editable
+    # install (`uv sync`) fails the build on a missing force-include target. The
+    # baked *.md contents are gitignored; only this placeholder is tracked, so a
+    # bake must leave it in place (rmtree above would otherwise delete it).
+    (out_dir / ".gitkeep").touch()
+
     md_files = sorted(DOCS_ROOT.rglob("*.md"))
     for src in md_files:
         rel = src.relative_to(DOCS_ROOT)

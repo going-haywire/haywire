@@ -29,17 +29,6 @@ jobs:
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         run: uv python install ${{ env.PYTHON_VERSION }}
 
-      # The haywire-core wheel force-includes packages/haywire-core/src/haywire/
-      # _baked_docs/ as haywire/docs/. That dir is gitignored (generated, never
-      # committed), so a fresh checkout doesn't have it — and `uv sync --dev`
-      # builds haywire-core *editable*, which hatchling fails on a missing
-      # force-include target (FileNotFoundError). Bake it FIRST, in an isolated
-      # env with only the bake's two deps (`--no-project` skips the workspace
-      # build, breaking the chicken-and-egg), so the dir exists before any sync.
-      - name: Bake docs (before sync — editable build needs the force-include target)
-        run: uv run --no-project --with markdown --with pymdown-extensions
-             python scripts/bake_docs.py --version "${GITHUB_REF_NAME}"
-
       - name: Install workspace
         run: uv sync --dev
 
@@ -68,18 +57,17 @@ jobs:
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         run: uv python install ${{ env.PYTHON_VERSION }}
 
-      # Bake the gitignored _baked_docs/ tree the haywire-core wheel
-      # force-includes BEFORE `uv sync --dev` — the sync builds haywire-core
-      # editable and hatchling fails on a missing force-include target. Isolated
-      # env (`--no-project` + the bake's two deps) sidesteps the workspace build
-      # so the bake can run before the workspace exists. Uses the tag's version
-      # for the source-file GitHub URLs baked into the docs.
-      - name: Bake docs for the haywire-core wheel (before sync)
-        run: uv run --no-project --with markdown --with pymdown-extensions
-             python scripts/bake_docs.py --version "${GITHUB_REF_NAME}"
-
       - name: Install workspace
         run: uv sync --dev
+
+      # The haywire-core wheel force-includes packages/haywire-core/src/haywire/
+      # _baked_docs/ as haywire/docs/. A committed .gitkeep keeps the directory
+      # present (so editable installs above don't fail the force-include), but
+      # the baked *contents* are gitignored — regenerate them here, from the
+      # tagged source, before the wheel build. Uses the tag's version for the
+      # source-file GitHub URLs baked into the docs.
+      - name: Bake docs for the haywire-core wheel
+        run: uv run python scripts/bake_docs.py --version "${GITHUB_REF_NAME}"
 
       - name: Read pip_publish_order from [tool.haywire.release]
         id: read-config
@@ -138,14 +126,6 @@ jobs:
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         run: uv python install ${{ env.PYTHON_VERSION }}
-
-      # Bake before sync — `uv sync --dev` builds haywire-core editable and
-      # hatchling fails on the missing gitignored force-include target. Isolated
-      # env sidesteps the workspace build. (This job publishes prebuilt wheels
-      # from the artifact, but still syncs the workspace for scripts.bump_version.)
-      - name: Bake docs (before sync)
-        run: uv run --no-project --with markdown --with pymdown-extensions
-             python scripts/bake_docs.py --version "${GITHUB_REF_NAME}"
 
       - name: Install workspace
         run: uv sync --dev
@@ -229,12 +209,6 @@ jobs:
 
       - name: Set up Python ${{ env.PYTHON_VERSION }}
         run: uv python install ${{ env.PYTHON_VERSION }}
-
-      # Bake before sync — `uv sync --dev` builds haywire-core editable and
-      # hatchling fails on the missing gitignored force-include target.
-      - name: Bake docs (before sync)
-        run: uv run --no-project --with markdown --with pymdown-extensions
-             python scripts/bake_docs.py --version "${GITHUB_REF_NAME}"
 
       - name: Install workspace
         run: uv sync --dev
