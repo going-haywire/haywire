@@ -16,7 +16,7 @@ from haywire.core.host import HostStore
 from haywire.core.session.signals import ErrorLogged
 
 # UI imports
-from haywire.ui.console_bridge import get_bridge
+from haywire.ui.console_bridge import get_stdout_tee
 
 from haywire.ui.extends.codemirror import register_code_intelligence_render_endpoint
 
@@ -103,13 +103,11 @@ class HaywireApp:
         print(f"  Cleaning up {self.session_manager.session_count} sessions...")
         self.session_manager.cleanup_all()
 
-        # 2. Clean up console bridge
+        # 2. Clean up stdout tee history (sinks are detached by each editor's own cleanup())
         try:
-            bridge = get_bridge()
-            bridge.log_elements.clear()
-            bridge.clear_history()
+            get_stdout_tee().clear_history()
         except Exception as e:
-            print(f"  Error cleaning up console bridge: {e}")
+            print(f"  Error clearing stdout tee history: {e}")
 
         # 3. Unwire the error-ledger → ErrorLogged bridge (mirrors console bridge).
         if self._error_ledger_listener is not None:
@@ -323,6 +321,13 @@ def run_app():
     """Launch the Haywire application."""
     # logging.getLogger("haywire.ui.editor.graph_canvas_manager").setLevel(logging.DEBUG)
     # use DebugSettings.log_ui instead
+
+    # Install before HaywireApp() is constructed so the workspace banner and
+    # library-system banner (printed during __init__) reach the Log panel too.
+    # uvicorn also resolves ext://sys.stdout when it applies its logging config,
+    # so this must happen before that config is built.
+    get_stdout_tee().install()
+
     app_instance = HaywireApp()
     app.on_shutdown(app_instance.cleanup)
     app_instance.run()
