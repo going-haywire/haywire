@@ -31,6 +31,12 @@ def test_connection_command_contains_endpoint_and_header():
     assert "Authorization: Bearer sekrit" in line
 
 
+def test_connection_command_omits_header_when_token_is_none():
+    line = connection_command(8082, None)
+    assert "claude mcp add --transport http farmhand http://127.0.0.1:8082/mcp" in line
+    assert "Authorization" not in line
+
+
 def _run_middleware(headers: list[tuple[bytes, bytes]]) -> int:
     """Drive the ASGI middleware with a fake downstream app; return the status sent."""
     sent: dict = {}

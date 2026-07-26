@@ -113,11 +113,23 @@ def _post(url: str, headers: dict) -> int:
         return exc.code
 
 
+def _assert_auth_required():
+    from haywire_studio.farmhand.settings import FarmhandSettings
+
+    assert FarmhandSettings().require_auth is True, (
+        "these tests assert 401 on missing/wrong token, which only holds when "
+        "FarmhandSettings.require_auth is True — check the schema default and "
+        "that nothing upstream flipped it"
+    )
+
+
 def test_missing_token_is_401(farmhand_server):
+    _assert_auth_required()
     assert _post(farmhand_server.base_url, {}) == 401
 
 
 def test_wrong_token_is_401(farmhand_server):
+    _assert_auth_required()
     assert _post(farmhand_server.base_url, {"Authorization": "Bearer wrong"}) == 401
 
 

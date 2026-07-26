@@ -295,11 +295,14 @@ class HaywireApp:
         """Run the application."""
         print("Starting Haywire...")
         self.create_ui()
+        from haywire_studio.network.settings import NetworkSettings
+
+        port = NetworkSettings().port
         # Mount the Farmhand MCP server on the same port before ui.run (flag read once).
-        self.setup_farmhand(8082)
+        self.setup_farmhand(port)
         try:
             ui.run(
-                port=8082,
+                port=port,
                 show=True,
                 title="Haywire",
                 reload=False,

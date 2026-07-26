@@ -32,11 +32,11 @@ def ensure_token(workspace_root: Path) -> str:
     return token
 
 
-def connection_command(port: int, token: str) -> str:
-    return (
-        f"claude mcp add --transport http farmhand http://127.0.0.1:{port}/mcp "
-        f'--header "Authorization: Bearer {token}"'
-    )
+def connection_command(port: int, token: str | None) -> str:
+    base = f"claude mcp add --transport http farmhand http://127.0.0.1:{port}/mcp"
+    if token is None:
+        return base
+    return f'{base} --header "Authorization: Bearer {token}"'
 
 
 class BearerTokenMiddleware:

@@ -33,7 +33,10 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, Farm
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
+from haywire_studio.network.settings import NetworkSettings
+
 from .auth import BearerTokenMiddleware, connection_command, ensure_token
+from .settings import FarmhandSettings
 
 logger = logging.getLogger(__name__)
 
@@ -248,18 +251,24 @@ class FarmhandHost:
 
     def mount(self, port: int, app_target: Any = None) -> None:
         target = app_target if app_target is not None else nicegui_app
-        token = ensure_token(Path(self._workspace_root))
-        security = TransportSecuritySettings(
-            allowed_hosts=[f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"],
-            allowed_origins=[f"http://127.0.0.1:{port}", f"http://localhost:{port}"],
-        )
+        require_auth = FarmhandSettings().require_auth
+        token = ensure_token(Path(self._workspace_root)) if require_auth else None
+
+        if NetworkSettings().restrict_to_loopback:
+            security = TransportSecuritySettings(
+                allowed_hosts=[f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"],
+                allowed_origins=[f"http://127.0.0.1:{port}", f"http://localhost:{port}"],
+            )
+        else:
+            security = TransportSecuritySettings(enable_dns_rebinding_protection=False)
         self._session_manager = StreamableHTTPSessionManager(app=self._server, security_settings=security)
 
         async def asgi(scope, receive, send):
             assert self._session_manager is not None
             await self._session_manager.handle_request(scope, receive, send)
 
-        target.mount("/mcp", BearerTokenMiddleware(asgi, token))
+        mounted = BearerTokenMiddleware(asgi, token) if token is not None else asgi
+        target.mount("/mcp", mounted)
         # The NiceGUI app drives the runner via its own lifespan hooks; a test
         # harness (FastAPI app_target) drives _on_startup/_on_shutdown itself.
         if target is nicegui_app:

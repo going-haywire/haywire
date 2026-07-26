@@ -12,9 +12,11 @@ process. Stateless per call, which is simpler and reliable for a CLI (one extra
 round-trip locally is negligible).
 
 Auth + port are discovered automatically: the bearer token is read from
-``.haywire/farmhand_token`` (same file the studio writes on startup). The
-endpoint is ``http://127.0.0.1:8082/mcp/`` — note the trailing slash; a bare
-``/mcp`` 307-redirects and most POST clients drop the body on redirect.
+``.haywire/farmhand_token`` and the port from ``.haywire/studio.json`` (both
+written by the studio on startup — see ``DEFAULT_PORT`` for the fallback used
+before either file exists). The endpoint is ``http://127.0.0.1:<port>/mcp/``
+— note the trailing slash; a bare ``/mcp`` 307-redirects and most POST clients
+drop the body on redirect.
 
 Zero third-party deps — stdlib http.client only.
 
@@ -37,7 +39,7 @@ from pathlib import Path
 from typing import NoReturn
 
 HOST = "127.0.0.1"
-PORT = 8082
+DEFAULT_PORT = 8124  # NetworkSettings.port default — used only before a sidecar exists
 PATH = "/mcp/"  # trailing slash is required
 PROTOCOL_VERSION = "2025-11-25"
 
@@ -51,6 +53,20 @@ def read_token() -> str:
     if not f.exists():
         die(f"token file not found at {f} — is the studio running? (studioctl start)")
     return f.read_text().strip()
+
+
+def resolve_port() -> int:
+    """Port from the sidecar identity file (.haywire/studio.json), or
+    DEFAULT_PORT if the studio has never mounted Farmhand in this workspace."""
+    f = workspace_root() / ".haywire" / "studio.json"
+    if f.exists():
+        try:
+            port = json.loads(f.read_text()).get("port")
+            if isinstance(port, int):
+                return port
+        except (json.JSONDecodeError, OSError):
+            pass
+    return DEFAULT_PORT
 
 
 def die(msg: str, code: int = 1) -> NoReturn:
@@ -75,8 +91,9 @@ def _parse_sse(body: str) -> dict:
 
 
 class Session:
-    def __init__(self, token: str):
+    def __init__(self, token: str, port: int):
         self.token = token
+        self.port = port
         self.session_id: str | None = None
         self._id = 0
 
@@ -91,7 +108,7 @@ class Session:
         return h
 
     def _post(self, payload: dict) -> tuple[int, dict[str, str], str]:
-        conn = http.client.HTTPConnection(HOST, PORT, timeout=30)
+        conn = http.client.HTTPConnection(HOST, self.port, timeout=30)
         try:
             conn.request("POST", PATH, body=json.dumps(payload), headers=self._headers())
             resp = conn.getresponse()
@@ -99,7 +116,7 @@ class Session:
             headers = {k.lower(): v for k, v in resp.getheaders()}
             return resp.status, headers, data
         except ConnectionRefusedError:
-            die(f"connection refused on {HOST}:{PORT} — studio not running? (studioctl start)")
+            die(f"connection refused on {HOST}:{self.port} — studio not running? (studioctl start)")
         finally:
             conn.close()
 
@@ -138,7 +155,7 @@ class Session:
 
 
 def _load_session() -> Session:
-    s = Session(read_token())
+    s = Session(read_token(), resolve_port())
     s.initialize()
     return s
 

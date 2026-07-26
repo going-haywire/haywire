@@ -17,9 +17,12 @@ description: >
 ## Overview
 
 The studio serves both the NiceGUI app and the **Farmhand MCP server** on
-`http://127.0.0.1:8082` (`/mcp`). This skill bundles two dependency-free CLIs so
-you (or a future session) can bring that server up/down and drive its tools over
-HTTP — without depending on Claude Code's session-startup MCP handshake.
+`http://127.0.0.1:<port>` (`/mcp`) — the port defaults to 8124
+(`NetworkSettings.port`) but both CLIs below discover the actual port at
+runtime from `.haywire/studio.json`, so they work even if that setting has
+been changed. This skill bundles two dependency-free CLIs so you (or a future
+session) can bring that server up/down and drive its tools over HTTP —
+without depending on Claude Code's session-startup MCP handshake.
 
 - `scripts/studioctl` — start / stop / status / restart the studio.
 - `scripts/farmhand` — MCP client: `tools`, `call`, `resources`, `read`, `raw`.
@@ -47,7 +50,7 @@ don't need a live app.
 ```sh
 S=.claude/skills/haywire-live-studio/scripts
 
-$S/studioctl start          # boot studio if down (idempotent), wait for :8082, print token
+$S/studioctl start          # boot studio if down (idempotent), wait for its port, print token
 $S/studioctl status         # up? tracked pid? who owns the port?
 $S/studioctl stop           # clean shutdown (SIGINT) of a studio studioctl started
 $S/studioctl restart
@@ -79,10 +82,11 @@ $S/farmhand raw tools/list                  # escape hatch: any MCP method
 
 `studioctl` tracks only the studio **it** started, via `.haywire/studioctl.pid`.
 
-- `start` is idempotent — reuses a studio already on `:8082`, never spawns a second.
+- `start` is idempotent — reuses a studio already on the resolved port, never
+  spawns a second.
 - `stop` kills only the tracked pid. A studio you started yourself (terminal
   `uv run haywire`, or the desktop app) has no pid file here, so `stop` refuses
-  and tells you to pass `--force` (which kills whatever holds `:8082`).
+  and tells you to pass `--force` (which kills whatever holds the port).
 - `stop` escalates SIGINT → SIGTERM → SIGKILL. SIGINT is the studio's designed
   shutdown (`run()` catches `KeyboardInterrupt`), so it's clean and fast (~0.5s).
 

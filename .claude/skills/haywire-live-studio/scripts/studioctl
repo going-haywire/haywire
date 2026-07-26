@@ -1,18 +1,26 @@
 #!/usr/bin/env python3
 """studioctl — start/stop/status a local Haywire studio for Farmhand access.
 
-The studio serves the NiceGUI app AND the Farmhand MCP endpoint on port 8082
-(``/mcp``). This tool lets an agent (or a human) bring that server up and down
-without touching Claude Code's own MCP client — Farmhand is then driven over
-HTTP by the sibling ``farmhand`` script.
+The studio serves the NiceGUI app AND the Farmhand MCP endpoint on one port
+(``/mcp``), read from the studio's own ``NetworkSettings.port`` (default 8124 —
+8082 collides with too many tutorials/other tools). This tool lets an agent
+(or a human) bring that server up and down without touching Claude Code's own
+MCP client — Farmhand is then driven over HTTP by the sibling ``farmhand``
+script.
+
+The port is discovered from the sidecar identity file ``.haywire/studio.json``
+(written by the studio on every Farmhand mount) so this script never needs
+updating when the setting changes. Before a studio has ever started in this
+workspace there is no sidecar yet — ``start`` falls back to ``DEFAULT_PORT``
+for that one bootstrap connection attempt only.
 
 Lifecycle discipline (why this won't stomp your GUI studio):
-- ``start`` is idempotent: if :8082 is already listening it reports the running
-  server and exits 0 without spawning a second one.
+- ``start`` is idempotent: if the port is already listening it reports the
+  running server and exits 0 without spawning a second one.
 - ``stop`` only kills a studio THIS tool started, tracked by a PID file under
   ``.haywire/studioctl.pid``. A studio you launched yourself (``uv run haywire``
   in a terminal, or the VS Code app) has no PID file here and is left alone,
-  unless you pass ``--force`` (which kills whatever holds :8082).
+  unless you pass ``--force`` (which kills whatever holds the port).
 
 Zero third-party deps — stdlib only. Run from anywhere; the workspace root is
 derived from this script's location (…/.claude/skills/haywire-live-studio/…).
@@ -21,6 +29,7 @@ derived from this script's location (…/.claude/skills/haywire-live-studio/…)
 from __future__ import annotations
 
 import argparse
+import json
 import os
 import signal
 import socket
@@ -29,7 +38,7 @@ import sys
 import time
 from pathlib import Path
 
-PORT = 8082
+DEFAULT_PORT = 8124  # NetworkSettings.port default — used only before a sidecar exists
 HOST = "127.0.0.1"
 
 
@@ -56,10 +65,28 @@ def token_file() -> Path:
     return haywire_dir() / "farmhand_token"
 
 
-def port_open() -> bool:
+def sidecar_file() -> Path:
+    return haywire_dir() / "studio.json"
+
+
+def resolve_port() -> int:
+    """Port from the sidecar identity file, or DEFAULT_PORT if none written yet
+    (no studio has ever mounted Farmhand in this workspace)."""
+    f = sidecar_file()
+    if f.exists():
+        try:
+            port = json.loads(f.read_text()).get("port")
+            if isinstance(port, int):
+                return port
+        except (json.JSONDecodeError, OSError):
+            pass
+    return DEFAULT_PORT
+
+
+def port_open(port: int) -> bool:
     with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
         s.settimeout(0.25)
-        return s.connect_ex((HOST, PORT)) == 0
+        return s.connect_ex((HOST, port)) == 0
 
 
 def pid_alive(pid: int) -> bool:
@@ -83,11 +110,11 @@ def read_tracked_pid() -> int | None:
     return pid if pid_alive(pid) else None
 
 
-def owner_of_port() -> int | None:
-    """PID holding :8082 via lsof, or None. Best-effort (lsof may be absent)."""
+def owner_of_port(port: int) -> int | None:
+    """PID holding the port via lsof, or None. Best-effort (lsof may be absent)."""
     try:
         out = subprocess.run(
-            ["lsof", "-nP", f"-iTCP@{HOST}:{PORT}", "-sTCP:LISTEN", "-t"],
+            ["lsof", "-nP", f"-iTCP@{HOST}:{port}", "-sTCP:LISTEN", "-t"],
             capture_output=True,
             text=True,
             timeout=5,
@@ -101,10 +128,11 @@ def owner_of_port() -> int | None:
 
 
 def cmd_start(args: argparse.Namespace) -> int:
-    if port_open():
+    port = resolve_port()
+    if port_open(port):
         tracked = read_tracked_pid()
         who = f"tracked pid {tracked}" if tracked else "not tracked by studioctl (your own instance)"
-        print(f"studio already up on {HOST}:{PORT} ({who}) — reusing it.")
+        print(f"studio already up on {HOST}:{port} ({who}) — reusing it.")
         _print_token()
         return 0
 
@@ -129,13 +157,17 @@ def cmd_start(args: argparse.Namespace) -> int:
             _tail(log, 20)
             pid_file().unlink(missing_ok=True)
             return 1
-        if port_open():
-            print(f"studio up on {HOST}:{PORT} (pid {proc.pid}).")
+        # Re-resolve each iteration: the sidecar may not exist until the studio
+        # actually mounts Farmhand, which could report a different port than
+        # our pre-start guess if NetworkSettings changed since the last run.
+        port = resolve_port()
+        if port_open(port):
+            print(f"studio up on {HOST}:{port} (pid {proc.pid}).")
             _print_token()
             return 0
         time.sleep(0.4)
 
-    print(f"timed out after {args.timeout}s waiting for :{PORT}. Tail of log:")
+    print(f"timed out after {args.timeout}s waiting for :{port}. Tail of log:")
     _tail(log, 20)
     return 1
 
@@ -153,24 +185,25 @@ def _signal_group(pid: int, sig: int) -> None:
 
 
 def cmd_stop(args: argparse.Namespace) -> int:
+    port = resolve_port()
     tracked = read_tracked_pid()
     target = tracked
     label = "tracked studio"
 
     if target is None:
-        if not port_open():
-            print("no studio running (nothing tracked, :8082 closed).")
+        if not port_open(port):
+            print(f"no studio running (nothing tracked, :{port} closed).")
             pid_file().unlink(missing_ok=True)
             return 0
         if not args.force:
-            owner = owner_of_port()
+            owner = owner_of_port(port)
             print(
-                f":{PORT} is held by pid {owner} but studioctl did not start it "
+                f":{port} is held by pid {owner} but studioctl did not start it "
                 "(likely your GUI/terminal studio). Refusing to kill it.\n"
                 "Pass --force to stop whatever holds the port."
             )
             return 1
-        target = owner_of_port()
+        target = owner_of_port(port)
         label = "port owner (--force)"
         if target is None:
             print("could not resolve the port owner to kill.")
@@ -184,7 +217,7 @@ def cmd_stop(args: argparse.Namespace) -> int:
         (signal.SIGTERM, 6.0, "SIGTERM"),
         (signal.SIGKILL, 0.0, "SIGKILL"),
     ):
-        if not pid_alive(target) and not port_open():
+        if not pid_alive(target) and not port_open(port):
             break
         print(f"  → {note}")
         _signal_group(target, sig)
@@ -192,24 +225,25 @@ def cmd_stop(args: argparse.Namespace) -> int:
             break
         deadline = time.time() + grace
         while time.time() < deadline:
-            if not port_open() and not pid_alive(target):
+            if not port_open(port) and not pid_alive(target):
                 print("studio stopped.")
                 pid_file().unlink(missing_ok=True)
                 return 0
             time.sleep(0.4)
 
     pid_file().unlink(missing_ok=True)
-    if port_open():
-        print("warning: :8082 still open after SIGKILL — a different process may hold it.")
+    if port_open(port):
+        print(f"warning: :{port} still open after SIGKILL — a different process may hold it.")
         return 1
     print("studio stopped.")
     return 0
 
 
 def cmd_status(args: argparse.Namespace) -> int:
-    up = port_open()
+    port = resolve_port()
+    up = port_open(port)
     tracked = read_tracked_pid()
-    print(f"port {HOST}:{PORT}: {'OPEN' if up else 'closed'}")
+    print(f"port {HOST}:{port}: {'OPEN' if up else 'closed'}")
     if tracked:
         print(f"tracked pid: {tracked} (alive)")
     elif pid_file().exists():
@@ -217,7 +251,7 @@ def cmd_status(args: argparse.Namespace) -> int:
     else:
         print("tracked pid: none (any running studio is yours, not studioctl's)")
     if up and not tracked:
-        owner = owner_of_port()
+        owner = owner_of_port(port)
         if owner:
             print(f"port owner: pid {owner} (external — GUI/terminal studio)")
     if up:
@@ -253,18 +287,20 @@ def main() -> int:
     sub = p.add_subparsers(dest="cmd", required=True)
 
     sp = sub.add_parser("start", help="start the studio if not already up (idempotent)")
-    sp.add_argument("--timeout", type=float, default=45.0, help="seconds to wait for :8082")
+    sp.add_argument("--timeout", type=float, default=45.0, help="seconds to wait for the studio port")
     sp.set_defaults(func=cmd_start)
 
     sp = sub.add_parser("stop", help="stop the studio started by studioctl")
-    sp.add_argument("--force", action="store_true", help="kill whatever holds :8082 (even a GUI studio)")
+    sp.add_argument(
+        "--force", action="store_true", help="kill whatever holds the studio port (even a GUI studio)"
+    )
     sp.set_defaults(func=cmd_stop)
 
     sp = sub.add_parser("status", help="show whether the studio is up and who owns it")
     sp.set_defaults(func=cmd_status)
 
     sp = sub.add_parser("restart", help="stop then start")
-    sp.add_argument("--timeout", type=float, default=45.0, help="seconds to wait for :8082")
+    sp.add_argument("--timeout", type=float, default=45.0, help="seconds to wait for the studio port")
     sp.add_argument("--force", action="store_true", help="force-stop before restarting")
     sp.set_defaults(func=cmd_restart)
 

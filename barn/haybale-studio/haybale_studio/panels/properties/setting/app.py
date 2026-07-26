@@ -5,6 +5,7 @@ Application-scope settings panels (AppFocus).
 ThemeSettingsPanel    — active workbench theme
 NodeSkinDefaultPanel  — default node skin settings
 EditorSettingsPanel   — undo, auto-save, interaction, clipboard, node creation
+FarmhandSettingsPanel — Farmhand MCP server enable/auth, studio port/loopback
 """
 
 from __future__ import annotations
@@ -82,3 +83,26 @@ class EditorSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)
+
+
+@panel(
+    focus=AppFocus,
+    label="Network",
+    icon=hui.icon.network,
+    order=40,
+    default_open=False,
+)
+class NetworkSettingsPanel(BasePanel):
+    """Network settings for the studio."""
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        from haywire_studio.farmhand.settings import FarmhandSettings
+        from haywire_studio.network.settings import NetworkSettings
+
+        registry = ctx.app.library_service.get_settings_registry()
+        render_schema(NetworkSettings, registry)
+        render_schema(FarmhandSettings, registry)

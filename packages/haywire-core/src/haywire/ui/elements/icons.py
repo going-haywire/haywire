@@ -48,6 +48,10 @@ class AppIcon:
     terminal: Final[str] = "terminal"
     """Console or script output panel."""
 
+    # ── Network / MCP ─────────────────────────────────────────────────────────
+    network: Final[str] = "lan"
+    """Studio network binding / MCP server settings."""
+
     # -- Core Classes ───────────────────────────────────────────────────────────────
 
     graph: Final[str] = "polyline"
