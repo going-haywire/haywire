@@ -12,6 +12,7 @@ from haywire.core.registry.identity import BaseIdentity
 
 from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
+from ..widget.sizing import stamp_size_declaration
 from .interface import IBaseSkin
 from .nodecard import UINodeCard
 
@@ -119,6 +120,12 @@ class BaseSkin(IBaseSkin, ABC):
         # Apply styling to the UI element if possible
         if ui_element and hasattr(ui_element, "classes") and callable(ui_element.classes):
             ui_element.classes(classes)
+
+        # Carry the widget's declared size box (@widget(min_width=, min_height=))
+        # onto the same element. Every skin funnels through here, so a custom
+        # skin gets the behaviour without cooperating.
+        if widget_instance is not None:
+            stamp_size_declaration(ui_element, widget_instance)
 
         if widget_instance:
             self._nodeids_widget_instances.setdefault(node_id, {})[port.id] = widget_instance

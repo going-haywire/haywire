@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from typing import TYPE_CHECKING, Any, ClassVar, Dict
+from typing import TYPE_CHECKING, Any, ClassVar, Dict, Mapping
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.widget.identity import WidgetIdentity
 
@@ -52,6 +52,50 @@ class IWidget(ABC):
         Override if your widget needs to release resources.
         """
         pass
+
+    # ---- DECLARED SIZE BOX ----------------------------------------------
+    # The box a widget claims when nothing constrains it, so its contents stop
+    # deciding its node's size floor. This sits on IWidget because both halves
+    # of the declaration are already IWidget-level: the class-level default is
+    # ``class_identity`` (set by @widget), and the per-call-site override is
+    # produced by ``config()`` below. Only the *storage* of that override is
+    # subclass business — hence the one hook, ``_size_overrides()``.
+    # Read by the render path; see ``haywire.ui.widget.sizing``.
+
+    def _size_overrides(self) -> Mapping[str, Any]:
+        """Per-call-site overrides of the declared size box.
+
+        Empty by default: an implementation that stores no widget config simply
+        has no overrides and falls back to the class declaration. ``BaseWidget``
+        supplies the port's ``widget_config``.
+        """
+        return {}
+
+    def _resolve_size_field(self, name: str) -> int | None:
+        # class_identity is absent on an undecorated subclass (test doubles).
+        identity = getattr(self, "class_identity", None)
+        value = self._size_overrides().get(name, getattr(identity, name, None))
+        if value is None or (isinstance(value, int) and not isinstance(value, bool)):
+            return value
+        raise TypeError(
+            f"{type(self).__name__}.{name} must be an int number of px or None, "
+            f"got {value!r} ({type(value).__name__})"
+        )
+
+    @property
+    def min_width(self) -> int | None:
+        """Declared intrinsic width in px (pairs with :attr:`min_height`)."""
+        return self._resolve_size_field("min_width")
+
+    @property
+    def min_height(self) -> int | None:
+        """Declared intrinsic height in px (pairs with :attr:`min_width`)."""
+        return self._resolve_size_field("min_height")
+
+    @property
+    def max_height(self) -> int | None:
+        """Expanded-container ceiling in px, overriding the framework default."""
+        return self._resolve_size_field("max_height")
 
     @classmethod
     def config(cls, **kwargs) -> Dict[str, Any]:

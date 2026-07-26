@@ -222,11 +222,12 @@ def test_drag_right_grip_sets_width_minimum(page: Page, harness):
     assert "overflow" not in style, f"resized slot must not clip: {style!r}"
 
 
-# NOTE: the "shrink below floor → return to auto" behaviour is exercised in the
-# real app (a node with an incompressible fixed-size widget, e.g. the frame
-# view, provides a genuine content floor). It is deliberately NOT covered by a
-# browser test here: the harness node's content compresses to ~1px, and a
-# hand-injected fixed-width block does not survive the card's flex
-# intrinsic-sizing under manual mode, so no reliable synthetic floor can be
-# built. The commit-side recompose (per-axis floor detection → size_adapt) is a
-# few lines of pure comparison in canvas.vue onResizeGripDown.
+# NOTE: the "shrink below floor → return to auto" behaviour is not covered here —
+# this route's node compresses to ~1px, so it has no floor to hit. A synthetic
+# floor DOES exist now: test_widget_size_box.py hosts a 1280x720 replaced element
+# (a hand-injected sized div did not survive the card's flex intrinsic-sizing;
+# an <img> does, because a replaced element's natural size wins) and measures the
+# floor the way canvas.vue does — in MANUAL mode, since `auto` just reads the
+# skin's 384px max-w-sm clamp whatever the content is. Extend that route if the
+# commit-side recompose (per-axis floor detection → size_adapt) ever needs
+# browser coverage; it is a few lines of pure comparison in onResizeGripDown.

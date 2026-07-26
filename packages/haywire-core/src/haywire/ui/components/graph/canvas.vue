@@ -500,17 +500,29 @@ export default {
                 // can equal intent while shrinking freely, so it can't tell
                 // "shrank" from "stuck" on its own). Restore the drag min right
                 // after so nothing visibly flickers before the commit restyles.
+                //
+                // Measure in the PRE-DRAG mode. The manual stamp above fires on
+                // mousedown, and its CSS releases the card's min-w-64/max-w-sm
+                // clamp immediately — so measuring after it reads the content's
+                // unclamped size as "the floor" (one node: 384px clamped vs
+                // 1337px unclamped, before any movement). Restoring prevMode
+                // re-applies the clamp, giving the size the node can actually
+                // return to. See .insights/feedback_css_containment_node_floor.md.
                 const SLOP = 4;  // px — a hair below the floor shouldn't reset
                 let floorW = actualW, floorH = actualH;
                 if (affW) {
+                    slot.setAttribute('data-size-adapt', prevMode);
                     slot.style.minWidth = '';
                     floorW = slot.offsetWidth;
                     slot.style.minWidth = intentW + 'px';
+                    slot.setAttribute('data-size-adapt', size_adapt);
                 }
                 if (affH) {
+                    slot.setAttribute('data-size-adapt', prevMode);
                     slot.style.minHeight = '';
                     floorH = slot.offsetHeight;
                     slot.style.minHeight = intentH + 'px';
+                    slot.setAttribute('data-size-adapt', size_adapt);
                 }
                 const wHitFloor = affW && intentW < floorW - SLOP;
                 const hHitFloor = affH && intentH < floorH - SLOP;
@@ -3257,6 +3269,61 @@ path.connection-warning {
 [data-node-id].node-selected .widget-container {
     opacity: 1 !important;
     max-height: 200px !important;
+}
+
+/* ---- Declared size box (@widget(min_width=, min_height=, max_height=)) ----
+   Stamped by haywire/ui/widget/sizing.py through the one render funnel every
+   skin calls (BaseSkin.render_widget), so custom skins inherit this without
+   cooperating. See docs/components/widgets/widget-canon.md. */
+
+/* max_height — a definite px ceiling replacing the 200px default, for a widget
+   whose CONTENT is unbounded (a long label, a growing list). Must stay a fixed
+   px value, never a percentage: max-height transitions need a definite
+   reference to animate, and a percentage of an auto-height ancestor resolves
+   to none, so the browser snaps instead of easing. */
+[data-node-id].node-selected .widget-container[data-hw-widget-max-height] {
+    max-height: var(--hw-widget-max-height) !important;
+}
+
+/* min_width alone — inline-axis containment. The width stops coming from
+   content (killing the floor, see below) while the height still does, so
+   content with an intrinsic aspect ratio keeps growing proportionally as the
+   node widens. Full containment would flatten it to a fixed-height box. */
+[data-node-id] .widget-container[data-hw-widget-inline-box] {
+    contain: inline-size !important;
+    contain-intrinsic-width: var(--hw-widget-min-width) !important;
+}
+
+[data-node-id].node-selected .widget-container[data-hw-widget-inline-box] {
+    max-height: var(--hw-widget-max-height, none) !important;
+}
+
+/* min_width + min_height — the widget's declared INTRINSIC box. Size containment
+   makes the browser size this element as if it had no contents, so its children
+   stop contributing to the node's size floor.
+
+   That floor is not computed in Python: the resize gadget writes a min-width /
+   min-height onto the host slot and reads offsetWidth/offsetHeight back
+   (onResizeGripDown above), so it is whatever CSS intrinsic sizing produces —
+   the max-content size of the card subtree. A widget holding an <img> floors
+   its node at the image's NATURAL pixel size (1280px for a 720p frame), and no
+   percentage can cap it: percentages resolve to auto during intrinsic sizing.
+   contain-intrinsic-size substitutes the declared box for that vote, so the
+   node shrinks to the box while the widget still grows into a bigger card —
+   containment removes content from the calculation, it does not stop the
+   element being stretched by its parent.
+
+   Growth needs the ceiling gone, so a boxed widget opts out of the 200px
+   default. Declaring max_height too puts an animatable ceiling back (the var
+   resolves) at the cost of capping growth there; without it, the reveal snaps
+   instead of easing because none is not an animatable length. */
+[data-node-id] .widget-container[data-hw-widget-box] {
+    contain: size !important;
+    contain-intrinsic-size: var(--hw-widget-min-width) var(--hw-widget-min-height) !important;
+}
+
+[data-node-id].node-selected .widget-container[data-hw-widget-box] {
+    max-height: var(--hw-widget-max-height, none) !important;
 }
 
 .connection-suggestion {

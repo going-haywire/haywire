@@ -511,6 +511,49 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-widget-box
+    #
+    # Three nodes hosting the SAME oversized (1280x720) <img> content, differing
+    # only in what their widget declares: nothing (content-sized), min_width
+    # alone (inline-axis containment, height follows the aspect ratio), or both
+    # axes (fully contained box). The declaration is the only variable, so a
+    # test can attribute any difference in the node's size floor to it.
+    # Backs test_widget_size_box.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-widget-box")
+    async def graph_widget_box_page():
+        from haywire.core.graph.base import BaseGraph
+        from haywire.core.graph.editor import Editor
+
+        graph = BaseGraph("widget_box_fixture", "Widget Box Fixture")
+        editor = Editor(graph, library_service.get_node_factory())
+
+        content = graph.create_node_wrapper("testing:node:SizeBoxContentNode", position=(3600.0, 3700.0))
+        aspect = graph.create_node_wrapper("testing:node:SizeBoxAspectNode", position=(4100.0, 3700.0))
+        fixed = graph.create_node_wrapper("testing:node:SizeBoxFixedNode", position=(4600.0, 3700.0))
+        assert None not in (content, aspect, fixed), "could not create widget-box fixture nodes"
+
+        def _set_manual(node_id: str, width: float, height: float) -> None:
+            editor.set_property(node_id, "size_adapt", "manual")
+            editor.set_property(node_id, "width", width)
+            editor.set_property(node_id, "height", height)
+
+        ui.button("aspect-grow", on_click=lambda: _set_manual(aspect.node_id, 520.0, 420.0)).props(
+            'data-testid="aspect-grow"'
+        )
+        ui.button("fixed-grow", on_click=lambda: _set_manual(fixed.node_id, 520.0, 420.0)).props(
+            'data-testid="fixed-grow"'
+        )
+        for name, wrapper in (("content", content), ("aspect", aspect), ("fixed", fixed)):
+            ui.label(wrapper.node_id).props(
+                f'id="{name}-node-id" data-testid="{name}-node-id" data-node="{wrapper.node_id}"'
+            )
+
+        _mount_graph_canvas(library_service, graph, editor, testid="widgetbox")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # POST /api/set?key=<key>&value=<value>
     # -------------------------------------------------------------------------
 
