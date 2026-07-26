@@ -156,6 +156,8 @@ class AppIcon:
     """Remove / destroy action."""
     copy: Final[str] = "content_copy"
     """Duplicate / copy to clipboard action."""
+    clear: Final[str] = "delete_sweep"
+    """Wipe a log/list view action (distinct from `delete`, which destroys a single item)."""
     paste: Final[str] = "content_paste"
     """Paste action."""
     refresh: Final[str] = "refresh"
