@@ -81,6 +81,13 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         category=CATEGORY_LOG_LEVEL,
         widget_config={"options": _GROUP_CHOICES},
     )
+    log_mcp = setting[CHOICES](
+        "",
+        label="MCP",
+        description="Log level for the mcp SDK (Farmhand transport) ('' = inherit)",
+        category=CATEGORY_LOG_LEVEL,
+        widget_config={"options": _GROUP_CHOICES},
+    )
 
     log_to_file = setting[BOOL](
         False,

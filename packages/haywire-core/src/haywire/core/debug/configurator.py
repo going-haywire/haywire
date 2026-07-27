@@ -20,6 +20,7 @@ _GROUP_MAP: dict[str, str] = {
     "log_registry": "haywire.core.registry",
     "log_node": "haywire.core.node",
     "log_ui": "haywire.ui",
+    "log_mcp": "mcp",
 }
 
 _ROOT_NAMESPACE = "haywire"
@@ -43,6 +44,13 @@ class LoggingConfigurator:
         # lib_id → module_name for dynamically registered library loggers
         self._library_namespaces: dict[str, str] = {}
         self._registry: SettingsRegistry = registry
+
+        # Namespaces currently set to "" (inherit) — re-applied with the
+        # resolved baseline whenever the global log_level changes, since
+        # Python's own logger-tree inheritance only works for namespaces
+        # under _ROOT_NAMESPACE (third-party loggers like "mcp" or a
+        # library's own package are not descendants of "haywire").
+        self._inherited_namespaces: set[str] = set()
 
         self._apply_all()
         self._settings.subscribe(self._on_setting_change)
@@ -83,20 +91,24 @@ class LoggingConfigurator:
             self._apply_group(namespace, getattr(self._settings, attr))
 
     def _apply_root(self, level: str) -> None:
-        """Apply the global baseline log level to the root logger."""
+        """Apply the global baseline log level to the root logger, and to
+        every namespace currently inheriting it (see _inherited_namespaces)."""
         logging.getLogger(_ROOT_NAMESPACE).setLevel(level)
+        for namespace in self._inherited_namespaces:
+            logging.getLogger(namespace).setLevel(level)
 
     def _apply_group(self, namespace: str, level: str) -> None:
         """
         Apply a log level to a specific logger namespace.
         namespace: the logger namespace to apply the level to (e.g. "haywire.core.execution"
-        level: the log level to apply (e.g. "DEBUG" or "" to inherit)
+        level: the log level to apply (e.g. "DEBUG" or "" to inherit the global baseline)
         """
-        logger = logging.getLogger(namespace)
         if level:
-            logger.setLevel(level)
+            self._inherited_namespaces.discard(namespace)
+            logging.getLogger(namespace).setLevel(level)
         else:
-            logger.setLevel(logging.NOTSET)
+            self._inherited_namespaces.add(namespace)
+            logging.getLogger(namespace).setLevel(self._settings.log_level)
 
     def _apply_library_level(self, library_log_level_key: str, level: str) -> None:
         """Apply a log level to a library"""
@@ -125,6 +137,7 @@ class LoggingConfigurator:
         if name not in self._registry:
             # Key was undefined — reset logger and remove mapping
             module_name = self._library_namespaces.pop(lib_id, lib_id)
+            self._inherited_namespaces.discard(module_name)
             logging.getLogger(module_name).setLevel(logging.NOTSET)
             return
 
