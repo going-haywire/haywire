@@ -186,16 +186,24 @@ def _jsonable(value) -> bool:
     return value is None or isinstance(value, (bool, int, float, str, list, dict))
 
 
-def _inspect_port_row(pid: str, port) -> dict:
-    row = {
-        "name": pid,
-        "kind": "port",
-        "direction": _port_direction(port),
-        "flow_type": port.flow_type.value,
-        "data_type": _port_type_key(port),
-        "is_linked": port.is_linked(),
-        "promoted": port.promoted,
-    }
+def _inspect_port_row(pid: str, port, data: str) -> dict:
+    """One port at the requested depth. ``name`` is the join key across depths."""
+    row: dict = {"name": pid}
+    if data == "info":
+        # The orientation payload: what this port IS, per its author. Grouping
+        # by direction upstream makes the direction key itself redundant.
+        row["label"] = port.label or ""
+        row["description"] = port.description or ""
+        row["flow_type"] = port.flow_type.value
+        row["data_type"] = _port_type_key(port)
+        if port.hidden:
+            row["hidden"] = True
+        if port.deprecation_warning:
+            row["deprecated"] = port.deprecation_warning
+        return row
+
+    row["is_linked"] = port.is_linked()
+    row["promoted"] = port.promoted
     try:
         value = port.get_value()
     except Exception as exc:
@@ -207,19 +215,31 @@ def _inspect_port_row(pid: str, port) -> dict:
         row["value"] = value
     else:
         row["value_omitted"] = type(value).__name__
-    row.update(_constraints(port.widget_config))
+
+    if data == "all":
+        row["data_type"] = _port_type_key(port)
+        row["flow_type"] = port.flow_type.value
+        row["use_mode"] = port.use_mode
+        row["allow_multiple_links"] = port.allow_multiple_links
+        row.update(_constraints(port.widget_config))
     return row
 
 
-def _inspect_setting_row(bag, accessor: str, name: str, descriptor) -> dict:
-    """One settings field: value + the opinion/schema needed to write it back.
+def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str) -> dict:
+    """One settings field at the requested depth.
 
-    ``name`` is the flat handle ``graph_editor_set_property`` takes;
+    ``name`` is the flat handle ``graph_editor_set_property`` takes and the key
+    that joins an ``info`` row to its ``value``/``all`` counterpart;
     ``accessor`` is the bag handle ``graph_editor_promote_setting`` takes.
     """
-    row: dict = {"name": name, "accessor": accessor, "kind": "setting"}
-    itype = getattr(descriptor, "_type", None)
-    row["type"] = getattr(itype, "__name__", None)
+    row: dict = {"name": name, "accessor": accessor}
+
+    if data == "info":
+        row["label"] = descriptor._label or ""
+        row["description"] = descriptor._description or ""
+        row["category"] = descriptor._category or "root"
+        return row
+
     try:
         row["value"] = getattr(bag, name)
         # is_set is the write-relevant opinion: a field that merely INHERITS a
@@ -234,33 +254,66 @@ def _inspect_setting_row(bag, accessor: str, name: str, descriptor) -> dict:
         # the agent to the other 28.
         row["error"] = str(exc)
         return row
-    if descriptor.is_mirror:
-        row["mirrors"] = descriptor._mirror_key or None
-    if descriptor.is_graph_mirror:
-        row["graph_mirror"] = True
-    if bag.is_promoted(name):
-        direction = bag.get_promoted_direction(name)
-        row["promoted_as"] = direction.value if direction is not None else None
-    # ADR 0020: composed presentation state (imperative seed + enabled_when /
-    # visible_when gates), severity-max. watch() seeds DISABLED — read-only is
-    # convention, not enforcement (a direct write still lands), so report the
-    # state and let the agent decide rather than promising a guarantee.
-    ui_state = bag.effective_ui_state(name)
-    if ui_state.name != "NORMAL":
-        row["ui_state"] = ui_state.name.lower()
-    row.update(_constraints(descriptor.widget_config))
+
+    if data == "all":
+        itype = getattr(descriptor, "_type", None)
+        row["type"] = getattr(itype, "__name__", None)
+        if descriptor.is_mirror:
+            row["mirrors"] = descriptor._mirror_key or None
+        if descriptor.is_graph_mirror:
+            row["graph_mirror"] = True
+        if bag.is_promoted(name):
+            direction = bag.get_promoted_direction(name)
+            row["promoted_as"] = direction.value if direction is not None else None
+        # ADR 0020: composed presentation state (imperative seed + enabled_when /
+        # visible_when gates), severity-max. watch() seeds DISABLED — read-only is
+        # convention, not enforcement (a direct write still lands), so report the
+        # state and let the agent decide rather than promising a guarantee.
+        ui_state = bag.effective_ui_state(name)
+        if ui_state.name != "NORMAL":
+            row["ui_state"] = ui_state.name.lower()
+        row.update(_constraints(descriptor.widget_config))
     return row
 
 
-def _settings_rows(node, accessors: list[str]) -> list[dict]:
+def _settings_payload(node, accessors: list[str], data: str, wanted: set[str] | None):
+    """Settings rows, grouped by author category at ``info`` depth.
+
+    ``info`` mirrors how the properties panel clusters fields, so the agent
+    inherits the author's own grouping; deeper levels stay a flat list because
+    by then the agent is working from names it already has.
+    """
     rows: list[dict] = []
     for accessor in accessors:
         bag = getattr(node, accessor, None)
         if bag is None:
             continue
         for name, descriptor in type(bag)._property_settings().items():
-            rows.append(_inspect_setting_row(bag, accessor, name, descriptor))
-    return rows
+            if wanted is not None and name not in wanted:
+                continue
+            rows.append(_inspect_setting_row(bag, accessor, name, descriptor, data))
+    if data != "info":
+        return rows
+    grouped: dict[str, list[dict]] = {}
+    for row in rows:
+        grouped.setdefault(row.pop("category", "root"), []).append(row)
+    return grouped
+
+
+def _matched_names(node, accessors: list[str], wanted: set[str] | None) -> set[str]:
+    """Which of *wanted* exist as fields on *accessors*' bags.
+
+    Fed into the ``unmatched`` report, so the caller learns a filter name hit
+    nothing instead of inferring absence from a short list.
+    """
+    if wanted is None:
+        return set()
+    found: set[str] = set()
+    for accessor in accessors:
+        bag = getattr(node, accessor, None)
+        if bag is not None:
+            found |= wanted & set(type(bag)._property_settings())
+    return found
 
 
 def _state_row(wrapper) -> dict:
@@ -370,29 +423,36 @@ class GraphEditorQueryGraphTool(Farmhand):
 
 
 _SECTIONS = ("summary", "node_id", "ports", "settings", "props", "state")
+_DATA_LEVELS = ("info", "value", "all")
 
 
 @farmhand(
     label="Inspect node",
-    description="ALWAYS pass get= naming ONLY the sections you need — this returns live VALUES "
-    "and a node can carry 30+ settings fields, so an unfocused call is expensive. "
-    "One node's current port values, settings values and health. The read counterpart to "
-    "graph_editor_set_property: the 'name' on any row is exactly what you pass back as name=.\n"
-    "Start with get=['summary'] to see counts and validity before pulling rows — the cheapest "
-    "way to survey a node.\n"
+    description="Drill down on ONE node in three steps — name only the sections and depth you "
+    "need, because a node can carry 30+ settings fields and an unfocused call wastes most of "
+    "what it returns. The read counterpart to graph_editor_set_property: a row's 'name' is "
+    "exactly what you pass back as name=, and it joins a row across all depths.\n"
+    "Typical drill-down: get=['summary'] -> get=['ports','settings'] (data='info', the default, "
+    "to learn what exists) -> add data='value' or 'all' with filter=['the_one_field'].\n"
     f"get: any of {', '.join(_SECTIONS)} (required, non-empty)\n"
     "  summary: always returned — identity, counts, validity (name it alone for a cheap survey)\n"
     "  node_id: node_id + registry_key\n"
-    "  ports: every port with its current value, direction, data_type, is_linked, promoted\n"
-    "  settings: author-declared settings bags — value, is_set, default, type, min/max/options\n"
-    "  props: framework properties (position, size, muted, skin) — excluded from settings\n"
+    "  ports: ports grouped as inlets/outlets/configs\n"
+    "  settings: author-declared settings bags (at data='info', grouped by author category)\n"
+    "  props: framework properties (position, size, muted, skin) — never mixed into settings\n"
     "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; "
     "read this after editing a node's source to learn WHICH stage failed\n"
+    f"data: one of {', '.join(_DATA_LEVELS)} (default info) — how much per row\n"
+    "  info: what it IS — label, description, category/data_type. NO values. Start here.\n"
+    "  value: what it is SET to — value, is_set, default, is_linked\n"
+    "  all: value plus everything writable — type, min/max/options, mirrors, ui_state, use_mode\n"
+    "filter: exact row names to return, e.g. ['threshold'] (default [] = all rows). Applies to "
+    "ports, settings and props alike; names that match nothing come back under 'unmatched'.\n"
     "Value notes: a port holding a non-JSON value (mesh, frame) reports value_omitted instead "
     "of value. is_set=false means the field INHERITS its value — writing the same value back is "
     "a silent no-op. min/max are UI hints and are NOT enforced on writes; a value failing a "
-    "field's validator is rejected silently by the framework, so set_property verifies and "
-    "reports the rejection.",
+    "field's validator is rejected silently by the framework, so set_property verifies the write "
+    "and reports the rejection.",
     registry_id="inspect_node",
     annotations=_READ_ONLY,
 )
@@ -407,6 +467,8 @@ class GraphEditorInspectNodeTool(Farmhand):
                 "items": {"type": "string", "enum": list(_SECTIONS)},
                 "minItems": 1,
             },
+            "data": {"type": "string", "enum": list(_DATA_LEVELS)},
+            "filter": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["binding_id", "node_id", "get"],
     }
@@ -417,12 +479,14 @@ class GraphEditorInspectNodeTool(Farmhand):
         binding_id: str,
         node_id: str,
         get: list[str] = [],
+        data: str = "info",
+        filter: list[str] = [],
     ) -> dict:
         editor = _editor(ctx, binding_id)
         wrapper = _node(editor, node_id)
         node = wrapper.node
 
-        sections = [s for s in dict.fromkeys(get)]
+        sections = list(dict.fromkeys(get))
         if not sections:
             raise FarmhandError(
                 "no_section_selected",
@@ -436,6 +500,16 @@ class GraphEditorInspectNodeTool(Farmhand):
                 f"Unknown get= section(s): {', '.join(unknown)}. Valid: {', '.join(_SECTIONS)}.",
                 ids={"node_id": node_id, "unknown": ",".join(unknown)},
             )
+        if data not in _DATA_LEVELS:
+            raise FarmhandError(
+                "unknown_data_level",
+                f"Unknown data level '{data}'. Valid: {', '.join(_DATA_LEVELS)}.",
+                ids={"node_id": node_id, "data": data},
+            )
+
+        # None means "no filtering" — distinct from an empty match set.
+        wanted: set[str] | None = set(filter) or None
+        matched: set[str] = set()
 
         # props IS a settings bag (it sits in _settings_bags beside author bags),
         # so the settings section must exclude it explicitly or every node grows
@@ -448,13 +522,34 @@ class GraphEditorInspectNodeTool(Farmhand):
             result["node_id"] = wrapper.node_id
             result["registry_key"] = node.class_identity.registry_key
         if "ports" in sections:
-            result["ports"] = [_inspect_port_row(pid, port) for pid, port in node.ports.items()]
+            # Grouped by direction: it is how ports are declared
+            # (as_inlet/as_outlet/as_config) and how an agent wiring an edge
+            # thinks, and it makes a per-row direction key redundant.
+            groups: dict[str, list[dict]] = {"inlets": [], "outlets": [], "configs": []}
+            for pid, port in node.ports.items():
+                if wanted is not None and pid not in wanted:
+                    continue
+                matched.add(pid)
+                bucket = {"inlet": "inlets", "outlet": "outlets"}.get(_port_direction(port), "configs")
+                groups[bucket].append(_inspect_port_row(pid, port, data))
+            result["ports"] = {k: v for k, v in groups.items() if v}
         if "settings" in sections:
-            result["settings"] = _settings_rows(node, author_bags)
+            result["settings"] = _settings_payload(node, author_bags, data, wanted)
+            matched |= _matched_names(node, author_bags, wanted)
         if "props" in sections:
-            result["props"] = _settings_rows(node, [b for b in bags if b == "props"])
+            prop_bags = [b for b in bags if b == "props"]
+            result["props"] = _settings_payload(node, prop_bags, data, wanted)
+            matched |= _matched_names(node, prop_bags, wanted)
         if "state" in sections:
             result["state"] = _state_row(wrapper)
+
+        # A filter name that matched nothing is reported rather than silently
+        # absent: "typo" and "field does not exist" must not look identical to
+        # an agent about to write.
+        if wanted is not None:
+            missing = sorted(wanted - matched)
+            if missing:
+                result["unmatched"] = missing
 
         # summary is unconditional (canon: every result carries one) and is the
         # whole payload when it was the only section named.
@@ -462,12 +557,13 @@ class GraphEditorInspectNodeTool(Farmhand):
         state = wrapper.state
         health = "valid" if state.is_valid() else "INVALID"
         n_errors = len(state.get_errors() or [])
-        detail = f", {n_errors} error(s)" if n_errors else ""
+        err_note = f", {n_errors} error(s)" if n_errors else ""
         warn = f", {len(state.warnings)} warning(s)" if state.warnings else ""
+        scope = f" filter={len(filter)} name(s)" if filter else ""
         result["summary"] = (
             f"{wrapper.node_id} ({node.class_identity.registry_key}): "
             f"{len(node.ports)} port(s), {n_settings} setting(s) in {len(author_bags)} bag(s) "
-            f"— {health}{detail}{warn}. Returned: {', '.join(sections)}."
+            f"— {health}{err_note}{warn}. Returned: {', '.join(sections)} at data='{data}'{scope}."
         )
         return result
 

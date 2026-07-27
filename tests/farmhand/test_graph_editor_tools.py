@@ -307,14 +307,20 @@ def test_unknown_graph_is_stable_error(farmhand_call):
 SETTINGS_NODE_KEY = "testing:node:SettingsNode"  # exercises every setting() flavour
 
 
-def _inspect(farmhand_call, bid, node_id, get):
-    return call_tool_json(
-        _call(
-            farmhand_call,
-            "graph_editor_inspect_node",
-            {"binding_id": bid, "node_id": node_id, "get": get},
-        )
-    )
+def _inspect(farmhand_call, bid, node_id, get, **kwargs):
+    args = {"binding_id": bid, "node_id": node_id, "get": get}
+    args.update(kwargs)
+    return call_tool_json(_call(farmhand_call, "graph_editor_inspect_node", args))
+
+
+def _settings_by_name(result) -> dict:
+    """Flatten the settings section to {name: row}, at any data depth.
+
+    data='info' groups rows by author category; deeper levels are a flat list.
+    """
+    section = result["settings"]
+    rows = [r for group in section.values() for r in group] if isinstance(section, dict) else section
+    return {r["name"]: r for r in rows}
 
 
 def _add(farmhand_call, bid, key=SETTINGS_NODE_KEY) -> str:
@@ -355,27 +361,62 @@ def test_inspect_settings_excludes_props(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
-        result = _inspect(farmhand_call, bid, node_id, ["settings", "props"])
+        result = _inspect(farmhand_call, bid, node_id, ["settings", "props"], data="value")
         assert {r["accessor"] for r in result["settings"]} == {"example"}
         assert {r["accessor"] for r in result["props"]} == {"props"}
     finally:
         _close(farmhand_call, bid)
 
 
-def test_inspect_setting_row_carries_value_opinion_and_constraints(farmhand_call):
-    """A settings row is directly actionable: value + is_set + default + constraints."""
+def test_inspect_info_is_the_default_and_carries_no_values(farmhand_call):
+    """data='info' is the cheap orientation step: authoring intent, no values."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
-        rows = {r["name"]: r for r in _inspect(farmhand_call, bid, node_id, ["settings"])["settings"]}
+        result = _inspect(farmhand_call, bid, node_id, ["settings"])  # no data= -> info
+        # info groups by the author's own category names.
+        assert set(result["settings"]) >= {"type", "stored", "mirrors", "validator"}
 
+        rows = _settings_by_name(result)
+        row = rows["example_int"]
+        assert row["label"] == "Example Int"
+        assert row["description"] == "An example integer setting"
+        # No values or constraints at this depth — that is the whole point.
+        for key in ("value", "is_set", "default", "min", "max", "type"):
+            assert key not in row, key
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_data_value_carries_value_opinion(farmhand_call):
+    """data='value' answers 'what is it set to' without the writable schema."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        rows = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"], data="value"))
         num = rows["example_int"]
-        assert num["kind"] == "setting"
         assert num["accessor"] == "example"  # the promote_setting handle
-        assert num["type"] == "INT"
         assert num["value"] == 3
         assert num["is_set"] is False  # inheriting, not overridden
         assert num["default"] == 3
+        # Constraint/schema keys belong to data='all'.
+        assert "min" not in num and "type" not in num
+        # Descriptions are not repeated once past info — name is the join key.
+        assert "description" not in num
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_data_all_carries_constraints(farmhand_call):
+    """data='all' adds everything needed to write the field safely."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        rows = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"], data="all"))
+
+        num = rows["example_int"]
+        assert num["type"] == "INT"
+        assert num["value"] == 3
         assert num["min"] == 0 and num["max"] == 100
 
         # CHOICES exposes its valid set — the agent cannot guess these.
@@ -392,18 +433,74 @@ def test_inspect_setting_row_carries_value_opinion_and_constraints(farmhand_call
         _close(farmhand_call, bid)
 
 
-def test_inspect_port_row_reports_value_and_link_state(farmhand_call):
+def test_inspect_ports_grouped_by_direction(farmhand_call):
+    """Ports come back as inlets/outlets/configs — how they are declared and wired."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid, NODE_KEY)
-        ports = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
-        inlet = next(p for p in ports if p["direction"] == "inlet")
-        assert inlet["kind"] == "port"
+        info = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
+        assert set(info) <= {"inlets", "outlets", "configs"}
+        assert info["inlets"], "MathOP should declare inlets"
+        # info depth: authoring intent, no direction key (the group IS the direction).
+        first = info["inlets"][0]
+        assert "direction" not in first
+        assert "data_type" in first and "value" not in first
+
+        deep = _inspect(farmhand_call, bid, node_id, ["ports"], data="value")["ports"]
+        inlet = deep["inlets"][0]
         assert inlet["is_linked"] is False
         assert inlet["promoted"] is False
-        assert ":" in inlet["data_type"]
         # value or value_omitted — exactly one is present.
         assert ("value" in inlet) != ("value_omitted" in inlet)
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_narrows_to_named_rows(farmhand_call):
+    """filter= is the last drill-down step: one field, full detail."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], data="all", filter=["example_int"])
+        rows = _settings_by_name(result)
+        assert set(rows) == {"example_int"}
+        assert rows["example_int"]["max"] == 100
+        assert "unmatched" not in result
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_reports_unmatched_names(farmhand_call):
+    """A typo must not look like 'the field does not exist'."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(
+            farmhand_call,
+            bid,
+            node_id,
+            ["settings"],
+            data="value",
+            filter=["example_int", "no_such_field"],
+        )
+        assert result["unmatched"] == ["no_such_field"]
+        # The matched row still comes back — one typo does not void the call.
+        assert set(_settings_by_name(result)) == {"example_int"}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_applies_to_ports(farmhand_call):
+    """One name namespace across sections, matching how set_property resolves."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, NODE_KEY)
+        all_ports = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
+        target = all_ports["inlets"][0]["name"]
+
+        result = _inspect(farmhand_call, bid, node_id, ["ports"], filter=[target])
+        names = [r["name"] for group in result["ports"].values() for r in group]
+        assert names == [target]
     finally:
         _close(farmhand_call, bid)
 
@@ -435,15 +532,22 @@ def test_inspect_round_trips_into_set_property(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
-        rows = {r["name"]: r for r in _inspect(farmhand_call, bid, node_id, ["settings"])["settings"]}
-        assert rows["example_int"]["value"] == 3
+        # The realistic drill-down: info to find the name, then value on just it.
+        info = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"]))
+        assert "example_int" in info
+        before = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter=["example_int"])
+        )
+        assert before["example_int"]["value"] == 3
 
         _call(
             farmhand_call,
             "graph_editor_set_property",
             {"binding_id": bid, "node_id": node_id, "name": "example_int", "value": 42},
         )
-        after = {r["name"]: r for r in _inspect(farmhand_call, bid, node_id, ["settings"])["settings"]}
+        after = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter=["example_int"])
+        )
         assert after["example_int"]["value"] == 42
         assert after["example_int"]["is_set"] is True  # now overridden
         assert after["example_int"]["default"] == 3  # what a reset would restore
@@ -464,7 +568,9 @@ def test_set_property_reports_silent_validator_rejection(farmhand_call):
         assert result.isError is True
         assert "[set_rejected]" in result.content[0].text
         # And the value really is unchanged.
-        rows = {r["name"]: r for r in _inspect(farmhand_call, bid, node_id, ["settings"])["settings"]}
+        rows = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter=["even_int"])
+        )
         assert rows["even_int"]["value"] == 4
     finally:
         _close(farmhand_call, bid)

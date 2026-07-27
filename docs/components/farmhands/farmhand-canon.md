@@ -19,12 +19,24 @@ You author a Farmhand tool when a library wants to expose one of its capabilitie
 
 | Tool | Scope | Answers |
 |---|---|---|
-| `studio_describe_component` | a component **class** | "what is this kind of node?" (identity, docstring) |
+| `studio_describe_component` | a component **class** | "what is this kind of node for?" (identity, docstring) |
 | `graph_editor_query_graph` | a whole **graph** | "what nodes and edges exist, and how are they wired?" (topology, no values) |
-| `graph_editor_inspect_node` | one **node instance** | "what is on this node, what is it set to, and is it healthy?" (values, constraints, lifecycle state) |
+| `graph_editor_inspect_node` | one **node instance** | "what is on this node, what is it set to, and is it healthy?" — at three depths (see `data=` below) |
 | `graph_editor_set_property` | one **field** | writes a port value or settings field by the same flat `name` `inspect_node` reports |
 
-A row from `inspect_node` carries both handles the write tools need: flat `name` for `set_property`, and `accessor` for `promote_setting` (which addresses fields as `accessor` + `field`, not a flat name).
+The intended path narrows at every step, so an agent never pays for detail it did not ask for:
+
+```text
+studio_describe_component        what kind of node is this?          (class docstring)
+  └─ graph_editor_query_graph    which node instances exist?         (topology)
+      └─ inspect_node get=['summary']          how big / is it ok?
+          └─ inspect_node data='info'          what fields exist?    (labels, descriptions)
+              └─ inspect_node data='value'     what are they set to?
+                  └─ inspect_node data='all' filter=['one_field']    what can I write?
+                      └─ graph_editor_set_property                   write it
+```
+
+A row from `inspect_node` carries both handles the write tools need: flat `name` for `set_property`, and `accessor` for `promote_setting` (which addresses fields as `accessor` + `field`, not a flat name). `name` is stable across all three `data` levels, so it is also the key that joins a shallow row to its detailed counterpart.
 
 Farmhand tools are **not** the same as MCP *resources*. Tools are actions the agent invokes with arguments and gets a structured result back (`list_tools` / `call_tool` in the MCP spec). Resources are addressable, read-only documents the agent fetches by URI (`list_resources` / `read_resource`) — the baked documentation tree (`farmhand://docs/...`) and per-library `OVERVIEW.md`/`QUICKREF.md` files (`farmhand://library/<id>/...`) are resources, not tools. If what you're exposing is "read this static text," prefer a resource; if it's "do something and return structured data," write a Farmhand tool.
 
@@ -127,12 +139,24 @@ return {
 
 **Every result should carry a `summary` string.** The host injects a fallback (`f"{name}: ok"`) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.
 
-**Section selection for tools that can return a lot.** A tool whose full response is expensive should make the caller *choose* rather than defaulting to everything. `graph_editor_inspect_node` takes a required, non-empty `get: list[str]` naming the sections it should return (`summary`, `node_id`, `ports`, `settings`, `props`, `state`), declared as an `enum` + `minItems: 1` in `input_schema_override`. Two properties come from this:
+**Make the caller drill down: separate WHICH from HOW MUCH.** A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. `graph_editor_inspect_node` is the reference implementation, with three orthogonal parameters:
 
-- The **host validates before `run()` executes** — an empty or misspelled section is rejected at the protocol boundary (`Input validation error: [] should be non-empty`), so the tool body never sees it. Keep the in-body guard anyway for non-MCP callers, but write tests against the schema error, not the `FarmhandError`.
-- `summary` is emitted **unconditionally** (the canon rule above) *and* is selectable, so `get=["summary"]` is a legitimate cheap survey call that returns counts and health with no rows — the same ergonomic as `count_only=true` on `studio_list_components`.
+| Axis | Parameter | Effect |
+|---|---|---|
+| Breadth — *which* sections | `get: list[str]` (**required, non-empty**) | `summary`, `node_id`, `ports`, `settings`, `props`, `state` |
+| Depth — *how much* per row | `data: str` (default `"info"`) | `info` (identity only) → `value` (+ current value) → `all` (+ writable schema) |
+| Selection — *which* rows | `filter: list[str]` (default `[]` = all) | exact row names, one namespace across sections |
 
-Prefer this over a pile of `include_*` booleans when the sections are mutually independent chunks of one subject.
+The payoff is concrete: on a 29-field node, an unfiltered `data="all"` settings dump is ~4900 chars, while `filter=["one_field"]` at the same depth is ~130 — the agent pays for what it asked for. Design notes worth copying:
+
+- **Default to the cheap end.** `data="info"` means an agent that ignores the parameter still gets the orientation payload, not the expensive one. Make the *expensive* behaviour the thing that must be requested.
+- **Keep one join key across depths.** Every row carries `name` at every level, so an `info` row and its `all` counterpart are trivially correlated — and that same `name` is what the write tool takes. Non-identity metadata (`label`, `description`, `category`) appears **only** at `info`; repeating a description on 29 deep rows is pure waste once the agent has read it.
+- **Group by the author's own structure.** Ports come back as `inlets`/`outlets`/`configs` (how they are declared and how an agent wiring an edge thinks) and `info`-depth settings are grouped by their `category` — the same clustering the properties panel uses. Grouping also removes a redundant per-row key.
+- **Report filter misses.** A name matching nothing comes back under `unmatched`, present only when non-empty. Silently omitting it would make a typo indistinguishable from "that field does not exist" — the worst possible signal just before a write.
+- **The host validates `input_schema_override` before `run()` executes** — an empty `get` or a misspelled `enum` value is rejected at the protocol boundary (`Input validation error: [] should be non-empty`), so the tool body never sees it. Keep the in-body guards for non-MCP callers, but write tests against the schema error, not the `FarmhandError`.
+- `summary` is emitted **unconditionally** (the canon rule above) *and* is selectable, so `get=["summary"]` is a legitimate cheap survey — the same ergonomic as `count_only=true` on `studio_list_components`.
+
+Prefer these axes over a pile of `include_*` booleans: booleans multiply combinatorially and each one has to be discovered separately, whereas one enum per axis is self-describing in the derived schema.
 
 **Serializing values that cross the wire.** The host JSON-encodes results with `json.dumps(result, default=str)`, so a non-serializable value does not crash — it silently degrades to an object repr (`"<MeshData object at 0x...>"`), which is useless to an agent and unbounded in size. When a tool returns *values* rather than metadata:
 
