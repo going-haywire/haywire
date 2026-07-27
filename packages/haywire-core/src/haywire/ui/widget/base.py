@@ -1,6 +1,6 @@
 from abc import ABC, abstractmethod
 import logging
-from typing import Any, Optional
+from typing import Any, Mapping, Optional
 
 from nicegui.elements.mixins.disableable_element import DisableableElement
 
@@ -58,6 +58,14 @@ class BaseWidget(IWidget, ABC):
 
     def set_value(self, value: Any) -> None:
         self.port.set_value(value)
+
+    def _size_overrides(self) -> Mapping[str, Any]:
+        """The port's widget_config — i.e. ``config(min_width=320)`` at the call site.
+
+        Supplies the per-call-site half of the declared size box; the class-level
+        half and the resolution itself live on :class:`IWidget`.
+        """
+        return self._config
 
     def set_enabled(self, enabled: bool) -> None:
         """Enable/disable this widget's rendered root element.

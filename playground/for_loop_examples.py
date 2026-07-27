@@ -79,7 +79,7 @@ def example_basic_loop():
                  Completed → PrintMessage("Done!")
     """
     from haybale_core.nodes import BeginPlayNode
-    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import LoggerNode
     from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='basic_loop', name='Basic Loop Example')
@@ -102,13 +102,13 @@ def example_basic_loop():
     
     # Print each index
     print_index = graph.create_node_wrapper(
-        PrintTerminalMessageNode.class_identity.registry_key,
+        LoggerNode.class_identity.registry_key,
         position=(500, 100)
     )
     
     # Print completion message
     print_done = graph.create_node_wrapper(
-        PrintTerminalMessageNode.class_identity.registry_key,
+        LoggerNode.class_identity.registry_key,
         position=(500, 200)
     )
 
@@ -166,7 +166,7 @@ def example_backward_loop():
     BeginPlay → ForLoop(10, 0, -1) → PrintMessage → [loop back]
     """
     from haybale_core.nodes import BeginPlayNode
-    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import LoggerNode
     from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='backward_loop', name='Backward Loop Example')
@@ -187,7 +187,7 @@ def example_backward_loop():
     for_loop.node.ports['step'].set_value(-1)
     
     print_index = graph.create_node_wrapper(
-        PrintTerminalMessageNode.class_identity.registry_key,
+        LoggerNode.class_identity.registry_key,
         position=(500, 100)
     )
     
@@ -237,7 +237,7 @@ def example_loop_with_step():
     Outputs: 0, 2, 4, 6, 8
     """
     from haybale_core.nodes import BeginPlayNode
-    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import LoggerNode
     from haybale_core.nodes import ForLoopNode
     
     graph = BaseGraph(graph_id='step_loop', name='Loop with Step Example')
@@ -258,7 +258,7 @@ def example_loop_with_step():
     for_loop.node.ports['step'].set_value(2)
     
     print_index = graph.create_node_wrapper(
-        PrintTerminalMessageNode.class_identity.registry_key,
+        LoggerNode.class_identity.registry_key,
         position=(500, 100)
     )
     
@@ -308,7 +308,7 @@ def example_loop_with_math():
     Outputs: 1, 4, 9, 16, 25
     """
     from haybale_core.nodes import BeginPlayNode
-    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import LoggerNode
     from haybale_example.nodes import MathOP
     from haybale_core.nodes import ForLoopNode
     
@@ -337,7 +337,7 @@ def example_loop_with_math():
     math_square.node.ports['operator'].set_value('multiply')
     
     print_result = graph.create_node_wrapper(
-        PrintTerminalMessageNode.class_identity.registry_key,
+        LoggerNode.class_identity.registry_key,
         position=(700, 100)
     )
     

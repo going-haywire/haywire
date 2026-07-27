@@ -146,6 +146,31 @@ self.add(FLOAT.as_inlet(
 
 Inside the widget, that config is available as `self._config`; the convention is to read user-facing values from `self._config.get("properties", {})`.
 
+### Declared size: `min_width`, `min_height`, `max_height`
+
+A node's size floor is not computed by Haywire — it is whatever CSS intrinsic sizing produces for the card. The resize gadget writes a `min-width`/`min-height` onto the host slot and reads the resulting size back, so **a widget's content becomes its node's floor**. A widget holding an image at its natural 1280×720 floors its node there: the user can grow the node but not shrink it, and no percentage in the widget's own CSS can cap it (percentages resolve to `auto` during intrinsic sizing).
+
+Declaring a size box on the decorator opts the widget out of that. It is opt-in: a widget that declares nothing sizes from its content, which is right for every stock widget.
+
+```python
+@widget(description="Frame viewer", min_width=160)          # inline axis contained
+@widget(description="Fixed panel", min_width=160, min_height=90)   # both axes contained
+```
+
+| Declaration | Effect | Use for |
+| --- | --- | --- |
+| `min_width` alone | Width stops coming from content; **height still does**, so aspect-ratio content keeps growing proportionally as the node widens | Image/video viewers, anything with an intrinsic aspect ratio |
+| `min_width` + `min_height` | Neither axis comes from content; the widget keeps its declared height however tall the node gets | Fixed-size or internally-scrolling content with no useful aspect |
+| `min_height` alone | Ignored, with a warning — CSS has `contain: inline-size` but no block-axis equivalent | — |
+
+The declared numbers are the size the widget claims when nothing constrains it: the node can be resized down to them, and the widget still stretches past them when the card is bigger.
+
+`max_height` is a **separate** knob, and not part of the box: it replaces the framework's default expanded-container ceiling (200px) with your own definite px value, for a widget whose *content* is unbounded (a long label, a growing list). Content past it is clipped by the container's `overflow: hidden`. Keep it a px value — the container's reveal is a `max-height` transition, and a percentage of an auto-height ancestor resolves to `none` and snaps.
+
+All three are overridable per call site: `NumpyViewerWidget.config(min_width=320)`.
+
+Mechanically, `BaseSkin.render_widget` — the one funnel every skin calls — stamps the resolved values onto the widget's root element as custom properties plus a marker attribute, and `canvas.vue` turns those into `contain` / `contain-intrinsic-size`. Custom skins inherit the behaviour without doing anything. See `haywire/ui/widget/sizing.py`.
+
 ### `_on_cleanup()` and final cleanup
 
 The base `cleanup()` is **final**: when the page client disconnects it drops the model subscription, deactivates every binding, and *then* calls the `_on_cleanup()` hook. **Never override `cleanup()`.** To release subclass-owned resources (a backend, a timer, an open stream), override `_on_cleanup()`:

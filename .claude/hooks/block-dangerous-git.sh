@@ -22,4 +22,11 @@ for pattern in "${DANGEROUS_PATTERNS[@]}"; do
   fi
 done
 
+if echo "$COMMAND" | grep -qE "rm -r(f)?"; then
+  if ! echo "$COMMAND" | grep -qE "(\.claude|\.scratchpad|/tmp|/private/tmp)"; then
+    echo "BLOCKED: 'rm -r' outside safe directories. Only allowed in .claude, scratchpad, or /tmp folders." >&2
+    exit 2
+  fi
+fi
+
 exit 0

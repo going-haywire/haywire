@@ -24,7 +24,7 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
         The populated graph
     """
     from haybale_core.nodes import BeginPlayNode
-    from haybale_core.nodes import PrintTerminalMessageNode
+    from haybale_core.nodes import LoggerNode
     from haybale_example.nodes import MathOP
 
     begin_play = graph.create_node_wrapper(
@@ -33,7 +33,7 @@ def _create_graph_with_math(graph: BaseGraph) -> BaseGraph:
     )
     
     print_msg = graph.create_node_wrapper(
-        PrintTerminalMessageNode.class_identity.registry_key,
+        LoggerNode.class_identity.registry_key,
         position=(300, 100)
     )
     

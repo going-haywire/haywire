@@ -296,7 +296,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
                             f"Failed while importing folder '{file_path}' in "
                             f"library '{library_identity.label}'"
                         ),
-                    ).enrich(module_name=module_name, library_identity=library_identity).log()
+                    ).enrich(module_name=module_name, library_identity=library_identity).log(self.logger)
                 except Exception:
                     logger.error(
                         f"Library '{library_identity.label}': Failed notifying registry : {e}", exc_info=True

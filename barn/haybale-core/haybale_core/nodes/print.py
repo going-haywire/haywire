@@ -3,13 +3,13 @@ from haywire.ui.console_bridge import console_print
 
 
 @node(
-    label="Print UI Log",
-    menu="core/utils",
+    label="Print",
     description="Print to the haywire UI console",
+    menu="core/utils",
     node_type=NodeType.CONTROL,
 )
-class PrintLogNode(BaseNode):
-    """Prints a message to the haywire ui console"""
+class PrintNode(BaseNode):
+    """Prints a message to the haywire ui console."""
 
     def init(self):
         from haywire.barn.builtin.types import STRING

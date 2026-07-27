@@ -298,3 +298,400 @@ def test_unknown_graph_is_stable_error(farmhand_call):
     result = _call(farmhand_call, "graph_editor_query_graph", {"binding_id": "__nope__"})
     assert result.isError is True
     assert "[graph_not_found]" in result.content[0].text
+
+
+# ---------------------------------------------------------------------------
+# graph_editor_inspect_node
+# ---------------------------------------------------------------------------
+
+SETTINGS_NODE_KEY = "testing:node:SettingsNode"  # exercises every setting() flavour
+
+
+def _inspect(farmhand_call, bid, node_id, get, **kwargs):
+    args = {"binding_id": bid, "node_id": node_id, "get": get}
+    args.update(kwargs)
+    return call_tool_json(_call(farmhand_call, "graph_editor_inspect_node", args))
+
+
+def _settings_by_name(result, section: str = "settings") -> dict:
+    """Flatten the settings section to {name: row}, at any data depth.
+
+    The section is nested {bag: {category: [rows]}} at data='info' and
+    {bag: [rows]} deeper.
+    """
+    rows = []
+    for per_bag in result[section].values():
+        if isinstance(per_bag, dict):  # info depth: category -> rows
+            for group in per_bag.values():
+                rows.extend(group)
+        else:
+            rows.extend(per_bag)
+    return {r["name"]: r for r in rows}
+
+
+def _add(farmhand_call, bid, key=SETTINGS_NODE_KEY) -> str:
+    return call_tool_json(
+        _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": key})
+    )["node_id"]
+
+
+def test_inspect_summary_only_returns_no_sections(farmhand_call):
+    """get=['summary'] is the cheap survey: a summary, and no row payload at all."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["summary"])
+        assert "summary" in result
+        assert SETTINGS_NODE_KEY in result["summary"]
+        # None of the row sections leak into a summary-only call.
+        for section in ("ports", "settings", "props", "state"):
+            assert section not in result
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_summary_always_present(farmhand_call):
+    """The canon requires a summary on every result — even when not named in get."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["ports"])
+        assert result["summary"]
+        assert "ports" in result
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_settings_excludes_props(farmhand_call):
+    """props IS a settings bag, so it must be filtered out of the settings section."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["settings", "props"], data="value")
+        # Bag is the outer key, so the split is structural rather than inferred.
+        assert set(result["settings"]) == {"example"}
+        assert set(result["props"]) == {"props"}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_info_is_the_default_and_carries_no_values(farmhand_call):
+    """data='info' is the cheap orientation step: authoring intent, no values."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["settings"])  # no data= -> info
+        # Nested bag -> category -> rows; SettingsNode has one author bag.
+        assert set(result["settings"]) == {"example"}
+        assert set(result["settings"]["example"]) >= {"type", "stored", "mirrors", "validator"}
+
+        rows = _settings_by_name(result)
+        row = rows["example_int"]
+        assert row["label"] == "Example Int"
+        assert row["description"] == "An example integer setting"
+        # No values or constraints at this depth — that is the whole point.
+        for key in ("value", "is_set", "default", "min", "max", "type"):
+            assert key not in row, key
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_data_value_carries_value_opinion(farmhand_call):
+    """data='value' answers 'what is it set to' without the writable schema."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        rows = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"], data="value"))
+        num = rows["example_int"]
+        assert num["accessor"] == "example"  # the promote_setting handle
+        assert num["value"] == 3
+        assert num["is_set"] is False  # inheriting, not overridden
+        assert num["default"] == 3
+        # Constraint/schema keys belong to data='all'.
+        assert "min" not in num and "type" not in num
+        # Descriptions are not repeated once past info — name is the join key.
+        assert "description" not in num
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_data_all_carries_constraints(farmhand_call):
+    """data='all' adds everything needed to write the field safely."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        rows = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"], data="all"))
+
+        num = rows["example_int"]
+        assert num["type"] == "INT"
+        assert num["value"] == 3
+        assert num["min"] == 0 and num["max"] == 100
+
+        # CHOICES exposes its valid set — the agent cannot guess these.
+        assert rows["example_choices"]["options"] == ["fast", "balanced", "quality"]
+
+        # Vec types are list subclasses: native JSON, no lossy str() fallback.
+        assert rows["example_vec3f"]["value"] == [1.0, 2.0, 3.0]
+
+        # watch() seeds ui_state=DISABLED; shadow() does not.
+        assert rows["intensity_ro"]["ui_state"] == "disabled"
+        assert "ui_state" not in rows["intensity"]
+        assert rows["intensity"]["mirrors"]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_ports_grouped_by_direction(farmhand_call):
+    """Ports come back as inlets/outlets/configs — how they are declared and wired."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, NODE_KEY)
+        info = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
+        assert set(info) <= {"inlets", "outlets", "configs"}
+        assert info["inlets"], "MathOP should declare inlets"
+        # info depth: authoring intent, no direction key (the group IS the direction).
+        first = info["inlets"][0]
+        assert "direction" not in first
+        assert "data_type" in first and "value" not in first
+
+        deep = _inspect(farmhand_call, bid, node_id, ["ports"], data="value")["ports"]
+        inlet = deep["inlets"][0]
+        assert inlet["is_linked"] is False
+        assert inlet["promoted"] is False
+        # value or value_omitted — exactly one is present.
+        assert ("value" in inlet) != ("value_omitted" in inlet)
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_name_narrows_to_named_rows(farmhand_call):
+    """filter_name is the last drill-down step: one field, full detail."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], data="all", filter_name=["example_int"])
+        rows = _settings_by_name(result)
+        assert set(rows) == {"example_int"}
+        assert rows["example_int"]["max"] == 100
+        assert "unmatched" not in result
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_bag_returns_whole_bag(farmhand_call):
+    """filter_bag pulls one bag — the slice the per-bag counts point you at."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], filter_bag=["example"])
+        assert set(result["settings"]) == {"example"}
+        assert "unmatched" not in result
+
+        # props is a bag accessor too, so filter_bag reaches it.
+        props = _inspect(farmhand_call, bid, node_id, ["props"], filter_bag=["props"])
+        assert set(props["props"]) == {"props"}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_cat_and_bag_are_anded(farmhand_call):
+    """Filters AND across axes, OR within one."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        both = _inspect(
+            farmhand_call,
+            bid,
+            node_id,
+            ["settings"],
+            filter_bag=["example"],
+            filter_cat=["validator"],
+        )
+        # Only the validator category of the example bag survives both axes.
+        assert set(both["settings"]["example"]) == {"validator"}
+        assert set(_settings_by_name(both)) == {"validated_string", "clamped_positive", "even_int"}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_unmatched_is_keyed_by_filter(farmhand_call):
+    """A typo must name its own axis, not just appear in a flat list."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(
+            farmhand_call,
+            bid,
+            node_id,
+            ["settings"],
+            data="value",
+            filter_name=["example_int", "no_such_field"],
+        )
+        assert result["unmatched"] == {"filter_name": ["no_such_field"]}
+        # The matched row still comes back — one typo does not void the call.
+        assert set(_settings_by_name(result)) == {"example_int"}
+
+        bad_bag = _inspect(farmhand_call, bid, node_id, ["settings"], filter_bag=["nope"])
+        assert bad_bag["unmatched"] == {"filter_bag": ["nope"]}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_name_applies_to_ports(farmhand_call):
+    """One name namespace across sections, matching how set_property resolves."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, NODE_KEY)
+        all_ports = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
+        target = all_ports["inlets"][0]["name"]
+
+        result = _inspect(farmhand_call, bid, node_id, ["ports"], filter_name=[target])
+        names = [r["name"] for group in result["ports"].values() for r in group]
+        assert names == [target]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_summary_reports_per_bag_counts(farmhand_call):
+    """setting_counts turns the survey call into an informed fetch decision."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["summary"])
+        assert result["setting_counts"]["example"] > 0
+        assert "props" not in result["setting_counts"]  # framework bag excluded
+        assert "example:" in result["summary"]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_state_reports_stage_booleans(farmhand_call):
+    """state carries per-stage lifecycle flags — the post-hot-reload diagnostic."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        state = _inspect(farmhand_call, bid, node_id, ["state"])["state"]
+        for key in (
+            "is_valid",
+            "is_registered",
+            "is_imported",
+            "is_instantiated",
+            "is_initialized",
+            "is_structural",
+            "has_test_passed",
+        ):
+            assert isinstance(state[key], bool), key
+        assert state["errors"] == []
+        assert isinstance(state["warnings"], list)
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_round_trips_into_set_property(farmhand_call):
+    """The contract that motivates the tool: a row's 'name' is what set_property takes."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        # The realistic drill-down: info to find the name, then value on just it.
+        info = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"]))
+        assert "example_int" in info
+        before = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["example_int"])
+        )
+        assert before["example_int"]["value"] == 3
+
+        _call(
+            farmhand_call,
+            "graph_editor_set_property",
+            {"binding_id": bid, "node_id": node_id, "name": "example_int", "value": 42},
+        )
+        after = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["example_int"])
+        )
+        assert after["example_int"]["value"] == 42
+        assert after["example_int"]["is_set"] is True  # now overridden
+        assert after["example_int"]["default"] == 3  # what a reset would restore
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_property_reports_silent_validator_rejection(farmhand_call):
+    """even_int's validator drops odd writes silently; the tool must not report success."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _call(
+            farmhand_call,
+            "graph_editor_set_property",
+            {"binding_id": bid, "node_id": node_id, "name": "even_int", "value": 7},
+        )
+        assert result.isError is True
+        assert "[set_rejected]" in result.content[0].text
+        # And the value really is unchanged.
+        rows = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["even_int"])
+        )
+        assert rows["even_int"]["value"] == 4
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_property_accepts_valid_value(farmhand_call):
+    """The verification must not flag a legitimate write."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = call_tool_json(
+            _call(
+                farmhand_call,
+                "graph_editor_set_property",
+                {"binding_id": bid, "node_id": node_id, "name": "even_int", "value": 8},
+            )
+        )
+        assert "8" in result["summary"]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_rejects_empty_and_unknown_sections(farmhand_call):
+    """get= is forced at two layers: the schema rejects [], the tool rejects bad names.
+
+    minItems/enum in input_schema_override are enforced by the MCP host BEFORE
+    run() executes, so an empty or misspelled section never reaches the tool
+    body — the in-body guards remain as defence for non-MCP callers.
+    """
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        empty = _call(
+            farmhand_call,
+            "graph_editor_inspect_node",
+            {"binding_id": bid, "node_id": node_id, "get": []},
+        )
+        assert empty.isError is True
+        assert "non-empty" in empty.content[0].text
+
+        bad = _call(
+            farmhand_call,
+            "graph_editor_inspect_node",
+            {"binding_id": bid, "node_id": node_id, "get": ["bogus"]},
+        )
+        assert bad.isError is True
+        # Either layer may catch it; both name the offending value.
+        assert "bogus" in bad.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_unknown_node_is_stable_error(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        result = _call(
+            farmhand_call,
+            "graph_editor_inspect_node",
+            {"binding_id": bid, "node_id": "ghost", "get": ["summary"]},
+        )
+        assert result.isError is True
+        assert "[node_not_found]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)

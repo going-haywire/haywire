@@ -8,7 +8,7 @@ logger = logging.getLogger("haybale.testing.print")
 
 @node(
     label="Test Print",
-    description="Test version of PrintTerminalMessage — logs a message and continues flow",
+    description="Test version of Logger — logs a message and continues flow",
     menu="testing/utils",
     search_tags=["test", "print", "log", "message", "terminal"],
     node_type=NodeType.CONTROL,
@@ -16,7 +16,7 @@ logger = logging.getLogger("haybale.testing.print")
 class TestPrintNode(BaseNode):
     """Test-only control node that logs a message.
 
-    Mirrors the port shape of ``haybale_core``'s ``PrintTerminalMessageNode``
+    Mirrors the port shape of ``haybale_core``'s ``LoggerNode``
     (``exec`` inlet, ``done`` outlet, ``prepend`` + ``message`` STRING inlets)
     so framework execution tests can use a testbed-owned sink instead of
     reaching into another library.
