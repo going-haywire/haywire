@@ -17,8 +17,6 @@ from ..errors import HaywireException
 from ..registry.lifecycle_event import LifeCycleEvent
 from ..validation.interface import IStructuralValidator
 
-logger = logging.getLogger(__name__)
-
 if TYPE_CHECKING:
     from ..graph.base import BaseGraph
     from ..execution.execution_context import ExecutionContext
@@ -251,6 +249,10 @@ class NodeWrapper:
         self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
         if self._state.error_import:
             self._state.is_imported = False
+            self._state.error_import.enrich(
+                node_id=self._node_id,
+                graph_id=self._graph.graph_id,
+            ).log(logger)
             self._alternate_registry_keys = self._node_factory.get_alternate_node_registry_keys(
                 self.registry_key
             )
@@ -332,7 +334,7 @@ class NodeWrapper:
                 node_id=self._node_id,
                 graph_id=self._graph.graph_id,
             )
-            self._state.error_instantiate.log()
+            self._state.error_instantiate.log(logger)
             self._state.is_instantiated = False
 
         return False
@@ -372,7 +374,7 @@ class NodeWrapper:
                 module_name=node_cls.__module__,
                 library_identity=node_cls.class_library,
             )
-            self._state.error_initialize.log()
+            self._state.error_initialize.log(logger)
             self._state.is_initialized = False
 
         return False
@@ -408,7 +410,7 @@ class NodeWrapper:
                     category="Structural Validation Error",
                     suggestions=suggestions,
                 )
-                self._state.error_structural.log()
+                self._state.error_structural.log(logger)
             else:
                 self._state.error_structural = None
 
@@ -430,7 +432,7 @@ class NodeWrapper:
                     "Verify control flow requirements if applicable",
                 ],
             )
-            self._state.error_structural.log()
+            self._state.error_structural.log(logger)
             self._state.is_structural = False
             return False
 
@@ -482,7 +484,7 @@ class NodeWrapper:
                 node_id=self._node_id,
                 graph_id=self._graph.graph_id,
             )
-            self._state.error_test.log()
+            self._state.error_test.log(logger)
             self._state.has_test_passed = False
 
         return False
@@ -524,7 +526,7 @@ class NodeWrapper:
                     self._state.error_import = lc_event.error
 
                 if self._state.error_import:
-                    self._state.error_import.log()
+                    self._state.error_import.log(logger)
 
                 # Tell graph about error
                 if self._graph:

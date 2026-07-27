@@ -3,10 +3,7 @@ import logging
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
-# Lives under the `haywire` namespace (not a standalone "haybale.*" tree) so its
-# effective level is set deterministically by LoggingConfigurator._apply_root —
-# it no longer depends on logging.basicConfig() happening to run before anything
-# else attaches a handler to the true root logger.
+# Lives under the `haywire` namespace 
 logger = logging.getLogger("haywire.nodes.logger")
 
 _SEVERITIES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -14,16 +11,15 @@ _SEVERITIES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 
 @node(
     label="Logger",
-    registry_id="PrintTerminalMessageNode",  # PINNED — see below. Do not remove.
+    description="Log a message to the Python logging system at a configurable severity",
     menu="core/utils",
     node_type=NodeType.CONTROL,
 )
 class LoggerNode(BaseNode):
     """Logs a message through Python's logging system at a configurable severity.
-
-    `registry_id` stays pinned to the old "PrintTerminalMessageNode" class name so
-    existing saved graphs (e.g. graphs/loop.haywire, graphs/loop2.haywire) keep
-    resolving across the rename.
+    
+    can be configured to log at DEBUG, INFO, WARNING, ERROR, or CRITICAL levels
+    by setting the `severity` config property. The message is prepended with a user-defined string.
     """
 
     def init(self):
