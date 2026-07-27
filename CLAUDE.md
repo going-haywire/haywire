@@ -108,6 +108,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [project_minimap.md](.insights/project_minimap.md) — minimap must be sibling of `ZoomPanContainer`, not child. Why `offsetLeft`/`getBoundingClientRect` don't work for node scanning.
 - [project_library_dependencies_use_package_names.md](.insights/project_library_dependencies_use_package_names.md) — `@library(dependencies=[...])` takes Python package names (e.g. `"haybale_studio"`), NOT the library `id` from the same decorator. Mismatches silently break hot-reload scope tracking.
 - [feedback_css_containment_node_floor.md](.insights/feedback_css_containment_node_floor.md) — a node's size floor is CSS max-content, so widget content floors its node; percentages evaporate during intrinsic sizing. Measure the floor in manual mode (auto reads `max-w-sm` 384px). `contain: size` fixes the floor but kills aspect-driven growth — prefer `contain: inline-size`.
+- [project_settings_bags_include_props.md](.insights/project_settings_bags_include_props.md) — `_settings_bags` includes `props` (13 framework fields), so generic bag-walks need an explicit filter; a validator-rejected settings write is dropped silently (`min`/`max` are UI-only and NOT enforced), so writes must be verified by reading back.
 
 ### Design rules
 
