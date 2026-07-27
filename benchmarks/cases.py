@@ -54,7 +54,7 @@ def _build_loop_graph():
     from haybale_core.nodes.events.shutdown import ShutdownNode
     from haybale_core.nodes.events.tick_event import TickEventNode
     from haybale_core.nodes.for_loop import ForLoopNode
-    from haybale_core.nodes.print_terminal import PrintTerminalMessageNode
+    from haybale_core.nodes.print_terminal import LoggerNode
     from haybale_core.nodes.switch import ControlSwitch
     from haybale_example.nodes.math_op import MathOP
 
@@ -69,7 +69,7 @@ def _build_loop_graph():
         "ForLoop": ForLoopNode,
         "ControlSwitch": ControlSwitch,
         "MathOP": MathOP,
-        "Print": PrintTerminalMessageNode,
+        "Print": LoggerNode,
         "Shutdown": ShutdownNode,
     }
 
