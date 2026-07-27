@@ -3,7 +3,7 @@ import logging
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
-# Lives under the `haywire` namespace 
+# Lives under the `haywire` namespace
 logger = logging.getLogger("haywire.nodes.logger")
 
 _SEVERITIES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
@@ -17,7 +17,7 @@ _SEVERITIES = ["DEBUG", "INFO", "WARNING", "ERROR", "CRITICAL"]
 )
 class LoggerNode(BaseNode):
     """Logs a message through Python's logging system at a configurable severity.
-    
+
     can be configured to log at DEBUG, INFO, WARNING, ERROR, or CRITICAL levels
     by setting the `severity` config property. The message is prepended with a user-defined string.
     """

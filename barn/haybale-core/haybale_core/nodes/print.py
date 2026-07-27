@@ -9,8 +9,7 @@ from haywire.ui.console_bridge import console_print
     node_type=NodeType.CONTROL,
 )
 class PrintNode(BaseNode):
-    """Prints a message to the haywire ui console.
-    """
+    """Prints a message to the haywire ui console."""
 
     def init(self):
         from haywire.barn.builtin.types import STRING
