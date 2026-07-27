@@ -13,7 +13,18 @@ see-also:
 
 A **Farmhand** is one MCP tool exposed by a running Haywire studio to an attached AI agent (Claude Desktop, Claude Code, or any MCP client). Where a node runs inside a graph and a panel renders inside the studio UI, a Farmhand tool runs on behalf of an external agent that wants to *drive* the studio — list what's installed, inspect a component, mutate an open graph, query the error ledger.
 
-You author a Farmhand tool when a library wants to expose one of its capabilities to an agent as a callable action. Examples already shipping: `studio_list_components` (catalog search), `studio_describe_component` (identity + docstring lookup), `graph_editor_add_node` / `graph_editor_connect` (graph mutation), `haystack_open_graph` (session management), `marketplace_get_library_docs` (doc retrieval).
+You author a Farmhand tool when a library wants to expose one of its capabilities to an agent as a callable action. Examples already shipping: `studio_list_components` (catalog search), `studio_describe_component` (identity + docstring lookup), `graph_editor_add_node` / `graph_editor_connect` (graph mutation), `graph_editor_inspect_node` (one node's live values + health), `haystack_open_graph` (session management), `marketplace_get_library_docs` (doc retrieval).
+
+**Pair every mutation with a way to read what it changed.** An agent that can write but not read has to guess names and cannot verify outcomes. The graph-editor tools are deliberately layered by breadth, and share one addressing vocabulary so a read result feeds straight back into a write:
+
+| Tool | Scope | Answers |
+|---|---|---|
+| `studio_describe_component` | a component **class** | "what is this kind of node?" (identity, docstring) |
+| `graph_editor_query_graph` | a whole **graph** | "what nodes and edges exist, and how are they wired?" (topology, no values) |
+| `graph_editor_inspect_node` | one **node instance** | "what is on this node, what is it set to, and is it healthy?" (values, constraints, lifecycle state) |
+| `graph_editor_set_property` | one **field** | writes a port value or settings field by the same flat `name` `inspect_node` reports |
+
+A row from `inspect_node` carries both handles the write tools need: flat `name` for `set_property`, and `accessor` for `promote_setting` (which addresses fields as `accessor` + `field`, not a flat name).
 
 Farmhand tools are **not** the same as MCP *resources*. Tools are actions the agent invokes with arguments and gets a structured result back (`list_tools` / `call_tool` in the MCP spec). Resources are addressable, read-only documents the agent fetches by URI (`list_resources` / `read_resource`) — the baked documentation tree (`farmhand://docs/...`) and per-library `OVERVIEW.md`/`QUICKREF.md` files (`farmhand://library/<id>/...`) are resources, not tools. If what you're exposing is "read this static text," prefer a resource; if it's "do something and return structured data," write a Farmhand tool.
 
@@ -115,6 +126,20 @@ return {
 `truncation_note` returns `''` when the page already covers the whole collection, and a suffix like `' (showing 1-50 of 200 — pass limit/offset for more)'` otherwise — append it to `summary` so a client that only reads the summary string still learns the result was truncated.
 
 **Every result should carry a `summary` string.** The host injects a fallback (`f"{name}: ok"`) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.
+
+**Section selection for tools that can return a lot.** A tool whose full response is expensive should make the caller *choose* rather than defaulting to everything. `graph_editor_inspect_node` takes a required, non-empty `get: list[str]` naming the sections it should return (`summary`, `node_id`, `ports`, `settings`, `props`, `state`), declared as an `enum` + `minItems: 1` in `input_schema_override`. Two properties come from this:
+
+- The **host validates before `run()` executes** — an empty or misspelled section is rejected at the protocol boundary (`Input validation error: [] should be non-empty`), so the tool body never sees it. Keep the in-body guard anyway for non-MCP callers, but write tests against the schema error, not the `FarmhandError`.
+- `summary` is emitted **unconditionally** (the canon rule above) *and* is selectable, so `get=["summary"]` is a legitimate cheap survey call that returns counts and health with no rows — the same ergonomic as `count_only=true` on `studio_list_components`.
+
+Prefer this over a pile of `include_*` booleans when the sections are mutually independent chunks of one subject.
+
+**Serializing values that cross the wire.** The host JSON-encodes results with `json.dumps(result, default=str)`, so a non-serializable value does not crash — it silently degrades to an object repr (`"<MeshData object at 0x...>"`), which is useless to an agent and unbounded in size. When a tool returns *values* rather than metadata:
+
+- Check serializability instead of trusting the fallback. `haywire.core.types.utils.is_cattrs_serializable(value)` is the codebase's existing predicate for exactly this.
+- Emit an explicit marker for what you dropped (`inspect_node` uses `value_omitted: "<type>"`) so the agent learns the value exists but is not retrievable, rather than reading a repr as if it were data.
+- Most Haywire value types are already JSON-native: `Vec2i`/`Vec3f`/… are `list` subclasses and `Color`/`Icon` are `str`, so settings values round-trip losslessly with no conversion layer. Arbitrary port `BaseType`s (mesh, frame) do not.
+- A `widget_config` may hold a **live zero-arg callable** at `properties["options"]` (the documented dynamic-dropdown mechanism — see [setting-canon](../settings/setting-canon.md)). Resolve it the way the widget does (`options()`), inside a `try/except` so one failing probe can't fail the whole call, and never pass it through unresolved.
 
 **Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `state/`, etc:
 
@@ -222,3 +247,7 @@ from haywire.core.farmhand import (
 | Returning a list without `limit`/`offset` | No way for a caller to scope a large result — the exact problem `studio_list_components` had before it grew filters |
 | Mutating state without `ctx.broadcast(...)` | Open studio editors silently go stale until their next unrelated refresh |
 | Writing a tool when a static resource would do | Resources (`farmhand://...`) are cheaper for the client and don't need argument handling — reserve tools for actions |
+| Returning a value without checking it serializes | `json.dumps(..., default=str)` turns a mesh/frame into an unbounded object repr instead of failing — check with `is_cattrs_serializable` and emit an explicit omission marker |
+| Passing a `widget_config` through verbatim | `properties["options"]` may be a live callable (dynamic dropdowns). Resolve it like the widget does; a plain port can't hold one (ADR 0018) but a **promoted** port can |
+| Trusting a mutating tool's success when the write path is silent | `setting.__set__` drops a validator-rejected write and returns normally, so the action "succeeds". Verify by reading the value back (`graph_editor_set_property` raises `set_rejected`) |
+| Walking `type(node)._settings_bags` without filtering | `props` (framework position/size/muted/skin, 13 fields) sits in there beside author bags — include it deliberately or exclude it deliberately, never accidentally |

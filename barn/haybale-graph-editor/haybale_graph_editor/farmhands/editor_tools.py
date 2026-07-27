@@ -1,8 +1,14 @@
-"""graph_editor_* MCP tools: query, structural edits, set_property, promotion, shared undo/redo.
+"""graph_editor_* MCP tools: query, inspect, structural edits, set_property, promotion, undo/redo.
 
 Every mutating tool opens exactly one undo fence FIRST (ctx.fence(editor)) so one
 tool call is one undo gesture, then broadcasts GraphDataMutated after success.
 undo/redo drive the SHARED human+agent timeline.
+
+Read tools split by breadth: query_graph is the MAP (topology of every node and
+edge, no values), inspect_node is the INSPECTOR (one node's live port/settings
+values, schema and health). inspect_node and set_property are counterparts — a
+row's flat ``name`` is what set_property takes, and its ``accessor`` is what
+promote_setting takes.
 """
 
 from __future__ import annotations
@@ -87,6 +93,213 @@ def _node_row(wrapper, detail: bool = False) -> dict:
     }
 
 
+# ---------------------------------------------------------------------------
+# inspect_node row builders
+#
+# Both ports and settings keep their UI constraints in the SAME place —
+# widget_config["properties"] (min/max folded in at setting.__set_name__ time,
+# options for CHOICES, vec_meta for vectors) — so one extraction helper serves
+# both kinds. widget_config may legitimately hold a live zero-arg callable at
+# properties["options"] (resolved by SelectWidget at every build(), and only
+# reachable here on a PROMOTED port — DataPort.__post_init__ rejects a
+# non-serializable widget_config on a plain port, ADR 0018). We resolve it the
+# same way the widget does, and drop anything else that can't cross a JSON
+# boundary rather than leaking an object repr to the agent.
+# ---------------------------------------------------------------------------
+
+
+def _properties_bag(widget_config) -> dict:
+    """The ``properties`` sub-dict of a widget_config, in either spelling.
+
+    ``widget_config`` accepts a ``{"properties": {...}}`` wrapper or a bare
+    properties dict — both are equivalent per the ``setting`` docstring.
+    """
+    if not isinstance(widget_config, dict):
+        return {}
+    props = widget_config.get("properties")
+    return props if isinstance(props, dict) else widget_config
+
+
+# Row keys a widget property must never overwrite: the agent's write handles
+# (name/accessor) and the value semantics it reasons about. A third-party
+# widget is free to name a property 'value'; silently clobbering the row's own
+# value would corrupt the read->write round-trip, so reserved keys win.
+_RESERVED_ROW_KEYS = frozenset(
+    {
+        "name",
+        "accessor",
+        "kind",
+        "value",
+        "value_omitted",
+        "is_set",
+        "default",
+        "type",
+        "error",
+        "mirrors",
+        "graph_mirror",
+        "promoted",
+        "promoted_as",
+        "ui_state",
+        "direction",
+        "flow_type",
+        "data_type",
+        "is_linked",
+    }
+)
+
+
+def _constraints(widget_config) -> dict:
+    """JSON-safe constraint hints an agent needs before writing a value.
+
+    Resolves a callable ``options`` (the documented dynamic-dropdown
+    mechanism) and drops any entry that cannot be serialized, so an exotic
+    widget config degrades to fewer hints instead of an object repr.
+    """
+    from haywire.core.types.utils import is_cattrs_serializable
+
+    out: dict = {}
+    for key, value in _properties_bag(widget_config).items():
+        if key in _RESERVED_ROW_KEYS:
+            continue
+        if key == "options" and callable(value):
+            # Same contract as SelectWidget.build(): resolve at read time so
+            # the agent sees the live valid set. A probe against absent
+            # hardware must not fail the whole inspection.
+            try:
+                value = value()
+            except Exception as exc:
+                out["options_unavailable"] = str(exc)
+                continue
+        ok, _ = is_cattrs_serializable(value)
+        if ok:
+            out[key] = value
+    return out
+
+
+def _jsonable(value) -> bool:
+    """True if *value* survives a JSON boundary without a str() fallback.
+
+    Vec2i/Vec3f/... are ``list`` subclasses and Color/Icon are ``str``, so
+    every settings type passes; an arbitrary port BaseType (mesh, frame) does
+    not and is reported as omitted rather than stringified into the payload.
+    """
+    return value is None or isinstance(value, (bool, int, float, str, list, dict))
+
+
+def _inspect_port_row(pid: str, port) -> dict:
+    row = {
+        "name": pid,
+        "kind": "port",
+        "direction": _port_direction(port),
+        "flow_type": port.flow_type.value,
+        "data_type": _port_type_key(port),
+        "is_linked": port.is_linked(),
+        "promoted": port.promoted,
+    }
+    try:
+        value = port.get_value()
+    except Exception as exc:
+        row["error"] = str(exc)
+        return row
+    # A linked inlet is driven by its edge — writing it is pointless, so the
+    # agent needs is_linked next to the value to judge whether a write sticks.
+    if _jsonable(value):
+        row["value"] = value
+    else:
+        row["value_omitted"] = type(value).__name__
+    row.update(_constraints(port.widget_config))
+    return row
+
+
+def _inspect_setting_row(bag, accessor: str, name: str, descriptor) -> dict:
+    """One settings field: value + the opinion/schema needed to write it back.
+
+    ``name`` is the flat handle ``graph_editor_set_property`` takes;
+    ``accessor`` is the bag handle ``graph_editor_promote_setting`` takes.
+    """
+    row: dict = {"name": name, "accessor": accessor, "kind": "setting"}
+    itype = getattr(descriptor, "_type", None)
+    row["type"] = getattr(itype, "__name__", None)
+    try:
+        row["value"] = getattr(bag, name)
+        # is_set is the write-relevant opinion: a field that merely INHERITS a
+        # value is not overridden here, and writing its current value is a
+        # no-op (setting.__set__ returns early on equality).
+        row["is_set"] = bag._is_locally_set(descriptor)
+        default = descriptor._default
+        row["default"] = default() if callable(default) else default
+    except Exception as exc:
+        # _cell_for raises for a descriptor that bypassed IType enforcement —
+        # a genuine bug. Report it per-field so one broken field can't blind
+        # the agent to the other 28.
+        row["error"] = str(exc)
+        return row
+    if descriptor.is_mirror:
+        row["mirrors"] = descriptor._mirror_key or None
+    if descriptor.is_graph_mirror:
+        row["graph_mirror"] = True
+    if bag.is_promoted(name):
+        direction = bag.get_promoted_direction(name)
+        row["promoted_as"] = direction.value if direction is not None else None
+    # ADR 0020: composed presentation state (imperative seed + enabled_when /
+    # visible_when gates), severity-max. watch() seeds DISABLED — read-only is
+    # convention, not enforcement (a direct write still lands), so report the
+    # state and let the agent decide rather than promising a guarantee.
+    ui_state = bag.effective_ui_state(name)
+    if ui_state.name != "NORMAL":
+        row["ui_state"] = ui_state.name.lower()
+    row.update(_constraints(descriptor.widget_config))
+    return row
+
+
+def _settings_rows(node, accessors: list[str]) -> list[dict]:
+    rows: list[dict] = []
+    for accessor in accessors:
+        bag = getattr(node, accessor, None)
+        if bag is None:
+            continue
+        for name, descriptor in type(bag)._property_settings().items():
+            rows.append(_inspect_setting_row(bag, accessor, name, descriptor))
+    return rows
+
+
+def _state_row(wrapper) -> dict:
+    """Lifecycle state: which stage failed, and why.
+
+    The per-stage booleans are the primary diagnostic after an agent edits a
+    node's source and hot-reloads it — is_imported False is a syntax/import
+    error, is_instantiated False a constructor bug, is_structural False a bad
+    port declaration. Tracebacks stay in studio_get_errors.
+    """
+    state = wrapper.state
+    errors = state.get_errors() or []
+    stages = (
+        "error_import",
+        "error_instantiate",
+        "error_initialize",
+        "error_structural",
+        "error_test",
+        "error_custom",
+        "error_runtime",
+    )
+    return {
+        "is_valid": state.is_valid(),
+        "is_registered": state.is_registered,
+        "is_imported": state.is_imported,
+        "is_instantiated": state.is_instantiated,
+        "is_initialized": state.is_initialized,
+        "is_structural": state.is_structural,
+        "has_test_passed": state.has_test_passed,
+        "errors": [
+            {"stage": stage, "message": str(exc)}
+            for stage in stages
+            if (exc := getattr(state, stage, None)) is not None
+        ],
+        "warnings": [str(w) for w in state.warnings],
+        "total_errors": len(errors),
+    }
+
+
 def _edge_error(edge) -> str | None:
     """The edge's main error message (state-prioritised), or None when healthy."""
     err = edge.state.get_error()
@@ -154,6 +367,109 @@ class GraphEditorQueryGraphTool(Farmhand):
             "edges": edges,
             "total": total,
         }
+
+
+_SECTIONS = ("summary", "node_id", "ports", "settings", "props", "state")
+
+
+@farmhand(
+    label="Inspect node",
+    description="ALWAYS pass get= naming ONLY the sections you need — this returns live VALUES "
+    "and a node can carry 30+ settings fields, so an unfocused call is expensive. "
+    "One node's current port values, settings values and health. The read counterpart to "
+    "graph_editor_set_property: the 'name' on any row is exactly what you pass back as name=.\n"
+    "Start with get=['summary'] to see counts and validity before pulling rows — the cheapest "
+    "way to survey a node.\n"
+    f"get: any of {', '.join(_SECTIONS)} (required, non-empty)\n"
+    "  summary: always returned — identity, counts, validity (name it alone for a cheap survey)\n"
+    "  node_id: node_id + registry_key\n"
+    "  ports: every port with its current value, direction, data_type, is_linked, promoted\n"
+    "  settings: author-declared settings bags — value, is_set, default, type, min/max/options\n"
+    "  props: framework properties (position, size, muted, skin) — excluded from settings\n"
+    "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; "
+    "read this after editing a node's source to learn WHICH stage failed\n"
+    "Value notes: a port holding a non-JSON value (mesh, frame) reports value_omitted instead "
+    "of value. is_set=false means the field INHERITS its value — writing the same value back is "
+    "a silent no-op. min/max are UI hints and are NOT enforced on writes; a value failing a "
+    "field's validator is rejected silently by the framework, so set_property verifies and "
+    "reports the rejection.",
+    registry_id="inspect_node",
+    annotations=_READ_ONLY,
+)
+class GraphEditorInspectNodeTool(Farmhand):
+    input_schema_override = {
+        "type": "object",
+        "properties": {
+            "binding_id": {"type": "string"},
+            "node_id": {"type": "string"},
+            "get": {
+                "type": "array",
+                "items": {"type": "string", "enum": list(_SECTIONS)},
+                "minItems": 1,
+            },
+        },
+        "required": ["binding_id", "node_id", "get"],
+    }
+
+    async def run(
+        self,
+        ctx: FarmhandContext,
+        binding_id: str,
+        node_id: str,
+        get: list[str] = [],
+    ) -> dict:
+        editor = _editor(ctx, binding_id)
+        wrapper = _node(editor, node_id)
+        node = wrapper.node
+
+        sections = [s for s in dict.fromkeys(get)]
+        if not sections:
+            raise FarmhandError(
+                "no_section_selected",
+                f"get= must name at least one section: {', '.join(_SECTIONS)}.",
+                ids={"node_id": node_id},
+            )
+        unknown = [s for s in sections if s not in _SECTIONS]
+        if unknown:
+            raise FarmhandError(
+                "unknown_section",
+                f"Unknown get= section(s): {', '.join(unknown)}. Valid: {', '.join(_SECTIONS)}.",
+                ids={"node_id": node_id, "unknown": ",".join(unknown)},
+            )
+
+        # props IS a settings bag (it sits in _settings_bags beside author bags),
+        # so the settings section must exclude it explicitly or every node grows
+        # 13 framework rows.
+        bags = list(type(node)._settings_bags)
+        author_bags = [b for b in bags if b != "props"]
+
+        result: dict = {}
+        if "node_id" in sections:
+            result["node_id"] = wrapper.node_id
+            result["registry_key"] = node.class_identity.registry_key
+        if "ports" in sections:
+            result["ports"] = [_inspect_port_row(pid, port) for pid, port in node.ports.items()]
+        if "settings" in sections:
+            result["settings"] = _settings_rows(node, author_bags)
+        if "props" in sections:
+            result["props"] = _settings_rows(node, [b for b in bags if b == "props"])
+        if "state" in sections:
+            result["state"] = _state_row(wrapper)
+
+        # summary is unconditional (canon: every result carries one) and is the
+        # whole payload when it was the only section named.
+        n_settings = sum(len(type(getattr(node, b))._property_settings()) for b in author_bags)
+        state = wrapper.state
+        health = "valid" if state.is_valid() else "INVALID"
+        n_errors = len(state.get_errors() or [])
+        detail = f", {n_errors} error(s)" if n_errors else ""
+        warn = f", {len(state.warnings)} warning(s)" if state.warnings else ""
+        result["summary"] = (
+            f"{wrapper.node_id} ({node.class_identity.registry_key}): "
+            f"{len(node.ports)} port(s), {n_settings} setting(s) in {len(author_bags)} bag(s) "
+            f"— {health}{detail}{warn}. Returned: {', '.join(sections)}."
+        )
+        return result
 
 
 @farmhand(
@@ -270,9 +586,31 @@ class GraphEditorMoveNodesTool(Farmhand):
         return {"summary": f"Moved {len(positions)} nodes."}
 
 
+def _read_property(node, name: str):
+    """Read *name* the way SetPropertyAction resolves it: port first, then bags.
+
+    Returns ``(found, value)``. Used to verify a write actually landed — the
+    settings write path rejects a value failing its validator SILENTLY
+    (``setting.__set__`` returns early), so the action reports success either
+    way and only a read-back can tell them apart.
+    """
+    if name in node.ports:
+        return True, node.ports[name].get_value()
+    for accessor in type(node)._settings_bags:
+        bag = getattr(node, accessor)
+        if name in type(bag)._property_settings():
+            return True, getattr(bag, name)
+    return False, None
+
+
 @farmhand(
     label="Set property",
-    description="Set a node property (port value or settings field) by name. Undo-recorded.",
+    description="Set a node property (port value or settings field) by name. Undo-recorded. "
+    "'name' resolves to a port id first, then a settings field — use the exact 'name' from a "
+    "graph_editor_inspect_node row. The write is verified by reading the value back: a value "
+    "rejected by the field's validator raises set_rejected rather than reporting a success that "
+    "did not happen. Note min/max are UI hints only and are NOT enforced — an out-of-range write "
+    "succeeds, so respect the bounds inspect_node reports.",
     registry_id="set_property",
     annotations=_MUTATING,
 )
@@ -287,8 +625,21 @@ class GraphEditorSetPropertyTool(Farmhand):
                 f"Could not set '{name}' on node '{node_id}' (unknown node or property).",
                 ids={"node_id": node_id, "name": name},
             )
+        # Post-condition check: is the field now what was asked for? Writing a
+        # value the field already held is a legitimate no-op and still passes,
+        # because the read-back equals the request either way.
+        found, actual = _read_property(_node(editor, node_id).node, name)
+        if found and actual != value:
+            raise FarmhandError(
+                "set_rejected",
+                f"Write to '{name}' on '{node_id}' did not take: requested {value!r}, "
+                f"value is still {actual!r}. The field's validator rejected it (the framework "
+                f"drops such writes silently) — call graph_editor_inspect_node with "
+                f"get=['settings'] to see its type and constraints.",
+                ids={"node_id": node_id, "name": name},
+            )
         ctx.broadcast(GraphDataMutated())
-        return {"summary": f"Set '{name}' on {node_id}."}
+        return {"summary": f"Set '{name}' on {node_id} to {actual!r}."}
 
 
 @farmhand(
