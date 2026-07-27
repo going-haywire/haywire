@@ -313,13 +313,19 @@ def _inspect(farmhand_call, bid, node_id, get, **kwargs):
     return call_tool_json(_call(farmhand_call, "graph_editor_inspect_node", args))
 
 
-def _settings_by_name(result) -> dict:
+def _settings_by_name(result, section: str = "settings") -> dict:
     """Flatten the settings section to {name: row}, at any data depth.
 
-    data='info' groups rows by author category; deeper levels are a flat list.
+    The section is nested {bag: {category: [rows]}} at data='info' and
+    {bag: [rows]} deeper.
     """
-    section = result["settings"]
-    rows = [r for group in section.values() for r in group] if isinstance(section, dict) else section
+    rows = []
+    for per_bag in result[section].values():
+        if isinstance(per_bag, dict):  # info depth: category -> rows
+            for group in per_bag.values():
+                rows.extend(group)
+        else:
+            rows.extend(per_bag)
     return {r["name"]: r for r in rows}
 
 
@@ -362,8 +368,9 @@ def test_inspect_settings_excludes_props(farmhand_call):
     try:
         node_id = _add(farmhand_call, bid)
         result = _inspect(farmhand_call, bid, node_id, ["settings", "props"], data="value")
-        assert {r["accessor"] for r in result["settings"]} == {"example"}
-        assert {r["accessor"] for r in result["props"]} == {"props"}
+        # Bag is the outer key, so the split is structural rather than inferred.
+        assert set(result["settings"]) == {"example"}
+        assert set(result["props"]) == {"props"}
     finally:
         _close(farmhand_call, bid)
 
@@ -374,8 +381,9 @@ def test_inspect_info_is_the_default_and_carries_no_values(farmhand_call):
     try:
         node_id = _add(farmhand_call, bid)
         result = _inspect(farmhand_call, bid, node_id, ["settings"])  # no data= -> info
-        # info groups by the author's own category names.
-        assert set(result["settings"]) >= {"type", "stored", "mirrors", "validator"}
+        # Nested bag -> category -> rows; SettingsNode has one author bag.
+        assert set(result["settings"]) == {"example"}
+        assert set(result["settings"]["example"]) >= {"type", "stored", "mirrors", "validator"}
 
         rows = _settings_by_name(result)
         row = rows["example_int"]
@@ -456,12 +464,12 @@ def test_inspect_ports_grouped_by_direction(farmhand_call):
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_narrows_to_named_rows(farmhand_call):
-    """filter= is the last drill-down step: one field, full detail."""
+def test_inspect_filter_name_narrows_to_named_rows(farmhand_call):
+    """filter_name is the last drill-down step: one field, full detail."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
-        result = _inspect(farmhand_call, bid, node_id, ["settings"], data="all", filter=["example_int"])
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], data="all", filter_name=["example_int"])
         rows = _settings_by_name(result)
         assert set(rows) == {"example_int"}
         assert rows["example_int"]["max"] == 100
@@ -470,8 +478,44 @@ def test_inspect_filter_narrows_to_named_rows(farmhand_call):
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_reports_unmatched_names(farmhand_call):
-    """A typo must not look like 'the field does not exist'."""
+def test_inspect_filter_bag_returns_whole_bag(farmhand_call):
+    """filter_bag pulls one bag — the slice the per-bag counts point you at."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], filter_bag=["example"])
+        assert set(result["settings"]) == {"example"}
+        assert "unmatched" not in result
+
+        # props is a bag accessor too, so filter_bag reaches it.
+        props = _inspect(farmhand_call, bid, node_id, ["props"], filter_bag=["props"])
+        assert set(props["props"]) == {"props"}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_filter_cat_and_bag_are_anded(farmhand_call):
+    """Filters AND across axes, OR within one."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        both = _inspect(
+            farmhand_call,
+            bid,
+            node_id,
+            ["settings"],
+            filter_bag=["example"],
+            filter_cat=["validator"],
+        )
+        # Only the validator category of the example bag survives both axes.
+        assert set(both["settings"]["example"]) == {"validator"}
+        assert set(_settings_by_name(both)) == {"validated_string", "clamped_positive", "even_int"}
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_unmatched_is_keyed_by_filter(farmhand_call):
+    """A typo must name its own axis, not just appear in a flat list."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
@@ -481,16 +525,19 @@ def test_inspect_filter_reports_unmatched_names(farmhand_call):
             node_id,
             ["settings"],
             data="value",
-            filter=["example_int", "no_such_field"],
+            filter_name=["example_int", "no_such_field"],
         )
-        assert result["unmatched"] == ["no_such_field"]
+        assert result["unmatched"] == {"filter_name": ["no_such_field"]}
         # The matched row still comes back — one typo does not void the call.
         assert set(_settings_by_name(result)) == {"example_int"}
+
+        bad_bag = _inspect(farmhand_call, bid, node_id, ["settings"], filter_bag=["nope"])
+        assert bad_bag["unmatched"] == {"filter_bag": ["nope"]}
     finally:
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_applies_to_ports(farmhand_call):
+def test_inspect_filter_name_applies_to_ports(farmhand_call):
     """One name namespace across sections, matching how set_property resolves."""
     bid = _new_graph(farmhand_call)
     try:
@@ -498,9 +545,22 @@ def test_inspect_filter_applies_to_ports(farmhand_call):
         all_ports = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
         target = all_ports["inlets"][0]["name"]
 
-        result = _inspect(farmhand_call, bid, node_id, ["ports"], filter=[target])
+        result = _inspect(farmhand_call, bid, node_id, ["ports"], filter_name=[target])
         names = [r["name"] for group in result["ports"].values() for r in group]
         assert names == [target]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_summary_reports_per_bag_counts(farmhand_call):
+    """setting_counts turns the survey call into an informed fetch decision."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["summary"])
+        assert result["setting_counts"]["example"] > 0
+        assert "props" not in result["setting_counts"]  # framework bag excluded
+        assert "example:" in result["summary"]
     finally:
         _close(farmhand_call, bid)
 
@@ -536,7 +596,7 @@ def test_inspect_round_trips_into_set_property(farmhand_call):
         info = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"]))
         assert "example_int" in info
         before = _settings_by_name(
-            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter=["example_int"])
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["example_int"])
         )
         assert before["example_int"]["value"] == 3
 
@@ -546,7 +606,7 @@ def test_inspect_round_trips_into_set_property(farmhand_call):
             {"binding_id": bid, "node_id": node_id, "name": "example_int", "value": 42},
         )
         after = _settings_by_name(
-            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter=["example_int"])
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["example_int"])
         )
         assert after["example_int"]["value"] == 42
         assert after["example_int"]["is_set"] is True  # now overridden
@@ -569,7 +629,7 @@ def test_set_property_reports_silent_validator_rejection(farmhand_call):
         assert "[set_rejected]" in result.content[0].text
         # And the value really is unchanged.
         rows = _settings_by_name(
-            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter=["even_int"])
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["even_int"])
         )
         assert rows["even_int"]["value"] == 4
     finally:

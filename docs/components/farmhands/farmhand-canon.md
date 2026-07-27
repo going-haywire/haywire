@@ -27,13 +27,13 @@ You author a Farmhand tool when a library wants to expose one of its capabilitie
 The intended path narrows at every step, so an agent never pays for detail it did not ask for:
 
 ```text
-studio_describe_component        what kind of node is this?          (class docstring)
-  └─ graph_editor_query_graph    which node instances exist?         (topology)
-      └─ inspect_node get=['summary']          how big / is it ok?
-          └─ inspect_node data='info'          what fields exist?    (labels, descriptions)
-              └─ inspect_node data='value'     what are they set to?
-                  └─ inspect_node data='all' filter=['one_field']    what can I write?
-                      └─ graph_editor_set_property                   write it
+studio_describe_component      what kind of node is this?        (class docstring)
+  └─ graph_editor_query_graph  which node instances exist?       (topology)
+      └─ inspect_node get=['summary']                is it ok, and which bags are big?
+          └─ inspect_node get=['settings'] filter_bag=['depth']  what fields does it have?
+              └─ ... data='value'                               what are they set to?
+                  └─ ... data='all' filter_name=['threshold']    what can I write?
+                      └─ graph_editor_set_property               write it
 ```
 
 A row from `inspect_node` carries both handles the write tools need: flat `name` for `set_property`, and `accessor` for `promote_setting` (which addresses fields as `accessor` + `field`, not a flat name). `name` is stable across all three `data` levels, so it is also the key that joins a shallow row to its detailed counterpart.
@@ -145,18 +145,23 @@ return {
 |---|---|---|
 | Breadth — *which* sections | `get: list[str]` (**required, non-empty**) | `summary`, `node_id`, `ports`, `settings`, `props`, `state` |
 | Depth — *how much* per row | `data: str` (default `"info"`) | `info` (identity only) → `value` (+ current value) → `all` (+ writable schema) |
-| Selection — *which* rows | `filter: list[str]` (default `[]` = all) | exact row names, one namespace across sections |
+| Selection — *which* rows | `filter_name` / `filter_bag` / `filter_cat` (each default `[]`) | ANDed across axes, ORed within one |
 
-The payoff is concrete: on a 29-field node, an unfiltered `data="all"` settings dump is ~4900 chars, while `filter=["one_field"]` at the same depth is ~130 — the agent pays for what it asked for. Design notes worth copying:
+The payoff is concrete: on a real 29-field, 5-bag node, an unfiltered `info` dump is ~4800 chars while `filter_bag=["depth"]` at `data="all"` is ~950 — the agent pays for the slice it asked for. Design notes worth copying:
 
 - **Default to the cheap end.** `data="info"` means an agent that ignores the parameter still gets the orientation payload, not the expensive one. Make the *expensive* behaviour the thing that must be requested.
 - **Keep one join key across depths.** Every row carries `name` at every level, so an `info` row and its `all` counterpart are trivially correlated — and that same `name` is what the write tool takes. Non-identity metadata (`label`, `description`, `category`) appears **only** at `info`; repeating a description on 29 deep rows is pure waste once the agent has read it.
-- **Group by the author's own structure.** Ports come back as `inlets`/`outlets`/`configs` (how they are declared and how an agent wiring an edge thinks) and `info`-depth settings are grouped by their `category` — the same clustering the properties panel uses. Grouping also removes a redundant per-row key.
-- **Report filter misses.** A name matching nothing comes back under `unmatched`, present only when non-empty. Silently omitting it would make a typo indistinguishable from "that field does not exist" — the worst possible signal just before a write.
+- **Group by the author's own structure, outermost-first.** Ports come back as `inlets`/`outlets`/`configs`; settings nest `{bag: {category: [rows]}}` at `info` and `{bag: [rows]}` deeper. Bag is the **outer** key because it is the code-declared identity (and the handle `promote_setting` takes), while `category` is a free-text display label an author may reuse across bags — a flat category map silently merges rows from different bags. Grouping also removes a redundant per-row key.
+- **One filter parameter per namespace.** Names and bag accessors are code-declared identifiers; a category is free text. A single combined `filter` could not tell the `depth` bag from a `"Depth"` category, which makes the miss report untrustworthy. Splitting them makes each value's namespace explicit, so `unmatched` can be **keyed by the filter that missed** (`{"filter_bag": ["colour"]}`).
+- **Report filter misses, but only real ones.** `unmatched` is present only when non-empty, and a value excluded by a *sibling* axis is not a miss — otherwise a legitimate narrowing call reports phantom typos. Silently omitting a miss would make a typo indistinguishable from "that field does not exist", the worst possible signal just before a write.
+- **Put the cost preview in the summary.** `get=["summary"]` returns per-bag `setting_counts` (`{"color": 17, "depth": 6, …}`), not just a total — a bare "29 settings in 5 bags" leaves the caller with an all-or-nothing choice, while per-bag counts let it pick a `filter_bag` and fetch one slice.
+- **Don't show an agent what the user cannot see.** A field whose `effective_ui_state` is `HIDDEN` is absent from the properties panel entirely (ADR 0020), so returning it in full puts the agent in a different reality from the human sharing the graph. Collapse it to `{name, ui_state: "hidden"}` — **collapse, not omit**: the gate is state, not structure, so an agent that flips the controlling flag must still be able to find the field. Naming it in `filter_name` expands it in full.
 - **The host validates `input_schema_override` before `run()` executes** — an empty `get` or a misspelled `enum` value is rejected at the protocol boundary (`Input validation error: [] should be non-empty`), so the tool body never sees it. Keep the in-body guards for non-MCP callers, but write tests against the schema error, not the `FarmhandError`.
 - `summary` is emitted **unconditionally** (the canon rule above) *and* is selectable, so `get=["summary"]` is a legitimate cheap survey — the same ergonomic as `count_only=true` on `studio_list_components`.
 
 Prefer these axes over a pile of `include_*` booleans: booleans multiply combinatorially and each one has to be discovered separately, whereas one enum per axis is self-describing in the derived schema.
+
+**Resist inventing causality the framework does not record.** A tempting addition here was a `disabled_reason` explaining *why* a field is `DISABLED`. `effective_ui_state` composes a severity-max over three independent sources and discards which one won, so any such field would be a guess — and a plausible-but-wrong reason is worse for an agent than no reason at all. Report the state; leave the cause to whoever declared it.
 
 **Serializing values that cross the wire.** The host JSON-encodes results with `json.dumps(result, default=str)`, so a non-serializable value does not crash — it silently degrades to an object repr (`"<MeshData object at 0x...>"`), which is useless to an agent and unbounded in size. When a tool returns *values* rather than metadata:
 

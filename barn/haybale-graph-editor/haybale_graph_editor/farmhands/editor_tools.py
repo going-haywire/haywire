@@ -186,9 +186,14 @@ def _jsonable(value) -> bool:
     return value is None or isinstance(value, (bool, int, float, str, list, dict))
 
 
-def _inspect_port_row(pid: str, port, data: str) -> dict:
+def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
     """One port at the requested depth. ``name`` is the join key across depths."""
     row: dict = {"name": pid}
+    # A hidden port is not rendered in the studio at all, so an agent reading it
+    # in full works from a different reality than the user it shares the graph
+    # with. Collapse to existence-only unless asked for by name.
+    if port.hidden and not expand:
+        return {"name": pid, "hidden": True}
     if data == "info":
         # The orientation payload: what this port IS, per its author. Grouping
         # by direction upstream makes the direction key itself redundant.
@@ -225,7 +230,7 @@ def _inspect_port_row(pid: str, port, data: str) -> dict:
     return row
 
 
-def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str) -> dict:
+def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str, expand: bool = False) -> dict:
     """One settings field at the requested depth.
 
     ``name`` is the flat handle ``graph_editor_set_property`` takes and the key
@@ -233,6 +238,17 @@ def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str) -
     ``accessor`` is the bag handle ``graph_editor_promote_setting`` takes.
     """
     row: dict = {"name": name, "accessor": accessor}
+
+    # ADR 0020: HIDDEN removes the row from the properties panel entirely (a
+    # category whose every field is hidden loses its header too), so these
+    # fields are inaccessible to the human sharing this graph. Report existence
+    # — the gate can flip and the field become live — but not schema the agent
+    # cannot act on. Naming it in filter_name expands it in full.
+    if not expand and bag.effective_ui_state(name).name == "HIDDEN":
+        row["ui_state"] = "hidden"
+        if data == "info":
+            row["category"] = descriptor._category or "root"
+        return row
 
     if data == "info":
         row["label"] = descriptor._label or ""
@@ -276,44 +292,104 @@ def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str) -
     return row
 
 
-def _settings_payload(node, accessors: list[str], data: str, wanted: set[str] | None):
-    """Settings rows, grouped by author category at ``info`` depth.
+class _Filters:
+    """The three selection axes, ANDed across axes and ORed within each.
 
-    ``info`` mirrors how the properties panel clusters fields, so the agent
-    inherits the author's own grouping; deeper levels stay a flat list because
-    by then the agent is working from names it already has.
+    Split into one parameter per axis because the values are drawn from
+    different namespaces: names and bag accessors are code-declared
+    identifiers, while a category is a free-text display label. A single
+    combined filter could not tell the ``depth`` bag from a ``"Depth"``
+    category, which would make the ``unmatched`` report untrustworthy.
     """
-    rows: list[dict] = []
+
+    def __init__(self, names: list[str], bags: list[str], cats: list[str]) -> None:
+        self.names = set(names)
+        self.bags = set(bags)
+        self.cats = set(cats)
+        self.hit_names: set[str] = set()
+        self.hit_bags: set[str] = set()
+        self.hit_cats: set[str] = set()
+
+    @property
+    def active(self) -> bool:
+        return bool(self.names or self.bags or self.cats)
+
+    def keeps(self, name: str, accessor: str, category: str) -> bool:
+        """True if this row survives every active axis (AND across axes)."""
+        if self.bags:
+            if accessor not in self.bags:
+                return False
+            self.hit_bags.add(accessor)
+        if self.cats:
+            if category not in self.cats:
+                return False
+            self.hit_cats.add(category)
+        if self.names:
+            if name not in self.names:
+                return False
+            self.hit_names.add(name)
+        return True
+
+    def note_existing(self, name: str, accessor: str, category: str) -> None:
+        """Record that these identifiers exist, regardless of AND outcome.
+
+        ``unmatched`` must mean "no such thing on this node", not "excluded by
+        a sibling axis" — otherwise a valid narrowing call reports phantom typos.
+        """
+        if name in self.names:
+            self.hit_names.add(name)
+        if accessor in self.bags:
+            self.hit_bags.add(accessor)
+        if category in self.cats:
+            self.hit_cats.add(category)
+
+    def unmatched(self) -> dict[str, list[str]]:
+        out: dict[str, list[str]] = {}
+        for key, asked, hit in (
+            ("filter_name", self.names, self.hit_names),
+            ("filter_bag", self.bags, self.hit_bags),
+            ("filter_cat", self.cats, self.hit_cats),
+        ):
+            missing = sorted(asked - hit)
+            if missing:
+                out[key] = missing
+        return out
+
+
+def _settings_payload(node, accessors: list[str], data: str, filters: _Filters):
+    """Settings rows nested by bag, then by author category at ``info`` depth.
+
+    Bag is the outer key because it is the code-declared identity (and the
+    handle ``promote_setting`` takes), while ``category`` is a display label an
+    author may reuse across bags — a flat category map would silently merge
+    fields from different bags.
+    """
+    # Per bag: {category: [rows]} at info depth, a flat [rows] list deeper.
+    out: dict[str, dict[str, list[dict]] | list[dict]] = {}
     for accessor in accessors:
         bag = getattr(node, accessor, None)
         if bag is None:
             continue
+        rows: list[dict] = []
         for name, descriptor in type(bag)._property_settings().items():
-            if wanted is not None and name not in wanted:
+            category = descriptor._category or "root"
+            filters.note_existing(name, accessor, category)
+            if filters.active and not filters.keeps(name, accessor, category):
                 continue
-            rows.append(_inspect_setting_row(bag, accessor, name, descriptor, data))
-    if data != "info":
-        return rows
-    grouped: dict[str, list[dict]] = {}
-    for row in rows:
-        grouped.setdefault(row.pop("category", "root"), []).append(row)
-    return grouped
-
-
-def _matched_names(node, accessors: list[str], wanted: set[str] | None) -> set[str]:
-    """Which of *wanted* exist as fields on *accessors*' bags.
-
-    Fed into the ``unmatched`` report, so the caller learns a filter name hit
-    nothing instead of inferring absence from a short list.
-    """
-    if wanted is None:
-        return set()
-    found: set[str] = set()
-    for accessor in accessors:
-        bag = getattr(node, accessor, None)
-        if bag is not None:
-            found |= wanted & set(type(bag)._property_settings())
-    return found
+            # An explicitly named field is expanded even when hidden: naming it
+            # IS the explicit request. Bulk selectors (bag/cat) do not expand.
+            expand = name in filters.names
+            rows.append(_inspect_setting_row(bag, accessor, name, descriptor, data, expand))
+        if not rows:
+            continue
+        if data == "info":
+            grouped: dict[str, list[dict]] = {}
+            for row in rows:
+                grouped.setdefault(row.pop("category", "root"), []).append(row)
+            out[accessor] = grouped
+        else:
+            out[accessor] = rows
+    return out
 
 
 def _state_row(wrapper) -> dict:
@@ -432,13 +508,16 @@ _DATA_LEVELS = ("info", "value", "all")
     "need, because a node can carry 30+ settings fields and an unfocused call wastes most of "
     "what it returns. The read counterpart to graph_editor_set_property: a row's 'name' is "
     "exactly what you pass back as name=, and it joins a row across all depths.\n"
-    "Typical drill-down: get=['summary'] -> get=['ports','settings'] (data='info', the default, "
-    "to learn what exists) -> add data='value' or 'all' with filter=['the_one_field'].\n"
+    "Typical drill-down: get=['summary'] (returns setting_counts per bag, so you can see which "
+    "bags are big) -> get=['settings'] filter_bag=['the_relevant_bag'] at data='info' to learn "
+    "what exists -> data='value' or 'all' with filter_name=['the_one_field'].\n"
     f"get: any of {', '.join(_SECTIONS)} (required, non-empty)\n"
-    "  summary: always returned — identity, counts, validity (name it alone for a cheap survey)\n"
+    "  summary: always returned — identity, per-bag setting_counts, validity (name it alone for "
+    "a cheap survey)\n"
     "  node_id: node_id + registry_key\n"
     "  ports: ports grouped as inlets/outlets/configs\n"
-    "  settings: author-declared settings bags (at data='info', grouped by author category)\n"
+    "  settings: author-declared settings bags, nested {bag: {category: [rows]}} at data='info' "
+    "and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit\n"
     "  props: framework properties (position, size, muted, skin) — never mixed into settings\n"
     "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; "
     "read this after editing a node's source to learn WHICH stage failed\n"
@@ -446,13 +525,19 @@ _DATA_LEVELS = ("info", "value", "all")
     "  info: what it IS — label, description, category/data_type. NO values. Start here.\n"
     "  value: what it is SET to — value, is_set, default, is_linked\n"
     "  all: value plus everything writable — type, min/max/options, mirrors, ui_state, use_mode\n"
-    "filter: exact row names to return, e.g. ['threshold'] (default [] = all rows). Applies to "
-    "ports, settings and props alike; names that match nothing come back under 'unmatched'.\n"
+    "Three independent filters, ANDed together (each defaults to [] = no constraint). Names that "
+    "match nothing on this node come back under 'unmatched', keyed by which filter missed.\n"
+    "  filter_name: exact field or port names, e.g. ['confidence_threshold']\n"
+    "  filter_bag: settings-bag accessors, e.g. ['depth'] returns that whole bag (see the "
+    "per-bag counts in summary to pick one)\n"
+    "  filter_cat: author category labels, e.g. ['Exposure']\n"
     "Value notes: a port holding a non-JSON value (mesh, frame) reports value_omitted instead "
-    "of value. is_set=false means the field INHERITS its value — writing the same value back is "
-    "a silent no-op. min/max are UI hints and are NOT enforced on writes; a value failing a "
-    "field's validator is rejected silently by the framework, so set_property verifies the write "
-    "and reports the rejection.",
+    "of value. A field hidden by its node's own gating (e.g. a disabled feature flag) is NOT "
+    "shown to the user either, so it collapses to {name, ui_state:'hidden'} — name it in "
+    "filter_name to expand it. is_set=false means the field INHERITS its value — writing the "
+    "same value back is a silent no-op. min/max are UI hints and are NOT enforced on writes; a "
+    "value failing a field's validator is rejected silently by the framework, so set_property "
+    "verifies the write and reports the rejection.",
     registry_id="inspect_node",
     annotations=_READ_ONLY,
 )
@@ -468,7 +553,9 @@ class GraphEditorInspectNodeTool(Farmhand):
                 "minItems": 1,
             },
             "data": {"type": "string", "enum": list(_DATA_LEVELS)},
-            "filter": {"type": "array", "items": {"type": "string"}},
+            "filter_name": {"type": "array", "items": {"type": "string"}},
+            "filter_bag": {"type": "array", "items": {"type": "string"}},
+            "filter_cat": {"type": "array", "items": {"type": "string"}},
         },
         "required": ["binding_id", "node_id", "get"],
     }
@@ -480,7 +567,9 @@ class GraphEditorInspectNodeTool(Farmhand):
         node_id: str,
         get: list[str] = [],
         data: str = "info",
-        filter: list[str] = [],
+        filter_name: list[str] = [],
+        filter_bag: list[str] = [],
+        filter_cat: list[str] = [],
     ) -> dict:
         editor = _editor(ctx, binding_id)
         wrapper = _node(editor, node_id)
@@ -507,9 +596,7 @@ class GraphEditorInspectNodeTool(Farmhand):
                 ids={"node_id": node_id, "data": data},
             )
 
-        # None means "no filtering" — distinct from an empty match set.
-        wanted: set[str] | None = set(filter) or None
-        matched: set[str] = set()
+        filters = _Filters(filter_name, filter_bag, filter_cat)
 
         # props IS a settings bag (it sits in _settings_bags beside author bags),
         # so the settings section must exclude it explicitly or every node grows
@@ -527,43 +614,59 @@ class GraphEditorInspectNodeTool(Farmhand):
             # thinks, and it makes a per-row direction key redundant.
             groups: dict[str, list[dict]] = {"inlets": [], "outlets": [], "configs": []}
             for pid, port in node.ports.items():
-                if wanted is not None and pid not in wanted:
+                # Ports have no bag or category, so those axes exclude them
+                # outright rather than matching everything.
+                if filters.bags or filters.cats:
                     continue
-                matched.add(pid)
+                if pid in filters.names:
+                    filters.hit_names.add(pid)
+                elif filters.names:
+                    continue
                 bucket = {"inlet": "inlets", "outlet": "outlets"}.get(_port_direction(port), "configs")
-                groups[bucket].append(_inspect_port_row(pid, port, data))
+                groups[bucket].append(_inspect_port_row(pid, port, data, expand=pid in filters.names))
             result["ports"] = {k: v for k, v in groups.items() if v}
         if "settings" in sections:
-            result["settings"] = _settings_payload(node, author_bags, data, wanted)
-            matched |= _matched_names(node, author_bags, wanted)
+            result["settings"] = _settings_payload(node, author_bags, data, filters)
         if "props" in sections:
-            prop_bags = [b for b in bags if b == "props"]
-            result["props"] = _settings_payload(node, prop_bags, data, wanted)
-            matched |= _matched_names(node, prop_bags, wanted)
+            result["props"] = _settings_payload(node, [b for b in bags if b == "props"], data, filters)
         if "state" in sections:
             result["state"] = _state_row(wrapper)
 
-        # A filter name that matched nothing is reported rather than silently
-        # absent: "typo" and "field does not exist" must not look identical to
-        # an agent about to write.
-        if wanted is not None:
-            missing = sorted(wanted - matched)
-            if missing:
-                result["unmatched"] = missing
+        # A filter value that matched nothing is reported per-axis rather than
+        # silently absent: "typo" and "does not exist" must not look identical
+        # to an agent about to write.
+        missing = filters.unmatched()
+        if missing:
+            result["unmatched"] = missing
 
         # summary is unconditional (canon: every result carries one) and is the
-        # whole payload when it was the only section named.
-        n_settings = sum(len(type(getattr(node, b))._property_settings()) for b in author_bags)
+        # whole payload when it was the only section named. Per-bag counts turn
+        # the survey call into an informed choice about what to fetch next —
+        # without them, requesting 'settings' is all-or-nothing.
+        bag_counts = {b: len(type(getattr(node, b))._property_settings()) for b in author_bags}
+        n_settings = sum(bag_counts.values())
+        result["setting_counts"] = bag_counts
         state = wrapper.state
         health = "valid" if state.is_valid() else "INVALID"
         n_errors = len(state.get_errors() or [])
         err_note = f", {n_errors} error(s)" if n_errors else ""
         warn = f", {len(state.warnings)} warning(s)" if state.warnings else ""
-        scope = f" filter={len(filter)} name(s)" if filter else ""
+        bags_note = ", ".join(f"{b}: {n}" for b, n in bag_counts.items()) or "none"
+        active = [
+            f"{k}={v}"
+            for k, v in (
+                ("filter_name", filter_name),
+                ("filter_bag", filter_bag),
+                ("filter_cat", filter_cat),
+            )
+            if v
+        ]
+        scope = f" [{'; '.join(active)}]" if active else ""
         result["summary"] = (
             f"{wrapper.node_id} ({node.class_identity.registry_key}): "
             f"{len(node.ports)} port(s), {n_settings} setting(s) in {len(author_bags)} bag(s) "
-            f"— {health}{err_note}{warn}. Returned: {', '.join(sections)} at data='{data}'{scope}."
+            f"({bags_note}) — {health}{err_note}{warn}. "
+            f"Returned: {', '.join(sections)} at data='{data}'{scope}."
         )
         return result
 
