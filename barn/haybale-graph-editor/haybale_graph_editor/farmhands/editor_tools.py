@@ -243,7 +243,7 @@ def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str, e
     # category whose every field is hidden loses its header too), so these
     # fields are inaccessible to the human sharing this graph. Report existence
     # — the gate can flip and the field become live — but not schema the agent
-    # cannot act on. Naming it in filter_name expands it in full.
+    # cannot act on. Naming it in by_name expands it in full.
     if not expand and bag.effective_ui_state(name).name == "HIDDEN":
         row["ui_state"] = "hidden"
         if data == "info":
@@ -289,26 +289,44 @@ def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str, e
         if ui_state.name != "NORMAL":
             row["ui_state"] = ui_state.name.lower()
         row.update(_constraints(descriptor.widget_config))
+        # The only constraint that actually REJECTS a write. min/max above are
+        # UI hints and are not enforced, so without this the agent sees the
+        # decorative constraint and not the real one. The predicate is an opaque
+        # Callable[[Any], bool] — presence, __name__ and first docstring line are
+        # all that is recoverable; the agent cannot evaluate it locally.
+        validator = getattr(descriptor, "_validator", None)
+        if validator is not None:
+            vrow: dict = {"name": getattr(validator, "__name__", None)}
+            doc = (getattr(validator, "__doc__", None) or "").strip().splitlines()
+            if doc:
+                vrow["doc"] = doc[0].strip()
+            row["validator"] = vrow
     return row
 
 
 class _Filters:
-    """The three selection axes, ANDed across axes and ORed within each.
+    """The four selection axes, ANDed across axes and ORed within each.
 
     Split into one parameter per axis because the values are drawn from
     different namespaces: names and bag accessors are code-declared
-    identifiers, while a category is a free-text display label. A single
-    combined filter could not tell the ``depth`` bag from a ``"Depth"``
-    category, which would make the ``unmatched`` report untrustworthy.
+    identifiers, a category is a free-text display label, and a direction is
+    a closed enum. A single combined filter could not tell the ``depth`` bag
+    from a ``"Depth"`` category, which would make the ``unmatched`` report
+    untrustworthy.
+
+    ``dirs`` applies to ports only — ports carry no bag or category, so they
+    do not route through :meth:`keeps` at all.
     """
 
-    def __init__(self, names: list[str], bags: list[str], cats: list[str]) -> None:
+    def __init__(self, names: list[str], bags: list[str], cats: list[str], dirs: list[str]) -> None:
         self.names = set(names)
         self.bags = set(bags)
         self.cats = set(cats)
+        self.dirs = set(dirs)
         self.hit_names: set[str] = set()
         self.hit_bags: set[str] = set()
         self.hit_cats: set[str] = set()
+        self.hit_dirs: set[str] = set()
 
     @property
     def active(self) -> bool:
@@ -346,9 +364,10 @@ class _Filters:
     def unmatched(self) -> dict[str, list[str]]:
         out: dict[str, list[str]] = {}
         for key, asked, hit in (
-            ("filter_name", self.names, self.hit_names),
-            ("filter_bag", self.bags, self.hit_bags),
-            ("filter_cat", self.cats, self.hit_cats),
+            ("by_name", self.names, self.hit_names),
+            ("by_bag", self.bags, self.hit_bags),
+            ("by_category", self.cats, self.hit_cats),
+            ("by_dir", self.dirs, self.hit_dirs),
         ):
             missing = sorted(asked - hit)
             if missing:
@@ -500,6 +519,7 @@ class GraphEditorQueryGraphTool(Farmhand):
 
 _SECTIONS = ("summary", "node_id", "ports", "settings", "props", "state")
 _DATA_LEVELS = ("info", "value", "all")
+_DIRECTIONS = ("inlet", "outlet", "config")
 
 
 @farmhand(
@@ -509,8 +529,8 @@ _DATA_LEVELS = ("info", "value", "all")
     "what it returns. The read counterpart to graph_editor_set_property: a row's 'name' is "
     "exactly what you pass back as name=, and it joins a row across all depths.\n"
     "Typical drill-down: get=['summary'] (returns setting_counts per bag, so you can see which "
-    "bags are big) -> get=['settings'] filter_bag=['the_relevant_bag'] at data='info' to learn "
-    "what exists -> data='value' or 'all' with filter_name=['the_one_field'].\n"
+    "bags are big) -> get=['settings'] by_bag=['the_relevant_bag'] at data='info' to learn "
+    "what exists -> data='value' or 'all' with by_name=['the_one_field'].\n"
     f"get: any of {', '.join(_SECTIONS)} (required, non-empty)\n"
     "  summary: always returned — identity, per-bag setting_counts, validity (name it alone for "
     "a cheap survey)\n"
@@ -524,20 +544,25 @@ _DATA_LEVELS = ("info", "value", "all")
     f"data: one of {', '.join(_DATA_LEVELS)} (default info) — how much per row\n"
     "  info: what it IS — label, description, category/data_type. NO values. Start here.\n"
     "  value: what it is SET to — value, is_set, default, is_linked\n"
-    "  all: value plus everything writable — type, min/max/options, mirrors, ui_state, use_mode\n"
-    "Three independent filters, ANDed together (each defaults to [] = no constraint). Names that "
+    "  all: value plus everything writable — type, min/max/options, mirrors, ui_state, use_mode, "
+    "validator\n"
+    "Four independent filters, ANDed together (each defaults to [] = no constraint). Values that "
     "match nothing on this node come back under 'unmatched', keyed by which filter missed.\n"
-    "  filter_name: exact field or port names, e.g. ['confidence_threshold']\n"
-    "  filter_bag: settings-bag accessors, e.g. ['depth'] returns that whole bag (see the "
+    "  by_name: exact field or port names, e.g. ['confidence_threshold']\n"
+    "  by_bag: settings-bag accessors, e.g. ['depth'] returns that whole bag (see the "
     "per-bag counts in summary to pick one)\n"
-    "  filter_cat: author category labels, e.g. ['Exposure']\n"
+    "  by_category: author category labels, e.g. ['Exposure']\n"
+    f"  by_dir: port directions, any of {', '.join(_DIRECTIONS)} — PORTS ONLY. Ports carry no bag "
+    "or category, so by_bag/by_category exclude them outright; combining either with by_dir "
+    "returns no ports and reports by_dir under 'unmatched'.\n"
     "Value notes: a port holding a non-JSON value (mesh, frame) reports value_omitted instead "
     "of value. A field hidden by its node's own gating (e.g. a disabled feature flag) is NOT "
     "shown to the user either, so it collapses to {name, ui_state:'hidden'} — name it in "
-    "filter_name to expand it. is_set=false means the field INHERITS its value — writing the "
-    "same value back is a silent no-op. min/max are UI hints and are NOT enforced on writes; a "
-    "value failing a field's validator is rejected silently by the framework, so set_property "
-    "verifies the write and reports the rejection.",
+    "by_name to expand it. is_set=false means the field INHERITS its value — writing the "
+    "same value back is a silent no-op. min/max are UI hints and are NOT enforced on writes. The "
+    "validator IS enforced: at data='all' a field carrying one reports validator {name, doc} — "
+    "the predicate is opaque, so you cannot pre-check a value, and a rejected write is dropped "
+    "silently by the framework; set_property verifies the write and reports the rejection.",
     registry_id="inspect_node",
     annotations=_READ_ONLY,
 )
@@ -553,9 +578,10 @@ class GraphEditorInspectNodeTool(Farmhand):
                 "minItems": 1,
             },
             "data": {"type": "string", "enum": list(_DATA_LEVELS)},
-            "filter_name": {"type": "array", "items": {"type": "string"}},
-            "filter_bag": {"type": "array", "items": {"type": "string"}},
-            "filter_cat": {"type": "array", "items": {"type": "string"}},
+            "by_name": {"type": "array", "items": {"type": "string"}},
+            "by_bag": {"type": "array", "items": {"type": "string"}},
+            "by_category": {"type": "array", "items": {"type": "string"}},
+            "by_dir": {"type": "array", "items": {"type": "string", "enum": list(_DIRECTIONS)}},
         },
         "required": ["binding_id", "node_id", "get"],
     }
@@ -567,9 +593,10 @@ class GraphEditorInspectNodeTool(Farmhand):
         node_id: str,
         get: list[str] = [],
         data: str = "info",
-        filter_name: list[str] = [],
-        filter_bag: list[str] = [],
-        filter_cat: list[str] = [],
+        by_name: list[str] = [],
+        by_bag: list[str] = [],
+        by_category: list[str] = [],
+        by_dir: list[str] = [],
     ) -> dict:
         editor = _editor(ctx, binding_id)
         wrapper = _node(editor, node_id)
@@ -596,7 +623,15 @@ class GraphEditorInspectNodeTool(Farmhand):
                 ids={"node_id": node_id, "data": data},
             )
 
-        filters = _Filters(filter_name, filter_bag, filter_cat)
+        bad_dirs = [d for d in by_dir if d not in _DIRECTIONS]
+        if bad_dirs:
+            raise FarmhandError(
+                "unknown_direction",
+                f"Unknown by_dir value(s): {', '.join(bad_dirs)}. Valid: {', '.join(_DIRECTIONS)}.",
+                ids={"node_id": node_id, "unknown": ",".join(bad_dirs)},
+            )
+
+        filters = _Filters(by_name, by_bag, by_category, by_dir)
 
         # props IS a settings bag (it sits in _settings_bags beside author bags),
         # so the settings section must exclude it explicitly or every node grows
@@ -615,14 +650,22 @@ class GraphEditorInspectNodeTool(Farmhand):
             groups: dict[str, list[dict]] = {"inlets": [], "outlets": [], "configs": []}
             for pid, port in node.ports.items():
                 # Ports have no bag or category, so those axes exclude them
-                # outright rather than matching everything.
+                # outright rather than matching everything. by_dir is then
+                # left unhit on purpose: combining it with by_bag/by_category
+                # is a caller confusion worth surfacing under 'unmatched',
+                # not silently swallowing.
                 if filters.bags or filters.cats:
                     continue
+                direction = _port_direction(port)
+                if filters.dirs:
+                    if direction not in filters.dirs:
+                        continue
+                    filters.hit_dirs.add(direction)
                 if pid in filters.names:
                     filters.hit_names.add(pid)
                 elif filters.names:
                     continue
-                bucket = {"inlet": "inlets", "outlet": "outlets"}.get(_port_direction(port), "configs")
+                bucket = {"inlet": "inlets", "outlet": "outlets"}.get(direction, "configs")
                 groups[bucket].append(_inspect_port_row(pid, port, data, expand=pid in filters.names))
             result["ports"] = {k: v for k, v in groups.items() if v}
         if "settings" in sections:
@@ -655,9 +698,10 @@ class GraphEditorInspectNodeTool(Farmhand):
         active = [
             f"{k}={v}"
             for k, v in (
-                ("filter_name", filter_name),
-                ("filter_bag", filter_bag),
-                ("filter_cat", filter_cat),
+                ("by_name", by_name),
+                ("by_bag", by_bag),
+                ("by_category", by_category),
+                ("by_dir", by_dir),
             )
             if v
         ]

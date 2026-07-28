@@ -63,7 +63,7 @@ def _flat(payload) -> dict:
 def test_payload_nests_by_bag_then_category():
     t = _tools()
     node = _node(flags=Flags, tuning=Tuning)
-    payload = t._settings_payload(node, ["flags", "tuning"], "info", t._Filters([], [], []))
+    payload = t._settings_payload(node, ["flags", "tuning"], "info", t._Filters([], [], [], []))
     assert set(payload) == {"flags", "tuning"}
     assert set(payload["flags"]) == {"Flags"}
     assert set(payload["tuning"]) == {"Tuning"}
@@ -80,7 +80,7 @@ def test_same_category_in_two_bags_does_not_merge():
         two = setting[INT](2, category="Shared")
 
     node = _node(a=A, b=B)
-    payload = t._settings_payload(node, ["a", "b"], "info", t._Filters([], [], []))
+    payload = t._settings_payload(node, ["a", "b"], "info", t._Filters([], [], [], []))
     assert [r["name"] for r in payload["a"]["Shared"]] == ["one"]
     assert [r["name"] for r in payload["b"]["Shared"]] == ["two"]
 
@@ -91,7 +91,7 @@ def test_hidden_field_collapses_to_existence_only():
     node = _node(tuning=Tuning)
     assert node.tuning.effective_ui_state("threshold").name == "HIDDEN"
 
-    rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters([], [], [])))
+    rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters([], [], [], [])))
     assert rows["threshold"] == {
         "name": "threshold",
         "accessor": "tuning",
@@ -101,11 +101,11 @@ def test_hidden_field_collapses_to_existence_only():
     assert rows["mode"]["value"] == "fast"
 
 
-def test_filter_name_expands_a_hidden_field():
+def test_by_name_expands_a_hidden_field():
     """Naming it IS the explicit request, so the full row comes back."""
     t = _tools()
     node = _node(tuning=Tuning)
-    rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters(["threshold"], [], [])))
+    rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters(["threshold"], [], [], [])))
     row = rows["threshold"]
     assert row["value"] == 5
     assert row["min"] == 0 and row["max"] == 10
@@ -124,7 +124,7 @@ def test_opening_the_gate_makes_the_field_live():
     node = _node(tuning=Tuning)
     node.tuning.enable = True
 
-    rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters([], [], [])))
+    rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters([], [], [], [])))
     assert rows["threshold"]["value"] == 5
     assert rows["threshold"]["max"] == 10
     assert "ui_state" not in rows["threshold"]
@@ -133,12 +133,14 @@ def test_opening_the_gate_makes_the_field_live():
 def test_filters_and_across_axes():
     t = _tools()
     node = _node(flags=Flags, tuning=Tuning)
-    payload = t._settings_payload(node, ["flags", "tuning"], "info", t._Filters([], ["tuning"], ["Tuning"]))
+    payload = t._settings_payload(
+        node, ["flags", "tuning"], "info", t._Filters([], ["tuning"], ["Tuning"], [])
+    )
     assert set(payload) == {"tuning"}
     assert set(_flat(payload)) == {"enable", "threshold", "mode"}
 
     # A bag/category pair that cannot co-occur yields nothing.
-    empty = t._settings_payload(node, ["flags", "tuning"], "info", t._Filters([], ["flags"], ["Tuning"]))
+    empty = t._settings_payload(node, ["flags", "tuning"], "info", t._Filters([], ["flags"], ["Tuning"], []))
     assert empty == {}
 
 
@@ -147,12 +149,12 @@ def test_unmatched_is_keyed_per_axis_and_ignores_and_exclusion():
     t = _tools()
     node = _node(flags=Flags, tuning=Tuning)
 
-    filters = t._Filters(["nope"], ["tuning"], ["Tuning"])
+    filters = t._Filters(["nope"], ["tuning"], ["Tuning"], [])
     t._settings_payload(node, ["flags", "tuning"], "info", filters)
-    assert filters.unmatched() == {"filter_name": ["nope"]}
+    assert filters.unmatched() == {"by_name": ["nope"]}
 
-    # 'enable' exists but is excluded by filter_bag — that is not a miss.
-    ok = t._Filters(["enable"], ["tuning"], [])
+    # 'enable' exists but is excluded by by_bag — that is not a miss.
+    ok = t._Filters(["enable"], ["tuning"], [], [])
     t._settings_payload(node, ["flags", "tuning"], "info", ok)
     assert ok.unmatched() == {}
 

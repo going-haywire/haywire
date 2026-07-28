@@ -464,12 +464,12 @@ def test_inspect_ports_grouped_by_direction(farmhand_call):
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_name_narrows_to_named_rows(farmhand_call):
-    """filter_name is the last drill-down step: one field, full detail."""
+def test_inspect_by_name_narrows_to_named_rows(farmhand_call):
+    """by_name is the last drill-down step: one field, full detail."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
-        result = _inspect(farmhand_call, bid, node_id, ["settings"], data="all", filter_name=["example_int"])
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], data="all", by_name=["example_int"])
         rows = _settings_by_name(result)
         assert set(rows) == {"example_int"}
         assert rows["example_int"]["max"] == 100
@@ -478,23 +478,23 @@ def test_inspect_filter_name_narrows_to_named_rows(farmhand_call):
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_bag_returns_whole_bag(farmhand_call):
-    """filter_bag pulls one bag — the slice the per-bag counts point you at."""
+def test_inspect_by_bag_returns_whole_bag(farmhand_call):
+    """by_bag pulls one bag — the slice the per-bag counts point you at."""
     bid = _new_graph(farmhand_call)
     try:
         node_id = _add(farmhand_call, bid)
-        result = _inspect(farmhand_call, bid, node_id, ["settings"], filter_bag=["example"])
+        result = _inspect(farmhand_call, bid, node_id, ["settings"], by_bag=["example"])
         assert set(result["settings"]) == {"example"}
         assert "unmatched" not in result
 
-        # props is a bag accessor too, so filter_bag reaches it.
-        props = _inspect(farmhand_call, bid, node_id, ["props"], filter_bag=["props"])
+        # props is a bag accessor too, so by_bag reaches it.
+        props = _inspect(farmhand_call, bid, node_id, ["props"], by_bag=["props"])
         assert set(props["props"]) == {"props"}
     finally:
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_cat_and_bag_are_anded(farmhand_call):
+def test_inspect_by_category_and_bag_are_anded(farmhand_call):
     """Filters AND across axes, OR within one."""
     bid = _new_graph(farmhand_call)
     try:
@@ -504,8 +504,8 @@ def test_inspect_filter_cat_and_bag_are_anded(farmhand_call):
             bid,
             node_id,
             ["settings"],
-            filter_bag=["example"],
-            filter_cat=["validator"],
+            by_bag=["example"],
+            by_category=["validator"],
         )
         # Only the validator category of the example bag survives both axes.
         assert set(both["settings"]["example"]) == {"validator"}
@@ -525,19 +525,19 @@ def test_inspect_unmatched_is_keyed_by_filter(farmhand_call):
             node_id,
             ["settings"],
             data="value",
-            filter_name=["example_int", "no_such_field"],
+            by_name=["example_int", "no_such_field"],
         )
-        assert result["unmatched"] == {"filter_name": ["no_such_field"]}
+        assert result["unmatched"] == {"by_name": ["no_such_field"]}
         # The matched row still comes back — one typo does not void the call.
         assert set(_settings_by_name(result)) == {"example_int"}
 
-        bad_bag = _inspect(farmhand_call, bid, node_id, ["settings"], filter_bag=["nope"])
-        assert bad_bag["unmatched"] == {"filter_bag": ["nope"]}
+        bad_bag = _inspect(farmhand_call, bid, node_id, ["settings"], by_bag=["nope"])
+        assert bad_bag["unmatched"] == {"by_bag": ["nope"]}
     finally:
         _close(farmhand_call, bid)
 
 
-def test_inspect_filter_name_applies_to_ports(farmhand_call):
+def test_inspect_by_name_applies_to_ports(farmhand_call):
     """One name namespace across sections, matching how set_property resolves."""
     bid = _new_graph(farmhand_call)
     try:
@@ -545,9 +545,83 @@ def test_inspect_filter_name_applies_to_ports(farmhand_call):
         all_ports = _inspect(farmhand_call, bid, node_id, ["ports"])["ports"]
         target = all_ports["inlets"][0]["name"]
 
-        result = _inspect(farmhand_call, bid, node_id, ["ports"], filter_name=[target])
+        result = _inspect(farmhand_call, bid, node_id, ["ports"], by_name=[target])
         names = [r["name"] for group in result["ports"].values() for r in group]
         assert names == [target]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_by_dir_narrows_ports(farmhand_call):
+    """The ports-only axis: 'just the inlets' was not expressible before."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, NODE_KEY)
+        result = _inspect(farmhand_call, bid, node_id, ["ports"], by_dir=["inlet"])
+        assert set(result["ports"]) == {"inlets"}
+        assert result["ports"]["inlets"]
+        assert "unmatched" not in result
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_by_dir_with_bag_reports_the_miss(farmhand_call):
+    """Ports carry no bag, so by_bag excludes them — and by_dir says so.
+
+    This is the one place a sibling-axis exclusion IS surfaced: mixing a
+    settings axis with a ports axis is caller confusion, not narrowing.
+    """
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        result = _inspect(farmhand_call, bid, node_id, ["ports"], by_dir=["inlet"], by_bag=["example"])
+        assert result["ports"] == {}
+        assert result["unmatched"]["by_dir"] == ["inlet"]
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_by_dir_rejects_an_unknown_direction(farmhand_call):
+    """A closed enum is validated at the protocol boundary."""
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid, NODE_KEY)
+        raw = _call(
+            farmhand_call,
+            "graph_editor_inspect_node",
+            {"binding_id": bid, "node_id": node_id, "get": ["ports"], "by_dir": ["inlets"]},
+        )
+        assert raw.isError
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_inspect_reports_validator_presence_at_all_depth(farmhand_call):
+    """The validator is the only constraint that rejects a write — surface it.
+
+    min/max come back too but are UI-only hints; without this signal the agent
+    sees the decorative constraint and not the enforcing one.
+    """
+    bid = _new_graph(farmhand_call)
+    try:
+        node_id = _add(farmhand_call, bid)
+        rows = _settings_by_name(
+            _inspect(
+                farmhand_call,
+                bid,
+                node_id,
+                ["settings"],
+                data="all",
+                by_bag=["example"],
+                by_category=["validator"],
+            )
+        )
+        assert rows["even_int"]["validator"]["name"]
+        # An unvalidated field carries no key at all — absence is the common case.
+        plain = _settings_by_name(
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="all", by_name=["example_int"])
+        )
+        assert "validator" not in plain["example_int"]
     finally:
         _close(farmhand_call, bid)
 
@@ -596,7 +670,7 @@ def test_inspect_round_trips_into_set_property(farmhand_call):
         info = _settings_by_name(_inspect(farmhand_call, bid, node_id, ["settings"]))
         assert "example_int" in info
         before = _settings_by_name(
-            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["example_int"])
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", by_name=["example_int"])
         )
         assert before["example_int"]["value"] == 3
 
@@ -606,7 +680,7 @@ def test_inspect_round_trips_into_set_property(farmhand_call):
             {"binding_id": bid, "node_id": node_id, "name": "example_int", "value": 42},
         )
         after = _settings_by_name(
-            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["example_int"])
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", by_name=["example_int"])
         )
         assert after["example_int"]["value"] == 42
         assert after["example_int"]["is_set"] is True  # now overridden
@@ -629,7 +703,7 @@ def test_set_property_reports_silent_validator_rejection(farmhand_call):
         assert "[set_rejected]" in result.content[0].text
         # And the value really is unchanged.
         rows = _settings_by_name(
-            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", filter_name=["even_int"])
+            _inspect(farmhand_call, bid, node_id, ["settings"], data="value", by_name=["even_int"])
         )
         assert rows["even_int"]["value"] == 4
     finally:
