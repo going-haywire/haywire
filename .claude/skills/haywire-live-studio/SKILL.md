@@ -1,15 +1,13 @@
 ---
 name: haywire-live-studio
 description: >
-  Use when you need to drive a RUNNING Haywire studio from the CLI — inspect or
-  mutate live graphs, list/read/call Farmhand MCP tools, check the error ledger,
-  scaffold or hot-reload components, or verify a change in the real app rather
-  than in tests. Bypasses Claude Code's own MCP client (which only connects at
-  session start and is awkward to reconnect mid-session) by talking to the
-  studio's /mcp endpoint over HTTP. Trigger on: "start the studio and use
-  farmhand", "call a studio/MCP tool", "access the running studio", "list open
-  graphs", "add a node via MCP", "check the error ledger", "the farmhand MCP
-  server", or any task that needs the live studio instead of the test suite.
+  Use when you need to drive a RUNNING Haywire studio — start/stop it, then
+  inspect or mutate live graphs, call Farmhand MCP tools, check the error
+  ledger, scaffold or hot-reload components, or verify a change in the real
+  app rather than in tests. Trigger on: "start the studio and use farmhand",
+  "call a studio/MCP tool", "access the running studio", "list open graphs",
+  "add a node via MCP", "check the error ledger", "the farmhand MCP server",
+  or any task that needs the live studio instead of the test suite.
 ---
 
 # haywire-live-studio
@@ -17,30 +15,22 @@ description: >
 ## Overview
 
 The studio serves both the NiceGUI app and the **Farmhand MCP server** on
-`http://127.0.0.1:<port>` (`/mcp`) — the port defaults to 8124
-(`NetworkSettings.port`) but both CLIs below discover the actual port at
-runtime from `.haywire/studio.json`, so they work even if that setting has
-been changed. This skill bundles two dependency-free CLIs so you (or a future
-session) can bring that server up/down and drive its tools over HTTP —
-without depending on Claude Code's session-startup MCP handshake.
+`http://127.0.0.1:<port>/mcp/` (port defaults to 8124, `NetworkSettings.port`).
+This repo's [.mcp.json](../../../.mcp.json) registers the **farmhand4claude
+proxy** as an MCP server for Claude Code — it bridges stdio to that HTTP
+endpoint, so studio tools (`studio_*`, `haystack_*`, `graph_editor_*`,
+`marketplace_*`, `testing_*`) appear directly in this session once the studio
+is up, with no reconnect needed.
 
-- `scripts/studioctl` — start / stop / status / restart the studio.
-- `scripts/farmhand` — MCP client: `tools`, `call`, `resources`, `read`, `raw`.
-
-**Why not the built-in MCP client?** Claude Code connects to configured MCP
-servers only at session start. If the studio wasn't up then (or the config had
-the wrong token), the tools never load and `/mcp reconnect` is often unavailable
-mid-session. These CLIs sidestep that entirely: they read the token from disk
-and speak MCP directly.
+The proxy bridges to a studio, it doesn't launch one — bring the studio itself
+up/down with `scripts/studioctl`.
 
 ## When to use
 
 - You need to see or change a **live** graph (open graphs, nodes, edges, run state).
-- You want to call any Farmhand tool (`studio_*`, `haystack_*`, `graph_editor_*`,
-  `marketplace_*`, `testing_*`) and read the JSON result.
+- You want to call any Farmhand tool and read the result.
 - You're verifying a component change end-to-end: scaffold → write → hot-reload →
   `studio_verify_component` → `studio_get_errors`.
-- The built-in `farmhand` MCP tools aren't loaded in this session.
 
 Do **not** use for offline work the test suite covers — prefer `pytest` when you
 don't need a live app.
@@ -50,30 +40,20 @@ don't need a live app.
 ```sh
 S=.claude/skills/haywire-live-studio/scripts
 
-$S/studioctl start          # boot studio if down (idempotent), wait for its port, print token
+$S/studioctl start          # boot studio if down (idempotent), wait for its port
 $S/studioctl status         # up? tracked pid? who owns the port?
 $S/studioctl stop           # clean shutdown (SIGINT) of a studio studioctl started
 $S/studioctl restart
-
-$S/farmhand tools           # list 38 tools (name + one-line desc)
-$S/farmhand tools --json    # full input schemas
-$S/farmhand call studio_status
-$S/farmhand call haystack_list_graphs
-$S/farmhand call testing_echo '{"text": "hi"}'
-echo '{"text":"hi"}' | $S/farmhand call testing_echo -   # args via stdin
-$S/farmhand resources                       # list canon + library docs
-$S/farmhand read farmhand://docs/canon/nodes
-$S/farmhand raw tools/list                  # escape hatch: any MCP method
 ```
+
+Once the studio is up, call its tools directly by name in this session —
+`studio_status`, `haystack_list_graphs`, `studio_get_errors`, etc.
 
 ## Typical workflow
 
 1. `studioctl start` — if it prints "already up … (your own instance)", a studio
-   you launched is running; the tools work against it, and `stop` will refuse to
-   kill it (see below).
-2. `farmhand call <tool> '<json-args>'` — drive the studio. `call` **exits 2**
-   when the tool returns an error (with `isError`), 0 on success, so you can
-   branch on it.
+   you launched is running; `stop` will refuse to kill it (see below).
+2. Call tools directly (e.g. `haystack_list_graphs`, `graph_editor_add_node`).
 3. Read `studio_get_errors` after any mutation/hot-reload to catch failures the
    result didn't surface.
 4. `studioctl stop` when done (only if studioctl started it).
@@ -90,24 +70,45 @@ $S/farmhand raw tools/list                  # escape hatch: any MCP method
 - `stop` escalates SIGINT → SIGTERM → SIGKILL. SIGINT is the studio's designed
   shutdown (`run()` catches `KeyboardInterrupt`), so it's clean and fast (~0.5s).
 
-## Gotchas (learned the hard way)
+## Two always-available proxy tools
 
-- **Trailing slash is mandatory.** The endpoint is `/mcp/`. A bare `POST /mcp`
-  307-redirects to `/mcp/`, and most POST clients drop the body on redirect. The
-  `farmhand` script always uses `/mcp/`; if you ever hand-roll a `curl`, do too.
-- **Token lives at `.haywire/farmhand_token`.** It's stable across restarts
-  (`ensure_token` reuses the file; delete it to rotate). `farmhand` reads it
-  automatically — never paste it into a header by hand.
-- **The `<token>` placeholder bug.** `claude mcp add … "Bearer <token>"` stores
-  the literal `<token>` if not substituted, causing 401 "not authenticated".
-  These CLIs avoid the issue by not using Claude's MCP client at all.
-- **Startup logs → `.haywire/studioctl.log`.** If `start` times out, it tails
-  this file. Harmless `anyio.EndOfStream` ASGI errors from NiceGUI's own routes
-  can appear at startup and are unrelated to Farmhand.
-- **Each `farmhand` call is a fresh MCP session** (initialize →
-  notifications/initialized → method). Stateless by design; no session to manage.
+These are answered by the proxy itself (not forwarded), so they work even
+before the studio is up:
+
+- `farmhand_studio_status` — is the studio reachable? Reports which
+  URL/token it resolved and where from (env override, sidecar file, or
+  default guess), and distinguishes "nothing there" from "found it, but the
+  token is wrong" (401).
+- `farmhand_studio_connect` — point the proxy at a studio in a *different*
+  workspace/project that automatic discovery can't find (pass `port`, and
+  `token` if required). Takes effect immediately, session-only, not persisted.
+
+## Troubleshooting
+
+If `farmhand_studio_status` reports the studio unreachable or unauthorized,
+these are the same facts a manual `farmhand_studio_connect` call needs:
+
+- **Port**: `.haywire/studio.json` in the project root — a JSON sidecar the
+  studio writes on startup (`pid`, `port`, `url`, …). Written only when
+  `farmhand.enabled`.
+- **Token**: `.haywire/farmhand_token` in the project root — a plain-text
+  bearer token, stable across restarts (delete the file to rotate it). If
+  the project was scaffolded into a *subdirectory* of the open workspace,
+  check there too — the proxy checks one level down automatically, but a
+  manual read doesn't.
+- **Trailing slash is mandatory** if you ever hand-roll a request outside the
+  proxy: the endpoint is `/mcp/`. A bare `POST /mcp` 307-redirects, and most
+  POST clients drop the body on redirect.
+- **`<token>` placeholder bug**: if a token was ever pasted into a header
+  literally as `<token>` instead of substituted, you'll see 401
+  "not authenticated" — re-read the actual file contents, don't reuse a
+  half-remembered value.
+
+If `farmhand_studio_status` isn't available at all, the MCP server itself
+didn't start — check `.mcp.json` is present at the repo root and that `npx`
+can reach the npm registry (the proxy is fetched as
+`@going-haywire/farmhand4claude@latest` on every session start).
 
 ## Files
 
 - `scripts/studioctl` — run with `--help` for flags (`start --timeout`, `stop --force`).
-- `scripts/farmhand` — run with `--help`; subcommands each take `--help` too.
