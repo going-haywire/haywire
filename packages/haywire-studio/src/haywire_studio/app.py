@@ -429,7 +429,10 @@ def main():
         "library",
         nargs="?",
         default=None,
-        help="Path to the library package root (default: current directory)",
+        help=(
+            "Path to the library package root, or (with --all) the repo root to scan"
+            " — default: current directory"
+        ),
     )
     docs_parser.add_argument(
         "--all",

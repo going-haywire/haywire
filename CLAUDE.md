@@ -56,6 +56,10 @@ For trivial edits (a one-line fix, a rename inside one file, a docstring), this 
 # Run the app
 uv run haywire
 
+# Generate deterministic library docs (README/OVERVIEW/QUICKREF/docs/*.md)
+uv run haywire docs barn/haybale-mylib   # one library
+uv run haywire docs --all                # every in-repo library, one load
+
 # Tests
 uv run pytest                        # all tests
 uv run pytest -m "not browser and not perf"  # fast local loop (~33s): skips the Playwright browser harness
