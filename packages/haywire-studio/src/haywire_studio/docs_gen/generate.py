@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 from haywire.core.di.config import create_library_system_service
 from haywire.core.library.registry import LibraryRegistry
@@ -53,16 +54,24 @@ def _library_id_for_path(service, library_path: Path) -> str:
     return matches[0]
 
 
-def generate_docs(library_path: str | None) -> list[str]:
-    lib_root = Path(library_path).resolve() if library_path else Path.cwd()
-    module_dir = _module_dir(lib_root)
+def _package_root(module_dir: Path) -> Path | None:
+    """The library's package root (dir holding pyproject.toml + README), or None.
 
-    service = create_library_system_service(
-        workspace_root=str(lib_root),
-        enable_file_watching=False,
-        watch_settings=False,
-    )
-    library_id = _library_id_for_path(service, lib_root)
+    Package layout: the parent of the module dir. Flat layout: the module dir
+    itself. Framework-owned libraries baked inside another package (e.g.
+    ``haywire.barn.builtin`` inside haywire-core) have no own package root and
+    return None — they get in-wheel docs (OVERVIEW/QUICKREF/docs) but no README.
+    """
+    if (module_dir / "pyproject.toml").exists():
+        return module_dir
+    if (module_dir.parent / "pyproject.toml").exists():
+        return module_dir.parent
+    return None
+
+
+def _generate_one(service: Any, library_id: str, module_dir: Path) -> list[str]:
+    """Extract + render + write every doc file for one library given a loaded
+    service. Returns the coverage-report lines for that library."""
     doc = extract_library(service, library_id)
 
     (module_dir / "OVERVIEW.md").write_text(render_overview(doc), encoding="utf-8")
@@ -73,10 +82,52 @@ def generate_docs(library_path: str | None) -> list[str]:
     for rec in doc.components:
         (docs_dir / doc_filename(rec.registry_key)).write_text(render_component(rec), encoding="utf-8")
 
-    notes_path = module_dir / "NOTES.md"
-    notes = notes_path.read_text(encoding="utf-8") if notes_path.exists() else ""
-    readme_path = lib_root / "README.md"
-    existing = readme_path.read_text(encoding="utf-8") if readme_path.exists() else None
-    readme_path.write_text(render_readme(doc, notes, existing), encoding="utf-8")
+    # README lives at the package root and is skipped for libraries without one.
+    package_root = _package_root(module_dir)
+    if package_root is not None:
+        notes_path = module_dir / "NOTES.md"
+        notes = notes_path.read_text(encoding="utf-8") if notes_path.exists() else ""
+        readme_path = package_root / "README.md"
+        existing = readme_path.read_text(encoding="utf-8") if readme_path.exists() else None
+        readme_path.write_text(render_readme(doc, notes, existing), encoding="utf-8")
 
     return coverage_report(doc)
+
+
+def generate_docs(library_path: str | None) -> list[str]:
+    """Generate docs for a single library at ``library_path`` (default: cwd)."""
+    lib_root = Path(library_path).resolve() if library_path else Path.cwd()
+    module_dir = _module_dir(lib_root)
+
+    service = create_library_system_service(
+        workspace_root=str(lib_root),
+        enable_file_watching=False,
+        watch_settings=False,
+    )
+    library_id = _library_id_for_path(service, lib_root)
+    return _generate_one(service, library_id, module_dir)
+
+
+def generate_all_docs(repo_root: str | None) -> dict[str, list[str]]:
+    """Generate docs for every in-repo library in ONE library-system load.
+
+    Discovers libraries via the loaded registry and keeps those whose module
+    dir resolves to a path under ``repo_root`` — that is exactly ``barn/*`` plus
+    ``haywire.barn.builtin``, and excludes external site-packages installs.
+    Returns {library_id: coverage_lines}, sorted by library id.
+    """
+    root = Path(repo_root).resolve() if repo_root else Path.cwd()
+
+    service = create_library_system_service(
+        workspace_root=str(root),
+        enable_file_watching=False,
+        watch_settings=False,
+    )
+    registry = service.injector.get(LibraryRegistry)
+
+    results: dict[str, list[str]] = {}
+    for lib_id in sorted(registry.list_names()):
+        module_dir = Path(registry.get_library_identity(lib_id).folder_path).resolve()
+        if root == module_dir or root in module_dir.parents:
+            results[lib_id] = _generate_one(service, lib_id, module_dir)
+    return results

@@ -5,7 +5,12 @@ from pathlib import Path
 import pytest
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.registry import LibraryRegistry
-from haywire_studio.docs_gen.generate import _library_id_for_path, generate_docs
+from haywire_studio.docs_gen.generate import (
+    _library_id_for_path,
+    _package_root,
+    generate_all_docs,
+    generate_docs,
+)
 
 
 @pytest.fixture
@@ -54,6 +59,41 @@ def test_generate_writes_expected_files(clean_haybale_testing):
     assert (module_dir / "docs").is_dir()
     assert (lib_root / "README.md").exists()
     assert isinstance(coverage, list)
+
+
+def test_package_root_package_layout(tmp_path):
+    lib = tmp_path / "haybale-x"
+    module = lib / "haybale_x"
+    module.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text("")
+    assert _package_root(module) == lib
+
+
+def test_package_root_flat_layout(tmp_path):
+    lib = tmp_path / "haybale_x"
+    lib.mkdir()
+    (lib / "pyproject.toml").write_text("")
+    assert _package_root(lib) == lib
+
+
+def test_package_root_none_for_baked_in_library(tmp_path):
+    """A module with no pyproject at or above it (e.g. builtin inside core)
+    has no own package root — README is skipped, in-wheel docs still written."""
+    module = tmp_path / "pkg" / "sub" / "builtin"
+    module.mkdir(parents=True)
+    assert _package_root(module) is None
+
+
+@pytest.mark.integration
+def test_generate_all_docs_scoped_to_one_library(clean_haybale_testing):
+    """Pointing --all at a single library dir generates only that library."""
+    repo = Path(__file__).resolve().parents[3]
+    lib_root = repo / "barn" / "haybale-testing"
+
+    results = generate_all_docs(str(lib_root))
+    assert "testing" in results
+    assert isinstance(results["testing"], list)  # coverage lines
+    assert (lib_root / "haybale_testing" / "QUICKREF.md").exists()
 
 
 class _FakeLibrary:

@@ -431,6 +431,11 @@ def main():
         default=None,
         help="Path to the library package root (default: current directory)",
     )
+    docs_parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Generate docs for every in-repo library (barn/* + builtin) in one load",
+    )
 
     args = parser.parse_args()
 
@@ -507,6 +512,21 @@ def main():
             )
         )
     elif args.command == "docs":
+        if args.all:
+            from haywire_studio.docs_gen.generate import generate_all_docs
+
+            results = generate_all_docs(args.library)
+            total_gaps = sum(len(gaps) for gaps in results.values())
+            print(f"Generated docs for {len(results)} libraries.")
+            for lib_id in sorted(results):
+                gaps = results[lib_id]
+                marker = f"{len(gaps)} coverage gap(s)" if gaps else "clean"
+                print(f"  • {lib_id}: {marker}")
+                for line in gaps:
+                    print(f"      - {line}")
+            print(f"Total coverage gaps: {total_gaps}.")
+            return
+
         from haywire_studio.docs_gen.generate import generate_docs
 
         coverage = generate_docs(args.library)
