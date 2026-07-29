@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-marketplace"
 label = "Marketplace"
-min_version = "0.0.30"
+min_version = "0.0.31"
 description = "Library installer + browser editors"
 author = "Haywire Team"
 source = "pypi"
