@@ -42,3 +42,15 @@ def test_extract_farmhand_carries_input_schema(service):
     farmhands = [r for r in doc.components if r.kind == "farmhand"]
     if farmhands:
         assert "input_schema" in farmhands[0].extra
+
+
+@pytest.mark.integration
+def test_nodes_carry_ports_from_instance(service):
+    doc = extract_library(service, "testing")
+    nodes = [r for r in doc.components if r.kind == "node" and not r.hidden]
+    assert nodes, "testing should expose visible nodes"
+    # At least one node should declare at least one port once instantiated.
+    assert any(n.ports for n in nodes)
+    for n in nodes:
+        for p in n.ports:
+            assert p.direction in ("inlet", "outlet")
