@@ -44,6 +44,8 @@ def _parse_haybale_entry(raw: dict) -> Haybale:
         dependencies=list(raw.get("dependencies", [])),
         source_url=raw.get("source_url", ""),
         docs_url=raw.get("docs_url", ""),
+        examples_url=raw.get("examples_url", ""),
+        tests_url=raw.get("tests_url", ""),
         via=raw.get("via", ""),
         last_seen=raw.get("last_seen", ""),
         stale=bool(raw.get("stale", False)),

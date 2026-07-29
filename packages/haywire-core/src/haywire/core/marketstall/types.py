@@ -27,6 +27,8 @@ class Haybale:
     dependencies: list[str] = field(default_factory=list)
     source_url: str = ""
     docs_url: str = ""
+    examples_url: str = ""
+    tests_url: str = ""
     # Runtime-only routing metadata (not persisted).
     source_label: str = ""
     source_file: str = ""
@@ -49,6 +51,8 @@ class Haybale:
         "dependencies",
         "source_url",
         "docs_url",
+        "examples_url",
+        "tests_url",
         "via",
         "last_seen",
         "stale",

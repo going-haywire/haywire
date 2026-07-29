@@ -166,6 +166,8 @@ def mark_stale_against_previous(
                 dependencies=list(prev.dependencies),
                 source_url=prev.source_url,
                 docs_url=prev.docs_url,
+                examples_url=prev.examples_url,
+                tests_url=prev.tests_url,
                 source_label=prev.source_label,
                 source_file=prev.source_file,
                 source_origin=prev.source_origin,
