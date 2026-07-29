@@ -1,6 +1,6 @@
 import pytest
 from haywire.core.di.config import create_library_system_service
-from haywire_studio.docs_gen.extract import extract_library
+from haywire_studio.docs_gen.extract import _record_from_class, extract_library
 
 
 @pytest.fixture(scope="module")
@@ -54,3 +54,39 @@ def test_nodes_carry_ports_from_instance(service):
     for n in nodes:
         for p in n.ports:
             assert p.direction in ("inlet", "outlet")
+
+
+class _FakeIdentity:
+    """Bare identity stand-in — _record_from_class only reads via getattr."""
+
+
+class _BaseWithDocstring:
+    """This is the base class's own docstring."""
+
+    class_identity = _FakeIdentity()
+
+
+class _SubclassWithoutDocstring(_BaseWithDocstring):
+    class_identity = _FakeIdentity()
+
+
+class _SubclassWithOwnDocstring(_BaseWithDocstring):
+    """This subclass has its own docstring."""
+
+    class_identity = _FakeIdentity()
+
+
+def test_record_from_class_does_not_inherit_ancestor_docstring():
+    """A subclass with no docstring of its own must not silently pick up
+    an ancestor's docstring via MRO (inspect.getdoc's behavior) — that
+    would fabricate documentation that was never actually written for it."""
+    rec = _record_from_class("node", "lib:node:sub", _SubclassWithoutDocstring)
+    assert rec.docstring == ""
+
+
+def test_record_from_class_uses_own_docstring_when_present():
+    rec = _record_from_class("node", "lib:node:base", _BaseWithDocstring)
+    assert rec.docstring == "This is the base class's own docstring."
+
+    rec_sub = _record_from_class("node", "lib:node:subown", _SubclassWithOwnDocstring)
+    assert rec_sub.docstring == "This subclass has its own docstring."

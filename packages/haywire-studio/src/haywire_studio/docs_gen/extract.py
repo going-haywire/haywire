@@ -61,6 +61,18 @@ def _extra_for_kind(kind: str, cls: Any, identity: Any) -> dict[str, Any]:
     return {}
 
 
+def _own_docstring(cls: Any) -> str:
+    """The class's OWN docstring, never one inherited via MRO.
+
+    ``inspect.getdoc`` walks the MRO and returns an ancestor's docstring if
+    the class itself has none — which would fabricate documentation for a
+    subclass that never wrote its own. Reading ``cls.__dict__["__doc__"]``
+    only ever sees what was written on the exact class passed in.
+    """
+    own_doc = cls.__dict__.get("__doc__")
+    return inspect.cleandoc(own_doc) if own_doc else ""
+
+
 def _record_from_class(kind: str, key: str, cls: Any) -> ComponentRecord:
     identity = cls.class_identity
     return ComponentRecord(
@@ -73,7 +85,7 @@ def _record_from_class(kind: str, key: str, cls: Any) -> ComponentRecord:
         hidden=bool(getattr(identity, "hidden", False)),
         search_tags=list(getattr(identity, "search_tags", []) or []),
         menu=getattr(identity, "menu", "") or "",
-        docstring=inspect.getdoc(cls) or "",
+        docstring=_own_docstring(cls),
         ports=[],
         settings=[],
         extra=_extra_for_kind(kind, cls, identity),

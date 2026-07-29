@@ -1,4 +1,4 @@
-from haywire.core.node.inspector import PortInfo
+from haywire.core.node.inspector import PortInfo, SettingInfo
 from haywire_studio.docs_gen.model import ComponentRecord, LibraryDoc
 from haywire_studio.docs_gen.render import (
     coverage_report,
@@ -81,6 +81,55 @@ def test_render_component_node_lists_ports():
     assert "lib:node:resize" in out
     assert "img" in out and "inlet" in out
     assert "Does the resize." in out  # verbatim docstring
+
+
+def test_render_component_excludes_props_bag_settings():
+    """The framework's `props` bag (NodeProperties: posX, posY, width, ...)
+    must never appear in a node's rendered Settings table — it's framework
+    chrome, not something the node author wrote, and documenting it would
+    drown out (and misrepresent as node-specific) the author's own settings.
+    """
+    rec = ComponentRecord(
+        registry_key="lib:node:resize",
+        kind="node",
+        library_id="lib",
+        label="Resize",
+        description="Resize an image",
+        deprecation="",
+        hidden=False,
+        search_tags=[],
+        menu="",
+        docstring="",
+        ports=[],
+        settings=[
+            SettingInfo(
+                name="posX",
+                bag="props",
+                label="Position X",
+                description="framework position",
+                category="",
+                default=0,
+                type_name="int",
+                validator_name=None,
+                validator_doc=None,
+            ),
+            SettingInfo(
+                name="quality",
+                bag="example",
+                label="Quality",
+                description="resize quality",
+                category="",
+                default="high",
+                type_name="str",
+                validator_name=None,
+                validator_doc=None,
+            ),
+        ],
+        extra={},
+    )
+    out = render_component(rec)
+    assert "quality" in out  # author's own setting is documented
+    assert "posX" not in out  # framework props bag is excluded entirely
 
 
 def test_coverage_flags_missing_description():

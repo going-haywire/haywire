@@ -99,14 +99,15 @@ def render_component(rec: ComponentRecord) -> str:
         for p in rec.ports:
             lines.append(f"| {p.id} | {p.direction} | {p.data_type or ''} | {p.description} |")
         lines.append("")
-    if rec.kind == "node" and rec.settings:
+    documented_settings = [s for s in rec.settings if s.bag != "props"]
+    if rec.kind == "node" and documented_settings:
         lines += [
             "## Settings",
             "",
             "| name | bag | default | description |",
             "|---|---|---|---|",
         ]
-        for s in rec.settings:
+        for s in documented_settings:
             lines.append(f"| {s.name} | {s.bag} | {s.default!r} | {s.description} |")
         lines.append("")
     if rec.extra:

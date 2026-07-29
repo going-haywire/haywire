@@ -26,14 +26,31 @@ def _module_dir(library_path: Path) -> Path:
 
 
 def _library_id_for_path(service, library_path: Path) -> str:
-    """Match the loaded library whose folder_path is under library_path."""
+    """Match the loaded library whose folder_path is under library_path.
+
+    Collects ALL matching libraries rather than returning on the first hit:
+    an exact match or "target is inside the library folder" is inherently
+    unambiguous, but "library folder is inside target" (target is an
+    ancestor directory, e.g. running against a repo root or a ``barn/``
+    that holds several libraries) can match many libraries at once. Silently
+    picking whichever one ``list_names()`` iterates to first would generate
+    docs for the wrong library with no indication anything went wrong, so
+    multiple matches raise instead.
+    """
     registry = service.injector.get(LibraryRegistry)
     target = library_path.resolve()
+    matches: list[str] = []
     for lib_id in registry.list_names():
         folder = Path(registry.get_library_identity(lib_id).folder_path).resolve()
         if folder == target or target in folder.parents or folder in target.parents:
-            return lib_id
-    raise ValueError(f"No loaded library found under {library_path}")
+            matches.append(lib_id)
+    if not matches:
+        raise ValueError(f"No loaded library found under {library_path}")
+    if len(matches) > 1:
+        raise ValueError(
+            f"Ambiguous library path {library_path}: matches {sorted(matches)}. Pass a more specific path."
+        )
+    return matches[0]
 
 
 def generate_docs(library_path: str | None) -> list[str]:
