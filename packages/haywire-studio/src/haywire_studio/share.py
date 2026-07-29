@@ -308,15 +308,23 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
     label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
     dependencies = _read_library_dependencies(module_dir) if module_dir else []
 
+    # The branch a raw-content URL points at MUST be the repo's actual current
+    # branch, not a hardcoded guess — this repo's default is "master", and a
+    # hardcoded "main" 404s on raw.githubusercontent.com even though the file
+    # exists on the real branch. Falls back to "main" only when detection
+    # fails (detached HEAD, git unavailable) — best-effort, matches the
+    # share-URL derivation path's precedence in spirit (_derive_url above).
+    branch = (_get_current_ref(git_root) if git_root else None) or "main"
+
     docs_url = ""
     if remote_url and module_dir:
         assert git_root is not None
         module_rel = module_dir.relative_to(git_root)
         if "github.com" in https_url:
             raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
-            docs_url = f"{raw_base}/main/{module_rel}/"
+            docs_url = f"{raw_base}/{branch}/{module_rel}/"
         elif "gitlab.com" in https_url:
-            docs_url = f"{https_url}/-/raw/main/{module_rel}/"
+            docs_url = f"{https_url}/-/raw/{branch}/{module_rel}/"
 
     os_decl = _read_os_field(data, lib_dir)
 
@@ -330,9 +338,9 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         rel = lib_dir.relative_to(git_root)
         if "github.com" in https_url:
             raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
-            return f"{raw_base}/main/{rel}/{folder_name}/"
+            return f"{raw_base}/{branch}/{rel}/{folder_name}/"
         if "gitlab.com" in https_url:
-            return f"{https_url}/-/raw/main/{rel}/{folder_name}/"
+            return f"{https_url}/-/raw/{branch}/{rel}/{folder_name}/"
         return ""
 
     examples_url = _folder_url("examples")
