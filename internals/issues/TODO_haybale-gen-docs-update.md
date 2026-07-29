@@ -1,11 +1,24 @@
 ---
-status: draft
+status: superseded
 scope: Update the haybale-gen-docs skill to rename LIBRARY.md → NOTES.md, generate README.md alongside OVERVIEW.md in one pass, and preserve the marketstall share-URL marker block.
 see-also:
-  - ../../docs/components/haybale-package/haybale-package-canon.md
-  - ./marketstall-distribution.md
-  - ../../.claude/skills/haybale-gen-docs/SKILL.md
+  - ../../docs/haybale/haybale-package-canon.md
+  - ../../docs/reference/glossary.md
 ---
+
+# haybale-gen-docs skill update — SUPERSEDED
+
+The agent-driven `haybale-gen-docs` skill this issue targeted has been **retired and replaced**
+by the deterministic `haywire docs` CLI (`packages/haywire-studio/src/haywire_studio/docs_gen/`).
+The NOTES.md rename, README.md generation, and marker-block preservation this issue asked for
+are all implemented there — plus generation covers all 11 component kinds (not just
+nodes/widgets), QUICKREF is agent-facing (registry_key-keyed) while OVERVIEW is human-facing
+(label-keyed), and node ports/settings come from live-instance introspection via
+`NodeInstanceInspector` rather than AST-scanning `self.add(...)` calls. See
+[haybale-package-canon.md §3](../../docs/haybale/haybale-package-canon.md) for the current
+model. This file is kept for historical context only; do not act on it.
+
+## Original scope (historical)
 
 # haybale-gen-docs skill update
 

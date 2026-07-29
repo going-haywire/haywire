@@ -227,7 +227,7 @@ class LibraryComponentEditor(BaseEditor):
                                             "text-xs font-bold hw-text-dim"
                                         )
                                         ui.label(
-                                            "Run /haybale-gen-docs to produce per-component Markdown files,"
+                                            "Run `haywire docs` to produce per-component Markdown files,"
                                             " or add a detailed docstring directly to the class."
                                         ).classes("text-xs hw-text-dim")
 
