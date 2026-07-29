@@ -219,17 +219,6 @@ class LibraryComponentEditor(BaseEditor):
                                     ui.label("No documentation available.").classes(
                                         "hw-text-muted text-sm italic"
                                     )
-                                ui.separator().classes("my-3")
-                                with ui.row().classes("w-full items-start gap-2"):
-                                    ui.icon("info").classes("hw-text-dim text-sm mt-0.5 flex-shrink-0")
-                                    with ui.column().classes("gap-0.5 min-w-0"):
-                                        ui.label("Generate richer docs").classes(
-                                            "text-xs font-bold hw-text-dim"
-                                        )
-                                        ui.label(
-                                            "Run `haywire docs` to produce per-component Markdown files,"
-                                            " or add a detailed docstring directly to the class."
-                                        ).classes("text-xs hw-text-dim")
 
     @staticmethod
     def _render_widget_view(cls) -> None:
