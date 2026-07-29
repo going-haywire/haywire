@@ -136,7 +136,7 @@ lockstep_unpublished = [
 source_url = "https://github.com/going-haywire/haywire"
 
 # Default branch used in the raw-githubusercontent docs_url.
-docs_branch = "main"
+docs_branch = "master"
 
 # Default author and tags applied when a package's @library decorator
 # doesn't set them. Per-package values from the decorator always win.
