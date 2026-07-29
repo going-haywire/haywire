@@ -154,7 +154,7 @@ class MarketplaceState(AppState):
     # Overview fetch (async)
     # ------------------------------------------------------------------
 
-    async def fetch_overview(self, pkg: Haybale) -> "str | None":
+    async def fetch_overview(self, pkg: Haybale, *, cache_dir: "Path | None" = None) -> "str | None":
         """Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
 
         Priority:
@@ -168,19 +168,21 @@ class MarketplaceState(AppState):
            ``#subdirectory=`` fragment of ``install_spec`` is respected.
         3. PyPI long_description fallback — only when no GitHub URL is found
            and ``source == 'pypi'``.
+
+        All remote fetches go through the shared ``fetch_doc`` cache, keyed by
+        ``pkg.name``, so a doc body survives a later offline lookup.
         """
         import asyncio
         import json
-        import urllib.request
         from pathlib import Path
 
-        def _try_urls(urls: list) -> "str | None":
+        from haywire.core.marketstall.cache import fetch_doc
+
+        def _first_reachable(urls: list) -> "str | None":
             for url in urls:
-                try:
-                    with urllib.request.urlopen(url, timeout=6) as resp:
-                        return resp.read().decode("utf-8", errors="replace")
-                except Exception:
-                    continue
+                body = fetch_doc(url, pkg.name, cache_dir=cache_dir)
+                if body:
+                    return body
             return None
 
         # ── 1. Explicit docs_url ──────────────────────────────────────────────
@@ -198,7 +200,7 @@ class MarketplaceState(AppState):
                     candidates = [url]
                 else:
                     candidates = [f"{url}/OVERVIEW.md", f"{url}/QUICKREF.md"]
-                content = await asyncio.to_thread(_try_urls, candidates)
+                content = await asyncio.to_thread(_first_reachable, candidates)
                 if content:
                     return content
 
@@ -235,22 +237,18 @@ class MarketplaceState(AppState):
                     candidates.append(f"{prefix}/{subdir}/OVERVIEW.md")
                 candidates.append(f"{prefix}/OVERVIEW.md")
 
-            content = await asyncio.to_thread(_try_urls, candidates)
+            content = await asyncio.to_thread(_first_reachable, candidates)
             if content:
                 return content
 
         # ── 3. PyPI long_description fallback ────────────────────────────────
         if pkg.source == "pypi":
-
-            def _pypi_desc():
+            url = f"https://pypi.org/pypi/{pkg.name}/json"
+            body = await asyncio.to_thread(fetch_doc, url, pkg.name, cache_dir=cache_dir)
+            if body:
                 try:
-                    url = f"https://pypi.org/pypi/{pkg.name}/json"
-                    with urllib.request.urlopen(url, timeout=8) as resp:
-                        data = json.loads(resp.read())
-                    return data.get("info", {}).get("description") or None
+                    return json.loads(body).get("info", {}).get("description") or None
                 except Exception:
                     return None
-
-            return await asyncio.to_thread(_pypi_desc)
 
         return None
