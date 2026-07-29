@@ -124,3 +124,11 @@ def test_readme_inserts_placeholder_marker_when_none_exists():
     doc = LibraryDoc("lib", "Lib", "1.0.0", "A lib", [])
     out = render_readme(doc, notes="", existing_readme=None)
     assert "marketstall:share-url:start" in out
+
+
+def test_readme_inserts_placeholder_marker_when_existing_readme_lacks_it():
+    doc = LibraryDoc("lib", "Lib", "1.0.0", "A lib", [])
+    existing = "# Some README\n\nno marker here"
+    out = render_readme(doc, notes="", existing_readme=existing)
+    assert "marketstall:share-url:start" in out
+    assert "Subscribe URL not yet published" in out
