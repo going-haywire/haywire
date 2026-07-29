@@ -39,6 +39,19 @@ class SettingInfo:
     validator_doc: str | None
 
 
+def _port_direction(port: Any) -> str:
+    """Three-way port direction: 'inlet', 'outlet', or 'config'.
+
+    A CONFIG port is neither inlet nor outlet — collapsing to a binary
+    inlet/else-outlet mislabels every ``as_config(...)`` port as an outlet.
+    """
+    if port.is_inlet():
+        return "inlet"
+    if port.is_outlet():
+        return "outlet"
+    return "config"
+
+
 def _port_type_key(port: Any) -> str | None:
     """The concrete data-type registry key, or None.
 
@@ -71,7 +84,7 @@ class NodeInstanceInspector:
             rows.append(
                 PortInfo(
                     id=pid,
-                    direction="inlet" if port.is_inlet() else "outlet",
+                    direction=_port_direction(port),
                     label=port.label or "",
                     description=port.description or "",
                     flow_type=port.flow_type.value,

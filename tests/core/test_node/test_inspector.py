@@ -18,9 +18,27 @@ def test_ports_returns_portinfo_with_schema_shape(graph_with_library_system):
     for p in ports:
         assert isinstance(p, PortInfo)
         assert isinstance(p.id, str) and p.id
-        assert p.direction in ("inlet", "outlet")
+        assert p.direction in ("inlet", "outlet", "config")
         assert p.flow_type in ("data", "control", "callback", "none")
         assert isinstance(p.hidden, bool)
+
+
+@pytest.mark.integration
+@pytest.mark.core
+def test_ports_report_config_direction_distinctly(graph_with_library_system):
+    """A CONFIG port must report 'config', not be collapsed into 'outlet'.
+
+    PerformanceTester declares exec (inlet), port_count (INT config), and
+    trigger (outlet) — one of each direction.
+    """
+    graph = graph_with_library_system
+    wrapper = graph.create_node_wrapper("testing:node:PerformanceTester", position=(0, 0))
+    inspector = NodeInstanceInspector(wrapper.node)
+
+    by_id = {p.id: p.direction for p in inspector.ports()}
+    assert by_id["exec"] == "inlet"
+    assert by_id["port_count"] == "config"  # regression guard: was mislabeled "outlet"
+    assert by_id["trigger"] == "outlet"
 
 
 @pytest.mark.integration
