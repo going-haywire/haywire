@@ -320,6 +320,24 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
 
     os_decl = _read_os_field(data, lib_dir)
 
+    def _folder_url(folder_name: str) -> str:
+        """Raw git URL for <lib>/<folder>/ when it holds >=1 .haywire graph."""
+        if not (remote_url and git_root):
+            return ""
+        folder = lib_dir / folder_name
+        if not folder.is_dir() or not any(folder.rglob("*.haywire")):
+            return ""
+        rel = lib_dir.relative_to(git_root)
+        if "github.com" in https_url:
+            raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
+            return f"{raw_base}/main/{rel}/{folder_name}/"
+        if "gitlab.com" in https_url:
+            return f"{https_url}/-/raw/main/{rel}/{folder_name}/"
+        return ""
+
+    examples_url = _folder_url("examples")
+    tests_url = _folder_url("tests")
+
     return Haybale(
         name=name,
         label=label,
@@ -333,6 +351,8 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         dependencies=dependencies,
         source_url=https_url if remote_url else "",
         docs_url=docs_url,
+        examples_url=examples_url,
+        tests_url=tests_url,
     ).to_dict()
 
 
