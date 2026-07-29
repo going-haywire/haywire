@@ -79,6 +79,14 @@ def _generate_one(service: Any, library_id: str, module_dir: Path) -> list[str]:
 
     docs_dir = module_dir / "docs"
     docs_dir.mkdir(exist_ok=True)
+    # Reconcile: the docs/ folder is 100% generator-owned, so prune any
+    # per-component doc whose component no longer exists (renamed/deleted).
+    # Without this, orphans accumulate and silently ship stale — and a CI
+    # staleness gate (git diff --exit-code) never sees them.
+    expected = {doc_filename(rec.registry_key) for rec in doc.components}
+    for stale in docs_dir.glob("*.md"):
+        if stale.name not in expected:
+            stale.unlink()
     for rec in doc.components:
         (docs_dir / doc_filename(rec.registry_key)).write_text(render_component(rec), encoding="utf-8")
 

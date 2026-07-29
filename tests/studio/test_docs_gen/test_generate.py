@@ -85,6 +85,23 @@ def test_package_root_none_for_baked_in_library(tmp_path):
 
 
 @pytest.mark.integration
+def test_generate_prunes_orphan_component_docs(clean_haybale_testing):
+    """A stale docs/<key>.md for a component that no longer exists is removed
+    on regeneration (renamed/deleted components must not leave orphans)."""
+    repo = Path(__file__).resolve().parents[3]
+    lib_root = repo / "barn" / "haybale-testing"
+    docs_dir = lib_root / "haybale_testing" / "docs"
+    docs_dir.mkdir(parents=True, exist_ok=True)
+    orphan = docs_dir / "testing.node.GhostRenamedNode.md"
+    orphan.write_text("stale doc for a component that no longer exists")
+
+    generate_docs(str(lib_root))
+
+    assert not orphan.exists()  # pruned
+    assert any(docs_dir.glob("*.md"))  # real component docs still written
+
+
+@pytest.mark.integration
 def test_generate_all_docs_scoped_to_one_library(clean_haybale_testing):
     """Pointing --all at a single library dir generates only that library."""
     repo = Path(__file__).resolve().parents[3]
