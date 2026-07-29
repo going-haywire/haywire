@@ -12,6 +12,7 @@ monkey-patching Path.home().
 from __future__ import annotations
 
 import hashlib
+import shutil
 import time
 import urllib.error
 import urllib.request
@@ -82,6 +83,54 @@ def fetch_with_cache_fallback(
         if cached is not None:
             return FetchResult(body=cached, outcome=RefreshOutcome.CACHE_FALLBACK, cache_age=age)
         raise RemoteFetchError(f"failed to fetch {url} and no cache available") from None
+
+
+def docs_cache_dir(library: str, *, cache_dir: Path | None = None) -> Path:
+    """Per-library partition of the doc-body cache: <cache>/docs/<library>/.
+
+    Isolated from the subscription cache and from gc_orphans (which only
+    scans top-level files) so doc bodies have an independent lifecycle.
+    """
+    base = cache_dir if cache_dir is not None else _default_cache_dir()
+    return base / "docs" / library
+
+
+def fetch_doc(
+    url: str,
+    library: str,
+    *,
+    timeout: float = 6.0,
+    cache_dir: Path | None = None,
+) -> str | None:
+    """Fetch a documentation URL through the shared cache-with-fallback.
+
+    Returns the body (FRESH or CACHE_FALLBACK), or None when the URL fails and
+    no cache exists. Same no-TTL semantics as every other marketstall fetch.
+    """
+    try:
+        result = fetch_with_cache_fallback(
+            url, timeout=timeout, cache_dir=docs_cache_dir(library, cache_dir=cache_dir)
+        )
+    except RemoteFetchError:
+        return None
+    return result.body
+
+
+def gc_doc_dirs(active_libraries: set[str], *, cache_dir: Path | None = None) -> int:
+    """Delete <cache>/docs/<library>/ for libraries not in active_libraries.
+
+    Driven by refresh()'s resolved-catalog set: a library that left the
+    catalog loses its cached docs. Returns the number of directories removed.
+    """
+    base = (cache_dir if cache_dir is not None else _default_cache_dir()) / "docs"
+    if not base.is_dir():
+        return 0
+    removed = 0
+    for child in base.iterdir():
+        if child.is_dir() and child.name not in active_libraries:
+            shutil.rmtree(child)
+            removed += 1
+    return removed
 
 
 def gc_orphans(active_urls: set[str], *, cache_dir: Path | None = None) -> int:
