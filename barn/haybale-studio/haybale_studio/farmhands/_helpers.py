@@ -6,55 +6,12 @@ from pathlib import Path
 from typing import Any
 
 from haywire.core.farmhand import FarmhandContext, FarmhandError
+from haywire.core.library.kinds import KIND_FOLDERS, kind_registry_map  # noqa: F401
 from haywire.core.library.registry import LibraryRegistry
 
 
 def page(items: list, limit: int, offset: int) -> tuple[list, int]:
     return items[offset : offset + limit], len(items)
-
-
-def kind_registry_map() -> dict[str, type]:
-    """Registry-key kind segment -> registry class (the ten registries + farmhand)."""
-    from haywire.core.adapter.registry import AdapterRegistry
-    from haywire.core.farmhand import FarmhandRegistry
-    from haywire.core.node.registry import NodeRegistry
-    from haywire.core.settings import SettingsRegistry
-    from haywire.core.state import LibraryStateRegistry
-    from haywire.core.types.registry import TypeRegistry
-    from haywire.ui.editor.registry import EditorTypeRegistry
-    from haywire.ui.panel.registry import PanelRegistry
-    from haywire.ui.skin.registry import SkinRegistry
-    from haywire.ui.themes.registry import ThemeRegistry
-    from haywire.ui.widget.registry import WidgetRegistry
-
-    return {
-        "node": NodeRegistry,
-        "type": TypeRegistry,
-        "adapter": AdapterRegistry,
-        "widget": WidgetRegistry,
-        "skin": SkinRegistry,
-        "setting": SettingsRegistry,
-        "theme": ThemeRegistry,
-        "panel": PanelRegistry,
-        "editor": EditorTypeRegistry,
-        "state": LibraryStateRegistry,
-        "farmhand": FarmhandRegistry,
-    }
-
-
-KIND_FOLDERS = {
-    "node": "nodes",
-    "type": "types",
-    "adapter": "adapters",
-    "widget": "widgets",
-    "skin": "skins",
-    "setting": "settings",
-    "theme": "themes",
-    "panel": "panels",
-    "editor": "editors",
-    "state": "state",
-    "farmhand": "farmhands",
-}
 
 
 def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
