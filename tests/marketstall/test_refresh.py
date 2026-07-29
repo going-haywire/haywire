@@ -540,3 +540,22 @@ def test_refresh_populates_updates_available_in_report(tmp_path: Path, monkeypat
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 
     assert report.updates_available == 1
+
+
+@pytest.mark.unit
+def test_refresh_evicts_doc_dir_for_dropped_library(tmp_path: Path) -> None:
+    """A library absent from the resolved catalog loses its cached docs."""
+    from haywire.core.marketstall.cache import docs_cache_dir
+    from haywire.core.marketstall.refresh import refresh
+
+    # Seed a doc cache for a library that will not be in any subscription.
+    orphan = docs_cache_dir("ghost-lib", cache_dir=tmp_path)
+    orphan.mkdir(parents=True)
+
+    global_path = tmp_path / "marketplace.toml"
+    global_path.write_text("")  # no subscriptions, no haybales
+    project_path = tmp_path / "project.toml"
+
+    refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path)
+
+    assert not orphan.exists()  # ghost-lib evicted (not in resolved set)

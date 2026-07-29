@@ -18,6 +18,7 @@ from pathlib import Path
 
 from haywire.core.marketstall.cache import (
     fetch_with_cache_fallback,
+    gc_doc_dirs,
     gc_orphans,
 )
 from haywire.core.marketstall.errors import RemoteFetchError
@@ -309,5 +310,8 @@ def refresh(
         {s.url for s in mf.markets} | {s.url for s in mf.stalls} | set(discovered_stall_urls)
     )
     gc_orphans(active_urls, cache_dir=cache_dir)
+
+    # GC doc caches for libraries no longer in the resolved catalog.
+    gc_doc_dirs({h.name for h in final}, cache_dir=cache_dir)
 
     return report
