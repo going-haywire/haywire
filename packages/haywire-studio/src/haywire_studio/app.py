@@ -424,6 +424,14 @@ def main():
         help="Perform the rename. Without this flag, only a dry-run preview is printed.",
     )
 
+    docs_parser = subparsers.add_parser("docs", help="Generate deterministic docs for a haybale library")
+    docs_parser.add_argument(
+        "library",
+        nargs="?",
+        default=None,
+        help="Path to the library package root (default: current directory)",
+    )
+
     args = parser.parse_args()
 
     if args.command == "init":
@@ -498,6 +506,17 @@ def main():
                 apply=args.apply,
             )
         )
+    elif args.command == "docs":
+        from haywire_studio.docs_gen.generate import generate_docs
+
+        coverage = generate_docs(args.library)
+        if coverage:
+            print("Documentation coverage gaps:")
+            for line in coverage:
+                print(f"  - {line}")
+        else:
+            print("Docs generated. No coverage gaps.")
+        return
     else:
         run_app()
 
