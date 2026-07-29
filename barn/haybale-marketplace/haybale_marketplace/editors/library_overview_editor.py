@@ -118,6 +118,22 @@ def should_block_install_for_os(haybale) -> str | None:
     return f"Not available on this OS; this library targets: {targets}."
 
 
+def collect_overview_links(pkg) -> list[tuple[str, str]]:
+    """The (label, href) links shown in the library overview header.
+
+    Examples are surfaced for humans; tests_url is deliberately NOT surfaced
+    (framework-maintainer metadata only).
+    """
+    links: list[tuple[str, str]] = []
+    if pkg and pkg.source_url:
+        links.append(("Source", pkg.source_url))
+    if pkg and pkg.docs_url and pkg.docs_url.startswith("http"):
+        links.append(("Docs", pkg.docs_url))
+    if pkg and getattr(pkg, "examples_url", "") and pkg.examples_url.startswith("http"):
+        links.append(("Examples", pkg.examples_url))
+    return links
+
+
 @editor(
     label="Library Detail",
     icon=hui.icon.node_info,
@@ -553,15 +569,7 @@ class LibraryOverviewEditor(BaseEditor):
                         ui.label(f"By {author}").classes("text-xs hw-text-dim")
 
                 # Collect relevant links
-                _links: list[tuple[str, str]] = []
-                if marketplace_pkg and marketplace_pkg.source_url:
-                    _links.append(("Source", marketplace_pkg.source_url))
-                if (
-                    marketplace_pkg
-                    and marketplace_pkg.docs_url
-                    and marketplace_pkg.docs_url.startswith("http")
-                ):
-                    _links.append(("Docs", marketplace_pkg.docs_url))
+                _links = collect_overview_links(marketplace_pkg)
                 if _links:
                     with ui.row().classes("items-center gap-3 mt-1 flex-wrap"):
                         for _lbl, _href in _links:
