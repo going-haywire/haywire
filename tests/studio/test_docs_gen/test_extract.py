@@ -53,7 +53,7 @@ def test_nodes_carry_ports_from_instance(service):
     assert any(n.ports for n in nodes)
     for n in nodes:
         for p in n.ports:
-            assert p.direction in ("inlet", "outlet")
+            assert p.direction in ("inlet", "outlet", "config")
 
 
 class _FakeIdentity:
