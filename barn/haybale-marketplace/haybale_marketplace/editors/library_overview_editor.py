@@ -444,11 +444,13 @@ class LibraryOverviewEditor(BaseEditor):
                                             mp,
                                             m,
                                             ctx,
-                                            on_save=lambda identity,
-                                            lib=ilib,
-                                            mpath=mp,
-                                            mgr=m,
-                                            c=ctx: self._do_update_identity(lib, identity, mpath, mgr, c),
+                                            on_save=partial(
+                                                self._do_update_identity,
+                                                ilib,
+                                                marketplace_path=mp,
+                                                manager=m,
+                                                context=ctx,
+                                            ),
                                         ).open()
                                     ),
                                 ).props("size=sm color=blue flat")
