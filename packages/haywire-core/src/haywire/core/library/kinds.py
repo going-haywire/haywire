@@ -66,3 +66,8 @@ _KIND_TO_AREA = {
 def canon_area(kind: str) -> str:
     """The ``docs/components/<area>`` directory name for a component kind."""
     return _KIND_TO_AREA.get(kind, f"{kind}s")
+
+
+def doc_filename(registry_key: str) -> str:
+    """Flat per-component doc filename: 'lib:node:x' -> 'lib.node.x.md'."""
+    return registry_key.replace(":", ".") + ".md"

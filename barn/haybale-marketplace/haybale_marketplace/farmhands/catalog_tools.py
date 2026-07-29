@@ -80,14 +80,55 @@ class MarketplaceRefreshTool(Farmhand):
 @farmhand(
     label="Get library docs",
     description="Docs for an installed library (OVERVIEW/QUICKREF/README from its folder) or an "
-    "available one (network fetch of its docs_url).",
+    "available one (network fetch of its docs_url). Pass component=<registry_key> to fetch one "
+    "component's deep doc (installed: wheel; available: docs_url).",
     registry_id="get_library_docs",
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True),
 )
 class MarketplaceGetLibraryDocsTool(Farmhand):
-    async def run(self, ctx: FarmhandContext, library: str) -> dict:
+    async def run(self, ctx: FarmhandContext, library: str, component: str = "") -> dict:
+        from haywire.core.library.kinds import doc_filename
+
         registry = ctx.registry(LibraryRegistry)
-        if library in registry.list_names():
+        installed = library in registry.list_names()
+
+        if component:
+            rel = f"docs/{doc_filename(component)}"
+            if installed:
+                folder = Path(registry.get_library_identity(library).folder_path)
+                path = folder / rel
+                if path.exists():
+                    return {
+                        "summary": f"{component}: component doc ({path.stat().st_size} bytes).",
+                        "source": "installed",
+                        "registry_key": component,
+                        "text": path.read_text(encoding="utf-8"),
+                    }
+                raise FarmhandError(
+                    "docs_not_found",
+                    f"No generated doc for '{component}' in installed '{library}'.",
+                    ids={"library": library, "component": component},
+                )
+            from haywire.core.marketstall.cache import fetch_doc
+
+            for pkg in _marketplace_state(ctx).get_project_haybales():
+                if pkg.name == library and pkg.docs_url:
+                    url = pkg.docs_url.rstrip("/") + "/" + rel
+                    text = await asyncio.to_thread(fetch_doc, url, pkg.name)
+                    if text:
+                        return {
+                            "summary": f"{component}: remote component doc.",
+                            "source": "available",
+                            "registry_key": component,
+                            "text": text,
+                        }
+            raise FarmhandError(
+                "docs_not_found",
+                f"No remote doc for '{component}' under '{library}'.",
+                ids={"library": library, "component": component},
+            )
+
+        if installed:
             folder = Path(registry.get_library_identity(library).folder_path)
             for name in _DOC_FILES:
                 path = folder / name

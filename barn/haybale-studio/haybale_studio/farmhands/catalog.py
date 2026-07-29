@@ -197,10 +197,12 @@ class StudioListComponentsTool(Farmhand):
 )
 class StudioDescribeComponentTool(Farmhand):
     async def run(self, ctx: FarmhandContext, registry_key: str) -> dict:
+        from dataclasses import asdict
+
         cls = resolve_component_class(ctx, registry_key)
         identity = getattr(cls, "class_identity", None)
         kind = registry_key.split(":")[1]
-        return {
+        result: dict[str, Any] = {
             "summary": f"{registry_key}: {getattr(identity, 'label', cls.__name__)}",
             "registry_key": registry_key,
             "class_name": cls.__name__,
@@ -209,3 +211,21 @@ class StudioDescribeComponentTool(Farmhand):
             "description": getattr(identity, "description", ""),
             "docstring": inspect.getdoc(cls) or "",
         }
+        if kind == "node":
+            from haywire.core.graph.base import BaseGraph
+            from haywire.core.graph.scheduler import SyncScheduler
+            from haywire.core.node.inspector import NodeInstanceInspector
+
+            try:
+                graph = BaseGraph(graph_id="describe", name="describe", validation_scheduler=SyncScheduler())
+                wrapper = graph.create_node_wrapper(registry_key, position=(0, 0))
+                assert wrapper is not None
+                inspector = NodeInstanceInspector(wrapper.node)
+                result["ports"] = [asdict(p) for p in inspector.ports()]
+                result["settings"] = [asdict(s) for s in inspector.settings()]
+            except Exception as exc:
+                # Never fail describe over an introspection hiccup; report it.
+                result["ports"] = []
+                result["settings"] = []
+                result["inspect_error"] = str(exc)
+        return result

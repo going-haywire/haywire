@@ -101,6 +101,21 @@ def test_list_components_excludes_system_library_by_default():
     assert len(with_system["components"]) >= len(visible["components"])
 
 
+def test_describe_node_includes_live_ports():
+    from haybale_studio.farmhands.catalog import (
+        StudioDescribeComponentTool,
+        StudioListComponentsTool,
+    )
+
+    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    key = listing["components"][0]["registry_key"]
+    result = run_tool(StudioDescribeComponentTool, registry_key=key)
+    assert "ports" in result
+    assert isinstance(result["ports"], list)
+    for p in result["ports"]:
+        assert set(p) >= {"id", "direction", "data_type"}
+
+
 def test_list_components_count_only_groups_by_library_and_kind():
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import re
 
+from haywire.core.library.kinds import doc_filename  # noqa: F401  (re-exported for generate.py)
 from haywire_studio.docs_gen.model import ComponentRecord, LibraryDoc
 
 _KIND_ORDER = [
@@ -27,10 +28,6 @@ _PLACEHOLDER = (
     "*Subscribe URL not yet published — run `haywire share --save`.*\n"
     "<!-- marketstall:share-url:end -->"
 )
-
-
-def doc_filename(registry_key: str) -> str:
-    return registry_key.replace(":", ".") + ".md"
 
 
 def _visible(doc: LibraryDoc) -> list[ComponentRecord]:
