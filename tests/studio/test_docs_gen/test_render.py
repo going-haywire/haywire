@@ -6,6 +6,7 @@ from haywire_studio.docs_gen.render import (
     render_component,
     render_overview,
     render_quickref,
+    render_readme,
 )
 
 
@@ -101,3 +102,25 @@ def test_coverage_flags_missing_description():
     doc = LibraryDoc("lib", "Lib", "1.0.0", "", [rec])
     report = coverage_report(doc)
     assert any("lib:type:x" in line for line in report)
+
+
+MARKER = (
+    "<!-- marketstall:share-url:start -->\n"
+    "`https://example.com/subscribe`\n"
+    "<!-- marketstall:share-url:end -->"
+)
+
+
+def test_readme_prepends_notes_and_preserves_marker_block():
+    doc = LibraryDoc("lib", "Lib", "1.0.0", "A lib", [])
+    existing = f"# old\n\n{MARKER}\n\nold catalog"
+    out = render_readme(doc, notes="## Why this lib\nBecause.", existing_readme=existing)
+    assert "## Why this lib" in out  # NOTES prepended
+    assert "https://example.com/subscribe" in out  # marker content survived
+    assert out.count("marketstall:share-url:start") == 1  # exactly one block
+
+
+def test_readme_inserts_placeholder_marker_when_none_exists():
+    doc = LibraryDoc("lib", "Lib", "1.0.0", "A lib", [])
+    out = render_readme(doc, notes="", existing_readme=None)
+    assert "marketstall:share-url:start" in out

@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+
 from haywire_studio.docs_gen.model import ComponentRecord, LibraryDoc
 
 _KIND_ORDER = [
@@ -15,6 +17,16 @@ _KIND_ORDER = [
     "skin",
     "theme",
 ]
+
+_MARKER_RE = re.compile(
+    r"<!-- marketstall:share-url:start -->.*?<!-- marketstall:share-url:end -->",
+    re.DOTALL,
+)
+_PLACEHOLDER = (
+    "<!-- marketstall:share-url:start -->\n"
+    "*Subscribe URL not yet published — run `haywire share --save`.*\n"
+    "<!-- marketstall:share-url:end -->"
+)
 
 
 def doc_filename(registry_key: str) -> str:
@@ -122,3 +134,29 @@ def coverage_report(doc: LibraryDoc) -> list[str]:
         if gaps:
             report.append(f"{c.registry_key}: {', '.join(gaps)}")
     return report
+
+
+def _catalog_body(doc: LibraryDoc) -> str:
+    """The README catalog is the OVERVIEW catalog (labels), minus its H1 title."""
+    body = render_overview(doc)
+    return body.split("\n", 1)[1].lstrip("\n") if "\n" in body else body
+
+
+def render_readme(doc: LibraryDoc, notes: str, existing_readme: str | None) -> str:
+    """README with NOTES prefix and preserved marker block.
+
+    The block between `<!-- marketstall:share-url:start -->` and
+    `<!-- marketstall:share-url:end -->` is owned by `haywire share --save`
+    and must be preserved verbatim. If no existing README or no marker found,
+    insert a placeholder marker.
+    """
+    marker = _PLACEHOLDER
+    if existing_readme:
+        found = _MARKER_RE.search(existing_readme)
+        if found:
+            marker = found.group(0)
+    parts = [f"# {doc.label}", ""]
+    if notes.strip():
+        parts += [notes.strip(), ""]
+    parts += [marker, "", _catalog_body(doc)]
+    return "\n".join(parts).rstrip() + "\n"
