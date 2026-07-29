@@ -68,3 +68,57 @@ def render_overview(doc: LibraryDoc) -> str:
             lines.append(f"- **{c.label}** — {c.description}")
         lines.append("")
     return "\n".join(lines).rstrip() + "\n"
+
+
+def render_component(rec: ComponentRecord) -> str:
+    """Deep doc for one component: ports/settings tables, kind-specific details, docstring."""
+    lines = [f"# {rec.label}", "", f"`{rec.registry_key}` · kind: {rec.kind}", ""]
+    if rec.description:
+        lines += [rec.description, ""]
+    if rec.deprecation:
+        lines += [f"> **Deprecated:** {rec.deprecation}", ""]
+    if rec.kind == "node" and rec.ports:
+        lines += [
+            "## Ports",
+            "",
+            "| id | direction | type | description |",
+            "|---|---|---|---|",
+        ]
+        for p in rec.ports:
+            lines.append(f"| {p.id} | {p.direction} | {p.data_type or ''} | {p.description} |")
+        lines.append("")
+    if rec.kind == "node" and rec.settings:
+        lines += [
+            "## Settings",
+            "",
+            "| name | bag | default | description |",
+            "|---|---|---|---|",
+        ]
+        for s in rec.settings:
+            lines.append(f"| {s.name} | {s.bag} | {s.default!r} | {s.description} |")
+        lines.append("")
+    if rec.extra:
+        lines += ["## Details", ""]
+        for k, v in rec.extra.items():
+            if v not in (None, "", [], {}):
+                lines.append(f"- **{k}**: `{v}`")
+        lines.append("")
+    if rec.docstring:
+        lines += ["## Notes", "", rec.docstring, ""]
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def coverage_report(doc: LibraryDoc) -> list[str]:
+    """One line per gap the author should fill. Never fabricates content."""
+    report: list[str] = []
+    for c in doc.components:
+        gaps = []
+        if not c.description:
+            gaps.append("no description")
+        if not c.docstring:
+            gaps.append("no docstring")
+        if c.kind == "node" and not c.ports:
+            gaps.append("no ports (instantiation may have failed)")
+        if gaps:
+            report.append(f"{c.registry_key}: {', '.join(gaps)}")
+    return report
