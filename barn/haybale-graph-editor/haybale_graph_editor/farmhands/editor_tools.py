@@ -21,6 +21,7 @@ from haywire.core.farmhand import (
     farmhand,
     truncation_note,
 )
+from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo, _port_type_key
 from haywire.core.node.promotion import demote_setting, promote_setting
 from haywire.core.session.signals import GraphDataMutated
 from haywire.core.types.enums import PortType
@@ -53,17 +54,6 @@ def _port_direction(port) -> str:
     if port.is_outlet():
         return "outlet"
     return "config"
-
-
-def _port_type_key(port) -> str | None:
-    """The concrete data-type registry key (e.g. 'visiongraph:rgb_frame'), or None.
-
-    flow_type only distinguishes data/exec/callback; this names the actual type
-    flowing through the port. Defensive: type_cls or its class_identity can be
-    absent on edge cases, so miss quietly rather than raise inside a read tool.
-    """
-    identity = getattr(port.type_cls, "class_identity", None)
-    return getattr(identity, "registry_key", None)
 
 
 def _port_row(pid: str, port, detail: bool) -> dict:
@@ -197,14 +187,24 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
     if data == "info":
         # The orientation payload: what this port IS, per its author. Grouping
         # by direction upstream makes the direction key itself redundant.
-        row["label"] = port.label or ""
-        row["description"] = port.description or ""
-        row["flow_type"] = port.flow_type.value
-        row["data_type"] = _port_type_key(port)
-        if port.hidden:
+        info = PortInfo(
+            id=pid,
+            direction="inlet" if port.is_inlet() else "outlet",
+            label=port.label or "",
+            description=port.description or "",
+            flow_type=port.flow_type.value,
+            data_type=_port_type_key(port),
+            hidden=bool(port.hidden),
+            deprecation=port.deprecation_warning or "",
+        )
+        row["label"] = info.label
+        row["description"] = info.description
+        row["flow_type"] = info.flow_type
+        row["data_type"] = info.data_type
+        if info.hidden:
             row["hidden"] = True
-        if port.deprecation_warning:
-            row["deprecated"] = port.deprecation_warning
+        if info.deprecation:
+            row["deprecated"] = info.deprecation
         return row
 
     row["is_linked"] = port.is_linked()
@@ -230,12 +230,15 @@ def _inspect_port_row(pid: str, port, data: str, expand: bool = False) -> dict:
     return row
 
 
-def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str, expand: bool = False) -> dict:
+def _inspect_setting_row(
+    bag, accessor: str, name: str, descriptor, data: str, info: SettingInfo, expand: bool = False
+) -> dict:
     """One settings field at the requested depth.
 
     ``name`` is the flat handle ``graph_editor_set_property`` takes and the key
     that joins an ``info`` row to its ``value``/``all`` counterpart;
     ``accessor`` is the bag handle ``graph_editor_promote_setting`` takes.
+    ``info`` is this field's schema, pre-computed once by ``NodeInstanceInspector``.
     """
     row: dict = {"name": name, "accessor": accessor}
 
@@ -247,13 +250,13 @@ def _inspect_setting_row(bag, accessor: str, name: str, descriptor, data: str, e
     if not expand and bag.effective_ui_state(name).name == "HIDDEN":
         row["ui_state"] = "hidden"
         if data == "info":
-            row["category"] = descriptor._category or "root"
+            row["category"] = info.category
         return row
 
     if data == "info":
-        row["label"] = descriptor._label or ""
-        row["description"] = descriptor._description or ""
-        row["category"] = descriptor._category or "root"
+        row["label"] = info.label
+        row["description"] = info.description
+        row["category"] = info.category
         return row
 
     try:
@@ -383,6 +386,8 @@ def _settings_payload(node, accessors: list[str], data: str, filters: _Filters):
     author may reuse across bags — a flat category map would silently merge
     fields from different bags.
     """
+    schema = {(s.bag, s.name): s for s in NodeInstanceInspector(node).settings()}
+
     # Per bag: {category: [rows]} at info depth, a flat [rows] list deeper.
     out: dict[str, dict[str, list[dict]] | list[dict]] = {}
     for accessor in accessors:
@@ -391,14 +396,15 @@ def _settings_payload(node, accessors: list[str], data: str, filters: _Filters):
             continue
         rows: list[dict] = []
         for name, descriptor in type(bag)._property_settings().items():
-            category = descriptor._category or "root"
+            info = schema[(accessor, name)]
+            category = info.category
             filters.note_existing(name, accessor, category)
             if filters.active and not filters.keeps(name, accessor, category):
                 continue
             # An explicitly named field is expanded even when hidden: naming it
             # IS the explicit request. Bulk selectors (bag/cat) do not expand.
             expand = name in filters.names
-            rows.append(_inspect_setting_row(bag, accessor, name, descriptor, data, expand))
+            rows.append(_inspect_setting_row(bag, accessor, name, descriptor, data, info, expand))
         if not rows:
             continue
         if data == "info":

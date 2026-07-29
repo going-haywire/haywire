@@ -42,7 +42,11 @@ def _tools():
 def _node(**bags):
     """A stand-in node exposing settings bags the way @node wires them."""
     registry = SettingsRegistry()
-    node = type("FakeNode", (), {})()
+
+    def list_setting_bags(self):
+        return {name: getattr(self, name) for name in type(self)._settings_bags}
+
+    node = type("FakeNode", (), {"list_setting_bags": list_setting_bags})()
     type(node)._settings_bags = {name: cls for name, cls in bags.items()}
     for name, cls in bags.items():
         setattr(node, name, cls(registry=registry))
