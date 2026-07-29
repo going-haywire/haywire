@@ -83,6 +83,31 @@ def test_render_component_node_lists_ports():
     assert "Does the resize." in out  # verbatim docstring
 
 
+def test_render_component_orders_ports_inlet_config_outlet():
+    """Ports render grouped by direction: inlets, then configs, then outlets."""
+    rec = ComponentRecord(
+        registry_key="lib:node:n",
+        kind="node",
+        library_id="lib",
+        label="N",
+        description="",
+        deprecation="",
+        hidden=False,
+        search_tags=[],
+        menu="",
+        docstring="",
+        ports=[
+            PortInfo("out1", "outlet", "", "", "data", None, False, ""),
+            PortInfo("cfg1", "config", "", "", "data", None, False, ""),
+            PortInfo("in1", "inlet", "", "", "data", None, False, ""),
+        ],
+        settings=[],
+        extra={},
+    )
+    out = render_component(rec)
+    assert out.index("in1") < out.index("cfg1") < out.index("out1")
+
+
 def test_render_component_excludes_props_bag_settings():
     """The framework's `props` bag (NodeProperties: posX, posY, width, ...)
     must never appear in a node's rendered Settings table — it's framework

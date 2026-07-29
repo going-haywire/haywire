@@ -5,6 +5,10 @@ import re
 from haywire.core.library.kinds import doc_filename  # noqa: F401  (re-exported for generate.py)
 from haywire_studio.docs_gen.model import ComponentRecord, LibraryDoc
 
+# Port presentation order in a node's deep doc: inputs first, then editable
+# configs, then outputs. Stable sort preserves declaration order within a group.
+_DIRECTION_ORDER = {"inlet": 0, "config": 1, "outlet": 2}
+
 _KIND_ORDER = [
     "node",
     "type",
@@ -93,7 +97,7 @@ def render_component(rec: ComponentRecord) -> str:
             "| id | direction | type | description |",
             "|---|---|---|---|",
         ]
-        for p in rec.ports:
+        for p in sorted(rec.ports, key=lambda pt: _DIRECTION_ORDER.get(pt.direction, 99)):
             lines.append(f"| {p.id} | {p.direction} | {p.data_type or ''} | {p.description} |")
         lines.append("")
     documented_settings = [s for s in rec.settings if s.bag != "props"]
