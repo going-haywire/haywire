@@ -1,56 +1,53 @@
-# Haywire testing Library
+# Testing
 
-This is the testing library for the Haywire library system.
+<!-- marketstall:share-url:start -->
+*Subscribe URL not yet published — run `haywire share --save`.*
+<!-- marketstall:share-url:end -->
 
-## Features
+Test library for test support
 
-- **Custom Types**: Test data types with serialization support
-- **Custom Nodes**: Test nodes for data processing
-- **Custom Widgets**: Test UI widgets for node configuration
-- **Custom Renderers**: Test node rendering customization
-- **Adapters**: Test integration with external systems
+## Nodes
+### Testing
+- **Bench Bare Node** — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.
+- **Bench Exec Node** — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.
+- **Control Payload TestNode** — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).
+- **Display** — Displays input values for debugging
+- **Dynamic Port TestNode** — 
+- **Edge Link TestNode** — 
+- **Group And Sections** — Tests Rendering for Group and Sections
+- **Performance Testing Node** — Helps test performance of execution system
+- **Settings Test Node** — Test the Settings for debugging
+- **Size Box (content-sized)** — Hosts an oversized widget with no declared box
+- **Size Box (declared box)** — Hosts an oversized widget declaring both axes
+- **Size Box (declared width)** — Hosts an oversized widget declaring min_width only
+- **Test Add Float** — Test arithmetic node — adds two float values
+- **Test Begin Play** — Test version of BeginPlay — triggered once when execution starts
+- **Test Custom Callback** — Test version of CustomCallback — listens for named callbacks
+- **Test Emit Callback** — Test version of EmitCallback — emits a callback to trigger event nodes
+- **Test Print** — Test version of Logger — logs a message and continues flow
 
-## Installation
+## Types
+- **Boolean** — True or False
+- **Float** — Decimal numberer
+- **Integer** — Whole number
+- **String** — Text data
+- **Temperature** — Temperature in Celsius
 
-### Development (Editable Install)
+## Widgets
+- **AspectBoxWidget** — Oversized content behind a declared width; height follows the content's aspect
+- **FixedBoxWidget** — Oversized content behind a fully declared box
+- **OversizedContentWidget** — Oversized content that sizes from its contents (no declared box)
 
-For development with hot-reload support:
+## Adapters
+- **BoolToIntAdapter** — Convert bool to integer
+- **FloatToStringAdapter** — Convert float to string
+- **IntToFloatAdapter** — Convert integer to float
 
-```bash
-cd tests/libraries/haybale-testing
-uv pip install -e .
-```
+## Settings
+- **Testing** — 
 
-### Production
-
-```bash
-uv pip install haybale-testing
-```
-
-## Usage
-
-Once installed, the library is automatically discovered by Haywire through entry points.
-
-## Structure
-
-```
-📁 haybale-testing/                    # Git repo name / unique pip package name
-├── pyproject.toml
-│   [project]
-│   name = "haybale-testing"          # pip install haybale-testing
-│   
-│   [project.entry-points."haywire.libraries"]
-│   testing = "haybale_testing:Library"        # ID matches module
-│
-└── 📁 haybale_testing/                       # Python module
-    ├── __init__.py                  # Library class with @library decorator
-    ├── 📁 adapters/
-    ├── 📁 nodes/
-    ├── 📁 renderers/
-    ├── 📁 types/
-    └── 📁 widgets/
-```
-
-## Development
-
-This library is used for testing the Haywire library system functionality.
+## Farmhands
+- **Affinity** — Report handler thread and loop.
+- **Block** — Sleep off-loop for `seconds`.
+- **Echo** — Echo text back (canned read tool).
+- **Fail** — Always fails with a stable code.

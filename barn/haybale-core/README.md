@@ -1,67 +1,31 @@
-# Haybale Core Library
+# Core
 
-This is a core library providing essential types, nodes, widgets, and renderers for the haywire node system.
+<!-- marketstall:share-url:start -->
+*Subscribe URL not yet published — run `haywire share --save`.*
+<!-- marketstall:share-url:end -->
 
-## Features
+Fundamental components for hayire graphs
 
-- **Types**: Core data types with serialization support
-- **Nodes**: Nodes for data processing and display
-- **Widgets**: UI widgets for node configuration
-- **Renderers**: Node rendering customization
-- **Adapters**: Integration with external systems
+## Nodes
+### Core
+- **Begin Player** — Triggered once when execution starts
+- **Control Switch** — Switches control flow based on condition
+- **For Loop** — Iterate with start, end, and step control
+- **Logger** — Log a message to the Python logging system at a configurable severity
+- **Print** — Print to the haywire UI console
+- **Shutdown** — Triggered when execution is shutting down
+- **Tick** — Triggered periodically by a connected TickEmitNode
+- **Tick Emit** — Emits tick callbacks at a configurable framerate
 
-## Installation
+## Types
+- **Array** — Homogeneous typed array
+- **Bytes** — Binary data
+- **Callback Signal** — Signal for callback execution between nodes
+- **Dictionary** — Key-value pairs
+- **Execution Signal** — Signal for controlling execution flow between nodes
+- **Group** — Inlet group
+- **List** — Ordered collection
+- **Pooled** — Multi-source aggregation
 
-### Development (Editable Install)
-
-For development with hot-reload support:
-
-```bash
-cd libraries/haybale-core
-uv pip install -e .
-```
-
-### Production
-
-```bash
-uv pip install haybale-core
-```
-
-## Usage
-
-Once installed, the library is automatically discovered by Haywire through entry points.
-
-The library provides:
-- Display nodes for visualization
-- Dynamic nodes for runtime node creation
-- Core data types
-- Core UI widgets and renderers
-
-## Structure
-
-```
-📁 haybale-core/                    # Git repo name / unique pip package name
-├── pyproject.toml
-│   [project]
-│   name = "haybale-core"          # pip install haybale-core
-│   
-│   [project.entry-points."haywire.libraries"]
-│   core = "haybale_core:Library"      # ID matches module
-│
-└── 📁 haybale_core/                        # import haybale_core
-    ├── __init__.py
-    │   @library(
-    │       id='CORE',              # Matches entry point
-    │       label='Core Library',
-    │   )
-    │   class Library(BaseLibrary): ...
-    ├── nodes/               # Core nodes
-    ├── types/               # Core data types (if any)
-    ├── widgets/             # Core UI widgets
-    ├── renderers/           # Core node renderers
-    └── adapters/            # Core system adapters
-```
-
-## Dependencies
-
-- None
+## Adapters
+- **Array to Array** — Transform array elements (ArrayType[X] → ArrayType[Y])
