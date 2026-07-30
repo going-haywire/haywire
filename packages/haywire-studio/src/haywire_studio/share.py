@@ -706,10 +706,20 @@ def share_library(library_path: str | None, *, strict: bool = False, fix: bool =
         print(f"Error: No pyproject.toml found in '{library_path}'.")
         sys.exit(1)
 
-    # Warn when no git remote — the original behavior surfaces this to the user.
+    # Require a git remote to publish — prevents silent fallback to wrong branch names
     git_root = _find_git_root(lib_dir)
     if not git_root or not _get_remote_url(git_root):
-        print("Warning: No git remote found. Using placeholder URL.\n", file=sys.stderr)
+        print(
+            "Error: 'haywire share' requires a git remote to publish.\n"
+            "\n"
+            "Set up your repository:\n"
+            "  git remote add origin <your-repo-url>\n"
+            "  git push -u origin <branch-name>\n"
+            "\n"
+            "Then try again.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
 
     print("# Copy this snippet into a marketplace.toml:\n")
     print(toml.dumps({"haybales": [entry]}).strip())

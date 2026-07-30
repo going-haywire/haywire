@@ -451,6 +451,19 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
             continue
 
 
+def _check_git_available() -> bool:
+    """Check if git is available in PATH. Return True if available, False otherwise."""
+    try:
+        subprocess.run(
+            ["git", "--version"],
+            capture_output=True,
+            check=True,
+        )
+        return True
+    except (subprocess.CalledProcessError, FileNotFoundError):
+        return False
+
+
 def _generate_project_marketplace_locals_only(name: str, project_dir: Path) -> str:
     """Generate <project>/.haywire/marketplace.toml with the project's library only.
 
@@ -485,6 +498,22 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
         dev_repo: If set, absolute path to the haywire dev repo.
             Generated pyproject.toml files will use editable path sources.
     """
+    if not _check_git_available():
+        print(
+            "Error: 'haywire init' requires git to be installed.\n"
+            "\n"
+            "Git is used to initialize your project repository and version your work.\n"
+            "\n"
+            "Install git:\n"
+            "  macOS (Homebrew):  brew install git\n"
+            "  Ubuntu/Debian:     sudo apt-get install git\n"
+            "  Windows:           https://git-scm.com/download/win\n"
+            "\n"
+            "Or using your system package manager. Then try again.",
+            file=sys.stderr,
+        )
+        sys.exit(1)
+
     project_dir = Path.cwd() / name
 
     if project_dir.exists():
@@ -553,6 +582,17 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     if dev_repo:
         _register_dev_repo_locals_in_project(dev_repo, project_dir)
 
+    # Initialize git repository and create initial commit
+    print("\nInitializing git repository...")
+    subprocess.run(["git", "init"], cwd=str(project_dir), check=True, capture_output=True)
+    subprocess.run(["git", "add", "."], cwd=str(project_dir), check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "Initial commit: haywire project scaffold"],
+        cwd=str(project_dir),
+        check=True,
+        capture_output=True,
+    )
+
     # Global ~/.haywire config (just ensures the directory + defaults exist;
     # init no longer writes [[heaps]] there).
     ensure_global_config()
@@ -587,3 +627,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     if not auto_sync:
         print("  uv sync")
     print("  uv run haywire")
+    print("\nTo publish your library:")
+    print("  git remote add origin <your-repo-url>")
+    print("  git push -u origin master")
+    print("  uv run haywire share --save")

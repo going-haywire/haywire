@@ -20,5 +20,8 @@
       "Bash(git commit:*)",
       "Bash(python3 -c \"import inspect; from nicegui import ui; print\\(inspect.getsource\\(ui.color_input\\)\\)\")"
     ]
-  }
+  },
+  "enabledMcpjsonServers": [
+    "farmhand"
+  ]
 }
