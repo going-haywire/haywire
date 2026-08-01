@@ -385,10 +385,10 @@ min_version  = "1.0.0"
 description  = "Image processing nodes for haywire — resize, filter, format convert."
 author       = "Author Name"
 source       = "git"
-install_spec = "haybale-image @ git+https://github.com/me/haybale-image.git#subdirectory=barn/haybale-image"
+install_spec = "haybale-image @ git+https://github.com/me/haybale-image.git@v1.0.0#subdirectory=barn/haybale-image"
 tags         = ["image", "vision"]
 source_url   = "https://github.com/me/haybale-image"
-docs_url     = "https://raw.githubusercontent.com/me/haybale-image/main/barn/haybale-image/haybale_image/"
+docs_url     = "https://raw.githubusercontent.com/me/haybale-image/v1.0.0/barn/haybale-image/haybale_image/"
 ```
 
 Or for a PyPI-published version:

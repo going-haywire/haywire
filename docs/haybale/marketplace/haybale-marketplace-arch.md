@@ -337,11 +337,11 @@ min_version  = "0.1.0"
 description  = "..."
 author       = "Your Name"
 source       = "git"
-install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git#subdirectory=barn/haybale-my-lib"
+install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
 tags         = []
 dependencies = ["haybale-core"]
 source_url   = "https://github.com/you/repo"
-docs_url     = "https://raw.githubusercontent.com/you/repo/main/barn/haybale-my-lib/haybale_my_lib/"
+docs_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
 ```
 
 A consumer pastes the file's blob URL (e.g. `https://github.com/you/repo/blob/main/marketstall.toml`) into Add Source. The runtime recognizes the host, derives the raw URL, fetches the body, sees one `[[haybales]]` entry, and writes a `[[stalls]]` subscription to the user's global marketplace. The next refresh picks up the library.

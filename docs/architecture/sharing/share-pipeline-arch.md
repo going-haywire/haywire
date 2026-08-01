@@ -156,7 +156,7 @@ and `apply_marketstall()` additionally folds in `share.marketstall`'s `NoBarnErr
 
 ```python
 try:
-    result = write_marketstall(self.repo_root)
+    result = write_marketstall(self.repo_root, tag=f"v{self.version}")
 except (NoBarnError, *_MANIFEST_FAILURE_TYPES) as exc:
     raise MarketstallError(str(exc)) from exc
 ```
@@ -167,12 +167,32 @@ The effect: nothing downstream of `pipeline.py` — a wizard step handler's `exc
 
 `check_preconditions()` unconditionally rejects two situations: a detached `HEAD`, and being on any branch other than the remote's default branch. There is no bypass — no `--ref` flag, no keyword argument, nothing. This is deliberate and, as of this document, has no ADR of its own; this document and the [sharing guide, §4.3](../../guides/sharing-libraries.md#43-publishing-from-the-default-branch) are its only homes.
 
-**Why it's unconditional.** The generated marketstall entry carries several URLs, and they are not all pinned the same way:
+**Why it existed.** Before the tag-pinning fix, the generated marketstall
+entry carried several URLs that were not pinned the same way: `docs_url`,
+`examples_url`, and `tests_url` were built from whatever branch was checked
+out *at publish time* (`_build_entry_for_library()` in `share.marketstall`,
+reading the current ref), while `install_spec` — the actual `pip install`
+command a consumer runs — carried **no** ref at all and always resolved to
+the remote's default-branch `HEAD`. Publishing from a feature branch meant
+those two URL families pointed at two different places from day one, and a
+feature branch typically dies the moment it merges, so the doc/example/test
+URLs would go dead with no way for the author (who already knows the branch
+is gone) to notice.
 
-- `docs_url`, `examples_url`, and `tests_url` are built from whatever branch is checked out *at publish time* (`_build_entry_for_library()` in `share.marketstall` reads the current ref via `share.barn.current_ref()`).
-- `install_spec` — the actual `pip install` command a consumer runs — carries **no** ref at all. It always resolves to the remote's default-branch `HEAD`, regardless of what branch the entry was generated from.
+**Current state.** `_build_entry_for_library()` now accepts an optional
+`tag` parameter; `apply_marketstall()` (step 5, before `apply()` creates the
+actual git tag later in that same step) always supplies
+`f"v{pipeline.version}"` — the version step 3 already resolved and
+tag-collision-checked. All four URL families now pin to that same tag, so
+they no longer disagree regardless of which branch the tag was cut from.
 
-If publishing were allowed from a feature branch, those two URL families would point at two different places from day one: `install_spec` at whatever the default branch happens to be, and the doc/example/test URLs at the feature branch. A feature branch typically dies the moment it's merged and deleted, so those URLs would go dead — and that failure wouldn't land on the author, who already knows the branch is gone. It would land on a consumer following one of those links months later, with no way to know why it 404s.
+**This does not relax the default-branch-only rule.** The check in
+`check_preconditions()` remains unconditional — no `--ref` flag, no
+bypass — even though the specific disagreement that originally motivated it
+is gone. Whether to allow publishing from a non-default branch now that the
+URLs agree is a separate decision, deliberately not made by the tag-pinning
+fix. See `docs/superpowers/plans/2026-08-01-marketstall-tag-pinning.md` for
+the fix's scope.
 
 **Why there's no escape hatch.** An earlier design did carry a `--ref` flag as exactly that escape hatch, with a documented remedy ("pass `--ref <default>` so the generated URLs point at the branch that will still exist after this one merges"). A whole-branch review of the codebase found that remedy was simply false: `--ref` never actually reached `_build_entry_for_library()` — the URL-generating code path ignored it entirely, so the flag did nothing but suppress the branch check while still emitting URLs pinned to the wrong branch. Once that was discovered, the CLI Surface Simplification plan removed `--ref` (and its sibling `--tag`) outright rather than fix it, on the basis that neither had a real user depending on it. The rule that replaced the flag is therefore not "the flag was removed and the check just happens to remain" — the check was already correct and unconditional; only the broken bypass was deleted.
 

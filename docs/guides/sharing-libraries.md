@@ -118,16 +118,24 @@ same information the drift step would have reported interactively.
 `haywire share` refuses to publish from anything but the repository's default
 branch. There is no escape hatch — the rule is unconditional.
 
-Here's why: the generated marketstall entry's `docs_url`, `examples_url`, and
-`tests_url` are pinned to whatever branch you have checked out at publish
-time. A feature branch dies the moment it's merged and deleted — so those
-URLs go dead. That failure doesn't land on you, the author, who already knows
-the branch is gone; it lands on a consumer who tries to follow one of those
-links months later. Meanwhile `install_spec` (the actual install command) is
-different: it carries no ref at all and always resolves to the remote's
-default-branch HEAD. So publishing from a non-default branch means the
-install spec and the doc/example/test URLs silently point at two different
-places from day one.
+Historically this rule existed because the generated marketstall entry's
+`install_spec`, `docs_url`, `examples_url`, and `tests_url` disagreed on what
+they pointed at: `install_spec` (the actual install command) carried no ref
+at all and always resolved to the remote's default-branch HEAD, while the
+other three were pinned to whatever branch was checked out at publish time.
+Publishing from a feature branch meant those two URL families silently
+pointed at two different places from day one — and once the feature branch
+was merged and deleted, the doc/example/test URLs went dead. That failure
+never landed on the author, who already knew the branch was gone; it landed
+on a consumer following one of those links months later.
+
+As of the tag-pinning fix, all four URLs pin to the same release tag
+(`v<version>`) that `haywire share` creates as part of publishing, so they no
+longer disagree — a feature branch dying no longer breaks any of them. The
+default-branch-only rule remains in force regardless: it is still the
+simplest way to guarantee every published entry reflects a state that will
+still exist and keep receiving fixes going forward, and relaxing it is a
+separate decision this fix does not make.
 
 If `haywire share` reports that you're on the wrong branch, e.g.:
 
@@ -153,12 +161,12 @@ min_version  = "0.1.0"
 description  = "One-line summary of what the library does."
 author       = "Your Name"
 source       = "git"
-install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git#subdirectory=barn/haybale-my-lib"
+install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
 tags         = ["vision", "experimental"]
 os           = ["macos", "linux"]
 dependencies = ["haybale-core"]
 source_url   = "https://github.com/you/repo"
-docs_url     = "https://raw.githubusercontent.com/you/repo/main/barn/haybale-my-lib/haybale_my_lib/"
+docs_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
 ```
 
 A few points worth knowing:
@@ -167,6 +175,7 @@ A few points worth knowing:
 - `dependencies` lists pip distribution names of the haybale libraries you depend on — *not* the underscore form used inside the `@library` decorator.
 - `docs_url` points at the library's Python module directory. Generated `OVERVIEW.md` and `QUICKREF.md` live there and the Library Manager will fetch them for pre-install discovery.
 - `min_version` is a *floor*, not "latest". Consumers may install a higher version.
+- `install_spec`, `docs_url`, `examples_url`, and `tests_url` are all pinned to the release tag (`v<version>`) created by this run of `haywire share` — not the branch you published from. They point at the exact commit a consumer installing today will get, and stay correct even after your branch is deleted.
 
 `haywire share` derives all this from each library's `pyproject.toml`, its `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.
 

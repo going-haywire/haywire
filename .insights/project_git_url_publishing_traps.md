@@ -1,6 +1,6 @@
 ---
 name: Publishing by git URL means consumers get a clone — three silent-corruption traps
-description: Haybales install via git+URL clone, so gitignored files vanish, LFS assets become pointer text, and install_spec carries no ref. All three fail silently on the consumer's machine.
+description: Haybales install via git+URL clone, so gitignored files vanish, LFS assets become pointer text, and install_spec/doc URLs are tag-pinned only through SharePipeline. All three fail silently on the consumer's machine.
 type: project
 ---
 
@@ -32,23 +32,26 @@ The install *succeeds*; the library breaks later when it loads the asset. Whethe
 
 Scaffolded at init (`_generate_gitattributes`): text=auto plus `binary` markers for common asset types, and a comment block explaining the pointer-file trap. No `filter=lfs` line is ever written.
 
-## 3. `install_spec` carries no ref — consumers always get default-branch HEAD
+## 3. `install_spec`/`docs_url`/`examples_url`/`tests_url` are pinned to the release tag — but only through the full pipeline
 
-`_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/packaging/share.py:298`) emits no ref, so a marketstall entry advertising `min_version = "0.3.1"` still installs whatever `master` holds right now. `min_version` is advisory; nothing is reproducible, and a broken default branch immediately breaks every consumer.
+**Fixed** (`docs/superpowers/plans/2026-08-01-marketstall-tag-pinning.md`). `_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py:28`) accepts an optional `tag` parameter. `apply_marketstall()` (`share/pipeline/steps/commit.py:18`) always supplies `f"v{pipeline.version}"` — the version step 3 resolves and tag-collision-checks before step 5 runs, so the tag name is known even though `apply()` (later in that same step) hasn't created the actual git tag yet. All four ref-bearing URLs pin to that tag, so a marketstall entry advertising `min_version = "0.3.1"` installs exactly that state, not whatever `master`/`main` currently holds.
 
-Related: the marketstall **share URL** (`_derive_url`, `share.py:816`) and `docs_url`/`examples_url`/`tests_url` (`share.py:317`) all resolve against the *current branch*, not a tag — so those URLs drift as the branch moves.
+**This only applies through the full `SharePipeline` flow.** `write_marketstall()`/`build_marketstall_entries()`/`_build_entry_for_library()` called directly with no `tag` argument (any standalone script, or a test that doesn't pass one) still fall back to the pre-fix behavior: `install_spec` ref-less (floats to default-branch HEAD), the other three URLs pinned to whatever branch is currently checked out. This is intentional backward compatibility, not a remaining bug — if you add a new caller of these functions, decide explicitly whether it has a tag to pass.
 
-If you pin `install_spec` to a tag, the `@tag` suffix must **not** end up in the `[tool.uv.sources]` dict's `git` value. Verified: uv treats it as part of the URL path and the clone 404s (`repository 'https://github.com/pypa/packaging.git@24.0/' not found`). It needs a separate key, which uv then locks to a resolved SHA:
+The marketstall **share URL** itself (`_derive_url` in `share/url.py`, i.e. `result.share_url` — the URL *to* `marketstall.toml`, not any haybale entry) is deliberately NOT part of this fix and stays branch-pinned: it's meant to always resolve to the latest commit on the branch, not freeze to a past release tag.
+
+If a tag-pinned `install_spec` is ever consumed via `[tool.uv.sources]` (as opposed to the plain PEP 508 `git+URL@tag#subdirectory=` string it uses today), the `@tag` suffix must **not** end up in the `git` value itself. Verified: uv treats it as part of the URL path and the clone 404s (`repository 'https://github.com/pypa/packaging.git@24.0/' not found`). It needs a separate key, which uv then locks to a resolved SHA:
 
 ```toml
 [tool.uv.sources]
 packaging = { git = "https://github.com/pypa/packaging.git", tag = "24.0" }
 ```
 
-PEP 508's `git+URL@tag#subdirectory=` spelling is fine inside `install_spec` itself — but `_parse_git_install_spec` must split the ref out and `_write_install_to_pyproject` (`library_manager.py:87`) must emit it as `tag`.
+PEP 508's `git+URL@tag#subdirectory=` spelling (what `install_spec` actually uses) is fine as-is — this gotcha only bites if something later re-parses `install_spec` into a `[tool.uv.sources]` table, e.g. a `_parse_git_install_spec`/`_write_install_to_pyproject`-style consumer in `haybale-marketplace/library_manager.py`.
 
 Files:
 - `barn/haybale-marketplace/haybale_marketplace/library_manager.py`
-- `packages/haywire-studio/src/haywire_studio/packaging/share.py`
+- `packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py`
+- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/steps/commit.py`
 - `packages/haywire-studio/src/haywire_studio/init.py`
 - `internals/superpowers/2026-07-30-share-wizard.md`
