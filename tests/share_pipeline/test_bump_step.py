@@ -7,8 +7,8 @@ from unittest.mock import patch
 import pytest
 import toml
 
-from haywire_studio.share.pipeline import TagCollisionError, VersionError
-from haywire_studio.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline import TagCollisionError, VersionError
+from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
 
 pytestmark = pytest.mark.unit
 
@@ -98,7 +98,7 @@ def test_local_tag_collision_is_caught_before_any_write(project: Path) -> None:
 
 
 def test_remote_tag_collision_is_caught(project: Path) -> None:
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     def _ls_remote_tags(args, **_kw):
         if args[:2] == ["ls-remote", "--tags"]:
@@ -110,7 +110,9 @@ def test_remote_tag_collision_is_caught(project: Path) -> None:
             )
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch("haywire_studio.share.pipeline.steps.version.git_remote", side_effect=_ls_remote_tags):
+    with patch(
+        "haywire_studio.packaging.share.pipeline.steps.version.git_remote", side_effect=_ls_remote_tags
+    ):
         with pytest.raises(TagCollisionError) as excinfo:
             SharePipeline(project).apply_bump("patch")
 
@@ -124,12 +126,12 @@ def test_check_tag_available_passes_for_a_free_tag(project: Path) -> None:
 def test_unreachable_remote_does_not_block_the_tag_check(project: Path) -> None:
     """A remote we can't query is step 1's problem. Here it must not become a
     false collision — that would block a legitimate publish."""
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     def _unreachable(*_a, **_kw):
         return gitcmd.GitResult(ok=False, stdout="", stderr="could not read", returncode=128)
 
-    with patch("haywire_studio.share.pipeline.steps.version.git_remote", side_effect=_unreachable):
+    with patch("haywire_studio.packaging.share.pipeline.steps.version.git_remote", side_effect=_unreachable):
         SharePipeline(project).check_tag_available("0.3.2")  # must not raise
 
 
@@ -137,7 +139,7 @@ def test_lockfile_warning_is_carried_not_raised(project: Path) -> None:
     (project / "uv.lock").write_text("")
 
     with patch(
-        "haywire_studio.share.pipeline.steps.version.refresh_lockfile",
+        "haywire_studio.packaging.share.pipeline.steps.version.refresh_lockfile",
         return_value=(False, "uv lock failed: boom"),
     ):
         result = SharePipeline(project).apply_bump("patch")
@@ -152,7 +154,9 @@ def test_refreshed_lockfile_joins_the_write_set(project: Path) -> None:
     (project / "uv.lock").write_text("")
     pipeline = SharePipeline(project)
 
-    with patch("haywire_studio.share.pipeline.steps.version.refresh_lockfile", return_value=(True, None)):
+    with patch(
+        "haywire_studio.packaging.share.pipeline.steps.version.refresh_lockfile", return_value=(True, None)
+    ):
         result = pipeline.apply_bump("patch")
 
     assert result.lock_refreshed is True
@@ -166,7 +170,7 @@ def test_stale_lockfile_stays_out_of_the_write_set(project: Path) -> None:
     pipeline = SharePipeline(project)
 
     with patch(
-        "haywire_studio.share.pipeline.steps.version.refresh_lockfile",
+        "haywire_studio.packaging.share.pipeline.steps.version.refresh_lockfile",
         return_value=(False, "uv lock failed"),
     ):
         pipeline.apply_bump("patch")

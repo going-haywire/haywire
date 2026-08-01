@@ -23,7 +23,7 @@ from nicegui.elements.log import Log
 
 from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
-from haywire_studio.share.pipeline import (
+from haywire_studio.packaging.share.pipeline import (
     CommitPlan,
     CommitResult,
     DocsResult,
@@ -760,7 +760,7 @@ def _panel_push(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_done(wizard: ShareWizard, on_done: Callable[[], None] | None) -> None:
-    from haywire_studio.share import derive_share_url_only
+    from haywire_studio.packaging.share import derive_share_url_only
 
     result = wizard.push_result
     if result is not None:

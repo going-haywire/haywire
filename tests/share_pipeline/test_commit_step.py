@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from haywire_studio.share.pipeline import CommitError
-from haywire_studio.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline import CommitError
+from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
 
 pytestmark = pytest.mark.unit
 
@@ -64,7 +64,7 @@ def test_apply_marketstall_records_what_it_wrote(project: Path) -> None:
 
 def test_apply_marketstall_translates_manifest_read_error(project: Path) -> None:
     """A malformed pyproject.toml surfaces as MarketstallError, not a raw ManifestReadError."""
-    from haywire_studio.share.pipeline import MarketstallError
+    from haywire_studio.packaging.share.pipeline import MarketstallError
 
     pipeline = _ready(project)
     (project / "barn" / "haybale-alpha" / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -191,7 +191,7 @@ def test_plan_commit_diffstat_labels_new_file_that_is_a_text_prefix_of_another_l
 
 
 def test_plan_commit_without_a_version_raises(project: Path) -> None:
-    from haywire_studio.share.pipeline import PipelineStateError
+    from haywire_studio.packaging.share.pipeline import PipelineStateError
 
     pipeline = SharePipeline(project)
     with pytest.raises(PipelineStateError):
@@ -318,8 +318,8 @@ def test_verify_push_allowed_passes_against_a_reachable_remote(project: Path) ->
 
 def test_verify_push_allowed_rejects_a_diverged_remote(project: Path, tmp_path: Path) -> None:
     """Closes the race window since step 1 — someone may have pushed meanwhile."""
-    from haywire_studio.share import git as gitcmd
-    from haywire_studio.share.pipeline import PushError
+    from haywire_studio.packaging.share import git as gitcmd
+    from haywire_studio.packaging.share.pipeline import PushError
 
     def _rejected(args, **_kw):
         if "--dry-run" in args:
@@ -331,7 +331,7 @@ def test_verify_push_allowed_rejects_a_diverged_remote(project: Path, tmp_path: 
             )
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch("haywire_studio.share.pipeline.steps.push.git_remote", side_effect=_rejected):
+    with patch("haywire_studio.packaging.share.pipeline.steps.push.git_remote", side_effect=_rejected):
         with pytest.raises(PushError) as excinfo:
             _ready(project).verify_push_allowed()
 
@@ -355,7 +355,7 @@ def test_push_command_raises_on_detached_head(project: Path) -> None:
     """Defensive: check_preconditions() already rejects detached HEAD before any
     caller reaches push_command(), but the guard here must fail loud rather than
     silently build a `HEAD:None`-shaped refspec if it's ever reached anyway."""
-    from haywire_studio.share.pipeline import PipelineStateError
+    from haywire_studio.packaging.share.pipeline import PipelineStateError
 
     sha = _git(project, "rev-parse", "HEAD").strip()
     _git(project, "checkout", sha)
@@ -365,7 +365,7 @@ def test_push_command_raises_on_detached_head(project: Path) -> None:
 
 
 def test_verify_push_allowed_raises_on_detached_head(project: Path) -> None:
-    from haywire_studio.share.pipeline import PipelineStateError
+    from haywire_studio.packaging.share.pipeline import PipelineStateError
 
     sha = _git(project, "rev-parse", "HEAD").strip()
     _git(project, "checkout", sha)

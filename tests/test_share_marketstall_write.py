@@ -5,7 +5,7 @@ from pathlib import Path
 import pytest
 import toml
 
-from haywire_studio.share import NoBarnError, build_marketstall_entries, write_marketstall
+from haywire_studio.packaging.share import NoBarnError, build_marketstall_entries, write_marketstall
 
 pytestmark = pytest.mark.unit
 
@@ -57,7 +57,7 @@ def test_write_marketstall_writes_the_feed(repo: Path) -> None:
 
 def test_write_marketstall_runs_no_drift_gate(repo: Path, monkeypatch) -> None:
     """Drift is step 2's decision. A second gate here would re-ask a settled question."""
-    from haywire_studio import share
+    from haywire_studio.packaging import share
 
     def _boom(*_a, **_kw):
         raise AssertionError("write_marketstall must not run the drift gate")

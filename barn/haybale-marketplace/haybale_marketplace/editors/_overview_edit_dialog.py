@@ -197,7 +197,7 @@ def detect_dependencies(
         set_pyproject_dependencies,
     )
     from haywire.ui.modals import DiffSection, diff_modal
-    from haywire_studio.share import union_pyproject_deps as _union_pyproject_deps
+    from haywire_studio.packaging.share import union_pyproject_deps as _union_pyproject_deps
 
     if not marketplace_path or not lib.distribution_name:
         ui.notify("Cannot detect — no library on disk for this entry.", type="warning")

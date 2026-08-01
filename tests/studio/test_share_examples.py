@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from haywire_studio.share import _build_entry_for_library
+from haywire_studio.packaging.share import _build_entry_for_library
 
 
 def _init_repo_with_lib(tmp_path: Path) -> Path:

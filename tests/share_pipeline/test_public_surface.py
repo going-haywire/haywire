@@ -33,13 +33,13 @@ _OTHER_CONSUMER_IMPORTS = (
 
 
 def test_pipeline_vocabulary_is_importable() -> None:
-    module = importlib.import_module("haywire_studio.share.pipeline")
+    module = importlib.import_module("haywire_studio.packaging.share.pipeline")
     missing = [name for name in _WIZARD_IMPORTS if not hasattr(module, name)]
     assert missing == [], f"share_pipeline no longer exports: {missing}"
 
 
 def test_share_domain_functions_are_importable() -> None:
-    module = importlib.import_module("haywire_studio.share")
+    module = importlib.import_module("haywire_studio.packaging.share")
     missing = [name for name in _OTHER_CONSUMER_IMPORTS if not hasattr(module, name)]
     assert missing == [], f"share no longer exports: {missing}"
 
@@ -47,7 +47,7 @@ def test_share_domain_functions_are_importable() -> None:
 def test_share_error_hierarchy_is_intact() -> None:
     """Every step exception stays a ShareError, so the wizard's single
     `except ShareError` per step keeps catching all of them."""
-    module = importlib.import_module("haywire_studio.share.pipeline")
+    module = importlib.import_module("haywire_studio.packaging.share.pipeline")
     for name in (
         "PreconditionsError",
         "ManifestError",

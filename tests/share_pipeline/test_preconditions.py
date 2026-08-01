@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.share.pipeline import PreconditionsError
-from haywire_studio.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline import PreconditionsError
+from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
 
 pytestmark = pytest.mark.unit
 
@@ -133,7 +133,7 @@ def test_every_failure_is_reported_together(tmp_path: Path) -> None:
 
 
 def test_missing_git_binary_reports_install_instructions(project: Path, monkeypatch) -> None:
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     def _no_git(*_a, **_kw):
         raise FileNotFoundError("git")
@@ -174,7 +174,7 @@ def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path,
     Covers every branch of ``check_preconditions``: missing git, missing barn/,
     empty barn/, missing origin, unreachable origin, and everything-broken.
     """
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     scenarios: list[Path] = []
 
@@ -336,7 +336,7 @@ def test_malformed_manifest_is_two_faces_of_one_condition(project: Path) -> None
     the wizard's first panel explains why sharing is blocked), while apply_marketstall()
     — a later step that assumes preconditions already passed — raises MarketstallError.
     """
-    from haywire_studio.share.pipeline import MarketstallError
+    from haywire_studio.packaging.share.pipeline import MarketstallError
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -513,7 +513,7 @@ def test_apply_precondition_fix_raises_for_unknown_fix_id(project: Path) -> None
     module-level dispatch dict elsewhere; this dict starts empty here, so any
     fix_id is currently "unknown".
     """
-    from haywire_studio.share.pipeline import PipelineStateError
+    from haywire_studio.packaging.share.pipeline import PipelineStateError
 
     with pytest.raises(PipelineStateError):
         SharePipeline(project).apply_precondition_fix("nonexistent_fix_id")
@@ -588,7 +588,7 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
 def test_apply_precondition_fix_strip_os_translates_manifest_failures(project: Path) -> None:
     """A pyproject that no longer parses at fix-time surfaces as ManifestError,
     the same translation convention apply_drift_union follows."""
-    from haywire_studio.share.pipeline import ManifestError
+    from haywire_studio.packaging.share.pipeline import ManifestError
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -656,7 +656,7 @@ def test_apply_precondition_fix_add_origin_raises_when_origin_already_exists(
 ) -> None:
     """A pre-existing origin (a race, or a stale report) must fail cleanly with
     a typed exception, not a raw GitResult/subprocess failure leaking through."""
-    from haywire_studio.share.pipeline import PreconditionsError
+    from haywire_studio.packaging.share.pipeline import PreconditionsError
 
     repo = tmp_path / "add_origin_exists"
     _init_repo(repo)

@@ -6,8 +6,8 @@ from unittest.mock import patch
 import pytest
 import toml
 
-from haywire_studio.share import DepDrift
-from haywire_studio.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share import DepDrift
+from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
 
 pytestmark = pytest.mark.unit
 
@@ -36,7 +36,7 @@ def test_check_drift_runs_every_barn_library(project: Path) -> None:
         seen.append(lib_dir)
         return DepDrift(lib_dir=lib_dir)
 
-    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_fake):
+    with patch("haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_fake):
         SharePipeline(project).check_drift()
 
     assert sorted(p.name for p in seen) == ["haybale-alpha", "haybale-beta"]
@@ -44,7 +44,7 @@ def test_check_drift_runs_every_barn_library(project: Path) -> None:
 
 def test_clean_project_needs_no_decision(project: Path) -> None:
     with patch(
-        "haywire_studio.share.pipeline.steps.drift.detect_share_drift",
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift",
         side_effect=lambda lib_dir: DepDrift(lib_dir=lib_dir),
     ):
         report = SharePipeline(project).check_drift()
@@ -60,7 +60,9 @@ def test_actionable_drift_needs_a_decision(project: Path) -> None:
             return DepDrift(lib_dir=lib_dir, pyproject_missing=["numpy"])
         return DepDrift(lib_dir=lib_dir)
 
-    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty):
+    with patch(
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty
+    ):
         report = SharePipeline(project).check_drift()
 
     assert report.needs_decision is True
@@ -73,7 +75,9 @@ def test_unresolved_imports_alone_never_gate(project: Path) -> None:
     def _unresolved(lib_dir: Path) -> DepDrift:
         return DepDrift(lib_dir=lib_dir, unresolved=["some.dynamic.module"])
 
-    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_unresolved):
+    with patch(
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_unresolved
+    ):
         report = SharePipeline(project).check_drift()
 
     assert report.needs_decision is False
@@ -93,7 +97,7 @@ def test_apply_drift_union_is_additive(project: Path) -> None:
         (d.lib_dir / "pyproject.toml").write_text(toml.dumps(data))
 
     pipeline = SharePipeline(project)
-    with patch("haywire_studio.share.pipeline.steps.drift.apply_drift_fix", side_effect=_fake_fix):
+    with patch("haywire_studio.packaging.share.pipeline.steps.drift.apply_drift_fix", side_effect=_fake_fix):
         written = pipeline.apply_drift_union(report)  # type: ignore[arg-type]
 
     deps = toml.loads((lib / "pyproject.toml").read_text())["project"]["dependencies"]
@@ -105,7 +109,7 @@ def test_apply_drift_union_is_additive(project: Path) -> None:
 
 def test_apply_drift_union_translates_manifest_read_error(project: Path) -> None:
     """A malformed pyproject.toml surfaces as ManifestError, not the raw ManifestReadError."""
-    from haywire_studio.share.pipeline import ManifestError
+    from haywire_studio.packaging.share.pipeline import ManifestError
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -129,7 +133,7 @@ def test_apply_drift_replace_can_remove_declarations(project: Path) -> None:
 
     pipeline = SharePipeline(project)
     with patch(
-        "haywire_studio.share.pipeline.steps.drift.detect_deps",
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_deps",
         return_value=_Detected(),
     ):
         written = pipeline.apply_drift_replace(report)  # type: ignore[arg-type]
@@ -151,7 +155,7 @@ def test_apply_drift_replace_rewrites_the_decorator(project: Path) -> None:
         library_decorator = ["haybale_studio"]
         unresolved: list[str] = []
 
-    with patch("haywire_studio.share.pipeline.steps.drift.detect_deps", return_value=_Detected()):
+    with patch("haywire_studio.packaging.share.pipeline.steps.drift.detect_deps", return_value=_Detected()):
         written = SharePipeline(project).apply_drift_replace(report)  # type: ignore[arg-type]
 
     content = init_file.read_text()
@@ -161,7 +165,7 @@ def test_apply_drift_replace_rewrites_the_decorator(project: Path) -> None:
 
 def test_apply_drift_replace_translates_manifest_read_error(project: Path) -> None:
     """A malformed pyproject.toml surfaces as ManifestError, not the raw TomlDecodeError."""
-    from haywire_studio.share.pipeline import ManifestError
+    from haywire_studio.packaging.share.pipeline import ManifestError
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -174,7 +178,7 @@ def test_apply_drift_replace_translates_manifest_read_error(project: Path) -> No
         unresolved: list[str] = []
 
     with patch(
-        "haywire_studio.share.pipeline.steps.drift.detect_deps",
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_deps",
         return_value=_Detected(),
     ):
         with pytest.raises(ManifestError):
@@ -193,7 +197,7 @@ def test_written_set_never_duplicates(project: Path) -> None:
     drift = DepDrift(lib_dir=lib, pyproject_missing=["numpy"])
     report = type("R", (), {"drifted": [drift], "unresolved_only": []})()
     pipeline = SharePipeline(project)
-    with patch("haywire_studio.share.pipeline.steps.drift.apply_drift_fix"):
+    with patch("haywire_studio.packaging.share.pipeline.steps.drift.apply_drift_fix"):
         pipeline.apply_drift_union(report)  # type: ignore[arg-type]
         pipeline.apply_drift_union(report)  # type: ignore[arg-type]
     assert len(pipeline.written) == len(set(pipeline.written))

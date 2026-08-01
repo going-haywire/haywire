@@ -1,5 +1,5 @@
 # tests/test_rename_cli.py
-"""Tests for the haywire rename CLI (haywire_studio.rename)."""
+"""Tests for the haywire rename CLI (haywire_studio.packaging.rename)."""
 
 from __future__ import annotations
 
@@ -8,7 +8,7 @@ import pytest
 
 @pytest.mark.unit
 def test_sanitize_name_rejects_path_separators():
-    from haywire_studio.rename import sanitize_rename
+    from haywire_studio.packaging.rename import sanitize_rename
 
     assert sanitize_rename("foo/bar") is None
     assert sanitize_rename("..") is None
@@ -19,7 +19,7 @@ def test_sanitize_name_rejects_path_separators():
 def test_patch_graphs_dry_run_only_touches_registry_keys(tmp_path):
     import json
 
-    from haywire_studio.rename import patch_graph_references
+    from haywire_studio.packaging.rename import patch_graph_references
 
     graphs = tmp_path / "graphs"
     graphs.mkdir()
@@ -47,7 +47,7 @@ def test_patch_graphs_dry_run_only_touches_registry_keys(tmp_path):
 def test_patch_graphs_apply_writes_and_backs_up(tmp_path):
     import json
 
-    from haywire_studio.rename import patch_graph_references
+    from haywire_studio.packaging.rename import patch_graph_references
 
     graphs = tmp_path / "graphs"
     graphs.mkdir()
@@ -63,7 +63,7 @@ def test_patch_graphs_apply_writes_and_backs_up(tmp_path):
 @pytest.mark.unit
 def test_run_rename_cli_dry_run_does_not_write(tmp_path, capsys):
     import json
-    from haywire_studio.rename import run_rename_cli
+    from haywire_studio.packaging.rename import run_rename_cli
 
     # minimal workspace: graphs/ with one referencing graph
     (tmp_path / "graphs").mkdir()

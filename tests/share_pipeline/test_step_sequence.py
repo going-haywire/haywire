@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import pkgutil
 
-from haywire_studio.share.pipeline import steps as steps_pkg
+from haywire_studio.packaging.share.pipeline import steps as steps_pkg
 
 # Steps the wizard renders that have no pipeline counterpart.
 _UI_ONLY_STEPS = frozenset({"checked", "done"})

@@ -15,7 +15,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.share import (
+from haywire_studio.packaging.share import (
     DepDrift,
     InvalidOsDeclarationError,
     ManifestReadError,

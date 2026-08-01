@@ -1,6 +1,6 @@
 """The share package's layering, enforced.
 
-Replaces the hand-run `python -c "import haywire_studio.share"` check that
+Replaces the hand-run `python -c "import haywire_studio.packaging.share"` check that
 guarded the old import-cycle rule. Cycles are now prevented structurally: no
 module inside the package imports the package root, so the root's re-exports
 cannot loop back.
@@ -13,7 +13,9 @@ import subprocess
 import sys
 from pathlib import Path
 
-_SHARE_ROOT = Path(__file__).resolve().parents[2] / "packages/haywire-studio/src/haywire_studio/share"
+_SHARE_ROOT = (
+    Path(__file__).resolve().parents[2] / "packages/haywire-studio/src/haywire_studio/packaging/share"
+)
 
 
 def _module_imports(path: Path) -> set[str]:
@@ -22,8 +24,8 @@ def _module_imports(path: Path) -> set[str]:
     Includes relative imports (``node.level > 0``) resolved to their
     absolute form, and ``from haywire_studio import share``-style imports
     (which bind the package root under a different attribute path than
-    ``from haywire_studio.share import X``) — both are as capable of
-    recreating the cycle as the plain ``import haywire_studio.share`` form.
+    ``from haywire_studio.packaging.share import X``) — both are as capable of
+    recreating the cycle as the plain ``import haywire_studio.packaging.share`` form.
     """
     tree = ast.parse(path.read_text(encoding="utf-8"))
     found: set[str] = set()
@@ -57,7 +59,7 @@ def _module_imports(path: Path) -> set[str]:
 def test_no_internal_module_imports_the_package_root() -> None:
     """The re-exports in __init__ must stay one-directional.
 
-    An internal module importing `haywire_studio.share` would run the root
+    An internal module importing `haywire_studio.packaging.share` would run the root
     __init__, which imports every submodule — the exact loop that made the
     old share.py/share_pipeline pair circular.
     """
@@ -65,7 +67,7 @@ def test_no_internal_module_imports_the_package_root() -> None:
     for path in sorted(_SHARE_ROOT.rglob("*.py")):
         if path.name == "__init__.py" and path.parent == _SHARE_ROOT:
             continue  # the root itself is allowed to import its submodules
-        if "haywire_studio.share" in _module_imports(path):
+        if "haywire_studio.packaging.share" in _module_imports(path):
             offenders.append(str(path.relative_to(_SHARE_ROOT)))
     assert offenders == [], f"these import the package root: {offenders}"
 
@@ -86,7 +88,7 @@ def test_every_share_module_imports_standalone() -> None:
     for path in sorted(_SHARE_ROOT.rglob("*.py")):
         rel = path.relative_to(_SHARE_ROOT).with_suffix("")
         parts = [p for p in rel.parts if p != "__init__"]
-        modules.append(".".join(["haywire_studio.share", *parts]))
+        modules.append(".".join(["haywire_studio.packaging.share", *parts]))
 
     for name in modules:
         result = subprocess.run(

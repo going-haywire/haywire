@@ -152,7 +152,7 @@ def test_haywire_studio_import_still_emits_haywire_studio(tmp_path: Path) -> Non
     that dependency undetectable."""
     lib = _make_library(
         tmp_path,
-        init_body="from haywire_studio.share import derive_share_url_only\n",
+        init_body="from haywire_studio.packaging.share import derive_share_url_only\n",
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
     assert any(s.startswith("haywire-studio") for s in result.pyproject), result.pyproject

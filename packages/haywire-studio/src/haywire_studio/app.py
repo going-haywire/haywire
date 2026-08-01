@@ -331,181 +331,31 @@ def run_app():
 
 
 def main():
-    """Main entry point — routes CLI subcommands."""
+    """Route ``haywire <subcommand>``, or launch the app when given none.
+
+    Every subcommand registers its own parser and handler in
+    :mod:`haywire_studio.cli`; this only wires them together, so adding one
+    never touches this file.
+    """
     import argparse
+
+    from haywire_studio.cli import SUBCOMMANDS
 
     parser = argparse.ArgumentParser(
         prog="haywire",
         description="Haywire visual programming system",
     )
     subparsers = parser.add_subparsers(dest="command")
-
-    init_parser = subparsers.add_parser("init", help="Create a new haywire project")
-    init_parser.add_argument("name", help="Project name")
-    init_parser.add_argument(
-        "--no-sync",
-        action="store_true",
-        help="Skip running uv sync after scaffolding",
-    )
-    init_parser.add_argument(
-        "--dev",
-        action="store_true",
-        help="Use editable local sources from this dev repo instead of PyPI",
-    )
-
-    share_parser = subparsers.add_parser(
-        "share",
-        help="Publish this project: bump every barn library, regenerate docs, "
-        "rebuild marketstall.toml, commit, tag, and push",
-    )
-    share_parser.add_argument(
-        "--yes",
-        action="store_true",
-        help="Non-interactive full run using flag-supplied answers. Requires --bump.",
-    )
-    share_parser.add_argument(
-        "--bump",
-        type=str,
-        default=None,
-        metavar="VERSION",
-        help="Version to publish: patch|minor|major, or an explicit X.Y.Z. Every "
-        "barn/* library is set to it (lockstep).",
-    )
-    share_parser.add_argument(
-        "--message",
-        type=str,
-        default=None,
-        help="Commit message. Defaults to 'chore: share v<version>'.",
-    )
-
-    rename_parser = subparsers.add_parser(
-        "rename", help="Rename a project library (run with studio stopped)"
-    )
-    rename_parser.add_argument("old_library", help="Current library dir, e.g. haybale-foo")
-    rename_parser.add_argument("new_name", help="New name (without the haybale- prefix)")
-    rename_parser.add_argument(
-        "--apply",
-        action="store_true",
-        help="Perform the rename. Without this flag, only a dry-run preview is printed.",
-    )
-
-    deps_parser = subparsers.add_parser("deps", help="Dependency-manifest tooling")
-    deps_subparsers = deps_parser.add_subparsers(dest="deps_command")
-    deps_subparsers.add_parser(
-        "check",
-        help="Report dependency-manifest drift for every barn/* library (CI-shaped, never writes)",
-    )
-
-    docs_parser = subparsers.add_parser("docs", help="Generate deterministic docs for a haybale library")
-    docs_parser.add_argument(
-        "library",
-        nargs="?",
-        default=None,
-        help=(
-            "Path to the library package root, or (with --all) the repo root to scan"
-            " — default: current directory"
-        ),
-    )
-    docs_parser.add_argument(
-        "--all",
-        action="store_true",
-        help="Generate docs for every in-repo library (barn/* + builtin) in one load",
-    )
-    docs_parser.add_argument(
-        "--json",
-        type=str,
-        default=None,
-        metavar="PATH",
-        help="Write the coverage report to PATH as JSON ({library_id: [lines]}). "
-        "A file sink rather than stdout, because a library-system boot prints "
-        "freely to stdout and not all of it is ours.",
-    )
+    for subcommand in SUBCOMMANDS:
+        subcommand.register(subparsers)
 
     args = parser.parse_args()
 
-    if args.command == "init":
-        from .init import init_project, _get_dev_repo_root
-
-        dev_repo = _get_dev_repo_root() if args.dev else None
-        init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
-    elif args.command == "share":
-        from pathlib import Path
-
-        from haywire_studio.share.cli import run_share_cli
-
-        raise SystemExit(
-            run_share_cli(
-                repo_root=Path.cwd(),
-                yes=args.yes,
-                bump=args.bump,
-                message=args.message,
-            )
-        )
-    elif args.command == "rename":
-        from pathlib import Path
-
-        from haywire_studio.rename import run_rename_cli
-
-        raise SystemExit(
-            run_rename_cli(
-                old_library=args.old_library,
-                new_name=args.new_name,
-                workspace_root=Path.cwd(),
-                apply=args.apply,
-            )
-        )
-    elif args.command == "deps":
-        from pathlib import Path
-
-        from haywire_studio.deps_cli import run_deps_check_cli
-
-        if args.deps_command == "check":
-            raise SystemExit(run_deps_check_cli(Path.cwd()))
-        deps_parser.print_help()
-        raise SystemExit(2)
-    elif args.command == "docs":
-        import json as _json
-        from pathlib import Path as _Path
-
-        def _write_coverage_json(coverage: dict[str, list[str]]) -> None:
-            """Write the coverage map to --json's path, creating parent dirs."""
-            if args.json is None:
-                return
-            out = _Path(args.json)
-            out.parent.mkdir(parents=True, exist_ok=True)
-            out.write_text(_json.dumps(coverage, indent=2), encoding="utf-8")
-
-        if args.all:
-            from haywire_studio.docs_gen.generate import generate_all_docs
-
-            results = generate_all_docs(args.library)
-            total_gaps = sum(len(gaps) for gaps in results.values())
-            print(f"Generated docs for {len(results)} libraries.")
-            for lib_id in sorted(results):
-                gaps = results[lib_id]
-                marker = f"{len(gaps)} coverage gap(s)" if gaps else "clean"
-                print(f"  • {lib_id}: {marker}")
-                for line in gaps:
-                    print(f"      - {line}")
-            print(f"Total coverage gaps: {total_gaps}.")
-            _write_coverage_json(results)
-            return
-
-        from haywire_studio.docs_gen.generate import generate_docs
-
-        coverage = generate_docs(args.library)
-        if coverage:
-            print("Documentation coverage gaps:")
-            for line in coverage:
-                print(f"  - {line}")
-        else:
-            print("Docs generated. No coverage gaps.")
-        # The single-library form has no library id to key by, so the path the
-        # user named is the key. Keeps --json's shape identical for both forms.
-        _write_coverage_json({str(args.library or _Path.cwd()): coverage})
-        return
-    else:
+    handler = getattr(args, "handler", None)
+    if handler is None:
         run_app()
+        return
+    raise SystemExit(handler(args))
 
 
 if __name__ in {"__main__", "__mp_main__"}:

@@ -14,7 +14,7 @@ see-also:
 
 ## 1. Mental model
 
-`SharePipeline` (`haywire_studio.share.pipeline.pipeline`) is a single stateful object that drives one project's publish, one step at a time. It is the one engine behind every caller: the `haywire share` CLI (interactive and `--yes` modes) and the studio's share wizard both construct a `SharePipeline(repo_root)` and call the same methods in the same order.
+`SharePipeline` (`haywire_studio.packaging.share.pipeline.pipeline`) is a single stateful object that drives one project's publish, one step at a time. It is the one engine behind every caller: the `haywire share` CLI (interactive and `--yes` modes) and the studio's share wizard both construct a `SharePipeline(repo_root)` and call the same methods in the same order.
 
 It is stateful because later steps consume earlier steps' outputs — drift resolution precedes docs regeneration, the bumped version feeds both the docs render and the marketstall entry, and the final commit's file list is the union of every step's writes. A stateful object keeps that sequencing in one place instead of re-derived by each caller, and maps directly onto the wizard's linear, resumable stepper UI.
 
@@ -24,7 +24,7 @@ Each step that can affect the working tree is split into a **check/plan** call (
 
 The pipeline has six steps, numbered by the section comments in `pipeline.py` itself. Some steps have more than one apply path (step 2 offers Union or Replace; step 5 bundles marketstall + commit + tag together because they share one user-facing preview).
 
-Each step's implementation lives in its own module under `share/pipeline/steps/` — `preconditions.py`, `drift.py`, `version.py`, `docs.py`, `commit.py`, `push.py` — and `SharePipeline` delegates to it rather than implementing the step's logic inline.
+Each step's implementation lives in its own module under `packaging/share/pipeline/steps/` — `preconditions.py`, `drift.py`, `version.py`, `docs.py`, `commit.py`, `push.py` — and `SharePipeline` delegates to it rather than implementing the step's logic inline.
 
 ```text
 1. Preconditions          check_preconditions() / require_preconditions()
@@ -115,9 +115,9 @@ This split is what lets the wizard show a preview before committing to an action
 
 ## 4. The error taxonomy
 
-Every expected pipeline failure raises; successes return frozen dataclasses (`share/pipeline/results.py`). This matches the existing idiom in `share.marketstall` (`NoBarnError`) and `share.manifest.errors` (`InvalidOsDeclarationError`) rather than introducing a Result-type wrapper.
+Every expected pipeline failure raises; successes return frozen dataclasses (`packaging/share/pipeline/results.py`). This matches the existing idiom in `share.marketstall` (`NoBarnError`) and `share.manifest.errors` (`InvalidOsDeclarationError`) rather than introducing a Result-type wrapper.
 
-All pipeline-level exceptions subclass `ShareError` (`share/pipeline/errors.py`):
+All pipeline-level exceptions subclass `ShareError` (`packaging/share/pipeline/errors.py`):
 
 | Exception | Raised when |
 |---|---|
@@ -184,7 +184,7 @@ There is no single CI gate for sharing. Two independent, purpose-built commands 
 
 ### 6.1 `haywire deps check`
 
-Implemented in `haywire_studio/deps_cli.py`, dispatched from `haywire deps check` in `app.py`. Its own module docstring states the design intent plainly: "Deliberately independent of SharePipeline: no git, no preconditions, no versioning, no marketstall." It is **not part of "the pipeline"** in any sense — it never constructs a `SharePipeline`, and its only dependency inside `haywire_studio` is `share.drift.detect`'s free function `detect_share_drift()`.
+Implemented in `haywire_studio/packaging/deps.py`, dispatched from `haywire deps check` in `app.py`. Its own module docstring states the design intent plainly: "Deliberately independent of SharePipeline: no git, no preconditions, no versioning, no marketstall." It is **not part of "the pipeline"** in any sense — it never constructs a `SharePipeline`, and its only dependency inside `haywire_studio` is `share.drift.detect`'s free function `detect_share_drift()`.
 
 It walks every `barn/*` directory with a `pyproject.toml`, runs `detect_share_drift()` on each (the same function step 2 of the pipeline uses — see §2.2 — so both tools always agree), and prints what it finds. It never writes to disk. Exit code is `EXIT_DRIFT` (1) if any library has *actionable* drift (missing pyproject or decorator entries, or a version-lag floor); unresolved imports are printed for information but never fail the run, matching the interactive wizard's own treatment of them. Otherwise it exits `EXIT_OK` (0).
 
@@ -200,14 +200,14 @@ As with `deps check`, this describes what the command does and how it's meant to
 
 ## Key files
 
-- `packages/haywire-studio/src/haywire_studio/share/pipeline/pipeline.py` — `SharePipeline`, all six steps.
-- `packages/haywire-studio/src/haywire_studio/share/pipeline/steps/` — one module per step (`preconditions.py`, `drift.py`, `version.py`, `docs.py`, `commit.py`, `push.py`) that `SharePipeline` delegates to.
-- `packages/haywire-studio/src/haywire_studio/share/pipeline/errors.py` — `ShareError` and its subclasses.
-- `packages/haywire-studio/src/haywire_studio/share/pipeline/results.py` — the frozen result dataclasses each step returns.
-- `packages/haywire-studio/src/haywire_studio/share/manifest/reader.py` — manifest reading (`read_manifest`); `share/manifest/errors.py` — `ManifestReadError`/`InvalidOsDeclarationError`.
-- `packages/haywire-studio/src/haywire_studio/share/drift/detect.py` — `detect_share_drift()`; `share/drift/apply.py` — `apply_drift_fix()`.
-- `packages/haywire-studio/src/haywire_studio/share/marketstall.py` — `write_marketstall()`, `NoBarnError`.
-- `packages/haywire-studio/src/haywire_studio/share/git.py` — hardened git subprocess helpers; leaf module.
-- `packages/haywire-studio/src/haywire_studio/share/barn.py` — `barn/` shape queries; leaf module.
-- `packages/haywire-studio/src/haywire_studio/deps_cli.py` — `haywire deps check`, decoupled from `SharePipeline`.
-- `packages/haywire-studio/src/haywire_studio/share/cli.py` — `haywire share`'s interactive and `--yes` modes, both thin runners over `SharePipeline`.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/pipeline.py` — `SharePipeline`, all six steps.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/steps/` — one module per step (`preconditions.py`, `drift.py`, `version.py`, `docs.py`, `commit.py`, `push.py`) that `SharePipeline` delegates to.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/errors.py` — `ShareError` and its subclasses.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/results.py` — the frozen result dataclasses each step returns.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/manifest/reader.py` — manifest reading (`read_manifest`); `packaging/share/manifest/errors.py` — `ManifestReadError`/`InvalidOsDeclarationError`.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/drift/detect.py` — `detect_share_drift()`; `packaging/share/drift/apply.py` — `apply_drift_fix()`.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py` — `write_marketstall()`, `NoBarnError`.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/git.py` — hardened git subprocess helpers; leaf module.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/barn.py` — `barn/` shape queries; leaf module.
+- `packages/haywire-studio/src/haywire_studio/packaging/deps.py` — `haywire deps check`, decoupled from `SharePipeline`.
+- `packages/haywire-studio/src/haywire_studio/packaging/share/cli.py` — `haywire share`'s interactive and `--yes` modes, both thin runners over `SharePipeline`.

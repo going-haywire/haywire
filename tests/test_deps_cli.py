@@ -1,7 +1,7 @@
 # tests/test_deps_cli.py
 """``haywire deps check`` — decoupled from SharePipeline, gates on actionable drift only.
 
-Every test patches ``haywire_studio.deps_cli.detect_share_drift`` directly rather
+Every test patches ``haywire_studio.packaging.deps.detect_share_drift`` directly rather
 than scaffolding real importable library sources: this command's own logic (barn
 scan, print formatting, exit-code gating) is what's under test, not
 ``detect_share_drift`` itself (covered by tests/test_share_drift.py).
@@ -14,8 +14,8 @@ from unittest.mock import patch
 
 import pytest
 
-from haywire_studio.deps_cli import EXIT_DRIFT, EXIT_OK, run_deps_check_cli
-from haywire_studio.share import DepDrift
+from haywire_studio.packaging.deps import EXIT_DRIFT, EXIT_OK, run_deps_check_cli
+from haywire_studio.packaging.share import DepDrift
 
 pytestmark = pytest.mark.unit
 
@@ -33,7 +33,7 @@ def test_no_drift_exits_ok_and_prints_confirmation(tmp_path: Path, capsys) -> No
     lib_dir = _make_barn_library(tmp_path)
 
     with patch(
-        "haywire_studio.deps_cli.detect_share_drift",
+        "haywire_studio.packaging.deps.detect_share_drift",
         side_effect=lambda d: DepDrift(lib_dir=d),
     ):
         exit_code = run_deps_check_cli(tmp_path)
@@ -54,7 +54,7 @@ def test_actionable_drift_exits_drift_and_prints_each_kind(tmp_path: Path, capsy
         pyproject_version_lag=[("haybale-core", "0.1.0", "0.2.0")],
     )
 
-    with patch("haywire_studio.deps_cli.detect_share_drift", side_effect=lambda d: drift):
+    with patch("haywire_studio.packaging.deps.detect_share_drift", side_effect=lambda d: drift):
         exit_code = run_deps_check_cli(tmp_path)
 
     out = capsys.readouterr().out
@@ -73,7 +73,7 @@ def test_unresolved_only_is_informational_and_exits_ok(tmp_path: Path, capsys) -
     lib_dir = _make_barn_library(tmp_path)
     drift = DepDrift(lib_dir=lib_dir, unresolved=["some.weird.import"])
 
-    with patch("haywire_studio.deps_cli.detect_share_drift", side_effect=lambda d: drift):
+    with patch("haywire_studio.packaging.deps.detect_share_drift", side_effect=lambda d: drift):
         exit_code = run_deps_check_cli(tmp_path)
 
     out = capsys.readouterr().out
@@ -102,7 +102,7 @@ def test_never_imports_or_constructs_share_pipeline() -> None:
     """
     import ast
 
-    import haywire_studio.deps_cli as deps_cli_module
+    import haywire_studio.packaging.deps as deps_cli_module
 
     assert "SharePipeline" not in dir(deps_cli_module)
     src = deps_cli_module.__spec__.loader.get_source(deps_cli_module.__name__)  # type: ignore[union-attr]
@@ -114,5 +114,5 @@ def test_never_imports_or_constructs_share_pipeline() -> None:
             imported_names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.Import):
             imported_modules.update(alias.name for alias in node.names)
-    assert "haywire_studio.share.pipeline" not in imported_modules
+    assert "haywire_studio.packaging.share.pipeline" not in imported_modules
     assert "SharePipeline" not in imported_names

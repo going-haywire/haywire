@@ -14,7 +14,7 @@ import pytest
 import toml
 
 from haywire.core.library.dep_detect import EntryPointLibrarySource
-from haywire_studio.share import (
+from haywire_studio.packaging.share import (
     DepDrift,
     _format_drift_report,
     apply_drift_fix,

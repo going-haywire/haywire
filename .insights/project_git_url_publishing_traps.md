@@ -34,7 +34,7 @@ Scaffolded at init (`_generate_gitattributes`): text=auto plus `binary` markers 
 
 ## 3. `install_spec` carries no ref — consumers always get default-branch HEAD
 
-`_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/share.py:298`) emits no ref, so a marketstall entry advertising `min_version = "0.3.1"` still installs whatever `master` holds right now. `min_version` is advisory; nothing is reproducible, and a broken default branch immediately breaks every consumer.
+`_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/packaging/share.py:298`) emits no ref, so a marketstall entry advertising `min_version = "0.3.1"` still installs whatever `master` holds right now. `min_version` is advisory; nothing is reproducible, and a broken default branch immediately breaks every consumer.
 
 Related: the marketstall **share URL** (`_derive_url`, `share.py:816`) and `docs_url`/`examples_url`/`tests_url` (`share.py:317`) all resolve against the *current branch*, not a tag — so those URLs drift as the branch moves.
 
@@ -49,6 +49,6 @@ PEP 508's `git+URL@tag#subdirectory=` spelling is fine inside `install_spec` its
 
 Files:
 - `barn/haybale-marketplace/haybale_marketplace/library_manager.py`
-- `packages/haywire-studio/src/haywire_studio/share.py`
+- `packages/haywire-studio/src/haywire_studio/packaging/share.py`
 - `packages/haywire-studio/src/haywire_studio/init.py`
 - `internals/superpowers/2026-07-30-share-wizard.md`

@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.share.pipeline import (
+from haywire_studio.packaging.share.pipeline import (
     BarnDirtyFile,
     BumpResult,
     CommitError,

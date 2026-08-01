@@ -6,8 +6,8 @@ from unittest.mock import patch
 
 import pytest
 
-from haywire_studio.share.pipeline import PipelineStateError, PushError
-from haywire_studio.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline import PipelineStateError, PushError
+from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
 
 pytestmark = pytest.mark.unit
 
@@ -66,7 +66,7 @@ async def test_push_streams_output(pushable: Path) -> None:
 async def test_push_uses_the_hardened_env(pushable: Path) -> None:
     """A missing credential must be a clean error, not an indefinite hang —
     there is no TTY behind a NiceGUI event handler."""
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     seen: dict = {}
 
@@ -75,7 +75,7 @@ async def test_push_uses_the_hardened_env(pushable: Path) -> None:
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
     with patch(
-        "haywire_studio.share.pipeline.steps.push.git_remote_streaming",
+        "haywire_studio.packaging.share.pipeline.steps.push.git_remote_streaming",
         side_effect=_capture,
     ):
         await _ready(pushable).apply_push()
@@ -87,14 +87,14 @@ async def test_push_uses_the_hardened_env(pushable: Path) -> None:
 
 @pytest.mark.anyio
 async def test_push_failure_raises_with_the_manual_command(pushable: Path) -> None:
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     async def _fail(args, *, cwd, on_output, timeout=None):
         on_output("remote: Permission denied")
         return gitcmd.GitResult(ok=False, stdout="denied", stderr="denied", returncode=128)
 
     with patch(
-        "haywire_studio.share.pipeline.steps.push.git_remote_streaming",
+        "haywire_studio.packaging.share.pipeline.steps.push.git_remote_streaming",
         side_effect=_fail,
     ):
         with pytest.raises(PushError) as excinfo:
@@ -108,7 +108,7 @@ async def test_push_failure_raises_with_the_manual_command(pushable: Path) -> No
 async def test_push_is_retryable_in_place(pushable: Path) -> None:
     """A transient network failure must not poison the pipeline — the same step
     can be run again without re-running earlier steps."""
-    from haywire_studio.share import git as gitcmd
+    from haywire_studio.packaging.share import git as gitcmd
 
     calls = {"n": 0}
 
@@ -120,7 +120,7 @@ async def test_push_is_retryable_in_place(pushable: Path) -> None:
 
     pipeline = _ready(pushable)
     with patch(
-        "haywire_studio.share.pipeline.steps.push.git_remote_streaming",
+        "haywire_studio.packaging.share.pipeline.steps.push.git_remote_streaming",
         side_effect=_flaky,
     ):
         with pytest.raises(PushError):

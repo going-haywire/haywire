@@ -40,17 +40,17 @@ def project(tmp_path: Path) -> Path:
 
 
 def _no_drift(lib_dir: Path):
-    from haywire_studio.share import DepDrift
+    from haywire_studio.packaging.share import DepDrift
 
     return DepDrift(lib_dir=lib_dir)
 
 
 def _fake_docs():
     """Patch apply_docs so no real library system boots in a unit test."""
-    from haywire_studio.share.pipeline.results import DocsResult
+    from haywire_studio.packaging.share.pipeline.results import DocsResult
 
     return patch(
-        "haywire_studio.share.pipeline.pipeline.SharePipeline.apply_docs",
+        "haywire_studio.packaging.share.pipeline.pipeline.SharePipeline.apply_docs",
         new=AsyncMock(return_value=DocsResult(coverage={}, written=[])),
     )
 
@@ -59,10 +59,12 @@ def _fake_docs():
 
 
 def test_yes_runs_the_whole_pipeline(project: Path) -> None:
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift),
+        patch(
+            "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
+        ),
         _fake_docs(),
     ):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
@@ -78,10 +80,12 @@ def test_yes_runs_the_whole_pipeline(project: Path) -> None:
 
 
 def test_yes_uses_the_supplied_message(project: Path) -> None:
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift),
+        patch(
+            "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
+        ),
         _fake_docs(),
     ):
         run_share_cli(
@@ -99,7 +103,7 @@ def test_yes_uses_the_supplied_message(project: Path) -> None:
 
 def test_yes_without_bump_fails_fast(project: Path, capsys) -> None:
     """Non-interactive means every answer comes from a flag — guessing a version is not ours to do."""
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     code = run_share_cli(repo_root=project, yes=True, bump=None, message=None)
 
@@ -109,13 +113,15 @@ def test_yes_without_bump_fails_fast(project: Path, capsys) -> None:
 
 def test_yes_stops_on_unresolved_drift(project: Path, capsys) -> None:
     """Replace can destructively remove declared deps — never a non-interactive default."""
-    from haywire_studio.share import DepDrift
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share import DepDrift
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     def _drifty(lib_dir: Path):
         return DepDrift(lib_dir=lib_dir, pyproject_missing=["numpy"])
 
-    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty):
+    with patch(
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty
+    ):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
 
     assert code != 0
@@ -124,11 +130,13 @@ def test_yes_stops_on_unresolved_drift(project: Path, capsys) -> None:
 
 
 def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> None:
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
 
-    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
+    with patch(
+        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
+    ):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
 
     assert code != 0
@@ -138,10 +146,12 @@ def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> 
 
 
 def test_yes_prints_the_share_url(project: Path, capsys) -> None:
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift),
+        patch(
+            "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
+        ),
         _fake_docs(),
     ):
         run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
@@ -153,7 +163,7 @@ def test_yes_prints_the_share_url(project: Path, capsys) -> None:
 
 
 def test_precondition_failure_exits_before_any_write(tmp_path: Path) -> None:
-    from haywire_studio.share.cli import run_share_cli
+    from haywire_studio.packaging.share.cli import run_share_cli
 
     repo = tmp_path / "noremote"
     lib = repo / "barn" / "haybale-alpha"
