@@ -635,7 +635,8 @@ def test_every_wizard_select_is_marked_in_popup() -> None:
     import re
     from pathlib import Path as _Path
 
-    source = _Path("barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard.py").read_text()
+    wizard_dir = _Path("barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard")
+    source = "\n".join(path.read_text() for path in sorted(wizard_dir.glob("*.py")))
     selects = len(re.findall(r"\bui\.select\(|\bselect_field\(", source))
     marked = source.count("in_popup=True")
     assert selects, "expected at least one select in the wizard"
@@ -650,7 +651,9 @@ def test_render_functions_import_and_reference_only_tokens() -> None:
     import re
     from pathlib import Path as _Path
 
-    source = _Path("barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard.py").read_text()
-    assert not re.search(r"#[0-9a-fA-F]{3,8}\b", source), "hardcoded colour found"
-    assert "box-shadow" not in source, "no box-shadow on chrome (design guide)"
-    assert "ui.card()" not in source, "use Popup / hui.dialog_card(), not a bare card"
+    wizard_dir = _Path("barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard")
+    for path in sorted(wizard_dir.glob("*.py")):
+        source = path.read_text()
+        assert not re.search(r"#[0-9a-fA-F]{3,8}\b", source), f"hardcoded colour found in {path.name}"
+        assert "box-shadow" not in source, f"no box-shadow on chrome (design guide) in {path.name}"
+        assert "ui.card()" not in source, f"use Popup / hui.dialog_card(), not a bare card, in {path.name}"
