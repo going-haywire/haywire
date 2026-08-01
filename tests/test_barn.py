@@ -69,6 +69,23 @@ def test_ignores_files_directly_under_barn(tmp_path: Path) -> None:
     assert barn_library_dirs(tmp_path) == []
 
 
+def test_ignores_symlinked_library_dirs(tmp_path: Path) -> None:
+    """A symlink under barn/ (e.g. a gitignored local-only dev library) is
+    never committed, so a consumer cloning the repo would never see it —
+    publishing it would advertise a library that doesn't exist for anyone
+    but the author. See .insights/project_git_url_publishing_traps.md.
+    """
+    real_lib = tmp_path / "real-lib-elsewhere"
+    real_lib.mkdir(parents=True)
+    (real_lib / "pyproject.toml").write_text("[project]\nname = 'x'\n")
+
+    barn = tmp_path / "barn"
+    barn.mkdir(parents=True)
+    (barn / "haybale-linked").symlink_to(real_lib, target_is_directory=True)
+
+    assert barn_library_dirs(tmp_path) == []
+
+
 def test_sorted_order_guarantee(tmp_path: Path) -> None:
     barn = tmp_path / "barn"
     names = ["zeta", "alpha", "mid", "beta"]

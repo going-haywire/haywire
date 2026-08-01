@@ -48,12 +48,12 @@ def current_ref(repo_root: Path) -> str | None:
 def barn_library_dirs(repo_root: Path) -> list[Path]:
     """Every ``barn/*`` directory holding a ``pyproject.toml``, sorted by path.
 
-    ``.is_file()`` is the settled predicate, not ``.exists()``: a directory
-    literally named ``pyproject.toml`` would pass ``.exists()`` but is not a
-    manifest, so it must not be treated as a library. Returns an empty list
-    when ``<repo_root>/barn`` does not exist.
+    Symlinked entries are excluded. A symlink under ``barn/`` (e.g. a
+    gitignored local-only dev library) is never committed`.
     """
     barn = repo_root / "barn"
     if not barn.is_dir():
         return []
-    return sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file())
+    return sorted(
+        d for d in barn.iterdir() if d.is_dir() and not d.is_symlink() and (d / "pyproject.toml").is_file()
+    )
