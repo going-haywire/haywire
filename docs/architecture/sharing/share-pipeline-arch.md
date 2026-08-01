@@ -165,7 +165,7 @@ The effect: nothing downstream of `pipeline.py` — a wizard step handler's `exc
 
 ## 5. The default-branch publishing rule
 
-`check_preconditions()` unconditionally rejects two situations: a detached `HEAD`, and being on any branch other than the remote's default branch. There is no bypass — no `--ref` flag, no keyword argument, nothing. This is deliberate and, as of this document, has no ADR of its own; this document and the [sharing guide, §4.3](../../guides/sharing-libraries.md#43-publishing-from-the-default-branch) are its only homes.
+`check_preconditions()` unconditionally rejects two situations: a detached `HEAD`, and being on any branch other than the remote's default branch. There is no bypass — no `--ref` flag, no keyword argument, nothing. This is deliberate and, as of this document, has no ADR of its own; this section is its canonical home. The [sharing guide, §4.3](../../guides/sharing-libraries.md#43-publishing-from-the-default-branch) states the rule and its remedy for authors, and links here for the reasoning.
 
 **Why it existed.** Before the tag-pinning fix, the generated marketstall
 entry carried several URLs that were not pinned the same way: `docs_url`,

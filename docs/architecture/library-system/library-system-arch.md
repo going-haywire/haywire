@@ -3,7 +3,7 @@ status: draft
 doc_template: system-reference
 scope: Runtime infrastructure that discovers, loads, and tracks libraries — LibraryRegistry, LibraryDiscovery, LibraryIdentity, FileWatcher
 see-also:
-  - ../../haybale/haybale-marketplace-arch.md
+  - ../../haybale/marketplace/haybale-marketplace-arch.md
   - ../hot-reload/hot-reload-arch.md
   - ../../haybale/library-canon.md
   - ../../haybale/haybale-package-canon.md

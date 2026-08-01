@@ -3,7 +3,7 @@ status: draft
 doc_template: philosophy
 scope: The philosophy behind haywire's sharing model — how libraries move between authors and consumers, the trust assumptions, the lifecycle, the non-goals
 see-also:
-  - ../../haybale/haybale-marketplace-arch.md
+  - ../../haybale/marketplace/haybale-marketplace-arch.md
   - ../library-system/library-system-arch.md
   - ../../haybale/haybale-package-canon.md
   - ../../guides/sharing-libraries.md

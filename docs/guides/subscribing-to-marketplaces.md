@@ -4,7 +4,7 @@ doc_template: guide
 scope: Subscribing to other authors' libraries — Add Source, Refresh, conflict resolution, stale handling, what to do when feeds go offline
 see-also:
   - ../architecture/sharing/sharing-arch.md
-  - ../haybale/haybale-marketplace-arch.md
+  - ../haybale/marketplace/haybale-marketplace-arch.md
   - ./sharing-libraries.md
   - ../reference/glossary.md
 ---

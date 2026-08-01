@@ -5,7 +5,7 @@ scope: Authoring a haybale library and publishing it for others — from new imp
 see-also:
   - ../haybale/haybale-package-canon.md
   - ../architecture/sharing/sharing-arch.md
-  - ../haybale/haybale-marketplace-arch.md
+  - ../haybale/marketplace/haybale-marketplace-arch.md
   - ./subscribing-to-marketplaces.md
   - ../reference/publish_releases.md
   - ../reference/glossary.md
@@ -59,12 +59,10 @@ What happens:
 2. It resolves every top-level import to its installed Python distribution.
 3. It classifies each one: framework (`haywire-core`, `haywire-studio`), registered haywire library (anything declaring a `haywire.libraries` entry point), or third-party (`numpy`, `requests`, etc.).
 4. It diffs the result against what your two manifests currently declare.
-5. A diff modal previews the changes, with two ways to apply them:
-
-| Apply mode | Effect |
-|---|---|
-| **Union** | Add what's missing. Never remove. Safe against dynamic imports the static scan missed. |
-| **Replace** | Overwrite both manifests with the detected set. Removes anything not detected. Useful for cleanup; risky if you have dynamic imports. |
+5. A diff modal previews the changes, offering **Union** (add what's missing,
+   never remove — the safe default) or **Replace** (overwrite with exactly the
+   detected set). Both modes are specified in
+   [haybale-marketplace-arch §6](../haybale/marketplace/haybale-marketplace-arch.md#6-drift-detection-at-edit-time).
 
 After Apply:
 
@@ -116,26 +114,11 @@ same information the drift step would have reported interactively.
 ### 4.3 Publishing from the default branch
 
 `haywire share` refuses to publish from anything but the repository's default
-branch. There is no escape hatch — the rule is unconditional.
-
-Historically this rule existed because the generated marketstall entry's
-`install_spec`, `docs_url`, `examples_url`, and `tests_url` disagreed on what
-they pointed at: `install_spec` (the actual install command) carried no ref
-at all and always resolved to the remote's default-branch HEAD, while the
-other three were pinned to whatever branch was checked out at publish time.
-Publishing from a feature branch meant those two URL families silently
-pointed at two different places from day one — and once the feature branch
-was merged and deleted, the doc/example/test URLs went dead. That failure
-never landed on the author, who already knew the branch was gone; it landed
-on a consumer following one of those links months later.
-
-As of the tag-pinning fix, all four URLs pin to the same release tag
-(`v<version>`) that `haywire share` creates as part of publishing, so they no
-longer disagree — a feature branch dying no longer breaks any of them. The
-default-branch-only rule remains in force regardless: it is still the
-simplest way to guarantee every published entry reflects a state that will
-still exist and keep receiving fixes going forward, and relaxing it is a
-separate decision this fix does not make.
+branch. There is no escape hatch — the rule is unconditional. It guarantees
+every published entry reflects a state that will still exist and keep
+receiving fixes after the run. For the full rationale, and why tag-pinning
+did not relax the rule, see
+[share-pipeline-arch §5](../architecture/sharing/share-pipeline-arch.md#5-the-default-branch-publishing-rule).
 
 If `haywire share` reports that you're on the wrong branch, e.g.:
 
@@ -169,13 +152,12 @@ source_url   = "https://github.com/you/repo"
 docs_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
 ```
 
-A few points worth knowing:
+A few points worth knowing as an author (every field is defined in [the `Haybale` schema](../haybale/marketplace/haybale-marketplace-arch.md#23-the-haybale-schema)):
 
 - `source = "git"` and the `install_spec` with `#subdirectory=` are how `haywire share` packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI.
 - `dependencies` lists pip distribution names of the haybale libraries you depend on — *not* the underscore form used inside the `@library` decorator.
-- `docs_url` points at the library's Python module directory. Generated `OVERVIEW.md` and `QUICKREF.md` live there and the Library Manager will fetch them for pre-install discovery.
 - `min_version` is a *floor*, not "latest". Consumers may install a higher version.
-- `install_spec`, `docs_url`, `examples_url`, and `tests_url` are all pinned to the release tag (`v<version>`) created by this run of `haywire share` — not the branch you published from. They point at the exact commit a consumer installing today will get, and stay correct even after your branch is deleted.
+- The four ref-bearing URLs (`install_spec`, `docs_url`, `examples_url`, `tests_url`) all pin to the release tag `v<version>` created by this run — not the branch you published from — so they stay correct even after your branch is deleted.
 
 `haywire share` derives all this from each library's `pyproject.toml`, its `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.
 
@@ -236,18 +218,12 @@ write code → add import → click Detect Dependencies → Union → Save Chang
                                               consumer subscribes via Add Source
 ```
 
-Two separate commands cover the CI side — there's no single `--check` gate:
-
-- `haywire deps check` — checks every `barn/*` library's dependency manifests
-  for drift (missing `pyproject.toml` entries, missing `@library(dependencies=...)`
-  entries, or a version-lag floor). Exits 1 if any library has drift, exits 0
-  otherwise. Never writes. Run this as a PR gate to catch manifest drift
-  before merging.
-- `haywire docs --all --json <path>` — regenerates every in-repo library's
-  generated docs (README/OVERVIEW/QUICKREF/`docs/*.md`) for real. This is a
-  "generate and commit" job, not a staleness gate: it always exits 0 unless
-  generation itself crashes. Run it in CI to keep generated docs current,
-  then commit whatever it produces.
+Two separate commands cover the CI side — there's no single `--check` gate.
+Run `haywire deps check` as a PR gate to catch manifest drift before merging,
+and `haywire docs --all --json <path>` on merge to keep generated docs current,
+committing whatever it produces. What each one exits with, and why neither is a
+staleness gate, is in
+[share-pipeline-arch §6](../architecture/sharing/share-pipeline-arch.md#6-the-current-ci-story).
 
 ## 8. Common pitfalls
 
@@ -262,7 +238,7 @@ Three causes worth checking:
 3. The git URL in your `install_spec` is unreachable. Test with `uv pip install '<install_spec>'` directly.
 
 **Detect Dependencies didn't pick up an import.**
-The scan is static AST analysis. Dynamic imports (`importlib.import_module(name)`, `__import__(...)`) are invisible. Declare those manually in both manifests.
+The scan is static AST analysis, so dynamic imports (`importlib.import_module(name)`, `__import__(...)`) are invisible to it. Declare those manually in both manifests — and prefer Union over Replace in that library, since Replace would drop them again.
 
 **`haywire share` produces a URL with `<REPO_URL>` placeholder.**
 The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`. In the GUI wizard, the "Check the project" step offers this as an inline **Add origin remote** fix — type the URL and it runs the command for you, then re-checks in place.
@@ -280,10 +256,10 @@ You're not on a branch. If the remedy names one or more branches (e.g. `` This c
 See [§4.3 Publishing from the default branch](#43-publishing-from-the-default-branch): switch to the default branch (`git switch <default>`).
 
 **`haywire deps check` exits non-zero in CI.**
-One or more `barn/*` libraries have dependency-manifest drift. The command
-prints which library and which manifest entries are missing. Resolve it with
-`haywire share` (interactive) or the Library Overview Editor's Detect
-Dependencies button.
+One or more `barn/*` libraries have actionable dependency-manifest drift. The
+command prints which library and which manifest entries are missing. Resolve it
+with `haywire share` (interactive) or the Library Overview Editor's Detect
+Dependencies button (§3).
 
 **You're working in `--dev` mode and want to share a library that has dev-repo dependencies.**
 `haywire share`'s output uses `source = "git"` for haywire's `dependencies` field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style `pyproject.toml` won't survive `pip install`. Make sure the published version of your library declares versioned dependencies (`haybale-core~=0.0.1`), not editable path sources. `haywire share` handles this correctly when the dependencies are listed in the library's `pyproject.toml` rather than in the project root's `pyproject.toml`.

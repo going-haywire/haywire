@@ -107,8 +107,8 @@ nav:
   - Haybale:
       - Library: haybale/library-canon.md
       - Haybale package: haybale/haybale-package-canon.md
-      - Marketplace: haybale/marketplace-canon.md
-      - Marketplace — architecture: haybale/haybale-marketplace-arch.md
+      - Marketplace: haybale/marketplace/marketplace-canon.md
+      - Marketplace — architecture: haybale/marketplace/haybale-marketplace-arch.md
 
   - Guides:
       - Node roles: guides/node-roles.md

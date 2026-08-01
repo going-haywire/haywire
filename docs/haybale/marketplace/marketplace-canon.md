@@ -4,11 +4,11 @@ doc_template: canonical-example
 scope: The haybale-marketplace plugin — the optional library installer/browser haybale, its editors, its manager + marketplace states, and the optionality contract that lets the studio run without it
 see-also:
   - haybale-marketplace-arch.md
-  - library-canon.md
-  - haybale-package-canon.md
-  - ../architecture/library-system/library-system-arch.md
-  - ../adr/0001-haybale-marketplace-carveout.md
-  - ../reference/glossary.md
+  - ../library-canon.md
+  - ../haybale-package-canon.md
+  - ../../architecture/library-system/library-system-arch.md
+  - ../../adr/0001-haybale-marketplace-carveout.md
+  - ../../reference/glossary.md
 ---
 
 # Library Marketplace — Canonical Example
@@ -43,7 +43,7 @@ the runtime:                      the plugin (this doc):          the host studi
 
 The plugin owns **no registry state and no runtime parsing**. It calls `MarketplaceState` for catalog data (which wraps `haywire.core.marketstall`) and `LibraryManager` for install verbs (which shells out to `uv` and asks the Library System to rescan). Enable/disable persistence belongs to the core `LibraryRegistry`, not the plugin.
 
-**Boundaries.** *How* the editors, refresh pipeline, two-tier marketplace files, conflict resolution, and `InstallType`-gated actions work — see [haybale-marketplace-arch](marketplace/haybale-marketplace-arch.md). *Why* the marketplace/marketstall trust model is shaped the way it is — see [shari../../architecture/sharing/sharing-arch.mdg-arch.md). What a `BaseLibrary`/`@library` author writes — see [librar../library-canon.md-canon.md). How a haybale is packaged and published — see [haybale-packag../haybale-package-canon.md-canon.md).
+**Boundaries.** *How* the editors, refresh pipeline, two-tier marketplace files, conflict resolution, and `InstallType`-gated actions work — see [haybale-marketplace-arch](haybale-marketplace-arch.md). *Why* the marketplace/marketstall trust model is shaped the way it is — see [sharing-arch](../../architecture/sharing/sharing-arch.md). What a `BaseLibrary`/`@library` author writes — see [library-canon](../library-canon.md). How a haybale is packaged and published — see [haybale-package-canon](../haybale-package-canon.md).
 
 ## 3. What the plugin ships
 
@@ -181,4 +181,4 @@ state.manager.registry.disable_library(lib_id)   # registry persists via host.to
 | Persisting disabled-state in the plugin | Persistence belongs to the core `LibraryRegistry` / `HostStore`, not the marketplace |
 | Scanning `editors/` before `state/` | Editor modules import state classes; wrong order leaves stale class objects |
 
-For *how* the surface is built (refresh pipeline, two-tier files, conflict resolution, install gating), see [haybale-marketplace-arch](marketplace/haybale-marketplace-arch.md). For the architectural rationale of the carve-out, see [A../../adr/0001-haybale-marketplace-carveout.mdrveout.md).
+For *how* the surface is built (refresh pipeline, two-tier files, conflict resolution, install gating), see [haybale-marketplace-arch](haybale-marketplace-arch.md). For the architectural rationale of the carve-out, see [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md).

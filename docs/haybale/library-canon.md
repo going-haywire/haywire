@@ -45,7 +45,7 @@ The Library class has two mandatory hooks:
 
 Optional: `@library(file_watcher=True)` enables hot-reload — the framework starts a file watcher rooted at the library's source directory and re-runs `register_components()` whenever a `.py` file changes.
 
-**Boundaries.** What the registries actually do at runtime, what `LibraryDiscovery` checks, how `InstallType` is determined, the discovery priority order — all in [architecture/library-system](../architecture/library-system/library-system-arch.md). The `pyproject.toml` shape, build/publish workflow, and `marketplace.toml` distribution — all in [haybale/haybale-package](haybale-package-canon.md).
+**Boundaries.** What the registries actually do at runtime, what `LibraryDiscovery` checks, how `InstallType` is determined, the discovery priority order — all in [architecture/library-system](../architecture/library-system/library-system-arch.md). The `pyproject.toml` shape, build/publish workflow, and `marketstall.toml` distribution — all in [haybale/haybale-package](haybale-package-canon.md).
 
 ## 3. Important concepts
 
@@ -252,7 +252,7 @@ What this example exercises:
 | Imports from canonical paths (not the obsolete `library/library` / `library/registries/`) | every import |
 | Hot-reload via `file_watcher=True` | `@library(file_watcher=True)` |
 
-For the `pyproject.toml` shape, build/publish workflow, distribution via `marketplace.toml`, and the full commands for `uv pip install -e .` etc., see [haybale/haybale-package](haybale-package-canon.md). For the runtime infrastructure that loads your Library, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's in-app library manager UI, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
+For the `pyproject.toml` shape, build/publish workflow, distribution via `marketstall.toml`, and the full commands for `uv pip install -e .` etc., see [haybale/haybale-package](haybale-package-canon.md). For the runtime infrastructure that loads your Library, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's in-app library manager UI, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
 
 ---
 

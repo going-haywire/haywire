@@ -4,18 +4,18 @@ doc_template: impl-spec
 scope: The haybale-marketplace plugin — the optional library installer/browser surface, its two-tier marketplace files, refresh pipeline, conflict resolution, drift detection, and the editors and states that drive them
 see-also:
   - marketplace-canon.md
-  - ../architecture/sharing/sharing-arch.md
-  - ../architecture/library-system/library-system-arch.md
-  - ../architecture/studio/studio-arch.md
-  - haybale-package-canon.md
-  - ../guides/sharing-libraries.md
-  - ../guides/subscribing-to-marketplaces.md
-  - ../reference/glossary.md
+  - ../../architecture/sharing/sharing-arch.md
+  - ../../architecture/library-system/library-system-arch.md
+  - ../../architecture/studio/studio-arch.md
+  - ../haybale-package-canon.md
+  - ../../guides/sharing-libraries.md
+  - ../../guides/subscribing-to-marketplaces.md
+  - ../../reference/glossary.md
 ---
 
 # haybale-marketplace — Architecture
 
-This document describes *how* the library-management surface is built: the file layout it reads and writes, the pipeline that turns subscriptions into a usable catalog, the editors that drive that pipeline, and the boundary between this subsystem and the rest of haywire. For the *why* — the conceptual model behind these mechanics — see [sharing-arch](../../architecture/sharing/sharing-arch.md). For the author-facing view of the plugin (what it ships, how it self-registers, optionality), see [marketplace-canon](../marketplace-canon.md).
+This document describes *how* the library-management surface is built: the file layout it reads and writes, the pipeline that turns subscriptions into a usable catalog, the editors that drive that pipeline, and the boundary between this subsystem and the rest of haywire. For the *why* — the conceptual model behind these mechanics — see [sharing-arch](../../architecture/sharing/sharing-arch.md). For the author-facing view of the plugin (what it ships, how it self-registers, optionality), see [marketplace-canon](marketplace-canon.md).
 
 The library-management surface lives in its own optional haybale package, **`haybale-marketplace`** (`barn/haybale-marketplace/`), carved out of `haybale-studio` per [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md). The studio runs without it: if the package is absent, the left-slot library browser simply doesn't appear — no defensive code in `haybale-studio`. `haywire init` installs it by default.
 
@@ -80,6 +80,10 @@ All `[[haybales]]` and `[[caches]]` entries (in both files, plus what marketplac
 | `dependencies` | list[str] | no | Distribution names of other haybale libraries this one needs. |
 | `source_url` | string | no | URL to the repo or source location. Surfaced as a clickable link in the install-safety modal. |
 | `docs_url` | string | no | URL or local path to the docs directory. |
+| `examples_url` | string | no | Raw URL to the library's `examples/` folder. Emitted only when that folder holds at least one `.haywire` graph, and only for GitHub/GitLab remotes. |
+| `tests_url` | string | no | Raw URL to the library's `tests/` folder, under the same conditions as `examples_url`. |
+
+`install_spec`, `docs_url`, `examples_url`, and `tests_url` are the four **ref-bearing** URLs. When an entry is produced through `SharePipeline`, all four pin to the release tag `v<version>` created by that run; a standalone `write_marketstall()` call with no `tag` leaves `install_spec` ref-less and the other three on the current branch. See [share-pipeline-arch §5](../../architecture/sharing/share-pipeline-arch.md#5-the-default-branch-publishing-rule).
 
 Cache-only fields (project marketplace `[[caches]]` only, never authored upstream):
 
@@ -194,7 +198,7 @@ The UI calls **`MarketplaceState`**, not `marketplace_runtime` directly. The sta
 | **Library Browser** | left | Lists installed + available libraries. Filter toggles for REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar exposes Refresh, Add Source, Edit File. |
 | **Library Overview Editor** | main | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall actions. Reached by clicking a row in the Library Browser. |
 
-The remaining two (`library_component_editor`, `library_marketplace_dialog`) handle per-component inspection and the Add-Source flow. The full editor/state inventory is in [marketplace-canon §What it ships](../marketplace-canon.md#3-what-the-plugin-ships).
+The remaining two (`library_component_editor`, `library_marketplace_dialog`) handle per-component inspection and the Add-Source flow. The full editor/state inventory is in [marketplace-canon §What it ships](marketplace-canon.md#3-what-the-plugin-ships).
 
 `LibraryManager` (the orchestrator class in `barn/haybale-marketplace/haybale_marketplace/library_manager.py`) owns the install / uninstall / enable / disable / edit-identity verbs. It is a plain class — *not* an `AppState`. It is published to the other editors through a thin `LibraryManagerState(AppState)` holder (composition, not inheritance — see [ADR-0001 §Why composition](../../adr/0001-haybale-marketplace-carveout.md)), so consumers reach it via `ctx.app_data[LibraryManagerState].manager.X`. The state resolves the registry and workspace root from the ambient DI context in `on_enable()`.
 
@@ -261,10 +265,18 @@ When the user clicks Detect:
 
 1. The runtime statically scans the library's source via `detect_deps(lib_dir, libraries=manager.registry)`.
 2. It computes two diffs: the current `@library(dependencies=[...])` value vs detected, and the current `[project] dependencies` in the library's `pyproject.toml` vs detected.
-3. A diff modal previews both, offering **Union** (merge, never remove) or **Replace** (detected only).
+3. A diff modal previews both, offering two apply modes:
+
+   | Apply mode | Effect |
+   |---|---|
+   | **Union** | Add what's missing; never remove. Safe against dynamic imports the static scan can't see. |
+   | **Replace** | Overwrite both manifests with exactly the detected set, dropping anything not detected. Useful for cleanup; destructive when a dependency is only reached via a dynamic import. |
+
 4. On apply, the `@library` deps update the dialog's input field (the user still has to click Save Changes to persist); the pyproject.toml is written immediately.
 
-The corresponding CLI gate lives in `haywire share` — see [sharing-libraries guide](../../guides/sharing-libraries.md).
+The scan is static AST analysis, so `importlib.import_module(name)` and `__import__(...)` are invisible to it — this is precisely why Union rather than Replace is the safe default.
+
+The same detection backs the CLI: step 2 of `SharePipeline` and `haywire deps check` both call `detect_share_drift()` ([share-pipeline-arch §2.2](../../architecture/sharing/share-pipeline-arch.md#22-step-2-dependency-drift)). For the author-facing workflow, see the [sharing-libraries guide §3](../../guides/sharing-libraries.md#3-keeping-the-manifests-honest).
 
 ## 7. Failure surfaces
 
@@ -324,7 +336,7 @@ The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouche
 
 ### 9.3 What `haywire share` produces
 
-Running `haywire share` at a repo root with a `barn/` containing libraries writes `<repo-root>/marketstall.toml`, one `[[haybales]]` entry per library, in lockstep with the version bump for that run:
+Running `haywire share` at a repo root with a `barn/` containing libraries writes `<repo-root>/marketstall.toml`, one `[[haybales]]` entry per library, in lockstep with the version bump for that run. Field meanings are in [§2.3](#23-the-haybale-schema):
 
 ```toml
 # marketstall.toml — share this file's raw URL so others can subscribe
@@ -339,10 +351,15 @@ author       = "Your Name"
 source       = "git"
 install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
 tags         = []
+os           = []
 dependencies = ["haybale-core"]
 source_url   = "https://github.com/you/repo"
 docs_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
+examples_url = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/examples/"
+tests_url    = ""
 ```
+
+`examples_url` is populated here because that library ships `.haywire` graphs under `examples/`; `tests_url` is empty because it ships none under `tests/`.
 
 A consumer pastes the file's blob URL (e.g. `https://github.com/you/repo/blob/main/marketstall.toml`) into Add Source. The runtime recognizes the host, derives the raw URL, fetches the body, sees one `[[haybales]]` entry, and writes a `[[stalls]]` subscription to the user's global marketplace. The next refresh picks up the library.
 
@@ -352,4 +369,4 @@ A consumer pastes the file's blob URL (e.g. `https://github.com/you/repo/blob/ma
 - **Cross-feed dep resolution.** When a library's `dependencies` lists another haybale package not yet installed, should the Library Manager offer to install both? Currently the user installs each individually.
 - **Auto-refresh on a schedule.** Refresh is explicit by design — see [sharing-arch §The refresh cycle](../../architecture/sharing/sharing-arch.md#the-refresh-cycle) — but a "refresh on first open of the day" option may be worth exposing.
 
-> **Resolved:** the `haybale-marketplace` carve-out has landed. The Library Browser, Library Overview Editor, `MarketplaceState`, and `LibraryManager` now live in the standalone `barn/haybale-marketplace/` package — see [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md) and [marketplace-canon](../marketplace-canon.md).
+> **Resolved:** the `haybale-marketplace` carve-out has landed. The Library Browser, Library Overview Editor, `MarketplaceState`, and `LibraryManager` now live in the standalone `barn/haybale-marketplace/` package — see [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md) and [marketplace-canon](marketplace-canon.md).
