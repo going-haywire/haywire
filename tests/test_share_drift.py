@@ -16,11 +16,9 @@ import toml
 from haywire.core.library.dep_detect import EntryPointLibrarySource
 from haywire_studio.share import (
     DepDrift,
-    DriftError,
     _format_drift_report,
     apply_drift_fix,
     detect_share_drift,
-    share_save_repo,
     union_pyproject_deps,
 )
 
@@ -283,73 +281,6 @@ def test_apply_drift_fix_no_op_when_no_drift(tmp_path: Path) -> None:
     drift = DepDrift(lib_dir=lib)
     apply_drift_fix(drift)  # must not raise
     assert toml.loads((lib / "pyproject.toml").read_text())["project"]["name"] == "haybale-fake"
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# share_save_repo gate integration
-# ──────────────────────────────────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-def test_share_save_strict_raises_drifterror(tmp_path: Path) -> None:
-    """A repo with one drifty library + --strict raises DriftError before writing."""
-    repo = tmp_path / "fake-repo"
-    repo.mkdir()
-    (repo / ".git").mkdir()
-    lib = _make_library(
-        repo / "barn",
-        pyproject_deps=[],
-        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
-    )
-    assert lib.exists()  # sanity
-
-    with pytest.raises(DriftError) as exc_info:
-        share_save_repo(repo, strict=True)
-
-    assert "haywire-core" in str(exc_info.value)
-    # Output file must NOT exist on strict failure.
-    assert not (repo / "marketstall.toml").exists()
-
-
-@pytest.mark.unit
-def test_share_save_fix_auto_corrects_then_emits(tmp_path: Path) -> None:
-    """--fix updates the library's pyproject in place, then emits the marketstall."""
-    repo = tmp_path / "fake-repo"
-    repo.mkdir()
-    (repo / ".git").mkdir()
-    lib = _make_library(
-        repo / "barn",
-        pyproject_deps=[],
-        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
-    )
-
-    share_save_repo(repo, fix=True)
-
-    # Marketstall written.
-    assert (repo / "marketstall.toml").is_file()
-    # Library's pyproject now declares haywire-core.
-    data = toml.loads((lib / "pyproject.toml").read_text())
-    assert any(d.startswith("haywire-core") for d in data["project"]["dependencies"])
-
-
-@pytest.mark.unit
-def test_share_save_warn_only_still_emits(tmp_path: Path) -> None:
-    """Default mode (no flags): drift is warned about but the marketstall still writes."""
-    repo = tmp_path / "fake-repo"
-    repo.mkdir()
-    (repo / ".git").mkdir()
-    lib = _make_library(
-        repo / "barn",
-        pyproject_deps=[],
-        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
-    )
-
-    share_save_repo(repo)
-
-    assert (repo / "marketstall.toml").is_file()
-    # Library's pyproject is unchanged.
-    data = toml.loads((lib / "pyproject.toml").read_text())
-    assert data["project"]["dependencies"] == []
 
 
 # ──────────────────────────────────────────────────────────────────────────────

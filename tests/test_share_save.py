@@ -1,4 +1,4 @@
-"""Tests for `haywire share --save` (aggregates all barn/* libraries into marketstall.toml)."""
+"""Tests for `write_marketstall` (aggregates all barn/* libraries into marketstall.toml)."""
 
 from pathlib import Path
 
@@ -42,18 +42,18 @@ def repo_with_two_barn_libs(tmp_path: Path) -> Path:
 
 
 def test_share_save_writes_marketstall_at_repo_root(repo_with_two_barn_libs: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
-    result = share_save_repo(repo_with_two_barn_libs)
+    result = write_marketstall(repo_with_two_barn_libs)
 
     assert result.out_path == repo_with_two_barn_libs / "marketstall.toml"
     assert result.out_path.is_file()
 
 
 def test_share_save_aggregates_all_barn_libraries(repo_with_two_barn_libs: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
-    share_save_repo(repo_with_two_barn_libs)
+    write_marketstall(repo_with_two_barn_libs)
 
     data = toml.loads((repo_with_two_barn_libs / "marketstall.toml").read_text())
     names = sorted(pkg["name"] for pkg in data["haybales"])
@@ -61,9 +61,9 @@ def test_share_save_aggregates_all_barn_libraries(repo_with_two_barn_libs: Path)
 
 
 def test_share_save_each_entry_is_source_git(repo_with_two_barn_libs: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
-    share_save_repo(repo_with_two_barn_libs)
+    write_marketstall(repo_with_two_barn_libs)
 
     data = toml.loads((repo_with_two_barn_libs / "marketstall.toml").read_text())
     for pkg in data["haybales"]:
@@ -72,7 +72,7 @@ def test_share_save_each_entry_is_source_git(repo_with_two_barn_libs: Path) -> N
 
 def test_share_save_skips_dirs_without_pyproject(tmp_path: Path) -> None:
     """A directory under barn/ that has no pyproject.toml must be silently skipped."""
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = tmp_path / "sparse-repo"
     (repo / ".git").mkdir(parents=True)
@@ -81,30 +81,30 @@ def test_share_save_skips_dirs_without_pyproject(tmp_path: Path) -> None:
         '[project]\nname = "haybale-alpha"\nversion = "0.0.1"\ndescription = "a"\n'
     )
     (repo / "barn" / "not-a-library").mkdir(parents=True)
-    # not-a-library has no pyproject.toml; share_save_repo must skip it.
+    # not-a-library has no pyproject.toml; write_marketstall must skip it.
 
-    share_save_repo(repo)
+    write_marketstall(repo)
     data = toml.loads((repo / "marketstall.toml").read_text())
     names = [pkg["name"] for pkg in data["haybales"]]
     assert names == ["haybale-alpha"]
 
 
 def test_share_save_raises_when_no_barn(tmp_path: Path) -> None:
-    from haywire_studio.share import share_save_repo, NoBarnError
+    from haywire_studio.share import write_marketstall, NoBarnError
 
     repo = tmp_path / "no-barn-repo"
     repo.mkdir()
     (repo / ".git").mkdir()
 
     with pytest.raises(NoBarnError):
-        share_save_repo(repo)
+        write_marketstall(repo)
 
 
 def test_share_save_emits_haybales_section_not_packages(repo_with_two_barn_libs: Path) -> None:
     """Per spec §1: marketstall.toml uses [[haybales]] not [[packages]]."""
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
-    share_save_repo(repo_with_two_barn_libs)
+    write_marketstall(repo_with_two_barn_libs)
 
     content = (repo_with_two_barn_libs / "marketstall.toml").read_text()
     assert "[[haybales]]" in content

@@ -53,9 +53,9 @@ def test_update_readme_markers_multiple_blocks_all_updated() -> None:
 
 @pytest.mark.unit
 def test_share_save_updates_root_readme(tmp_path: Path) -> None:
-    """End-to-end: share_save_repo rewrites the root README's marker block."""
+    """End-to-end: write_marketstall rewrites the root README's marker block."""
     from unittest.mock import patch
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     # Scaffold: root README + one barn library.
     (tmp_path / ".git").mkdir()
@@ -68,7 +68,7 @@ def test_share_save_updates_root_readme(tmp_path: Path) -> None:
 
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            result = share_save_repo(tmp_path)
+            result = write_marketstall(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     assert result.share_url == expected_url
@@ -78,7 +78,7 @@ def test_share_save_updates_root_readme(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_share_save_updates_barn_library_readme(tmp_path: Path) -> None:
     from unittest.mock import patch
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     (tmp_path / ".git").mkdir()
     lib_dir = tmp_path / "barn" / "haybale-foo"
@@ -90,7 +90,7 @@ def test_share_save_updates_barn_library_readme(tmp_path: Path) -> None:
 
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            share_save_repo(tmp_path)
+            write_marketstall(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     assert f"```sh\n{expected_url}\n```" in (lib_dir / "README.md").read_text()
@@ -100,7 +100,7 @@ def test_share_save_updates_barn_library_readme(tmp_path: Path) -> None:
 def test_share_save_no_update_readme_flag_suppresses(tmp_path: Path) -> None:
     """--no-update-readme leaves all READMEs untouched."""
     from unittest.mock import patch
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "README.md").write_text(f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
@@ -112,7 +112,7 @@ def test_share_save_no_update_readme_flag_suppresses(tmp_path: Path) -> None:
 
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            share_save_repo(tmp_path, update_readme=False)
+            write_marketstall(tmp_path, update_readme=False)
 
     assert "placeholder" in (tmp_path / "README.md").read_text()
 
@@ -121,7 +121,7 @@ def test_share_save_no_update_readme_flag_suppresses(tmp_path: Path) -> None:
 def test_share_save_no_share_url_skips_readme_update(tmp_path: Path) -> None:
     """When share URL can't be derived (no remote), READMEs are not touched."""
     from unittest.mock import patch
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "README.md").write_text(f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
@@ -132,7 +132,7 @@ def test_share_save_no_share_url_skips_readme_update(tmp_path: Path) -> None:
     )
 
     with patch("haywire_studio.share._get_remote_url", return_value=None):
-        result = share_save_repo(tmp_path)
+        result = write_marketstall(tmp_path)
 
     assert result.share_url is None
     assert "placeholder" in (tmp_path / "README.md").read_text()
@@ -142,7 +142,7 @@ def test_share_save_no_share_url_skips_readme_update(tmp_path: Path) -> None:
 def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
     """Per spec §6.6: 'Readme.md' (case variant) is found if README.md is absent."""
     from unittest.mock import patch
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     (tmp_path / ".git").mkdir()
     (tmp_path / "Readme.md").write_text(  # lowercase 'e', capital 'R'
@@ -156,7 +156,7 @@ def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
 
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            share_save_repo(tmp_path)
+            write_marketstall(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     assert f"```sh\n{expected_url}\n```" in (tmp_path / "Readme.md").read_text()

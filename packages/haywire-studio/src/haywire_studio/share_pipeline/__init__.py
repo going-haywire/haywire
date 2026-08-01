@@ -15,7 +15,14 @@ from haywire_studio.share_pipeline.errors import (
     TagCollisionError,
     VersionError,
 )
-from haywire_studio.share_pipeline.gitcmd import GitResult, git, git_remote, git_remote_streaming
+from haywire_studio.share_pipeline.gitcmd import (
+    GitResult,
+    git,
+    git_remote,
+    git_remote_streaming,
+    run_streaming,
+)
+from haywire_studio.share_pipeline.pipeline import GIT_INSTALL_HINT, SharePipeline
 from haywire_studio.share_pipeline.results import (
     BarnDirtyFile,
     BumpResult,
@@ -39,6 +46,7 @@ __all__ = [
     "DocsGenerationError",
     "DocsResult",
     "DriftReport",
+    "GIT_INSTALL_HINT",
     "GitResult",
     "LibraryVersion",
     "MarketstallError",
@@ -48,6 +56,7 @@ __all__ = [
     "PushError",
     "PushResult",
     "ShareError",
+    "SharePipeline",
     "SharePlan",
     "TagCollisionError",
     "VersionError",
@@ -55,4 +64,5 @@ __all__ = [
     "git",
     "git_remote",
     "git_remote_streaming",
+    "run_streaming",
 ]

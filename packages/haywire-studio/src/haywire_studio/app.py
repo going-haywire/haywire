@@ -1,7 +1,6 @@
 import asyncio
 import os
 import logging
-import sys
 from pathlib import Path
 from typing import Callable, Optional, TYPE_CHECKING
 
@@ -26,8 +25,6 @@ if TYPE_CHECKING:
     from haywire.ui.app.shell import AppShell
 
 logger = logging.getLogger(__name__)
-
-_BUMP_ABSENT = object()  # sentinel: --bump flag was not passed at all
 
 
 class HaywireApp:
@@ -357,30 +354,34 @@ def main():
     )
 
     share_parser = subparsers.add_parser(
-        "share", help="Generate a marketplace.toml snippet for sharing a library"
+        "share",
+        help="Publish this project: bump every barn library, regenerate docs, "
+        "rebuild marketstall.toml, commit, tag, and push",
     )
     share_parser.add_argument(
-        "library_path",
-        nargs="?",
+        "--check",
+        action="store_true",
+        help="Read-only verifier: report drift and stale docs/marketstall, then exit "
+        "non-zero. Writes nothing, commits nothing, pushes nothing.",
+    )
+    share_parser.add_argument(
+        "--yes",
+        action="store_true",
+        help="Non-interactive full run using flag-supplied answers. Requires --bump.",
+    )
+    share_parser.add_argument(
+        "--bump",
+        type=str,
         default=None,
-        help="Path to the library directory (e.g. barn/haybale-myproject). "
-        "Auto-detected if barn/ contains exactly one library.",
+        metavar="VERSION",
+        help="Version to publish: patch|minor|major, or an explicit X.Y.Z. Every "
+        "barn/* library is set to it (lockstep).",
     )
     share_parser.add_argument(
-        "--save",
-        action="store_true",
-        help="Aggregate every barn/* library into <repo-root>/marketstall.toml.",
-    )
-    share_parser.add_argument(
-        "--strict",
-        action="store_true",
-        help="Exit non-zero if any library has dependency drift (declared vs. imported).",
-    )
-    share_parser.add_argument(
-        "--fix",
-        action="store_true",
-        help="Auto-correct dependency drift by updating pyproject.toml and the "
-        "@library decorator before sharing.",
+        "--message",
+        type=str,
+        default=None,
+        help="Commit message. Defaults to 'chore: share v<version>'.",
     )
     share_parser.add_argument(
         "--ref",
@@ -392,25 +393,10 @@ def main():
         "--tag",
         type=str,
         default=None,
-        help="Tag to encode in the share URL. Use 'latest' to resolve to the most recent tag reachable from HEAD.",  # noqa: E501
-    )
-    share_parser.add_argument(
-        "--no-update-readme",
-        dest="update_readme",
-        action="store_false",
-        default=True,
-        help="Don't rewrite the marketstall:share-url marker block in any README.",
-    )
-    share_parser.add_argument(
-        "--bump",
-        nargs="?",
-        const="",
-        default=_BUMP_ABSENT,
-        metavar="VERSION",
-        help="Bump the version in all barn/*/pyproject.toml and the root pyproject.toml, "
-        "then create a local git tag. VERSION may be an explicit X.Y.Z or an npm-style "
-        "keyword (major|minor|patch) computed from the current version. Prints the "
-        "current version if VERSION is omitted.",
+        help="Tag to encode in the share URL. Use 'latest' to resolve to the most "
+        "recent tag reachable from HEAD. The default stays branch-live: "
+        "marketstall.toml is a subscription feed, so a branch-pinned URL keeps "
+        "subscribers discovering every future release.",
     )
 
     rename_parser = subparsers.add_parser(
@@ -439,6 +425,15 @@ def main():
         action="store_true",
         help="Generate docs for every in-repo library (barn/* + builtin) in one load",
     )
+    docs_parser.add_argument(
+        "--json",
+        type=str,
+        default=None,
+        metavar="PATH",
+        help="Write the coverage report to PATH as JSON ({library_id: [lines]}). "
+        "A file sink rather than stdout, because a library-system boot prints "
+        "freely to stdout and not all of it is ours.",
+    )
 
     args = parser.parse_args()
 
@@ -448,59 +443,21 @@ def main():
         dev_repo = _get_dev_repo_root() if args.dev else None
         init_project(args.name, auto_sync=not args.no_sync, dev_repo=dev_repo)
     elif args.command == "share":
-        if args.bump is not _BUMP_ABSENT:
-            from pathlib import Path
+        from pathlib import Path
 
-            from .share import bump_version
+        from haywire_studio.share_cli import run_share_cli
 
-            # args.bump is "" when --bump given without a value (print current version)
-            # args.bump is "X.Y.Z" when --bump X.Y.Z given
-            new_ver = args.bump or None
-            bump_version(new_ver, Path.cwd())
-            if new_ver is None:
-                # Just printed current version — nothing more to do.
-                sys.exit(0)
-            # Fall through to --save if also requested.
-
-        if args.save:
-            from pathlib import Path
-
-            from .share import DriftError, NoBarnError, share_save_repo
-
-            try:
-                result = share_save_repo(
-                    Path.cwd(),
-                    strict=args.strict,
-                    fix=args.fix,
-                    ref=args.ref,
-                    tag=args.tag,
-                    update_readme=args.update_readme,
-                )
-                print(f"✓ Wrote {result.out_path}")
-                if result.share_url is not None:
-                    print(f"✓ Share this URL:\n  {result.share_url}")
-                elif result.warning is not None:
-                    print(f"⚠ {result.warning}")
-            except NoBarnError as exc:
-                print(f"Error: {exc}")
-                sys.exit(1)
-            except DriftError as exc:
-                print(str(exc), file=sys.stderr)
-                sys.exit(1)
-        elif args.library_path is not None:
-            from .share import share_library
-
-            share_library(args.library_path, strict=args.strict, fix=args.fix)
-        else:
-            from pathlib import Path
-
-            from .share import derive_share_url_only
-
-            result = derive_share_url_only(Path.cwd(), ref=args.ref, tag=args.tag)
-            if result.share_url is not None:
-                print(f"✓ Share this URL:\n  {result.share_url}")
-            elif result.warning is not None:
-                print(f"⚠ {result.warning}")
+        raise SystemExit(
+            run_share_cli(
+                repo_root=Path.cwd(),
+                check=args.check,
+                yes=args.yes,
+                bump=args.bump,
+                message=args.message,
+                ref=args.ref,
+                tag=args.tag,
+            )
+        )
     elif args.command == "rename":
         from pathlib import Path
 
@@ -515,6 +472,17 @@ def main():
             )
         )
     elif args.command == "docs":
+        import json as _json
+        from pathlib import Path as _Path
+
+        def _write_coverage_json(coverage: dict[str, list[str]]) -> None:
+            """Write the coverage map to --json's path, creating parent dirs."""
+            if args.json is None:
+                return
+            out = _Path(args.json)
+            out.parent.mkdir(parents=True, exist_ok=True)
+            out.write_text(_json.dumps(coverage, indent=2), encoding="utf-8")
+
         if args.all:
             from haywire_studio.docs_gen.generate import generate_all_docs
 
@@ -528,6 +496,7 @@ def main():
                 for line in gaps:
                     print(f"      - {line}")
             print(f"Total coverage gaps: {total_gaps}.")
+            _write_coverage_json(results)
             return
 
         from haywire_studio.docs_gen.generate import generate_docs
@@ -539,6 +508,9 @@ def main():
                 print(f"  - {line}")
         else:
             print("Docs generated. No coverage gaps.")
+        # The single-library form has no library id to key by, so the path the
+        # user named is the key. Keeps --json's shape identical for both forms.
+        _write_coverage_json({str(args.library or _Path.cwd()): coverage})
         return
     else:
         run_app()

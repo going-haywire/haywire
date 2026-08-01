@@ -49,12 +49,12 @@ def _make_repo(tmp_path: Path) -> Path:
 
 @pytest.mark.unit
 def test_share_save_returns_share_url_for_github_remote(tmp_path: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            result = share_save_repo(repo)
+            result = write_marketstall(repo)
 
     assert result.share_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     assert result.out_path == repo / "marketstall.toml"
@@ -63,25 +63,25 @@ def test_share_save_returns_share_url_for_github_remote(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_save_returns_share_url_for_gitlab_remote(tmp_path: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch(
         "haywire_studio.share._get_remote_url", return_value="https://gitlab.com/alice/cool-libs.git"
     ):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            result = share_save_repo(repo)
+            result = write_marketstall(repo)
 
     assert result.share_url == "https://gitlab.com/alice/cool-libs/-/blob/main/marketstall.toml"
 
 
 @pytest.mark.unit
 def test_share_save_no_remote_warns(tmp_path: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch("haywire_studio.share._get_remote_url", return_value=None):
-        result = share_save_repo(repo)
+        result = write_marketstall(repo)
 
     assert result.share_url is None
     assert result.warning is not None
@@ -90,12 +90,12 @@ def test_share_save_no_remote_warns(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_save_unknown_host_warns_with_config_snippet(tmp_path: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch("haywire_studio.share._get_remote_url", return_value="https://gitlab.zhdk.ch/alice/libs.git"):
         with patch("haywire_studio.share._get_current_ref", return_value="main"):
-            result = share_save_repo(repo)
+            result = write_marketstall(repo)
 
     assert result.share_url is None
     assert result.warning is not None
@@ -107,11 +107,11 @@ def test_share_save_unknown_host_warns_with_config_snippet(tmp_path: Path) -> No
 @pytest.mark.unit
 def test_share_save_with_explicit_ref(tmp_path: Path) -> None:
     """--ref <ref> argument overrides the current-branch default."""
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        result = share_save_repo(repo, ref="v0.2.0")
+        result = write_marketstall(repo, ref="v0.2.0")
 
     assert result.share_url == "https://github.com/alice/cool-libs/blob/v0.2.0/marketstall.toml"
 
@@ -119,23 +119,23 @@ def test_share_save_with_explicit_ref(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_share_save_with_tag_argument(tmp_path: Path) -> None:
     """--tag <tag> argument uses the tag name as ref."""
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        result = share_save_repo(repo, tag="v0.2.0")
+        result = write_marketstall(repo, tag="v0.2.0")
 
     assert result.share_url == "https://github.com/alice/cool-libs/blob/v0.2.0/marketstall.toml"
 
 
 @pytest.mark.unit
 def test_share_save_with_tag_latest_resolves_to_most_recent_tag(tmp_path: Path) -> None:
-    from haywire_studio.share import share_save_repo
+    from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
         with patch("haywire_studio.share._get_latest_tag", return_value="v0.3.0"):
-            result = share_save_repo(repo, tag="latest")
+            result = write_marketstall(repo, tag="latest")
 
     assert result.share_url == "https://github.com/alice/cool-libs/blob/v0.3.0/marketstall.toml"
 

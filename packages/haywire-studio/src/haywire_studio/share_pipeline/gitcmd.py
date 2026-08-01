@@ -150,3 +150,56 @@ async def git_remote_streaming(
     output = "\n".join(lines)
     rc = proc.returncode if proc.returncode is not None else 1
     return GitResult(ok=rc == 0, stdout=output, stderr=output if rc != 0 else "", returncode=rc)
+
+
+async def run_streaming(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    on_output: Callable[[str], None],
+    timeout: float = 900.0,
+) -> GitResult:
+    """Run an arbitrary command, streaming merged stdout/stderr per line.
+
+    Same contract as :func:`git_remote_streaming` (nothing raises, everything
+    comes back as a :class:`GitResult`) for non-git subprocesses — currently
+    ``haywire docs``. The default timeout is generous: a full library-system
+    boot plus per-node extraction is minutes, not seconds, on a large barn.
+    """
+    try:
+        proc = await asyncio.create_subprocess_exec(
+            *cmd,
+            cwd=str(cwd),
+            stdout=asyncio.subprocess.PIPE,
+            stderr=asyncio.subprocess.STDOUT,
+        )
+    except FileNotFoundError as exc:
+        return GitResult(ok=False, stdout="", stderr=f"{cmd[0]} not found: {exc}", returncode=127)
+
+    lines: list[str] = []
+
+    async def _drain() -> None:
+        assert proc.stdout is not None
+        async for raw in proc.stdout:
+            text = raw.decode(errors="replace").rstrip()
+            on_output(text)
+            lines.append(text)
+        await proc.wait()
+
+    try:
+        await asyncio.wait_for(_drain(), timeout=timeout)
+    except (TimeoutError, asyncio.TimeoutError):
+        proc.kill()
+        await proc.wait()
+        output = "\n".join(lines)
+        return GitResult(
+            ok=False,
+            stdout=output,
+            stderr=f"{' '.join(cmd)} timed out after {timeout:g}s",
+            returncode=124,
+            timed_out=True,
+        )
+
+    output = "\n".join(lines)
+    rc = proc.returncode if proc.returncode is not None else 1
+    return GitResult(ok=rc == 0, stdout=output, stderr=output if rc != 0 else "", returncode=rc)

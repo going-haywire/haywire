@@ -7,7 +7,6 @@ remote URL to produce a ready-to-paste TOML block.
 
 import re
 import subprocess
-import sys
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
@@ -231,37 +230,6 @@ def _read_library_dependencies(module_dir: Path) -> list[str]:
     raw = match.group(1)
     modules = re.findall(r"['\"]([^'\"]+)['\"]", raw)
     return [m.replace("_", "-") for m in modules]
-
-
-def _detect_library() -> Path:
-    """Auto-detect the library path from barn/ in the current directory.
-
-    If exactly one library exists, return its path.
-    If multiple exist, print them and exit with usage hint.
-    If none exist, print an error and exit.
-    """
-    barn_dir = Path.cwd() / "barn"
-    if not barn_dir.is_dir():
-        print("Error: No barn/ directory found in the current project.")
-        print("Are you running this from a haywire project root?")
-        sys.exit(1)
-
-    candidates = [d for d in sorted(barn_dir.iterdir()) if d.is_dir() and (d / "pyproject.toml").exists()]
-
-    if not candidates:
-        print("Error: No libraries found in barn/.")
-        sys.exit(1)
-
-    if len(candidates) == 1:
-        return candidates[0]
-
-    # Multiple libraries — list them for the user
-    print(f"Found {len(candidates)} libraries in barn/. Specify which one:\n")
-    for lib in candidates:
-        rel = lib.relative_to(Path.cwd())
-        print(f"  haywire share {rel}")
-    print()
-    sys.exit(1)
 
 
 def _build_entry_for_library(lib_dir: Path) -> dict | None:
@@ -680,80 +648,6 @@ def apply_drift_fix(drift: DepDrift) -> None:
         init_file.write_text(content)
 
 
-def share_library(library_path: str | None, *, strict: bool = False, fix: bool = False) -> None:
-    """Print a marketplace.toml snippet for the given library directory.
-
-    Runs the dependency-drift gate before emitting. Default behavior is
-    warn-only: drift is printed to stderr and the snippet still emits. With
-    ``strict=True`` drift causes a non-zero exit. With ``fix=True`` drift is
-    auto-corrected (pyproject.toml and @library decorator are rewritten) and
-    the share continues against the fresh state.
-    """
-    if library_path is None:
-        lib_dir = _detect_library()
-    else:
-        lib_dir = Path(library_path).resolve()
-
-    if not lib_dir.is_dir():
-        print(f"Error: '{library_path}' is not a directory.")
-        sys.exit(1)
-
-    if not _run_drift_gate(lib_dir, strict=strict, fix=fix):
-        sys.exit(1)
-
-    entry = _build_entry_for_library(lib_dir)
-    if entry is None:
-        print(f"Error: No pyproject.toml found in '{library_path}'.")
-        sys.exit(1)
-
-    # Require a git remote to publish — prevents silent fallback to wrong branch names
-    git_root = _find_git_root(lib_dir)
-    if not git_root or not _get_remote_url(git_root):
-        print(
-            "Error: 'haywire share' requires a git remote to publish.\n"
-            "\n"
-            "Set up your repository:\n"
-            "  git remote add origin <your-repo-url>\n"
-            "  git push -u origin <branch-name>\n"
-            "\n"
-            "Then try again.",
-            file=sys.stderr,
-        )
-        sys.exit(1)
-
-    print("# Copy this snippet into a marketplace.toml:\n")
-    print(toml.dumps({"haybales": [entry]}).strip())
-
-
-def _run_drift_gate(lib_dir: Path, *, strict: bool, fix: bool) -> bool:
-    """Run the drift gate for a single library.
-
-    Returns False when the caller should refuse to proceed (strict mode with
-    unresolved drift). Otherwise returns True; if ``fix`` was requested and
-    drift was present, the library has been auto-corrected before return.
-    """
-    drift = detect_share_drift(lib_dir)
-    if not drift.has_drift and not drift.unresolved:
-        return True
-
-    report = _format_drift_report(drift)
-    if drift.has_drift:
-        if fix:
-            apply_drift_fix(drift)
-            print(f"Auto-fixed:\n{report}", file=sys.stderr)
-            return True
-        if strict:
-            print(f"Refusing to share due to drift (use --fix to auto-correct):\n{report}", file=sys.stderr)
-            return False
-        # Warn-only.
-        print(f"Warning: {report}\n  (rerun with --fix to apply, or --strict to fail)", file=sys.stderr)
-        return True
-
-    # Only unresolved imports — no drift to fix, just inform.
-    print(report, file=sys.stderr)
-    return True
-
-
 class NoBarnError(RuntimeError):
     """Raised when `share --save` is invoked on a repo with no `barn/` directory."""
 
@@ -866,269 +760,79 @@ def derive_share_url_only(
     return _derive_url(repo_root, out_path, ref=ref, tag=tag)
 
 
-def share_save_repo(
-    repo_root: Path,
-    *,
-    strict: bool = False,
-    fix: bool = False,
-    ref: str | None = None,
-    tag: str | None = None,
-    update_readme: bool = True,
-) -> ShareSaveResult:
-    """Aggregate every library under `<repo_root>/barn/*` into one marketstall.toml.
+@dataclass(frozen=True)
+class MarketstallWriteResult:
+    """Output of :func:`write_marketstall`.
 
-    Walks `barn/*` (sorted), builds a marketplace entry for each directory that
-    contains a `pyproject.toml` (via `_build_entry_for_library`), and writes the
-    aggregated list to `<repo_root>/marketstall.toml`. Directories without a
-    pyproject are silently skipped.
+    ``readmes`` lists only the READMEs actually rewritten (they had the marker
+    pair AND the URL changed), so a caller staging ``written`` never stages a
+    file it didn't touch.
+    """
 
-    Returns a ShareSaveResult with the written path, derived share URL (if
-    available), and any user-facing warning (e.g. no remote, unknown host).
+    out_path: Path
+    share_url: str | None
+    warning: str | None
+    readmes: list[Path]
 
-    Runs the dependency-drift gate against each library before emitting. In
-    ``strict=True`` mode, any drift causes the function to raise
-    :class:`DriftError` without writing the output file. With ``fix=True``
-    drift is auto-corrected in place. Default behavior is warn-only.
+    @property
+    def written(self) -> list[Path]:
+        return [self.out_path, *self.readmes]
 
-    Raises NoBarnError if `<repo_root>/barn/` doesn't exist.
-    Raises DriftError when ``strict=True`` and any library has drift.
+
+def build_marketstall_entries(repo_root: Path) -> list[dict]:
+    """Build a marketstall entry for every ``barn/*`` library, sorted by directory.
+
+    The feed's contract is "every haybale this repo offers", so it is always
+    rebuilt from disk in full — a partial rebuild silently deletes the entries
+    of libraries that weren't part of this run.
+
+    Raises :class:`NoBarnError` when ``<repo_root>/barn`` does not exist.
     """
     barn = repo_root / "barn"
     if not barn.is_dir():
         raise NoBarnError(f"no barn/ directory at {repo_root}")
 
-    lib_dirs = sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").exists())
-
-    # Pre-flight: run the drift gate on every library before emitting anything.
-    drift_reports: list[DepDrift] = []
-    for lib_dir in lib_dirs:
-        print(f"  checking {lib_dir.name}...", flush=True)
-        drift = detect_share_drift(lib_dir)
-        if drift.has_drift or drift.unresolved:
-            drift_reports.append(drift)
-
-    drift_with_changes = [d for d in drift_reports if d.has_drift]
-    if drift_with_changes:
-        if fix:
-            for d in drift_with_changes:
-                apply_drift_fix(d)
-                print(f"Auto-fixed: {_format_drift_report(d)}", file=sys.stderr)
-        elif strict:
-            joined = "\n\n".join(_format_drift_report(d) for d in drift_with_changes)
-            raise DriftError(
-                f"Refusing to write marketstall.toml due to drift (use --fix to auto-correct):\n\n{joined}"
-            )
-        else:
-            joined = "\n\n".join(_format_drift_report(d) for d in drift_with_changes)
-            print(
-                f"Warning:\n\n{joined}\n\n(rerun with --fix to apply, or --strict to fail)",
-                file=sys.stderr,
-            )
-
-    # Inform about unresolved imports even if no actionable drift.
-    unresolved_only = [d for d in drift_reports if not d.has_drift and d.unresolved]
-    for d in unresolved_only:
-        print(_format_drift_report(d), file=sys.stderr)
-
     entries: list[dict] = []
-    for lib_dir in lib_dirs:
+    for lib_dir in sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").exists()):
         entry = _build_entry_for_library(lib_dir)
-        if entry is None:
-            continue
-        entries.append(entry)
+        if entry is not None:
+            entries.append(entry)
+    return entries
+
+
+_MARKETSTALL_HEADER = (
+    "# marketstall.toml — share this file's raw URL so others can subscribe to your library feed\n"
+    "# Run: haywire share   to update this file\n\n"
+)
+
+
+def write_marketstall(
+    repo_root: Path,
+    *,
+    ref: str | None = None,
+    tag: str | None = None,
+    update_readme: bool = True,
+) -> MarketstallWriteResult:
+    """Rebuild ``<repo_root>/marketstall.toml`` from every ``barn/*`` library.
+
+    Deliberately does NOT run the dependency-drift gate: drift is the share
+    pipeline's step 2, where the user makes a Union/Replace decision, and a
+    second gate here would re-ask a settled question. Prints nothing — callers
+    own their own output.
+    """
+    entries = build_marketstall_entries(repo_root)
 
     out_path = repo_root / "marketstall.toml"
-    header = (
-        "# marketstall.toml — share this file's raw URL so others can subscribe to your library feed\n"
-        "# Run: haywire share --save   to update this file\n\n"
+    out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))
+
+    url_result = _derive_url(repo_root, out_path, ref=ref, tag=tag)
+    readmes: list[Path] = []
+    if url_result.share_url is not None and update_readme:
+        readmes = _update_repo_readmes(repo_root, url_result.share_url)
+
+    return MarketstallWriteResult(
+        out_path=out_path,
+        share_url=url_result.share_url,
+        warning=url_result.warning,
+        readmes=readmes,
     )
-    out_path.write_text(header + toml.dumps({"haybales": entries}))
-    result = _derive_url(repo_root, out_path, ref=ref, tag=tag)
-    if result.share_url is not None and update_readme:
-        _update_repo_readmes(repo_root, result.share_url)
-    return result
-
-
-class DriftError(RuntimeError):
-    """Raised when `share --save --strict` is invoked and at least one library has drift."""
-
-
-def _read_version(pyproject_path: Path) -> str | None:
-    """Return the version string from a pyproject.toml, or None if unreadable."""
-    try:
-        data = toml.loads(pyproject_path.read_text())
-        return data.get("project", {}).get("version")
-    except (toml.TomlDecodeError, OSError):
-        return None
-
-
-def _write_version(pyproject_path: Path, new_version: str) -> None:
-    """Rewrite the version field in a pyproject.toml, preserving all other content."""
-    content = pyproject_path.read_text()
-    content = re.sub(
-        r'^(version\s*=\s*")[^"]*(")',
-        rf"\g<1>{new_version}\g<2>",
-        content,
-        count=1,
-        flags=re.MULTILINE,
-    )
-    pyproject_path.write_text(content)
-
-
-_BUMP_KEYWORDS = ("major", "minor", "patch")
-
-
-def _compute_next_version(spec: str, current: str | None) -> str | None:
-    """Resolve a ``--bump`` argument to a concrete ``X.Y.Z`` version.
-
-    *spec* is either an npm-style keyword (``major``/``minor``/``patch``) or an
-    explicit version string. Keywords apply standard semver arithmetic to
-    *current* (``X.Y.Z`` → patch ``X.Y.(Z+1)``, minor ``X.(Y+1).0``, major
-    ``(X+1).0.0``). An explicit version is returned unchanged (validated later).
-
-    Returns None if a keyword was given but *current* is missing/unparsable, so
-    the caller can report the error.
-    """
-    if spec not in _BUMP_KEYWORDS:
-        return spec  # explicit version — bump_version() validates the format.
-
-    if not current:
-        return None
-    m = re.match(r"^(\d+)\.(\d+)\.(\d+)", current)
-    if not m:
-        return None
-    major, minor, patch = (int(g) for g in m.groups())
-    if spec == "major":
-        major, minor, patch = major + 1, 0, 0
-    elif spec == "minor":
-        minor, patch = minor + 1, 0
-    else:  # patch
-        patch += 1
-    return f"{major}.{minor}.{patch}"
-
-
-def bump_version(new_version: str | None, repo_root: Path) -> None:
-    """Bump the version in all barn/*/pyproject.toml and the root pyproject.toml.
-
-    If *new_version* is None, prints the current version (read from the first
-    barn library found) and returns without making any changes.
-
-    *new_version* may be an explicit ``X.Y.Z`` string or an npm-style keyword
-    (``major``/``minor``/``patch``) that is resolved against the current version.
-
-    Refreshes ``uv.lock`` (if present) so the bumped version is reflected there,
-    then commits the bumped manifests + lockfile, creates a lightweight git tag
-    ``v<new_version>``, and prints a push reminder.
-    """
-    barn = repo_root / "barn"
-    pyproject_files: list[Path] = []
-
-    root_pyproject = repo_root / "pyproject.toml"
-    if root_pyproject.exists():
-        pyproject_files.append(root_pyproject)
-
-    if barn.is_dir():
-        for lib_dir in sorted(barn.iterdir()):
-            p = lib_dir / "pyproject.toml"
-            if lib_dir.is_dir() and p.exists():
-                pyproject_files.append(p)
-
-    # Current version, read from the first barn library (None if none found).
-    current_version: str | None = next(
-        (v for p in pyproject_files if p.parent != repo_root and (v := _read_version(p)) is not None),
-        None,
-    )
-
-    if new_version is None:
-        if current_version is not None:
-            print(f"Current version: {current_version}")
-        else:
-            print("No versioned pyproject.toml found in barn/.")
-        return
-
-    # Resolve an npm-style keyword (major/minor/patch) against the current
-    # version; an explicit X.Y.Z passes straight through.
-    if new_version in _BUMP_KEYWORDS:
-        resolved = _compute_next_version(new_version, current_version)
-        if resolved is None:
-            print(f"Error: cannot '{new_version}' bump — no current version found in barn/.")
-            sys.exit(1)
-        print(f"Bumping {new_version}: {current_version} → {resolved}")
-        new_version = resolved
-
-    # Validate format.
-    if not re.match(r"^\d+\.\d+\.\d+", new_version):
-        print(f"Error: '{new_version}' is not a valid version (expected X.Y.Z).")
-        sys.exit(1)
-
-    if not pyproject_files:
-        print("No pyproject.toml files found to bump.")
-        sys.exit(1)
-
-    for p in pyproject_files:
-        _write_version(p, new_version)
-        rel = p.relative_to(repo_root)
-        print(f"  bumped {rel}")
-
-    # Refresh the lockfile so the bumped version lands in uv.lock too. Without
-    # this, uv.lock keeps recording the previous version and drifts one release
-    # behind on every bump (it gets rewritten by the next stray `uv` invocation).
-    lock_file = repo_root / "uv.lock"
-    if lock_file.exists():
-        lock = subprocess.run(
-            ["uv", "lock"],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-        )
-        if lock.returncode == 0:
-            print("  re-locked uv.lock")
-        else:
-            print(f"⚠ uv lock failed (uv.lock left stale): {lock.stderr.strip()}")
-
-    # Commit the bumped files, then tag that commit.
-    tag = f"v{new_version}"
-    git_root = _find_git_root(repo_root)
-    if git_root:
-        # Stage all bumped pyproject.toml files, plus the refreshed lockfile.
-        for p in pyproject_files:
-            subprocess.run(["git", "add", str(p)], cwd=str(git_root), capture_output=True)
-        if lock_file.exists():
-            subprocess.run(["git", "add", str(lock_file)], cwd=str(git_root), capture_output=True)
-        commit = subprocess.run(
-            ["git", "commit", "-m", f"chore: bump version to {new_version}"],
-            cwd=str(git_root),
-            capture_output=True,
-            text=True,
-        )
-        if commit.returncode == 0:
-            print("✓ Committed version bump")
-        else:
-            print(f"⚠ Commit failed: {commit.stderr.strip()}")
-
-        result = subprocess.run(
-            ["git", "tag", tag],
-            cwd=str(git_root),
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            print(f"✓ Created tag {tag}")
-        else:
-            print(f"⚠ Could not create tag {tag}: {result.stderr.strip()}")
-        remote = _get_remote_url(git_root)
-        if remote:
-            remote_name_result = subprocess.run(
-                ["git", "remote"],
-                cwd=str(git_root),
-                capture_output=True,
-                text=True,
-            )
-            remote_name = (
-                remote_name_result.stdout.strip().splitlines()[0]
-                if remote_name_result.returncode == 0
-                else "origin"
-            )
-            print(f"\nTo publish: git push {remote_name} {tag}")
-    else:
-        print(f"⚠ Not in a git repo — tag {tag} not created.")
