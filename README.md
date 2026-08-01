@@ -68,37 +68,20 @@ From within the haywire studio app, navigate to **marketplace** (icon in the lef
 
 Libraries are installed into your project's virtual environment — nothing is shared globally.
 
-### Sharing a Library
+### Sharing a Project
 
-If you've built custom nodes in your project's local library and want to share them, use `haywire share` to generate a marketplace snippet that others can paste into their `marketplace.toml`:
+If you've built custom nodes in your project's local libraries and want to share them, use `haywire share` to publish the whole project: every `barn/*` library is bumped to the same version (lockstep), docs are regenerated, `marketstall.toml` is rebuilt, and the result is committed, tagged `v<version>`, and pushed.
 
 ```sh
 cd my-project
-uv run haywire share --save
+uv run haywire share                    # interactive, prompts through each step
+uv run haywire share --check            # read-only PR gate; writes nothing
+uv run haywire share --yes --bump patch # non-interactive
 ```
 
-This reads the library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use entry, and adds the link to the readme
+The same pipeline backs the **Share Project…** item in the Marketplace editor's burger menu. `haywire share` reads each library's `pyproject.toml` metadata and detects the git remote URL to produce a ready-to-use `marketstall.toml`, and updates the share-URL link in each library's README.
 
-To cut a release of your library, bump the version (npm-style `patch`/`minor`/`major`, or an explicit `x.y.z`) — this rewrites every `pyproject.toml`, commits, and tags `v<version>`:
-
-```sh
-uv run haywire share --bump patch --save
-```
-
-```toml
-# Copy this snippet into a marketplace.toml:
-
-[[packages]]
-name = "haybale-my-project"
-version = "0.1.0"
-description = "Local library for my-project"
-author = "Your Name"
-source = "git"
-install_spec = "haybale-my-project @ git+https://github.com/you/my-project.git#subdirectory=barn/haybale-my-project"
-tags = []
-```
-
-Recipients add in the marketplace UI. Works with any git host (GitHub, GitLab, Bitbucket, etc.) and automatically converts SSH remote URLs to HTTPS.
+Recipients subscribe to the published `marketstall.toml` via the marketplace UI's Add Source dialog. Works with any git host (GitHub, GitLab, Bitbucket, etc.) and automatically converts SSH remote URLs to HTTPS.
 
 ### Global Configuration
 

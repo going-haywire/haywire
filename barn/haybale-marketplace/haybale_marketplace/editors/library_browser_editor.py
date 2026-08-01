@@ -156,6 +156,10 @@ class LibraryBrowserEditor(BaseEditor):
                             "Add Source…",
                             on_click=lambda c=context: self._on_add_source_click(c),
                         )
+                        ui.menu_item(
+                            "Share Project…",
+                            on_click=lambda c=context: self._on_share_project_click(c),
+                        )
                         ui.separator()
                         ui.menu_item(
                             "Edit File…",
@@ -262,6 +266,26 @@ class LibraryBrowserEditor(BaseEditor):
             self._do_refresh(context, missing_state_severity="silent")
 
         show_add_source_dialog(on_added=_after_added)
+
+    def _on_share_project_click(self, context: "SessionContext") -> None:
+        """Open the Share Project wizard for the current workspace.
+
+        Project-scoped, not library-scoped: a `haywire init` project is a uv
+        workspace root with one marketstall.toml feed and one git remote, so the
+        artifact being published is repo-shaped and every barn/* library versions
+        in lockstep. See docs/adr/0023-project-scoped-lockstep-sharing.md.
+        """
+        from ._share_wizard import show_share_wizard
+
+        workspace_root = getattr(context.app, "workspace_root", None)
+        if not workspace_root:
+            ui.notify(
+                "No project open — Share works on a haywire project directory.",
+                type="warning",
+            )
+            return
+
+        show_share_wizard(Path(workspace_root))
 
     def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
         """Refresh the marketplace and re-render.

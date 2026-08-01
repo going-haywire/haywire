@@ -30,6 +30,8 @@ size 26
 
 The install *succeeds*; the library breaks later when it loads the asset. Whether uv's clone runs the smudge filter depends on the consumer's global LFS config — something neither the publisher nor Haywire controls or can detect. `*.png` is exactly what a library's icons and skins match, so the trap fires on the most common case.
 
+Scaffolded at init (`_generate_gitattributes`): text=auto plus `binary` markers for common asset types, and a comment block explaining the pointer-file trap. No `filter=lfs` line is ever written.
+
 ## 3. `install_spec` carries no ref — consumers always get default-branch HEAD
 
 `_build_entry_for_library` (`packages/haywire-studio/src/haywire_studio/share.py:298`) emits no ref, so a marketstall entry advertising `min_version = "0.3.1"` still installs whatever `master` holds right now. `min_version` is advisory; nothing is reproducible, and a broken default branch immediately breaks every consumer.

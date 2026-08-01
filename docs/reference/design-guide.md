@@ -216,6 +216,21 @@ Haywire uses a fixed z-index scale. Do not use arbitrary values.
 
 **Rule:** Never use a bare `z-index: 9999` or arbitrary integer. If a new stacking context is needed, add a token here.
 
+#### The Quasar-overlay tier
+
+The scale above governs haywire's own elements. Quasar brings its own layers that sit far above it — `QDialog` and `QMenu` both default to **6000** — so anything that must clear *them* lives in a separate tier, defined as static CSS in `ui/app/shell.py` (not theme tokens: stacking order is structural, not a swappable colour).
+
+| Layer               | Value | Use for                                        |
+| ------------------- | ----- | ---------------------------------------------- |
+| `--hw-z-popup`      | 7001  | The `Popup` card — above Quasar dialogs (6000) |
+| `--hw-z-popup-menu` | 7100  | A menu/dropdown opened from inside a `Popup`   |
+
+**Rule:** a `ui.select` inside a `Popup` must lift its dropdown, or the option list renders *behind* the card — invisible and unclickable, so the select looks empty. Use `hui.select_field(in_popup=True)`.
+
+**Do not lift unconditionally.** The QMenu teleports to `<body>`, so a lifted dropdown escapes its parent's stacking context entirely. A panel or node widget sitting *behind* a popup would have its dropdown float above that popup. Panels and widgets keep the default; only in-popup selects opt in.
+
+See [.insights/feedback_nicegui_nested_menu_flyouts.md](../../.insights/feedback_nicegui_nested_menu_flyouts.md) (#2) for the original diagnosis.
+
 **Note:** NiceGUI's `ui.scroll_area()` creates a stacking context. Any `position: absolute` child inside a scroll area is clipped to it — this is expected behaviour.
 
 ### 2.10 Hover and Selection

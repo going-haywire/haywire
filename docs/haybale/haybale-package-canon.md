@@ -40,11 +40,11 @@ haybale-mylib/                 [project]                      uv pip install:
        @library(...)             "haybale_mylib:Library"        - git: URL
        class Library:                                            - subdir: URL#subdirectory=
                                [tool.hatch.build.targets.wheel]
-    nodes/                     packages = ["haybale_mylib"]    haywire share — emits
-    types/                                                       a marketplace.toml
-    adapters/                                                    snippet for any of
-    widgets/                                                     the four sources
-    skins/                                                       above.
+    nodes/                     packages = ["haybale_mylib"]    haywire share — publishes
+    types/                                                       the whole project: every
+    adapters/                                                    barn/* library bumped in
+    widgets/                                                     lockstep, marketstall.toml
+    skins/                                                       rebuilt, tagged, pushed.
     themes/
 ```
 
@@ -111,13 +111,17 @@ The studio's [library manager](marketplace/haybale-marketplace-arch.md) wraps th
 
 **`marketstall.toml` is how libraries are listed for the studio.** A marketstall TOML file lists `[[haybales]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads subscribed marketstalls (and remote marketplaces that reference them) at refresh time and surfaces the result as the "Available" list. Full coverage in [haybale/marketplace §The two-tier marketplace](marketplace/haybale-marketplace-arch.md#2-the-two-tier-marketplace).
 
-**`haywire share`** generates a marketplace snippet for a published library:
+**`haywire share`** publishes the whole project — every `barn/*` library bumped
+to the same version (lockstep), docs regenerated, `marketstall.toml` rebuilt,
+committed, tagged `v<version>`, and pushed:
 
 ```bash
-uv run haywire share barn/haybale-mylib
+uv run haywire share                    # interactive, prompts through each step
+uv run haywire share --check            # read-only PR gate; writes nothing
+uv run haywire share --yes --bump patch # non-interactive
 ```
 
-It reads your `pyproject.toml`, detects the git remote, computes the `#subdirectory=` fragment, and prints a ready-to-paste `[[haybales]]` block. SSH→HTTPS conversion is automatic.
+It reads each library's `pyproject.toml`, detects the git remote, computes the `#subdirectory=` fragment per library, and writes a `[[haybales]]` block per library into the aggregated `marketstall.toml`. SSH→HTTPS conversion is automatic. See [sharing-libraries](../guides/sharing-libraries.md) for the full flow and [ADR-0023](../adr/0023-project-scoped-lockstep-sharing.md) for why the unit of sharing is the project.
 
 **`haywire init`** scaffolds a new project with a starter haybale:
 
@@ -198,9 +202,9 @@ The PyPI JSON API returns `README.md` content as `info.description` — the only
 
 Each `haywire docs` run ends with a coverage report listing components with no `description` or no docstring — the generator never fabricates missing prose; it flags the gap for the author to fill directly in the decorator/docstring, then re-run.
 
-#### Coordination with `haywire share --save`
+#### Coordination with `haywire share`
 
-`haywire share --save` updates README files in place between marker pairs to keep the published share URL current. When `haywire docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
+`haywire share` updates README files in place between marker pairs to keep the published share URL current — for every `barn/*/README.md`, not just the library being edited. When `haywire docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
 
 ## 4. One comprehensive example
 
@@ -365,13 +369,14 @@ git push origin v1.0.0
 
 ### Distribution via `marketplace.toml`
 
-Generate a snippet with `haywire share`:
+Publish the whole project with `haywire share` (run from the repo root — see
+[sharing-libraries](../guides/sharing-libraries.md)):
 
 ```bash
-uv run haywire share barn/haybale-image
+uv run haywire share --yes --bump patch
 ```
 
-Output (ready to paste into any marketstall):
+`haywire-image`'s entry in the resulting `marketstall.toml`:
 
 ```toml
 [[haybales]]
@@ -409,8 +414,8 @@ What this example exercises:
 | README format consumed by the library manager Overview tab | `README.md` |
 | `uv pip install -e ".[dev]"` for editable + dev deps | build/test/publish workflow |
 | `python -m build` + `python -m twine upload` for PyPI | build/test/publish workflow |
-| `haywire share` generating a marketplace snippet | distribution |
-| Both `source = "git"` (subdirectory) and `source = "pypi"` snippet variants | distribution |
+| `haywire share` publishing a project-wide marketstall | distribution |
+| Both `source = "git"` (subdirectory) and `source = "pypi"` entry variants | distribution |
 
 For the `Library` class that lives in `__init__.py`, see [haybale/library](library-canon.md). For the framework that loads your published package at app startup, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's library manager UI that consumes the marketplace snippet, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
 
@@ -525,16 +530,15 @@ uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirector
 
 | Command | What it does |
 |---|---|
-| `uv run haywire share barn/haybale-mylib` | Print a marketstall `[[haybales]]` snippet for one library to stdout. Auto-detects git remote, converts SSH→HTTPS, computes `#subdirectory=`. |
-| `uv run haywire share --save` | Aggregate every `barn/*` library and write `<repo-root>/marketstall.toml`. This is the file consumers subscribe to. |
-| `uv run haywire share [--save] --strict` | Refuse to emit if any library has dependency drift (declared manifest ≠ source imports). Use in CI. |
-| `uv run haywire share [--save] --fix` | Auto-correct drift in place before emitting. Rewrites pyproject.toml `[project] dependencies` and `@library(dependencies=...)` for every drifty library. |
+| `uv run haywire share` | Interactive. Publish the whole project: bump every `barn/*` library in lockstep, regenerate docs, rebuild `<repo-root>/marketstall.toml`, commit, tag `v<version>`, push. Prompts through each step. |
+| `uv run haywire share --check` | Read-only. Reports dependency drift and stale docs/marketstall, exits non-zero. Writes nothing. Use as a PR gate. |
+| `uv run haywire share --yes --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
 | `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
 | `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. |
 | `uv run haywire docs barn/haybale-mylib` | Generate `README.md`/`OVERVIEW.md`/`QUICKREF.md`/`docs/*.md` for one library. Deterministic — pure extraction, no agent. |
 | `uv run haywire docs --all` | Generate docs for every **in-repo** library in one library-system load — every installed library whose folder resolves under the current directory (i.e. `barn/*` + `haywire.barn.builtin`; externally-installed libraries like a gitignored dev symlink are excluded). Ends with a per-library coverage-gap summary. |
 
-For the full author flow including how to keep manifests in sync without `--fix`, see the [sharing-libraries guide](../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../guides/subscribing-to-marketplaces.md).
+For the full author flow including how dependency drift is resolved before a share, see the [sharing-libraries guide](../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../guides/subscribing-to-marketplaces.md).
 
 ### Common pitfalls
 

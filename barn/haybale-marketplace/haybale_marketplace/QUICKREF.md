@@ -1,4 +1,4 @@
-# marketplace — component index (v0.0.30)
+# marketplace — component index (v0.0.31)
 
 ## farmhand
 - `marketplace:farmhand:dry_run_install` — Dry-run install — Resolve what an install would remove/upgrade, without installing (informational valve).

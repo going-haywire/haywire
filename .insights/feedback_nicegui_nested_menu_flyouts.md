@@ -32,6 +32,19 @@ The `Popup` Vue card renders at `z-index: 7001` (see `popup.vue` `cardStyle`). Q
 `_MENU_Z = "z-index: 7100"`. The QMenu teleports to `<body>`, so the popup card's
 `overflow: auto` does NOT clip it — only the z-order was wrong.
 
+**This bites `ui.select` too, and it looks like a different bug.** A select's
+dropdown IS a QMenu, so inside a `Popup` the option list opens behind the card:
+the DOM is correct and the options are present, but the user sees an empty,
+unusable select. Diagnosing it from server-side `_props`/`_to_dict` will show
+everything is fine — the failure is purely stacking. Use
+`hui.select_field(in_popup=True)`, which applies the lift via the
+`--hw-z-popup-menu` token (design-guide.md §2.9).
+
+Do **not** make the lift unconditional in the wrapper: because the QMenu
+teleports to `<body>`, a lifted dropdown escapes its parent's stacking context,
+so a panel or node widget *behind* a popup would have its dropdown float above
+that popup. Only in-popup selects opt in.
+
 ## 3. Direction: fly out to the side, not down
 
 Inside the fixed-size popup, the default `anchor="bottom left"` drops the menu over the

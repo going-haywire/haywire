@@ -1,0 +1,477 @@
+"""The share wizard's state machine. UI rendering is smoke-tested only."""
+
+import subprocess
+from pathlib import Path
+from unittest.mock import AsyncMock, patch
+
+import pytest
+
+pytestmark = pytest.mark.unit
+
+
+@pytest.fixture
+def anyio_backend() -> str:
+    """anyio's backend parametrization. The repo runs asyncio only."""
+    return "asyncio"
+
+
+@pytest.fixture
+def project(tmp_path: Path) -> Path:
+    remote = tmp_path / "remote.git"
+    remote.mkdir()
+    subprocess.run(["git", "init", "--bare"], cwd=remote, check=True, capture_output=True)
+
+    repo = tmp_path / "project"
+    repo.mkdir()
+    for args in (
+        ["init"],
+        ["config", "user.email", "t@t.test"],
+        ["config", "user.name", "T"],
+        ["remote", "add", "origin", str(remote)],
+    ):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+    lib = repo / "barn" / "haybale-alpha"
+    (lib / "haybale_alpha").mkdir(parents=True)
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-alpha"\nversion = "0.3.1"\n')
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "seed"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "push", "-u", "origin", "HEAD"], cwd=repo, check=True, capture_output=True)
+    return repo
+
+
+def _wizard(project: Path):
+    """A ShareWizard with no popup — the state machine under test."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.share_pipeline import SharePipeline
+
+    return ShareWizard(pipeline=SharePipeline(project), popup=None)
+
+
+def _no_drift(lib_dir: Path):
+    from haywire_studio.share import DepDrift
+
+    return DepDrift(lib_dir=lib_dir)
+
+
+def _drifty(lib_dir: Path):
+    from haywire_studio.share import DepDrift
+
+    return DepDrift(lib_dir=lib_dir, pyproject_missing=["numpy"])
+
+
+def _fake_docs():
+    from haywire_studio.share_pipeline.results import DocsResult
+
+    return patch(
+        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_docs",
+        new=AsyncMock(return_value=DocsResult(coverage={"alpha": []}, written=[])),
+    )
+
+
+# ── step 1 → 2 ───────────────────────────────────────────────────────────────
+
+
+@pytest.mark.anyio
+async def test_wizard_starts_at_preconditions(project: Path) -> None:
+    wizard = _wizard(project)
+    assert wizard.step == "preconditions"
+    assert wizard.error is None
+
+
+@pytest.mark.anyio
+async def test_healthy_project_reports_a_pass_before_scanning(project: Path) -> None:
+    """Step 1 reports only on project health. The drift scan is step 2, so its
+    multi-second cost isn't charged to a step labelled "Check the project"."""
+    wizard = _wizard(project)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.step == "checked"
+    assert wizard.error is None
+    assert wizard.preconditions_report is not None
+    assert wizard.preconditions_report.ok
+    # The scan has NOT run yet — that is the whole point of the split.
+    assert wizard.drift_report is None
+
+
+@pytest.mark.anyio
+async def test_scan_advances_to_drift(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+    assert wizard.step == "drift"
+    assert wizard.error is None
+    assert wizard.drift_report is not None
+
+
+@pytest.mark.anyio
+async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> None:
+    """The menu item is always enabled; this step explains why a workspace
+    can't be shared. A disabled item can't carry a tooltip — the design guide's
+    disabled state includes pointer-events: none (design-guide.md:725)."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.share_pipeline import SharePipeline
+
+    repo = tmp_path / "broken"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+
+    wizard = ShareWizard(pipeline=SharePipeline(repo), popup=None)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.step == "preconditions"
+    assert wizard.error is not None
+    assert "barn" in wizard.error
+
+
+@pytest.mark.anyio
+async def test_clean_drift_skips_straight_to_version(project: Path) -> None:
+    """Nothing to decide means nothing to ask."""
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+    assert wizard.drift_report is not None
+    assert wizard.drift_report.needs_decision is False
+
+
+# ── step 2 → 3 ───────────────────────────────────────────────────────────────
+
+
+@pytest.mark.anyio
+async def test_drift_union_advances(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_drifty):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        with patch("haywire_studio.share_pipeline.pipeline.apply_drift_fix"):
+            await wizard.advance_from_drift("union")
+    assert wizard.step == "version"
+
+
+@pytest.mark.anyio
+async def test_drift_skip_records_the_acknowledgement(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_drifty):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    assert wizard.step == "version"
+    assert wizard.pipeline.drift_acknowledged is True
+
+
+@pytest.mark.anyio
+async def test_version_plan_is_loaded_for_the_next_panel(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    assert wizard.version_plan is not None
+    assert wizard.version_plan.common_version == "0.3.1"
+
+
+# ── step 3 → 4 ───────────────────────────────────────────────────────────────
+
+
+@pytest.mark.anyio
+async def test_version_bump_advances_to_docs(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    assert wizard.step == "docs"
+    assert wizard.pipeline.version == "0.3.2"
+
+
+@pytest.mark.anyio
+async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -> None:
+    """Where the fix is cheapest — 'pick 0.3.2 instead' costs nothing here."""
+    subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+
+    assert wizard.step == "version"
+    assert wizard.error is not None
+    assert "v0.3.2" in wizard.error
+
+
+@pytest.mark.anyio
+async def test_lock_warning_surfaces_without_blocking(project: Path) -> None:
+    (project / "uv.lock").write_text("")
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    with patch(
+        "haywire_studio.share_pipeline.pipeline.refresh_lockfile",
+        return_value=(False, "uv lock failed: boom"),
+    ):
+        await wizard.advance_from_version("patch")
+
+    assert wizard.step == "docs"
+    assert wizard.warnings
+    assert any("boom" in w for w in wizard.warnings)
+
+
+# ── step 4 → 5 ───────────────────────────────────────────────────────────────
+
+
+@pytest.mark.anyio
+async def test_docs_step_advances_and_keeps_coverage(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    with _fake_docs():
+        await wizard.advance_from_docs()
+
+    assert wizard.step == "commit"
+    assert wizard.docs_result is not None
+    assert wizard.commit_plan is not None
+
+
+@pytest.mark.anyio
+async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
+    from haywire_studio.share_pipeline import DocsGenerationError
+
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+
+    with patch(
+        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_docs",
+        new=AsyncMock(side_effect=DocsGenerationError("boom", output="traceback")),
+    ):
+        await wizard.advance_from_docs()
+
+    assert wizard.step == "docs"
+    assert wizard.error is not None
+
+
+@pytest.mark.anyio
+async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+
+    async def _streamy(self, on_output=None):
+        from haywire_studio.share_pipeline.results import DocsResult
+
+        if on_output:
+            on_output("loading libraries…")
+        return DocsResult(coverage={}, written=[])
+
+    with patch(
+        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_docs",
+        new=_streamy,
+    ):
+        await wizard.advance_from_docs()
+
+    assert "loading libraries…" in wizard.log_lines
+
+
+# ── step 5 → 6 ───────────────────────────────────────────────────────────────
+
+
+@pytest.mark.anyio
+async def test_commit_advances_to_push(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    with _fake_docs():
+        await wizard.advance_from_docs()
+    await wizard.advance_from_commit("chore: share v0.3.2", [])
+
+    assert wizard.step == "push"
+    assert wizard.commit_result is not None
+    assert wizard.commit_result.tag == "v0.3.2"
+
+
+@pytest.mark.anyio
+async def test_commit_step_verifies_push_before_committing(project: Path) -> None:
+    """Closes the race window since step 1 — and leaves nothing to undo."""
+    from haywire_studio.share_pipeline import gitcmd
+
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    with _fake_docs():
+        await wizard.advance_from_docs()
+
+    head_before = subprocess.run(
+        ["git", "rev-parse", "HEAD"], cwd=project, capture_output=True, text=True, check=True
+    ).stdout
+
+    def _rejected(args, **_kw):
+        if "--dry-run" in args:
+            return gitcmd.GitResult(ok=False, stdout="", stderr="! [rejected]", returncode=1)
+        return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
+
+    with patch("haywire_studio.share_pipeline.pipeline.git_remote", side_effect=_rejected):
+        await wizard.advance_from_commit("chore: share v0.3.2", [])
+
+    assert wizard.step == "commit"
+    assert wizard.error is not None
+    assert (
+        subprocess.run(
+            ["git", "rev-parse", "HEAD"], cwd=project, capture_output=True, text=True, check=True
+        ).stdout
+        == head_before
+    )
+
+
+@pytest.mark.anyio
+async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
+    asset.write_bytes(b"\x89PNG")
+    with _fake_docs():
+        await wizard.advance_from_docs()
+
+    await wizard.advance_from_commit("chore: share v0.3.2", [asset])
+
+    committed = subprocess.run(
+        ["git", "show", "--name-only", "--format=", "HEAD"],
+        cwd=project,
+        capture_output=True,
+        text=True,
+        check=True,
+    ).stdout.split()
+    assert "barn/haybale-alpha/haybale_alpha/icon.png" in committed
+
+
+# ── step 6 → done ────────────────────────────────────────────────────────────
+
+
+@pytest.mark.anyio
+async def test_push_completes_the_wizard(project: Path) -> None:
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    with _fake_docs():
+        await wizard.advance_from_docs()
+    await wizard.advance_from_commit("chore: share v0.3.2", [])
+    await wizard.advance_from_push()
+
+    assert wizard.step == "done"
+    assert wizard.push_result is not None
+
+
+@pytest.mark.anyio
+async def test_push_failure_is_retryable_in_place(project: Path) -> None:
+    from haywire_studio.share_pipeline import PushError
+
+    wizard = _wizard(project)
+    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+    await wizard.advance_from_version("patch")
+    with _fake_docs():
+        await wizard.advance_from_docs()
+    await wizard.advance_from_commit("chore: share v0.3.2", [])
+
+    with patch(
+        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_push",
+        new=AsyncMock(side_effect=PushError(stderr="timeout", manual_command="git p ush ...")),
+    ):
+        await wizard.advance_from_push()
+
+    assert wizard.step == "push"
+    assert wizard.error is not None
+    assert wizard.manual_command is not None
+
+    # Retrying the same step works — the failed step is retryable in place.
+    wizard.retry()
+    assert wizard.error is None
+    await wizard.advance_from_push()
+    assert wizard.step == "done"
+
+
+@pytest.mark.anyio
+async def test_retry_clears_only_the_error(project: Path) -> None:
+    wizard = _wizard(project)
+    wizard.error = "boom"
+    wizard.warnings = ["keep me"]
+    wizard.retry()
+    assert wizard.error is None
+    assert wizard.warnings == ["keep me"]
+
+
+def test_every_drift_choice_is_explained() -> None:
+    """The three words can't carry the semantics on their own: the choice that
+    sounds safest (Replace) deletes, and the neutral-sounding one (Skip) ships
+    libraries whose deps are undeclared. Each option must state its effect."""
+    from haybale_marketplace.editors._share_wizard import _DRIFT_EXPLANATIONS, _DRIFT_OPTIONS
+
+    assert set(_DRIFT_OPTIONS) == {"union", "replace", "skip"}
+    assert set(_DRIFT_EXPLANATIONS) == set(_DRIFT_OPTIONS)
+
+    # Replace is the destructive one and must say so.
+    assert "REMOVED" in _DRIFT_EXPLANATIONS["replace"][0]
+    assert _DRIFT_EXPLANATIONS["replace"][1] == "--hw-danger"
+    # Union is additive and must promise that nothing is lost.
+    assert "Nothing is removed" in _DRIFT_EXPLANATIONS["union"][0]
+    assert _DRIFT_EXPLANATIONS["union"][1] == "--hw-positive"
+    # Skip must name the consequence for consumers, not just "does nothing".
+    assert "unresolved" in _DRIFT_EXPLANATIONS["skip"][0]
+
+
+def test_every_wizard_select_is_marked_in_popup() -> None:
+    """The wizard renders inside a Popup, so every select it builds must carry
+    in_popup=True. A QMenu defaults to z-6000 and the Popup card is z-7001, so
+    an unlifted dropdown opens BEHIND the popup and looks empty.
+    See .insights/feedback_nicegui_nested_menu_flyouts.md (#2)."""
+    import re
+    from pathlib import Path as _Path
+
+    source = _Path("barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard.py").read_text()
+    selects = len(re.findall(r"\bui\.select\(|\bselect_field\(", source))
+    marked = source.count("in_popup=True")
+    assert selects, "expected at least one select in the wizard"
+    assert marked == selects, (
+        f"{selects} select(s) but {marked} marked in_popup — one opens behind the popup"
+    )
+
+
+def test_render_functions_import_and_reference_only_tokens() -> None:
+    """No hardcoded colours — the design guide forbids them, and a literal hex
+    breaks every theme but the one it was picked in."""
+    import re
+    from pathlib import Path as _Path
+
+    source = _Path("barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard.py").read_text()
+    assert not re.search(r"#[0-9a-fA-F]{3,8}\b", source), "hardcoded colour found"
+    assert "box-shadow" not in source, "no box-shadow on chrome (design guide)"
+    assert "ui.card()" not in source, "use Popup / hui.dialog_card(), not a bare card"

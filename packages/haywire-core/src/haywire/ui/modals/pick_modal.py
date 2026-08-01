@@ -9,6 +9,7 @@ from typing import Callable, Optional, Sequence
 
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
 
 
@@ -70,7 +71,7 @@ def pick_modal(
         # sits BELOW the Popup card (7001) — so the option list renders behind
         # the modal. Lift it above the popup, matching the nested-menu fix.
         # See .insights/feedback_nicegui_nested_menu_flyouts.md (#2).
-        select.props('popup-content-style="z-index: 7100"')
+        select.props(f'popup-content-style="z-index: {hui.POPUP_MENU_Z}"')
         select.props("dense use-input" if searchable else "dense")
 
         def _do_confirm() -> None:

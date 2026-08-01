@@ -181,23 +181,34 @@ _README_PLACEHOLDER = (
 
 
 def _generate_gitignore() -> str:
-    """Generate a default .gitignore for a scaffolded haywire project."""
+    """Generate a default .gitignore for a scaffolded haywire project.
+
+    Root-only patterns are ANCHORED with a leading slash. An unanchored pattern
+    matches at every depth, including inside ``barn/<lib>/<module>/``, and since
+    consumers install from a clone, anything ignored there is absent for
+    everyone. See ``.insights/project_git_url_publishing_traps.md``.
+    """
     return """\
+# Patterns below are anchored with a leading slash (/build/) so they match only
+# at the repo root. An unanchored pattern (build/) matches at EVERY depth —
+# including inside barn/, where it would silently exclude your library's own
+# files. See the note at the end of this file before adding patterns.
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
 *$py.class
 
-# Distribution / packaging
-build/
-dist/
+# Distribution / packaging (root only)
+/build/
+/dist/
 *.egg-info/
 *.egg
 
-# Virtual environments
-.venv/
-venv/
-env/
+# Virtual environments (root only)
+/.venv/
+/venv/
+/env/
 
 # Test / type-check caches
 .pytest_cache/
@@ -214,6 +225,56 @@ htmlcov/
 
 # Haywire per-session UI state (open graph, pan/zoom) — not project state
 .haywire/workspace_state.json
+
+# ── Before you add a pattern ────────────────────────────────────────────────
+# Anything ignored inside barn/<your-library>/ will be MISSING for everyone who
+# installs your library — haywire share publishes by git URL, so consumers get
+# a clone of this repo, not a built package. If a pattern is only meant for the
+# repo root, anchor it with a leading slash: /build/ not build/.
+"""
+
+
+def _generate_gitattributes() -> str:
+    """Generate a default .gitattributes: text normalization, and NO LFS.
+
+    LFS is deliberately not armed. git stores a ~130-byte pointer file, and a
+    consumer cloning WITHOUT git-lfs installed receives that pointer instead of
+    the asset — the install succeeds and the library breaks at runtime. Whether
+    uv's clone runs the smudge filter depends on the consumer's global LFS
+    config, which neither the publisher nor Haywire controls or can detect. And
+    ``*.png`` is exactly what a node library's icons and skins match, so the
+    trap would fire on the most common case.
+
+    The trade-off is documented here instead, where the decision gets made.
+    """
+    return """\
+# Normalize line endings on commit; check out with the platform's native EOL.
+* text=auto
+
+# Binary assets — never diffed, never EOL-converted.
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.pdf binary
+*.woff binary
+*.woff2 binary
+*.mp4 binary
+*.onnx binary
+*.blob binary
+
+# ── About Git LFS ───────────────────────────────────────────────────────────
+# Do NOT add LFS smudge-filter directives here without understanding the
+# consequence. `haywire share` publishes by git URL, so consumers clone this
+# repo. Git stores an LFS-tracked file as a ~130-byte pointer, and a consumer
+# without the LFS system receives that pointer text instead of the real asset.
+# The clone succeeds; your library breaks at runtime when it loads the file.
+# Whether the clone resolves the pointer depends on the consumer's own git
+# config — something you cannot control or detect from here.
+#
+# If your library genuinely needs large assets, download them at runtime into a
+# cache directory instead of committing them.
 """
 
 
@@ -564,6 +625,10 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
 
     # Default .gitignore (Python caches, virtualenvs, editor/OS cruft)
     (project_dir / ".gitignore").write_text(_generate_gitignore())
+
+    # .gitattributes — EOL normalization + binary markers. No LFS: see the
+    # comment block in _generate_gitattributes().
+    (project_dir / ".gitattributes").write_text(_generate_gitattributes())
 
     # README.md inside the scaffolded barn library (with marker pair)
     (lib_dir / "README.md").write_text(_generate_library_readme(name, label))

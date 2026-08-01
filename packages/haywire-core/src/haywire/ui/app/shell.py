@@ -164,6 +164,12 @@ class AppShell:
         # Area-level tab panels must not scroll — editors own their scroll behaviour.
         # CSS vars are injected from the active WorkbenchTheme (no body.body--dark block).
         _static_css = (
+            # Z-index layers for the Quasar-overlay tier. NOT theme tokens:
+            # stacking order is structural, not a user-swappable colour.
+            # Quasar's own dialogs and QMenus both default to 6000, which is
+            # why the haywire Popup card sits above them at 7001 and menus
+            # opened from inside a popup need 7100 to clear it.
+            " :root { --hw-z-popup: 7001; --hw-z-popup-menu: 7100; }"
             # Page background
             " body, .q-page, .q-tab-panels { background: var(--hw-bg-page) !important; }"
             # Layout

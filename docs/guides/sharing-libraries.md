@@ -75,39 +75,65 @@ A typical workflow is: write code → realize you've added an import → click D
 
 ## 4. The publish flow
 
-Once the manifests are honest, publishing is `haywire share`. Two modes:
+Once the manifests are honest, publishing is `haywire share`. Unlike the old
+per-library snippet tool, it publishes the whole **project**: every `barn/*`
+library is bumped to the same version (lockstep), docs are regenerated,
+`marketstall.toml` is rebuilt, and the result is committed, tagged
+`v<version>`, and pushed. See [ADR-0023](../adr/0023-project-scoped-lockstep-sharing.md)
+for why the unit of sharing is the project, not one library.
 
-### 4.1 Snippet mode (one library, stdout)
+The same pipeline is available two ways: the CLI (this section) and the
+**Share Project…** item on `LibraryBrowserEditor`'s burger menu, which walks
+the same steps as a popup wizard.
+
+### 4.1 Interactive mode (default)
 
 ```sh
-uv run haywire share barn/haybale-my-lib
+uv run haywire share
 ```
 
-Prints a single `[[haybales]]` block to stdout. Useful for pasting into a shared marketplace file you don't own, or for double-checking what would publish before committing.
+Prompts through the same six steps as the GUI wizard — check the project,
+resolve dependency drift, choose a version, regenerate docs, review the
+commit, then push.
 
-### 4.2 Save mode (all barn libraries, writes marketstall.toml)
+### 4.2 Check mode — read-only PR gate
 
 ```sh
-uv run haywire share --save
+uv run haywire share --check
 ```
 
-Walks `barn/*`, builds a `[[haybales]]` entry per library that has a `pyproject.toml`, and writes the aggregated list to `<repo-root>/marketstall.toml`. This is the file you host for consumers — see §6.
+Reports dependency drift and stale docs/marketstall and exits non-zero if
+anything is out of date. Writes nothing, commits nothing, pushes nothing.
+Use this in CI to fail a PR before a human runs the real thing.
 
-### 4.3 The drift gate
+### 4.3 Non-interactive mode
 
-Both modes run a **drift gate** before emitting. The gate checks each library: are there imports in the source that aren't declared in *either* manifest? Three flags control how the gate reacts.
+```sh
+uv run haywire share --yes --bump patch
+```
 
-| Mode | Flag | Behavior on drift |
-|---|---|---|
-| Default | (none) | Print drift to stderr; continue and emit anyway. Most permissive; relies on the author to notice. |
-| Strict | `--strict` | Exit non-zero before emitting anything. The marketstall is NOT written. Use in CI. |
-| Auto-fix | `--fix` | Write the missing entries to both manifests in place, then proceed. Equivalent to "Union all" applied across every barn library. |
+Every answer comes from a flag instead of a prompt. Requires `--bump`
+(`patch|minor|major` or an explicit `X.Y.Z`); refuses to run if there is
+unresolved dependency drift — resolve it first (§3) or the run fails with the
+same information `--check` would have reported.
 
-Combining flags is fine — `--save --strict` produces a marketstall only if every library is clean; `--save --fix` first reconciles every library and then writes the marketstall.
+### 4.4 Pinning the share URL (`--ref` / `--tag`)
 
-### 4.4 What an entry looks like
+```sh
+uv run haywire share --yes --bump patch --tag latest
+```
 
-The output (snippet or save) follows the marketstall schema:
+By default the published `install_spec` is branch-live: `marketstall.toml` is
+a subscription feed, so a branch-pinned URL keeps subscribers discovering
+every future release. `--ref <branch|tag|SHA>` or `--tag <tag>` (`--tag latest`
+resolves to the most recent tag reachable from HEAD) freezes the URL to a
+specific point instead — use this for a one-off frozen snippet, not for the
+feed you expect people to keep subscribing to.
+
+### 4.5 What an entry looks like
+
+Each `barn/*` library becomes one `[[haybales]]` entry in the generated
+`marketstall.toml`:
 
 ```toml
 [[haybales]]
@@ -132,31 +158,11 @@ A few points worth knowing:
 - `docs_url` points at the library's Python module directory. Generated `OVERVIEW.md` and `QUICKREF.md` live there and the Library Manager will fetch them for pre-install discovery.
 - `min_version` is a *floor*, not "latest". Consumers may install a higher version.
 
-`haywire share` derives all this from your `pyproject.toml`, your `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.
-
-### 4.5 Bumping the version (`--bump`)
-
-For a standalone library repo (one you scaffolded with `haywire init`, *not* the haywire monorepo — see §5 for that case), `--bump` rewrites the `[project] version` in the root `pyproject.toml` and every `barn/*/pyproject.toml`, commits the change, and creates a lightweight git tag `v<version>`.
-
-```sh
-uv run haywire share --bump            # print the current version, change nothing
-uv run haywire share --bump patch      # 0.3.7 → 0.3.8
-uv run haywire share --bump minor      # 0.3.7 → 0.4.0
-uv run haywire share --bump major      # 0.3.7 → 1.0.0
-uv run haywire share --bump 1.2.3      # set an explicit version
-```
-
-The `major`/`minor`/`patch` keywords are npm-style: they read the current version (from the first `barn/*` library) and apply standard semver arithmetic. An explicit `X.Y.Z` is written verbatim. Combine with `--save` to bump, tag, and regenerate the marketstall in one go:
-
-```sh
-uv run haywire share --bump patch --save
-```
-
-After tagging, push the tag (`git push --tags`) so consumers can install at that ref via the `install_spec`.
+`haywire share` derives all this from each library's `pyproject.toml`, its `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.
 
 ## 5. Versioning
 
-> `--bump` (§4.5) is the tool for a **standalone** library repo. The haywire **monorepo** uses a different, lockstep flow described below.
+> `haywire share` (§4) is the tool for a project you scaffolded with `haywire init` — a uv workspace root with a `barn/` of libraries that publish in lockstep. The haywire **monorepo itself** uses a related but separate lockstep flow described below.
 
 Versions are managed at the monorepo level by `scripts/bump_version.py`, invoked through `/haywire-release`. See [publish_releases](../reference/publish_releases.md) for the operational flow. The short version:
 
@@ -196,10 +202,13 @@ write code → add import → click Detect Dependencies → Union → Save Chang
                                                     git commit && git push
                                                                     │
                                                                     ▼
-                                                       uv run haywire share --save
+                                            uv run haywire share --yes --bump patch
+                                          (or: Share Project… in the burger menu)
                                                                     │
                                                                     ▼
-                                                    git commit marketstall.toml && push
+                                        [barn/* bumped in lockstep, docs regenerated,
+                                          marketstall.toml rebuilt, committed, tagged,
+                                                              and pushed]
                                                                     │
                                                                     ▼
                                                       [marketstall hosted at URL]
@@ -208,12 +217,12 @@ write code → add import → click Detect Dependencies → Union → Save Chang
                                               consumer subscribes via Add Source
 ```
 
-For monorepo authors, `--save` is the daily command. For one-off snippet sharing (chat, gist, README), `share <library>` without `--save` is fine.
+`haywire share --check` is the CI-side companion — run it as a PR gate to catch drift or stale docs/marketstall before merging, without writing anything.
 
 ## 8. Common pitfalls
 
-**You ran `haywire share` and got "Refusing to share due to drift."**
-You used `--strict`. Either run with `--fix` to auto-correct, or open the Library Overview Editor for the flagged library and Detect → Union, then re-run. The error message lists which manifest entries are missing.
+**You ran `haywire share` and got "unresolved dependency drift."**
+`--yes` refuses to run with drift unresolved. Either drop `--yes` and resolve it interactively, or open the Library Overview Editor for the flagged library and Detect → Union, then re-run `--yes --bump ...`. The error message lists which manifest entries are missing.
 
 **Your marketstall has an entry but consumers don't see the library after subscribing.**
 Three causes worth checking:

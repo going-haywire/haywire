@@ -322,13 +322,13 @@ description = "Core library for Haywire node system..."
 
 The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. The dev-repo libraries are scoped to this project only; opening a different project doesn't see them.
 
-### 9.3 What `haywire share --save` produces
+### 9.3 What `haywire share` produces
 
-Running `haywire share --save` at a repo root with a `barn/` containing libraries writes `<repo-root>/marketstall.toml`:
+Running `haywire share` at a repo root with a `barn/` containing libraries writes `<repo-root>/marketstall.toml`, one `[[haybales]]` entry per library, in lockstep with the version bump for that run:
 
 ```toml
 # marketstall.toml — share this file's raw URL so others can subscribe
-# Run: haywire share --save  to update this file
+# Run: haywire share   to update this file
 
 [[haybales]]
 name         = "haybale-my-lib"

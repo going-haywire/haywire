@@ -53,11 +53,28 @@ The plugin owns **no registry state and no runtime parsing**. It calls `Marketpl
 
 | Editor | Default slot | Role |
 |---|---|---|
-| `LibraryBrowserEditor` | `left` | Lists installed + available libraries, grouped REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar: Refresh, Add Source, Edit File. |
+| `LibraryBrowserEditor` | `left` | Lists installed + available libraries, grouped REQUIRED / ENABLED / DISABLED / AVAILABLE. Burger menu: Refresh, Add Source, Share Project, Edit File. |
 | `LibraryOverviewEditor` | `main` | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall / Install actions. |
 | `LibraryComponentEditor` | `right` | Detail view for one component (node/type/widget/…) — import snippet, port-wiring hints. |
 
 `library_marketplace_dialog` is **not** a registered editor — it is a module of helper functions (`show_add_source_dialog`, conflict-resolution prompts) the Browser's Add Source button calls.
+
+### Publishing a project
+
+`haywire share` publishes the whole project: every `barn/*` library is bumped to
+the same version (lockstep), docs are regenerated, `marketstall.toml` is rebuilt,
+and the result is committed, tagged `v<version>`, and pushed.
+
+| Mode | What it does |
+| --- | --- |
+| `haywire share` | Interactive. Prompts through the same six steps as the GUI wizard. |
+| `haywire share --check` | Read-only. Reports dependency drift and stale docs/marketstall, exits non-zero. Writes nothing. Use it as a PR gate. |
+| `haywire share --yes --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
+
+The same pipeline backs the **Share Project…** item in the Marketplace editor's
+burger menu. `--ref`/`--tag` pin the share URL for a frozen feed; the default is
+branch-live, because `marketstall.toml` is a subscription feed and a tag-pinned
+URL freezes subscribers at whatever version they subscribed to.
 
 ### States
 
