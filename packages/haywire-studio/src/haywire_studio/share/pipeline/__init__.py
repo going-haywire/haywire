@@ -4,7 +4,7 @@
 re-exported here so callers have a single import site.
 """
 
-from haywire_studio.gitcmd import (
+from haywire_studio.share.git import (
     GitResult,
     git,
     git_remote,
@@ -12,7 +12,7 @@ from haywire_studio.gitcmd import (
     run,
     run_streaming,
 )
-from haywire_studio.share_pipeline.errors import (
+from haywire_studio.share.pipeline.errors import (
     CommitError,
     DocsGenerationError,
     ManifestError,
@@ -24,8 +24,8 @@ from haywire_studio.share_pipeline.errors import (
     TagCollisionError,
     VersionError,
 )
-from haywire_studio.share_pipeline.pipeline import GIT_INSTALL_HINT, SharePipeline
-from haywire_studio.share_pipeline.results import (
+from haywire_studio.share.pipeline.pipeline import GIT_INSTALL_HINT, SharePipeline
+from haywire_studio.share.pipeline.results import (
     BarnDirtyFile,
     BumpResult,
     CommitPlan,

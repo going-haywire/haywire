@@ -94,10 +94,25 @@ def test_no_barn_directory_is_not_a_failure(tmp_path: Path, capsys) -> None:
 
 @pytest.mark.unit
 def test_never_imports_or_constructs_share_pipeline() -> None:
-    """Global constraint: `deps check` must stay decoupled from SharePipeline."""
+    """Global constraint: `deps check` must stay decoupled from SharePipeline.
+
+    Checks import statements specifically (not a raw substring scan of the
+    source) since the module's own docstring names ``SharePipeline`` in
+    prose to document this very constraint.
+    """
+    import ast
+
     import haywire_studio.deps_cli as deps_cli_module
 
     assert "SharePipeline" not in dir(deps_cli_module)
-    assert "share_pipeline" not in deps_cli_module.__spec__.loader.get_source(  # type: ignore[union-attr]
-        deps_cli_module.__name__
-    )
+    src = deps_cli_module.__spec__.loader.get_source(deps_cli_module.__name__)  # type: ignore[union-attr]
+    imported_modules = set()
+    imported_names = set()
+    for node in ast.walk(ast.parse(src)):
+        if isinstance(node, ast.ImportFrom) and node.module:
+            imported_modules.add(node.module)
+            imported_names.update(alias.name for alias in node.names)
+        elif isinstance(node, ast.Import):
+            imported_modules.update(alias.name for alias in node.names)
+    assert "haywire_studio.share.pipeline" not in imported_modules
+    assert "SharePipeline" not in imported_names

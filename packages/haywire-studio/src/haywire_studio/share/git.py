@@ -1,7 +1,7 @@
-"""Hardened ``git`` subprocess helpers for the share pipeline.
+"""Hardened ``git`` subprocess helpers for the share package.
 
-Every git invocation the pipeline makes goes through here. Two rules the rest
-of the pipeline relies on:
+Every git invocation ``share.py`` and the pipeline make goes through here. Two
+rules the rest of the pipeline relies on:
 
 1. **Nothing raises.** A missing binary, a non-zero exit, and a timeout all
    come back as a :class:`GitResult` so each step can decide what the failure
@@ -57,7 +57,7 @@ def _hardened_env() -> dict[str, str]:
 
 
 def _run(
-    args: list[str],
+    cmd: list[str],
     *,
     cwd: Path,
     timeout: float,
@@ -65,23 +65,27 @@ def _run(
 ) -> GitResult:
     try:
         proc = subprocess.run(
-            ["git", *args],
+            cmd,
             cwd=str(cwd),
             capture_output=True,
             text=True,
             timeout=timeout,
             env=env,
         )
-    except FileNotFoundError as exc:
-        return GitResult(ok=False, stdout="", stderr=f"git not found: {exc}", returncode=127)
     except subprocess.TimeoutExpired:
         return GitResult(
             ok=False,
             stdout="",
-            stderr=f"git {' '.join(args)} timed out after {timeout:g}s",
+            stderr=f"{' '.join(cmd)} timed out after {timeout:g}s",
             returncode=124,
             timed_out=True,
         )
+    except OSError as exc:
+        # Covers FileNotFoundError (binary missing) and its siblings, e.g.
+        # PermissionError on a binary that exists but isn't executable. All of
+        # these are "the process never started," so 127 — the shell's own
+        # "command not found" convention — is the closest fit for either.
+        return GitResult(ok=False, stdout="", stderr=f"{cmd[0]} not found: {exc}", returncode=127)
     return GitResult(
         ok=proc.returncode == 0,
         stdout=proc.stdout or "",
@@ -92,12 +96,23 @@ def _run(
 
 def git(args: list[str], *, cwd: Path, timeout: float = 30.0) -> GitResult:
     """Run a purely local git command with the ambient environment."""
-    return _run(args, cwd=cwd, timeout=timeout, env=None)
+    return _run(["git", *args], cwd=cwd, timeout=timeout, env=None)
 
 
 def git_remote(args: list[str], *, cwd: Path, timeout: float = 60.0) -> GitResult:
     """Run a git command that talks to a remote, with all prompts disabled."""
-    return _run(args, cwd=cwd, timeout=timeout, env=_hardened_env())
+    return _run(["git", *args], cwd=cwd, timeout=timeout, env=_hardened_env())
+
+
+def run(cmd: list[str], *, cwd: Path, timeout: float) -> GitResult:
+    """Run an arbitrary non-git command synchronously, with the ambient environment.
+
+    Same contract as :func:`git` (nothing raises, everything comes back as a
+    :class:`GitResult`) for a non-git subprocess that doesn't need streaming —
+    currently ``uv lock``. Like ``git``, this is a purely local call: no
+    prompt-disabling env is applied.
+    """
+    return _run(cmd, cwd=cwd, timeout=timeout, env=None)
 
 
 async def git_remote_streaming(

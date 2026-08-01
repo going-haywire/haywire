@@ -294,7 +294,7 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
     for module in sorted(candidates):
         if module == "haywire":
             # The ENTIRE `haywire` top-level package ships in haywire-core —
-            # including haywire.ui 
+            # including haywire.ui
 
             pyproject.append(_format_specifier("haywire-core", strict=True))
             resolved["haywire"] = "haywire-core"

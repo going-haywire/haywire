@@ -52,8 +52,10 @@ def test_share_save_returns_share_url_for_github_remote(tmp_path: Path) -> None:
     from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             result = write_marketstall(repo)
 
     assert result.share_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
@@ -67,9 +69,9 @@ def test_share_save_returns_share_url_for_gitlab_remote(tmp_path: Path) -> None:
 
     repo = _make_repo(tmp_path)
     with patch(
-        "haywire_studio.share._get_remote_url", return_value="https://gitlab.com/alice/cool-libs.git"
+        "haywire_studio.share.url._get_remote_url", return_value="https://gitlab.com/alice/cool-libs.git"
     ):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             result = write_marketstall(repo)
 
     assert result.share_url == "https://gitlab.com/alice/cool-libs/-/blob/main/marketstall.toml"
@@ -80,7 +82,7 @@ def test_share_save_no_remote_warns(tmp_path: Path) -> None:
     from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
-    with patch("haywire_studio.share._get_remote_url", return_value=None):
+    with patch("haywire_studio.share.url._get_remote_url", return_value=None):
         result = write_marketstall(repo)
 
     assert result.share_url is None
@@ -93,8 +95,10 @@ def test_share_save_unknown_host_warns_with_config_snippet(tmp_path: Path) -> No
     from haywire_studio.share import write_marketstall
 
     repo = _make_repo(tmp_path)
-    with patch("haywire_studio.share._get_remote_url", return_value="https://gitlab.zhdk.ch/alice/libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="https://gitlab.zhdk.ch/alice/libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             result = write_marketstall(repo)
 
     assert result.share_url is None
@@ -111,8 +115,10 @@ def test_derive_share_url_no_args(tmp_path: Path) -> None:
 
     repo = _make_repo(tmp_path)
     (repo / "marketstall.toml").write_text("# placeholder\n")
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             result = derive_share_url_only(repo)
 
     assert isinstance(result, ShareSaveResult)
@@ -126,8 +132,10 @@ def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
 
     repo = _make_repo(tmp_path)
     # No marketstall.toml created.
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             result = derive_share_url_only(repo)
 
     assert result.share_url is None

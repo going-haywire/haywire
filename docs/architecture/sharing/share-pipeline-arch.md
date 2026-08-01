@@ -1,7 +1,7 @@
 ---
 status: current
 doc_template: impl-spec
-scope: SharePipeline's step-by-step mechanics, the error taxonomy, the share.py/share_pipeline import-cycle constraint, the default-branch publishing rule, and the current CI-facing tooling
+scope: SharePipeline's step-by-step mechanics, the error taxonomy, the default-branch publishing rule, and the current CI-facing tooling
 see-also:
   - ../sharing/sharing-arch.md
   - ../../guides/sharing-libraries.md
@@ -14,7 +14,7 @@ see-also:
 
 ## 1. Mental model
 
-`SharePipeline` (`haywire_studio.share_pipeline.pipeline`) is a single stateful object that drives one project's publish, one step at a time. It is the one engine behind every caller: the `haywire share` CLI (interactive and `--yes` modes) and the studio's share wizard both construct a `SharePipeline(repo_root)` and call the same methods in the same order.
+`SharePipeline` (`haywire_studio.share.pipeline.pipeline`) is a single stateful object that drives one project's publish, one step at a time. It is the one engine behind every caller: the `haywire share` CLI (interactive and `--yes` modes) and the studio's share wizard both construct a `SharePipeline(repo_root)` and call the same methods in the same order.
 
 It is stateful because later steps consume earlier steps' outputs — drift resolution precedes docs regeneration, the bumped version feeds both the docs render and the marketstall entry, and the final commit's file list is the union of every step's writes. A stateful object keeps that sequencing in one place instead of re-derived by each caller, and maps directly onto the wizard's linear, resumable stepper UI.
 
@@ -23,6 +23,8 @@ Each step that can affect the working tree is split into a **check/plan** call (
 ## 2. The six steps
 
 The pipeline has six steps, numbered by the section comments in `pipeline.py` itself. Some steps have more than one apply path (step 2 offers Union or Replace; step 5 bundles marketstall + commit + tag together because they share one user-facing preview).
+
+Each step's implementation lives in its own module under `share/pipeline/steps/` — `preconditions.py`, `drift.py`, `version.py`, `docs.py`, `commit.py`, `push.py` — and `SharePipeline` delegates to it rather than implementing the step's logic inline.
 
 ```text
 1. Preconditions          check_preconditions() / require_preconditions()
@@ -51,7 +53,7 @@ Reporting rather than raising also matters for the wizard's first panel: the men
 
 ### 2.2 Step 2 — Dependency drift
 
-`check_drift()` runs `detect_share_drift()` (from `share.py`) against every barn library and splits the findings into `drifted` (actionable — missing pyproject or decorator entries, or a lagging version floor) and `unresolved_only` (informational — unmapped imports, usually dynamic). `DriftReport.needs_decision` is `True` iff `drifted` is non-empty.
+`check_drift()` runs `detect_share_drift()` (from `share.drift.detect`) against every barn library and splits the findings into `drifted` (actionable — missing pyproject or decorator entries, or a lagging version floor) and `unresolved_only` (informational — unmapped imports, usually dynamic). `DriftReport.needs_decision` is `True` iff `drifted` is non-empty.
 
 Two apply paths, both real mutations:
 
@@ -60,7 +62,7 @@ Two apply paths, both real mutations:
 
 A third option, `acknowledge_drift()`, records that the user chose to publish without resolving drift, without touching disk — it exists so a caller can distinguish "clean" from "acknowledged" later without re-running detection.
 
-Both `haywire share` and `haywire deps check` (§7) call the same `detect_share_drift()`, so the two commands always report identical drift for the same repo state.
+Both `haywire share` and `haywire deps check` (§6) call the same `detect_share_drift()`, so the two commands always report identical drift for the same repo state.
 
 ### 2.3 Step 3 — Version bump (lockstep)
 
@@ -82,7 +84,7 @@ Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail t
 
 ### 2.5 Step 5 — Marketstall, commit, tag
 
-`apply_marketstall()` calls `write_marketstall()` (from `share.py`) to fully rebuild `marketstall.toml` from every barn library, and rewrite the `<!-- marketstall:share-url -->` marker block in the root README and every `barn/*/README.md`. Always a *full* rebuild — the feed's contract is "every haybale this repo currently offers," so a partial rebuild would silently delete the entries of libraries not touched in this run.
+`apply_marketstall()` calls `write_marketstall()` (from `share.marketstall`) to fully rebuild `marketstall.toml` from every barn library, and rewrite the `<!-- marketstall:share-url -->` marker block (via `share.readme`) in the root README and every `barn/*/README.md`. Always a *full* rebuild — the feed's contract is "every haybale this repo currently offers," so a partial rebuild would silently delete the entries of libraries not touched in this run.
 
 `plan_commit()` previews exactly what would be staged, committed, and tagged: the pipeline's accumulated write set (`self.written`, appended-to by every apply step so far) plus a diffstat, requires `self.version` to already be set (raises `PipelineStateError` otherwise — step 3 must run first). `barn_dirty_files()` separately reports uncommitted content under `barn/` that the pipeline itself didn't write — offered as an opt-in "include these too?" in the wizard, because uncommitted barn content is silently *absent* for consumers (who install from a clone), the one working-tree state that corrupts a publish.
 
@@ -109,22 +111,22 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 
 This split is what lets the wizard show a preview before committing to an action (drift diff before Union/Replace, commit file list before committing, dry-run push before the real push) while the CLI's `--yes` mode drives the exact same methods without ever rendering the intermediate state.
 
-**A prior, now-removed layer once sat on top of this split**: a standalone read-only `plan()` method returning a `SharePlan`, backing a `haywire share --check` CLI mode that reported staleness without publishing. That layer was deleted by the CLI Surface Simplification plan — `--check`'s own preconditions (no detached HEAD, must be on the default branch) made it fail on every PR checkout by construction, since a PR checkout is always one or the other. It has no replacement inside `SharePipeline`; CI-facing drift detection now lives entirely in the separate `haywire deps check` command (§7), which never touches `SharePipeline` at all. The per-step plan/apply split described in the table above is unaffected by that removal — it was never what `plan()`/`--check` was built from.
+**A prior, now-removed layer once sat on top of this split**: a standalone read-only `plan()` method returning a `SharePlan`, backing a `haywire share --check` CLI mode that reported staleness without publishing. That layer was deleted by the CLI Surface Simplification plan — `--check`'s own preconditions (no detached HEAD, must be on the default branch) made it fail on every PR checkout by construction, since a PR checkout is always one or the other. It has no replacement inside `SharePipeline`; CI-facing drift detection now lives entirely in the separate `haywire deps check` command (§6), which never touches `SharePipeline` at all. The per-step plan/apply split described in the table above is unaffected by that removal — it was never what `plan()`/`--check` was built from.
 
 ## 4. The error taxonomy
 
-Every expected pipeline failure raises; successes return frozen dataclasses (`share_pipeline/results.py`). This matches the existing idiom in `share.py` (`NoBarnError`, `InvalidOsDeclarationError`) rather than introducing a Result-type wrapper.
+Every expected pipeline failure raises; successes return frozen dataclasses (`share/pipeline/results.py`). This matches the existing idiom in `share.marketstall` (`NoBarnError`) and `share.manifest.errors` (`InvalidOsDeclarationError`) rather than introducing a Result-type wrapper.
 
-All pipeline-level exceptions subclass `ShareError` (`share_pipeline/errors.py`):
+All pipeline-level exceptions subclass `ShareError` (`share/pipeline/errors.py`):
 
 | Exception | Raised when |
 |---|---|
 | `PreconditionsError` | One or more step-1 checks failed. Carries the full `list[PreconditionFailure]`, not just the first. |
-| `ManifestError` | A library `pyproject.toml` could not be read or is invalid — the pipeline's translation of `share.py`'s `ManifestReadError`/`InvalidOsDeclarationError` at the module boundary (see below). |
+| `ManifestError` | A library `pyproject.toml` could not be read or is invalid — the pipeline's translation of `share.manifest.errors`'s `ManifestReadError`/`InvalidOsDeclarationError` at the module boundary (see below). |
 | `VersionError` | A version string was unparsable, or a lockstep bump had no honest target (disagreeing versions, keyword spec). |
 | `TagCollisionError` | The `v<version>` tag already exists, locally or on the remote. |
 | `DocsGenerationError` | `haywire docs --all` exited non-zero — an actual crash, not a coverage gap. |
-| `MarketstallError` | The marketstall rebuild could not complete — translation of `share.py`'s `NoBarnError` and manifest-failure types. |
+| `MarketstallError` | The marketstall rebuild could not complete — translation of `share.marketstall`'s `NoBarnError` and manifest-failure types. |
 | `CommitError` | Staging, committing, or tagging failed. |
 | `PushError` | The push failed; carries `manual_command`, the exact command to retry by hand. |
 | `PipelineStateError` | A step was called out of order — its inputs hadn't been produced yet (e.g. `plan_commit()` before `apply_bump()`). |
@@ -133,9 +135,9 @@ Each caller translates a caught `ShareError` in its own way: the CLI (`run_share
 
 ### 4.1 The boundary translation
 
-`share.py` raises its own, *local* exceptions — `ManifestReadError` and its subclass `InvalidOsDeclarationError` — which are deliberately plain `RuntimeError`s, not `ShareError` subclasses. This is on purpose: `share.py` must stay importable **without** `haywire_studio.share_pipeline` ever being imported (see §5), so it cannot depend on a taxonomy defined inside the package it must not import.
+The `share.*` domain modules raise their own, *local* exceptions — `share.manifest.errors.ManifestReadError` and its subclass `InvalidOsDeclarationError` — which are deliberately plain `RuntimeError`s, not `ShareError` subclasses. This keeps the domain modules' exception vocabulary independent of the pipeline's: `share.manifest.errors` has no reason to import anything from `share.pipeline`.
 
-`pipeline.py` is the only place that knows about both taxonomies. It imports `share.py`'s exceptions directly and catches them at each step's boundary, re-raising as its own `ShareError` subclass:
+`pipeline.py` is the only place that knows about both taxonomies. It imports the domain modules' exceptions directly and catches them at each step's boundary, re-raising as its own `ShareError` subclass:
 
 ```python
 _MANIFEST_FAILURE_TYPES = (ManifestReadError, toml.TomlDecodeError, OSError)
@@ -150,7 +152,7 @@ except _MANIFEST_FAILURE_TYPES as exc:
     raise ManifestError(str(exc)) from exc
 ```
 
-and `apply_marketstall()` additionally folds in `share.py`'s `NoBarnError`:
+and `apply_marketstall()` additionally folds in `share.marketstall`'s `NoBarnError`:
 
 ```python
 try:
@@ -159,30 +161,15 @@ except (NoBarnError, *_MANIFEST_FAILURE_TYPES) as exc:
     raise MarketstallError(str(exc)) from exc
 ```
 
-The effect: nothing downstream of `pipeline.py` — a wizard step handler's `except ShareError`, or the CLI's single top-level `except ShareError` — ever sees a raw `share.py` exception type. `share.py` stays a standalone, independently-importable module with its own small exception vocabulary; `share_pipeline` is the only consumer that has to know both vocabularies exist.
+The effect: nothing downstream of `pipeline.py` — a wizard step handler's `except ShareError`, or the CLI's single top-level `except ShareError` — ever sees a raw domain-module exception type. Each `share.*` domain module stays independently importable with its own small exception vocabulary; `share.pipeline` is the only consumer that has to know both vocabularies exist.
 
-## 5. The import-cycle constraint
-
-**Rule: `share.py` must never import anything from `haywire_studio.share_pipeline`.**
-
-This constraint exists because of a cycle that was real in this codebase and was fixed by extracting two leaf modules. The cycle worked like this, before the fix: `share.py` needed the hardened git subprocess helpers, which used to live inside `share_pipeline/gitcmd.py`. Importing them the obvious way — `from haywire_studio.share_pipeline import git` — runs `share_pipeline/__init__.py`, which imports `pipeline.py` (to re-export `SharePipeline`), which itself imports `from haywire_studio.share import (...)` to build the pipeline steps. `share.py` importing `share_pipeline` therefore transitively imported `share.py` again, before `share.py`'s own module body had finished executing — a circular import that raised `ImportError` the moment anything tried to import `share.py` as an entry point (rather than importing `share_pipeline` first).
-
-The fix was to split out two **leaf modules** that both `share.py` and `share_pipeline/` depend on, but which depend on nothing in `haywire_studio` themselves:
-
-- `haywire_studio/gitcmd.py` — hardened `git`/`git_remote`/`git_remote_streaming`/`run`/`run_streaming` subprocess wrappers. Its own docstring states the two rules the rest of the pipeline relies on: nothing raises (every failure comes back as a `GitResult`), and remote calls cannot hang (`git_remote`/`git_remote_streaming` disable every credential-prompt path git has, so a wizard run with no cached credential fails cleanly instead of blocking forever on a prompt with no TTY behind it).
-- `haywire_studio/barn.py` — repo-shape queries about `barn/`: `barn_library_dirs()` and `current_ref()`. Its module docstring is explicit about the discipline: "no `haywire_studio.*` imports" — the same discipline as `gitcmd.py` — because either module importing anything else in the package would reintroduce the cycle it was split out to break.
-
-With both as true leaves, `share.py` imports `gitcmd` and `barn` directly (`from haywire_studio import barn, gitcmd`), without ever going through `share_pipeline/__init__.py`. `share_pipeline/pipeline.py` imports the same two leaves directly too (`from haywire_studio.barn import barn_library_dirs`, `from haywire_studio.gitcmd import git, git_remote, ...`) rather than through `share.py`'s re-exports, and separately imports `share.py` itself for the domain functions (`read_manifest`, `detect_share_drift`, `apply_drift_fix`, `write_marketstall`, and the exception classes it translates per §4.1). `share_pipeline/__init__.py` still re-exports the `gitcmd` names for existing callers of the package, but that re-export is one-directional — nothing in `gitcmd.py` or `barn.py` imports back.
-
-The regression this constraint guards against is verifiable directly: `python -c "import haywire_studio.share"` in a fresh interpreter must succeed without ever touching `share_pipeline`. If a future change makes `share.py` depend on anything defined inside `share_pipeline/` (the pipeline class, its results, its errors), that command breaks again. Any future git-adjacent or barn-adjacent helper that both modules need belongs in `gitcmd.py` or `barn.py`, not directly in either `share.py` or `pipeline.py`.
-
-## 6. The default-branch publishing rule
+## 5. The default-branch publishing rule
 
 `check_preconditions()` unconditionally rejects two situations: a detached `HEAD`, and being on any branch other than the remote's default branch. There is no bypass — no `--ref` flag, no keyword argument, nothing. This is deliberate and, as of this document, has no ADR of its own; this document and the [sharing guide, §4.3](../../guides/sharing-libraries.md#43-publishing-from-the-default-branch) are its only homes.
 
 **Why it's unconditional.** The generated marketstall entry carries several URLs, and they are not all pinned the same way:
 
-- `docs_url`, `examples_url`, and `tests_url` are built from whatever branch is checked out *at publish time* (`_build_entry_for_library()` in `share.py` reads the current ref via `barn.current_ref()`).
+- `docs_url`, `examples_url`, and `tests_url` are built from whatever branch is checked out *at publish time* (`_build_entry_for_library()` in `share.marketstall` reads the current ref via `share.barn.current_ref()`).
 - `install_spec` — the actual `pip install` command a consumer runs — carries **no** ref at all. It always resolves to the remote's default-branch `HEAD`, regardless of what branch the entry was generated from.
 
 If publishing were allowed from a feature branch, those two URL families would point at two different places from day one: `install_spec` at whatever the default branch happens to be, and the doc/example/test URLs at the feature branch. A feature branch typically dies the moment it's merged and deleted, so those URLs would go dead — and that failure wouldn't land on the author, who already knows the branch is gone. It would land on a consumer following one of those links months later, with no way to know why it 404s.
@@ -191,19 +178,19 @@ If publishing were allowed from a feature branch, those two URL families would p
 
 **Detached HEAD vs. unborn branch.** The detached-HEAD check specifically avoids a related trap: `git rev-parse --abbrev-ref HEAD` prints the literal string `"HEAD"` in two situations that must not be conflated — a genuinely detached HEAD, and an *unborn* branch (a freshly initialized repo before its first commit), where HEAD still symbolically points at a real branch name that simply has no commit yet. `check_preconditions()` and `barn.current_ref()` both use `git symbolic-ref -q HEAD` instead, which fails only in the genuinely-detached case and succeeds (printing `refs/heads/<name>`) for an unborn branch. Neither ever returns the literal string `"HEAD"` as if it were a branch name — a `pipeline.py` docstring notes that an earlier version of `current_branch()` did exactly that, and it silently corrupted push refspecs downstream (`HEAD:HEAD`).
 
-## 7. The current CI story
+## 6. The current CI story
 
 There is no single CI gate for sharing. Two independent, purpose-built commands cover what CI needs; neither depends on the other, and neither instantiates `SharePipeline`.
 
-### 7.1 `haywire deps check`
+### 6.1 `haywire deps check`
 
-Implemented in `haywire_studio/deps_cli.py`, dispatched from `haywire deps check` in `app.py`. Its own module docstring states the design intent plainly: "Deliberately independent of SharePipeline: no git, no preconditions, no versioning, no marketstall." It is **not part of "the pipeline"** in any sense — it never constructs a `SharePipeline`, and its only dependency inside `haywire_studio` is `share.py`'s free function `detect_share_drift()`.
+Implemented in `haywire_studio/deps_cli.py`, dispatched from `haywire deps check` in `app.py`. Its own module docstring states the design intent plainly: "Deliberately independent of SharePipeline: no git, no preconditions, no versioning, no marketstall." It is **not part of "the pipeline"** in any sense — it never constructs a `SharePipeline`, and its only dependency inside `haywire_studio` is `share.drift.detect`'s free function `detect_share_drift()`.
 
 It walks every `barn/*` directory with a `pyproject.toml`, runs `detect_share_drift()` on each (the same function step 2 of the pipeline uses — see §2.2 — so both tools always agree), and prints what it finds. It never writes to disk. Exit code is `EXIT_DRIFT` (1) if any library has *actionable* drift (missing pyproject or decorator entries, or a version-lag floor); unresolved imports are printed for information but never fail the run, matching the interactive wizard's own treatment of them. Otherwise it exits `EXIT_OK` (0).
 
 The [sharing guide](../../guides/sharing-libraries.md#7-the-full-author-cycle) recommends running it as a PR gate to catch manifest drift before merging — but that recommendation describes intended usage of a CI-shaped tool, not an existing workflow wired up in this repo's `.github/workflows/`. As of this document, no workflow file invokes it.
 
-### 7.2 `haywire docs --all --json`
+### 6.2 `haywire docs --all --json`
 
 Dispatched from the `docs` subcommand in `app.py`, calling `generate_all_docs()` (`haywire_studio.docs_gen.generate`). This regenerates every in-repo library's generated docs (README/OVERVIEW/QUICKREF/`docs/*.md`) for real — it is the same subprocess `SharePipeline.apply_docs()` shells out to in step 4 (§2.4), for the same reentrancy reasons (`.insights/project_docs_gen_reentrancy.md`).
 
@@ -213,12 +200,14 @@ As with `deps check`, this describes what the command does and how it's meant to
 
 ## Key files
 
-- `packages/haywire-studio/src/haywire_studio/share_pipeline/pipeline.py` — `SharePipeline`, all six steps.
-- `packages/haywire-studio/src/haywire_studio/share_pipeline/errors.py` — `ShareError` and its subclasses.
-- `packages/haywire-studio/src/haywire_studio/share_pipeline/results.py` — the frozen result dataclasses each step returns.
-- `packages/haywire-studio/src/haywire_studio/share_pipeline/__init__.py` — the package's single import surface.
-- `packages/haywire-studio/src/haywire_studio/share.py` — manifest I/O, drift detection, marketstall generation; standalone-importable by construction (§5).
-- `packages/haywire-studio/src/haywire_studio/gitcmd.py` — hardened git subprocess helpers; leaf module.
-- `packages/haywire-studio/src/haywire_studio/barn.py` — `barn/` shape queries; leaf module.
+- `packages/haywire-studio/src/haywire_studio/share/pipeline/pipeline.py` — `SharePipeline`, all six steps.
+- `packages/haywire-studio/src/haywire_studio/share/pipeline/steps/` — one module per step (`preconditions.py`, `drift.py`, `version.py`, `docs.py`, `commit.py`, `push.py`) that `SharePipeline` delegates to.
+- `packages/haywire-studio/src/haywire_studio/share/pipeline/errors.py` — `ShareError` and its subclasses.
+- `packages/haywire-studio/src/haywire_studio/share/pipeline/results.py` — the frozen result dataclasses each step returns.
+- `packages/haywire-studio/src/haywire_studio/share/manifest/reader.py` — manifest reading (`read_manifest`); `share/manifest/errors.py` — `ManifestReadError`/`InvalidOsDeclarationError`.
+- `packages/haywire-studio/src/haywire_studio/share/drift/detect.py` — `detect_share_drift()`; `share/drift/apply.py` — `apply_drift_fix()`.
+- `packages/haywire-studio/src/haywire_studio/share/marketstall.py` — `write_marketstall()`, `NoBarnError`.
+- `packages/haywire-studio/src/haywire_studio/share/git.py` — hardened git subprocess helpers; leaf module.
+- `packages/haywire-studio/src/haywire_studio/share/barn.py` — `barn/` shape queries; leaf module.
 - `packages/haywire-studio/src/haywire_studio/deps_cli.py` — `haywire deps check`, decoupled from `SharePipeline`.
-- `packages/haywire-studio/src/haywire_studio/share_cli.py` — `haywire share`'s interactive and `--yes` modes, both thin runners over `SharePipeline`.
+- `packages/haywire-studio/src/haywire_studio/share/cli.py` — `haywire share`'s interactive and `--yes` modes, both thin runners over `SharePipeline`.

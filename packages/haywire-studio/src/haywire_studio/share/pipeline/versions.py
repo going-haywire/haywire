@@ -16,11 +16,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from haywire_studio import gitcmd
-from haywire_studio.barn import barn_library_dirs
-from haywire_studio.share import read_manifest_lenient
-from haywire_studio.share_pipeline.errors import VersionError
-from haywire_studio.share_pipeline.results import BumpResult, LibraryVersion, VersionPlan
+from haywire_studio.share.barn import barn_library_dirs
+from haywire_studio.share.git import run as git_run
+from haywire_studio.share.manifest.reader import read_manifest_lenient
+from haywire_studio.share.pipeline.errors import VersionError
+from haywire_studio.share.pipeline.results import BumpResult, LibraryVersion, VersionPlan
 
 BUMP_KEYWORDS = ("patch", "minor", "major")
 
@@ -139,7 +139,7 @@ def refresh_lockfile(repo_root: Path, *, timeout: float = 300.0) -> tuple[bool, 
     if not lock_file.is_file():
         return (False, None)
 
-    result = gitcmd.run(["uv", "lock"], cwd=repo_root, timeout=timeout)
+    result = git_run(["uv", "lock"], cwd=repo_root, timeout=timeout)
     if result.ok:
         return (True, None)
     if result.returncode == 127:

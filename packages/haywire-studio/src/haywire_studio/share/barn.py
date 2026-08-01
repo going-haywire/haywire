@@ -1,9 +1,7 @@
-"""Repo-shape queries about ``barn/`` — leaf module, no ``haywire_studio.*`` imports.
+"""Repo-shape queries about ``barn/``.
 
-Both ``share.py`` and ``share_pipeline/`` depend on this module, so it must
-stay import-free of anything in this package (same discipline as
-``gitcmd.py``) or it reintroduces the circular import that module was split
-out to break.
+The bottom layer of the share package: no imports from anywhere else in
+``haywire_studio``, so every other share module can depend on it freely.
 """
 
 from __future__ import annotations

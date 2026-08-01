@@ -32,6 +32,11 @@ MANIFEST
 *.manifest
 *.spec
 
+# The MANIFEST/*.manifest packaging-artifact rules above are unanchored and
+# (on a case-insensitive filesystem) also match our real, tracked
+# haywire_studio/share/manifest/ package — un-ignore it explicitly.
+!packages/haywire-studio/src/haywire_studio/share/manifest/
+
 # Installer logs
 pip-log.txt
 pip-delete-this-directory.txt

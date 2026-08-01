@@ -23,7 +23,7 @@ from nicegui.elements.log import Log
 
 from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
-from haywire_studio.share_pipeline import (
+from haywire_studio.share.pipeline import (
     CommitPlan,
     CommitResult,
     DocsResult,

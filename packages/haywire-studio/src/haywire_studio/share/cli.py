@@ -16,11 +16,11 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from haywire_studio.share import derive_share_url_only
-from haywire_studio.share_pipeline import (
+from haywire_studio.share.pipeline import (
     ShareError,
     SharePipeline,
 )
+from haywire_studio.share.url import derive_share_url_only
 
 EXIT_OK = 0
 EXIT_FAILED = 1

@@ -50,7 +50,7 @@ def merge_decorator_list_field(
 
     Owns the read -> decide new value -> :func:`_set_decorator_list_field` ->
     write dance that both ``haywire_studio.share.apply_drift_fix`` and
-    ``haywire_studio.share_pipeline.pipeline.SharePipeline.apply_drift_replace``
+    ``haywire_studio.share.pipeline.pipeline.SharePipeline.apply_drift_replace``
     used to each implement independently.
 
     ``mode="union"``: *values* are the entries to add — normalized via

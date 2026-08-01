@@ -43,7 +43,7 @@ def project(tmp_path: Path) -> Path:
 def _wizard(project: Path):
     """A ShareWizard with no popup — the state machine under test."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.share_pipeline import SharePipeline
+    from haywire_studio.share.pipeline import SharePipeline
 
     return ShareWizard(pipeline=SharePipeline(project), popup=None)
 
@@ -61,10 +61,10 @@ def _drifty(lib_dir: Path):
 
 
 def _fake_docs():
-    from haywire_studio.share_pipeline.results import DocsResult
+    from haywire_studio.share.pipeline.results import DocsResult
 
     return patch(
-        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_docs",
+        "haywire_studio.share.pipeline.pipeline.SharePipeline.apply_docs",
         new=AsyncMock(return_value=DocsResult(coverage={"alpha": []}, written=[])),
     )
 
@@ -97,7 +97,7 @@ async def test_healthy_project_reports_a_pass_before_scanning(project: Path) -> 
 @pytest.mark.anyio
 async def test_scan_advances_to_drift(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
     assert wizard.step == "drift"
@@ -111,7 +111,7 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
     can't be shared. A disabled item can't carry a tooltip — the design guide's
     disabled state includes pointer-events: none (design-guide.md:725)."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.share_pipeline import SharePipeline
+    from haywire_studio.share.pipeline import SharePipeline
 
     repo = tmp_path / "broken"
     repo.mkdir()
@@ -125,7 +125,7 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
     assert "barn" in wizard.error
     assert wizard.precondition_failures
     assert isinstance(wizard.precondition_failures, list)
-    from haywire_studio.share_pipeline import PreconditionFailure
+    from haywire_studio.share.pipeline import PreconditionFailure
 
     assert all(isinstance(f, PreconditionFailure) for f in wizard.precondition_failures)
 
@@ -134,7 +134,7 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
 async def test_clean_drift_skips_straight_to_version(project: Path) -> None:
     """Nothing to decide means nothing to ask."""
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
     assert wizard.drift_report is not None
@@ -147,10 +147,10 @@ async def test_clean_drift_skips_straight_to_version(project: Path) -> None:
 @pytest.mark.anyio
 async def test_drift_union_advances(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_drifty):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        with patch("haywire_studio.share_pipeline.pipeline.apply_drift_fix"):
+        with patch("haywire_studio.share.pipeline.steps.drift.apply_drift_fix"):
             await wizard.advance_from_drift("union")
     assert wizard.step == "version"
 
@@ -158,7 +158,7 @@ async def test_drift_union_advances(project: Path) -> None:
 @pytest.mark.anyio
 async def test_drift_skip_records_the_acknowledgement(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_drifty):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -169,7 +169,7 @@ async def test_drift_skip_records_the_acknowledgement(project: Path) -> None:
 @pytest.mark.anyio
 async def test_version_plan_is_loaded_for_the_next_panel(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -183,7 +183,7 @@ async def test_version_plan_is_loaded_for_the_next_panel(project: Path) -> None:
 @pytest.mark.anyio
 async def test_version_bump_advances_to_docs(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -197,7 +197,7 @@ async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -
     """Where the fix is cheapest — 'pick 0.3.2 instead' costs nothing here."""
     subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -212,12 +212,12 @@ async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -
 async def test_lock_warning_surfaces_without_blocking(project: Path) -> None:
     (project / "uv.lock").write_text("")
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
     with patch(
-        "haywire_studio.share_pipeline.pipeline.refresh_lockfile",
+        "haywire_studio.share.pipeline.steps.version.refresh_lockfile",
         return_value=(False, "uv lock failed: boom"),
     ):
         await wizard.advance_from_version("patch")
@@ -233,7 +233,7 @@ async def test_lock_warning_surfaces_without_blocking(project: Path) -> None:
 @pytest.mark.anyio
 async def test_docs_step_advances_and_keeps_coverage(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -248,17 +248,17 @@ async def test_docs_step_advances_and_keeps_coverage(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
-    from haywire_studio.share_pipeline import DocsGenerationError
+    from haywire_studio.share.pipeline import DocsGenerationError
 
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
     await wizard.advance_from_version("patch")
 
     with patch(
-        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_docs",
+        "haywire_studio.share.pipeline.pipeline.SharePipeline.apply_docs",
         new=AsyncMock(side_effect=DocsGenerationError("boom", output="traceback")),
     ):
         await wizard.advance_from_docs()
@@ -270,21 +270,21 @@ async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
 @pytest.mark.anyio
 async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
     await wizard.advance_from_version("patch")
 
     async def _streamy(self, on_output=None):
-        from haywire_studio.share_pipeline.results import DocsResult
+        from haywire_studio.share.pipeline.results import DocsResult
 
         if on_output:
             on_output("loading libraries…")
         return DocsResult(coverage={}, written=[])
 
     with patch(
-        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_docs",
+        "haywire_studio.share.pipeline.pipeline.SharePipeline.apply_docs",
         new=_streamy,
     ):
         await wizard.advance_from_docs()
@@ -298,7 +298,7 @@ async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
 @pytest.mark.anyio
 async def test_commit_advances_to_push(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -315,10 +315,10 @@ async def test_commit_advances_to_push(project: Path) -> None:
 @pytest.mark.anyio
 async def test_commit_step_verifies_push_before_committing(project: Path) -> None:
     """Closes the race window since step 1 — and leaves nothing to undo."""
-    from haywire_studio import gitcmd
+    from haywire_studio.share import git as gitcmd
 
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -335,7 +335,7 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
             return gitcmd.GitResult(ok=False, stdout="", stderr="! [rejected]", returncode=1)
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch("haywire_studio.share_pipeline.pipeline.git_remote", side_effect=_rejected):
+    with patch("haywire_studio.share.pipeline.steps.push.git_remote", side_effect=_rejected):
         await wizard.advance_from_commit("chore: share v0.3.2", [])
 
     assert wizard.step == "commit"
@@ -351,7 +351,7 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
 @pytest.mark.anyio
 async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -379,7 +379,7 @@ async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
 @pytest.mark.anyio
 async def test_push_completes_the_wizard(project: Path) -> None:
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -395,10 +395,10 @@ async def test_push_completes_the_wizard(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_push_failure_is_retryable_in_place(project: Path) -> None:
-    from haywire_studio.share_pipeline import PushError
+    from haywire_studio.share.pipeline import PushError
 
     wizard = _wizard(project)
-    with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):
+    with patch("haywire_studio.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
@@ -408,7 +408,7 @@ async def test_push_failure_is_retryable_in_place(project: Path) -> None:
     await wizard.advance_from_commit("chore: share v0.3.2", [])
 
     with patch(
-        "haywire_studio.share_pipeline.pipeline.SharePipeline.apply_push",
+        "haywire_studio.share.pipeline.pipeline.SharePipeline.apply_push",
         new=AsyncMock(side_effect=PushError(stderr="timeout", manual_command="git p ush ...")),
     ):
         await wizard.advance_from_push()

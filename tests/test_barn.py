@@ -5,7 +5,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.barn import barn_library_dirs, current_ref
+from haywire_studio.share.barn import barn_library_dirs, current_ref
 
 pytestmark = pytest.mark.unit
 

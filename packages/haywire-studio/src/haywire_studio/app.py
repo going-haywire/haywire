@@ -431,7 +431,7 @@ def main():
     elif args.command == "share":
         from pathlib import Path
 
-        from haywire_studio.share_cli import run_share_cli
+        from haywire_studio.share.cli import run_share_cli
 
         raise SystemExit(
             run_share_cli(

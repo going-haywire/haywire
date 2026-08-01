@@ -14,7 +14,7 @@ _MARKER_END = "<!-- marketstall:share-url:end -->"
 @pytest.mark.unit
 def test_update_readme_markers_rewrites_block() -> None:
     """Block between markers replaced with inline-code line containing the URL."""
-    from haywire_studio.share import _update_readme_markers
+    from haywire_studio.share.readme import _update_readme_markers
 
     content = f"# Foo\n\n## Subscribe\n\n{_MARKER_START}\n*placeholder text*\n{_MARKER_END}\n\nMore content."
     url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
@@ -31,7 +31,7 @@ def test_update_readme_markers_rewrites_block() -> None:
 @pytest.mark.unit
 def test_update_readme_markers_no_markers_returns_unchanged() -> None:
     """File without marker pair is returned untouched."""
-    from haywire_studio.share import _update_readme_markers
+    from haywire_studio.share.readme import _update_readme_markers
 
     content = "# Foo\n\nNo markers here.\n"
     assert _update_readme_markers(content, "https://example.com/x.toml") == content
@@ -40,7 +40,7 @@ def test_update_readme_markers_no_markers_returns_unchanged() -> None:
 @pytest.mark.unit
 def test_update_readme_markers_multiple_blocks_all_updated() -> None:
     """Per spec §6.6: multiple marker pairs in one file are all updated to the same URL."""
-    from haywire_studio.share import _update_readme_markers
+    from haywire_studio.share.readme import _update_readme_markers
 
     content = f"{_MARKER_START}\nA\n{_MARKER_END}\nsome text\n{_MARKER_START}\nB\n{_MARKER_END}\n"
     url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
@@ -66,8 +66,10 @@ def test_share_save_updates_root_readme(tmp_path: Path) -> None:
         '[project]\nname = "haybale-foo"\nversion = "0.1.0"\ndescription = "x"\n'
     )
 
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             result = write_marketstall(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
@@ -88,8 +90,10 @@ def test_share_save_updates_barn_library_readme(tmp_path: Path) -> None:
     )
     (lib_dir / "README.md").write_text(f"# Foo\n\n{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
 
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             write_marketstall(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
@@ -110,8 +114,10 @@ def test_share_save_no_update_readme_flag_suppresses(tmp_path: Path) -> None:
         '[project]\nname = "haybale-foo"\nversion = "0.1.0"\ndescription = "x"\n'
     )
 
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             write_marketstall(tmp_path, update_readme=False)
 
     assert "placeholder" in (tmp_path / "README.md").read_text()
@@ -131,7 +137,7 @@ def test_share_save_no_share_url_skips_readme_update(tmp_path: Path) -> None:
         '[project]\nname = "haybale-foo"\nversion = "0.1.0"\ndescription = "x"\n'
     )
 
-    with patch("haywire_studio.share._get_remote_url", return_value=None):
+    with patch("haywire_studio.share.url._get_remote_url", return_value=None):
         result = write_marketstall(tmp_path)
 
     assert result.share_url is None
@@ -154,8 +160,10 @@ def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
         '[project]\nname = "haybale-foo"\nversion = "0.1.0"\ndescription = "x"\n'
     )
 
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_current_ref", return_value="main"):
+    with patch(
+        "haywire_studio.share.url._get_remote_url", return_value="git@github.com:alice/cool-libs.git"
+    ):
+        with patch("haywire_studio.share.url._get_current_ref", return_value="main"):
             write_marketstall(tmp_path)
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"

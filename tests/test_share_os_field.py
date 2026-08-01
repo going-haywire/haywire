@@ -51,7 +51,7 @@ def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
 @pytest.mark.unit
 def test_share_reads_os_field(tmp_path: Path) -> None:
     """Declared [tool.haywire].os is copied into the haybale entry."""
-    from haywire_studio.share import _build_entry_for_library
+    from haywire_studio.share.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=["macos", "linux"])
     entry = _build_entry_for_library(lib_dir)
@@ -62,7 +62,7 @@ def test_share_reads_os_field(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_share_omits_os_when_absent(tmp_path: Path) -> None:
     """Absent [tool.haywire].os means absent from the haybale entry (= all platforms)."""
-    from haywire_studio.share import _build_entry_for_library
+    from haywire_studio.share.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=None)
     entry = _build_entry_for_library(lib_dir)
@@ -73,7 +73,8 @@ def test_share_omits_os_when_absent(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_share_rejects_other_as_declaration(tmp_path: Path) -> None:
     """Per §2.1: 'other' is a runtime sentinel, not declarable."""
-    from haywire_studio.share import InvalidOsDeclarationError, _build_entry_for_library
+    from haywire_studio.share import InvalidOsDeclarationError
+    from haywire_studio.share.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=["macos", "other"])
     with pytest.raises(InvalidOsDeclarationError) as exc_info:
@@ -85,7 +86,8 @@ def test_share_rejects_other_as_declaration(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_share_rejects_unknown_value(tmp_path: Path) -> None:
     """Per §2.1: any value not in {macos, windows, linux} is rejected."""
-    from haywire_studio.share import InvalidOsDeclarationError, _build_entry_for_library
+    from haywire_studio.share import InvalidOsDeclarationError
+    from haywire_studio.share.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=["freebsd"])
     with pytest.raises(InvalidOsDeclarationError):
@@ -94,7 +96,7 @@ def test_share_rejects_unknown_value(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_accepts_all_three_declarable_values(tmp_path: Path) -> None:
-    from haywire_studio.share import _build_entry_for_library
+    from haywire_studio.share.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=["macos", "windows", "linux"])
     entry = _build_entry_for_library(lib_dir)
