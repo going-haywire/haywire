@@ -20,13 +20,16 @@ from typing import Callable
 
 import toml
 
-from haywire.core.library.decorator_io import _set_decorator_list_field
+from haywire.core.library.decorator_io import merge_decorator_list_field
 from haywire.core.library.dep_detect import (
     EntryPointLibrarySource,
     detect_deps,
     find_module_dir,
     set_pyproject_dependencies,
 )
+from haywire_studio import barn
+from haywire_studio.barn import barn_library_dirs
+from haywire_studio.gitcmd import git, git_remote, git_remote_streaming, run_streaming
 from haywire_studio.share import (
     InvalidOsDeclarationError,
     ManifestReadError,
@@ -48,7 +51,6 @@ from haywire_studio.share_pipeline.errors import (
     TagCollisionError,
     VersionError,
 )
-from haywire_studio.share_pipeline.gitcmd import git, git_remote, git_remote_streaming, run_streaming
 from haywire_studio.share_pipeline.results import (
     BarnDirtyFile,
     BumpResult,
@@ -161,9 +163,7 @@ class SharePipeline:
                 )
             )
         else:
-            barn_libraries = sorted(
-                d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file()
-            )
+            barn_libraries = self._barn_library_dirs()
             if not barn_libraries:
                 failures.append(
                     PreconditionFailure(
@@ -248,8 +248,19 @@ class SharePipeline:
                 )
             )
         elif default_branch is not None:
+            # symbolic.ok already proved HEAD is not detached (above), so
+            # current_branch() cannot legitimately return None here — but it
+            # is a general-purpose query, not a private helper, so the None
+            # case is still handled explicitly rather than assumed away.
             current = self.current_branch()
-            if current != default_branch:
+            if current is None:
+                failures.append(
+                    PreconditionFailure(
+                        message="HEAD is detached — no branch is currently checked out.",
+                        remedy=self._detached_head_remedy(),
+                    )
+                )
+            elif current != default_branch:
                 failures.append(
                     PreconditionFailure(
                         message=(
@@ -323,9 +334,8 @@ class SharePipeline:
         """Run the drift gate against every barn library.
 
         Splits findings into actionable drift (a decision) and unresolved-only
-        (informational). Reuses the same ``detect_share_drift`` the Edit
-        dialog's "Detect dependencies" flow uses, so the wizard's diff modal
-        shows what users already recognise.
+        (informational). Uses ``detect_share_drift``, which is also called by
+        ``haywire deps check`` CLI, so both commands report the same drift.
         """
         drifted: list[object] = []
         unresolved_only: list[object] = []
@@ -368,12 +378,12 @@ class SharePipeline:
                 if module_dir is not None:
                     init_file = module_dir / "__init__.py"
                     if init_file.is_file():
-                        content = _set_decorator_list_field(
-                            init_file.read_text(),
+                        merge_decorator_list_field(
+                            init_file,
                             "dependencies",
-                            sorted(detected.library_decorator),
+                            detected.library_decorator,
+                            mode="replace",
                         )
-                        init_file.write_text(content)
                         written.append(init_file)
             except _MANIFEST_FAILURE_TYPES as exc:
                 raise ManifestError(str(exc)) from exc
@@ -399,10 +409,7 @@ class SharePipeline:
 
     def _barn_library_dirs(self) -> list[Path]:
         """Every ``barn/*`` directory holding a pyproject.toml, sorted."""
-        barn = self.repo_root / "barn"
-        if not barn.is_dir():
-            return []
-        return sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file())
+        return barn_library_dirs(self.repo_root)
 
     # ── Step 3: version bump (lockstep) ──────────────────────────────────────
 
@@ -648,13 +655,27 @@ class SharePipeline:
         )
 
     def _diffstat(self, files: list[Path]) -> str:
-        """``git diff --stat`` limited to *files*, including untracked ones.
+        """``git diff --stat`` limited to *files*, plus new/deleted-path labels.
 
-        Untracked files have no diff to show, so they are appended as
-        "(new file)" lines instead. Purely cosmetic — the commit stages from
-        ``files``, never from this string, so a failed ``git diff`` degrades to
-        an empty summary rather than an error. That also covers a repo with no
-        commits yet, where ``HEAD`` does not resolve.
+        ``git diff --stat HEAD`` only ever shows tracked, modified content —
+        it says nothing about an untracked path (nothing to diff against) or a
+        path that no longer exists on disk (a rename-orphan doc the docs
+        generator deleted; see :meth:`docs_write_set`). Those two cases are
+        classified per-path via ``git status --porcelain``, using the same
+        two-character index/worktree code convention as
+        :meth:`barn_dirty_files`:
+
+        - ``??`` (untracked)                    → "(new file)"
+        - index or worktree char is ``D``        → "(deleted)"
+        - anything else (tracked, modified)      → omitted; already present
+          in the ``git diff --stat`` block above, so appending it again would
+          duplicate the line.
+
+        Purely cosmetic — the commit stages from ``files`` via
+        ``git add -A -- <paths>``, never from this string, so a failed
+        ``git diff``/``git status`` degrades to an empty or partial summary
+        rather than an error. That also covers a repo with no commits yet,
+        where ``HEAD`` does not resolve.
         """
         if not files:
             return ""
@@ -664,20 +685,50 @@ class SharePipeline:
         tracked_diff = git(["diff", "--stat", "HEAD", "--", *rel], cwd=self.repo_root)
         stdout = tracked_diff.stdout if tracked_diff.ok else ""
         lines = stdout.strip().splitlines() if stdout.strip() else []
+
+        status = git(["status", "--porcelain", "--", *rel], cwd=self.repo_root)
+        codes: dict[str, str] = {}
+        if status.ok:
+            for line in status.stdout.splitlines():
+                if len(line) < 4:
+                    continue
+                code, path_part = line[:2], line[3:].strip()
+                if " -> " in path_part:
+                    path_part = path_part.split(" -> ", 1)[1]
+                codes[path_part.strip('"')] = code
+
         for path_str in rel:
-            if path_str not in stdout:
+            code = codes.get(path_str, "")
+            if code == "??":
                 lines.append(f" {path_str} (new file)")
+            elif "D" in code:
+                lines.append(f" {path_str} (deleted)")
         return "\n".join(lines)
 
-    def current_branch(self) -> str:
-        """The current branch name, or ``"HEAD"`` when detached."""
-        result = git(["rev-parse", "--abbrev-ref", "HEAD"], cwd=self.repo_root)
-        return result.stdout.strip() or "HEAD"
+    def current_branch(self) -> str | None:
+        """The current branch name, or ``None`` when HEAD is detached.
+
+        Delegates to :func:`haywire_studio.barn.current_ref`. Unlike the
+        method this replaced, it never returns the literal string ``"HEAD"``
+        — that was a detached-HEAD sentinel masquerading as a branch name,
+        and it silently corrupted push refspecs (``HEAD:HEAD``) downstream.
+        Every call site below is reached only after :meth:`check_preconditions`
+        has already rejected detached HEAD unconditionally, so ``None`` is
+        not expected at runtime here — callers still handle it explicitly
+        rather than trust that invariant blindly.
+        """
+        return barn.current_ref(self.repo_root)
 
     def push_command(self) -> list[str]:
         """The push argv, also shown verbatim in error panels for manual retry."""
+        branch = self.current_branch()
+        if branch is None:
+            raise PipelineStateError(
+                "push_command() needs a checked-out branch, but HEAD is detached. "
+                "check_preconditions() should have rejected this already."
+            )
         tag = f"v{self.version}" if self.version else ""
-        args = ["push", "origin", f"HEAD:{self.current_branch()}"]
+        args = ["push", "origin", f"HEAD:{branch}"]
         if tag:
             args.append(tag)
         return args
@@ -694,6 +745,11 @@ class SharePipeline:
         recovery, because nothing needs undoing if nothing was mutated.
         """
         branch = self.current_branch()
+        if branch is None:
+            raise PipelineStateError(
+                "verify_push_allowed() needs a checked-out branch, but HEAD is detached. "
+                "check_preconditions() should have rejected this already."
+            )
         probe = git_remote(
             ["push", "--dry-run", "origin", f"HEAD:{branch}"],
             cwd=self.repo_root,
@@ -773,6 +829,11 @@ class SharePipeline:
 
         sink = on_output or (lambda _line: None)
         branch = self.current_branch()
+        if branch is None:
+            raise PipelineStateError(
+                "apply_push() needs a checked-out branch, but HEAD is detached. "
+                "check_preconditions() should have rejected this already."
+            )
         args = self.push_command()
 
         result = await git_remote_streaming(

@@ -50,7 +50,7 @@ def test_docs_command_never_names_a_single_library(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_apply_docs_parses_the_coverage_report(project: Path) -> None:
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     async def _fake_stream(cmd, *, cwd, on_output, timeout=None):
         # The real subprocess writes the report; emulate that side effect.
@@ -70,7 +70,7 @@ async def test_apply_docs_parses_the_coverage_report(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_apply_docs_streams_every_line(project: Path) -> None:
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     async def _fake_stream(cmd, *, cwd, on_output, timeout=None):
         Path(cmd[cmd.index("--json") + 1]).write_text("{}")
@@ -87,7 +87,7 @@ async def test_apply_docs_streams_every_line(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_apply_docs_raises_on_a_crash(project: Path) -> None:
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     async def _crash(cmd, *, cwd, on_output, timeout=None):
         on_output("Traceback (most recent call last):")
@@ -104,7 +104,7 @@ async def test_apply_docs_raises_on_a_crash(project: Path) -> None:
 async def test_apply_docs_records_modified_and_deleted_docs(project: Path) -> None:
     """Renamed components leave orphan docs that the generator DELETES
     (generate.py:87). A deletion must reach the commit, or the stale file ships."""
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     module = project / "barn" / "haybale-alpha" / "haybale_alpha"
 
@@ -137,7 +137,7 @@ async def test_apply_docs_records_modified_and_deleted_docs(project: Path) -> No
 @pytest.mark.anyio
 async def test_apply_docs_ignores_changes_outside_barn(project: Path) -> None:
     """Only barn content ships to consumers; unrelated dirt is not the wizard's business."""
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     async def _fake_stream(cmd, *, cwd, on_output, timeout=None):
         Path(cmd[cmd.index("--json") + 1]).write_text("{}")
@@ -152,7 +152,7 @@ async def test_apply_docs_ignores_changes_outside_barn(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_apply_docs_cleans_up_its_temp_json(project: Path) -> None:
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     captured: dict[str, Path] = {}
 

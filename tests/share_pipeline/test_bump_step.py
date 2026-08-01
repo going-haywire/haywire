@@ -98,7 +98,7 @@ def test_local_tag_collision_is_caught_before_any_write(project: Path) -> None:
 
 
 def test_remote_tag_collision_is_caught(project: Path) -> None:
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     def _ls_remote_tags(args, **_kw):
         if args[:2] == ["ls-remote", "--tags"]:
@@ -124,7 +124,7 @@ def test_check_tag_available_passes_for_a_free_tag(project: Path) -> None:
 def test_unreachable_remote_does_not_block_the_tag_check(project: Path) -> None:
     """A remote we can't query is step 1's problem. Here it must not become a
     false collision — that would block a legitimate publish."""
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     def _unreachable(*_a, **_kw):
         return gitcmd.GitResult(ok=False, stdout="", stderr="could not read", returncode=128)

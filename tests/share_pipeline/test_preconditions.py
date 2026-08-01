@@ -133,7 +133,7 @@ def test_every_failure_is_reported_together(tmp_path: Path) -> None:
 
 
 def test_missing_git_binary_reports_install_instructions(project: Path, monkeypatch) -> None:
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     def _no_git(*_a, **_kw):
         raise FileNotFoundError("git")
@@ -174,7 +174,7 @@ def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path,
     Covers every branch of ``check_preconditions``: missing git, missing barn/,
     empty barn/, missing origin, unreachable origin, and everything-broken.
     """
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     scenarios: list[Path] = []
 

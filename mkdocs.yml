@@ -131,6 +131,7 @@ nav:
           - Callbacks: architecture/execution/callbacks/callbacks-arch.md
       - Library system: architecture/library-system/library-system-arch.md
       - Sharing — philosophy: architecture/sharing/sharing-arch.md
+      - Sharing — pipeline: architecture/sharing/share-pipeline-arch.md
       - Hot-reload: architecture/hot-reload/hot-reload-arch.md
       - Settings: architecture/settings/settings-arch.md
       - Session and state: architecture/session-and-state/session-and-state-arch.md

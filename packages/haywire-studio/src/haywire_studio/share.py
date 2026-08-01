@@ -6,13 +6,13 @@ remote URL to produce a ready-to-paste TOML block.
 """
 
 import re
-import subprocess
 from dataclasses import dataclass, field
 from pathlib import Path
 from urllib.parse import urlsplit
 
 import toml
 
+from haywire.core.library.decorator_io import merge_decorator_list_field, norm_dep
 from haywire.core.library.dep_detect import (
     DetectedDeps,
     EntryPointLibrarySource,
@@ -22,6 +22,8 @@ from haywire.core.library.dep_detect import (
 )
 from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.host_providers import resolve_host
+from haywire_studio import barn, gitcmd
+from haywire_studio.barn import barn_library_dirs
 
 _DECLARABLE_OS_VALUES = frozenset({"macos", "windows", "linux"})
 
@@ -171,41 +173,20 @@ def _find_git_root(start: Path) -> Path | None:
 
 def _get_remote_url(git_root: Path) -> str | None:
     """Get the origin remote URL, or None if unavailable."""
-    # Note: We do not convert to gitcmd here — share.py must stay importable
-    # without haywire_studio.share_pipeline (to avoid an import cycle). Breaking
-    # that cycle is a separate, already-planned piece of work (Plan 2).
-    try:
-        result = subprocess.run(
-            ["git", "remote", "get-url", "origin"],
-            cwd=str(git_root),
-            capture_output=True,
-            text=True,
-            timeout=10.0,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip()
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return None
+    result = gitcmd.git(["remote", "get-url", "origin"], cwd=git_root, timeout=10.0)
+    if not result.ok:
+        return None
+    return result.stdout.strip()
 
 
 def _get_current_ref(git_root: Path) -> str | None:
-    """Return current branch name, or None if detached HEAD or git failure."""
-    try:
-        result = subprocess.run(
-            ["git", "rev-parse", "--abbrev-ref", "HEAD"],
-            cwd=str(git_root),
-            capture_output=True,
-            text=True,
-            timeout=10.0,
-        )
-        if result.returncode == 0:
-            ref = result.stdout.strip()
-            if ref and ref != "HEAD":  # detached HEAD prints "HEAD"
-                return ref
-    except (FileNotFoundError, subprocess.TimeoutExpired):
-        pass
-    return None
+    """Return current branch name, or None if detached HEAD or git failure.
+
+    Thin alias over :func:`haywire_studio.barn.current_ref` — kept as a
+    module-level name here (rather than inlining the import at each call
+    site) because tests patch ``haywire_studio.share._get_current_ref``.
+    """
+    return barn.current_ref(git_root)
 
 
 def _unknown_host_warning(hostname: str) -> str:
@@ -588,9 +569,7 @@ def _detect_pyproject_version_lag(
     return sorted(out)
 
 
-def _norm_dep(name: str) -> str:
-    """Normalize a dep name to a comparable form (underscores, lowercase)."""
-    return re.sub(r"[-_.]+", "_", name).lower()
+_norm_dep = norm_dep
 
 
 def _format_drift_report(drift: DepDrift) -> str:
@@ -662,26 +641,16 @@ def apply_drift_fix(drift: DepDrift) -> None:
                 unioned.append(spec)
         set_pyproject_dependencies(lib_dir, sorted(unioned))
 
-    # 2. @library decorator: import the helper from library_manager so we
-    #    delegate to the same rewriter used by the Edit dialog.
+    # 2. @library decorator: delegate to the shared rewriter also used by
+    #    apply_drift_replace and the marketplace Edit dialog.
     if drift.decorator_missing:
         module_dir = find_module_dir(lib_dir)
         if module_dir is None:
             return
-        from haywire.core.library.decorator_io import _set_decorator_list_field
-
         init_file = module_dir / "__init__.py"
         if not init_file.is_file():
             return
-        content = init_file.read_text()
-        current = _read_library_dependencies(module_dir)
-        current_norm = {_norm_dep(d) for d in current}
-        new_list = list(current)
-        for missing in drift.decorator_missing:
-            if _norm_dep(missing) not in current_norm:
-                new_list.append(missing)
-        content = _set_decorator_list_field(content, "dependencies", sorted(new_list))
-        init_file.write_text(content)
+        merge_decorator_list_field(init_file, "dependencies", drift.decorator_missing, mode="union")
 
 
 class NoBarnError(RuntimeError):
@@ -690,7 +659,7 @@ class NoBarnError(RuntimeError):
 
 @dataclass(frozen=True)
 class ShareSaveResult:
-    """Output of share_save_repo. share_url is None if URL derivation failed."""
+    """Output of _derive_url. share_url is None if URL derivation failed."""
 
     out_path: Path
     share_url: str | None
@@ -703,8 +672,8 @@ def _derive_url(
 ) -> ShareSaveResult:
     """Derive the canonical blob URL for an existing marketstall.toml.
 
-    Used by both share_save_repo (after writing the file) and
-    derive_share_url_only (Task 4, no file write). Returns a ShareSaveResult
+    Used by write_marketstall (after writing the file) and
+    derive_share_url_only (no file write). Returns a ShareSaveResult
     with share_url=None and a user-facing warning when derivation fails.
     """
     remote_url = _get_remote_url(repo_root)
@@ -756,8 +725,8 @@ def _derive_url(
 def derive_share_url_only(repo_root: Path) -> ShareSaveResult:
     """Re-derive the share URL for an existing marketstall.toml.
 
-    Does NOT write any file. Returns a ShareSaveResult mirroring share_save_repo's
-    output so callers can format the same way.
+    Does NOT write any file. Returns a ShareSaveResult with the URL derivation
+    outcome; callers can format it consistently across different entry points.
     """
     out_path = repo_root / "marketstall.toml"
     if not out_path.is_file():
@@ -804,7 +773,7 @@ def build_marketstall_entries(repo_root: Path) -> list[dict]:
         raise NoBarnError(f"no barn/ directory at {repo_root}")
 
     entries: list[dict] = []
-    for lib_dir in sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").exists()):
+    for lib_dir in barn_library_dirs(repo_root):
         entry = _build_entry_for_library(lib_dir)
         if entry is not None:
             entries.append(entry)

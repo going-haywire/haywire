@@ -188,8 +188,7 @@ def test_refresh_lockfile_warns_but_never_raises(repo_agreeing: Path, monkeypatc
     monkeypatch.setattr(subprocess, "run", _fail)
     refreshed, warning = refresh_lockfile(repo_agreeing)
     assert refreshed is False
-    assert warning is not None
-    assert "resolution impossible" in warning
+    assert warning == "uv lock failed (uv.lock left stale): resolution impossible"
 
 
 def test_refresh_lockfile_reports_success(repo_agreeing: Path, monkeypatch) -> None:
@@ -202,3 +201,44 @@ def test_refresh_lockfile_reports_success(repo_agreeing: Path, monkeypatch) -> N
     refreshed, warning = refresh_lockfile(repo_agreeing)
     assert refreshed is True
     assert warning is None
+
+
+def test_refresh_lockfile_warns_when_uv_not_found(repo_agreeing: Path, monkeypatch) -> None:
+    (repo_agreeing / "uv.lock").write_text("")
+
+    def _boom(*_a, **_kw):
+        raise FileNotFoundError("uv")
+
+    monkeypatch.setattr(subprocess, "run", _boom)
+    refreshed, warning = refresh_lockfile(repo_agreeing)
+    assert refreshed is False
+    assert warning == "uv not found on PATH — uv.lock left stale."
+
+
+def test_refresh_lockfile_warns_on_timeout(repo_agreeing: Path, monkeypatch) -> None:
+    (repo_agreeing / "uv.lock").write_text("")
+
+    def _boom(*_a, **_kw):
+        raise subprocess.TimeoutExpired(cmd="uv lock", timeout=300.0)
+
+    monkeypatch.setattr(subprocess, "run", _boom)
+    refreshed, warning = refresh_lockfile(repo_agreeing, timeout=300.0)
+    assert refreshed is False
+    assert warning == "uv lock timed out after 300s — uv.lock left stale."
+
+
+def test_refresh_lockfile_warns_but_never_raises_on_permission_error(
+    repo_agreeing: Path, monkeypatch
+) -> None:
+    """A sibling OSError (e.g. PermissionError on the uv binary) must not propagate —
+    this is the gap fixed by routing through gitcmd's broad except OSError handling."""
+    (repo_agreeing / "uv.lock").write_text("")
+
+    def _boom(*_a, **_kw):
+        raise PermissionError("uv")
+
+    monkeypatch.setattr(subprocess, "run", _boom)
+    refreshed, warning = refresh_lockfile(repo_agreeing)
+    assert refreshed is False
+    assert warning is not None
+    assert "uv" in warning

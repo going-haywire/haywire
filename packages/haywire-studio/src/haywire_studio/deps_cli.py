@@ -11,6 +11,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from haywire_studio.barn import barn_library_dirs
 from haywire_studio.share import detect_share_drift
 
 EXIT_OK = 0
@@ -26,11 +27,7 @@ def run_deps_check_cli(repo_root: Path) -> int:
     interactive wizard's own treatment of them.
     """
     barn = repo_root / "barn"
-    libraries = (
-        sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file())
-        if barn.is_dir()
-        else []
-    )
+    libraries = barn_library_dirs(repo_root)
 
     if not libraries:
         print(f"No library with a pyproject.toml under {barn}. Nothing to check.")

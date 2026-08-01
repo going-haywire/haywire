@@ -14,9 +14,10 @@ Deliberately narrower than the ``bump_version()`` it replaces:
 from __future__ import annotations
 
 import re
-import subprocess
 from pathlib import Path
 
+from haywire_studio import gitcmd
+from haywire_studio.barn import barn_library_dirs
 from haywire_studio.share import read_manifest_lenient
 from haywire_studio.share_pipeline.errors import VersionError
 from haywire_studio.share_pipeline.results import BumpResult, LibraryVersion, VersionPlan
@@ -36,14 +37,6 @@ __all__ = [
 ]
 
 
-def _barn_library_dirs(repo_root: Path) -> list[Path]:
-    """Every ``barn/*`` directory holding a pyproject.toml, sorted by path."""
-    barn = repo_root / "barn"
-    if not barn.is_dir():
-        return []
-    return sorted(d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file())
-
-
 def read_barn_versions(repo_root: Path) -> list[LibraryVersion]:
     """Read each barn library's declared name and version.
 
@@ -52,7 +45,7 @@ def read_barn_versions(repo_root: Path) -> list[LibraryVersion]:
     the caller decides whether that is fatal.
     """
     out: list[LibraryVersion] = []
-    for lib_dir in _barn_library_dirs(repo_root):
+    for lib_dir in barn_library_dirs(repo_root):
         project = read_manifest_lenient(lib_dir).get("project", {})
         name = project.get("name", lib_dir.name)
         version = project.get("version")
@@ -117,7 +110,7 @@ def write_barn_versions(repo_root: Path, version: str) -> list[Path]:
         raise VersionError(f"'{version}' is not a valid version (expected X.Y.Z).")
 
     written: list[Path] = []
-    for lib_dir in _barn_library_dirs(repo_root):
+    for lib_dir in barn_library_dirs(repo_root):
         pyproject = lib_dir / "pyproject.toml"
         content = pyproject.read_text()
         new_content, count = re.subn(
@@ -146,19 +139,11 @@ def refresh_lockfile(repo_root: Path, *, timeout: float = 300.0) -> tuple[bool, 
     if not lock_file.is_file():
         return (False, None)
 
-    try:
-        proc = subprocess.run(
-            ["uv", "lock"],
-            cwd=str(repo_root),
-            capture_output=True,
-            text=True,
-            timeout=timeout,
-        )
-    except FileNotFoundError:
-        return (False, "uv not found on PATH — uv.lock left stale.")
-    except subprocess.TimeoutExpired:
-        return (False, f"uv lock timed out after {timeout:g}s — uv.lock left stale.")
-
-    if proc.returncode == 0:
+    result = gitcmd.run(["uv", "lock"], cwd=repo_root, timeout=timeout)
+    if result.ok:
         return (True, None)
-    return (False, f"uv lock failed (uv.lock left stale): {(proc.stderr or '').strip()}")
+    if result.returncode == 127:
+        return (False, "uv not found on PATH — uv.lock left stale.")
+    if result.timed_out:
+        return (False, f"uv lock timed out after {timeout:g}s — uv.lock left stale.")
+    return (False, f"uv lock failed (uv.lock left stale): {result.stderr.strip()}")

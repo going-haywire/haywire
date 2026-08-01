@@ -4,6 +4,14 @@
 re-exported here so callers have a single import site.
 """
 
+from haywire_studio.gitcmd import (
+    GitResult,
+    git,
+    git_remote,
+    git_remote_streaming,
+    run,
+    run_streaming,
+)
 from haywire_studio.share_pipeline.errors import (
     CommitError,
     DocsGenerationError,
@@ -15,13 +23,6 @@ from haywire_studio.share_pipeline.errors import (
     ShareError,
     TagCollisionError,
     VersionError,
-)
-from haywire_studio.share_pipeline.gitcmd import (
-    GitResult,
-    git,
-    git_remote,
-    git_remote_streaming,
-    run_streaming,
 )
 from haywire_studio.share_pipeline.pipeline import GIT_INSTALL_HINT, SharePipeline
 from haywire_studio.share_pipeline.results import (
@@ -66,5 +67,6 @@ __all__ = [
     "git",
     "git_remote",
     "git_remote_streaming",
+    "run",
     "run_streaming",
 ]

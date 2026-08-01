@@ -315,7 +315,7 @@ async def test_commit_advances_to_push(project: Path) -> None:
 @pytest.mark.anyio
 async def test_commit_step_verifies_push_before_committing(project: Path) -> None:
     """Closes the race window since step 1 — and leaves nothing to undo."""
-    from haywire_studio.share_pipeline import gitcmd
+    from haywire_studio import gitcmd
 
     wizard = _wizard(project)
     with patch("haywire_studio.share_pipeline.pipeline.detect_share_drift", side_effect=_no_drift):

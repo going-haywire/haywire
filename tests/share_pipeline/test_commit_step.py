@@ -145,6 +145,51 @@ def test_plan_commit_includes_a_diffstat(project: Path) -> None:
     assert "pyproject.toml" in plan.diffstat
 
 
+def test_plan_commit_diffstat_labels_a_deleted_doc(project: Path) -> None:
+    """docs_write_set legitimately returns paths the generator deleted (orphaned
+    per-component docs on a rename). The preview must call that out as a
+    deletion, not mislabel it "(new file)"."""
+    pipeline = _ready(project)
+    doomed = project / "barn" / "haybale-alpha" / "haybale_alpha" / "docs" / "old.md"
+    doomed.parent.mkdir(parents=True)
+    doomed.write_text("stale\n")
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "add doc")
+
+    doomed.unlink()
+    pipeline._record([doomed])
+
+    plan = pipeline.plan_commit()
+    assert "barn/haybale-alpha/haybale_alpha/docs/old.md (deleted)" in plan.diffstat
+    assert "(new file)" not in plan.diffstat
+
+
+def test_plan_commit_diffstat_labels_new_file_that_is_a_text_prefix_of_another_line(
+    project: Path,
+) -> None:
+    """Regression for the old substring-search bug: a raw ``path_str not in
+    stdout`` check against the whole diffstat text block goes wrong when the
+    new path's text is a prefix of an unrelated changed path's diffstat line.
+    Here "barn/haybale-alpha/NOTES.md" (untracked, brand new) is a text-prefix
+    of "barn/haybale-alpha/NOTES.md.bak"'s line (tracked, modified) — the old
+    substring check read that as "already covered" and silently dropped the
+    "(new file)" label entirely, even though the diffstat never actually
+    mentioned NOTES.md."""
+    pipeline = _ready(project)
+    bak = project / "barn" / "haybale-alpha" / "NOTES.md.bak"
+    bak.write_text("a\n")
+    _git(project, "add", "-A")
+    _git(project, "commit", "-m", "add bak")
+    bak.write_text("a2\n")
+
+    new_notes = project / "barn" / "haybale-alpha" / "NOTES.md"
+    new_notes.write_text("brand new\n")
+    pipeline._record([bak, new_notes])
+
+    plan = pipeline.plan_commit()
+    assert "barn/haybale-alpha/NOTES.md (new file)" in plan.diffstat
+
+
 def test_plan_commit_without_a_version_raises(project: Path) -> None:
     from haywire_studio.share_pipeline import PipelineStateError
 
@@ -273,7 +318,8 @@ def test_verify_push_allowed_passes_against_a_reachable_remote(project: Path) ->
 
 def test_verify_push_allowed_rejects_a_diverged_remote(project: Path, tmp_path: Path) -> None:
     """Closes the race window since step 1 — someone may have pushed meanwhile."""
-    from haywire_studio.share_pipeline import PushError, gitcmd
+    from haywire_studio import gitcmd
+    from haywire_studio.share_pipeline import PushError
 
     def _rejected(args, **_kw):
         if "--dry-run" in args:
@@ -296,3 +342,33 @@ def test_verify_push_allowed_rejects_a_diverged_remote(project: Path, tmp_path: 
 def test_current_branch_is_reported(project: Path) -> None:
     branch = SharePipeline(project).current_branch()
     assert branch in {"main", "master"}
+
+
+def test_current_branch_is_none_on_detached_head(project: Path) -> None:
+    sha = _git(project, "rev-parse", "HEAD").strip()
+    _git(project, "checkout", sha)  # real detachment, not a branch checkout
+
+    assert SharePipeline(project).current_branch() is None
+
+
+def test_push_command_raises_on_detached_head(project: Path) -> None:
+    """Defensive: check_preconditions() already rejects detached HEAD before any
+    caller reaches push_command(), but the guard here must fail loud rather than
+    silently build a `HEAD:None`-shaped refspec if it's ever reached anyway."""
+    from haywire_studio.share_pipeline import PipelineStateError
+
+    sha = _git(project, "rev-parse", "HEAD").strip()
+    _git(project, "checkout", sha)
+
+    with pytest.raises(PipelineStateError):
+        _ready(project).push_command()
+
+
+def test_verify_push_allowed_raises_on_detached_head(project: Path) -> None:
+    from haywire_studio.share_pipeline import PipelineStateError
+
+    sha = _git(project, "rev-parse", "HEAD").strip()
+    _git(project, "checkout", sha)
+
+    with pytest.raises(PipelineStateError):
+        _ready(project).verify_push_allowed()
