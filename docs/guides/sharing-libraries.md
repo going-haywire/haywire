@@ -96,17 +96,7 @@ Prompts through the same six steps as the GUI wizard — check the project,
 resolve dependency drift, choose a version, regenerate docs, review the
 commit, then push.
 
-### 4.2 Check mode — read-only PR gate
-
-```sh
-uv run haywire share --check
-```
-
-Reports dependency drift and stale docs/marketstall and exits non-zero if
-anything is out of date. Writes nothing, commits nothing, pushes nothing.
-Use this in CI to fail a PR before a human runs the real thing.
-
-### 4.3 Non-interactive mode
+### 4.2 Non-interactive mode
 
 ```sh
 uv run haywire share --yes --bump patch
@@ -115,22 +105,36 @@ uv run haywire share --yes --bump patch
 Every answer comes from a flag instead of a prompt. Requires `--bump`
 (`patch|minor|major` or an explicit `X.Y.Z`); refuses to run if there is
 unresolved dependency drift — resolve it first (§3) or the run fails with the
-same information `--check` would have reported.
+same information the drift step would have reported interactively.
 
-### 4.4 Pinning the share URL (`--ref` / `--tag`)
+### 4.3 Publishing from the default branch
 
-```sh
-uv run haywire share --yes --bump patch --tag latest
+`haywire share` refuses to publish from anything but the repository's default
+branch. There is no escape hatch — the rule is unconditional.
+
+Here's why: the generated marketstall entry's `docs_url`, `examples_url`, and
+`tests_url` are pinned to whatever branch you have checked out at publish
+time. A feature branch dies the moment it's merged and deleted — so those
+URLs go dead. That failure doesn't land on you, the author, who already knows
+the branch is gone; it lands on a consumer who tries to follow one of those
+links months later. Meanwhile `install_spec` (the actual install command) is
+different: it carries no ref at all and always resolves to the remote's
+default-branch HEAD. So publishing from a non-default branch means the
+install spec and the doc/example/test URLs silently point at two different
+places from day one.
+
+If `haywire share` reports that you're on the wrong branch, e.g.:
+
+```text
+Currently on `feature-x`, but the repository's default branch is `main`.
 ```
 
-By default the published `install_spec` is branch-live: `marketstall.toml` is
-a subscription feed, so a branch-pinned URL keeps subscribers discovering
-every future release. `--ref <branch|tag|SHA>` or `--tag <tag>` (`--tag latest`
-resolves to the most recent tag reachable from HEAD) freezes the URL to a
-specific point instead — use this for a one-off frozen snippet, not for the
-feed you expect people to keep subscribing to.
+switch to the default branch and publish from there: `git switch main`.
 
-### 4.5 What an entry looks like
+This check, along with a companion check that HEAD isn't detached, always
+runs — there's no flag to skip it.
+
+### 4.4 What an entry looks like
 
 Each `barn/*` library becomes one `[[haybales]]` entry in the generated
 `marketstall.toml`:
@@ -217,7 +221,18 @@ write code → add import → click Detect Dependencies → Union → Save Chang
                                               consumer subscribes via Add Source
 ```
 
-`haywire share --check` is the CI-side companion — run it as a PR gate to catch drift or stale docs/marketstall before merging, without writing anything.
+Two separate commands cover the CI side — there's no single `--check` gate:
+
+- `haywire deps check` — checks every `barn/*` library's dependency manifests
+  for drift (missing `pyproject.toml` entries, missing `@library(dependencies=...)`
+  entries, or a version-lag floor). Exits 1 if any library has drift, exits 0
+  otherwise. Never writes. Run this as a PR gate to catch manifest drift
+  before merging.
+- `haywire docs --all --json <path>` — regenerates every in-repo library's
+  generated docs (README/OVERVIEW/QUICKREF/`docs/*.md`) for real. This is a
+  "generate and commit" job, not a staleness gate: it always exits 0 unless
+  generation itself crashes. Run it in CI to keep generated docs current,
+  then commit whatever it produces.
 
 ## 8. Common pitfalls
 
@@ -236,6 +251,24 @@ The scan is static AST analysis. Dynamic imports (`importlib.import_module(name)
 
 **`haywire share` produces a URL with `<REPO_URL>` placeholder.**
 The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`.
+
+**`haywire share` fails with "Could not read `barn/<lib>/pyproject.toml`: ...".**
+That library's `pyproject.toml` doesn't parse as TOML. Fix the TOML in `barn/<lib>/pyproject.toml` so it parses, then try again.
+
+**`haywire share` fails with "Invalid manifest at `barn/<lib>/pyproject.toml`: ...".**
+The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list.
+
+**`haywire share` fails with "HEAD is detached — no branch is currently checked out.".**
+You're not on a branch. If the remedy names one or more branches (e.g. `` This commit is on `main`, `feature-x` — run `git switch main`. ``), switch to the first one it lists. If it instead says the commit isn't on any branch, create one and publish from there: `git switch -c my-branch`.
+
+**`haywire share` fails with "Currently on `<branch>`, but the repository's default branch is `<default>`.".**
+See [§4.3 Publishing from the default branch](#43-publishing-from-the-default-branch): switch to the default branch (`git switch <default>`).
+
+**`haywire deps check` exits non-zero in CI.**
+One or more `barn/*` libraries have dependency-manifest drift. The command
+prints which library and which manifest entries are missing. Resolve it with
+`haywire share` (interactive) or the Library Overview Editor's Detect
+Dependencies button.
 
 **You're working in `--dev` mode and want to share a library that has dev-repo dependencies.**
 `haywire share`'s output uses `source = "git"` for haywire's `dependencies` field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style `pyproject.toml` won't survive `pip install`. Make sure the published version of your library declares versioned dependencies (`haybale-core~=0.0.1`), not editable path sources. `haywire share` handles this correctly when the dependencies are listed in the library's `pyproject.toml` rather than in the project root's `pyproject.toml`.

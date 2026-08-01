@@ -12,11 +12,16 @@ from haywire_studio.share_pipeline import (
     DocsGenerationError,
     DriftReport,
     LibraryVersion,
+    ManifestError,
+    MarketstallError,
+    PipelineStateError,
+    PreconditionFailure,
     PreconditionsError,
     PreconditionsReport,
     PushError,
     ShareError,
     TagCollisionError,
+    VersionError,
     VersionPlan,
 )
 
@@ -24,22 +29,46 @@ pytestmark = pytest.mark.unit
 
 
 def test_every_error_is_a_share_error() -> None:
-    for cls in (PreconditionsError, TagCollisionError, DocsGenerationError, CommitError, PushError):
+    for cls in (
+        PreconditionsError,
+        TagCollisionError,
+        DocsGenerationError,
+        CommitError,
+        PushError,
+        MarketstallError,
+        ManifestError,
+        VersionError,
+        PipelineStateError,
+    ):
         assert issubclass(cls, ShareError)
     assert issubclass(ShareError, RuntimeError)
 
 
 def test_preconditions_error_carries_all_failures() -> None:
-    exc = PreconditionsError(["no git", "no remote"])
-    assert exc.failures == ["no git", "no remote"]
+    failures = [PreconditionFailure(message="no git"), PreconditionFailure(message="no remote")]
+    exc = PreconditionsError(failures)
+    assert exc.failures == failures
     # Every failure appears in the message — the CLI prints str(exc) verbatim.
     assert "no git" in str(exc)
     assert "no remote" in str(exc)
 
 
+def test_preconditions_error_indents_remedy_under_its_message() -> None:
+    exc = PreconditionsError([PreconditionFailure(message="no origin", remedy="git remote add origin x")])
+    lines = str(exc).splitlines()
+    message_index = next(i for i, line in enumerate(lines) if "no origin" in line)
+    assert lines[message_index + 1].strip() == "git remote add origin x"
+    assert lines[message_index + 1].startswith("      ")
+
+
 def test_preconditions_report_ok_iff_no_failures() -> None:
     assert PreconditionsReport(failures=[], remote_url="u", barn_libraries=[Path("a")]).ok is True
-    assert PreconditionsReport(failures=["x"], remote_url=None, barn_libraries=[]).ok is False
+    assert (
+        PreconditionsReport(
+            failures=[PreconditionFailure(message="x")], remote_url=None, barn_libraries=[]
+        ).ok
+        is False
+    )
 
 
 def test_tag_collision_error_reports_where() -> None:

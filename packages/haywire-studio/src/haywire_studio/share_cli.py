@@ -1,10 +1,8 @@
 """``haywire share`` — a thin runner over :class:`SharePipeline`.
 
-Three modes:
+Two modes:
 
 * **interactive** (default) — prompts through the same steps as the wizard.
-* **``--check``** — read-only verifier for a PR gate. Reports everything stale
-  and exits non-zero. Writes nothing, commits nothing, pushes nothing.
 * **``--yes``** — non-interactive full run with flag-supplied answers, for
   tag-triggered release automation and for the test suite (testing a
   seven-step git-mutating pipeline through a prompt loop is otherwise
@@ -22,77 +20,28 @@ from haywire_studio.share import derive_share_url_only
 from haywire_studio.share_pipeline import (
     ShareError,
     SharePipeline,
-    SharePlan,
 )
 
 EXIT_OK = 0
 EXIT_FAILED = 1
-EXIT_STALE = 2
 
 
 def run_share_cli(
     *,
     repo_root: Path,
-    check: bool,
     yes: bool,
     bump: str | None,
     message: str | None,
-    ref: str | None,
-    tag: str | None,
 ) -> int:
-    """Dispatch to one of the three modes and return the process exit code."""
+    """Dispatch to one of the two modes and return the process exit code."""
     pipeline = SharePipeline(repo_root)
     try:
-        if check:
-            return _run_check(pipeline, ref=ref, tag=tag)
         if yes:
-            return _run_yes(pipeline, bump=bump, message=message, ref=ref, tag=tag)
-        return _run_interactive(pipeline, ref=ref, tag=tag)
+            return _run_yes(pipeline, bump=bump, message=message)
+        return _run_interactive(pipeline)
     except ShareError as exc:
         print(f"\n✗ {exc}")
         return EXIT_FAILED
-
-
-# ── --check ──────────────────────────────────────────────────────────────────
-
-
-def _run_check(pipeline: SharePipeline, *, ref: str | None, tag: str | None) -> int:
-    """Report drift and staleness. Exits non-zero when anything needs doing."""
-    plan = asyncio.run(pipeline.plan(on_output=lambda line: None))
-    _print_plan(plan)
-    return EXIT_OK if plan.is_clean else EXIT_STALE
-
-
-def _print_plan(plan: SharePlan) -> None:
-    if not plan.preconditions.ok:
-        print("Cannot share this project:")
-        for failure in plan.preconditions.failures:
-            print(f"  - {failure}")
-        return
-
-    print(f"Current version: {plan.versions.common_version or '(libraries disagree)'}")
-    for lib in plan.versions.current:
-        print(f"  • {lib.name}: {lib.version or '(none)'}")
-
-    if plan.drift.needs_decision:
-        print("\nDependency drift (run `haywire share` to resolve):")
-        for drift in plan.drift.drifted:
-            for dep in drift.pyproject_missing:
-                print(f"  + {drift.lib_dir.name} pyproject.toml: {dep}")
-            for dep in drift.decorator_missing:
-                print(f"  + {drift.lib_dir.name} @library(dependencies): {dep}")
-            for dist, declared, installed in drift.pyproject_version_lag:
-                print(f"  ~ {drift.lib_dir.name} {dist}: declared {declared}, installed {installed}")
-
-    if plan.stale_docs:
-        print("\nStale generated docs:")
-        for path in plan.stale_docs:
-            print(f"  ~ {path}")
-
-    if plan.stale_marketstall:
-        print("\nmarketstall.toml is stale or missing.")
-
-    print("\n✓ Everything is up to date." if plan.is_clean else "\n✗ Run `haywire share` to update.")
 
 
 # ── --yes ────────────────────────────────────────────────────────────────────
@@ -103,8 +52,6 @@ def _run_yes(
     *,
     bump: str | None,
     message: str | None,
-    ref: str | None,
-    tag: str | None,
 ) -> int:
     """Full non-interactive run. Every decision must arrive as a flag."""
     if not bump:
@@ -134,7 +81,7 @@ def _run_yes(
     gaps = docs.total_gaps
     print(f"✓ Regenerated docs ({gaps} coverage gap(s))")
 
-    stall = pipeline.apply_marketstall(ref=ref, tag=tag)
+    stall = pipeline.apply_marketstall()
     print(f"✓ Wrote {stall.out_path}")
     if stall.warning:
         print(f"⚠ {stall.warning}")
@@ -149,7 +96,7 @@ def _run_yes(
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
 
-    url = derive_share_url_only(pipeline.repo_root, ref=ref, tag=tag)
+    url = derive_share_url_only(pipeline.repo_root)
     if url.share_url:
         print(f"\n✓ Share this URL:\n  {url.share_url}")
     elif url.warning:
@@ -170,7 +117,7 @@ def _confirm(prompt: str) -> bool:
     return _ask(f"{prompt} (y/N)", default="n").lower().startswith("y")
 
 
-def _run_interactive(pipeline: SharePipeline, *, ref: str | None, tag: str | None) -> int:
+def _run_interactive(pipeline: SharePipeline) -> int:
     """Prompt through the same six steps the wizard walks."""
     print("── 1. Preconditions ──")
     pipeline.require_preconditions()
@@ -222,7 +169,7 @@ def _run_interactive(pipeline: SharePipeline, *, ref: str | None, tag: str | Non
     print(f"✓ Docs regenerated ({docs.total_gaps} coverage gap(s))")
 
     print("\n── 5. Marketstall, commit, tag ──")
-    stall = pipeline.apply_marketstall(ref=ref, tag=tag)
+    stall = pipeline.apply_marketstall()
     print(f"✓ Wrote {stall.out_path}")
     if stall.warning:
         print(f"⚠ {stall.warning}")
@@ -263,7 +210,7 @@ def _run_interactive(pipeline: SharePipeline, *, ref: str | None, tag: str | Non
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
 
-    url = derive_share_url_only(pipeline.repo_root, ref=ref, tag=tag)
+    url = derive_share_url_only(pipeline.repo_root)
     if url.share_url:
         print(f"\n✓ Share this URL:\n  {url.share_url}")
     elif url.warning:

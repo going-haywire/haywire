@@ -13,10 +13,21 @@ def _init_repo_with_lib(tmp_path: Path) -> Path:
     (lib / "examples" / "demo.haywire").write_text("{}")
     subprocess.run(["git", "init"], cwd=tmp_path, check=True, capture_output=True)
     subprocess.run(
+        ["git", "config", "user.email", "t@t.test"], cwd=tmp_path, check=True, capture_output=True
+    )
+    subprocess.run(["git", "config", "user.name", "T"], cwd=tmp_path, check=True, capture_output=True)
+    subprocess.run(
         ["git", "remote", "add", "origin", "https://github.com/me/repo.git"],
         cwd=tmp_path,
         check=True,
         capture_output=True,
+    )
+    # `_get_current_ref` needs a real (born) branch: `git rev-parse
+    # --abbrev-ref HEAD` fails on an unborn one, and the module no longer
+    # papers over that with a hardcoded "main" fallback (Task 4) — an
+    # unverified branch guess is worse than an honestly empty URL.
+    subprocess.run(
+        ["git", "commit", "--allow-empty", "-m", "init"], cwd=tmp_path, check=True, capture_output=True
     )
     return lib
 

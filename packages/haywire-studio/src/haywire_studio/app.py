@@ -359,12 +359,6 @@ def main():
         "rebuild marketstall.toml, commit, tag, and push",
     )
     share_parser.add_argument(
-        "--check",
-        action="store_true",
-        help="Read-only verifier: report drift and stale docs/marketstall, then exit "
-        "non-zero. Writes nothing, commits nothing, pushes nothing.",
-    )
-    share_parser.add_argument(
         "--yes",
         action="store_true",
         help="Non-interactive full run using flag-supplied answers. Requires --bump.",
@@ -383,21 +377,6 @@ def main():
         default=None,
         help="Commit message. Defaults to 'chore: share v<version>'.",
     )
-    share_parser.add_argument(
-        "--ref",
-        type=str,
-        default=None,
-        help="Specific ref (branch, tag, or SHA) to encode in the share URL.",
-    )
-    share_parser.add_argument(
-        "--tag",
-        type=str,
-        default=None,
-        help="Tag to encode in the share URL. Use 'latest' to resolve to the most "
-        "recent tag reachable from HEAD. The default stays branch-live: "
-        "marketstall.toml is a subscription feed, so a branch-pinned URL keeps "
-        "subscribers discovering every future release.",
-    )
 
     rename_parser = subparsers.add_parser(
         "rename", help="Rename a project library (run with studio stopped)"
@@ -408,6 +387,13 @@ def main():
         "--apply",
         action="store_true",
         help="Perform the rename. Without this flag, only a dry-run preview is printed.",
+    )
+
+    deps_parser = subparsers.add_parser("deps", help="Dependency-manifest tooling")
+    deps_subparsers = deps_parser.add_subparsers(dest="deps_command")
+    deps_subparsers.add_parser(
+        "check",
+        help="Report dependency-manifest drift for every barn/* library (CI-shaped, never writes)",
     )
 
     docs_parser = subparsers.add_parser("docs", help="Generate deterministic docs for a haybale library")
@@ -450,12 +436,9 @@ def main():
         raise SystemExit(
             run_share_cli(
                 repo_root=Path.cwd(),
-                check=args.check,
                 yes=args.yes,
                 bump=args.bump,
                 message=args.message,
-                ref=args.ref,
-                tag=args.tag,
             )
         )
     elif args.command == "rename":
@@ -471,6 +454,15 @@ def main():
                 apply=args.apply,
             )
         )
+    elif args.command == "deps":
+        from pathlib import Path
+
+        from haywire_studio.deps_cli import run_deps_check_cli
+
+        if args.deps_command == "check":
+            raise SystemExit(run_deps_check_cli(Path.cwd()))
+        deps_parser.print_help()
+        raise SystemExit(2)
     elif args.command == "docs":
         import json as _json
         from pathlib import Path as _Path

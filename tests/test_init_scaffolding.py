@@ -18,6 +18,15 @@ def fake_home(tmp_path, monkeypatch):
     monkeypatch.setenv("HOME", str(fake))
     monkeypatch.setattr("pathlib.Path.home", lambda: fake)
 
+    # Redirecting HOME also hides the user's ~/.gitconfig, so the scaffold's
+    # `git commit` has no author identity and dies with "Author identity
+    # unknown" (exit 128). Supply one through the environment: it applies to
+    # the sandboxed commit only and never writes to the real git config.
+    monkeypatch.setenv("GIT_AUTHOR_NAME", "Haywire Test")
+    monkeypatch.setenv("GIT_AUTHOR_EMAIL", "test@haywire.invalid")
+    monkeypatch.setenv("GIT_COMMITTER_NAME", "Haywire Test")
+    monkeypatch.setenv("GIT_COMMITTER_EMAIL", "test@haywire.invalid")
+
     import haywire_studio.config as cfg
 
     fake_haywire = fake / ".haywire"

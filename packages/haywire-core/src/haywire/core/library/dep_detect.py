@@ -268,7 +268,9 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
         return DetectedDeps()
 
     self_module = _read_self_module_name(lib_dir)
-    top_level, haywire_paths = _collect_imports(module_dir)
+    # The haywire.* submodule paths are collected but no longer classify the
+    # framework dist: every haywire.* import maps to haywire-core (see below).
+    top_level, _haywire_paths = _collect_imports(module_dir)
 
     # Drop self and stdlib.
     stdlib: frozenset[str] = getattr(sys, "stdlib_module_names", frozenset())
@@ -281,35 +283,21 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
         if dist:
             registered_dists.add(dist)
 
-    # Pre-compute whether haywire.ui is touched (decides the framework split).
-    uses_ui = any(p == "haywire.ui" or p.startswith("haywire.ui.") for p in haywire_paths)
-    uses_core = any(p == "haywire.core" or p.startswith("haywire.core.") for p in haywire_paths)
-
     decorator: list[str] = []
     pyproject: list[str] = []
     resolved: dict[str, str] = {}
     unresolved: list[str] = []
-
-    # Track which framework dists we've already added so haywire-core / haywire-studio
-    # don't double up if the user imports both haywire.core.X and haywire.ui.Y.
-    framework_added: set[str] = set()
 
     # One venv-wide metadata scan for the whole run (it is ~1s in a large venv).
     dist_mapping = importlib.metadata.packages_distributions()
 
     for module in sorted(candidates):
         if module == "haywire":
-            # Split by submodule usage. ui-only → haywire-studio. Otherwise haywire-core.
-            if uses_ui:
-                if "haywire-studio" not in framework_added:
-                    pyproject.append(_format_specifier("haywire-studio", strict=True))
-                    framework_added.add("haywire-studio")
-                    resolved["haywire(.ui.*)"] = "haywire-studio"
-            if uses_core or not uses_ui:
-                if "haywire-core" not in framework_added:
-                    pyproject.append(_format_specifier("haywire-core", strict=True))
-                    framework_added.add("haywire-core")
-                    resolved["haywire(.core.*)" if uses_core else "haywire"] = "haywire-core"
+            # The ENTIRE `haywire` top-level package ships in haywire-core —
+            # including haywire.ui 
+
+            pyproject.append(_format_specifier("haywire-core", strict=True))
+            resolved["haywire"] = "haywire-core"
             continue
 
         dist = _resolve_module_to_dist(module, dist_mapping)
@@ -323,11 +311,12 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
             decorator.append(module)
             pyproject.append(_format_specifier(dist, strict=True))
         elif dist.startswith("haywire-"):
-            # Framework dist reached via a top-level other than `haywire`
-            # — defensively treat as framework, pyproject only.
-            if dist not in framework_added:
-                pyproject.append(_format_specifier(dist, strict=True))
-                framework_added.add(dist)
+            # Framework dist reached via a top-level other than `haywire` —
+            # e.g. `import haywire_studio` resolving to haywire-studio.
+            # Framework, so pyproject only (not the @library decorator).
+            # `candidates` is a set, so each module is visited once and no
+            # duplicate guard is needed.
+            pyproject.append(_format_specifier(dist, strict=True))
         else:
             # Third-party.
             pyproject.append(_format_specifier(dist, strict=False))

@@ -68,13 +68,14 @@ and the result is committed, tagged `v<version>`, and pushed.
 | Mode | What it does |
 | --- | --- |
 | `haywire share` | Interactive. Prompts through the same six steps as the GUI wizard. |
-| `haywire share --check` | Read-only. Reports dependency drift and stale docs/marketstall, exits non-zero. Writes nothing. Use it as a PR gate. |
 | `haywire share --yes --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
+| `haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use it as a PR gate. |
 
 The same pipeline backs the **Share Project…** item in the Marketplace editor's
-burger menu. `--ref`/`--tag` pin the share URL for a frozen feed; the default is
-branch-live, because `marketstall.toml` is a subscription feed and a tag-pinned
-URL freezes subscribers at whatever version they subscribed to.
+burger menu. The share URL is always branch-live — it tracks whatever branch
+you published from, because `marketstall.toml` is a subscription feed and a
+frozen, tag-pinned URL would lock subscribers to whatever version they first
+subscribed to.
 
 ### States
 

@@ -86,7 +86,17 @@ def _update_repo_readmes(repo_root: Path, share_url: str) -> list[Path]:
     return updated
 
 
-class InvalidOsDeclarationError(RuntimeError):
+class ManifestReadError(RuntimeError):
+    """A library pyproject.toml could not be read or is invalid.
+
+    Deliberately a plain RuntimeError, not a ShareError: share.py must stay
+    importable without haywire_studio.share_pipeline (importing it would run
+    the package __init__, which imports pipeline, which imports this module).
+    The pipeline translates this into ManifestError at its boundary.
+    """
+
+
+class InvalidOsDeclarationError(ManifestReadError):
     """Raised when a library's [tool.haywire].os contains an invalid value.
 
     Only "macos", "windows", "linux" are declarable. "other" is
@@ -117,6 +127,38 @@ def _read_os_field(data: dict, lib_dir: Path) -> list[str]:
     return validated
 
 
+def read_manifest(lib_dir: Path) -> dict:
+    """Parse and validate a library pyproject. Raises ManifestReadError.
+
+    For read-to-rewrite callers: refusing is the point, because the
+    alternative is overwriting a file we could not understand. Also validates
+    [tool.haywire].os, whose vocabulary is closed.
+    """
+    pyproject_path = lib_dir / "pyproject.toml"
+    try:
+        text = pyproject_path.read_text()
+    except OSError as exc:
+        raise ManifestReadError(f"Could not read {pyproject_path}: {exc}") from exc
+    try:
+        data = toml.loads(text)
+    except toml.TomlDecodeError as exc:
+        raise ManifestReadError(f"Malformed TOML in {pyproject_path}: {exc}") from exc
+    _read_os_field(data, lib_dir)
+    return data
+
+
+def read_manifest_lenient(lib_dir: Path) -> dict:
+    """Parse a library pyproject, returning {} on any failure.
+
+    For read-to-report callers, where a corrupt manifest should still let the
+    report name what is missing. Pinned by tests/test_share_drift.py:176.
+    """
+    try:
+        return read_manifest(lib_dir)
+    except ManifestReadError:
+        return {}
+
+
 def _find_git_root(start: Path) -> Path | None:
     """Walk up from *start* to find the nearest .git directory."""
     current = start.resolve()
@@ -129,16 +171,20 @@ def _find_git_root(start: Path) -> Path | None:
 
 def _get_remote_url(git_root: Path) -> str | None:
     """Get the origin remote URL, or None if unavailable."""
+    # Note: We do not convert to gitcmd here — share.py must stay importable
+    # without haywire_studio.share_pipeline (to avoid an import cycle). Breaking
+    # that cycle is a separate, already-planned piece of work (Plan 2).
     try:
         result = subprocess.run(
             ["git", "remote", "get-url", "origin"],
             cwd=str(git_root),
             capture_output=True,
             text=True,
+            timeout=10.0,
         )
         if result.returncode == 0:
             return result.stdout.strip()
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
     return None
 
@@ -151,28 +197,13 @@ def _get_current_ref(git_root: Path) -> str | None:
             cwd=str(git_root),
             capture_output=True,
             text=True,
+            timeout=10.0,
         )
         if result.returncode == 0:
             ref = result.stdout.strip()
             if ref and ref != "HEAD":  # detached HEAD prints "HEAD"
                 return ref
-    except FileNotFoundError:
-        pass
-    return None
-
-
-def _get_latest_tag(git_root: Path) -> str | None:
-    """Return the most recent tag reachable from HEAD, or None."""
-    try:
-        result = subprocess.run(
-            ["git", "describe", "--tags", "--abbrev=0"],
-            cwd=str(git_root),
-            capture_output=True,
-            text=True,
-        )
-        if result.returncode == 0:
-            return result.stdout.strip() or None
-    except FileNotFoundError:
+    except (FileNotFoundError, subprocess.TimeoutExpired):
         pass
     return None
 
@@ -243,7 +274,7 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
     if not pyproject_path.exists():
         return None
 
-    data = toml.loads(pyproject_path.read_text())
+    data = read_manifest(lib_dir)
     project = data.get("project", {})
 
     name = project.get("name", lib_dir.name)
@@ -279,13 +310,17 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
     # The branch a raw-content URL points at MUST be the repo's actual current
     # branch, not a hardcoded guess — this repo's default is "master", and a
     # hardcoded "main" 404s on raw.githubusercontent.com even though the file
-    # exists on the real branch. Falls back to "main" only when detection
-    # fails (detached HEAD, git unavailable) — best-effort, matches the
-    # share-URL derivation path's precedence in spirit (_derive_url above).
-    branch = (_get_current_ref(git_root) if git_root else None) or "main"
+    # exists on the real branch. No fallback: a guessed branch name nobody
+    # verified exists silently emits a URL that may 404 forever, whereas
+    # `None` (detached HEAD, git unavailable) propagates to an empty URL below
+    # — an honest "couldn't determine this" beats a plausible-looking wrong
+    # answer. `SharePipeline.check_preconditions` is the layer that turns an
+    # undeterminable/wrong branch into an actual failure before publish; this
+    # module has no such gate, so it degrades instead of guessing.
+    branch = _get_current_ref(git_root) if git_root else None
 
     docs_url = ""
-    if remote_url and module_dir:
+    if remote_url and module_dir and branch:
         assert git_root is not None
         module_rel = module_dir.relative_to(git_root)
         if "github.com" in https_url:
@@ -294,11 +329,14 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         elif "gitlab.com" in https_url:
             docs_url = f"{https_url}/-/raw/{branch}/{module_rel}/"
 
-    os_decl = _read_os_field(data, lib_dir)
+    # read_manifest() above already validated [tool.haywire].os via
+    # _read_os_field; re-running it here would just re-validate the same
+    # already-checked value. Read it directly off the validated `data`.
+    os_decl: list[str] = data.get("tool", {}).get("haywire", {}).get("os") or []
 
     def _folder_url(folder_name: str) -> str:
         """Raw git URL for <lib>/<folder>/ when it holds >=1 .haywire graph."""
-        if not (remote_url and git_root):
+        if not (remote_url and git_root and branch):
             return ""
         folder = lib_dir / folder_name
         if not folder.is_dir() or not any(folder.rglob("*.haywire")):
@@ -385,22 +423,20 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     Returns an empty :class:`DepDrift` when no module dir is found (the
     library has no inspectable source). Callers should still treat that as
     "nothing to gate" rather than an error.
+
+    Degrades to treating declarations as empty (surfacing everything as
+    missing) not just on unparsable TOML but also on an invalid
+    ``[tool.haywire].os`` declaration, since both go through
+    :func:`read_manifest_lenient`.
     """
     libraries = EntryPointLibrarySource()
     detected: DetectedDeps = detect_deps(lib_dir, libraries=libraries)
 
-    # Read current declarations
-    pyproject_path = lib_dir / "pyproject.toml"
-    declared_pyproject: list[str] = []
-    if pyproject_path.is_file():
-        try:
-            pyproject_data = toml.loads(pyproject_path.read_text())
-            declared_pyproject = list(pyproject_data.get("project", {}).get("dependencies", []))
-        except toml.TomlDecodeError:
-            # Malformed pyproject — treat declarations as empty so the drift
-            # report still surfaces what's missing. The malformed-file error
-            # will be raised by downstream emit if it's still broken there.
-            pass
+    # Read current declarations. Lenient: a malformed or unreadable manifest
+    # treats declarations as empty so the drift report still surfaces what's
+    # missing, rather than crashing a read-only report.
+    pyproject_data = read_manifest_lenient(lib_dir)
+    declared_pyproject: list[str] = list(pyproject_data.get("project", {}).get("dependencies", []))
 
     module_dir = find_module_dir(lib_dir)
     declared_decorator: list[str] = []
@@ -600,11 +636,11 @@ def apply_drift_fix(drift: DepDrift) -> None:
         pyproject_path = lib_dir / "pyproject.toml"
         declared: list[str] = []
         if pyproject_path.is_file():
-            try:
-                data = toml.loads(pyproject_path.read_text())
-                declared = list(data.get("project", {}).get("dependencies", []))
-            except toml.TomlDecodeError:
-                declared = []
+            # Strict: reading to rewrite. Must fail here, before
+            # set_pyproject_dependencies below, or a corrupt file gets
+            # silently overwritten (it deliberately re-raises on bad TOML).
+            data = read_manifest(lib_dir)
+            declared = list(data.get("project", {}).get("dependencies", []))
         # Bump any lagging haybale floors to the installed version, preserving
         # the declared operator (~=, >=, or >).
         lag_by_dist = {dist: installed for dist, _floor, installed in drift.pyproject_version_lag}
@@ -664,9 +700,6 @@ class ShareSaveResult:
 def _derive_url(
     repo_root: Path,
     out_path: Path,
-    *,
-    ref: str | None = None,
-    tag: str | None = None,
 ) -> ShareSaveResult:
     """Derive the canonical blob URL for an existing marketstall.toml.
 
@@ -707,42 +740,20 @@ def _derive_url(
         )
     owner, _, repo = path.rpartition("/")
 
-    # Determine ref. Precedence: ref → tag (with "latest" expansion) → current branch.
-    ref_value: str | None
-    if ref is not None:
-        ref_value = ref
-    elif tag == "latest":
-        ref_value = _get_latest_tag(repo_root)
-        if ref_value is None:
-            return ShareSaveResult(
-                out_path=out_path,
-                share_url=None,
-                warning="--tag latest specified but no tags reachable from HEAD.",
-            )
-    elif tag is not None:
-        ref_value = tag
-    else:
-        ref_value = _get_current_ref(repo_root)
-        if ref_value is None:
-            return ShareSaveResult(
-                out_path=out_path,
-                share_url=None,
-                warning=(
-                    "Detached HEAD with no --ref or --tag; share URL not constructed. "
-                    "The file has been written."
-                ),
-            )
+    # Share URLs are always branch-live off the current branch.
+    ref_value = _get_current_ref(repo_root)
+    if ref_value is None:
+        return ShareSaveResult(
+            out_path=out_path,
+            share_url=None,
+            warning="Detached HEAD; share URL not constructed. The file has been written.",
+        )
 
     share_url = provider.blob_url(owner, repo, ref_value, "marketstall.toml")
     return ShareSaveResult(out_path=out_path, share_url=share_url, warning=None)
 
 
-def derive_share_url_only(
-    repo_root: Path,
-    *,
-    ref: str | None = None,
-    tag: str | None = None,
-) -> ShareSaveResult:
+def derive_share_url_only(repo_root: Path) -> ShareSaveResult:
     """Re-derive the share URL for an existing marketstall.toml.
 
     Does NOT write any file. Returns a ShareSaveResult mirroring share_save_repo's
@@ -757,7 +768,7 @@ def derive_share_url_only(
                 f"No marketstall.toml found at {out_path}. Run `haywire share --save` first to produce it."
             ),
         )
-    return _derive_url(repo_root, out_path, ref=ref, tag=tag)
+    return _derive_url(repo_root, out_path)
 
 
 @dataclass(frozen=True)
@@ -809,8 +820,6 @@ _MARKETSTALL_HEADER = (
 def write_marketstall(
     repo_root: Path,
     *,
-    ref: str | None = None,
-    tag: str | None = None,
     update_readme: bool = True,
 ) -> MarketstallWriteResult:
     """Rebuild ``<repo_root>/marketstall.toml`` from every ``barn/*`` library.
@@ -825,7 +834,7 @@ def write_marketstall(
     out_path = repo_root / "marketstall.toml"
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))
 
-    url_result = _derive_url(repo_root, out_path, ref=ref, tag=tag)
+    url_result = _derive_url(repo_root, out_path)
     readmes: list[Path] = []
     if url_result.share_url is not None and update_readme:
         readmes = _update_repo_readmes(repo_root, url_result.share_url)

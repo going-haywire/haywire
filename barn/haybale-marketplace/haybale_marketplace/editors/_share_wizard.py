@@ -28,6 +28,8 @@ from haywire_studio.share_pipeline import (
     CommitResult,
     DocsResult,
     DriftReport,
+    PreconditionFailure,
+    PreconditionsError,
     PreconditionsReport,
     PushResult,
     ShareError,
@@ -94,6 +96,7 @@ class ShareWizard:
         self.popup = popup
         self.step: str = "preconditions"
         self.error: str | None = None
+        self.precondition_failures: list[PreconditionFailure] | None = None
         self.manual_command: str | None = None
         self.warnings: list[str] = []
         self.log_lines: list[str] = []
@@ -118,12 +121,20 @@ class ShareWizard:
         Warnings are kept: a stale uv.lock is still stale after a retry.
         """
         self.error = None
+        self.precondition_failures = None
         self.manual_command = None
 
     def _fail(self, exc: BaseException) -> None:
-        """Record a failure without advancing. Keeps the user on the step."""
+        """Record a failure without advancing. Keeps the user on the step.
+
+        ``PreconditionsError`` carries structured ``PreconditionFailure``
+        objects — stashed separately so ``_render_error`` can render each as
+        its own message/remedy row instead of falling back to the single
+        collapsed ``error`` string every other ``ShareError`` subtype gets.
+        """
         logger.exception("Share wizard step %r failed", self.step)
         self.error = str(exc)
+        self.precondition_failures = exc.failures if isinstance(exc, PreconditionsError) else None
         self.manual_command = getattr(exc, "manual_command", None)
 
     async def advance_from_preconditions(self) -> None:
@@ -301,7 +312,20 @@ def _render_error(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     ):
         ui.icon("error", size="16px").classes("hw-text-danger flex-shrink-0 mt-0.5")
         with ui.column().classes("gap-1 flex-1"):
-            ui.label(wizard.error).classes("text-xs hw-text-danger")
+            if wizard.precondition_failures:
+                # Structured failures: each gets its own message + remedy row
+                # so a multi-line remedy (install commands, etc.) stays
+                # readable instead of collapsing into wizard.error's one line.
+                with ui.column().classes("gap-2 w-full"):
+                    for failure in wizard.precondition_failures:
+                        with ui.column().classes("gap-0.5"):
+                            ui.label(failure.message).classes("text-xs hw-text-danger whitespace-pre-line")
+                            if failure.remedy:
+                                ui.label(failure.remedy).classes(
+                                    "text-xs hw-text-dim font-mono whitespace-pre-line"
+                                )
+            else:
+                ui.label(wizard.error).classes("text-xs hw-text-danger whitespace-pre-line")
             if wizard.manual_command:
                 hui.code_snippet(wizard.manual_command)
 
@@ -416,6 +440,9 @@ def _panel_checked(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
                 + ("y" if len(report.barn_libraries) == 1 else "ies")
                 + " under barn/"
             ).classes("text-xs hw-text-dim")
+            for lib in report.barn_libraries:
+                rel = lib.relative_to(wizard.pipeline.repo_root)
+                ui.label(str(rel)).classes("text-xs font-mono hw-text-dim ml-3")
             if report.remote_url:
                 ui.label(f"origin: {report.remote_url}").classes("text-xs font-mono hw-text-dim")
 

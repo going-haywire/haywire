@@ -2,18 +2,40 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
+
+
+@dataclass(frozen=True)
+class PreconditionFailure:
+    """One reason a project cannot be published.
+
+    ``message`` states the fault; ``remedy`` states the next action and is
+    computed from repo state where that beats a constant (naming the branches
+    that contain HEAD, quoting the TOML parser's line number). Presentation
+    belongs to the caller: the CLI indents, the wizard uses separate elements.
+
+    ``fix_id`` names a repair the pipeline can perform in place. It stays
+    None throughout Plan 1 — the repairs land in Plan 3. A string rather than
+    a callable so the report stays serializable and repo-mutating closures
+    never cross the engine/UI seam.
+    """
+
+    message: str
+    remedy: str = ""
+    fix_id: str | None = None
+    fix_label: str = ""
 
 
 @dataclass(frozen=True)
 class PreconditionsReport:
     """Outcome of step 1. ``ok`` is True iff nothing failed."""
 
-    failures: list[str]
+    failures: list[PreconditionFailure]
     remote_url: str | None
     barn_libraries: list[Path]
+    default_branch: str | None = None
 
     @property
     def ok(self) -> bool:
@@ -130,27 +152,3 @@ class PushResult:
     branch: str
     tag: str
     output: str = ""
-
-
-@dataclass(frozen=True)
-class SharePlan:
-    """Everything ``plan()`` can determine without mutating anything.
-
-    Drives ``haywire share --check`` and the wizard's summary panel.
-    """
-
-    preconditions: PreconditionsReport
-    drift: DriftReport
-    versions: VersionPlan
-    stale_docs: list[Path] = field(default_factory=list)
-    stale_marketstall: bool = False
-
-    @property
-    def is_clean(self) -> bool:
-        """True when nothing drifted and nothing is stale — ``--check`` exits 0."""
-        return (
-            self.preconditions.ok
-            and not self.drift.needs_decision
-            and not self.stale_docs
-            and not self.stale_marketstall
-        )

@@ -123,6 +123,11 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
     assert wizard.step == "preconditions"
     assert wizard.error is not None
     assert "barn" in wizard.error
+    assert wizard.precondition_failures
+    assert isinstance(wizard.precondition_failures, list)
+    from haywire_studio.share_pipeline import PreconditionFailure
+
+    assert all(isinstance(f, PreconditionFailure) for f in wizard.precondition_failures)
 
 
 @pytest.mark.anyio

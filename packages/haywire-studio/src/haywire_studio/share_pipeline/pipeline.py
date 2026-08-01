@@ -7,8 +7,7 @@ keeps that sequencing in one place instead of re-derived by each caller, and
 maps onto the wizard's linear resumable stepper.
 
 Each step is a check/plan call that mutates nothing plus an apply call that
-does. ``plan()`` is the check calls run together — it is what
-``haywire share --check`` exposes and what the wizard's preview panels read.
+does.
 """
 
 from __future__ import annotations
@@ -29,17 +28,20 @@ from haywire.core.library.dep_detect import (
     set_pyproject_dependencies,
 )
 from haywire_studio.share import (
-    _MARKETSTALL_HEADER,
+    InvalidOsDeclarationError,
+    ManifestReadError,
     MarketstallWriteResult,
     NoBarnError,
     apply_drift_fix,
-    build_marketstall_entries,
     detect_share_drift,
+    read_manifest,
     write_marketstall,
 )
 from haywire_studio.share_pipeline.errors import (
     CommitError,
     DocsGenerationError,
+    ManifestError,
+    MarketstallError,
     PipelineStateError,
     PreconditionsError,
     PushError,
@@ -54,9 +56,9 @@ from haywire_studio.share_pipeline.results import (
     CommitResult,
     DocsResult,
     DriftReport,
+    PreconditionFailure,
     PreconditionsReport,
     PushResult,
-    SharePlan,
     VersionPlan,
 )
 from haywire_studio.share_pipeline.versions import (
@@ -67,17 +69,19 @@ from haywire_studio.share_pipeline.versions import (
 )
 
 GIT_INSTALL_HINT = (
-    "git is not installed. Install it:\n"
-    "      macOS (Homebrew):  brew install git\n"
-    "      Ubuntu/Debian:     sudo apt-get install git\n"
-    "      Windows:           https://git-scm.com/download/win"
+    "macOS (Homebrew):  brew install git\n"
+    "Ubuntu/Debian:     sudo apt-get install git\n"
+    "Windows:           https://git-scm.com/download/win"
 )
 
-_NO_REMOTE_HINT = (
-    "No 'origin' remote is configured. Set one up:\n"
-    "      git remote add origin <your-repo-url>\n"
-    "      git push -u origin <branch-name>"
-)
+_NO_REMOTE_HINT = "git remote add origin <your-repo-url>\ngit push -u origin <branch-name>"
+
+# Shared by every step that reads/writes a library manifest (pyproject.toml,
+# and the __init__.py decorator kept in sync with it): a malformed file or an
+# I/O failure must translate to a ShareError subclass before it can reach a
+# wizard step handler's `except ShareError`, never surface as the raw
+# exception type.
+_MANIFEST_FAILURE_TYPES = (ManifestReadError, toml.TomlDecodeError, OSError)
 
 
 class SharePipeline:
@@ -111,42 +115,152 @@ class SharePipeline:
         disabled one cannot carry a tooltip, since the design guide's disabled
         state includes ``pointer-events: none`` (design-guide.md:725).
 
-        The remote reachability check is ``git ls-remote origin``: it exercises
-        the exact credential path ``git push`` uses, so an auth failure
-        surfaces here rather than after a commit and tag already exist.
+        The remote reachability check is ``git ls-remote --symref origin
+        HEAD``: it exercises the exact credential path ``git push`` uses, so
+        an auth failure surfaces here rather than after a commit and tag
+        already exist. ``--symref`` narrows the round-trip to one ref instead
+        of every ref, and its output additionally names the remote's default
+        branch (``ref: refs/heads/<name>\\tHEAD``), which the non-default-
+        branch check below needs. ``git symbolic-ref refs/remotes/origin/HEAD``
+        is NOT a usable local substitute for that — it is unset in this very
+        repo (nothing populates it without an explicit ``git remote set-head``)
+        — so the remote round-trip is the only reliable source.
+
+        Every ``barn/*`` library's ``pyproject.toml`` is parsed with
+        :func:`read_manifest`; a malformed file or an invalid ``os``
+        declaration is reported here rather than surfacing later as a crash
+        mid-docs-generation or a silently wrong marketstall entry.
+
+        The detached-HEAD and non-default-branch checks below always run —
+        there is no way to bypass them.
         """
-        failures: list[str] = []
+        failures: list[PreconditionFailure] = []
         remote_url: str | None = None
+        default_branch: str | None = None
 
         version = git(["--version"], cwd=self.repo_root, timeout=10.0)
         if not version.ok:
             # Nothing else is checkable without git — every remaining probe
             # would report the same missing binary as a different symptom.
-            return PreconditionsReport(failures=[GIT_INSTALL_HINT], remote_url=None, barn_libraries=[])
+            return PreconditionsReport(
+                failures=[PreconditionFailure(message="git is not installed.", remedy=GIT_INSTALL_HINT)],
+                remote_url=None,
+                barn_libraries=[],
+            )
 
         barn = self.repo_root / "barn"
         barn_libraries: list[Path] = []
         if not barn.is_dir():
-            failures.append(f"No barn/ directory at {self.repo_root}. Is this a haywire project root?")
+            failures.append(
+                PreconditionFailure(
+                    message=f"No barn/ directory at {self.repo_root}. Is this a haywire project root?",
+                    remedy=(
+                        "Run this from your haywire project root (the directory containing "
+                        "barn/), or run `haywire init <name>` to scaffold a new project."
+                    ),
+                )
+            )
         else:
             barn_libraries = sorted(
                 d for d in barn.iterdir() if d.is_dir() and (d / "pyproject.toml").is_file()
             )
             if not barn_libraries:
-                failures.append(f"No library with a pyproject.toml under {barn}. Nothing to publish.")
+                failures.append(
+                    PreconditionFailure(
+                        message=f"No library with a pyproject.toml under {barn}. Nothing to publish.",
+                        remedy=(
+                            "Add a library under barn/, each with its own pyproject.toml — "
+                            "see docs/haybale/haybale-package-canon.md for the expected layout."
+                        ),
+                    )
+                )
+
+        for lib_dir in barn_libraries:
+            pyproject_path = lib_dir / "pyproject.toml"
+            try:
+                rel_path = pyproject_path.relative_to(self.repo_root)
+            except ValueError:
+                rel_path = pyproject_path
+            try:
+                read_manifest(lib_dir)
+            except InvalidOsDeclarationError as exc:
+                failures.append(
+                    PreconditionFailure(
+                        message=f"Invalid manifest at {rel_path}: {exc}",
+                        remedy=(
+                            "[tool.haywire].os may only declare `macos`, `windows`, `linux`. "
+                            "`other` is a runtime sentinel for platforms that don't map to one "
+                            "of those three — it is set at runtime and must never be declared. "
+                            "Remove it (or the whole invalid entry) from the list."
+                        ),
+                    )
+                )
+            except ManifestReadError as exc:
+                failures.append(
+                    PreconditionFailure(
+                        message=f"Could not read {rel_path}: {exc}",
+                        remedy=f"Fix the TOML in {rel_path} so it parses, then try again.",
+                    )
+                )
 
         remote = git(["remote", "get-url", "origin"], cwd=self.repo_root, timeout=10.0)
         if not remote.ok or not remote.stdout.strip():
-            failures.append(_NO_REMOTE_HINT)
+            failures.append(
+                PreconditionFailure(message="No 'origin' remote is configured.", remedy=_NO_REMOTE_HINT)
+            )
         else:
             remote_url = remote.stdout.strip()
-            reachable = git_remote(["ls-remote", "origin"], cwd=self.repo_root, timeout=60.0)
+            reachable = git_remote(
+                ["ls-remote", "--symref", "origin", "HEAD"], cwd=self.repo_root, timeout=60.0
+            )
             if not reachable.ok:
                 detail = (reachable.stderr or reachable.stdout).strip().splitlines()
                 first = detail[0] if detail else f"exit {reachable.returncode}"
                 failures.append(
-                    f"Cannot reach origin ({remote_url}): {first}\n"
-                    "      Check the URL and your credentials, then try again."
+                    PreconditionFailure(
+                        message=f"Cannot reach origin ({remote_url}): {first}",
+                        remedy="Check the URL and your credentials, then try again.",
+                    )
+                )
+            else:
+                # Absent when the remote has never had anything pushed to it
+                # (an empty repo has no HEAD to symref) — that is "nothing has
+                # ever been shared", not a failure, so default_branch simply
+                # stays None and the non-default-branch check below is skipped.
+                for line in reachable.stdout.splitlines():
+                    left, sep, right = line.partition("\t")
+                    if sep and right.strip() == "HEAD" and left.startswith("ref: refs/heads/"):
+                        default_branch = left.removeprefix("ref: refs/heads/").strip()
+                        break
+
+        symbolic = git(["symbolic-ref", "-q", "HEAD"], cwd=self.repo_root, timeout=10.0)
+        if not symbolic.ok:
+            # Genuinely detached: HEAD points straight at a commit rather
+            # than a branch ref. `current_branch() == "HEAD"` alone is NOT
+            # this test — an unborn branch (a fresh repo before its first
+            # commit) prints the same literal "HEAD" from `rev-parse
+            # --abbrev-ref HEAD` while `symbolic-ref` still succeeds, so
+            # relying on that string would misreport a brand-new project.
+            failures.append(
+                PreconditionFailure(
+                    message="HEAD is detached — no branch is currently checked out.",
+                    remedy=self._detached_head_remedy(),
+                )
+            )
+        elif default_branch is not None:
+            current = self.current_branch()
+            if current != default_branch:
+                failures.append(
+                    PreconditionFailure(
+                        message=(
+                            f"Currently on `{current}`, but the repository's default branch "
+                            f"is `{default_branch}`."
+                        ),
+                        remedy=(
+                            f"Switch to the default branch and publish from there: "
+                            f"`git switch {default_branch}`."
+                        ),
+                    )
                 )
 
         if not failures:
@@ -156,6 +270,33 @@ class SharePipeline:
             failures=failures,
             remote_url=remote_url,
             barn_libraries=barn_libraries,
+            default_branch=default_branch,
+        )
+
+    def _detached_head_remedy(self) -> str:
+        """Remedy text for a detached HEAD, computed from ``git branch --contains HEAD``.
+
+        Each line is prefixed ``"* "`` (current) or ``"  "`` (other); a
+        detached HEAD also shows a synthetic ``(HEAD detached at <sha>)`` /
+        ``(HEAD detached from <sha>)`` line, which is not a real branch name
+        and is filtered out. If no real branch remains — a dangling commit no
+        branch was ever built from — the remedy falls back to naming a new
+        one.
+        """
+        result = git(["branch", "--contains", "HEAD"], cwd=self.repo_root, timeout=10.0)
+        names = []
+        for line in result.stdout.splitlines():
+            name = line[2:].strip() if len(line) >= 2 else line.strip()
+            if not name or name.startswith("(HEAD detached"):
+                continue
+            names.append(name)
+
+        if names:
+            quoted = ", ".join(f"`{n}`" for n in names)
+            return f"This commit is on {quoted} — run `git switch {names[0]}`."
+        return (
+            "This commit is not on any branch — run `git switch -c my-branch` to create one, "
+            "then publish from there."
         )
 
     def require_preconditions(self) -> PreconditionsReport:
@@ -200,7 +341,10 @@ class SharePipeline:
         """Merge detected deps into what's declared. Additive — removes nothing."""
         written: list[Path] = []
         for drift in report.drifted:
-            apply_drift_fix(drift)
+            try:
+                apply_drift_fix(drift)
+            except _MANIFEST_FAILURE_TYPES as exc:
+                raise ManifestError(str(exc)) from exc
             written.extend(self._drift_written_paths(drift.lib_dir))
         return self._record(written)
 
@@ -216,20 +360,23 @@ class SharePipeline:
             lib_dir = drift.lib_dir
             detected = detect_deps(lib_dir, libraries=libraries)
 
-            set_pyproject_dependencies(lib_dir, sorted(detected.pyproject))
-            written.append(lib_dir / "pyproject.toml")
+            try:
+                set_pyproject_dependencies(lib_dir, sorted(detected.pyproject))
+                written.append(lib_dir / "pyproject.toml")
 
-            module_dir = find_module_dir(lib_dir)
-            if module_dir is not None:
-                init_file = module_dir / "__init__.py"
-                if init_file.is_file():
-                    content = _set_decorator_list_field(
-                        init_file.read_text(),
-                        "dependencies",
-                        sorted(detected.library_decorator),
-                    )
-                    init_file.write_text(content)
-                    written.append(init_file)
+                module_dir = find_module_dir(lib_dir)
+                if module_dir is not None:
+                    init_file = module_dir / "__init__.py"
+                    if init_file.is_file():
+                        content = _set_decorator_list_field(
+                            init_file.read_text(),
+                            "dependencies",
+                            sorted(detected.library_decorator),
+                        )
+                        init_file.write_text(content)
+                        written.append(init_file)
+            except _MANIFEST_FAILURE_TYPES as exc:
+                raise ManifestError(str(exc)) from exc
         return self._record(written)
 
     def acknowledge_drift(self) -> None:
@@ -422,12 +569,7 @@ class SharePipeline:
 
     # ── Step 5: marketstall + commit + tag ───────────────────────────────────
 
-    def apply_marketstall(
-        self,
-        *,
-        ref: str | None = None,
-        tag: str | None = None,
-    ) -> MarketstallWriteResult:
+    def apply_marketstall(self) -> MarketstallWriteResult:
         """Rebuild ``marketstall.toml`` from every ``barn/*`` library.
 
         Always a FULL rebuild: the feed's contract is "every haybale this repo
@@ -437,7 +579,10 @@ class SharePipeline:
         Also rewrites the ``<!-- marketstall:share-url -->`` marker block in the
         root README and every ``barn/*/README.md``.
         """
-        result = write_marketstall(self.repo_root, ref=ref, tag=tag)
+        try:
+            result = write_marketstall(self.repo_root)
+        except (NoBarnError, *_MANIFEST_FAILURE_TYPES) as exc:
+            raise MarketstallError(str(exc)) from exc
         self._record(result.written)
         return result
 
@@ -647,92 +792,3 @@ class SharePipeline:
             tag=f"v{self.version}",
             output=result.stdout,
         )
-
-    # ── plan(): the read-only verifier ───────────────────────────────────────
-
-    async def plan(self, on_output: Callable[[str], None] | None = None) -> SharePlan:
-        """Everything determinable without mutating anything.
-
-        Backs ``haywire share --check`` (a PR gate: writes nothing, commits
-        nothing, pushes nothing, exits non-zero when anything is stale) and the
-        wizard's summary panel. The plan/apply split is load-bearing beyond CI:
-        step 5's file-list preview IS a plan.
-        """
-        preconditions = self.check_preconditions()
-        if not preconditions.ok:
-            # Diffing docs against an unpublishable repo answers a question
-            # nobody asked; the failures are the whole story.
-            return SharePlan(
-                preconditions=preconditions,
-                drift=DriftReport(drifted=[], unresolved_only=[]),
-                versions=self.plan_version(),
-            )
-
-        return SharePlan(
-            preconditions=preconditions,
-            drift=self.check_drift(),
-            versions=self.plan_version(),
-            stale_docs=await self._stale_docs(on_output=on_output),
-            stale_marketstall=self.marketstall_is_stale(),
-        )
-
-    def marketstall_is_stale(self) -> bool:
-        """True when a full rebuild would differ from the file on disk.
-
-        Rebuilt in memory and compared — the check must not write, or
-        ``--check`` would fail its own contract.
-        """
-        out_path = self.repo_root / "marketstall.toml"
-        try:
-            entries = build_marketstall_entries(self.repo_root)
-        except NoBarnError:
-            return False
-        expected = _MARKETSTALL_HEADER + toml.dumps({"haybales": entries})
-        if not out_path.is_file():
-            return True
-        return out_path.read_text() != expected
-
-    async def _stale_docs(self, *, on_output: Callable[[str], None] | None = None) -> list[Path]:
-        """Doc files that a regeneration would change, without changing them.
-
-        Generation writes in place, so the only honest way to ask "would this
-        change anything?" is to generate and then restore. ``git stash`` is off
-        limits (destructive, and it would sweep the user's unrelated work), so
-        the doc files' contents are snapshotted and rewritten afterwards.
-
-        Returns the paths that differed. Deliberately conservative: if the
-        generation itself fails, the caller sees the exception, not a silent
-        "nothing stale".
-        """
-        snapshot: dict[Path, bytes | None] = {}
-        for lib_dir in self._barn_library_dirs():
-            for path in lib_dir.rglob("*.md"):
-                snapshot[path] = path.read_bytes()
-
-        await self.apply_docs(on_output=on_output)
-
-        changed: list[Path] = []
-        current: set[Path] = set()
-        for lib_dir in self._barn_library_dirs():
-            current.update(lib_dir.rglob("*.md"))
-
-        for path in sorted(current | set(snapshot)):
-            old = snapshot.get(path)
-            new = path.read_bytes() if path.is_file() else None
-            if old != new:
-                changed.append(path)
-
-        # Restore: rewrite what we snapshotted, delete what generation added,
-        # recreate what generation deleted. The working tree must end where it
-        # started — this is a read-only call.
-        for path in sorted(current - set(snapshot)):
-            path.unlink(missing_ok=True)
-        for path, content in snapshot.items():
-            if content is not None:
-                path.parent.mkdir(parents=True, exist_ok=True)
-                path.write_bytes(content)
-
-        # apply_docs() recorded its writes; a read-only call must not leave them
-        # in the accumulated set.
-        self.written = [p for p in self.written if p not in set(changed)]
-        return changed

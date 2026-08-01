@@ -104,7 +104,11 @@ def test_haywire_core_import_emits_haywire_core(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_haywire_ui_import_emits_haywire_studio(tmp_path: Path) -> None:
+def test_haywire_ui_import_emits_haywire_core_not_studio(tmp_path: Path) -> None:
+    """haywire.ui ships in the haywire-core wheel (96 files); the
+    haywire-studio wheel contains none of it. Routing haywire.ui.* to
+    haywire-studio told every barn library that touches a widget to declare a
+    dependency that does not provide what it imports."""
     lib = _make_library(
         tmp_path,
         init_body="from haywire.ui.elements import elements as hui\n",
@@ -112,7 +116,8 @@ def test_haywire_ui_import_emits_haywire_studio(tmp_path: Path) -> None:
     result = detect_deps(lib, libraries=FakeLibrarySource())
     assert result.library_decorator == []
     assert len(result.pyproject) == 1
-    assert result.pyproject[0].startswith("haywire-studio~=")
+    assert result.pyproject[0].startswith("haywire-core~=")
+    assert not any(s.startswith("haywire-studio") for s in result.pyproject)
 
 
 @pytest.mark.unit
@@ -124,7 +129,9 @@ def test_bare_haywire_import_emits_haywire_core_conservative(tmp_path: Path) -> 
 
 
 @pytest.mark.unit
-def test_both_core_and_ui_emit_both_framework_dists(tmp_path: Path) -> None:
+def test_core_and_ui_together_emit_haywire_core_once(tmp_path: Path) -> None:
+    """Both subpackages live in the same distribution, so importing both is
+    still exactly one dependency — not two, and not a duplicate."""
     lib = _make_library(
         tmp_path,
         init_body=(
@@ -133,10 +140,22 @@ def test_both_core_and_ui_emit_both_framework_dists(tmp_path: Path) -> None:
         ),
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert any(s.startswith("haywire-core~=") for s in result.pyproject)
-    assert any(s.startswith("haywire-studio~=") for s in result.pyproject)
-    # No duplicates.
-    assert len(result.pyproject) == 2
+    assert [s for s in result.pyproject if s.startswith("haywire-core~=")]
+    assert not any(s.startswith("haywire-studio") for s in result.pyproject)
+    assert len(result.pyproject) == 1
+
+
+@pytest.mark.unit
+def test_haywire_studio_import_still_emits_haywire_studio(tmp_path: Path) -> None:
+    """A library that genuinely needs the studio imports `haywire_studio`,
+    which resolves through the normal dist mapping — the fix must not make
+    that dependency undetectable."""
+    lib = _make_library(
+        tmp_path,
+        init_body="from haywire_studio.share import derive_share_url_only\n",
+    )
+    result = detect_deps(lib, libraries=FakeLibrarySource())
+    assert any(s.startswith("haywire-studio") for s in result.pyproject), result.pyproject
 
 
 @pytest.mark.unit
@@ -225,7 +244,7 @@ def test_mixed_realistic_tree(tmp_path: Path) -> None:
         init_body=(
             "import os\n"  # stdlib — dropped
             "from haywire.core.node.registry import NodeRegistry\n"  # haywire-core
-            "from haywire.ui.elements import elements as hui\n"  # haywire-studio
+            "from haywire.ui.elements import elements as hui\n"  # also haywire-core
             "from haybale_core import types\n"  # registered library
             "import toml\n"  # third-party
         ),
@@ -236,9 +255,10 @@ def test_mixed_realistic_tree(tmp_path: Path) -> None:
     # Decorator: only the registered library.
     assert result.library_decorator == ["haybale_core"]
 
-    # Pyproject: framework x2 + registered lib + third-party = 4 entries.
+    # Pyproject: framework (one dist, both subpackages) + registered lib +
+    # third-party = 3 entries.
     pyproj_dists = [spec.split("~=")[0].split(">=")[0] for spec in result.pyproject]
-    assert sorted(pyproj_dists) == ["haybale-core", "haywire-core", "haywire-studio", "toml"]
+    assert sorted(pyproj_dists) == ["haybale-core", "haywire-core", "toml"]
 
     # No unresolved.
     assert result.unresolved == []

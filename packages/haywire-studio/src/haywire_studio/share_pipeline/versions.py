@@ -17,8 +17,7 @@ import re
 import subprocess
 from pathlib import Path
 
-import toml
-
+from haywire_studio.share import read_manifest_lenient
 from haywire_studio.share_pipeline.errors import VersionError
 from haywire_studio.share_pipeline.results import BumpResult, LibraryVersion, VersionPlan
 
@@ -48,20 +47,15 @@ def _barn_library_dirs(repo_root: Path) -> list[Path]:
 def read_barn_versions(repo_root: Path) -> list[LibraryVersion]:
     """Read each barn library's declared name and version.
 
-    ``version`` is None for a library whose pyproject has no version field or
-    cannot be parsed — the caller decides whether that is fatal.
+    ``version`` is None for a library whose pyproject has no version field,
+    cannot be parsed, or declares an invalid ``[tool.haywire].os`` value —
+    the caller decides whether that is fatal.
     """
     out: list[LibraryVersion] = []
     for lib_dir in _barn_library_dirs(repo_root):
-        pyproject = lib_dir / "pyproject.toml"
-        name = lib_dir.name
-        version: str | None = None
-        try:
-            project = toml.loads(pyproject.read_text()).get("project", {})
-            name = project.get("name", lib_dir.name)
-            version = project.get("version")
-        except (toml.TomlDecodeError, OSError):
-            pass
+        project = read_manifest_lenient(lib_dir).get("project", {})
+        name = project.get("name", lib_dir.name)
+        version = project.get("version")
         out.append(LibraryVersion(lib_dir=lib_dir, name=name, version=version))
     return out
 

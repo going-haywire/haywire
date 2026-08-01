@@ -62,6 +62,17 @@ def test_apply_marketstall_records_what_it_wrote(project: Path) -> None:
     assert result.out_path in pipeline.written
 
 
+def test_apply_marketstall_translates_manifest_read_error(project: Path) -> None:
+    """A malformed pyproject.toml surfaces as MarketstallError, not a raw ManifestReadError."""
+    from haywire_studio.share_pipeline import MarketstallError
+
+    pipeline = _ready(project)
+    (project / "barn" / "haybale-alpha" / "pyproject.toml").write_text("this is not [[[ valid toml")
+
+    with pytest.raises(MarketstallError):
+        pipeline.apply_marketstall()
+
+
 # ── barn_dirty_files ─────────────────────────────────────────────────────────
 
 

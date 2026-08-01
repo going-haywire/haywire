@@ -1,13 +1,15 @@
 """Domain exceptions for the share pipeline.
 
 Expected failures raise; successes return dataclasses. This matches the
-existing idiom in ``share.py`` (``DriftError``, ``NoBarnError``) rather than a
-Result-type wrapper. Each caller translates: the CLI prints ``str(exc)`` and
-exits, the wizard renders inline error state, a future Farmhand wrapper
-re-raises as ``FarmhandError``.
+existing idiom in ``share.py`` (``NoBarnError``, ``InvalidOsDeclarationError``)
+rather than a Result-type wrapper. Each caller translates: the CLI prints
+``str(exc)`` and exits, the wizard renders inline error state, a future
+Farmhand wrapper re-raises as ``FarmhandError``.
 """
 
 from __future__ import annotations
+
+from haywire_studio.share_pipeline.results import PreconditionFailure
 
 
 class ShareError(RuntimeError):
@@ -22,9 +24,25 @@ class PreconditionsError(ShareError):
     after fixing the first.
     """
 
-    def __init__(self, failures: list[str]) -> None:
+    def __init__(self, failures: list[PreconditionFailure]) -> None:
         self.failures = list(failures)
-        super().__init__("Cannot share this project:\n  - " + "\n  - ".join(self.failures))
+        lines = ["Cannot share this project:"]
+        for failure in self.failures:
+            lines.append(f"  - {failure.message}")
+            if failure.remedy:
+                for remedy_line in failure.remedy.splitlines():
+                    lines.append(f"      {remedy_line}")
+        super().__init__("\n".join(lines))
+
+
+class ManifestError(ShareError):
+    """A library pyproject.toml could not be read or is invalid.
+
+    The pipeline's translation of ``share.py``'s ``ManifestReadError``
+    (and its ``InvalidOsDeclarationError`` subclass) at the module boundary —
+    see the docstring on ``ManifestReadError`` for why that one is a plain
+    ``RuntimeError`` instead of a ``ShareError``.
+    """
 
 
 class VersionError(ShareError):

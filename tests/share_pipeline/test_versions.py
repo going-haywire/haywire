@@ -104,6 +104,18 @@ def test_read_barn_versions_reports_none_for_unversioned(tmp_path: Path) -> None
     assert read_barn_versions(repo)[0].version is None
 
 
+def test_read_barn_versions_reports_none_for_invalid_os_declaration(tmp_path: Path) -> None:
+    """A valid TOML with an invalid [tool.haywire].os value causes version to be None,
+    just as if the file were malformed."""
+    repo = tmp_path / "repo"
+    lib = repo / "barn" / "haybale-y"
+    lib.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-y"\nversion = "0.5.0"\n\n[tool.haywire]\nos = ["freebsd"]\n'
+    )
+    assert read_barn_versions(repo)[0].version is None
+
+
 # ── plan_versions ────────────────────────────────────────────────────────────
 
 

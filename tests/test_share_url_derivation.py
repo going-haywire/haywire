@@ -105,42 +105,6 @@ def test_share_save_unknown_host_warns_with_config_snippet(tmp_path: Path) -> No
 
 
 @pytest.mark.unit
-def test_share_save_with_explicit_ref(tmp_path: Path) -> None:
-    """--ref <ref> argument overrides the current-branch default."""
-    from haywire_studio.share import write_marketstall
-
-    repo = _make_repo(tmp_path)
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        result = write_marketstall(repo, ref="v0.2.0")
-
-    assert result.share_url == "https://github.com/alice/cool-libs/blob/v0.2.0/marketstall.toml"
-
-
-@pytest.mark.unit
-def test_share_save_with_tag_argument(tmp_path: Path) -> None:
-    """--tag <tag> argument uses the tag name as ref."""
-    from haywire_studio.share import write_marketstall
-
-    repo = _make_repo(tmp_path)
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        result = write_marketstall(repo, tag="v0.2.0")
-
-    assert result.share_url == "https://github.com/alice/cool-libs/blob/v0.2.0/marketstall.toml"
-
-
-@pytest.mark.unit
-def test_share_save_with_tag_latest_resolves_to_most_recent_tag(tmp_path: Path) -> None:
-    from haywire_studio.share import write_marketstall
-
-    repo = _make_repo(tmp_path)
-    with patch("haywire_studio.share._get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch("haywire_studio.share._get_latest_tag", return_value="v0.3.0"):
-            result = write_marketstall(repo, tag="latest")
-
-    assert result.share_url == "https://github.com/alice/cool-libs/blob/v0.3.0/marketstall.toml"
-
-
-@pytest.mark.unit
 def test_derive_share_url_no_args(tmp_path: Path) -> None:
     """`haywire share` (no args) derives the URL without writing files."""
     from haywire_studio.share import ShareSaveResult, derive_share_url_only
@@ -168,3 +132,29 @@ def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
 
     assert result.share_url is None
     assert "marketstall.toml" in result.warning
+
+
+@pytest.mark.unit
+def test_get_remote_url_timeout_returns_none(tmp_path: Path) -> None:
+    """_get_remote_url returns None on subprocess timeout."""
+    from haywire_studio.share import _get_remote_url
+    import subprocess
+
+    repo = _make_repo(tmp_path)
+    with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("git", 10.0)):
+        result = _get_remote_url(repo)
+
+    assert result is None
+
+
+@pytest.mark.unit
+def test_get_current_ref_timeout_returns_none(tmp_path: Path) -> None:
+    """_get_current_ref returns None on subprocess timeout."""
+    from haywire_studio.share import _get_current_ref
+    import subprocess
+
+    repo = _make_repo(tmp_path)
+    with patch("subprocess.run", side_effect=subprocess.TimeoutExpired("git", 10.0)):
+        result = _get_current_ref(repo)
+
+    assert result is None

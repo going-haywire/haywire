@@ -103,6 +103,19 @@ def test_apply_drift_union_is_additive(project: Path) -> None:
     assert lib / "pyproject.toml" in pipeline.written
 
 
+def test_apply_drift_union_translates_manifest_read_error(project: Path) -> None:
+    """A malformed pyproject.toml surfaces as ManifestError, not the raw ManifestReadError."""
+    from haywire_studio.share_pipeline import ManifestError
+
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+    drift = DepDrift(lib_dir=lib, pyproject_missing=["numpy"])
+    report = type("R", (), {"drifted": [drift], "unresolved_only": []})()
+
+    with pytest.raises(ManifestError):
+        SharePipeline(project).apply_drift_union(report)  # type: ignore[arg-type]
+
+
 def test_apply_drift_replace_can_remove_declarations(project: Path) -> None:
     """Replace overwrites with exactly what was detected — that's why it's a decision."""
     lib = project / "barn" / "haybale-alpha"
@@ -144,6 +157,28 @@ def test_apply_drift_replace_rewrites_the_decorator(project: Path) -> None:
     content = init_file.read_text()
     assert "haybale-studio" in content or "haybale_studio" in content
     assert init_file in written
+
+
+def test_apply_drift_replace_translates_manifest_read_error(project: Path) -> None:
+    """A malformed pyproject.toml surfaces as ManifestError, not the raw TomlDecodeError."""
+    from haywire_studio.share_pipeline import ManifestError
+
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+    drift = DepDrift(lib_dir=lib, pyproject_missing=["numpy"])
+    report = type("R", (), {"drifted": [drift], "unresolved_only": []})()
+
+    class _Detected:
+        pyproject = ["numpy>=1.0"]
+        library_decorator = ["haybale_core"]
+        unresolved: list[str] = []
+
+    with patch(
+        "haywire_studio.share_pipeline.pipeline.detect_deps",
+        return_value=_Detected(),
+    ):
+        with pytest.raises(ManifestError):
+            SharePipeline(project).apply_drift_replace(report)  # type: ignore[arg-type]
 
 
 def test_acknowledge_drift_records_the_choice(project: Path) -> None:

@@ -188,6 +188,22 @@ def test_drift_handles_malformed_pyproject_gracefully(tmp_path: Path) -> None:
     assert "haywire-core" in drift.pyproject_missing
 
 
+@pytest.mark.unit
+def test_drift_handles_invalid_os_declaration_gracefully(tmp_path: Path) -> None:
+    """A valid TOML with an invalid [tool.haywire].os value should NOT crash
+    detect_share_drift; it degrades the same way a malformed pyproject does,
+    via read_manifest_lenient."""
+    lib = _make_library(
+        tmp_path,
+        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
+    )
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["freebsd"]\n')
+    drift = detect_share_drift(lib)
+    assert drift.has_drift
+    assert "haywire-core" in drift.pyproject_missing
+
+
 # ──────────────────────────────────────────────────────────────────────────────
 # _format_drift_report
 # ──────────────────────────────────────────────────────────────────────────────

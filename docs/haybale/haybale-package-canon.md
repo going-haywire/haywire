@@ -117,8 +117,8 @@ committed, tagged `v<version>`, and pushed:
 
 ```bash
 uv run haywire share                    # interactive, prompts through each step
-uv run haywire share --check            # read-only PR gate; writes nothing
 uv run haywire share --yes --bump patch # non-interactive
+uv run haywire deps check               # read-only PR gate; checks manifest drift, writes nothing
 ```
 
 It reads each library's `pyproject.toml`, detects the git remote, computes the `#subdirectory=` fragment per library, and writes a `[[haybales]]` block per library into the aggregated `marketstall.toml`. SSH→HTTPS conversion is automatic. See [sharing-libraries](../guides/sharing-libraries.md) for the full flow and [ADR-0023](../adr/0023-project-scoped-lockstep-sharing.md) for why the unit of sharing is the project.
@@ -531,8 +531,8 @@ uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirector
 | Command | What it does |
 |---|---|
 | `uv run haywire share` | Interactive. Publish the whole project: bump every `barn/*` library in lockstep, regenerate docs, rebuild `<repo-root>/marketstall.toml`, commit, tag `v<version>`, push. Prompts through each step. |
-| `uv run haywire share --check` | Read-only. Reports dependency drift and stale docs/marketstall, exits non-zero. Writes nothing. Use as a PR gate. |
 | `uv run haywire share --yes --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
+| `uv run haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use as a PR gate. |
 | `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
 | `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. |
 | `uv run haywire docs barn/haybale-mylib` | Generate `README.md`/`OVERVIEW.md`/`QUICKREF.md`/`docs/*.md` for one library. Deterministic — pure extraction, no agent. |

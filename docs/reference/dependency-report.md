@@ -11,6 +11,13 @@ Generated: 2026-05-17T11:56:29Z
 > shipped by **`haywire-core`**, which is already declared. `haywire-studio` is
 > NOT a dependency. The estimator-node code introduced no new dependency edge.
 > Other packages were not re-scanned in this run.
+>
+> Fixed 2026-07-31: the false positive above was a bug in `detect_deps`, which
+> routed any `haywire.ui.*` import to `haywire-studio`. It affected every barn
+> library that touches a widget or panel (9 of 9 in this repo), not just
+> visiongraph. `haywire/ui` is **not** split across the two packages — it is 96
+> files in the `haywire-core` wheel and 0 in the `haywire-studio` wheel. The
+> detector now maps every `haywire.*` import to `haywire-core`.
 
 ---
 
