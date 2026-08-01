@@ -8,6 +8,7 @@ import pytest
 
 from haywire_studio.packaging.share.pipeline import PipelineStateError, PushError
 from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline.steps import push as steps_push
 
 pytestmark = pytest.mark.unit
 
@@ -74,10 +75,7 @@ async def test_push_uses_the_hardened_env(pushable: Path) -> None:
         seen["args"] = args
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch(
-        "haywire_studio.packaging.share.pipeline.steps.push.git_remote_streaming",
-        side_effect=_capture,
-    ):
+    with patch.object(steps_push, "git_remote_streaming", side_effect=_capture):
         await _ready(pushable).apply_push()
 
     # apply_push must route through git_remote_streaming (which applies the
@@ -93,10 +91,7 @@ async def test_push_failure_raises_with_the_manual_command(pushable: Path) -> No
         on_output("remote: Permission denied")
         return gitcmd.GitResult(ok=False, stdout="denied", stderr="denied", returncode=128)
 
-    with patch(
-        "haywire_studio.packaging.share.pipeline.steps.push.git_remote_streaming",
-        side_effect=_fail,
-    ):
+    with patch.object(steps_push, "git_remote_streaming", side_effect=_fail):
         with pytest.raises(PushError) as excinfo:
             await _ready(pushable).apply_push()
 
@@ -119,10 +114,7 @@ async def test_push_is_retryable_in_place(pushable: Path) -> None:
         return gitcmd.GitResult(ok=True, stdout="ok", stderr="", returncode=0)
 
     pipeline = _ready(pushable)
-    with patch(
-        "haywire_studio.packaging.share.pipeline.steps.push.git_remote_streaming",
-        side_effect=_flaky,
-    ):
+    with patch.object(steps_push, "git_remote_streaming", side_effect=_flaky):
         with pytest.raises(PushError):
             await pipeline.apply_push()
         result = await pipeline.apply_push()

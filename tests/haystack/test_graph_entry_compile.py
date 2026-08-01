@@ -2,6 +2,8 @@
 
 from unittest.mock import MagicMock, patch
 
+from haybale_haystack import graph_entry as graph_entry_module
+
 
 def _make_entry():
     from haybale_haystack.graph_entry import GraphEntry
@@ -15,8 +17,8 @@ def test_compile_success_returns_ok_and_sets_interpreter():
     entry = _make_entry()
     fake_interp = MagicMock()
     with (
-        patch("haybale_haystack.graph_entry.Interpreter", return_value=fake_interp),
-        patch("haybale_haystack.graph_entry.get_library_state_container", return_value=MagicMock()),
+        patch.object(graph_entry_module, "Interpreter", return_value=fake_interp),
+        patch.object(graph_entry_module, "get_library_state_container", return_value=MagicMock()),
     ):
         result = entry.compile()
 
@@ -33,8 +35,8 @@ def test_compile_failure_returns_error_and_clears_interpreter():
     fake_interp = MagicMock()
     fake_interp.load_graph.side_effect = RuntimeError("Graph validation failed: boom")
     with (
-        patch("haybale_haystack.graph_entry.Interpreter", return_value=fake_interp),
-        patch("haybale_haystack.graph_entry.get_library_state_container", return_value=MagicMock()),
+        patch.object(graph_entry_module, "Interpreter", return_value=fake_interp),
+        patch.object(graph_entry_module, "get_library_state_container", return_value=MagicMock()),
     ):
         result = entry.compile()
 
@@ -62,8 +64,8 @@ def test_start_execution_compiles_then_starts():
     entry = _make_entry()
     fake_interp = MagicMock()
     with (
-        patch("haybale_haystack.graph_entry.Interpreter", return_value=fake_interp),
-        patch("haybale_haystack.graph_entry.get_library_state_container", return_value=MagicMock()),
+        patch.object(graph_entry_module, "Interpreter", return_value=fake_interp),
+        patch.object(graph_entry_module, "get_library_state_container", return_value=MagicMock()),
     ):
         result = entry.start_execution()
 
@@ -77,8 +79,8 @@ def test_start_execution_returns_failure_and_does_not_start():
     fake_interp = MagicMock()
     fake_interp.load_graph.side_effect = RuntimeError("bad graph")
     with (
-        patch("haybale_haystack.graph_entry.Interpreter", return_value=fake_interp),
-        patch("haybale_haystack.graph_entry.get_library_state_container", return_value=MagicMock()),
+        patch.object(graph_entry_module, "Interpreter", return_value=fake_interp),
+        patch.object(graph_entry_module, "get_library_state_container", return_value=MagicMock()),
     ):
         result = entry.start_execution()
 

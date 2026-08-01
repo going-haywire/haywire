@@ -320,6 +320,7 @@ def test_verify_push_allowed_rejects_a_diverged_remote(project: Path, tmp_path: 
     """Closes the race window since step 1 — someone may have pushed meanwhile."""
     from haywire_studio.packaging.share import git as gitcmd
     from haywire_studio.packaging.share.pipeline import PushError
+    from haywire_studio.packaging.share.pipeline.steps import push as steps_push
 
     def _rejected(args, **_kw):
         if "--dry-run" in args:
@@ -331,7 +332,7 @@ def test_verify_push_allowed_rejects_a_diverged_remote(project: Path, tmp_path: 
             )
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch("haywire_studio.packaging.share.pipeline.steps.push.git_remote", side_effect=_rejected):
+    with patch.object(steps_push, "git_remote", side_effect=_rejected):
         with pytest.raises(PushError) as excinfo:
             _ready(project).verify_push_allowed()
 

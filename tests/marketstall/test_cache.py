@@ -44,9 +44,10 @@ def test_url_hash_is_stable() -> None:
 
 @pytest.mark.unit
 def test_fetch_with_cache_fallback_fresh(tmp_path: Path) -> None:
+    from haywire.core.marketstall import cache as marketstall_cache
     from haywire.core.marketstall.cache import fetch_with_cache_fallback
 
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = b"fresh-body"
         result = fetch_with_cache_fallback("https://x.example/m.toml", cache_dir=tmp_path / "cache")
     assert result.body == "fresh-body"
@@ -56,12 +57,13 @@ def test_fetch_with_cache_fallback_fresh(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_fetch_with_cache_fallback_uses_cache_on_failure(tmp_path: Path) -> None:
+    from haywire.core.marketstall import cache as marketstall_cache
     from haywire.core.marketstall.cache import cache_write, fetch_with_cache_fallback
 
     cache_dir = tmp_path / "cache"
     cache_write("https://x.example/m.toml", "cached-body", cache_dir=cache_dir)
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=OSError("network down")):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError("network down")):
         result = fetch_with_cache_fallback("https://x.example/m.toml", cache_dir=cache_dir)
     assert result.body == "cached-body"
     assert result.outcome is RefreshOutcome.CACHE_FALLBACK
@@ -70,9 +72,10 @@ def test_fetch_with_cache_fallback_uses_cache_on_failure(tmp_path: Path) -> None
 
 @pytest.mark.unit
 def test_fetch_with_cache_fallback_raises_when_no_cache(tmp_path: Path) -> None:
+    from haywire.core.marketstall import cache as marketstall_cache
     from haywire.core.marketstall.cache import fetch_with_cache_fallback
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=OSError("network down")):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError("network down")):
         with pytest.raises(RemoteFetchError):
             fetch_with_cache_fallback("https://x.example/m.toml", cache_dir=tmp_path / "cache")
 

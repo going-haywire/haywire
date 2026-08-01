@@ -8,6 +8,7 @@ from unittest.mock import MagicMock, patch
 
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
+from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
 from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
@@ -84,8 +85,7 @@ def _stub_nicegui_io():
     Tests that assert on these calls patch them again locally (the inner patch
     wins for the duration of its ``with`` block).
     """
-    mod = "haybale_graph_editor.editors.graph_canvas.handlers.selection"
-    with patch(f"{mod}.ui.run_javascript"), patch(f"{mod}.ui.notify"):
+    with patch.object(selection_module.ui, "run_javascript"), patch.object(selection_module.ui, "notify"):
         yield
 
 
@@ -321,7 +321,7 @@ def test_copy_stores_serialized_payload_in_mirror(graph, session, edit_state_cls
         "node_data": {},
     }
     h = SelectionHandlers(graph=graph, editor=MagicMock(), session_id="sess", session=session)
-    with patch("haybale_graph_editor.editors.graph_canvas.handlers.selection.ui.run_javascript") as rj:
+    with patch.object(selection_module.ui, "run_javascript") as rj:
         h.process_copy_selection(UserCopySelectedEvent(selectedNodes=["n1"], selectedEdges=[]))
     clip = session.context.data[edit_state_cls].clipboard
     assert clip is not None
@@ -379,7 +379,7 @@ def test_paste_falls_back_to_mirror_when_text_empty(graph, session, edit_state_c
 def test_paste_notifies_when_nothing_to_paste(graph, session, edit_state_cls):
     editor = MagicMock()
     h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
-    with patch("haybale_graph_editor.editors.graph_canvas.handlers.selection.ui.notify") as notify:
+    with patch.object(selection_module.ui, "notify") as notify:
         h.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0, clipboardText=""))
     editor.paste_clipboard.assert_not_called()
     notify.assert_called_once()
@@ -459,7 +459,7 @@ def test_paste_ignores_text_without_source_timestamp(graph, session, edit_state_
     # passes flag+version but is_haywire_payload now rejects it (no source.timestamp)
     bad = json.dumps({"haywire_clipboard": True, "format_version": 1, "nodes": {}, "edges": {}})
     # no mirror set -> nothing valid to paste
-    with patch("haybale_graph_editor.editors.graph_canvas.handlers.selection.ui.notify") as notify:
+    with patch.object(selection_module.ui, "notify") as notify:
         h.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0, clipboardText=bad))
     editor.paste_clipboard.assert_not_called()
     notify.assert_called_once()  # "Nothing to paste"

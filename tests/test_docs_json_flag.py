@@ -8,6 +8,8 @@ from unittest.mock import patch
 
 import pytest
 
+from haywire_studio.packaging.docs import generate as docs_generate
+
 pytestmark = pytest.mark.unit
 
 
@@ -28,8 +30,9 @@ def _run_main(argv: list[str]) -> int:
 def test_json_flag_writes_the_coverage_map(tmp_path: Path) -> None:
     out = tmp_path / "coverage.json"
 
-    with patch(
-        "haywire_studio.packaging.docs.generate.generate_all_docs",
+    with patch.object(
+        docs_generate,
+        "generate_all_docs",
         return_value={"beta": [], "alpha": ["node Foo: missing docstring"]},
     ):
         _run_main(["docs", "--all", "--json", str(out)])
@@ -41,7 +44,7 @@ def test_json_flag_writes_the_coverage_map(tmp_path: Path) -> None:
 def test_json_flag_creates_missing_parent_directories(tmp_path: Path) -> None:
     out = tmp_path / "nested" / "deeper" / "coverage.json"
 
-    with patch("haywire_studio.packaging.docs.generate.generate_all_docs", return_value={}):
+    with patch.object(docs_generate, "generate_all_docs", return_value={}):
         _run_main(["docs", "--all", "--json", str(out)])
 
     assert out.is_file()
@@ -52,10 +55,7 @@ def test_coverage_gaps_still_exit_zero(tmp_path: Path) -> None:
     """A coverage gap is feedback, not a failure — the pipeline must not abort on it."""
     out = tmp_path / "coverage.json"
 
-    with patch(
-        "haywire_studio.packaging.docs.generate.generate_all_docs",
-        return_value={"alpha": ["gap"]},
-    ):
+    with patch.object(docs_generate, "generate_all_docs", return_value={"alpha": ["gap"]}):
         assert _run_main(["docs", "--all", "--json", str(out)]) == 0
 
     assert json.loads(out.read_text()) == {"alpha": ["gap"]}
@@ -67,7 +67,7 @@ def test_json_without_all_writes_a_single_entry_map(tmp_path: Path) -> None:
     lib = tmp_path / "barn" / "haybale-alpha"
     lib.mkdir(parents=True)
 
-    with patch("haywire_studio.packaging.docs.generate.generate_docs", return_value=["gap"]):
+    with patch.object(docs_generate, "generate_docs", return_value=["gap"]):
         _run_main(["docs", str(lib), "--json", str(out)])
 
     data = json.loads(out.read_text())
@@ -80,8 +80,9 @@ def test_all_form_reports_each_library_and_a_total(capsys: pytest.CaptureFixture
     Libraries are listed in sorted order, each marked clean or with its gap
     count, every gap line printed beneath it, and a total printed last.
     """
-    with patch(
-        "haywire_studio.packaging.docs.generate.generate_all_docs",
+    with patch.object(
+        docs_generate,
+        "generate_all_docs",
         return_value={"beta": [], "alpha": ["node Foo: missing docstring"]},
     ):
         _run_main(["docs", "--all"])
@@ -99,13 +100,13 @@ def test_single_form_reports_gaps_then_falls_silent_when_clean(
     capsys: pytest.CaptureFixture[str],
 ) -> None:
     """The single-library form prints a gap list, or a clean confirmation."""
-    with patch("haywire_studio.packaging.docs.generate.generate_docs", return_value=["gap one"]):
+    with patch.object(docs_generate, "generate_docs", return_value=["gap one"]):
         _run_main(["docs", "somewhere"])
     out = capsys.readouterr().out
     assert "Documentation coverage gaps:" in out
     assert "- gap one" in out
 
-    with patch("haywire_studio.packaging.docs.generate.generate_docs", return_value=[]):
+    with patch.object(docs_generate, "generate_docs", return_value=[]):
         _run_main(["docs", "somewhere"])
     assert "Docs generated. No coverage gaps." in capsys.readouterr().out
 

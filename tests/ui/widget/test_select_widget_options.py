@@ -2,6 +2,7 @@ import pytest
 from typing import Any
 from unittest.mock import MagicMock, patch
 
+from haywire.barn.builtin.widgets import basic_widgets
 from haywire.barn.builtin.widgets.basic_widgets import SelectWidget
 from haywire.core.types.port import DataPort
 from haywire.core.types.enums import FlowType, PortType
@@ -48,7 +49,7 @@ def test_select_widget_resolves_callable_options():
     widget = SelectWidget(port)
 
     # Mock ui.select to capture the options passed to it
-    with patch("haywire.barn.builtin.widgets.basic_widgets.ui.select") as mock_select:
+    with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
         mock_select.return_value = mock_element
         mock_element.classes.return_value = mock_element
@@ -73,7 +74,7 @@ def test_select_widget_resolves_callable_options_dict():
     port = make_string_port_with_config(config)
     widget = SelectWidget(port)
 
-    with patch("haywire.barn.builtin.widgets.basic_widgets.ui.select") as mock_select:
+    with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
         mock_select.return_value = mock_element
         mock_element.classes.return_value = mock_element
@@ -91,7 +92,7 @@ def test_select_widget_handles_list_options():
     port = make_string_port_with_config(config)
     widget = SelectWidget(port)
 
-    with patch("haywire.barn.builtin.widgets.basic_widgets.ui.select") as mock_select:
+    with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
         mock_select.return_value = mock_element
         mock_element.classes.return_value = mock_element
@@ -109,7 +110,7 @@ def test_select_widget_handles_dict_options():
     port = make_string_port_with_config(config)
     widget = SelectWidget(port)
 
-    with patch("haywire.barn.builtin.widgets.basic_widgets.ui.select") as mock_select:
+    with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
         mock_select.return_value = mock_element
         mock_element.classes.return_value = mock_element
@@ -127,7 +128,7 @@ def test_select_widget_empty_options():
     port = make_string_port_with_config(config)
     widget = SelectWidget(port)
 
-    with patch("haywire.barn.builtin.widgets.basic_widgets.ui.select") as mock_select:
+    with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
         mock_select.return_value = mock_element
         mock_element.classes.return_value = mock_element
@@ -155,7 +156,7 @@ def test_select_widget_callable_invoked_at_build_time():
     # At this point the callable has not been invoked yet
     assert call_count == 0
 
-    with patch("haywire.barn.builtin.widgets.basic_widgets.ui.select") as mock_select:
+    with patch.object(basic_widgets.ui, "select") as mock_select:
         mock_element = MagicMock()
         mock_select.return_value = mock_element
         mock_element.classes.return_value = mock_element

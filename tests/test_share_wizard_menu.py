@@ -37,15 +37,13 @@ def test_handler_exists_and_takes_context() -> None:
 def test_handler_notifies_when_no_workspace_root(monkeypatch) -> None:
     """A studio started outside a project has nothing to share; say so instead
     of opening a wizard that fails at step 1 for a confusing reason."""
+    from haybale_marketplace.editors import _share_wizard
     from haybale_marketplace.editors import library_browser_editor as mod
 
     notifications: list[tuple[str, str]] = []
     monkeypatch.setattr(mod.ui, "notify", lambda msg, **kw: notifications.append((msg, kw.get("type", ""))))
     opened: list[Path] = []
-    monkeypatch.setattr(
-        "haybale_marketplace.editors._share_wizard.show_share_wizard",
-        lambda root, **kw: opened.append(root),
-    )
+    monkeypatch.setattr(_share_wizard, "show_share_wizard", lambda root, **kw: opened.append(root))
 
     editor = mod.LibraryBrowserEditor.__new__(mod.LibraryBrowserEditor)
     context = type("Ctx", (), {"app": type("App", (), {"workspace_root": None})()})()
@@ -57,13 +55,11 @@ def test_handler_notifies_when_no_workspace_root(monkeypatch) -> None:
 
 
 def test_handler_opens_the_wizard_at_the_workspace_root(monkeypatch, tmp_path: Path) -> None:
+    from haybale_marketplace.editors import _share_wizard
     from haybale_marketplace.editors import library_browser_editor as mod
 
     opened: list[Path] = []
-    monkeypatch.setattr(
-        "haybale_marketplace.editors._share_wizard.show_share_wizard",
-        lambda root, **kw: opened.append(Path(root)),
-    )
+    monkeypatch.setattr(_share_wizard, "show_share_wizard", lambda root, **kw: opened.append(Path(root)))
     monkeypatch.setattr(mod.ui, "notify", lambda *a, **kw: None)
 
     editor = mod.LibraryBrowserEditor.__new__(mod.LibraryBrowserEditor)

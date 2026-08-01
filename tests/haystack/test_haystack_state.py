@@ -386,6 +386,8 @@ def test_save_haystack_calls_persistence_and_updates_last_name(
     state_with_mocked_deps, tmp_path, monkeypatch
 ):
     """save_haystack delegates to persistence.dump_haystack and records the name in settings."""
+    from haybale_haystack import persistence
+
     state = state_with_mocked_deps
     state._workspace_root = tmp_path
 
@@ -397,7 +399,7 @@ def test_save_haystack_calls_persistence_and_updates_last_name(
         dumped["active_path"] = active_path
         return root / "haystacks" / f"{name}.toml"
 
-    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+    monkeypatch.setattr(persistence, "dump_haystack", fake_dump)
 
     active = tmp_path / "graphs" / "foo.haywire"
     result = state.save_haystack("session1", active_path=active)
@@ -409,6 +411,8 @@ def test_save_haystack_calls_persistence_and_updates_last_name(
 
 def test_save_haystack_without_active_path(state_with_mocked_deps, tmp_path, monkeypatch):
     """active_path is optional; default None propagates through."""
+    from haybale_haystack import persistence
+
     state = state_with_mocked_deps
     state._workspace_root = tmp_path
 
@@ -418,7 +422,7 @@ def test_save_haystack_without_active_path(state_with_mocked_deps, tmp_path, mon
         captured["active_path"] = active_path
         return root / "haystacks" / f"{name}.toml"
 
-    monkeypatch.setattr("haybale_haystack.persistence.dump_haystack", fake_dump)
+    monkeypatch.setattr(persistence, "dump_haystack", fake_dump)
 
     result = state.save_haystack("session1")
     assert captured["active_path"] is None
@@ -430,6 +434,8 @@ def test_load_haystack_calls_persistence_and_updates_last_name(
     state_with_mocked_deps, tmp_path, monkeypatch
 ):
     """load_haystack delegates to persistence.load_haystack and records the name in settings."""
+    from haybale_haystack import persistence
+
     state = state_with_mocked_deps
     state._workspace_root = tmp_path
 
@@ -444,7 +450,7 @@ def test_load_haystack_calls_persistence_and_updates_last_name(
     def fake_load(s, root, name):
         return expected_active
 
-    monkeypatch.setattr("haybale_haystack.persistence.load_haystack", fake_load)
+    monkeypatch.setattr(persistence, "load_haystack", fake_load)
 
     result = state.load_haystack("session1")
 
@@ -503,13 +509,16 @@ def test_create_new_marks_haystack_dirty(state_with_mocked_deps):
 
 
 def test_save_haystack_clears_dirty(state_with_mocked_deps, tmp_path, monkeypatch):
+    from haybale_haystack import persistence
+
     state = state_with_mocked_deps
     state._workspace_root = tmp_path
     state.create_new()
     assert state._haystack_dirty is True
 
     monkeypatch.setattr(
-        "haybale_haystack.persistence.dump_haystack",
+        persistence,
+        "dump_haystack",
         lambda s, root, name, active_path=None: root / "haystacks" / f"{name}.toml",
     )
     state.save_haystack("session1")
@@ -539,9 +548,11 @@ def test_open_graph_marks_haystack_dirty(state_with_mocked_deps, tmp_path):
     p.write_text("")
     from unittest.mock import patch
 
+    from haywire.core.graph.base import BaseGraph
+
     with (
-        patch("haywire.core.graph.base.BaseGraph.load_from_file"),
-        patch("haywire.core.graph.base.BaseGraph.force_validation"),
+        patch.object(BaseGraph, "load_from_file"),
+        patch.object(BaseGraph, "force_validation"),
     ):
         state.open_graph(p)
     assert state._haystack_dirty is True

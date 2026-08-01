@@ -6,6 +6,7 @@ from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsEvent,
     SelectionBoundsHideEvent,
 )
+from haybale_graph_editor.editors.graph_canvas.handlers import selection_toolbar as selection_toolbar_module
 from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
     SelectionToolbarProvider,
     SelectionToolbarHandlers,
@@ -30,10 +31,7 @@ def _provider(monkeypatch):
 
 def test_show_no_visible_panels_opens_nothing(monkeypatch):
     prov, registry = _provider(monkeypatch)
-    monkeypatch.setattr(
-        "haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar.visible_panels",
-        lambda classes, ctx: [],
-    )
+    monkeypatch.setattr(selection_toolbar_module, "visible_panels", lambda classes, ctx: [])
     prov.show_at((0.0, 0.0, 100.0, 50.0))
     assert prov._toolbar_popup is None
 
@@ -67,10 +65,7 @@ def test_reposition_same_panels_skips_rerender(monkeypatch):
     class PanelA:
         pass
 
-    monkeypatch.setattr(
-        "haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar.visible_panels",
-        lambda classes, ctx: [PanelA],
-    )
+    monkeypatch.setattr(selection_toolbar_module, "visible_panels", lambda classes, ctx: [PanelA])
     prov._build_popup = MagicMock(return_value=MagicMock())
     prov._render_into_popup = MagicMock()
 
@@ -95,10 +90,7 @@ def test_changed_panels_triggers_rerender(monkeypatch):
         pass
 
     sets = [[PanelA], [PanelA, PanelB]]
-    monkeypatch.setattr(
-        "haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar.visible_panels",
-        lambda classes, ctx: sets.pop(0),
-    )
+    monkeypatch.setattr(selection_toolbar_module, "visible_panels", lambda classes, ctx: sets.pop(0))
     prov._build_popup = MagicMock(return_value=MagicMock())
     prov._render_into_popup = MagicMock()
 
@@ -117,10 +109,7 @@ def test_hide_preserves_dom_and_skips_rerender_on_reshow(monkeypatch):
     class PanelA:
         pass
 
-    monkeypatch.setattr(
-        "haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar.visible_panels",
-        lambda classes, ctx: [PanelA],
-    )
+    monkeypatch.setattr(selection_toolbar_module, "visible_panels", lambda classes, ctx: [PanelA])
     popup = MagicMock()
     popup.is_open = True
     prov._build_popup = MagicMock(return_value=popup)
@@ -151,10 +140,7 @@ def test_destroy_tears_down_and_forces_rerender(monkeypatch):
     class PanelA:
         pass
 
-    monkeypatch.setattr(
-        "haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar.visible_panels",
-        lambda classes, ctx: [PanelA],
-    )
+    monkeypatch.setattr(selection_toolbar_module, "visible_panels", lambda classes, ctx: [PanelA])
     popup = MagicMock()
     popup.is_open = True
     prov._build_popup = MagicMock(return_value=popup)

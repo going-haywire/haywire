@@ -7,6 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
+from haywire.core.marketstall import cache as marketstall_cache
+
 
 @pytest.mark.unit
 def test_subscribe_marketstall_blob_url(tmp_path: Path) -> None:
@@ -23,7 +25,7 @@ def test_subscribe_marketstall_blob_url(tmp_path: Path) -> None:
     paste_dir = tmp_path / "stalls"
 
     body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
             global_path,
@@ -59,7 +61,7 @@ def test_subscribe_marketplace_with_inline_haybales(tmp_path: Path) -> None:
         'name = "haybale-inline"\n'
         'min_version = "0.1.0"\n'
     )
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
             global_path,
@@ -83,7 +85,7 @@ def test_subscribe_marketplace_with_markets_only(tmp_path: Path) -> None:
     global_path = tmp_path / "marketplace.toml"
 
     body = '[[markets]]\nurl = "https://x.example/m.toml"\nignores = []\ndoubles = []\nblocked = []\n'
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
             global_path,
@@ -108,7 +110,7 @@ def test_subscribe_raw_url_persists_as_is(tmp_path: Path) -> None:
 
     url = "https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml"
     body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
             global_path,
@@ -130,7 +132,7 @@ def test_subscribe_plain_toml_url(tmp_path: Path) -> None:
     global_path = tmp_path / "marketplace.toml"
 
     body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
             global_path,
@@ -218,7 +220,7 @@ def test_subscribe_fetch_failure_raises_subscribe_error(tmp_path: Path) -> None:
     """RemoteFetchError → SubscribeError."""
     from haywire.core.marketstall import SubscribeError, resolve_and_subscribe
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=OSError):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError):
         with pytest.raises(SubscribeError) as exc_info:
             resolve_and_subscribe(
                 tmp_path / "marketplace.toml",
@@ -234,7 +236,7 @@ def test_subscribe_empty_body_raises_subscribe_error(tmp_path: Path) -> None:
     """A body with neither [[markets]]/[[stalls]] nor [[haybales]] is malformed."""
     from haywire.core.marketstall import SubscribeError, resolve_and_subscribe
 
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = b"# empty\n"
         with pytest.raises(SubscribeError) as exc_info:
             resolve_and_subscribe(

@@ -161,6 +161,7 @@ def test_add_ports_action_raises_on_missing_node():
 
 
 def test_editor_split_returns_reroute_id(monkeypatch):
+    from haywire.core.graph import editor as editor_module
     from haywire.core.graph.editor import Editor
 
     added = {}
@@ -176,7 +177,7 @@ def test_editor_split_returns_reroute_id(monkeypatch):
             pass
 
     # editor.py imports the action by name, so patch it on that module.
-    monkeypatch.setattr("haywire.core.graph.editor.SplitEdgeWithRerouteAction", _FakeAction)
+    monkeypatch.setattr(editor_module, "SplitEdgeWithRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
     ed.graph = object()

@@ -22,9 +22,10 @@ def test_should_block_install_for_os_returns_none_when_supported() -> None:
     """A haybale that includes the current OS is not blocked."""
     from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
+    from haywire.core.marketstall import platform as marketstall_platform
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=["macos", "linux", "windows"])
-    with patch("haywire.core.marketstall.platform.platform.system", return_value="Linux"):
+    with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
         assert should_block_install_for_os(h) is None
 
 
@@ -33,9 +34,10 @@ def test_should_block_install_for_os_returns_message_when_unsupported() -> None:
     """A haybale that does NOT include the current OS returns a tooltip message."""
     from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
+    from haywire.core.marketstall import platform as marketstall_platform
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=["macos", "linux"])
-    with patch("haywire.core.marketstall.platform.platform.system", return_value="Windows"):
+    with patch.object(marketstall_platform.platform, "system", return_value="Windows"):
         msg = should_block_install_for_os(h)
         assert msg is not None
         assert "Not available on this OS" in msg
@@ -46,9 +48,10 @@ def test_should_block_install_for_os_returns_message_when_unsupported() -> None:
 def test_should_block_install_for_os_includes_os_list_in_message() -> None:
     from haybale_marketplace.editors.library_overview_editor import should_block_install_for_os
     from haywire.core.marketstall import Haybale
+    from haywire.core.marketstall import platform as marketstall_platform
 
     h = Haybale(name="haybale-x", min_version="0.1.0", os=["macos"])
-    with patch("haywire.core.marketstall.platform.platform.system", return_value="Linux"):
+    with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
         msg = should_block_install_for_os(h)
         assert msg is not None
         assert "macos" in msg

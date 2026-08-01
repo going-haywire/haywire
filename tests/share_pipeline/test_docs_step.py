@@ -9,6 +9,7 @@ import pytest
 
 from haywire_studio.packaging.share.pipeline import DocsGenerationError
 from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline.steps import docs as steps_docs
 
 pytestmark = pytest.mark.unit
 
@@ -61,7 +62,7 @@ async def test_apply_docs_parses_the_coverage_report(project: Path) -> None:
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
     pipeline = SharePipeline(project)
-    with patch("haywire_studio.packaging.share.pipeline.steps.docs.run_streaming", side_effect=_fake_stream):
+    with patch.object(steps_docs, "run_streaming", side_effect=_fake_stream):
         result = await pipeline.apply_docs()
 
     assert result.coverage == {"alpha": ["node Foo: no docstring"], "beta": []}
@@ -79,7 +80,7 @@ async def test_apply_docs_streams_every_line(project: Path) -> None:
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
     lines: list[str] = []
-    with patch("haywire_studio.packaging.share.pipeline.steps.docs.run_streaming", side_effect=_fake_stream):
+    with patch.object(steps_docs, "run_streaming", side_effect=_fake_stream):
         await SharePipeline(project).apply_docs(on_output=lines.append)
 
     assert lines == ["loading libraries…", "  • alpha: clean"]
@@ -93,7 +94,7 @@ async def test_apply_docs_raises_on_a_crash(project: Path) -> None:
         on_output("Traceback (most recent call last):")
         return gitcmd.GitResult(ok=False, stdout="boom", stderr="boom", returncode=1)
 
-    with patch("haywire_studio.packaging.share.pipeline.steps.docs.run_streaming", side_effect=_crash):
+    with patch.object(steps_docs, "run_streaming", side_effect=_crash):
         with pytest.raises(DocsGenerationError) as excinfo:
             await SharePipeline(project).apply_docs()
 
@@ -123,7 +124,7 @@ async def test_apply_docs_records_modified_and_deleted_docs(project: Path) -> No
     (docs / "old-node.md").unlink()
 
     pipeline = SharePipeline(project)
-    with patch("haywire_studio.packaging.share.pipeline.steps.docs.run_streaming", side_effect=_fake_stream):
+    with patch.object(steps_docs, "run_streaming", side_effect=_fake_stream):
         result = await pipeline.apply_docs()
 
     names = {p.name for p in result.written}
@@ -144,7 +145,7 @@ async def test_apply_docs_ignores_changes_outside_barn(project: Path) -> None:
         (project / "scratch.md").write_text("unrelated\n")
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch("haywire_studio.packaging.share.pipeline.steps.docs.run_streaming", side_effect=_fake_stream):
+    with patch.object(steps_docs, "run_streaming", side_effect=_fake_stream):
         result = await SharePipeline(project).apply_docs()
 
     assert all("scratch.md" != p.name for p in result.written)
@@ -162,7 +163,7 @@ async def test_apply_docs_cleans_up_its_temp_json(project: Path) -> None:
         path.write_text("{}")
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
-    with patch("haywire_studio.packaging.share.pipeline.steps.docs.run_streaming", side_effect=_fake_stream):
+    with patch.object(steps_docs, "run_streaming", side_effect=_fake_stream):
         await SharePipeline(project).apply_docs()
 
     assert not captured["path"].exists()

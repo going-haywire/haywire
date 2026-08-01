@@ -7,6 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
+from haywire.core.marketstall import cache as marketstall_cache
 from haywire.core.marketstall.types import Haybale
 
 
@@ -166,7 +167,7 @@ def test_refresh_fetches_stall_subscription(tmp_path: Path) -> None:
     project_path = tmp_path / "project.toml"
 
     fake_body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 
@@ -196,7 +197,7 @@ def test_refresh_falls_back_to_cache_when_unreachable(tmp_path: Path) -> None:
     )
     project_path = tmp_path / "project.toml"
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=OSError):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError):
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
 
     assert report.sources_fetched == 0
@@ -219,7 +220,7 @@ def test_refresh_unavailable_when_no_cache_no_network(tmp_path: Path) -> None:
     )
     project_path = tmp_path / "project.toml"
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=OSError):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError):
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 
     assert report.sources_unavailable == 1
@@ -249,7 +250,7 @@ def test_refresh_applies_blocked_per_subscription(tmp_path: Path) -> None:
         'name = "haybale-untrusted"\n'
         'min_version = "0.1.0"\n'
     )
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 
@@ -275,7 +276,7 @@ def test_refresh_gcs_orphan_cache_files(tmp_path: Path) -> None:
     )
     project_path = tmp_path / "project.toml"
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=OSError):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError):
         refresh(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
 
     remaining = sorted(p.name for p in cache_dir.iterdir() if p.is_file())
@@ -320,7 +321,7 @@ def test_refresh_one_level_deep_consumes_market_stalls(tmp_path: Path) -> None:
             m.__enter__.return_value.read.return_value = stall_body.encode()
         return m
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=fake_urlopen):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=fake_urlopen):
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 
     assert report.sources_fetched == 2  # aggregator + the stall it referenced
@@ -382,7 +383,7 @@ def test_refresh_stamps_via_on_cached_haybales(tmp_path: Path) -> None:
         m.__enter__.return_value.read.return_value = body.encode()
         return m
 
-    with patch("haywire.core.marketstall.cache._urlopen", side_effect=fake_urlopen):
+    with patch.object(marketstall_cache, "_urlopen", side_effect=fake_urlopen):
         refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 
     pm = parse_project_marketplace(project_path)
@@ -413,7 +414,7 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
     project_path = tmp_path / "project.toml"
     cache_dir = tmp_path / "c"
 
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
         refresh(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
 
@@ -425,7 +426,7 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
         f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = ["haybale-foo"]\n'
     )
 
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
         refresh(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
 
@@ -535,7 +536,7 @@ def test_refresh_populates_updates_available_in_report(tmp_path: Path, monkeypat
     global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = []\n')
     project_path = tmp_path / "project.toml"
 
-    with patch("haywire.core.marketstall.cache._urlopen") as mock_open:
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
 

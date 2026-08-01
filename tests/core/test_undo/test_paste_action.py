@@ -20,7 +20,9 @@ def test_create_node_wrapper_passes_node_data_to_build(monkeypatch):
 
     # create_node_wrapper does a local `from ..node.node_wrapper import NodeWrapper`,
     # so the name resolves from the source module at call time.
-    monkeypatch.setattr("haywire.core.node.node_wrapper.NodeWrapper", _FakeWrapper)
+    from haywire.core.node import node_wrapper as node_wrapper_module
+
+    monkeypatch.setattr(node_wrapper_module, "NodeWrapper", _FakeWrapper)
     monkeypatch.setattr(g, "add_node_wrapper", lambda w: w)
 
     g.create_node_wrapper("some.key", position=(0, 0), node_data={"hello": "world"})

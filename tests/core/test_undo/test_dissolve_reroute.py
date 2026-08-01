@@ -188,6 +188,7 @@ def test_dissolve_raises_on_missing_node():
 
 
 def test_editor_dissolve_returns_true_on_success(monkeypatch):
+    from haywire.core.graph import editor as editor_module
     from haywire.core.graph.editor import Editor
 
     added = {}
@@ -200,7 +201,7 @@ def test_editor_dissolve_returns_true_on_success(monkeypatch):
         def __init__(self, *a, **k):
             pass
 
-    monkeypatch.setattr("haywire.core.graph.editor.DissolveRerouteAction", _FakeAction)
+    monkeypatch.setattr(editor_module, "DissolveRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
     ed.graph = object()
@@ -213,6 +214,7 @@ def test_editor_dissolve_returns_true_on_success(monkeypatch):
 
 
 def test_editor_dissolve_returns_false_on_error(monkeypatch):
+    from haywire.core.graph import editor as editor_module
     from haywire.core.graph.editor import Editor
 
     class _HM:
@@ -223,7 +225,7 @@ def test_editor_dissolve_returns_false_on_error(monkeypatch):
         def __init__(self, *a, **k):
             pass
 
-    monkeypatch.setattr("haywire.core.graph.editor.DissolveRerouteAction", _FakeAction)
+    monkeypatch.setattr(editor_module, "DissolveRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
     ed.graph = object()

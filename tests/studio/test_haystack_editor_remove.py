@@ -6,6 +6,7 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 
+from haybale_haystack.editors import haystack_editor as haystack_editor_module
 from haywire.core.session.signals import (
     ActiveGraphMoved,
     BroadcastClose,
@@ -102,7 +103,7 @@ def test_remove_clean_entry_opens_confirm_with_stays_on_disk_wording(editor_and_
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
     haystack.get_by_id = MagicMock(return_value=entry)
 
-    with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
+    with patch.object(haystack_editor_module, "confirm_modal") as mock_modal:
         editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_called_once()
@@ -120,8 +121,8 @@ def test_remove_clean_entry_on_confirm_callback_removes(editor_and_context):
     haystack.get_by_id = MagicMock(return_value=entry)
 
     with (
-        patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
-        patch("haybale_haystack.editors.haystack_editor.ui.notify"),
+        patch.object(haystack_editor_module, "confirm_modal") as mock_modal,
+        patch.object(haystack_editor_module.ui, "notify"),
     ):
         editor._on_entry_delete(entry.binding_id, context)
         on_confirm = mock_modal.call_args.kwargs["on_confirm"]
@@ -135,7 +136,7 @@ def test_remove_dirty_file_backed_entry_uses_discard_wording(editor_and_context)
     entry = _make_entry(path="/tmp/a.haywire", unsaved=True)
     haystack.get_by_id = MagicMock(return_value=entry)
 
-    with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
+    with patch.object(haystack_editor_module, "confirm_modal") as mock_modal:
         editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_called_once()
@@ -150,7 +151,7 @@ def test_remove_untitled_entry_uses_never_saved_wording(editor_and_context):
     entry = _make_entry(path=None, unsaved=False)
     haystack.get_by_id = MagicMock(return_value=entry)
 
-    with patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal:
+    with patch.object(haystack_editor_module, "confirm_modal") as mock_modal:
         editor._on_entry_delete(entry.binding_id, context)
 
     mock_modal.assert_called_once()
@@ -169,8 +170,8 @@ def test_remove_stale_binding_id_does_not_crash_or_remove(editor_and_context):
     haystack.get_by_id = MagicMock(return_value=None)
 
     with (
-        patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
-        patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
+        patch.object(haystack_editor_module, "confirm_modal") as mock_modal,
+        patch.object(haystack_editor_module.ui, "notify") as mock_notify,
     ):
         editor._on_entry_delete("__unsaved_42__", context)
 
@@ -185,8 +186,8 @@ def test_remove_executing_entry_blocked_before_dialog(editor_and_context):
     haystack.get_by_id = MagicMock(return_value=entry)
 
     with (
-        patch("haybale_haystack.editors.haystack_editor.confirm_modal") as mock_modal,
-        patch("haybale_haystack.editors.haystack_editor.ui.notify") as mock_notify,
+        patch.object(haystack_editor_module, "confirm_modal") as mock_modal,
+        patch.object(haystack_editor_module.ui, "notify") as mock_notify,
     ):
         editor._on_entry_delete(entry.binding_id, context)
 
@@ -206,7 +207,7 @@ def test_remove_entry_helper_fires_broadcast_close(editor_and_context):
     editor, context, app, haystack = editor_and_context
     entry = _make_entry(path="/tmp/a.haywire", unsaved=False)
 
-    with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
+    with patch.object(haystack_editor_module.ui, "notify"):
         editor._remove_entry(entry, context)
 
     # Merged bus: signals and lifecycle commands both go through
@@ -229,7 +230,7 @@ def test_remove_entry_helper_clears_active_graph_when_active(editor_and_context)
     edit.active_graph = entry.graph
     edit.active_graph_path = entry.path
 
-    with patch("haybale_haystack.editors.haystack_editor.ui.notify"):
+    with patch.object(haystack_editor_module.ui, "notify"):
         editor._remove_entry(entry, context)
 
     assert edit.active_graph is None

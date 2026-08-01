@@ -29,16 +29,14 @@ def fake_home(tmp_path, monkeypatch):
 def state_with_workspace(tmp_path, fake_home, monkeypatch):
     """Construct a MarketplaceState and run on_enable with a sandboxed workspace_root."""
     from haybale_marketplace.state.marketplace_state import MarketplaceState
+    from haywire.core.di import context as di_context
 
     workspace = tmp_path / "project"
     (workspace / ".haywire").mkdir(parents=True)
 
     state = MarketplaceState()
     # Patch the DI helper inside on_enable so the test doesn't need a real injector.
-    monkeypatch.setattr(
-        "haywire.core.di.context.get_workspace_root",
-        lambda: workspace,
-    )
+    monkeypatch.setattr(di_context, "get_workspace_root", lambda: workspace)
     state.on_enable()
     return state, workspace
 

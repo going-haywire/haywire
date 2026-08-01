@@ -5,6 +5,7 @@ from unittest.mock import patch
 import pytest
 
 from haywire.core.farmhand import FarmhandError
+from haywire_studio.farmhand import host as host_module
 from haywire_studio.farmhand.auth import BearerTokenMiddleware
 from haywire_studio.farmhand.host import FarmhandHost, _FarmhandServer, _format_tool_error
 from haywire_studio.farmhand.settings import FarmhandSettings
@@ -122,8 +123,8 @@ def test_mount_wraps_with_bearer_middleware_when_require_auth(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
     with (
-        patch("haywire_studio.farmhand.host.FarmhandSettings") as settings_cls,
-        patch("haywire_studio.farmhand.host.NetworkSettings") as network_cls,
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
     ):
         settings_cls.return_value.require_auth = True
         network_cls.return_value.restrict_to_loopback = True
@@ -135,8 +136,8 @@ def test_mount_skips_bearer_middleware_when_require_auth_false(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
     with (
-        patch("haywire_studio.farmhand.host.FarmhandSettings") as settings_cls,
-        patch("haywire_studio.farmhand.host.NetworkSettings") as network_cls,
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
     ):
         settings_cls.return_value.require_auth = False
         network_cls.return_value.restrict_to_loopback = True
@@ -150,8 +151,8 @@ def test_mount_disables_dns_rebinding_protection_when_loopback_unrestricted(tmp_
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
     with (
-        patch("haywire_studio.farmhand.host.FarmhandSettings") as settings_cls,
-        patch("haywire_studio.farmhand.host.NetworkSettings") as network_cls,
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
     ):
         settings_cls.return_value.require_auth = True
         network_cls.return_value.restrict_to_loopback = False
@@ -163,8 +164,8 @@ def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
     with (
-        patch("haywire_studio.farmhand.host.FarmhandSettings") as settings_cls,
-        patch("haywire_studio.farmhand.host.NetworkSettings") as network_cls,
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
     ):
         settings_cls.return_value.require_auth = True
         network_cls.return_value.restrict_to_loopback = True

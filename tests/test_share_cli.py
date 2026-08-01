@@ -7,6 +7,9 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import toml
 
+from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+from haywire_studio.packaging.share.pipeline.steps import drift as steps_drift
+
 pytestmark = pytest.mark.unit
 
 
@@ -49,9 +52,8 @@ def _fake_docs():
     """Patch apply_docs so no real library system boots in a unit test."""
     from haywire_studio.packaging.share.pipeline.results import DocsResult
 
-    return patch(
-        "haywire_studio.packaging.share.pipeline.pipeline.SharePipeline.apply_docs",
-        new=AsyncMock(return_value=DocsResult(coverage={}, written=[])),
+    return patch.object(
+        SharePipeline, "apply_docs", new=AsyncMock(return_value=DocsResult(coverage={}, written=[]))
     )
 
 
@@ -62,9 +64,7 @@ def test_yes_runs_the_whole_pipeline(project: Path) -> None:
     from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch(
-            "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
-        ),
+        patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift),
         _fake_docs(),
     ):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
@@ -83,9 +83,7 @@ def test_yes_uses_the_supplied_message(project: Path) -> None:
     from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch(
-            "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
-        ),
+        patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift),
         _fake_docs(),
     ):
         run_share_cli(
@@ -119,9 +117,7 @@ def test_yes_stops_on_unresolved_drift(project: Path, capsys) -> None:
     def _drifty(lib_dir: Path):
         return DepDrift(lib_dir=lib_dir, pyproject_missing=["numpy"])
 
-    with patch(
-        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_drifty
-    ):
+    with patch.object(steps_drift, "detect_share_drift", side_effect=_drifty):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
 
     assert code != 0
@@ -134,9 +130,7 @@ def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> 
 
     subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
 
-    with patch(
-        "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
-    ):
+    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
 
     assert code != 0
@@ -149,9 +143,7 @@ def test_yes_prints_the_share_url(project: Path, capsys) -> None:
     from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch(
-            "haywire_studio.packaging.share.pipeline.steps.drift.detect_share_drift", side_effect=_no_drift
-        ),
+        patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift),
         _fake_docs(),
     ):
         run_share_cli(repo_root=project, yes=True, bump="patch", message=None)

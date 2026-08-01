@@ -14,6 +14,7 @@ from unittest.mock import patch
 
 import pytest
 
+from haywire_studio.packaging import deps as deps_cli
 from haywire_studio.packaging.deps import EXIT_DRIFT, EXIT_OK, run_deps_check_cli
 from haywire_studio.packaging.share import DepDrift
 
@@ -32,10 +33,7 @@ def _make_barn_library(repo_root: Path, name: str = "haybale-alpha") -> Path:
 def test_no_drift_exits_ok_and_prints_confirmation(tmp_path: Path, capsys) -> None:
     lib_dir = _make_barn_library(tmp_path)
 
-    with patch(
-        "haywire_studio.packaging.deps.detect_share_drift",
-        side_effect=lambda d: DepDrift(lib_dir=d),
-    ):
+    with patch.object(deps_cli, "detect_share_drift", side_effect=lambda d: DepDrift(lib_dir=d)):
         exit_code = run_deps_check_cli(tmp_path)
 
     assert exit_code == EXIT_OK
@@ -54,7 +52,7 @@ def test_actionable_drift_exits_drift_and_prints_each_kind(tmp_path: Path, capsy
         pyproject_version_lag=[("haybale-core", "0.1.0", "0.2.0")],
     )
 
-    with patch("haywire_studio.packaging.deps.detect_share_drift", side_effect=lambda d: drift):
+    with patch.object(deps_cli, "detect_share_drift", side_effect=lambda d: drift):
         exit_code = run_deps_check_cli(tmp_path)
 
     out = capsys.readouterr().out
@@ -73,7 +71,7 @@ def test_unresolved_only_is_informational_and_exits_ok(tmp_path: Path, capsys) -
     lib_dir = _make_barn_library(tmp_path)
     drift = DepDrift(lib_dir=lib_dir, unresolved=["some.weird.import"])
 
-    with patch("haywire_studio.packaging.deps.detect_share_drift", side_effect=lambda d: drift):
+    with patch.object(deps_cli, "detect_share_drift", side_effect=lambda d: drift):
         exit_code = run_deps_check_cli(tmp_path)
 
     out = capsys.readouterr().out
