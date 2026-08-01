@@ -73,6 +73,20 @@ def test_apply_marketstall_translates_manifest_read_error(project: Path) -> None
         pipeline.apply_marketstall()
 
 
+def test_apply_marketstall_pins_install_spec_to_the_pending_tag(project: Path) -> None:
+    """Step 3 already resolved and reserved the version before step 5 runs —
+    the marketstall entry's install_spec must use that same tag, not the
+    branch, so it agrees with the tag apply() creates moments later."""
+    import toml
+
+    pipeline = _ready(project, version="0.3.2")
+    pipeline.apply_marketstall()
+
+    data = toml.loads((project / "marketstall.toml").read_text())
+    entry = next(e for e in data["haybales"] if e["name"] == "haybale-alpha")
+    assert "@v0.3.2#subdirectory=" in entry["install_spec"]
+
+
 # ── barn_dirty_files ─────────────────────────────────────────────────────────
 
 

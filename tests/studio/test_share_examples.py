@@ -47,3 +47,24 @@ def test_no_examples_url_when_folder_absent(tmp_path):
     (lib / "examples" / "demo.haywire").unlink()  # now empty
     entry = _build_entry_for_library(lib)
     assert "examples_url" not in entry
+
+
+def test_tag_pins_install_spec_and_raw_content_urls(tmp_path):
+    """A supplied tag must win over the current branch for EVERY ref-bearing
+    URL. install_spec and the doc/example URLs have to name the same commit —
+    if they disagree, the entry contradicts itself about which state of the
+    library "publishing" refers to."""
+    lib = _init_repo_with_lib(tmp_path)
+
+    entry = _build_entry_for_library(lib, tag="v1.0.0")
+
+    assert entry is not None
+    assert entry["install_spec"] == (
+        "haybale-demo @ git+https://github.com/me/repo.git@v1.0.0#subdirectory=haybale-demo"
+    )
+    assert entry["docs_url"] == (
+        "https://raw.githubusercontent.com/me/repo/v1.0.0/haybale-demo/haybale_demo/"
+    )
+    assert entry["examples_url"] == (
+        "https://raw.githubusercontent.com/me/repo/v1.0.0/haybale-demo/examples/"
+    )

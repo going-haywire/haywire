@@ -25,12 +25,21 @@ from haywire_studio.packaging.share.url import (
 )
 
 
-def _build_entry_for_library(lib_dir: Path) -> dict | None:
+def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict | None:
     """Build a marketplace entry for one library directory.
 
     Returns the entry dict (TOML-serializable), or None if `lib_dir` lacks a
     pyproject.toml. Used by both `haywire share` (single library, stdout) and
     `haywire share --save` (every barn library, aggregated to file).
+
+    When `tag` is given (the full SharePipeline always supplies it — the
+    version is resolved and tag-collision-checked in step 3, well before this
+    runs in step 5), every ref-bearing URL pins to that tag: install_spec,
+    docs_url, examples_url, and tests_url all resolve to the exact commit a
+    consumer will get, not whatever the branch currently holds. When `tag` is
+    None (standalone `write_marketstall()` calls outside the pipeline, or a
+    repo with no tags yet), falls back to the previous branch/ref-less
+    behavior unchanged.
     """
     pyproject_path = lib_dir / "pyproject.toml"
     if not pyproject_path.exists():
@@ -56,7 +65,10 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         https_url = _ssh_to_https(remote_url)
         https_url = https_url.removesuffix(".git")
         subdirectory = lib_dir.relative_to(git_root)
-        install_spec = f"{name} @ git+{https_url}.git#subdirectory={subdirectory}"
+        if tag:
+            install_spec = f"{name} @ git+{https_url}.git@{tag}#subdirectory={subdirectory}"
+        else:
+            install_spec = f"{name} @ git+{https_url}.git#subdirectory={subdirectory}"
     else:
         https_url = ""
         subdirectory = (
@@ -79,17 +91,25 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
     # answer. `SharePipeline.check_preconditions` is the layer that turns an
     # undeterminable/wrong branch into an actual failure before publish; this
     # module has no such gate, so it degrades instead of guessing.
-    branch = _get_current_ref(git_root) if git_root else None
+    #
+    # `ref` is what every raw-content URL below resolves against. A supplied
+    # tag always wins — it names the exact commit a consumer's install_spec
+    # will resolve to, so the doc/example/test URLs must point at the same
+    # commit or they contradict install_spec about which state of the library
+    # "publishing" refers to. With no tag (standalone write_marketstall(), or
+    # a repo with no release yet) this falls back to the current branch, same
+    # as before this parameter existed.
+    ref = tag or (_get_current_ref(git_root) if git_root else None)
 
     docs_url = ""
-    if remote_url and module_dir and branch:
+    if remote_url and module_dir and ref:
         assert git_root is not None
         module_rel = module_dir.relative_to(git_root)
         if "github.com" in https_url:
             raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
-            docs_url = f"{raw_base}/{branch}/{module_rel}/"
+            docs_url = f"{raw_base}/{ref}/{module_rel}/"
         elif "gitlab.com" in https_url:
-            docs_url = f"{https_url}/-/raw/{branch}/{module_rel}/"
+            docs_url = f"{https_url}/-/raw/{ref}/{module_rel}/"
 
     # read_manifest() above already validated [tool.haywire].os via
     # _read_os_field; re-running it here would just re-validate the same
@@ -98,7 +118,7 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
 
     def _folder_url(folder_name: str) -> str:
         """Raw git URL for <lib>/<folder>/ when it holds >=1 .haywire graph."""
-        if not (remote_url and git_root and branch):
+        if not (remote_url and git_root and ref):
             return ""
         folder = lib_dir / folder_name
         if not folder.is_dir() or not any(folder.rglob("*.haywire")):
@@ -106,9 +126,9 @@ def _build_entry_for_library(lib_dir: Path) -> dict | None:
         rel = lib_dir.relative_to(git_root)
         if "github.com" in https_url:
             raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
-            return f"{raw_base}/{branch}/{rel}/{folder_name}/"
+            return f"{raw_base}/{ref}/{rel}/{folder_name}/"
         if "gitlab.com" in https_url:
-            return f"{https_url}/-/raw/{branch}/{rel}/{folder_name}/"
+            return f"{https_url}/-/raw/{ref}/{rel}/{folder_name}/"
         return ""
 
     examples_url = _folder_url("examples")
@@ -155,12 +175,16 @@ class MarketstallWriteResult:
         return [self.out_path, *self.readmes]
 
 
-def build_marketstall_entries(repo_root: Path) -> list[dict]:
+def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> list[dict]:
     """Build a marketstall entry for every ``barn/*`` library, sorted by directory.
 
     The feed's contract is "every haybale this repo offers", so it is always
     rebuilt from disk in full — a partial rebuild silently deletes the entries
     of libraries that weren't part of this run.
+
+    ``tag``, when given, pins every entry's ref-bearing URLs (install_spec,
+    docs_url, examples_url, tests_url) to that tag instead of the current
+    branch — see :func:`_build_entry_for_library`.
 
     Raises :class:`NoBarnError` when ``<repo_root>/barn`` does not exist.
     """
@@ -170,7 +194,7 @@ def build_marketstall_entries(repo_root: Path) -> list[dict]:
 
     entries: list[dict] = []
     for lib_dir in barn_library_dirs(repo_root):
-        entry = _build_entry_for_library(lib_dir)
+        entry = _build_entry_for_library(lib_dir, tag=tag)
         if entry is not None:
             entries.append(entry)
     return entries
@@ -186,6 +210,7 @@ def write_marketstall(
     repo_root: Path,
     *,
     update_readme: bool = True,
+    tag: str | None = None,
 ) -> MarketstallWriteResult:
     """Rebuild ``<repo_root>/marketstall.toml`` from every ``barn/*`` library.
 
@@ -193,8 +218,14 @@ def write_marketstall(
     pipeline's step 2, where the user makes a Union/Replace decision, and a
     second gate here would re-ask a settled question. Prints nothing — callers
     own their own output.
+
+    ``tag``, when given, pins every entry's ref-bearing URLs to that tag
+    rather than the current branch. The share pipeline always supplies it
+    (the version is resolved and reserved in step 3, before this runs in
+    step 5); direct/standalone callers that don't have a tag yet get the
+    previous branch-based behavior unchanged.
     """
-    entries = build_marketstall_entries(repo_root)
+    entries = build_marketstall_entries(repo_root, tag=tag)
 
     out_path = repo_root / "marketstall.toml"
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))

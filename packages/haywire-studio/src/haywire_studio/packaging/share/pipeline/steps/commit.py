@@ -22,11 +22,19 @@ def apply_marketstall(pipeline: "SharePipeline") -> MarketstallWriteResult:
     offers", so rebuilding from disk is what keeps it true. A partial
     rebuild deletes the entries of libraries not in this run.
 
+    Pins every entry's install_spec/docs_url/examples_url/tests_url to
+    ``v<pipeline.version>`` — the tag :func:`apply` (later in this same
+    step) will create once the commit succeeds. The version is already
+    resolved and tag-collision-checked by step 3's ``apply_bump()`` before
+    this ever runs, so the tag name is known and reserved even though the
+    tag itself doesn't exist in git yet.
+
     Also rewrites the ``<!-- marketstall:share-url -->`` marker block in the
     root README and every ``barn/*/README.md``.
     """
+    tag = f"v{pipeline.version}" if pipeline.version else None
     try:
-        result = write_marketstall(pipeline.repo_root)
+        result = write_marketstall(pipeline.repo_root, tag=tag)
     except (NoBarnError, *_MANIFEST_FAILURE_TYPES) as exc:
         raise MarketstallError(str(exc)) from exc
     pipeline.record(result.written)
