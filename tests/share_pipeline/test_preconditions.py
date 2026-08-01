@@ -256,8 +256,46 @@ def test_invalid_os_declaration_fails_with_remedy(project: Path) -> None:
         assert "other" in f.remedy
 
 
+def test_invalid_os_declaration_carries_strip_os_fix_id(project: Path) -> None:
+    """The os fault is the ONE remediable precondition in Task 2's scope: it
+    offers fix_id='strip_os' with a label describing what will happen."""
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok is False
+    matches = [f for f in report.failures if "pyproject.toml" in f.message]
+    assert matches, report.failures
+    for f in matches:
+        assert f.fix_id == "strip_os"
+        assert f.fix_label == "Remove invalid values"
+
+
+def test_invalid_os_declaration_fix_label_states_correction_when_unambiguous(project: Path) -> None:
+    """When every bad value maps cleanly to the same target, the label says so."""
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["osx"]\n')
+
+    report = SharePipeline(project).check_preconditions()
+
+    matches = [f for f in report.failures if "pyproject.toml" in f.message]
+    assert matches, report.failures
+    for f in matches:
+        assert f.fix_id == "strip_os"
+        assert f.fix_label == "Correct to macos"
+
+
 def test_malformed_toml_fails_with_remedy(project: Path) -> None:
-    """A pyproject.toml the parser cannot read at all is reported by name (4a)."""
+    """A pyproject.toml the parser cannot read at all is reported by name (4a).
+
+    The underlying `toml` parser error — quoting line/column and embedded in
+    `message` via `ManifestReadError` — is asserted verbatim below rather than
+    just checking non-emptiness, so a regression that drops the parser's own
+    line/column info (or the file path) would be caught here.
+    """
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
 
@@ -268,6 +306,28 @@ def test_malformed_toml_fails_with_remedy(project: Path) -> None:
     assert matches, report.failures
     for f in matches:
         assert f.remedy
+        # message must name the file AND quote the parser's line/column info —
+        # verified against the toml library's actual output for this exact
+        # malformed string (see the module docstring in share.py's
+        # read_manifest()): "... (line 1 column 6 char 5)".
+        assert "pyproject.toml" in f.message
+        assert "line 1 column 6 char 5" in f.message
+
+
+def test_malformed_toml_carries_no_fix_id(project: Path) -> None:
+    """A TOML parse failure (ManifestReadError) has no mechanical repair —
+    fix_id must stay None, unlike the InvalidOsDeclarationError branch."""
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+
+    report = SharePipeline(project).check_preconditions()
+
+    assert report.ok is False
+    matches = [f for f in report.failures if "pyproject.toml" in f.message]
+    assert matches, report.failures
+    for f in matches:
+        assert f.fix_id is None
+        assert f.fix_label == ""
 
 
 def test_malformed_manifest_is_two_faces_of_one_condition(project: Path) -> None:
@@ -297,6 +357,7 @@ def test_detached_head_fails_with_remedy(tmp_path: Path, bare_remote: Path) -> N
     _init_repo(repo)
     _add_lib(repo)
     sha = _commit(repo)
+    branch = _current_branch(repo)
     subprocess.run(["git", "checkout", sha], cwd=repo, check=True, capture_output=True)
     subprocess.run(
         ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
@@ -309,6 +370,41 @@ def test_detached_head_fails_with_remedy(tmp_path: Path, bare_remote: Path) -> N
     assert matches, report.failures
     for f in matches:
         assert f.remedy
+        # The commit IS on `branch` (the checkout above only moved HEAD off
+        # of it), so the remedy must name that branch and the concrete
+        # `git switch` command — not just generic prose.
+        assert f"`{branch}`" in f.remedy
+        assert f"git switch {branch}" in f.remedy
+
+
+def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bare_remote: Path) -> None:
+    """A dangling commit no branch was ever built from: `git branch --contains
+    HEAD` returns nothing real, so the remedy must fall back to `git switch -c`
+    guidance rather than naming a nonexistent branch."""
+    repo = tmp_path / "detached_no_branch"
+    _init_repo(repo)
+    _add_lib(repo)
+    sha = _commit(repo)
+    branch = _current_branch(repo)
+    (repo / "barn" / "haybale-alpha" / "extra.txt").write_text("more")
+    second_sha = _commit(repo, message="second")
+    # Detach onto second_sha FIRST — a checked-out branch can't be force-moved.
+    subprocess.run(["git", "checkout", second_sha], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "branch", "-f", branch, sha], cwd=repo, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    matches = [f for f in report.failures if "detached" in f.message.lower()]
+    assert matches, report.failures
+    for f in matches:
+        assert f.remedy == (
+            "This commit is not on any branch — run `git switch -c my-branch` to create one, "
+            "then publish from there."
+        )
 
 
 def test_unborn_branch_is_not_mistaken_for_detached_head(project: Path) -> None:
@@ -405,3 +501,212 @@ def test_unpushed_remote_leaves_default_branch_undetermined(project: Path) -> No
     report = SharePipeline(project).check_preconditions()
     assert report.default_branch is None
     assert report.ok is True
+
+
+# ── apply_precondition_fix dispatch ─────────────────────────────────────────
+
+
+def test_apply_precondition_fix_raises_for_unknown_fix_id(project: Path) -> None:
+    """An unregistered fix_id must raise PipelineStateError, not silently no-op.
+
+    Task 2/3 register real handlers (e.g. "strip_os", "add_origin") into the
+    module-level dispatch dict elsewhere; this dict starts empty here, so any
+    fix_id is currently "unknown".
+    """
+    from haywire_studio.share_pipeline import PipelineStateError
+
+    with pytest.raises(PipelineStateError):
+        SharePipeline(project).apply_precondition_fix("nonexistent_fix_id")
+
+
+def test_apply_precondition_fix_strip_os_repairs_the_named_library(project: Path) -> None:
+    """apply_precondition_fix('strip_os', lib_dir=...) rewrites the right
+    library's pyproject.toml so a re-run of check_preconditions passes."""
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+
+    report = SharePipeline(project).check_preconditions()
+    assert report.ok is False
+
+    pipeline = SharePipeline(project)
+    pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
+
+    text = pyproject.read_text()
+    assert 'os = ["macos"]' in text
+
+    report2 = pipeline.check_preconditions()
+    assert report2.ok is True
+
+
+def test_apply_precondition_fix_strip_os_dedups_reversed_near_miss_order(project: Path) -> None:
+    """Regression: a near-miss listed BEFORE the already-declarable value it
+    maps to (e.g. ["osx", "macos"]) must not produce a duplicate entry once
+    strip_os has rewritten the manifest — check_preconditions must then pass,
+    and the rewritten os list must contain no duplicates."""
+    import toml
+
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["osx", "macos"]\n')
+
+    pipeline = SharePipeline(project)
+    pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
+
+    data = toml.loads(pyproject.read_text())
+    os_values = data["tool"]["haywire"]["os"]
+    assert os_values == ["macos"]
+    assert len(os_values) == len(set(os_values))
+
+    report = pipeline.check_preconditions()
+    assert report.ok is True
+
+
+def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Path) -> None:
+    """The wizard's whole point: it must be able to take `failure.lib_dir`
+    straight from the report and pass it to apply_precondition_fix without
+    any string-parsing of `message`. This test proves the round-trip using
+    ONLY data taken from the PreconditionFailure itself — no hardcoded path."""
+    lib = project / "barn" / "haybale-alpha"
+    pyproject = lib / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+
+    report = SharePipeline(project).check_preconditions()
+    assert report.ok is False
+    matches = [f for f in report.failures if f.fix_id == "strip_os"]
+    assert matches, report.failures
+    failure = matches[0]
+    assert failure.lib_dir is not None
+
+    pipeline = SharePipeline(project)
+    pipeline.apply_precondition_fix("strip_os", lib_dir=failure.lib_dir)
+
+    assert 'os = ["macos"]' in pyproject.read_text()
+    assert pipeline.check_preconditions().ok is True
+
+
+def test_apply_precondition_fix_strip_os_translates_manifest_failures(project: Path) -> None:
+    """A pyproject that no longer parses at fix-time surfaces as ManifestError,
+    the same translation convention apply_drift_union follows."""
+    from haywire_studio.share_pipeline import ManifestError
+
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+
+    pipeline = SharePipeline(project)
+    with pytest.raises(ManifestError):
+        pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
+
+
+# ── apply_precondition_fix("add_origin") ────────────────────────────────────
+
+
+def _get_remote_url(repo: Path) -> str:
+    return subprocess.run(
+        ["git", "remote", "get-url", "origin"], cwd=repo, check=True, capture_output=True, text=True
+    ).stdout.strip()
+
+
+def test_missing_origin_carries_add_origin_fix_id(tmp_path: Path) -> None:
+    """check_preconditions() wires fix_id/fix_label onto the missing-origin failure."""
+    repo = tmp_path / "noremote_fixid"
+    _init_repo(repo)
+    _add_lib(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    matches = [f for f in report.failures if "No 'origin' remote" in f.message]
+    assert matches, report.failures
+    for f in matches:
+        assert f.fix_id == "add_origin"
+        assert f.fix_label
+
+
+def test_apply_precondition_fix_add_origin_writes_url_verbatim(tmp_path: Path) -> None:
+    """The remote is stored exactly as typed — an SSH-style URL is not rewritten
+    to HTTPS. `_ssh_to_https` handles that at derivation time; rewriting what
+    the user typed would make `git remote -v` disagree with their input."""
+    repo = tmp_path / "add_origin_verbatim"
+    _init_repo(repo)
+    _add_lib(repo)
+
+    url = "git@example.com:foo/bar.git"
+    SharePipeline(repo).apply_precondition_fix("add_origin", url=url)
+
+    assert _get_remote_url(repo) == url
+
+
+def test_apply_precondition_fix_add_origin_ssh_url_not_rewritten(tmp_path: Path) -> None:
+    """Same guarantee, phrased explicitly against SSH→HTTPS rewriting."""
+    repo = tmp_path / "add_origin_ssh"
+    _init_repo(repo)
+    _add_lib(repo)
+
+    ssh_url = "git@gitlab.com:someuser/somerepo.git"
+    SharePipeline(repo).apply_precondition_fix("add_origin", url=ssh_url)
+
+    stored = _get_remote_url(repo)
+    assert stored == ssh_url
+    assert not stored.startswith("https://")
+
+
+def test_apply_precondition_fix_add_origin_raises_when_origin_already_exists(
+    tmp_path: Path, bare_remote: Path
+) -> None:
+    """A pre-existing origin (a race, or a stale report) must fail cleanly with
+    a typed exception, not a raw GitResult/subprocess failure leaking through."""
+    from haywire_studio.share_pipeline import PreconditionsError
+
+    repo = tmp_path / "add_origin_exists"
+    _init_repo(repo)
+    _add_lib(repo)
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+
+    with pytest.raises(PreconditionsError):
+        SharePipeline(repo).apply_precondition_fix("add_origin", url="git@example.com:foo/bar.git")
+
+    # The pre-existing remote must be untouched by the failed attempt.
+    assert _get_remote_url(repo) == str(bare_remote)
+
+
+def test_apply_precondition_fix_add_origin_accepts_unknown_host(tmp_path: Path) -> None:
+    """resolve_host() governs share-URL derivation, not pushability — an
+    unrecognized host (not github.com/gitlab.com, no self-hosted config entry)
+    must still be accepted for `git remote add`."""
+    from haywire.core.marketstall.host_providers import resolve_host
+
+    unknown_host = "git.example-selfhosted.internal"
+    assert resolve_host(unknown_host) is None
+
+    repo = tmp_path / "add_origin_unknown_host"
+    _init_repo(repo)
+    _add_lib(repo)
+
+    url = f"git@{unknown_host}:foo/bar.git"
+    SharePipeline(repo).apply_precondition_fix("add_origin", url=url)
+
+    assert _get_remote_url(repo) == url
+
+
+def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path) -> None:
+    """End-to-end: missing-origin repo -> check_preconditions() finds the
+    add_origin failure -> apply the fix -> re-run check_preconditions() and
+    confirm that SPECIFIC failure is gone. The fake URL may still fail
+    reachability — that's fine, only the missing-remote failure must clear."""
+    repo = tmp_path / "add_origin_e2e"
+    _init_repo(repo)
+    _add_lib(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+    assert report.ok is False
+    matches = [f for f in report.failures if f.fix_id == "add_origin"]
+    assert matches, report.failures
+
+    pipeline = SharePipeline(repo)
+    pipeline.apply_precondition_fix("add_origin", url="git@example.com:foo/bar.git")
+
+    report2 = pipeline.check_preconditions()
+    assert not any("No 'origin' remote is configured" in f.message for f in report2.failures)

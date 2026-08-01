@@ -16,16 +16,21 @@ class PreconditionFailure:
     that contain HEAD, quoting the TOML parser's line number). Presentation
     belongs to the caller: the CLI indents, the wizard uses separate elements.
 
-    ``fix_id`` names a repair the pipeline can perform in place. It stays
-    None throughout Plan 1 — the repairs land in Plan 3. A string rather than
-    a callable so the report stays serializable and repo-mutating closures
-    never cross the engine/UI seam.
+    ``fix_id`` names a repair the pipeline can perform in place. Set for the
+    failures with an in-place repair (`strip_os`, `add_origin`); `None`
+    otherwise. A string rather than a callable so the report stays
+    serializable and repo-mutating closures never cross the engine/UI seam.
+
+    ``lib_dir`` is the affected barn library's directory, relative to
+    ``repo_root``, for fixes that need to know which library to repair — a
+    plain string (not a Path) for the same serializability reason as ``fix_id``.
     """
 
     message: str
     remedy: str = ""
     fix_id: str | None = None
     fix_label: str = ""
+    lib_dir: str | None = None
 
 
 @dataclass(frozen=True)

@@ -84,7 +84,13 @@ for why the unit of sharing is the project, not one library.
 
 The same pipeline is available two ways: the CLI (this section) and the
 **Share Project…** item on `LibraryBrowserEditor`'s burger menu, which walks
-the same steps as a popup wizard.
+the same steps as a popup wizard. For the two precondition failures with an
+unambiguous, no-input repair — a missing `origin` remote, and an invalid
+`[tool.haywire].os` declaration — the wizard's first step offers an inline
+fix button instead of just a remedy: the repair runs in place, the project
+is re-checked automatically, and the panel updates without the user leaving
+the wizard. Every other failure still gets remedy text only (§8 lists them),
+since the repair either needs a judgment call or isn't haywire's to make.
 
 ### 4.1 Interactive mode (default)
 
@@ -250,13 +256,13 @@ Three causes worth checking:
 The scan is static AST analysis. Dynamic imports (`importlib.import_module(name)`, `__import__(...)`) are invisible. Declare those manually in both manifests.
 
 **`haywire share` produces a URL with `<REPO_URL>` placeholder.**
-The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`.
+The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`. In the GUI wizard, the "Check the project" step offers this as an inline **Add origin remote** fix — type the URL and it runs the command for you, then re-checks in place.
 
 **`haywire share` fails with "Could not read `barn/<lib>/pyproject.toml`: ...".**
 That library's `pyproject.toml` doesn't parse as TOML. Fix the TOML in `barn/<lib>/pyproject.toml` so it parses, then try again.
 
 **`haywire share` fails with "Invalid manifest at `barn/<lib>/pyproject.toml`: ...".**
-The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list.
+The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list. In the GUI wizard, this failure offers an inline fix button (**Remove invalid values**, or **Correct to macos**/**Correct to windows** when every bad value maps unambiguously) that rewrites the field for you, then re-checks in place.
 
 **`haywire share` fails with "HEAD is detached — no branch is currently checked out.".**
 You're not on a branch. If the remedy names one or more branches (e.g. `` This commit is on `main`, `feature-x` — run `git switch main`. ``), switch to the first one it lists. If it instead says the commit isn't on any branch, create one and publish from there: `git switch -c my-branch`.

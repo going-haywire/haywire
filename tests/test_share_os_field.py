@@ -100,3 +100,150 @@ def test_share_accepts_all_three_declarable_values(tmp_path: Path) -> None:
     entry = _build_entry_for_library(lib_dir)
     assert entry is not None
     assert entry["os"] == ["macos", "windows", "linux"]
+
+
+# ── strip_undeclarable_os_values (Task 2: fix_id="strip_os") ───────────────
+
+
+@pytest.mark.unit
+def test_strip_removes_invalid_value_keeping_declarable_ones(tmp_path: Path) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=["macos", "other"])
+    removed = strip_undeclarable_os_values(lib_dir)
+
+    assert removed == ["other"]
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["macos"]' in text
+
+
+@pytest.mark.unit
+def test_strip_corrects_near_miss_osx_to_macos(tmp_path: Path) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=["osx"])
+    removed = strip_undeclarable_os_values(lib_dir)
+
+    assert removed == ["osx"]
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["macos"]' in text
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("value", ["osx", "darwin", "mac"])
+def test_strip_maps_all_macos_near_misses(tmp_path: Path, value: str) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=[value])
+    strip_undeclarable_os_values(lib_dir)
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["macos"]' in text
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize("value", ["win", "win32", "nt"])
+def test_strip_maps_all_windows_near_misses(tmp_path: Path, value: str) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=[value])
+    strip_undeclarable_os_values(lib_dir)
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["windows"]' in text
+
+
+@pytest.mark.unit
+def test_strip_drops_unmapped_unknown_value_without_guessing(tmp_path: Path) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=["macos", "freebsd"])
+    removed = strip_undeclarable_os_values(lib_dir)
+
+    assert removed == ["freebsd"]
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["macos"]' in text
+
+
+@pytest.mark.unit
+def test_strip_preserves_comments_and_key_order(tmp_path: Path) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=None)
+    pyproject_path = lib_dir / "pyproject.toml"
+    original = pyproject_path.read_text()
+    original += (
+        "\n[tool.haywire]\n"
+        "# a comment that must survive\n"
+        'os = ["macos", "other", "windows"]\n'
+        "other_key = 1\n"
+    )
+    pyproject_path.write_text(original)
+
+    removed = strip_undeclarable_os_values(lib_dir)
+
+    assert removed == ["other"]
+    text = pyproject_path.read_text()
+    assert "# a comment that must survive" in text
+    assert 'os = ["macos", "windows"]' in text
+    # key order preserved: other_key still follows os on its own line
+    lines = text.splitlines()
+    os_idx = next(i for i, line in enumerate(lines) if line.startswith("os ="))
+    other_key_idx = next(i for i, line in enumerate(lines) if line.startswith("other_key"))
+    assert other_key_idx == os_idx + 1
+
+
+@pytest.mark.unit
+def test_strip_dedups_near_miss_preceding_its_declarable_target(tmp_path: Path) -> None:
+    """Order shouldn't matter: a near-miss listed BEFORE the already-declarable
+    value it maps to must not produce a duplicate (regression for a bug where
+    dedup only checked the running prefix, not the final result)."""
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=["osx", "macos"])
+    removed = strip_undeclarable_os_values(lib_dir)
+
+    assert removed == ["osx"]
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["macos"]' in text
+
+
+@pytest.mark.unit
+def test_strip_returns_empty_list_when_nothing_invalid(tmp_path: Path) -> None:
+    from haywire_studio.share import strip_undeclarable_os_values
+
+    lib_dir = _make_lib(tmp_path, os_decl=["macos", "linux"])
+    removed = strip_undeclarable_os_values(lib_dir)
+
+    assert removed == []
+    text = (lib_dir / "pyproject.toml").read_text()
+    assert 'os = ["macos", "linux"]' in text
+
+
+# ── describe_os_fix (fix_label computation) ─────────────────────────────────
+
+
+@pytest.mark.unit
+def test_describe_os_fix_label_when_all_values_map_to_macos() -> None:
+    from haywire_studio.share import describe_os_fix
+
+    assert describe_os_fix(["osx", "darwin"]) == "Correct to macos"
+
+
+@pytest.mark.unit
+def test_describe_os_fix_label_when_all_values_map_to_windows() -> None:
+    from haywire_studio.share import describe_os_fix
+
+    assert describe_os_fix(["win", "nt"]) == "Correct to windows"
+
+
+@pytest.mark.unit
+def test_describe_os_fix_label_generic_when_values_are_mixed() -> None:
+    from haywire_studio.share import describe_os_fix
+
+    assert describe_os_fix(["osx", "freebsd"]) == "Remove invalid values"
+
+
+@pytest.mark.unit
+def test_describe_os_fix_label_generic_when_unmapped() -> None:
+    from haywire_studio.share import describe_os_fix
+
+    assert describe_os_fix(["other"]) == "Remove invalid values"

@@ -434,6 +434,148 @@ async def test_retry_clears_only_the_error(project: Path) -> None:
     assert wizard.warnings == ["keep me"]
 
 
+# ── precondition fixes (side step) ──────────────────────────────────────────
+
+
+@pytest.fixture
+def os_project(project: Path) -> Path:
+    """`project`, but with an invalid `[tool.haywire].os` declaration."""
+    pyproject = project / "barn" / "haybale-alpha" / "pyproject.toml"
+    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    return project
+
+
+@pytest.fixture
+def noremote_project(tmp_path: Path) -> Path:
+    """A shareable project with NO origin configured at all."""
+    repo = tmp_path / "noremote"
+    repo.mkdir()
+    for args in (
+        ["init"],
+        ["config", "user.email", "t@t.test"],
+        ["config", "user.name", "T"],
+    ):
+        subprocess.run(["git", *args], cwd=repo, check=True, capture_output=True)
+
+    lib = repo / "barn" / "haybale-alpha"
+    (lib / "haybale_alpha").mkdir(parents=True)
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-alpha"\nversion = "0.3.1"\n')
+    subprocess.run(["git", "add", "-A"], cwd=repo, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "seed"], cwd=repo, check=True, capture_output=True)
+    return repo
+
+
+@pytest.mark.anyio
+async def test_strip_os_fix_reaches_checked_with_no_error(os_project: Path) -> None:
+    """The wizard's whole point: take fix_id/lib_dir straight off the failure
+    object (no string-parsing) and land on the same step a clean Check would."""
+    wizard = _wizard(os_project)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.step == "preconditions"
+    assert wizard.precondition_failures
+    matches = [f for f in wizard.precondition_failures if f.fix_id == "strip_os"]
+    assert matches, wizard.precondition_failures
+    failure = matches[0]
+    assert failure.lib_dir is not None
+
+    await wizard.advance_from_preconditions_fix(failure.fix_id, lib_dir=failure.lib_dir)
+
+    assert wizard.step == "checked"
+    assert wizard.error is None
+    assert wizard.precondition_failures is None
+
+
+@pytest.mark.anyio
+async def test_add_origin_fix_against_reachable_remote_reaches_checked(noremote_project: Path) -> None:
+    """A good URL (pointed at a real bare repo) clears the missing-origin
+    failure AND passes reachability, landing on 'checked'."""
+    wizard = _wizard(noremote_project)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.step == "preconditions"
+    matches = [f for f in (wizard.precondition_failures or []) if f.fix_id == "add_origin"]
+    assert matches, wizard.precondition_failures
+
+    other_remote = noremote_project.parent / "other_remote.git"
+    other_remote.mkdir()
+    subprocess.run(["git", "init", "--bare"], cwd=other_remote, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "push", str(other_remote), "HEAD:refs/heads/main"],
+        cwd=noremote_project,
+        check=True,
+        capture_output=True,
+    )
+
+    await wizard.advance_from_preconditions_fix("add_origin", url=str(other_remote))
+
+    assert wizard.step == "checked"
+    assert wizard.error is None
+
+
+@pytest.mark.anyio
+async def test_add_origin_fix_with_bad_url_swaps_in_the_reachability_failure(
+    noremote_project: Path,
+) -> None:
+    """A bad URL: the reachability failure replaces the missing-remote one,
+    with its own remedy. The wizard stays on 'preconditions', not 'checked'."""
+    wizard = _wizard(noremote_project)
+    await wizard.advance_from_preconditions()
+    assert any(f.fix_id == "add_origin" for f in wizard.precondition_failures or [])
+
+    await wizard.advance_from_preconditions_fix(
+        "add_origin", url="https://example.invalid/nowhere/nothing.git"
+    )
+
+    assert wizard.step == "preconditions"
+    assert wizard.error is not None
+    failures = wizard.precondition_failures or []
+    assert not any("No 'origin' remote is configured" in f.message for f in failures)
+    assert any("Cannot reach origin" in f.message for f in failures)
+    reach_failure = next(f for f in failures if "Cannot reach origin" in f.message)
+    assert reach_failure.remedy
+
+
+@pytest.mark.anyio
+async def test_fix_success_never_advances_past_checked(os_project: Path) -> None:
+    """The user still has to click Scan — a fix+recheck stops exactly where a
+    normal successful Check would, never at 'drift' or beyond."""
+    wizard = _wizard(os_project)
+    await wizard.advance_from_preconditions()
+    failure = next(f for f in wizard.precondition_failures if f.fix_id == "strip_os")
+
+    await wizard.advance_from_preconditions_fix(failure.fix_id, lib_dir=failure.lib_dir)
+
+    assert wizard.step == "checked"
+    assert wizard.drift_report is None
+
+
+@pytest.mark.anyio
+async def test_failing_fix_is_caught_and_rendered_without_crashing(project: Path) -> None:
+    """add_origin against a project that already has an origin raises
+    PreconditionsError from a completely different call path than step 1's
+    batch check — it must still land in the existing _fail()/error rendering
+    without crashing, and the wizard must stay on 'preconditions'."""
+    wizard = _wizard(project)
+    await wizard.advance_from_preconditions()
+    assert wizard.step == "checked"  # `project` fixture already has an origin
+
+    # Force the wizard back to the preconditions step to exercise the fix
+    # path the way the UI would (the button only ever appears there).
+    wizard.step = "preconditions"
+
+    await wizard.advance_from_preconditions_fix("add_origin", url="git@example.com:foo/bar.git")
+
+    assert wizard.step == "preconditions"
+    assert wizard.error is not None
+    assert "already exists" in wizard.error
+    # This is a single synthesized failure, not a step-1 batch report — the
+    # existing _fail() still renders it as one failure row without crashing.
+    assert wizard.precondition_failures is not None
+    assert len(wizard.precondition_failures) == 1
+    assert wizard.precondition_failures[0].fix_id is None
+
+
 def test_every_drift_choice_is_explained() -> None:
     """The three words can't carry the semantics on their own: the choice that
     sounds safest (Replace) deletes, and the neutral-sounding one (Skip) ships

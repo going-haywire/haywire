@@ -155,6 +155,39 @@ class ShareWizard:
             return
         self.step = "checked"
 
+    async def advance_from_preconditions_fix(self, fix_id: str, **kwargs: str) -> None:
+        """Apply one precondition repair, then re-check from scratch.
+
+        This is the side step off "preconditions": a failure's own fix
+        button, not the main Check button. The repair itself never proves the
+        project is now shareable — only a full re-check does — so this always
+        re-runs :meth:`SharePipeline.check_preconditions` afterwards and
+        replaces ``precondition_failures`` with whatever it finds, same as a
+        fresh Check click would. Success lands on "checked", exactly where
+        the Check button lands; it never reaches past that on its own — the
+        user still presses Scan.
+
+        ``apply_precondition_fix`` can itself raise ``PreconditionsError``
+        (e.g. add_origin finding a pre-existing remote) — a single
+        synthesized failure from a wholly different call path than step 1's
+        batch report, but still a ``ShareError``, so ``_fail`` renders it the
+        same way: one failure, one message/remedy row, no fix_id on it.
+        """
+        self.retry()
+        try:
+            await asyncio.to_thread(self.pipeline.apply_precondition_fix, fix_id, **kwargs)
+            report = await asyncio.to_thread(self.pipeline.check_preconditions)
+        except ShareError as exc:
+            self._fail(exc)
+            return
+        if not report.ok:
+            self.preconditions_report = None
+            self.precondition_failures = report.failures
+            self.error = "Cannot share this project yet."
+            return
+        self.preconditions_report = report
+        self.step = "checked"
+
     async def advance_from_checked(self) -> None:
         """Run the drift scan. Costs ~0.5s per barn library, so: a thread."""
         self.retry()
@@ -324,6 +357,8 @@ def _render_error(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
                                 ui.label(failure.remedy).classes(
                                     "text-xs hw-text-dim font-mono whitespace-pre-line"
                                 )
+                            if failure.fix_id:
+                                _render_fix(wizard, rerender, failure)
             else:
                 ui.label(wizard.error).classes("text-xs hw-text-danger whitespace-pre-line")
             if wizard.manual_command:
@@ -334,6 +369,50 @@ def _render_error(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         rerender()
 
     ui.button("Retry", on_click=_retry).props("flat dense")
+
+
+def _render_fix(wizard: ShareWizard, rerender: Callable[[], None], failure: PreconditionFailure) -> None:
+    """One failure's own repair button, inline in its message/remedy row.
+
+    ``add_origin`` is the only fix that takes user input — its URL field is
+    the wizard's one and only form, kept inline here rather than in a dialog.
+    The button stays disabled until that field is non-empty; every other fix
+    needs no input and its button is live immediately.
+    """
+    fix_id = failure.fix_id
+    assert fix_id is not None  # guarded by the caller
+
+    with ui.row().classes("w-full items-center gap-2 mt-1"):
+        url_input: ui.input | None = None
+        if fix_id == "add_origin":
+            url_input = hui.input_field(placeholder="git remote URL").classes("flex-1")
+
+        fix_button = (
+            ui.button(failure.fix_label or "Fix").props("flat dense").style("color: var(--hw-positive);")
+        )
+
+        def _kwargs() -> dict[str, str]:
+            if url_input is not None:
+                return {"url": (url_input.value or "").strip()}
+            return {"lib_dir": failure.lib_dir} if failure.lib_dir is not None else {}
+
+        fix_button.on_click(
+            lambda: _busy_advance(
+                wizard,
+                rerender,
+                fix_button,
+                lambda: wizard.advance_from_preconditions_fix(fix_id, **_kwargs()),
+            )
+        )
+
+        if url_input is not None:
+            fix_button.set_enabled(False)
+            bound_input = url_input
+
+            def _on_url_change() -> None:
+                fix_button.set_enabled(bool((bound_input.value or "").strip()))
+
+            bound_input.on_value_change(_on_url_change)
 
 
 def _render_warnings(wizard: ShareWizard) -> None:
