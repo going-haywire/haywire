@@ -217,42 +217,6 @@ uv run python -m haywire_studio
 - **Edge lifecycle**: Three-tier (`link`, `unlink`, `detach`) with two-tier port storage (`_linked_edges` + `_all_edges`)
 - **Lazy propagation**: Per-edge `is_lazy` flag; dirty model defers `on_change` to execution time
 
-### Creating a Library
-
-Each haybale library follows this pattern:
-
-```python
-# haybale_mylib/__init__.py
-from pathlib import Path
-from haywire.core.library.base import BaseLibrary
-from haywire.core.library.decorator import library
-from haywire.core.node.registry import NodeRegistry
-
-@library(
-    label='My Library',
-    id='mylib',
-    version='1.0.0',
-    file_watcher=True,  # enable hot-reload
-)
-class Library(BaseLibrary):
-    def register_components(self):
-        base_path = Path(__file__).parent
-        self.add_folder_to_registry(
-            folder_path=str(base_path / 'nodes'),
-            registry_cls=NodeRegistry,
-        )
-
-    def validate(self) -> bool:
-        return True
-```
-
-Register it via entry point in `pyproject.toml`:
-
-```toml
-[project.entry-points."haywire.libraries"]
-mylib = "haybale_mylib:Library"
-```
-
 ### Testing
 
 ```sh
