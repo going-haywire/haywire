@@ -466,3 +466,14 @@ class TestDevModeProjectRegistration:
         assert {"haybale-studio", "haybale-graph-editor"} <= deps
         # The decorator only declares haybale libraries — no framework/PyPI deps.
         assert all(d.startswith("haybale-") for d in deps)
+
+
+def test_scaffold_pin_has_no_ceiling():
+    """A floor restricts consumers; a ceiling stamped at scaffold time becomes
+    a lie the moment the excluded version ships. Authors who want one type it."""
+    from haywire_studio.init import _release_pin
+
+    pin = _release_pin()
+
+    assert pin.startswith(">=")
+    assert "<" not in pin

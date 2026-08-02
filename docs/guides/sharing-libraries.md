@@ -138,25 +138,31 @@ Each `barn/*` library becomes one `[[haybales]]` entry in the generated
 
 ```toml
 [[haybales]]
-name         = "haybale-my-lib"
-label        = "My Lib"
-min_version  = "0.1.0"
-description  = "One-line summary of what the library does."
-author       = "Your Name"
-source       = "git"
-install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
-tags         = ["vision", "experimental"]
-os           = ["macos", "linux"]
-dependencies = ["haybale-core"]
-source_url   = "https://github.com/you/repo"
-docs_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
+name             = "haybale-my-lib"
+label            = "My Lib"
+version          = "0.1.0"
+requires_haywire = ">=0.0.31"
+description      = "One-line summary of what the library does."
+author           = "Your Name"
+source           = "git"
+install_spec     = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
+tags             = ["vision", "experimental"]
+os               = ["macos", "linux"]
+dependencies     = ["haybale-core"]
+source_url       = "https://github.com/you/repo"
+docs_url         = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
 ```
 
 A few points worth knowing as an author (every field is defined in [the `Haybale` schema](../haybale/marketplace/haybale-marketplace-arch.md#23-the-haybale-schema)):
 
 - `source = "git"` and the `install_spec` with `#subdirectory=` are how `haywire share` packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI.
 - `dependencies` lists pip distribution names of the haybale libraries you depend on — *not* the underscore form used inside the `@library` decorator.
-- `min_version` is a *floor*, not "latest". Consumers may install a higher version.
+- `version` is the version this entry advertises — what you published. It is not
+  a floor and nothing resolves against it; its only job is the update comparison.
+- `requires_haywire` declares which framework versions your library needs, as a
+  full PEP 440 specifier. Keep it as low as your library actually allows: a floor
+  restricts *consumers*, and raising it forces every one of them to update their
+  project before they can install you.
 - The four ref-bearing URLs (`install_spec`, `docs_url`, `examples_url`, `tests_url`) all pin to the release tag `v<version>` created by this run — not the branch you published from — so they stay correct even after your branch is deleted.
 
 `haywire share` derives all this from each library's `pyproject.toml`, its `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.

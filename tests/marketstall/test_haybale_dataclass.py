@@ -9,9 +9,9 @@ import pytest
 def test_haybale_minimal_construction() -> None:
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="haybale-foo", min_version="0.1.0")
+    h = Haybale(name="haybale-foo", version="0.1.0")
     assert h.name == "haybale-foo"
-    assert h.min_version == "0.1.0"
+    assert h.version == "0.1.0"
     assert h.label == ""
     assert h.os == []  # absent = all platforms per §2.1
 
@@ -22,7 +22,7 @@ def test_haybale_full_construction() -> None:
 
     h = Haybale(
         name="haybale-vision",
-        min_version="0.2.0",
+        version="0.2.0",
         label="Vision",
         description="A library",
         author="Alice",
@@ -42,7 +42,7 @@ def test_haybale_full_construction() -> None:
 def test_haybale_cache_fields_default_empty() -> None:
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="x", min_version="0.0.1")
+    h = Haybale(name="x", version="0.0.1")
     assert h.via == ""
     assert h.last_seen == ""
     assert h.stale is False
@@ -58,10 +58,10 @@ def test_haybale_to_dict_omits_empty_fields() -> None:
     """
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="haybale-foo", min_version="0.1.0")
+    h = Haybale(name="haybale-foo", version="0.1.0")
     d = h.to_dict()
     assert d["name"] == "haybale-foo"
-    assert d["min_version"] == "0.1.0"
+    assert d["version"] == "0.1.0"
     # Empty/default falsy fields are omitted.
     assert "os" not in d
     assert "tags" not in d
@@ -76,7 +76,7 @@ def test_haybale_to_dict_omits_empty_fields() -> None:
 def test_haybale_to_dict_includes_os_when_present() -> None:
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="haybale-foo", min_version="0.1.0", os=["macos", "linux"])
+    h = Haybale(name="haybale-foo", version="0.1.0", os=["macos", "linux"])
     d = h.to_dict()
     assert d["os"] == ["macos", "linux"]
 
@@ -238,3 +238,17 @@ def test_public_surface_imports_from_marketstall_package() -> None:
     assert hasattr(marketstall, "classify_input")
     assert hasattr(marketstall, "InputForm")
     assert hasattr(marketstall, "BareRepoUrlRejectedError")
+
+
+@pytest.mark.unit
+def test_requires_haywire_defaults_empty_and_round_trips():
+    """requires_haywire holds a FULL PEP 440 specifier, not a bare version —
+    the author picks the operator. Absent means no declared requirement."""
+    from haywire.core.marketstall import Haybale
+
+    bare = Haybale(name="haybale-foo", version="0.1.0")
+    assert bare.requires_haywire == ""
+    assert "requires_haywire" not in bare.to_dict()
+
+    declared = Haybale(name="haybale-foo", version="0.1.0", requires_haywire=">=0.0.31,<1.0.0")
+    assert declared.to_dict()["requires_haywire"] == ">=0.0.31,<1.0.0"

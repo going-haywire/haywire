@@ -69,7 +69,8 @@ All `[[haybales]]` and `[[caches]]` entries (in both files, plus what marketplac
 | Field | Type | Required | Description |
 |---|---|---|---|
 | `name` | string | yes | Pip distribution name (e.g. `haybale-visiongraph`). |
-| `min_version` | string | yes | Minimum required version; pip may install higher. In practice this is the version the author is currently publishing. |
+| `version` | string | yes | The version this entry advertises — what the author published. Not a floor; nothing resolves against it. Its only job is the update comparison. |
+| `requires_haywire` | string | no | Full PEP 440 specifier for the framework this library needs (`>=0.0.31`). Absent means undeclared. |
 | `label` | string | no | Human display name. |
 | `description` | string | no | One-line description. |
 | `author` | string | no | Author name(s). |
@@ -170,7 +171,7 @@ Each refresh produces a `RefreshReport` cached on `MarketplaceState.last_report`
 | `unavailable_urls` | list[str] | The specific URLs in the previous count. Drives the yellow banner. |
 | `haybales_resolved` | int | Non-stale entries in the final cache. |
 | `new_stale` | int | Entries that became stale on this refresh (previously fresh). |
-| `updates_available` | int | Installed haybales whose cache `min_version` exceeds the installed version. Surfaced in the post-refresh toast. |
+| `updates_available` | int | Installed haybales whose cache `version` exceeds the installed version. Surfaced in the post-refresh toast. |
 
 ## 4. State and ownership
 
@@ -256,6 +257,24 @@ After install, the Library System inspects each library's filesystem location an
 | Hot-reload | yes | no | yes |
 | Disable / Enable | yes | yes | yes |
 | Uninstall | yes (`uv pip uninstall`) | yes | yes |
+
+### 5.2 Framework version gate
+
+Every marketplace install (`dry_run()` and `install()` alike, with identical
+flags) passes `uv pip install -c <constraints>` pinning `haywire-core`,
+`haywire-studio`, and `nicegui` to their **currently-installed exact versions**
+— read from the running venv, because a declared `Requires-Dist` can itself be
+stale while what is running cannot.
+
+`uv pip install <spec>` resolves fresh against the requested spec's tree;
+already-installed packages are only reuse candidates. Without the constraint
+file, taking a haybale update can pull `haywire-core` forward while
+`haywire-studio` stays put — old studio + new core is an `ImportError` at
+runtime. With it, that resolution simply fails, and the failure names the
+shell's "Check for updates" control as the remedy.
+
+The `haybale-*` libraries are deliberately **not** constrained: upgrading them
+is exactly what a marketplace install is for.
 
 ## 6. Drift detection at edit time
 
@@ -343,20 +362,21 @@ Running `haywire share` at a repo root with a `barn/` containing libraries write
 # Run: haywire share   to update this file
 
 [[haybales]]
-name         = "haybale-my-lib"
-label        = "My Lib"
-min_version  = "0.1.0"
-description  = "..."
-author       = "Your Name"
-source       = "git"
-install_spec = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
-tags         = []
-os           = []
-dependencies = ["haybale-core"]
-source_url   = "https://github.com/you/repo"
-docs_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
-examples_url = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/examples/"
-tests_url    = ""
+name             = "haybale-my-lib"
+label            = "My Lib"
+version          = "0.1.0"
+requires_haywire = ">=0.0.31"
+description      = "..."
+author           = "Your Name"
+source           = "git"
+install_spec     = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
+tags             = []
+os               = []
+dependencies     = ["haybale-core"]
+source_url       = "https://github.com/you/repo"
+docs_url         = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
+examples_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/examples/"
+tests_url        = ""
 ```
 
 `examples_url` is populated here because that library ships `.haywire` graphs under `examples/`; `tests_url` is empty because it ships none under `tests/`.

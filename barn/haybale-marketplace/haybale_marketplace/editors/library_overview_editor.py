@@ -330,25 +330,18 @@ class LibraryOverviewEditor(BaseEditor):
         else:
             assert marketplace_pkg is not None
             name = marketplace_pkg.label or marketplace_pkg.name
-            version = marketplace_pkg.min_version
+            version = marketplace_pkg.version
             description = marketplace_pkg.description
             author = marketplace_pkg.author
             tags = marketplace_pkg.tags or []
 
         # Check for available update
         update_available = False
-        if (
-            marketplace_pkg
-            and installed_lib
-            and marketplace_pkg.min_version
-            and installed_lib.identity.version
-        ):
+        if marketplace_pkg and installed_lib and marketplace_pkg.version and installed_lib.identity.version:
             try:
                 from packaging.version import Version
 
-                update_available = Version(marketplace_pkg.min_version) > Version(
-                    installed_lib.identity.version
-                )
+                update_available = Version(marketplace_pkg.version) > Version(installed_lib.identity.version)
             except Exception:
                 pass
 
@@ -399,7 +392,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 src_color = "blue" if marketplace_pkg.source == "pypi" else "purple"
                                 hui.tag(marketplace_pkg.source, color=src_color)
                             if update_available and marketplace_pkg:
-                                hui.tag(f"v{marketplace_pkg.min_version} available", color="orange")
+                                hui.tag(f"v{marketplace_pkg.version} available", color="orange")
 
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):

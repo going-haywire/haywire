@@ -187,6 +187,50 @@ def _panel_drift(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     _on_change()
 
 
+def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """One project-wide framework requirement, with counted consequences.
+
+    A floor restricts CONSUMERS rather than recording what you tested, so the
+    recommended option keeps the current declaration — it locks nobody out.
+    """
+    plan = wizard.framework_plan
+    if plan is None:
+        return
+
+    hui.section_label("Framework requirement")
+    ui.label(f"haywire-core, installed: {plan.installed or 'unknown'}").classes(
+        "text-xs hw-text-dim font-mono"
+    )
+
+    options = {opt.specifier: f"{opt.specifier} — {opt.label}" for opt in plan.options}
+    options["custom"] = "custom…"
+    default = next((o.specifier for o in plan.options if o.recommended), next(iter(options)))
+    # in_popup for the same reason as the drift and version selects.
+    choice = hui.select_field(options=options, value=default, label="Requires", in_popup=True).classes(
+        "w-full"
+    )
+    custom = hui.input_field(placeholder=">=0.0.31")
+    custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
+
+    consequences = {opt.specifier: opt.consequence for opt in plan.options}
+    note = ui.label("").classes("text-xs hw-text-dim")
+
+    def _describe() -> None:
+        note.text = consequences.get(str(choice.value), "")
+
+    _describe()
+    choice.on_value_change(lambda _: _describe())
+
+    def _spec() -> str:
+        return (custom.value or "").strip() if choice.value == "custom" else str(choice.value)
+
+    with ui.row().classes("w-full justify-end gap-2"):
+        ui.button(
+            "Continue",
+            on_click=lambda: _advance(wizard, rerender, lambda: wizard.advance_from_framework(_spec())),
+        ).props("flat dense").style("color: var(--hw-positive);")
+
+
 def _panel_version(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     plan = wizard.version_plan
     if plan is None:

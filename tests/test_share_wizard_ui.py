@@ -158,7 +158,7 @@ async def test_drift_union_advances(project: Path) -> None:
         await wizard.advance_from_checked()
         with patch.object(steps_drift, "apply_drift_fix"):
             await wizard.advance_from_drift("union")
-    assert wizard.step == "version"
+    assert wizard.step == "framework"
 
 
 @pytest.mark.anyio
@@ -168,7 +168,7 @@ async def test_drift_skip_records_the_acknowledgement(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
-    assert wizard.step == "version"
+    assert wizard.step == "framework"
     assert wizard.pipeline.drift_acknowledged is True
 
 
@@ -179,6 +179,7 @@ async def test_version_plan_is_loaded_for_the_next_panel(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     assert wizard.version_plan is not None
     assert wizard.version_plan.common_version == "0.3.1"
 
@@ -193,6 +194,7 @@ async def test_version_bump_advances_to_docs(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     assert wizard.step == "docs"
     assert wizard.pipeline.version == "0.3.2"
@@ -207,6 +209,7 @@ async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
 
     assert wizard.step == "version"
@@ -222,6 +225,7 @@ async def test_lock_warning_surfaces_without_blocking(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     with patch.object(steps_version, "refresh_lockfile", return_value=(False, "uv lock failed: boom")):
         await wizard.advance_from_version("patch")
 
@@ -240,6 +244,7 @@ async def test_docs_step_advances_and_keeps_coverage(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -258,6 +263,7 @@ async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
 
     with patch.object(
@@ -278,6 +284,7 @@ async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
 
     async def _streamy(self, on_output=None):
@@ -303,6 +310,7 @@ async def test_commit_advances_to_push(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -323,6 +331,7 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -356,6 +365,7 @@ async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
     asset.write_bytes(b"\x89PNG")
@@ -384,6 +394,7 @@ async def test_push_completes_the_wizard(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -403,6 +414,7 @@ async def test_push_failure_is_retryable_in_place(project: Path) -> None:
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
         await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()

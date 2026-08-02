@@ -32,12 +32,13 @@ def run_share_cli(
     yes: bool,
     bump: str | None,
     message: str | None,
+    requires_haywire: str | None = None,
 ) -> int:
     """Dispatch to one of the two modes and return the process exit code."""
     pipeline = SharePipeline(repo_root)
     try:
         if yes:
-            return _run_yes(pipeline, bump=bump, message=message)
+            return _run_yes(pipeline, bump=bump, message=message, requires_haywire=requires_haywire)
         return _run_interactive(pipeline)
     except ShareError as exc:
         print(f"\n✗ {exc}")
@@ -47,11 +48,27 @@ def run_share_cli(
 # ── --yes ────────────────────────────────────────────────────────────────────
 
 
+def _resolve_framework_answer(pipeline: SharePipeline, specifier: str | None) -> str | None:
+    """Apply a supplied framework specifier, or leave the declaration alone.
+
+    No flag means keep the declared floor. That default is INERT — it changes
+    nothing and locks nobody out — which is exactly what --yes is for. This
+    differs from the drift precedent, which refuses in --yes mode because both
+    of its options mutate and one is lossy. Raising a floor, the
+    consumer-excluding direction, always needs the explicit flag.
+    """
+    if specifier is None:
+        return None
+    pipeline.apply_framework(specifier)
+    return specifier
+
+
 def _run_yes(
     pipeline: SharePipeline,
     *,
     bump: str | None,
     message: str | None,
+    requires_haywire: str | None = None,
 ) -> int:
     """Full non-interactive run. Every decision must arrive as a flag."""
     if not bump:
@@ -71,6 +88,12 @@ def _run_yes(
             print(f"  - {d.lib_dir.name}")
         return EXIT_FAILED
     print("✓ No dependency drift")
+
+    answer = _resolve_framework_answer(pipeline, requires_haywire)
+    if answer:
+        print(f"✓ Framework requirement set to {answer}")
+    else:
+        print("✓ Framework requirement unchanged")
 
     bump_result = pipeline.apply_bump(bump)
     print(f"✓ Bumped every barn library to {bump_result.version}")
@@ -147,6 +170,28 @@ def _run_interactive(pipeline: SharePipeline) -> int:
             print("⚠ Continuing with unresolved drift")
     else:
         print("✓ No drift")
+
+    print("\n── 2b. Framework requirement ──")
+    fw = pipeline.plan_framework()
+    print(f"  haywire-core, installed: {fw.installed or '(unknown)'}")
+    for index, option in enumerate(fw.options, start=1):
+        mark = "  [recommended]" if option.recommended else ""
+        print(f"  {index}. {option.specifier}   {option.label}{mark}")
+        if option.consequence:
+            print(f"       {option.consequence}")
+    print(f"  {len(fw.options) + 1}. custom …   any valid PEP 440 specifier")
+    choice = _ask("Choose", default="1")
+    if choice.strip() == str(len(fw.options) + 1):
+        pipeline.apply_framework(_ask("Specifier (e.g. >=0.0.31)"))
+        print(f"✓ Framework requirement set to {pipeline.requires_haywire}")
+    else:
+        try:
+            picked = fw.options[int(choice) - 1]
+        except (ValueError, IndexError):
+            print("✗ Not one of the offered options.")
+            return EXIT_FAILED
+        pipeline.apply_framework(picked.specifier)
+        print(f"✓ Framework requirement set to {pipeline.requires_haywire}")
 
     print("\n── 3. Version ──")
     version_plan = pipeline.plan_version()

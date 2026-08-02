@@ -11,6 +11,8 @@ from haywire_studio.packaging.share.pipeline import (
     CommitPlan,
     DocsGenerationError,
     DriftReport,
+    FrameworkOption,
+    FrameworkPlan,
     LibraryVersion,
     ManifestError,
     MarketstallError,
@@ -133,3 +135,12 @@ def test_push_error_carries_the_manual_command() -> None:
     exc = PushError(stderr="denied", manual_command="git p" + "ush origin master v0.2.0")
     assert exc.manual_command.endswith("v0.2.0")
     assert "denied" in str(exc)
+
+
+def test_framework_plan_carries_installed_declared_and_options() -> None:
+    option = FrameworkOption(
+        specifier=">=0.0.31", label="keep the current declaration", consequence="", recommended=True
+    )
+    plan = FrameworkPlan(installed="0.0.34", declared=">=0.0.31", options=[option])
+    assert plan.options[0].recommended
+    assert plan.installed == "0.0.34"

@@ -87,7 +87,7 @@ What refresh does, in concept:
 5. Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).
 6. Deduplicates by name (first occurrence wins for any straggler).
 7. Marks newly-missing entries as stale (see §7). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as `stale=true`.
-8. Counts installed libraries whose cache `min_version` exceeds the installed version (updates available, see §9).
+8. Counts installed libraries whose cache `version` exceeds the installed version (updates available, see §9).
 9. Writes the result to your project marketplace's `[[caches]]` section.
 
 After a successful refresh, a green toast summarizes: `"Refreshed N package(s) · M source(s) unavailable · K newly stale · L update(s) available"`. The middle phrases appear only when relevant.
@@ -163,7 +163,7 @@ If the library declares haybale dependencies that you don't have installed, the 
 
 ### 9.1 Updates available
 
-For each installed haybale, refresh compares the installed distribution version against the cache `min_version`. When the cache says you need at least `0.5.0` and you have `0.1.0` installed, an update is available:
+For each installed haybale, refresh compares the installed distribution version against the cache `version` — the version the author published. When the cache advertises `0.5.0` and you have `0.1.0` installed, an update is available:
 
 - The Library Browser row shows a quiet **▲ "v0.5.0 available"** indicator alongside the installed version.
 - The post-refresh toast appends a count: `"... · 2 update(s) available"`.

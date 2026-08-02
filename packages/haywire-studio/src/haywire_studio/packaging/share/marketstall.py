@@ -25,7 +25,9 @@ from haywire_studio.packaging.share.url import (
 )
 
 
-def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict | None:
+def _build_entry_for_library(
+    lib_dir: Path, *, tag: str | None = None, requires_haywire: str = ""
+) -> dict | None:
     """Build a marketplace entry for one library directory.
 
     Returns the entry dict (TOML-serializable), or None if `lib_dir` lacks a
@@ -40,6 +42,11 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     None (standalone `write_marketstall()` calls outside the pipeline, or a
     repo with no tags yet), falls back to the previous branch/ref-less
     behavior unchanged.
+
+    `requires_haywire` is the project-wide framework specifier the share
+    pipeline authored (step 2b). Empty for standalone calls — the key is then
+    omitted from the entry entirely rather than written as "", so an absent
+    declaration stays absent.
     """
     pyproject_path = lib_dir / "pyproject.toml"
     if not pyproject_path.exists():
@@ -137,7 +144,8 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     return Haybale(
         name=name,
         label=label,
-        min_version=version,
+        version=version,
+        requires_haywire=requires_haywire,
         description=description,
         author=author,
         source="git",
@@ -175,7 +183,9 @@ class MarketstallWriteResult:
         return [self.out_path, *self.readmes]
 
 
-def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> list[dict]:
+def build_marketstall_entries(
+    repo_root: Path, *, tag: str | None = None, requires_haywire: str = ""
+) -> list[dict]:
     """Build a marketstall entry for every ``barn/*`` library, sorted by directory.
 
     The feed's contract is "every haybale this repo offers", so it is always
@@ -186,6 +196,9 @@ def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> lis
     docs_url, examples_url, tests_url) to that tag instead of the current
     branch — see :func:`_build_entry_for_library`.
 
+    ``requires_haywire``, when given, is stamped on every entry — see
+    :func:`_build_entry_for_library`.
+
     Raises :class:`NoBarnError` when ``<repo_root>/barn`` does not exist.
     """
     barn = repo_root / "barn"
@@ -194,7 +207,7 @@ def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> lis
 
     entries: list[dict] = []
     for lib_dir in barn_library_dirs(repo_root):
-        entry = _build_entry_for_library(lib_dir, tag=tag)
+        entry = _build_entry_for_library(lib_dir, tag=tag, requires_haywire=requires_haywire)
         if entry is not None:
             entries.append(entry)
     return entries
@@ -211,6 +224,7 @@ def write_marketstall(
     *,
     update_readme: bool = True,
     tag: str | None = None,
+    requires_haywire: str = "",
 ) -> MarketstallWriteResult:
     """Rebuild ``<repo_root>/marketstall.toml`` from every ``barn/*`` library.
 
@@ -224,8 +238,11 @@ def write_marketstall(
     (the version is resolved and reserved in step 3, before this runs in
     step 5); direct/standalone callers that don't have a tag yet get the
     previous branch-based behavior unchanged.
+
+    ``requires_haywire``, when given, is stamped on every entry (step 2b of
+    the pipeline authors it before this runs).
     """
-    entries = build_marketstall_entries(repo_root, tag=tag)
+    entries = build_marketstall_entries(repo_root, tag=tag, requires_haywire=requires_haywire)
 
     out_path = repo_root / "marketstall.toml"
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))

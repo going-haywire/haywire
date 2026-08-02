@@ -31,6 +31,16 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         default=None,
         help="Commit message. Defaults to 'chore: share v<version>'.",
     )
+    parser.add_argument(
+        "--requires-haywire",
+        type=str,
+        default=None,
+        metavar="SPECIFIER",
+        help="PEP 440 specifier for the framework this project needs "
+        "(e.g. '>=0.0.31', '~=0.0.31'). Written to every barn library's "
+        "haywire-core floor AND to the marketstall entry. Omitted: the "
+        "declared floor is kept unchanged.",
+    )
     parser.set_defaults(handler=_run)
 
 
@@ -42,4 +52,5 @@ def _run(args: argparse.Namespace) -> int:
         yes=args.yes,
         bump=args.bump,
         message=args.message,
+        requires_haywire=args.requires_haywire,
     )

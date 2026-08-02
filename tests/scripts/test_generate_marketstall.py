@@ -78,7 +78,7 @@ def test_build_entry_uses_decorator_values_over_pyproject() -> None:
 
     assert entry["name"] == "haybale-alpha"
     assert entry["label"] == "Alpha"
-    assert entry["min_version"] == "0.0.3"
+    assert entry["version"] == "0.0.3"
     # Decorator overrides pyproject for description:
     assert entry["description"] == "Alpha library — overridden in pyproject? Decorator wins."
     assert entry["author"] == "Alpha Author"
@@ -164,7 +164,7 @@ def test_emit_stall_toml_round_trips_via_tomllib() -> None:
     entry = {
         "name": "haybale-alpha",
         "label": "Alpha",
-        "min_version": "0.0.3",
+        "version": "0.0.3",
         "description": "alpha desc",
         "author": "Alpha Author",
         "source": "pypi",
@@ -194,7 +194,7 @@ def test_emit_stall_toml_includes_name_in_header() -> None:
     so a human reader can identify it without parsing TOML."""
     entry = {
         "name": "haybale-x",
-        "min_version": "0.0.1",
+        "version": "0.0.1",
         "label": "X",
         "description": "d",
         "author": "a",
@@ -242,7 +242,7 @@ def test_emit_stall_toml_escapes_quotes_in_strings() -> None:
     entry = {
         "name": "haybale-x",
         "label": 'X with "quotes"',
-        "min_version": "0.0.1",
+        "version": "0.0.1",
         "description": "desc",
         "author": "Author",
         "source": "pypi",
@@ -265,7 +265,7 @@ def test_emit_stall_toml_escapes_control_characters() -> None:
     entry = {
         "name": "haybale-multi",
         "label": "Multi",
-        "min_version": "0.0.1",
+        "version": "0.0.1",
         "description": "Line one.\nLine two with a tab\there.",
         "author": "Author",
         "source": "pypi",
@@ -325,7 +325,7 @@ def test_generate_walks_publish_order_and_returns_toml(tmp_path: Path) -> None:
     assert [dist for dist, _body in result.stalls] == ["haybale-alpha", "haybale-beta"]
     alpha_parsed = tomllib.loads(result.stalls[0][1])
     assert alpha_parsed["haybales"][0]["name"] == "haybale-alpha"
-    assert alpha_parsed["haybales"][0]["min_version"] == "0.0.3"
+    assert alpha_parsed["haybales"][0]["version"] == "0.0.3"
     assert alpha_parsed["haybales"][0]["docs_url"].endswith("/subdir-a/haybale-alpha/haybale_alpha/")
 
     # Aggregator: one [[stalls]] per dist, URLs composed under feed_base_url.

@@ -5,7 +5,7 @@ from haywire.core.marketstall.types import Haybale
 def test_haybale_round_trips_examples_and_tests_url():
     hb = Haybale(
         name="lib",
-        min_version="1.0.0",
+        version="1.0.0",
         examples_url="https://raw.example.com/lib/examples/",
         tests_url="https://raw.example.com/lib/tests/",
     )
@@ -15,7 +15,7 @@ def test_haybale_round_trips_examples_and_tests_url():
 
 
 def test_empty_urls_are_omitted_from_toml_dict():
-    hb = Haybale(name="lib", min_version="1.0.0")
+    hb = Haybale(name="lib", version="1.0.0")
     d = hb.to_dict()
     assert "examples_url" not in d
     assert "tests_url" not in d
@@ -25,7 +25,7 @@ def test_parse_reads_examples_and_tests_url():
     body = (
         "[[haybales]]\n"
         'name = "lib"\n'
-        'min_version = "1.0.0"\n'
+        'version = "1.0.0"\n'
         'examples_url = "https://raw.example.com/lib/examples/"\n'
         'tests_url = "https://raw.example.com/lib/tests/"\n'
     )

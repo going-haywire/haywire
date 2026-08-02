@@ -145,7 +145,7 @@ def test_classify_pasted_toml_block() -> None:
     """Form 4: pasted TOML, not a URL."""
     from haywire.core.marketstall.url_resolution import classify_input, InputForm
 
-    block = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    block = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
     result = classify_input(block)
     assert result.form is InputForm.PASTED_BLOCK
     assert result.toml_body == block

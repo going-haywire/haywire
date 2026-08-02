@@ -163,7 +163,7 @@ def build_entry(
     return {
         "name": name,
         "label": meta.label or name,
-        "min_version": version,
+        "version": version,
         "description": meta.description or pyproject_description,
         "author": meta.author or config.default_author,
         "source": source,
@@ -202,7 +202,7 @@ def _strip_github_prefix(url: str) -> str:
 _ENTRY_FIELD_ORDER: tuple[str, ...] = (
     "name",
     "label",
-    "min_version",
+    "version",
     "description",
     "author",
     "source",

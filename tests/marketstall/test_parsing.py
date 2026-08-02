@@ -13,10 +13,10 @@ from haywire.core.marketstall.errors import MalformedMarketplaceError
 def test_parse_haybale_entry_minimal() -> None:
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
-    raw = {"name": "haybale-foo", "min_version": "0.1.0"}
+    raw = {"name": "haybale-foo", "version": "0.1.0"}
     h = _parse_haybale_entry(raw)
     assert h.name == "haybale-foo"
-    assert h.min_version == "0.1.0"
+    assert h.version == "0.1.0"
     assert h.os == []
 
 
@@ -26,7 +26,7 @@ def test_parse_haybale_entry_full() -> None:
 
     raw = {
         "name": "haybale-vision",
-        "min_version": "0.2.0",
+        "version": "0.2.0",
         "label": "Vision",
         "description": "X",
         "author": "Alice",
@@ -52,7 +52,7 @@ def test_parse_haybale_entry_missing_name_raises() -> None:
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
     with pytest.raises(MalformedMarketplaceError, match="name"):
-        _parse_haybale_entry({"min_version": "0.1.0"})
+        _parse_haybale_entry({"version": "0.1.0"})
 
 
 @pytest.mark.unit
@@ -157,7 +157,7 @@ def test_parse_global_marketplace_all_three_sections(tmp_path: Path) -> None:
         "\n"
         "[[haybales]]\n"
         'name = "haybale-inline"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
     )
     mf = parse_global_marketplace(f)
     assert len(mf.markets) == 1
@@ -202,7 +202,7 @@ def test_parse_project_marketplace_both_sections(tmp_path: Path) -> None:
         "\n"
         "[[caches]]\n"
         'name = "haybale-foo"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
         'via = "https://feed.example/marketstall.toml"\n'
         'last_seen = "2026-05-20T00:00:00Z"\n'
         "stale = false\n"
@@ -232,7 +232,7 @@ def test_parse_project_marketplace_drops_global_only_sections(tmp_path: Path) ->
 def test_parse_marketstall_body_haybales_only() -> None:
     from haywire.core.marketstall.parsing import parse_marketstall_body
 
-    body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
     haybales = parse_marketstall_body(body)
     assert len(haybales) == 1
     assert haybales[0].name == "haybale-foo"
@@ -252,7 +252,7 @@ def test_parse_marketstall_body_silently_drops_extra_sections() -> None:
         "\n"
         "[[haybales]]\n"
         'name = "haybale-foo"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
     )
     haybales = parse_marketstall_body(body)
     assert len(haybales) == 1
@@ -279,7 +279,7 @@ def test_parse_remote_marketplace_body_collects_stalls_and_haybales() -> None:
         "\n"
         "[[haybales]]\n"
         'name = "haybale-inline"\n'
-        'min_version = "0.2.0"\n'
+        'version = "0.2.0"\n'
     )
     contents = parse_remote_marketplace_body(body)
     assert len(contents.stall_urls) == 1
@@ -361,7 +361,7 @@ def test_serialize_global_marketplace_roundtrip(tmp_path: Path) -> None:
                 blocked=["haybale-untrusted"],
             )
         ],
-        haybales=[Haybale(name="haybale-inline", min_version="0.1.0")],
+        haybales=[Haybale(name="haybale-inline", version="0.1.0")],
     )
 
     f = tmp_path / "marketplace.toml"
@@ -385,7 +385,7 @@ def test_serialize_project_marketplace_roundtrip(tmp_path: Path) -> None:
         caches=[
             Haybale(
                 name="haybale-foo",
-                min_version="0.1.0",
+                version="0.1.0",
                 via="https://feed.example/marketstall.toml",
                 last_seen="2026-05-20T00:00:00Z",
                 stale=False,
@@ -398,3 +398,52 @@ def test_serialize_project_marketplace_roundtrip(tmp_path: Path) -> None:
     reparsed = parse_project_marketplace(f)
     assert reparsed.heaps[0]["name"] == "haybale-x"
     assert reparsed.caches[0].via == "https://feed.example/marketstall.toml"
+
+
+@pytest.mark.unit
+def test_parse_haybale_entry_requires_version():
+    """`version` is required. Parsing to "" silently disables update reporting
+    (refresh skips entries with a falsy version), so absence must be loud."""
+    from haywire.core.marketstall.errors import MalformedMarketplaceError
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    with pytest.raises(MalformedMarketplaceError, match="version"):
+        _parse_haybale_entry({"name": "haybale-foo"})
+
+
+@pytest.mark.unit
+def test_parse_haybale_entry_rejects_empty_version():
+    from haywire.core.marketstall.errors import MalformedMarketplaceError
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    with pytest.raises(MalformedMarketplaceError, match="version"):
+        _parse_haybale_entry({"name": "haybale-foo", "version": ""})
+
+
+@pytest.mark.unit
+def test_parse_haybale_entry_no_longer_reads_min_version():
+    """Hard rename, no back-compat alias: a legacy `min_version` key is not a
+    substitute for `version`."""
+    from haywire.core.marketstall.errors import MalformedMarketplaceError
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    with pytest.raises(MalformedMarketplaceError, match="version"):
+        _parse_haybale_entry({"name": "haybale-foo", "min_version": "0.1.0"})
+
+
+@pytest.mark.unit
+def test_parse_haybale_entry_reads_requires_haywire():
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.1.0", "requires_haywire": ">=0.0.31"})
+    assert h.requires_haywire == ">=0.0.31"
+
+
+@pytest.mark.unit
+def test_requires_haywire_is_optional():
+    """Unlike `version`, an absent framework requirement is legitimate — it
+    means the author declared none."""
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.1.0"})
+    assert h.requires_haywire == ""

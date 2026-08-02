@@ -13,7 +13,7 @@ def test_provenance_label_for_direct_stall_subscription() -> None:
 
     haybale = Haybale(
         name="haybale-foo",
-        min_version="0.1.0",
+        version="0.1.0",
         via="https://alice.example/marketstall.toml",
     )
     mf = MarketplaceFile(stalls=[Subscription(url="https://alice.example/marketstall.toml")])
@@ -33,7 +33,7 @@ def test_provenance_label_for_transitive_via_market() -> None:
     # User subscribed to an aggregator; haybale arrived via the aggregator's listed stall.
     haybale = Haybale(
         name="haybale-foo",
-        min_version="0.1.0",
+        version="0.1.0",
         via="https://going-haywire.github.io/haywire/stalls/haybale-foo.toml",
     )
     mf = MarketplaceFile(
@@ -53,7 +53,7 @@ def test_provenance_label_empty_via_returns_none() -> None:
     from haybale_marketplace.editors.library_browser_editor import derive_provenance_label
     from haywire.core.marketstall import Haybale, MarketplaceFile
 
-    haybale = Haybale(name="haybale-foo", min_version="0.1.0", via="")
+    haybale = Haybale(name="haybale-foo", version="0.1.0", via="")
     mf = MarketplaceFile()
 
     assert derive_provenance_label(haybale, mf) is None
@@ -67,7 +67,7 @@ def test_provenance_label_strips_user_paths_from_file_urls() -> None:
 
     haybale = Haybale(
         name="haybale-foo",
-        min_version="0.1.0",
+        version="0.1.0",
         via="file:///Users/me/.haywire/db/haybale-marketplace/stalls/haybale-foo.toml",
     )
     mf = MarketplaceFile(

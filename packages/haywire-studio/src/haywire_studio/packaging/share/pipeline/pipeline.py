@@ -26,6 +26,7 @@ from haywire_studio.packaging.share.pipeline.results import (
     CommitResult,
     DocsResult,
     DriftReport,
+    FrameworkPlan,
     PreconditionsReport,
     PushResult,
     VersionPlan,
@@ -33,6 +34,7 @@ from haywire_studio.packaging.share.pipeline.results import (
 from haywire_studio.packaging.share.pipeline.steps import commit as steps_commit
 from haywire_studio.packaging.share.pipeline.steps import docs as steps_docs
 from haywire_studio.packaging.share.pipeline.steps import drift as steps_drift
+from haywire_studio.packaging.share.pipeline.steps import framework as steps_framework
 from haywire_studio.packaging.share.pipeline.steps import preconditions as steps_preconditions
 from haywire_studio.packaging.share.pipeline.steps import push as steps_push
 from haywire_studio.packaging.share.pipeline.steps import version as steps_version
@@ -60,6 +62,10 @@ class SharePipeline:
         # "clean" from "acknowledged" without re-running detection.
         self.drift_acknowledged = False
         self.version: str | None = None
+        # The one project-wide framework requirement, set by apply_framework().
+        # Step 5 reads it so the marketstall entry and the pyproject floor
+        # carry the same authored answer.
+        self.requires_haywire: str | None = None
 
     # ── Step 1: preconditions ────────────────────────────────────────────────
 
@@ -122,6 +128,16 @@ class SharePipeline:
     def _barn_library_dirs(self) -> list[Path]:
         """Every ``barn/*`` directory holding a pyproject.toml, sorted."""
         return barn_library_dirs(self.repo_root)
+
+    # ── Step 2b: framework requirement ───────────────────────────────────────
+
+    def plan_framework(self) -> FrameworkPlan:
+        """The framework requirement on offer: keep, raise, or compatible."""
+        return steps_framework.plan(self)
+
+    def apply_framework(self, specifier: str) -> list[Path]:
+        """Write *specifier* as the haywire-core floor in every barn library."""
+        return steps_framework.apply(self, specifier)
 
     # ── Step 3: version bump (lockstep) ──────────────────────────────────────
 
