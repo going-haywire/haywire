@@ -1377,7 +1377,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../marketplace-canon.md" class="md-nav__link">
+      <a href="../marketplace/marketplace-canon/" class="md-nav__link">
         
   
   
@@ -1390,6 +1390,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1405,7 +1412,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../haybale-marketplace-arch.md" class="md-nav__link">
+      <a href="../marketplace/haybale-marketplace-arch/" class="md-nav__link">
         
   
   
@@ -1418,6 +1425,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1689,6 +1703,8 @@
   
     
     
+      
+        
       
         
       
@@ -2248,6 +2264,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — pipeline
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
         
   
@@ -2380,10 +2431,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_10" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
         
           
-          <label class="md-nav__link" for="__nav_6_10" id="__nav_6_10_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
             
   
   
@@ -2401,8 +2452,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3082,7 +3133,7 @@
 <li><code>validate() -&gt; bool</code> — return <code>False</code> to abort loading. Use for sanity checks (required folders exist, dependencies importable). Most libraries return <code>True</code> unconditionally.</li>
 </ul>
 <p>Optional: <code>@library(file_watcher=True)</code> enables hot-reload — the framework starts a file watcher rooted at the library's source directory and re-runs <code>register_components()</code> whenever a <code>.py</code> file changes.</p>
-<p><strong>Boundaries.</strong> What the registries actually do at runtime, what <code>LibraryDiscovery</code> checks, how <code>InstallType</code> is determined, the discovery priority order — all in <a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a>. The <code>pyproject.toml</code> shape, build/publish workflow, and <code>marketplace.toml</code> distribution — all in <a href="../haybale-package-canon/">haybale/haybale-package</a>.</p>
+<p><strong>Boundaries.</strong> What the registries actually do at runtime, what <code>LibraryDiscovery</code> checks, how <code>InstallType</code> is determined, the discovery priority order — all in <a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a>. The <code>pyproject.toml</code> shape, build/publish workflow, and <code>marketstall.toml</code> distribution — all in <a href="../haybale-package-canon/">haybale/haybale-package</a>.</p>
 <h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
 <p><strong>The <code>@library</code> decorator.</strong> Sets <code>class_identity</code> (a <code>LibraryIdentity</code>), records the metadata, and registers the file watcher when <code>file_watcher=True</code>. <strong>The bare <code>@library</code> form (no parens) is not supported</strong> — always invoke with parentheses, even when only <code>label=</code> is given.</p>
 <table>
@@ -3510,7 +3561,7 @@
 </tr>
 </tbody>
 </table>
-<p>For the <code>pyproject.toml</code> shape, build/publish workflow, distribution via <code>marketplace.toml</code>, and the full commands for <code>uv pip install -e .</code> etc., see <a href="../haybale-package-canon/">haybale/haybale-package</a>. For the runtime infrastructure that loads your Library, see <a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a>. For the studio's in-app library manager UI, see <a href="../marketplace/haybale-marketplace-arch/">haybale/marketplace</a>.</p>
+<p>For the <code>pyproject.toml</code> shape, build/publish workflow, distribution via <code>marketstall.toml</code>, and the full commands for <code>uv pip install -e .</code> etc., see <a href="../haybale-package-canon/">haybale/haybale-package</a>. For the runtime infrastructure that loads your Library, see <a href="../../architecture/library-system/library-system-arch/">architecture/library-system</a>. For the studio's in-app library manager UI, see <a href="../marketplace/haybale-marketplace-arch/">haybale/marketplace</a>.</p>
 <hr />
 <h2 id="6-compatibility-warnings">6. Compatibility Warnings<a class="headerlink" href="#6-compatibility-warnings" title="Permanent link">&para;</a></h2>
 <p>Declare advisory notices for users who open graphs saved by an older version of

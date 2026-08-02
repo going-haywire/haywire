@@ -1148,7 +1148,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/marketplace-canon.md" class="md-nav__link">
+      <a href="../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
         
   
   
@@ -1161,6 +1161,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1176,7 +1183,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/haybale-marketplace-arch.md" class="md-nav__link">
+      <a href="../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
         
   
   
@@ -1189,6 +1196,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1460,6 +1474,8 @@
   
     
     
+      
+        
       
         
       
@@ -2019,6 +2035,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — pipeline
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
         
   
@@ -2151,10 +2202,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_10" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
         
           
-          <label class="md-nav__link" for="__nav_6_10" id="__nav_6_10_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
             
   
   
@@ -2172,8 +2223,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2964,6 +3015,12 @@ framework packages, and the specific modules this library uses
 shipped by <strong><code>haywire-core</code></strong>, which is already declared. <code>haywire-studio</code> is
 NOT a dependency. The estimator-node code introduced no new dependency edge.
 Other packages were not re-scanned in this run.</p>
+<p>Fixed 2026-07-31: the false positive above was a bug in <code>detect_deps</code>, which
+routed any <code>haywire.ui.*</code> import to <code>haywire-studio</code>. It affected every barn
+library that touches a widget or panel (9 of 9 in this repo), not just
+visiongraph. <code>haywire/ui</code> is <strong>not</strong> split across the two packages — it is 96
+files in the <code>haywire-core</code> wheel and 0 in the <code>haywire-studio</code> wheel. The
+detector now maps every <code>haywire.*</code> import to <code>haywire-core</code>.</p>
 </blockquote>
 <hr />
 <h2 id="flat-dependency-graph">Flat Dependency Graph<a class="headerlink" href="#flat-dependency-graph" title="Permanent link">&para;</a></h2>

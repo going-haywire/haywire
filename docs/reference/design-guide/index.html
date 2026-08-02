@@ -1154,7 +1154,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/marketplace-canon.md" class="md-nav__link">
+      <a href="../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
         
   
   
@@ -1167,6 +1167,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1182,7 +1189,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/haybale-marketplace-arch.md" class="md-nav__link">
+      <a href="../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
         
   
   
@@ -1195,6 +1202,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1466,6 +1480,8 @@
   
     
     
+      
+        
       
         
       
@@ -2025,6 +2041,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — pipeline
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
         
   
@@ -2157,10 +2208,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_10" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
         
           
-          <label class="md-nav__link" for="__nav_6_10" id="__nav_6_10_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
             
   
   
@@ -2178,8 +2229,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2750,6 +2801,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="2.9 Z-Index Scale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-quasar-overlay-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Quasar-overlay tier
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -3919,6 +3987,23 @@
       
     </span>
   </a>
+  
+    <nav class="md-nav" aria-label="2.9 Z-Index Scale">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-quasar-overlay-tier" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Quasar-overlay tier
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
   
 </li>
         
@@ -5196,6 +5281,32 @@ used in the error node skin. It should resolve to a low-saturation tint of
 </tbody>
 </table>
 <p><strong>Rule:</strong> Never use a bare <code>z-index: 9999</code> or arbitrary integer. If a new stacking context is needed, add a token here.</p>
+<h4 id="the-quasar-overlay-tier">The Quasar-overlay tier<a class="headerlink" href="#the-quasar-overlay-tier" title="Permanent link">&para;</a></h4>
+<p>The scale above governs haywire's own elements. Quasar brings its own layers that sit far above it — <code>QDialog</code> and <code>QMenu</code> both default to <strong>6000</strong> — so anything that must clear <em>them</em> lives in a separate tier, defined as static CSS in <code>ui/app/shell.py</code> (not theme tokens: stacking order is structural, not a swappable colour).</p>
+<table>
+<thead>
+<tr>
+<th>Layer</th>
+<th>Value</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-z-popup</code></td>
+<td>7001</td>
+<td>The <code>Popup</code> card — above Quasar dialogs (6000)</td>
+</tr>
+<tr>
+<td><code>--hw-z-popup-menu</code></td>
+<td>7100</td>
+<td>A menu/dropdown opened from inside a <code>Popup</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> a <code>ui.select</code> inside a <code>Popup</code> must lift its dropdown, or the option list renders <em>behind</em> the card — invisible and unclickable, so the select looks empty. Use <code>hui.select_field(in_popup=True)</code>.</p>
+<p><strong>Do not lift unconditionally.</strong> The QMenu teleports to <code>&lt;body&gt;</code>, so a lifted dropdown escapes its parent's stacking context entirely. A panel or node widget sitting <em>behind</em> a popup would have its dropdown float above that popup. Panels and widgets keep the default; only in-popup selects opt in.</p>
+<p>See <a href="../../.insights/feedback_nicegui_nested_menu_flyouts.md">.insights/feedback_nicegui_nested_menu_flyouts.md</a> (#2) for the original diagnosis.</p>
 <p><strong>Note:</strong> NiceGUI's <code>ui.scroll_area()</code> creates a stacking context. Any <code>position: absolute</code> child inside a scroll area is clipped to it — this is expected behaviour.</p>
 <h3 id="210-hover-and-selection">2.10 Hover and Selection<a class="headerlink" href="#210-hover-and-selection" title="Permanent link">&para;</a></h3>
 <p>Interactive list items and rows use a <strong>theme-derived token</strong> for hover, not a

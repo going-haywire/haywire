@@ -10,7 +10,7 @@
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0003-show-widget-strategy/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0023-project-scoped-lockstep-sharing/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>ShowWidgetStrategy — per-port control of widget visibility vs. link state - Haywire Documentation</title>
+        <title>Project-scoped lockstep sharing - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#showwidgetstrategy-per-port-control-of-widget-visibility-vs-link-state" class="md-skip">
+        <a href="#project-scoped-lockstep-sharing" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              ShowWidgetStrategy — per-port control of widget visibility vs. link state
+              Project-scoped lockstep sharing
             
           </span>
         </div>
@@ -2694,76 +2694,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem" class="md-nav__link">
+  <a href="#considered-options" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#the-enum-plain-enum-not-intflag" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        The enum: plain Enum, not IntFlag
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#direction-based-defaults-and-why-outlets-default-to-never" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Direction-based defaults — and why outlets default to NEVER
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#dropping-the-allow_multiple_links-guard" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Dropping the allow_multiple_links guard
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#resolution-lives-on-dataport" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Resolution lives on DataPort
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#reactivity-edge-addremove-must-re-render-the-endpoint-nodes" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Reactivity: edge add/remove must re-render the endpoint nodes
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#considered-alternatives" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Considered alternatives
+        Considered options
       
     </span>
   </a>
@@ -2798,130 +2732,49 @@
 
 
 
-<h1 id="showwidgetstrategy-per-port-control-of-widget-visibility-vs-link-state"><code>ShowWidgetStrategy</code> — per-port control of widget visibility vs. link state<a class="headerlink" href="#showwidgetstrategy-per-port-control-of-widget-visibility-vs-link-state" title="Permanent link">&para;</a></h1>
-<p>A <code>DataPort</code> may carry an inline editing <strong>widget</strong> (a slider, a text field, a dict editor). Until now the node skin decided whether to render that widget with one hardcoded rule:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">port</span><span class="o">.</span><span class="n">allow_multiple_links</span> <span class="ow">and</span> <span class="n">port</span><span class="o">.</span><span class="n">widget_key</span><span class="p">:</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">render_widget</span><span class="p">(</span><span class="o">...</span><span class="p">)</span>
-</span></code></pre></div>
-<p>— i.e. <em>always show the widget if the port has one and isn't multi-link</em>, regardless of whether the pin is connected. This ADR introduces <code>ShowWidgetStrategy</code>, a per-port enum that lets the port author declare what should happen to the widget when the pin is linked, and drops the <code>allow_multiple_links</code> guard so visibility becomes an explicit authoring decision rather than a side-effect of connection cardinality.</p>
-<h2 id="the-problem">The problem<a class="headerlink" href="#the-problem" title="Permanent link">&para;</a></h2>
-<p>A connected inlet's widget is misleading: the value the user sees in the widget is no longer the value the port uses — the upstream edge overrides it. The classic Blueprint behavior is to <strong>hide the widget once the pin is connected</strong>. The old rule could not express this: a widget was either always rendered (single-link ports) or never rendered (multi-link ports), with no relationship to link state and no per-port override.</p>
-<p>We want the full matrix — hidden always, shown-when-unlinked, shown-when-linked, shown-always — and we want a <em>type</em> to be able to assign one widget that does the right thing on both inlets and outlets without per-port wiring.</p>
-<h2 id="the-enum-plain-enum-not-intflag">The enum: plain <code>Enum</code>, not <code>IntFlag</code><a class="headerlink" href="#the-enum-plain-enum-not-intflag" title="Permanent link">&para;</a></h2>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">ShowWidgetStrategy</span><span class="p">(</span><span class="n">Enum</span><span class="p">):</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    <span class="n">NEVER</span>       <span class="o">=</span> <span class="s2">&quot;never&quot;</span>        <span class="c1"># widget never rendered on the node</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="n">NOT_LINKED</span>  <span class="o">=</span> <span class="s2">&quot;not_linked&quot;</span>   <span class="c1"># shown only when the pin is NOT linked</span>
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    <span class="n">WHEN_LINKED</span> <span class="o">=</span> <span class="s2">&quot;when_linked&quot;</span>  <span class="c1"># shown only when the pin IS linked</span>
-</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    <span class="n">ALWAYS</span>      <span class="o">=</span> <span class="s2">&quot;always&quot;</span>       <span class="c1"># always rendered</span>
-</span></code></pre></div>
-<p>The sibling enum <code>StoreStrategy</code> is an <code>IntFlag</code> with a <code>NONE = 0</code> sentinel and OR-combinable members, because storage has <strong>genuinely orthogonal triggers</strong> (<code>HAS_WIDGET</code>, <code>WHEN_LINKED</code>, <code>NODE_SET</code> can each independently be true and are combined with OR).</p>
-<p>Widget visibility has <strong>no such orthogonal dimension</strong>. Link state is a single boolean; the widget shows in the linked state, the unlinked state, both, or neither — four mutually-exclusive outcomes. <code>ALWAYS</code> already <em>is</em> "linked or unlinked" and <code>NEVER</code> is the empty case, so there is nothing left to combine. Making it an <code>IntFlag</code> would:</p>
+<h1 id="project-scoped-lockstep-sharing">Project-scoped lockstep sharing<a class="headerlink" href="#project-scoped-lockstep-sharing" title="Permanent link">&para;</a></h1>
+<p>The share wizard publishes a <strong>project</strong>, not a library: it versions every
+<code>barn/*</code> library in lockstep, tags the repo <code>v&lt;version&gt;</code>, and is entered from
+<code>LibraryBrowserEditor</code>'s burger menu rather than from a button on the library
+being published. We designed the library-scoped alternative first and switched,
+because the artifact being published is repo-shaped — a <code>haywire init</code> project
+is a uv workspace root (<code>members = ["barn/*"]</code>) with a single root
+<code>marketstall.toml</code> feed and one git remote, and consumers install by git URL
+from one clone. Library scoping kept forcing "…but it's actually repo-wide"
+compromises: the marketstall has to aggregate all of <code>barn/*</code> or it silently
+deletes sibling entries, <code>_update_repo_readmes</code> already rewrites every
+<code>barn/*/README.md</code>, <code>uv.lock</code> lives at the root, and per-library versions make a
+repo-level tag non-monotonic and untruthful.</p>
+<h2 id="considered-options">Considered options<a class="headerlink" href="#considered-options" title="Permanent link">&para;</a></h2>
 <ul>
-<li>re-introduce a redundant <code>NONE</code> member (the empty sentinel) distinct from <code>NEVER</code> (the explicit "hidden") — the original proposal carried both <code>NONE</code> and <code>NEVER</code>, which behave identically;</li>
-<li>make nonsensical combinations representable (<code>NOT_LINKED | WHEN_LINKED</code> is just <code>ALWAYS</code> spelled a second way);</li>
-<li>push the skin onto bitwise resolution (<code>ss &amp; NOT_LINKED and not linked …</code>) for no expressive gain.</li>
-</ul>
-<p>So a plain <code>Enum</code> with four members models the decision honestly, and <code>NEVER</code> absorbs the proposed <code>NONE</code>. Choosing <code>IntFlag</code> here would be cargo-culting <code>StoreStrategy</code>'s <em>shape</em> without its underlying reason.</p>
-<h2 id="direction-based-defaults-and-why-outlets-default-to-never">Direction-based defaults — and why outlets default to <code>NEVER</code><a class="headerlink" href="#direction-based-defaults-and-why-outlets-default-to-never" title="Permanent link">&para;</a></h2>
-<p>The default is <strong>not</strong> a single field value; it depends on port direction, injected via <code>kwargs.setdefault("show_widget", ...)</code> in <code>as_inlet</code> / <code>as_outlet</code> / <code>as_config</code> — the same seam <code>store_strategy</code> already uses, so an author override in <code>**kwargs</code> wins naturally and serialization round-trips.</p>
-<table>
-<thead>
-<tr>
-<th>Port type</th>
-<th>default <code>show_widget</code></th>
-<th>rationale</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>inlet</td>
-<td><code>NOT_LINKED</code></td>
-<td>a connected inlet's widget is misleading → hide on connect (Blueprint behavior)</td>
-</tr>
-<tr>
-<td>outlet</td>
-<td><code>NEVER</code></td>
-<td>an outlet's value is produced by the node, not entered by a user → no editable widget</td>
-</tr>
-<tr>
-<td>config</td>
-<td><code>ALWAYS</code></td>
-<td>a config port has no pin and can never be linked → always-visible by nature</td>
-</tr>
-</tbody>
-</table>
-<p>The outlet default of <code>NEVER</code> is the non-obvious one, and it is deliberate. A <code>widget_key</code> can be assigned <strong>once at the type level</strong> (<code>DataTypeIdentity.widget_key</code>), and that same type is used to build both inlets and outlets. With these defaults, a type that assigns a widget gets the right behavior for free: editable when entering data (inlet, <code>NOT_LINKED</code>), suppressed when emitting it (outlet, <code>NEVER</code>). The type author writes the widget once; direction does the rest.</p>
-<p>Visibility is <em>only</em> a per-direction default. A type does <strong>not</strong> get to centrally override <code>show_widget</code> (there is no <code>_resolve_show_widget</code> mirroring <code>_resolve_store_strategy</code>) — the type assigns the <code>widget_key</code>; anything other than the per-direction default is overridden per-port when the port is added.</p>
-<p>The defaults are also chosen to avoid a silent migration: <code>ALWAYS</code> would have preserved the old "always render" behavior, but the inlet default of <code>NOT_LINKED</code> <em>does</em> change rendering for currently-connected inlets on upgrade — their widgets now hide. This is the intended new behavior, not an accident; it is called out here because a future reader diffing saved graphs will see previously-visible widgets disappear on connected inlets.</p>
-<h2 id="dropping-the-allow_multiple_links-guard">Dropping the <code>allow_multiple_links</code> guard<a class="headerlink" href="#dropping-the-allow_multiple_links-guard" title="Permanent link">&para;</a></h2>
-<p>The old guard refused to render a widget on any multi-link port. We remove it. Visibility is now governed solely by <code>widget_key is not None</code> (no key → nothing to render) and <code>should_show_widget()</code>. A multi-link inlet — e.g. a Pooled type whose widget is a dict editor — may legitimately want to show a widget; the framework should not second-guess that. <strong>It is the developer's decision.</strong></p>
-<p>Consequence: data outlets are force-set to <code>allow_multiple_links = True</code> in <code>DataPort.__post_init__</code>, so the old guard hid their widgets entirely. With the guard gone, an outlet widget is suppressed by the <code>NEVER</code> <em>default</em> instead — same end result for the common case, but now an author can opt an outlet into <code>WHEN_LINKED</code>/<code>ALWAYS</code> if they have a reason.</p>
-<h2 id="resolution-lives-on-dataport">Resolution lives on <code>DataPort</code><a class="headerlink" href="#resolution-lives-on-dataport" title="Permanent link">&para;</a></h2>
-<p><code>DataPort.should_show_widget() -&gt; bool</code> resolves <code>self.show_widget</code> against <code>self.is_linked()</code>:</p>
-<table>
-<thead>
-<tr>
-<th><code>show_widget</code></th>
-<th>not linked</th>
-<th>linked</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>NEVER</code></td>
-<td>hide</td>
-<td>hide</td>
-</tr>
-<tr>
-<td><code>NOT_LINKED</code></td>
-<td>show</td>
-<td>hide</td>
-</tr>
-<tr>
-<td><code>WHEN_LINKED</code></td>
-<td>hide</td>
-<td>show</td>
-</tr>
-<tr>
-<td><code>ALWAYS</code></td>
-<td>show</td>
-<td>show</td>
-</tr>
-</tbody>
-</table>
-<p>It lives on the port, not as a private skin helper, because the same decision is needed in the property panel (which also renders widgets) and because it is unit-testable in core without the UI. The skin call sites collapse to <code>if port.widget_key is not None and port.should_show_widget():</code>.</p>
-<h2 id="reactivity-edge-addremove-must-re-render-the-endpoint-nodes">Reactivity: edge add/remove must re-render the endpoint nodes<a class="headerlink" href="#reactivity-edge-addremove-must-re-render-the-endpoint-nodes" title="Permanent link">&para;</a></h2>
-<p><code>NOT_LINKED</code> and <code>WHEN_LINKED</code> are <em>dynamic</em> — they depend on live link state, so the widget must appear/disappear when the user connects or disconnects a pin. This did not happen for free.</p>
-<p>Node redraw is driven by <em>node</em>-level reasons (<code>ChangeReason.requires_redraw()</code>); an edge add/remove carries only an <em>edge</em> reason, so the connected nodes were never re-rendered. Without a fix, <code>should_show_widget()</code> would be evaluated only at initial render and the widget would not toggle on connect — the feature would ship looking broken.</p>
-<p>The fix lives in <code>EdgeWrapper</code>, at the point link state actually transitions. <code>link()</code>, <code>unlink()</code>, and <code>detach()</code> already orchestrate both ports and (elsewhere) already call their own <code>redraw()</code>; they now also call <code>_request_endpoint_redraw()</code>, which marks <strong>both endpoint nodes</strong> dirty with <code>NODE_REDRAW_REQUESTED</code> via <code>mark_node_dirty</code>. The existing <code>visual_layer.on_validated</code> node loop then re-renders them — no UI-side inference, no new visual-layer code. Both endpoints, not just the inlet side: the inlet default (<code>NOT_LINKED</code>) always needs it, and an author who sets an outlet to <code>WHEN_LINKED</code> would otherwise silently break.</p>
-<p>Why <code>EdgeWrapper</code>, not the visual layer or the graph mutation API:</p>
-<ul>
-<li>The endpoint node ids (<code>source_node_id</code> / <code>sink_node_id</code>) are plain attributes that <strong>survive <code>detach()</code></strong>, so the removal case needs no captured side-state — unlike a visual-layer or validator approach, which loses the wrapper once the graph deletes it.</li>
-<li>Routing through <code>mark_node_dirty</code> → <code>_set_reason</code> means a stronger node reason already in the batch wins: paste (<code>NODE_ADDED</code>) and <code>clear()</code> (<code>NODE_REMOVED</code>) both outrank <code>NODE_REDRAW_REQUESTED</code>, so the redraw never downgrades a structural change.</li>
-<li>It covers <strong>every</strong> link path, including the validator's internal relink (<code>ValidationManager._validate_batch</code> calls <code>edge_wrapper.link()</code> during a batch). Re-entrant dirty marks are safe by design — the batch snapshots and clears the dirty dicts up front under its <code>RLock</code>, so a mark added during validation is carried to the next batch (see ADR 0002). Worst case on relink is a one-batch-deferred redraw, irrelevant to user connect/disconnect.</li>
-</ul>
-<p>Considered and rejected for reactivity:</p>
-<ul>
-<li><strong>Refresh endpoint nodes from <code>visual_layer.on_validated</code> on <code>EDGE_ADDED</code>/<code>EDGE_REMOVED</code></strong> (the first working version): the UI re-derives "edge change → endpoint nodes dirty," duplicating inference every subscriber would have to repeat, and the <code>EDGE_REMOVED</code> case must capture the wrapper before the graph drops it. Moved into <code>EdgeWrapper</code> so the <code>ValidationResult</code> reports the node impact honestly, once, for all subscribers.</li>
-<li><strong>CSS-only toggle in Vue</strong> (always render the widget, flip <code>display:none</code> on a <code>data-linked</code> attribute): keeps a dead widget instance alive and splits visibility policy across Python and Vue.</li>
-<li><strong>Hook the <code>on_connect</code>/<code>on_disconnect</code> port callbacks</strong> to request a redraw: those are author-facing node-method callbacks, not a framework redraw channel; hijacking them collides with user-defined callbacks.</li>
-</ul>
-<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Keep five members (<code>NONE</code> + <code>NEVER</code>).</strong> Carries a member that can never differ in behavior — see "plain <code>Enum</code>, not <code>IntFlag</code>."</li>
-<li><strong><code>IntFlag</code> for parity with <code>StoreStrategy</code>.</strong> Parity of shape without parity of reason; re-introduces <code>NONE</code>/<code>NEVER</code> redundancy and representable-nonsense.</li>
-<li><strong>Type-level visibility override (<code>_resolve_show_widget</code>).</strong> The type assigns the <code>widget_key</code>; visibility stays a per-direction default, overridden per-port. A central visibility override was deemed unnecessary surface.</li>
-<li><strong>Default <code>ALWAYS</code> everywhere</strong> (zero migration). Preserves old behavior but never delivers the motivating hide-on-connect; the direction defaults were chosen instead, accepting the documented inlet migration.</li>
-<li><strong>Refresh only the inlet-side node on connect.</strong> Cheaper, but silently breaks an author-set <code>WHEN_LINKED</code> outlet — the exact "looks broken" bug class this design exists to kill.</li>
+<li><strong>Library-scoped, per-library tags</strong> (<code>haybale-x/v0.3.1</code>). Honest versions for
+  libraries that didn't change, and the Share button sits on the thing it
+  publishes. Rejected: the marketstall rebuild, README rewrites, and lockfile
+  refresh are repo-wide regardless, so the "unit" was a fiction that had to be
+  explained away at every step, including a preview panel whose job was to
+  justify why a sibling library's README was in the user's commit.</li>
+<li><strong>Project-scoped, per-library versions preserved</strong> (no lockstep). Honest
+  versions plus one publish action. Rejected: needs a per-library version table
+  in the stepper and reintroduces per-library tags, for a project shape where
+  the common case is a single library.</li>
 </ul>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>DataPort</code> gains a <code>show_widget: ShowWidgetStrategy</code> field, defaulted per-direction in the <code>as_*</code> methods, overridable per-port via <code>**kwargs</code>.</li>
-<li>The enum serializes as its string <code>.value</code> in <code>to_dict</code> and is reconstructed in <code>from_spec</code> (alongside <code>FlowType</code> / <code>PortType</code>). Outlets, defaulted to <code>NEVER</code>, serialize the field redundantly (it differs from the field's static default); this is cosmetic.</li>
-<li>Node skins decide widget visibility via <code>port.should_show_widget()</code>; the <code>allow_multiple_links</code> guard is removed, so multi-link ports may now render widgets.</li>
-<li>Connecting/disconnecting a pin re-renders both endpoint nodes, so widget visibility toggles live.</li>
-<li>On upgrade, widgets on currently-connected inlets become hidden (the new <code>NOT_LINKED</code> default). This is intended.</li>
+<li>Libraries that did not change still get a version bump. This is the standard
+  monorepo lockstep trade and the same one <code>/haywire-release</code> already makes for
+  this repo.</li>
+<li>Two front doors now perform lockstep publishing. They do not conflict:
+  <code>/haywire-release</code> ships Tier 1+2 packages to PyPI via CI tags for haywire
+  maintainers and owns the <code>vX.Y.Z</code> tag on this repo; the share wizard ships one
+  project repo's barn feed via git URL for project authors. Different artifact,
+  different audience.</li>
+<li>The wizard must handle a barn whose versions already disagree (hand-added
+  library, <code>--dev</code> mode). It shows the disagreement and requires an explicit
+  target version rather than resolving silently — <code>bump_version</code>'s existing
+  "first barn library found" heuristic would downgrade a higher-versioned
+  sibling.</li>
 </ul>
+<p>Full design: <a href="../../internals/superpowers/2026-07-30-share-wizard.md">2026-07-30-share-wizard.md</a>.</p>
 
 
 

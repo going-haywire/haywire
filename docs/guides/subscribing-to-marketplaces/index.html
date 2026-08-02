@@ -1154,7 +1154,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/marketplace-canon.md" class="md-nav__link">
+      <a href="../../haybale/marketplace/marketplace-canon/" class="md-nav__link">
         
   
   
@@ -1167,6 +1167,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1182,7 +1189,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/haybale-marketplace-arch.md" class="md-nav__link">
+      <a href="../../haybale/marketplace/haybale-marketplace-arch/" class="md-nav__link">
         
   
   
@@ -1195,6 +1202,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1706,6 +1720,8 @@
   
     
     
+      
+        
       
         
       
@@ -2265,6 +2281,41 @@
   
   
     <li class="md-nav__item">
+      <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Sharing — pipeline
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--current"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
       <a href="../../architecture/hot-reload/hot-reload-arch/" class="md-nav__link">
         
   
@@ -2397,10 +2448,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_10" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
         
           
-          <label class="md-nav__link" for="__nav_6_10" id="__nav_6_10_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
             
   
   
@@ -2418,8 +2469,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_10_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_10">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3184,7 +3235,7 @@
 <li>Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).</li>
 <li>Deduplicates by name (first occurrence wins for any straggler).</li>
 <li>Marks newly-missing entries as stale (see §7). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as <code>stale=true</code>.</li>
-<li>Counts installed libraries whose cache <code>min_version</code> exceeds the installed version (updates available, see §9).</li>
+<li>Counts installed libraries whose cache <code>version</code> exceeds the installed version (updates available, see §9).</li>
 <li>Writes the result to your project marketplace's <code>[[caches]]</code> section.</li>
 </ol>
 <p>After a successful refresh, a green toast summarizes: <code>"Refreshed N package(s) · M source(s) unavailable · K newly stale · L update(s) available"</code>. The middle phrases appear only when relevant.</p>
@@ -3265,7 +3316,7 @@
 </ul>
 <p>If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-boundary-what-the-library-manager-is-not">library-manager-arch §What the Library Manager is not</a>).</p>
 <h3 id="91-updates-available">9.1 Updates available<a class="headerlink" href="#91-updates-available" title="Permanent link">&para;</a></h3>
-<p>For each installed haybale, refresh compares the installed distribution version against the cache <code>min_version</code>. When the cache says you need at least <code>0.5.0</code> and you have <code>0.1.0</code> installed, an update is available:</p>
+<p>For each installed haybale, refresh compares the installed distribution version against the cache <code>version</code> — the version the author published. When the cache advertises <code>0.5.0</code> and you have <code>0.1.0</code> installed, an update is available:</p>
 <ul>
 <li>The Library Browser row shows a quiet <strong>▲ "v0.5.0 available"</strong> indicator alongside the installed version.</li>
 <li>The post-refresh toast appends a count: <code>"... · 2 update(s) available"</code>.</li>
