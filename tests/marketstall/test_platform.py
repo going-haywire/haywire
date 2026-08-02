@@ -50,7 +50,7 @@ def test_haybale_supports_current_when_os_empty() -> None:
     from haywire.core.marketstall.platform import haybale_supports_current_os
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="x", min_version="0.0.1", os=[])
+    h = Haybale(name="x", version="0.0.1", os=[])
     with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
         assert haybale_supports_current_os(h) is True
 
@@ -61,7 +61,7 @@ def test_haybale_supports_current_when_listed() -> None:
     from haywire.core.marketstall.platform import haybale_supports_current_os
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="x", min_version="0.0.1", os=["macos", "linux"])
+    h = Haybale(name="x", version="0.0.1", os=["macos", "linux"])
     with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
         assert haybale_supports_current_os(h) is True
 
@@ -72,7 +72,7 @@ def test_haybale_does_not_support_current_when_not_listed() -> None:
     from haywire.core.marketstall.platform import haybale_supports_current_os
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="x", min_version="0.0.1", os=["macos"])
+    h = Haybale(name="x", version="0.0.1", os=["macos"])
     with patch.object(marketstall_platform.platform, "system", return_value="Linux"):
         assert haybale_supports_current_os(h) is False
 
@@ -84,7 +84,7 @@ def test_haybale_on_other_os_blocked_from_all_declared() -> None:
     from haywire.core.marketstall.platform import haybale_supports_current_os
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="x", min_version="0.0.1", os=["macos", "linux", "windows"])
+    h = Haybale(name="x", version="0.0.1", os=["macos", "linux", "windows"])
     with patch.object(marketstall_platform.platform, "system", return_value="OpenBSD"):
         assert haybale_supports_current_os(h) is False
 
@@ -96,6 +96,6 @@ def test_haybale_on_other_os_supported_when_empty() -> None:
     from haywire.core.marketstall.platform import haybale_supports_current_os
     from haywire.core.marketstall.types import Haybale
 
-    h = Haybale(name="x", min_version="0.0.1", os=[])
+    h = Haybale(name="x", version="0.0.1", os=[])
     with patch.object(marketstall_platform.platform, "system", return_value="Haiku"):
         assert haybale_supports_current_os(h) is True

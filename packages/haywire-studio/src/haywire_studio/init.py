@@ -21,9 +21,14 @@ from .config import ensure_global_config, ensure_project_config, add_recent_proj
 
 
 def _release_pin(dist: str = "haywire-studio") -> str:
-    """Return a compatible-release specifier (``~=X.Y.Z``) for the running
-    haywire release, so scaffolded projects pin to the version that created
-    them rather than a stale hardcoded literal.
+    """Return a floor specifier (``>=X.Y.Z``) for the running haywire release,
+    so scaffolded projects pin to the version that created them rather than a
+    stale hardcoded literal.
+
+    A floor, not a compatible-release (``~=``): ``~=X.Y.Z`` also stamps a
+    ceiling, and a ceiling written at scaffold time becomes a lie the moment
+    the excluded version ships — nobody will remember to update it. Authors
+    who want one type it themselves.
 
     Reads the installed version of ``dist`` — when invoked via
     ``uvx --from haywire-studio[==X] haywire init``, that is exactly the
@@ -31,7 +36,7 @@ def _release_pin(dist: str = "haywire-studio") -> str:
     guessing a pin that would mislead the generated pyproject.
     """
     try:
-        return f"~={version(dist)}"
+        return f">={version(dist)}"
     except PackageNotFoundError as exc:
         raise RuntimeError(
             f"Cannot determine the installed {dist} version to pin scaffolded "

@@ -49,6 +49,14 @@ class VersionError(ShareError):
     """A version string was unparsable, or a lockstep bump had no target."""
 
 
+class InvalidSpecifierError(VersionError):
+    """The author typed something that is not a valid PEP 440 specifier.
+
+    A bare version ("0.0.34") lands here too: requires_haywire always carries
+    the operator, so the author's intent (>=? ~=? ==?) is never guessed.
+    """
+
+
 class TagCollisionError(ShareError):
     """The tag for the requested version already exists locally or on the remote."""
 

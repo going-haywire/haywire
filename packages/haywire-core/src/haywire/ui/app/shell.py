@@ -18,6 +18,7 @@ Session and calling AppShell.render().
 """
 
 import logging
+from pathlib import Path
 from typing import Callable, Literal, TYPE_CHECKING
 from nicegui import ui
 
@@ -674,6 +675,16 @@ class AppShell:
                 on_click=_on_save,
             ).props("flat round dense").tooltip("Save workspace layout")
 
+            def _on_check_updates() -> None:
+                from haywire.ui.modals.update_dialog import open_update_dialog
+
+                open_update_dialog(Path.cwd())
+
+            ui.button(
+                icon="autorenew",
+                on_click=_on_check_updates,
+            ).props("flat round dense").tooltip("Check for Haywire updates")
+
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
         with (
@@ -685,6 +696,12 @@ class AppShell:
             )
         ):
             ui.label(f"Session: {self.session.session_id[:8]}...").classes("text-xs hw-text-muted")
+
+            from haywire.core.update import startup_mismatch
+
+            notice = startup_mismatch(Path.cwd() / "pyproject.toml")
+            if notice:
+                ui.label(notice).classes("text-xs").style("color: var(--hw-warning);")
 
     def _build_managed_slot(
         self,

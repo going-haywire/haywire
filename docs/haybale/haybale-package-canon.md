@@ -374,26 +374,28 @@ entry carries no `#subdirectory=` fragment and its paths sit at the repo root:
 
 ```toml
 [[haybales]]
-name         = "haybale-image"
-min_version  = "1.0.0"
-description  = "Image processing nodes for haywire — resize, filter, format convert."
-author       = "Author Name"
-source       = "git"
-install_spec = "haybale-image @ git+https://github.com/me/haybale-image.git@v1.0.0"
-tags         = ["image", "vision"]
-source_url   = "https://github.com/me/haybale-image"
-docs_url     = "https://raw.githubusercontent.com/me/haybale-image/v1.0.0/haybale_image/"
+name             = "haybale-image"
+version          = "1.0.0"
+requires_haywire = ">=0.0.31"
+description      = "Image processing nodes for haywire — resize, filter, format convert."
+author           = "Author Name"
+source           = "git"
+install_spec     = "haybale-image @ git+https://github.com/me/haybale-image.git@v1.0.0"
+tags             = ["image", "vision"]
+source_url       = "https://github.com/me/haybale-image"
+docs_url         = "https://raw.githubusercontent.com/me/haybale-image/v1.0.0/haybale_image/"
 ```
 
 Or for a PyPI-published version:
 
 ```toml
 [[haybales]]
-name         = "haybale-image"
-min_version  = "1.0.0"
-source       = "pypi"
-install_spec = "haybale-image>=1.0.0"
-docs_url     = ""   # falls back to PyPI long_description
+name             = "haybale-image"
+version          = "1.0.0"
+requires_haywire = ">=0.0.31"
+source           = "pypi"
+install_spec     = "haybale-image>=1.0.0"
+docs_url         = ""   # falls back to PyPI long_description
 ```
 
 The `source = "git"` variant above is what a **monorepo** entry differs from:

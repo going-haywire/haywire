@@ -25,7 +25,7 @@ async def test_fetch_overview_writes_to_docs_cache(tmp_path, monkeypatch):
 
     monkeypatch.setattr(cache_mod, "_urlopen", lambda url, *, timeout: _Resp())
 
-    pkg = Haybale(name="lib", min_version="1.0.0", docs_url="https://raw.example.com/lib/module/")
+    pkg = Haybale(name="lib", version="1.0.0", docs_url="https://raw.example.com/lib/module/")
     state = MarketplaceState.__new__(MarketplaceState)  # avoid full DI init
     text = await state.fetch_overview(pkg, cache_dir=tmp_path)
     assert text == "# OVERVIEW"

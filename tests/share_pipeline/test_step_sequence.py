@@ -22,6 +22,7 @@ _UI_ONLY_STEPS = frozenset({"checked", "done"})
 _EXPECTED_PIPELINE_STEPS = (
     "preconditions",
     "drift",
+    "framework",
     "version",
     "docs",
     "commit",
@@ -61,3 +62,11 @@ def test_wizard_step_order_follows_the_pipeline() -> None:
 
     rendered = [s for s in STEPS if s in _EXPECTED_PIPELINE_STEPS]
     assert rendered == list(_EXPECTED_PIPELINE_STEPS)
+
+
+def test_framework_step_sits_between_drift_and_version():
+    """The framework requirement is authored BEFORE the version bump, so the
+    version step's write set and the framework write set land in one commit."""
+    from haybale_marketplace.editors._share_wizard.copy import STEPS
+
+    assert STEPS.index("drift") < STEPS.index("framework") < STEPS.index("version")

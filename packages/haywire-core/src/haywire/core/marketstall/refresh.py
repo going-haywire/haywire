@@ -40,11 +40,11 @@ from haywire.core.marketstall.types import (
 
 def _count_updates_available(final: list[Haybale]) -> int:
     """For each non-stale cached haybale, compare its
-    `min_version` against the installed distribution version. Count
-    entries where ``installed < cache.min_version``.
+    `version` against the installed distribution version. Count
+    entries where ``installed < cache.version``.
 
     Stale entries are skipped (the upstream wasn't reachable; the stored
-    min_version is the old value and would falsely report "up-to-date").
+    version is the old value and would falsely report "up-to-date").
     Uninstalled haybales are skipped (nothing to update).
     """
     import importlib.metadata as _meta
@@ -53,14 +53,14 @@ def _count_updates_available(final: list[Haybale]) -> int:
 
     count = 0
     for h in final:
-        if h.stale or not h.min_version:
+        if h.stale or not h.version:
             continue
         try:
             installed = _meta.version(h.name)
         except _meta.PackageNotFoundError:
             continue
         try:
-            if Version(installed) < Version(h.min_version):
+            if Version(installed) < Version(h.version):
                 count += 1
         except InvalidVersion:
             continue
@@ -155,7 +155,8 @@ def mark_stale_against_previous(
         out.append(
             Haybale(
                 name=prev.name,
-                min_version=prev.min_version,
+                version=prev.version,
+                requires_haywire=prev.requires_haywire,
                 label=prev.label,
                 description=prev.description,
                 author=prev.author,

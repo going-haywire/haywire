@@ -13,7 +13,7 @@ from haywire.core.marketstall.types import Haybale
 
 def _h(name: str, **kw) -> Haybale:
     """Test helper: build a Haybale with sensible defaults."""
-    return Haybale(name=name, min_version=kw.pop("min_version", "0.1.0"), **kw)
+    return Haybale(name=name, version=kw.pop("version", "0.1.0"), **kw)
 
 
 @pytest.mark.unit
@@ -166,7 +166,7 @@ def test_refresh_fetches_stall_subscription(tmp_path: Path) -> None:
     )
     project_path = tmp_path / "project.toml"
 
-    fake_body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
         report = refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
@@ -183,7 +183,7 @@ def test_refresh_falls_back_to_cache_when_unreachable(tmp_path: Path) -> None:
     cache_dir = tmp_path / "c"
     cache_write(
         "https://alice.example/marketstall.toml",
-        '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n',
+        '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n',
         cache_dir=cache_dir,
     )
 
@@ -244,11 +244,11 @@ def test_refresh_applies_blocked_per_subscription(tmp_path: Path) -> None:
     fake_body = (
         "[[haybales]]\n"
         'name = "haybale-foo"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
         "\n"
         "[[haybales]]\n"
         'name = "haybale-untrusted"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
     )
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
@@ -266,7 +266,7 @@ def test_refresh_gcs_orphan_cache_files(tmp_path: Path) -> None:
     cache_write("https://orphan.example/m.toml", "old", cache_dir=cache_dir)
     cache_write(
         "https://active.example/m.toml",
-        '[[haybales]]\nname = "haybale-x"\nmin_version = "0.1.0"\n',
+        '[[haybales]]\nname = "haybale-x"\nversion = "0.1.0"\n',
         cache_dir=cache_dir,
     )
 
@@ -307,9 +307,9 @@ def test_refresh_one_level_deep_consumes_market_stalls(tmp_path: Path) -> None:
         "\n"
         "[[haybales]]\n"
         'name = "haybale-inline"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
     )
-    stall_body = '[[haybales]]\nname = "haybale-from-stall"\nmin_version = "0.1.0"\n'
+    stall_body = '[[haybales]]\nname = "haybale-from-stall"\nversion = "0.1.0"\n'
 
     def fake_urlopen(url, *, timeout):
         from unittest.mock import MagicMock
@@ -359,16 +359,16 @@ def test_refresh_stamps_via_on_cached_haybales(tmp_path: Path) -> None:
     )
     project_path = tmp_path / "project.toml"
 
-    stall_body = '[[haybales]]\nname = "haybale-from-direct-stall"\nmin_version = "0.1.0"\n'
+    stall_body = '[[haybales]]\nname = "haybale-from-direct-stall"\nversion = "0.1.0"\n'
     market_body = (
         "[[stalls]]\n"
         f'url = "{discovered_stall_url}"\n'
         "\n"
         "[[haybales]]\n"
         'name = "haybale-inline-in-market"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
     )
-    discovered_body = '[[haybales]]\nname = "haybale-from-discovered-stall"\nmin_version = "0.1.0"\n'
+    discovered_body = '[[haybales]]\nname = "haybale-from-discovered-stall"\nversion = "0.1.0"\n'
 
     def fake_urlopen(url, *, timeout):
         from unittest.mock import MagicMock
@@ -406,7 +406,7 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
     from haywire.core.marketstall.refresh import refresh
 
     stall_url = "https://alice.example/marketstall.toml"
-    stall_body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    stall_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
 
     # Step 1: initial refresh populates the cache with haybale-foo.
     global_path = tmp_path / "global.toml"
@@ -443,26 +443,26 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_count_updates_available_flags_installed_below_cache_min(monkeypatch) -> None:
-    """An installed dist whose version is below the cache `min_version` counts
+    """An installed dist whose version is below the cache `version` counts
     as an available update (spec §10.3)."""
     import importlib.metadata as _meta
 
     from haywire.core.marketstall.refresh import _count_updates_available
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-foo" else "0.0.0")
-    cache = [_h("haybale-foo", min_version="0.5.0")]
+    cache = [_h("haybale-foo", version="0.5.0")]
     assert _count_updates_available(cache) == 1
 
 
 @pytest.mark.unit
 def test_count_updates_available_skips_equal_versions(monkeypatch) -> None:
-    """installed == min_version is not an update — only strictly less."""
+    """installed == version is not an update — only strictly less."""
     import importlib.metadata as _meta
 
     from haywire.core.marketstall.refresh import _count_updates_available
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-foo" else "0.0.0")
-    cache = [_h("haybale-foo", min_version="0.5.0")]
+    cache = [_h("haybale-foo", version="0.5.0")]
     assert _count_updates_available(cache) == 0
 
 
@@ -477,13 +477,13 @@ def test_count_updates_available_skips_uninstalled(monkeypatch) -> None:
         raise _meta.PackageNotFoundError(dist)
 
     monkeypatch.setattr(_meta, "version", _raise)
-    cache = [_h("haybale-foo", min_version="0.5.0")]
+    cache = [_h("haybale-foo", version="0.5.0")]
     assert _count_updates_available(cache) == 0
 
 
 @pytest.mark.unit
 def test_count_updates_available_skips_stale_entries(monkeypatch) -> None:
-    """Stale cache entries hold OLD min_version values from a previous refresh
+    """Stale cache entries hold OLD version values from a previous refresh
     where the upstream wasn't reachable. Comparing against them would falsely
     report 'up-to-date' just because the user happened to install the same
     old version."""
@@ -492,7 +492,7 @@ def test_count_updates_available_skips_stale_entries(monkeypatch) -> None:
     from haywire.core.marketstall.refresh import _count_updates_available
 
     monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-foo" else "0.0.0")
-    stale = _h("haybale-foo", min_version="0.5.0", stale=True)
+    stale = _h("haybale-foo", version="0.5.0", stale=True)
     assert _count_updates_available([stale]) == 0
 
 
@@ -512,9 +512,9 @@ def test_count_updates_available_handles_multiple(monkeypatch) -> None:
 
     monkeypatch.setattr(_meta, "version", _ver)
     cache = [
-        _h("haybale-a", min_version="0.5.0"),  # needs update
-        _h("haybale-b", min_version="0.5.0"),  # current
-        _h("haybale-c", min_version="0.5.0"),  # not installed
+        _h("haybale-a", version="0.5.0"),  # needs update
+        _h("haybale-b", version="0.5.0"),  # current
+        _h("haybale-c", version="0.5.0"),  # not installed
     ]
     assert _count_updates_available(cache) == 1
 
@@ -530,7 +530,7 @@ def test_refresh_populates_updates_available_in_report(tmp_path: Path, monkeypat
     monkeypatch.setattr(_meta, "version", lambda dist: "0.1.0" if dist == "haybale-foo" else "0.0.0")
 
     stall_url = "https://alice.example/marketstall.toml"
-    stall_body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.5.0"\n'
+    stall_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.5.0"\n'
 
     global_path = tmp_path / "global.toml"
     global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = []\n')
@@ -560,3 +560,34 @@ def test_refresh_evicts_doc_dir_for_dropped_library(tmp_path: Path) -> None:
     refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path)
 
     assert not orphan.exists()  # ghost-lib evicted (not in resolved set)
+
+
+@pytest.mark.unit
+def test_malformed_caches_are_discarded_not_fatal(tmp_path):
+    """[[caches]] are derived artifacts refetched on every refresh. A strict
+    parser must not let a malformed cache block the refresh that heals it."""
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+
+    project = tmp_path / "marketplace.toml"
+    project.write_text('[[caches]]\nname = "haybale-foo"\n')  # no version
+
+    pm = parse_project_marketplace(project)
+
+    assert pm.caches == []
+
+
+@pytest.mark.unit
+def test_malformed_caches_do_not_discard_heaps(tmp_path):
+    """Only [[caches]] are derived. [[heaps]] are user-authored and must survive."""
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+
+    project = tmp_path / "marketplace.toml"
+    project.write_text(
+        '[[heaps]]\nname = "haybale-local"\npath = "barn/haybale-local"\n\n'
+        '[[caches]]\nname = "haybale-foo"\n'
+    )
+
+    pm = parse_project_marketplace(project)
+
+    assert pm.caches == []
+    assert [h["name"] for h in pm.heaps] == ["haybale-local"]

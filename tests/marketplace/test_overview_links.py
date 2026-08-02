@@ -5,7 +5,7 @@ from haywire.core.marketstall.types import Haybale
 def test_examples_link_present_when_url_set():
     pkg = Haybale(
         name="lib",
-        min_version="1.0.0",
+        version="1.0.0",
         source_url="https://github.com/me/repo",
         docs_url="https://raw.example.com/lib/",
         examples_url="https://raw.example.com/lib/examples/",
@@ -19,5 +19,5 @@ def test_examples_link_present_when_url_set():
 
 
 def test_no_examples_link_when_url_absent():
-    pkg = Haybale(name="lib", min_version="1.0.0", source_url="https://github.com/me/repo")
+    pkg = Haybale(name="lib", version="1.0.0", source_url="https://github.com/me/repo")
     assert "Examples" not in [lbl for lbl, _ in collect_overview_links(pkg)]

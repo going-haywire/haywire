@@ -78,7 +78,7 @@ def test_get_project_haybales_reads_existing_cache(state_with_workspace) -> None
     mp.write_text(
         "[[caches]]\n"
         'name = "haybale-from-cache"\n'
-        'min_version = "0.0.1"\n'
+        'version = "0.0.1"\n'
         'source = "git"\n'
         'install_spec = "haybale-from-cache @ git+https://x.example/r.git"\n'
     )
@@ -147,7 +147,7 @@ def test_refresh_invokes_runtime_refresh(state_with_workspace, fake_home, monkey
         if hasattr(url, "full_url"):
             url = url.full_url
         if url == "https://author.example/m.toml":
-            return _Resp(b'[[haybales]]\nname = "haybale-from-author"\nmin_version = "0.0.1"\n')
+            return _Resp(b'[[haybales]]\nname = "haybale-from-author"\nversion = "0.0.1"\n')
         raise OSError(f"unmocked URL: {url}")
 
     monkeypatch.setattr("urllib.request.urlopen", _fake_urlopen)

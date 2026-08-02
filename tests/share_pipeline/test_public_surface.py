@@ -15,6 +15,8 @@ _WIZARD_IMPORTS = (
     "CommitResult",
     "DocsResult",
     "DriftReport",
+    "FrameworkOption",
+    "FrameworkPlan",
     "PreconditionFailure",
     "PreconditionsError",
     "PreconditionsReport",
@@ -58,5 +60,6 @@ def test_share_error_hierarchy_is_intact() -> None:
         "CommitError",
         "PushError",
         "PipelineStateError",
+        "InvalidSpecifierError",
     ):
         assert issubclass(getattr(module, name), module.ShareError), name

@@ -2,12 +2,13 @@
 
 from __future__ import annotations
 
-STEPS = ("preconditions", "checked", "drift", "version", "docs", "commit", "push", "done")
+STEPS = ("preconditions", "checked", "drift", "framework", "version", "docs", "commit", "push", "done")
 
 _STEP_TITLES = {
     "preconditions": "Check the project",
     "checked": "Scan dependencies",
     "drift": "Dependencies",
+    "framework": "Framework requirement",
     "version": "Version",
     "docs": "Documentation",
     "commit": "Review and commit",

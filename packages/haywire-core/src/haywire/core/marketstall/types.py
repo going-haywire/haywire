@@ -16,7 +16,11 @@ class Haybale:
     """One entry from a [[haybales]] section."""
 
     name: str
-    min_version: str
+    version: str
+    # Full PEP 440 specifier for the framework this library needs
+    # (">=0.0.31", "~=0.0.31", ">=0.0.31,<1.0.0") — the author picks the
+    # operator, so this is never a bare version. Empty means undeclared.
+    requires_haywire: str = ""
     label: str = ""
     description: str = ""
     author: str = ""
@@ -41,7 +45,8 @@ class Haybale:
     _TOML_FIELDS: ClassVar[tuple[str, ...]] = (
         "name",
         "label",
-        "min_version",
+        "version",
+        "requires_haywire",
         "description",
         "author",
         "source",

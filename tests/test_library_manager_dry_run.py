@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -140,5 +142,104 @@ async def test_dry_run_resolver_error_raises():
         return False, "error: no solution found"
 
     with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
-        with pytest.raises(RuntimeError, match="Dependency resolution failed"):
+        with pytest.raises(RuntimeError, match="no solution found"):
             await mgr.dry_run("haybale-bad-pkg")
+
+
+@pytest.mark.unit
+def test_framework_constraints_pins_installed_versions():
+    """The constraint set is exactly core/studio/nicegui, pinned == to what is
+    installed — never to a declared Requires-Dist, which can itself be stale."""
+    from haybale_marketplace.library_manager import FRAMEWORK_PACKAGES
+
+    mgr = _make_manager()
+
+    def fake_version(name: str) -> str:
+        return {"haywire-core": "0.0.34", "haywire-studio": "0.0.34", "nicegui": "3.13.0"}[name]
+
+    with patch("importlib.metadata.version", side_effect=fake_version):
+        lines = mgr._framework_constraints()
+
+    assert lines == ["haywire-core==0.0.34", "haywire-studio==0.0.34", "nicegui==3.13.0"]
+    assert FRAMEWORK_PACKAGES == ("haywire-core", "haywire-studio", "nicegui")
+
+
+@pytest.mark.unit
+def test_framework_constraints_skips_missing_packages():
+    """A package that isn't installed contributes no constraint — pinning a
+    version we don't have would make every install unsatisfiable."""
+    import importlib.metadata as _meta
+
+    mgr = _make_manager()
+
+    def fake_version(name: str) -> str:
+        if name == "nicegui":
+            raise _meta.PackageNotFoundError(name)
+        return "0.0.34"
+
+    with patch("importlib.metadata.version", side_effect=fake_version):
+        lines = mgr._framework_constraints()
+
+    assert lines == ["haywire-core==0.0.34", "haywire-studio==0.0.34"]
+
+
+@pytest.mark.unit
+async def test_dry_run_passes_constraints_file():
+    """dry_run() must pass -c <file> so a haybale that needs a different core
+    version fails at the resolver instead of silently moving the framework."""
+    mgr = _make_manager()
+    captured: dict[str, list[str]] = {}
+
+    async def fake_run(args, on_output):
+        captured["args"] = list(args)
+        idx = args.index("-c")
+        captured["body"] = Path(args[idx + 1]).read_text()
+        return True, ""
+
+    with patch.object(mgr, "_framework_constraints", return_value=["haywire-core==0.0.34"]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            await mgr.dry_run("haybale-foo")
+
+    assert "-c" in captured["args"]
+    assert captured["body"] == "haywire-core==0.0.34\n"
+
+
+@pytest.mark.unit
+async def test_install_passes_identical_flags_to_dry_run():
+    """install() and dry_run() must agree on every resolver-affecting flag, or
+    the pre-eviction set and the actual install diverge."""
+    mgr = _make_manager()
+    seen: list[list[str]] = []
+
+    async def fake_run(args, on_output):
+        seen.append(list(args))
+        return True, ""
+
+    mgr.registry.list_names.return_value = []
+    with patch.object(mgr, "_framework_constraints", return_value=["haywire-core==0.0.34"]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            await mgr.install("haybale-foo", lambda line: None)
+
+    dry_flags = [a for a in seen[0] if a.startswith("-") and a != "-c"]
+    install_flags = [a for a in seen[1] if a.startswith("-") and a != "-c"]
+    assert dry_flags == ["--dry-run", "--no-sources"]
+    assert install_flags == ["--no-sources"]
+    assert "-c" in seen[0] and "-c" in seen[1]
+
+
+@pytest.mark.unit
+async def test_dry_run_resolver_failure_names_the_shell_control():
+    """A framework-blocked install must tell the user where the remedy lives —
+    the shell's check-for-updates control — not dump raw resolver text alone."""
+    mgr = _make_manager()
+
+    async def fake_run(args, on_output):
+        return False, "error: no solution found: haywire-core==0.0.34 is unsatisfiable"
+
+    with patch.object(mgr, "_framework_constraints", return_value=["haywire-core==0.0.34"]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            with pytest.raises(RuntimeError) as exc:
+                await mgr.dry_run("haybale-foo")
+
+    assert "Check for updates" in str(exc.value)
+    assert "no solution found" in str(exc.value)

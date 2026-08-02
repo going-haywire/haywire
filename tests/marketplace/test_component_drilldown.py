@@ -74,7 +74,7 @@ async def test_available_component_doc_fetched_over_docs_url(tmp_path, monkeypat
 
     pkg = Haybale(
         name="not_installed_lib",
-        min_version="1.0.0",
+        version="1.0.0",
         docs_url="https://raw.example.com/lib/haybale_lib",
     )
     monkeypatch.setattr(MarketplaceState, "get_project_haybales", lambda self: [pkg])

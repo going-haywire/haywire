@@ -34,6 +34,14 @@ def _sanitize_name(name: str) -> str:
 
 _DECLARABLE_OS_VALUES = ("macos", "windows", "linux")
 
+# Packages the marketplace must never move. Pinned to their installed exact
+# versions on every install, so a haybale whose tree wants a different
+# framework version fails at uv's resolver instead of silently swapping the
+# framework out from under the running studio. Deliberately NOT the full
+# publish set: the in-monorepo haybale-* libraries are exactly what a
+# marketplace install is supposed to upgrade.
+FRAMEWORK_PACKAGES: tuple[str, ...] = ("haywire-core", "haywire-studio", "nicegui")
+
 
 def _parse_git_install_spec(install_spec: str) -> tuple[str, str | None]:
     """Parse a PEP 440 VCS URL into (git_url, subdirectory|None).
@@ -270,6 +278,44 @@ class LibraryManager:
             needs_restart=identity.needs_restart,
         )
 
+    FRAMEWORK_CONFLICT_MESSAGE = (
+        "This library needs a different version of the Haywire framework than the "
+        "one you are running. Update Haywire first — use “Check for updates” in the "
+        "top bar — then install this library again."
+    )
+
+    def _framework_constraints(self) -> list[str]:
+        """``name==version`` lines pinning every installed framework package.
+
+        Read from the running venv, not from any declared ``Requires-Dist``:
+        a declared want can itself be stale, whereas what is running cannot.
+        A package that isn't installed contributes nothing — pinning a version
+        we do not have would make every install unsatisfiable.
+        """
+        lines: list[str] = []
+        for name in FRAMEWORK_PACKAGES:
+            try:
+                lines.append(f"{name}=={importlib.metadata.version(name)}")
+            except importlib.metadata.PackageNotFoundError:
+                continue
+        return lines
+
+    def _write_constraints_file(self) -> Path | None:
+        """Write the framework constraints to a temp file; return its path.
+
+        Returns None when nothing is installed to constrain, so the caller
+        omits ``-c`` entirely rather than passing an empty file.
+        """
+        import tempfile
+
+        lines = self._framework_constraints()
+        if not lines:
+            return None
+        handle = tempfile.NamedTemporaryFile("w", suffix=".txt", prefix="haywire-constraints-", delete=False)
+        with handle:
+            handle.write("\n".join(lines) + "\n")
+        return Path(handle.name)
+
     async def dry_run(self, install_spec: str) -> list[str]:
         """Run `uv pip install --dry-run` and return distribution names of packages
         that would be removed (upgraded) by the install.
@@ -281,6 +327,7 @@ class LibraryManager:
         Raises:
             RuntimeError: when uv's dependency resolver fails (non-zero exit).
         """
+        constraints = self._write_constraints_file()
         if Path(install_spec).is_dir():
             args = ["install", "--dry-run", "-e", install_spec]
         else:
@@ -291,6 +338,8 @@ class LibraryManager:
             # this flag the resolver replaces already-installed editable
             # haywire packages with bogus path-traversal git URLs.
             args = ["install", "--dry-run", "--no-sources", install_spec]
+        if constraints is not None:
+            args += ["-c", str(constraints)]
 
         collected: list[str] = []
 
@@ -299,7 +348,7 @@ class LibraryManager:
 
         success, stderr = await self._run_uv_streaming(args, _collect)
         if not success:
-            raise RuntimeError(f"Dependency resolution failed: {stderr}")
+            raise RuntimeError(f"{self.FRAMEWORK_CONFLICT_MESSAGE}\n\n{stderr}")
 
         full_output = "\n".join(collected)
         return self._parse_dry_run_removals(full_output)
@@ -317,12 +366,16 @@ class LibraryManager:
         (success path) and any evicted libraries (success OR failure path,
         for ``needs_restart`` only).
         """
+        constraints = self._write_constraints_file()
         if Path(install_spec).is_dir():
             args = ["install", "-e", install_spec]
         else:
-            # --no-sources: see dry_run() for rationale. Must match the dry-run
-            # flags or the pre-eviction set and the actual install diverge.
+            # --no-sources and -c: see dry_run() for rationale. Must match the
+            # dry-run flags exactly or the pre-eviction set and the actual
+            # install diverge.
             args = ["install", "--no-sources", install_spec]
+        if constraints is not None:
+            args += ["-c", str(constraints)]
 
         # Pre-evict libraries that pip is about to upgrade. Capture each
         # evicted library's hints BEFORE remove_library() drops the identity.

@@ -34,7 +34,9 @@ def apply_marketstall(pipeline: "SharePipeline") -> MarketstallWriteResult:
     """
     tag = f"v{pipeline.version}" if pipeline.version else None
     try:
-        result = write_marketstall(pipeline.repo_root, tag=tag)
+        result = write_marketstall(
+            pipeline.repo_root, tag=tag, requires_haywire=pipeline.requires_haywire or ""
+        )
     except (NoBarnError, *_MANIFEST_FAILURE_TYPES) as exc:
         raise MarketstallError(str(exc)) from exc
     pipeline.record(result.written)

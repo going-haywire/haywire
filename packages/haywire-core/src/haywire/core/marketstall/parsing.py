@@ -27,13 +27,22 @@ from haywire.core.marketstall.types import Haybale, MarketplaceFile, ProjectMark
 
 
 def _parse_haybale_entry(raw: dict) -> Haybale:
-    """Parse one [[haybales]] (or [[caches]]) TOML entry into a Haybale."""
+    """Parse one [[haybales]] (or [[caches]]) TOML entry into a Haybale.
+
+    ``version`` is required. Defaulting it to "" would silently disable
+    update reporting — refresh skips falsy-version entries — so an absent
+    version is an error, matching the existing ``name`` check.
+    """
     name = raw.get("name")
     if not isinstance(name, str) or not name:
         raise MalformedMarketplaceError("[[haybales]] entry missing required `name` field")
+    version = raw.get("version")
+    if not isinstance(version, str) or not version:
+        raise MalformedMarketplaceError(f"[[haybales]] entry {name!r} missing required `version` field")
     return Haybale(
         name=name,
-        min_version=raw.get("min_version", ""),
+        version=version,
+        requires_haywire=raw.get("requires_haywire", ""),
         label=raw.get("label", ""),
         description=raw.get("description", ""),
         author=raw.get("author", ""),
@@ -121,7 +130,15 @@ def parse_project_marketplace(path: Path) -> ProjectMarketplaceFile:
         raise MalformedMarketplaceError(f"malformed project marketplace.toml at {path}: {exc}") from exc
 
     heaps = [_parse_heap_entry(raw) for raw in data.get("heaps", [])]
-    caches = [_parse_haybale_entry(raw) for raw in data.get("caches", [])]
+    # [[caches]] are derived artifacts, refetched on every refresh. A strict
+    # parser must not block the very refresh that would heal a malformed file,
+    # and _merge_cache reads the previous cache — so discard and refetch.
+    # Cost: one cycle of `stale` bookkeeping. [[heaps]] above are user-authored
+    # and stay strict.
+    try:
+        caches = [_parse_haybale_entry(raw) for raw in data.get("caches", [])]
+    except MalformedMarketplaceError:
+        caches = []
     return ProjectMarketplaceFile(heaps=heaps, caches=caches)
 
 

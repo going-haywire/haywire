@@ -26,6 +26,7 @@ from haywire_studio.packaging.share.pipeline import (
     CommitResult,
     DocsResult,
     DriftReport,
+    FrameworkPlan,
     PreconditionFailure,
     PreconditionsError,
     PreconditionsReport,
@@ -54,6 +55,7 @@ class ShareWizard:
         self.preconditions_report: PreconditionsReport | None = None
         self.drift_report: DriftReport | None = None
         self.drift_choice: str | None = None
+        self.framework_plan: FrameworkPlan | None = None
         self.version_plan: VersionPlan | None = None
         self.docs_result: DocsResult | None = None
         self.commit_plan: CommitPlan | None = None
@@ -164,6 +166,22 @@ class ShareWizard:
                     await asyncio.to_thread(self.pipeline.apply_drift_replace, report)
                 else:
                     self.pipeline.acknowledge_drift()
+            self.framework_plan = await asyncio.to_thread(self.pipeline.plan_framework)
+        except ShareError as exc:
+            self._fail(exc)
+            return
+        self.step = "framework"
+
+    async def advance_from_framework(self, specifier: str) -> None:
+        """Write the one project-wide framework requirement, then plan the bump.
+
+        An invalid specifier raises InvalidSpecifierError (a ShareError), which
+        keeps the user on this step with the message inline — same retry-in-place
+        posture as every other step.
+        """
+        self.retry()
+        try:
+            self.pipeline.apply_framework(specifier)
             self.version_plan = await asyncio.to_thread(self.pipeline.plan_version)
         except ShareError as exc:
             self._fail(exc)

@@ -18,6 +18,7 @@ from .panels import (
     _panel_docs,
     _panel_done,
     _panel_drift,
+    _panel_framework,
     _panel_preconditions,
     _panel_push,
     _panel_version,
@@ -136,6 +137,8 @@ def _render_step(
         _panel_checked(wizard, rerender)
     elif wizard.step == "drift":
         _panel_drift(wizard, rerender)
+    elif wizard.step == "framework":
+        _panel_framework(wizard, rerender)
     elif wizard.step == "version":
         _panel_version(wizard, rerender)
     elif wizard.step == "docs":

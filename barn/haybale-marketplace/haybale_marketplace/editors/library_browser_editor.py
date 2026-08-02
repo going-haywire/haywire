@@ -513,12 +513,12 @@ class LibraryBrowserEditor(BaseEditor):
 
                 # Updates available — compare caches vs installed versions.
                 for entry in pm.caches:
-                    if not entry.min_version or not entry.name:
+                    if not entry.version or not entry.name:
                         continue
                     lib = next((x for x in libraries if x.distribution_name == entry.name), None)
                     if lib and lib.identity.version:
                         try:
-                            if Version(entry.min_version) > Version(lib.identity.version):
+                            if Version(entry.version) > Version(lib.identity.version):
                                 updates_available.add(entry.name)
                         except Exception:
                             pass
@@ -534,7 +534,7 @@ class LibraryBrowserEditor(BaseEditor):
                         candidates.append(
                             Haybale(
                                 name=name,
-                                min_version="",
+                                version="0.0.0",
                                 label=raw.get("label", ""),
                                 description=raw.get("description", ""),
                                 source="local",

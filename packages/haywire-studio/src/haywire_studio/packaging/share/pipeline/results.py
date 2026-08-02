@@ -157,3 +157,32 @@ class PushResult:
     branch: str
     tag: str
     output: str = ""
+
+
+@dataclass(frozen=True)
+class FrameworkOption:
+    """One framework-requirement the author can publish.
+
+    ``consequence`` states, in concrete counted terms, who this option locks
+    out — following the deps-drift precedent, where the words alone cannot
+    carry the semantics. Empty when there is no consequence.
+    """
+
+    specifier: str
+    label: str
+    consequence: str = ""
+    recommended: bool = False
+
+
+@dataclass(frozen=True)
+class FrameworkPlan:
+    """What the framework-requirement step offers, before the author picks.
+
+    ``declared`` is the ``haywire-core`` specifier the barn libraries carry
+    today (empty when undeclared); ``installed`` is the running framework
+    version. One project-wide answer, matching lockstep versioning (ADR 0023).
+    """
+
+    installed: str
+    declared: str
+    options: list[FrameworkOption]

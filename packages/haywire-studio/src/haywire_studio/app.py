@@ -314,8 +314,15 @@ class HaywireApp:
 # ---------------------------------------------------------------------------
 
 
-def run_app():
-    """Launch the Haywire application."""
+def run_app() -> int:
+    """Launch the Haywire application. Returns the process exit code.
+
+    Subcommands already propagate a code (`raise SystemExit(handler(args))`);
+    the app path did not, so every exit looked identical from outside. A
+    supervisor distinguishes "user quit" from "restart me" by a sentinel code,
+    so the app path returns one too. Nothing reads it today — this is the seam
+    that keeps a supervisor additive.
+    """
     # logging.getLogger("haywire.ui.editor.graph_canvas_manager").setLevel(logging.DEBUG)
     # use DebugSettings.log_ui instead
 
@@ -328,6 +335,10 @@ def run_app():
     app_instance = HaywireApp()
     app.on_shutdown(app_instance.cleanup)
     app_instance.run()
+
+    from haywire.core.update.confirmed import exit_code
+
+    return exit_code()
 
 
 def main():
@@ -353,8 +364,7 @@ def main():
 
     handler = getattr(args, "handler", None)
     if handler is None:
-        run_app()
-        return
+        raise SystemExit(run_app())
     raise SystemExit(handler(args))
 
 

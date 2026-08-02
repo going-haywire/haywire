@@ -24,7 +24,7 @@ def test_subscribe_marketstall_blob_url(tmp_path: Path) -> None:
     global_path = tmp_path / "marketplace.toml"
     paste_dir = tmp_path / "stalls"
 
-    body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
@@ -59,7 +59,7 @@ def test_subscribe_marketplace_with_inline_haybales(tmp_path: Path) -> None:
         "\n"
         "[[haybales]]\n"
         'name = "haybale-inline"\n'
-        'min_version = "0.1.0"\n'
+        'version = "0.1.0"\n'
     )
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
@@ -109,7 +109,7 @@ def test_subscribe_raw_url_persists_as_is(tmp_path: Path) -> None:
     global_path = tmp_path / "marketplace.toml"
 
     url = "https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml"
-    body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
@@ -131,7 +131,7 @@ def test_subscribe_plain_toml_url(tmp_path: Path) -> None:
 
     global_path = tmp_path / "marketplace.toml"
 
-    body = '[[haybales]]\nname = "haybale-foo"\nmin_version = "0.1.0"\n'
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
@@ -154,7 +154,7 @@ def test_subscribe_pasted_toml_block_writes_file(tmp_path: Path) -> None:
     global_path = tmp_path / "marketplace.toml"
     paste_dir = tmp_path / "stalls"
 
-    block = '[[haybales]]\nname = "haybale-pasted"\nmin_version = "0.1.0"\n'
+    block = '[[haybales]]\nname = "haybale-pasted"\nversion = "0.1.0"\n'
     result = resolve_and_subscribe(
         global_path,
         block,
@@ -202,7 +202,7 @@ def test_subscribe_pasted_block_with_collapsed_newlines_raises(tmp_path: Path) -
     from haywire.core.marketstall import SubscribeError, resolve_and_subscribe
 
     # The exact shape the dialog produces when a single-line input collapses newlines.
-    collapsed = '[[haybales]] name = "haybale-test-pasted" min_version = "0.0.1"'
+    collapsed = '[[haybales]] name = "haybale-test-pasted" version = "0.0.1"'
     with pytest.raises(SubscribeError) as exc_info:
         resolve_and_subscribe(
             tmp_path / "marketplace.toml",

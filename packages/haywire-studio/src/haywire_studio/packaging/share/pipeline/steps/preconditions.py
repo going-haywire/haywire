@@ -5,11 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
+import toml
+
 from haywire_studio.packaging.share.git import git, git_remote
 from haywire_studio.packaging.share.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire_studio.packaging.share.manifest.os_field import describe_os_fix, invalid_os_values
 from haywire_studio.packaging.share.manifest.reader import read_manifest
 from haywire_studio.packaging.share.pipeline.results import PreconditionFailure, PreconditionsReport
+from haywire_studio.packaging.share.pipeline.steps.framework import haywire_core_floor, specifiers_equal
 
 if TYPE_CHECKING:
     from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
@@ -129,6 +132,8 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 )
             )
 
+    failures.extend(check_framework_consistency(pipeline))
+
     remote = git(["remote", "get-url", "origin"], cwd=pipeline.repo_root, timeout=10.0)
     if not remote.ok or not remote.stdout.strip():
         failures.append(
@@ -214,6 +219,54 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         barn_libraries=barn_libraries,
         default_branch=default_branch,
     )
+
+
+def check_framework_consistency(pipeline: "SharePipeline") -> list[PreconditionFailure]:
+    """The published ``requires_haywire`` vs each library's actual floor.
+
+    The two are carriers of ONE authored answer, so a disagreement means one
+    of them was hand-edited. Compared as parsed ``SpecifierSet`` objects, never
+    as raw strings — ``packaging`` reorders on ``str()``, so
+    ``">=0.0.31,<1.0.0"`` and ``"<1.0.0,>=0.0.31"`` are the same requirement
+    and a string comparison would report false drift.
+    """
+    stall = pipeline.repo_root / "marketstall.toml"
+    if not stall.is_file():
+        return []
+    try:
+        data = toml.loads(stall.read_text())
+    except toml.TomlDecodeError:
+        # A malformed marketstall is rebuilt from disk in step 5 anyway.
+        return []
+
+    published: dict[str, str] = {}
+    for raw in data.get("haybales", []) or []:
+        name = raw.get("name")
+        declared = raw.get("requires_haywire", "")
+        if isinstance(name, str) and isinstance(declared, str) and declared:
+            published[name] = declared
+
+    failures: list[PreconditionFailure] = []
+    for lib_dir in pipeline._barn_library_dirs():
+        declared = published.get(lib_dir.name)
+        if not declared:
+            continue
+        actual = haywire_core_floor(lib_dir)
+        if actual and not specifiers_equal(actual, declared):
+            failures.append(
+                PreconditionFailure(
+                    message=(
+                        f"{lib_dir.name}: marketstall.toml publishes "
+                        f"requires_haywire = {declared!r}, but its pyproject.toml declares "
+                        f"haywire-core{actual}."
+                    ),
+                    remedy=(
+                        "These are two carriers of one answer. Re-run the framework "
+                        "requirement step to set both, or edit one to match the other."
+                    ),
+                )
+            )
+    return failures
 
 
 def _detached_head_remedy(pipeline: "SharePipeline") -> str:
