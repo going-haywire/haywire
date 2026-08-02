@@ -43,20 +43,30 @@ _DECLARABLE_OS_VALUES = ("macos", "windows", "linux")
 FRAMEWORK_PACKAGES: tuple[str, ...] = ("haywire-core", "haywire-studio", "nicegui")
 
 
-def _parse_git_install_spec(install_spec: str) -> tuple[str, str | None]:
-    """Parse a PEP 440 VCS URL into (git_url, subdirectory|None).
+def _parse_git_install_spec(install_spec: str) -> tuple[str, str | None, str | None]:
+    """Parse a PEP 440 VCS URL into (git_url, tag|None, subdirectory|None).
 
-    Accepts both the bare form (``git+https://…[#subdirectory=…]``) and the
-    PEP 440 form with a leading ``name @ `` prefix.
+    Accepts both the bare form (``git+https://…[@tag][#subdirectory=…]``) and
+    the PEP 440 form with a leading ``name @ `` prefix. The tag is split out
+    of the URL rather than left embedded — ``[tool.uv.sources]`` wants it as
+    a separate ``tag`` key, and a URL with ``@tag`` glued on is not a valid
+    git remote (uv/git tries to fetch that literal string as a host).
     """
     spec = install_spec.strip()
     if " @ " in spec:
         spec = spec.split(" @ ", 1)[1].strip()
     spec = spec.removeprefix("git+")
+    sub: str | None = None
     if "#subdirectory=" in spec:
-        url, sub = spec.split("#subdirectory=", 1)
-        return url.strip(), sub.strip() or None
-    return spec, None
+        spec, sub = spec.split("#subdirectory=", 1)
+        spec = spec.strip()
+        sub = sub.strip() or None
+    tag: str | None = None
+    if "@" in spec:
+        spec, tag = spec.split("@", 1)
+        spec = spec.strip()
+        tag = tag.strip() or None
+    return spec, tag, sub
 
 
 def _write_install_to_pyproject(
@@ -94,8 +104,10 @@ def _write_install_to_pyproject(
     project["dependencies"] = new_deps
 
     if source == "git":
-        url, subdir = _parse_git_install_spec(install_spec)
+        url, tag, subdir = _parse_git_install_spec(install_spec)
         git_entry: dict[str, Any] = {"git": url}
+        if tag:
+            git_entry["tag"] = tag
         if subdir:
             git_entry["subdirectory"] = subdir
         sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
