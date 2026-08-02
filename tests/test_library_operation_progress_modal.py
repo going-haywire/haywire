@@ -54,8 +54,8 @@ async def test_finish_no_flags_shows_done_button(user: User) -> None:
     assert modal._spinner_row.visible is False
     assert modal._done_row[0].visible is True
     assert modal._done_row[1].text == "Done"
-    # Restart instructions panel is hidden.
-    assert modal._restart_instructions.visible is False
+    # Restart affordance is hidden.
+    assert modal._restart_slot.visible is False
     # Reload notice is hidden.
     assert modal._reload_notice.visible is False
 
@@ -77,13 +77,13 @@ async def test_finish_needs_refresh_shows_reload_button(user: User) -> None:
 
     assert modal._done_row[1].text == "Reload the page"
     assert modal._reload_notice.visible is True
-    assert modal._restart_instructions.visible is False
+    assert modal._restart_slot.visible is False
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_finish_needs_restart_shows_restart_button(user: User) -> None:
-    """needs_restart=True → button 'How to restart Studio'; click reveals instructions."""
+async def test_finish_needs_restart_shows_restart_affordance(user: User) -> None:
+    """needs_restart=True → the restart affordance is revealed; terminal button closes."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
@@ -95,11 +95,54 @@ async def test_finish_needs_restart_shows_restart_button(user: User) -> None:
     await user.open("/")
     modal = captured["modal"]
 
-    assert modal._done_row[1].text == "How to restart Studio"
-    # Instructions panel starts hidden (revealed on click).
-    assert modal._restart_instructions.visible is False
+    # The affordance carries its own Restart button, so the terminal button
+    # stays a plain dismiss — quitting is never the only way out.
+    assert modal._restart_slot.visible is True
+    assert modal._done_row[1].text == "Close"
     # Refresh notice is hidden — restart subsumes refresh.
     assert modal._reload_notice.visible is False
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_finish_caller_needs_restart_without_declared_hint(user: User) -> None:
+    """A caller-observed restart requirement stands alone.
+
+    The eviction case: the operation invalidated the registry even though no
+    library author declared ``needs_restart``.
+    """
+    captured: dict[str, LibraryOperationProgressModal] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        modal = library_operation_progress_modal(title="Installing test…")
+        modal.finish(hints=PostInstallHints(), needs_restart=True)
+        captured["modal"] = modal
+
+    await user.open("/")
+    modal = captured["modal"]
+
+    assert modal._restart_slot.visible is True
+    assert modal._done_row[1].text == "Close"
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_finish_no_restart_leaves_slot_hidden(user: User) -> None:
+    """Neither flag set → the affordance slot stays hidden and empty."""
+    captured: dict[str, LibraryOperationProgressModal] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        modal = library_operation_progress_modal(title="Installing test…")
+        modal.finish(hints=PostInstallHints())
+        captured["modal"] = modal
+
+    await user.open("/")
+    modal = captured["modal"]
+
+    assert modal._restart_slot.visible is False
+    assert not modal._restart_slot.default_slot.children
 
 
 @pytest.mark.unit
@@ -117,7 +160,7 @@ async def test_finish_restart_subsumes_refresh(user: User) -> None:
     await user.open("/")
     modal = captured["modal"]
 
-    assert modal._done_row[1].text == "How to restart Studio"
+    assert modal._restart_slot.visible is True
     assert modal._reload_notice.visible is False
 
 
@@ -160,7 +203,7 @@ async def test_finish_with_error_and_restart_shows_both(user: User) -> None:
     modal = captured["modal"]
 
     assert modal._error_banner[1].visible is True
-    assert modal._done_row[1].text == "How to restart Studio"
+    assert modal._restart_slot.visible is True
 
 
 def _click_listeners(button: ui.button) -> list:
@@ -178,12 +221,11 @@ def _click_listeners(button: ui.button) -> list:
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_finish_restart_registers_exactly_one_click_handler(user: User) -> None:
-    """needs_restart terminal state must register exactly one click handler.
+    """The restart terminal state's dismiss button gets exactly one handler.
 
     Regression guard: the old code wired ``on_click=popup.close`` at button
-    construction, so adding the restart-instructions handler via ``.on()``
-    in ``finish()`` produced TWO listeners. Clicking the button then both
-    revealed the instructions AND closed the popup, breaking the UX.
+    construction, so adding a second handler via ``.on()`` in ``finish()``
+    produced TWO listeners and the button did both things at once.
     """
     captured: dict[str, LibraryOperationProgressModal] = {}
 
@@ -198,7 +240,7 @@ async def test_finish_restart_registers_exactly_one_click_handler(user: User) ->
 
     listeners = _click_listeners(modal._done_row[1])
     assert len(listeners) == 1, (
-        f"Expected exactly 1 click listener on the restart button "
+        f"Expected exactly 1 click listener on the dismiss button "
         f"(handler stacking would yield 2), got {len(listeners)}."
     )
 
@@ -247,9 +289,12 @@ async def test_finish_is_idempotent(user: User) -> None:
     await user.open("/")
     modal = captured["modal"]
 
-    # First call's state preserved: restart label, no reload notice.
-    assert modal._done_row[1].text == "How to restart Studio"
+    # First call's state preserved: restart affordance shown, no reload notice.
+    assert modal._restart_slot.visible is True
     assert modal._reload_notice.visible is False
+    # The affordance was rendered once (notice row + button), not once per
+    # finish() call — a second render would double this to 4.
+    assert len(modal._restart_slot.default_slot.children) == 2
     # Click handler from the first call was NOT joined by a second one.
     listeners = _click_listeners(modal._done_row[1])
     assert len(listeners) == 1, f"Double finish() must not stack click listeners, got {len(listeners)}."

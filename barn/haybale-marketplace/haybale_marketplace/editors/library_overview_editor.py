@@ -759,12 +759,19 @@ class LibraryOverviewEditor(BaseEditor):
             ui.notify(message, type="negative")
             return
 
-        # Rescan
+        # Rescan. This re-executes the decorator so the panel shows the new
+        # metadata, but it does NOT refresh objects already built from the
+        # ejected module — mounted nodes and registered types still point at
+        # the old classes. Hence the restart offer below rather than a plain
+        # success notification.
         manager._invalidate_caches()
         await asyncio.to_thread(manager.registry.scan_for_libraries)
         manager.registry.enable_all_libraries()
 
-        ui.notify(f"Saved: {identity.get('label', lib.identity.label)}", type="positive")
+        ui.notify(
+            f"Saved: {identity.get('label', lib.identity.label)} — restart to fully apply",
+            type="positive",
+        )
 
         # Reload the freshly-saved library into context and re-render
         try:
@@ -779,6 +786,30 @@ class LibraryOverviewEditor(BaseEditor):
         assert self._container is not None
         self._container.clear()
         self._rebuild(context)
+        self._offer_restart(lib.identity.label)
+
+    def _offer_restart(self, label: str) -> None:
+        """Offer a restart after an identity edit, in a popup of its own.
+
+        Not rendered inline: ``_do_update_identity`` clears and rebuilds the
+        editor container immediately before this runs, which would delete any
+        element added to it.
+        """
+        from haywire.ui.components.popup import Popup
+        from haywire.ui.modals import restart_affordance
+
+        popup = Popup(title="Restart to apply", width="420px", closable=True)
+        with popup:
+            with ui.column().classes("w-full gap-2"):
+                restart_affordance(
+                    reason=(
+                        f"“{label}” was edited on disk. The panel shows the new details, "
+                        "but components already loaded from it are unchanged."
+                    )
+                )
+                with ui.row().classes("w-full justify-end"):
+                    ui.button("Later", on_click=popup.close).props("flat dense")
+        popup.open()
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)

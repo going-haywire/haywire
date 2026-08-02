@@ -151,6 +151,54 @@ async def test_install_upgrade_unions_new_and_evicted_flags():
 
 
 @pytest.mark.unit
+async def test_eviction_forces_restart_even_when_no_library_declares_it():
+    """An upgrade that evicts a live library sets needs_restart regardless of
+    what the authors declared.
+
+    Eviction removes the library from the registry but cannot remove the module
+    objects that mounted nodes and registered types still hold, so both
+    versions' classes coexist. That is a property of the operation, not of the
+    library, so no author flag can withhold it.
+    """
+    old_v = _identity("haybale_y", needs_restart=False, needs_refresh=False)
+    new_v = _identity("haybale_y", needs_restart=False, needs_refresh=False)
+    mgr, _ = _make_manager(libraries_before={"haybale_y": old_v}, libraries_after={"haybale_y": new_v})
+
+    with (
+        patch.object(mgr, "dry_run", new=AsyncMock(return_value=["haybale-y"])),
+        patch.object(mgr, "_run_uv_streaming", new=AsyncMock(return_value=(True, ""))),
+        patch("asyncio.to_thread", new=AsyncMock(side_effect=lambda fn: fn())),
+    ):
+        success, _msg, hints = await mgr.install("haybale-y==2.0", on_output=lambda _l: None)
+
+    assert success is True
+    assert hints.needs_restart is True
+    # Refresh stays author-driven — eviction says nothing about it.
+    assert hints.needs_refresh is False
+
+
+@pytest.mark.unit
+async def test_fresh_install_without_eviction_does_not_force_restart():
+    """The install-vs-update discriminator: no eviction, no forced restart.
+
+    Guards the affordance against firing on every plain install, which is the
+    one path that genuinely does not need one.
+    """
+    new_lib = _identity("brand_new", needs_restart=False)
+    mgr, _ = _make_manager(libraries_before={}, libraries_after={"brand_new": new_lib})
+
+    with (
+        patch.object(mgr, "dry_run", new=AsyncMock(return_value=[])),
+        patch.object(mgr, "_run_uv_streaming", new=AsyncMock(return_value=(True, ""))),
+        patch("asyncio.to_thread", new=AsyncMock(side_effect=lambda fn: fn())),
+    ):
+        success, _msg, hints = await mgr.install("brand-new", on_output=lambda _l: None)
+
+    assert success is True
+    assert hints.needs_restart is False
+
+
+@pytest.mark.unit
 async def test_uninstall_propagates_needs_restart_only():
     """Per Q5/B: uninstall hints.needs_refresh is always False; needs_restart
     comes from the removed library."""

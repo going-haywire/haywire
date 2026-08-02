@@ -8,6 +8,7 @@ from typing import Callable
 from nicegui import ui
 
 from haywire.ui import elements as hui
+from haywire.ui.modals import restart_affordance
 from haywire_studio.packaging.share.pipeline import PreconditionFailure
 
 from .async_helpers import _advance, _busy_advance
@@ -389,6 +390,15 @@ def _panel_done(wizard: ShareWizard, on_done: Callable[[], None] | None) -> None
             wizard.popup.close()
         if on_done is not None:
             on_done()
+
+    # A completed share always rewrote every barn library's @library(version=…)
+    # decorator, so the running registry holds the pre-bump identities and
+    # marketstall.toml was rebuilt underneath it. Unconditional, but optional —
+    # Done still dismisses without restarting.
+    restart_affordance(
+        reason="Publishing bumped every barn library's version, so the loaded registry is now stale.",
+        compact=True,
+    )
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button("Done", on_click=_close).props("flat dense").style("color: var(--hw-positive);")

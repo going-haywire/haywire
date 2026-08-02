@@ -377,6 +377,13 @@ class LibraryManager:
         :class:`PostInstallHints` unioned across newly-imported libraries
         (success path) and any evicted libraries (success OR failure path,
         for ``needs_restart`` only).
+
+        Evicting a live library sets ``needs_restart`` regardless of what its
+        author declared. An upgrade removes a library from the registry but
+        cannot remove the module objects that mounted nodes, registered types,
+        and DI singletons still hold, so post-eviction the two versions'
+        classes coexist. That is a property of the operation, not of the
+        library, so it is not the author's flag to withhold.
         """
         constraints = self._write_constraints_file()
         if Path(install_spec).is_dir():
@@ -414,6 +421,8 @@ class LibraryManager:
 
         if evicted:
             on_output(f"Preparing upgrade: removing {', '.join(evicted)} from registry…")
+            # Stale live objects survive the eviction — see the docstring.
+            evicted_restart_hint = evicted_restart_hint.merge(PostInstallHints(needs_restart=True))
 
         # Capture post-eviction registered library_ids so we can compute the
         # newly-imported set after the scan. Evicted libs are absent from this

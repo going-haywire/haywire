@@ -12,8 +12,9 @@ The terminal state is driven by ``hints`` (and optionally ``error``):
   * No flags, no error → "Done" button, closes popup.
   * ``needs_refresh=True``, no error → "Reload the page" button that calls
     ``ui.navigate.reload()``.
-  * ``needs_restart=True`` → "How to restart Studio" button that reveals a
-    manual-restart instructions panel (no auto-quit; restart subsumes refresh).
+  * ``needs_restart=True`` → the shared restart affordance (stale-registry
+    notice + "Restart Studio" button that quits gracefully); restart subsumes
+    refresh. The quit is never forced — the popup's own button still closes it.
   * ``error=…`` → red banner stays visible; button label becomes "Close" unless
     ``needs_restart`` is also set, in which case the restart button takes over.
 """
@@ -26,6 +27,7 @@ from typing import Optional
 from nicegui import ui
 
 from haywire.ui.components.popup import Popup
+from haywire.ui.modals.restart_affordance import restart_affordance
 
 
 @dataclass(frozen=True)
@@ -49,9 +51,6 @@ class PostInstallHints:
         )
 
 
-_RESTART_INSTRUCTIONS = "Quit Studio in your terminal (Ctrl+C) and run `uv run haywire` again."
-
-
 class LibraryOperationProgressModal:
     """Handle returned by :func:`library_operation_progress_modal`.
 
@@ -68,7 +67,7 @@ class LibraryOperationProgressModal:
         done_row,
         error_banner,
         reload_notice,
-        restart_instructions,
+        restart_slot,
     ):
         self._popup = popup
         self._log = log
@@ -76,7 +75,10 @@ class LibraryOperationProgressModal:
         self._done_row = done_row  # (row_element, button_element)
         self._error_banner = error_banner  # (text_label, container_row)
         self._reload_notice = reload_notice  # ui.label
-        self._restart_instructions = restart_instructions  # ui.label
+        # Empty container reserved at build time; finish() fills it with the
+        # restart affordance. Built up-front because by the time finish() runs
+        # the popup's slot is no longer the active one.
+        self._restart_slot = restart_slot  # ui.column
 
     def push(self, line: str) -> None:
         """Append a line to the streaming log."""
@@ -87,19 +89,28 @@ class LibraryOperationProgressModal:
         *,
         error: Optional[str] = None,
         hints: Optional[PostInstallHints] = None,
+        needs_restart: bool = False,
+        restart_reason: Optional[str] = None,
     ) -> None:
         """Transition to the terminal state.
 
         Args:
             error: When supplied, shows the error banner. Combines with ``hints``:
-                if ``hints.needs_restart`` is True, the restart button still
-                appears alongside the error banner (per Q12.A).
+                if restart is required, the restart affordance still appears
+                alongside the error banner (per Q12.A).
                 When ``error`` and ``hints.needs_refresh`` are both set without
-                ``needs_restart``, the refresh state takes precedence (the user
-                still needs to reload to see the partial result, and the banner
-                stays visible to explain what failed).
+                a restart requirement, the refresh state takes precedence (the
+                user still needs to reload to see the partial result, and the
+                banner stays visible to explain what failed).
             hints: Post-install requirements that drive button label + extra
                 notice / instructions. When None, treated as ``PostInstallHints()``.
+            needs_restart: Caller-observed restart requirement, OR'd with the
+                author-declared ``hints.needs_restart``. Lets a flow that
+                *knows* it invalidated the registry (an install that evicted a
+                live library, say) demand a restart without every library
+                author having to declare ``@library(needs_restart=True)``.
+            restart_reason: Overrides the affordance's leading sentence, so the
+                caller can name what actually went stale.
         """
         # Idempotency guard — finish() must only transition once. The spinner
         # is hidden as the first side effect below; if it's already hidden, a
@@ -117,10 +128,19 @@ class LibraryOperationProgressModal:
 
         button = self._done_row[1]
 
+        # Author-declared and caller-observed requirements are equally binding.
+        restart_required = hints.needs_restart or needs_restart
+
         # Restart subsumes refresh: check restart first.
-        if hints.needs_restart:
-            button.set_text("How to restart Studio")
-            button.on("click", lambda: self._restart_instructions.set_visibility(True))
+        if restart_required:
+            # The affordance carries its own "Restart Studio" button, so the
+            # terminal button stays a plain dismiss — the quit is never the
+            # only way out of the popup.
+            with self._restart_slot:
+                restart_affordance(reason=restart_reason)
+            self._restart_slot.set_visibility(True)
+            button.set_text("Close")
+            button.on("click", self._popup.close)
         elif hints.needs_refresh:
             button.set_text("Reload the page")
             self._reload_notice.set_visibility(True)
@@ -200,17 +220,14 @@ def library_operation_progress_modal(
             )
             reload_notice.set_visibility(False)
 
-            # Restart instructions panel — hidden until the restart button is clicked
-            restart_instructions = (
-                ui.label(_RESTART_INSTRUCTIONS)
-                .classes("text-xs hw-text-muted p-2 rounded")
-                .style("background: var(--hw-bg-surface); font-family: monospace;")
-            )
-            restart_instructions.set_visibility(False)
+            # Reserved slot for the restart affordance. Built empty here because
+            # finish() runs outside this slot context; it fills and reveals it.
+            restart_slot = ui.column().classes("w-full gap-2")
+            restart_slot.set_visibility(False)
 
-            # Done/Close/Reload/Restart button row — hidden until finish() is called.
+            # Done/Close/Reload button row — hidden until finish() is called.
             # No on_click wired here: finish() picks the right handler per terminal
-            # state (closes popup, reloads page, or reveals restart instructions).
+            # state (closes popup or reloads page).
             done_row = ui.row().classes("w-full justify-end")
             with done_row:
                 done_btn = ui.button("Done").props("flat dense")
@@ -225,5 +242,5 @@ def library_operation_progress_modal(
         done_row=(done_row, done_btn),
         error_banner=(error_text, error_container),
         reload_notice=reload_notice,
-        restart_instructions=restart_instructions,
+        restart_slot=restart_slot,
     )

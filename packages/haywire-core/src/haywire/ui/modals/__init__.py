@@ -11,11 +11,13 @@ from .install_progress_modal import (
 from .install_safety_modal import install_safety_modal
 from .pick_modal import pick_modal
 from .rename_modal import rename_modal
+from .restart_affordance import RESTART_COMMAND, restart_affordance
 from .save_as_modal import save_as_modal
 from .text_modal import text_modal
 from .upgrade_impact_modal import upgrade_impact_modal
 
 __all__ = [
+    "RESTART_COMMAND",
     "DiffSection",
     "LibraryOperationProgressModal",
     "PostInstallHints",
@@ -26,6 +28,7 @@ __all__ = [
     "library_operation_progress_modal",
     "pick_modal",
     "rename_modal",
+    "restart_affordance",
     "save_as_modal",
     "text_modal",
     "upgrade_impact_modal",

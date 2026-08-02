@@ -164,7 +164,13 @@ async def install_package(
 
         if success:
             progress.push(f"--- {name} installed successfully ---")
-            progress.finish(hints=hints)
+            progress.finish(
+                hints=hints,
+                restart_reason=(
+                    f"Upgrading to this version of {name} left the library registry "
+                    "out of sync with what's on disk."
+                ),
+            )
             ui.notify(f"Installed: {name}", type="positive")
             installed = find_installed_by_dist_name(name, manager)
             if installed:
