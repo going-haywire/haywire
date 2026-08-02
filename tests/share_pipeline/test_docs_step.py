@@ -49,6 +49,28 @@ def test_docs_command_never_names_a_single_library(project: Path) -> None:
     assert "haybale-alpha" not in " ".join(cmd)
 
 
+def test_docs_command_passes_the_bumped_version(project: Path) -> None:
+    """The bumped version must cross the subprocess boundary explicitly.
+
+    Ordering after step 3 is not enough on its own: a library declaring
+    version=importlib.metadata.version(...) reads the INSTALLED dist-info,
+    which an editable install leaves one release behind until re-synced. That
+    shipped a QUICKREF contradicting the tag published beside it.
+    """
+    pipeline = SharePipeline(project)
+    pipeline.version = "0.4.2"
+    cmd = pipeline.docs_command()
+    assert "--version" in cmd
+    assert cmd[cmd.index("--version") + 1] == "0.4.2"
+
+
+def test_docs_command_omits_version_before_the_bump(project: Path) -> None:
+    """No bump yet → no --version, leaving the generator on its pyproject
+    fallback rather than passing a bare '--version' with nothing after it."""
+    cmd = SharePipeline(project).docs_command()
+    assert "--version" not in cmd
+
+
 @pytest.mark.anyio
 async def test_apply_docs_parses_the_coverage_report(project: Path) -> None:
     from haywire_studio.packaging.share import git as gitcmd

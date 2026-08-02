@@ -32,6 +32,16 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         "A file sink rather than stdout, because a library-system boot prints "
         "freely to stdout and not all of it is ours.",
     )
+    parser.add_argument(
+        "--version",
+        type=str,
+        default=None,
+        metavar="X.Y.Z",
+        help="Render this version into the generated docs instead of the library's "
+        "declared one. The share pipeline passes the version it just bumped to, so "
+        "the docs cannot disagree with the tag published alongside them. Without it "
+        "the library's pyproject.toml is used.",
+    )
     parser.set_defaults(handler=_run)
 
 
@@ -50,7 +60,7 @@ def _run(args: argparse.Namespace) -> int:
     if args.all:
         from haywire_studio.packaging.docs.generate import generate_all_docs
 
-        results = generate_all_docs(args.library)
+        results = generate_all_docs(args.library, args.version)
         total_gaps = sum(len(gaps) for gaps in results.values())
         print(f"Generated docs for {len(results)} libraries.")
         for lib_id in sorted(results):
@@ -65,7 +75,7 @@ def _run(args: argparse.Namespace) -> int:
 
     from haywire_studio.packaging.docs.generate import generate_docs
 
-    coverage = generate_docs(args.library)
+    coverage = generate_docs(args.library, args.version)
     if coverage:
         print("Documentation coverage gaps:")
         for line in coverage:

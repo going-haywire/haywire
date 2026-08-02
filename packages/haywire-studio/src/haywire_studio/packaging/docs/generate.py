@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import re
+from dataclasses import replace
 from pathlib import Path
 from typing import Any
 
@@ -69,10 +71,55 @@ def _package_root(module_dir: Path) -> Path | None:
     return None
 
 
-def _generate_one(service: Any, library_id: str, module_dir: Path) -> list[str]:
+def _pyproject_version(module_dir: Path) -> str | None:
+    """``[project].version`` from the library's own pyproject.toml, or None.
+
+    The version reaching the docs must come from SOURCE, not from the running
+    interpreter. ``LibraryIdentity.version`` is whatever the ``@library``
+    decorator evaluated at import time, and libraries commonly set it to
+    ``importlib.metadata.version(...)`` — which reads the INSTALLED dist-info.
+    An editable install snapshots that at install time, so right after a
+    version bump the pyproject says X while the dist-info still says X-1, and
+    the QUICKREF header ships contradicting the tag and install_spec it was
+    published beside.
+
+    Read with a regex rather than a toml parse: this is the same single
+    ``version = "..."`` line that ``write_barn_versions`` rewrites, and
+    matching how it is written keeps the two ends symmetrical without paying
+    for a parse. Returns None when there is no package root or no version
+    line, leaving the caller on its existing fallback.
+    """
+    package_root = _package_root(module_dir)
+    if package_root is None:
+        return None
+    pyproject = package_root / "pyproject.toml"
+    if not pyproject.is_file():
+        return None
+    match = re.search(r'^version\s*=\s*"([^"]*)"', pyproject.read_text(encoding="utf-8"), re.MULTILINE)
+    return match.group(1) if match else None
+
+
+def _generate_one(
+    service: Any,
+    library_id: str,
+    module_dir: Path,
+    version: str | None = None,
+) -> list[str]:
     """Extract + render + write every doc file for one library given a loaded
-    service. Returns the coverage-report lines for that library."""
+    service. Returns the coverage-report lines for that library.
+
+    ``version`` overrides the version rendered into the docs. The share
+    pipeline passes the version it just bumped to, so the docs, the tag, and
+    the marketstall entry cannot disagree about which release they describe.
+    With no override the library's own pyproject is the source of truth, and
+    only when that is unavailable does the extracted ``LibraryIdentity``
+    version stand — see :func:`_pyproject_version`.
+    """
     doc = extract_library(service, library_id)
+
+    resolved = version or _pyproject_version(module_dir)
+    if resolved is not None and resolved != doc.version:
+        doc = replace(doc, version=resolved)
 
     (module_dir / "OVERVIEW.md").write_text(render_overview(doc), encoding="utf-8")
     (module_dir / "QUICKREF.md").write_text(render_quickref(doc), encoding="utf-8")
@@ -102,8 +149,12 @@ def _generate_one(service: Any, library_id: str, module_dir: Path) -> list[str]:
     return coverage_report(doc)
 
 
-def generate_docs(library_path: str | None) -> list[str]:
-    """Generate docs for a single library at ``library_path`` (default: cwd)."""
+def generate_docs(library_path: str | None, version: str | None = None) -> list[str]:
+    """Generate docs for a single library at ``library_path`` (default: cwd).
+
+    ``version``, when given, is rendered into the docs instead of the
+    library's own declared version — see :func:`_generate_one`.
+    """
     lib_root = Path(library_path).resolve() if library_path else Path.cwd()
     module_dir = _module_dir(lib_root)
 
@@ -113,16 +164,20 @@ def generate_docs(library_path: str | None) -> list[str]:
         watch_settings=False,
     )
     library_id = _library_id_for_path(service, lib_root)
-    return _generate_one(service, library_id, module_dir)
+    return _generate_one(service, library_id, module_dir, version)
 
 
-def generate_all_docs(repo_root: str | None) -> dict[str, list[str]]:
+def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict[str, list[str]]:
     """Generate docs for every in-repo library in ONE library-system load.
 
     Discovers libraries via the loaded registry and keeps those whose module
     dir resolves to a path under ``repo_root`` — that is exactly ``barn/*`` plus
     ``haywire.barn.builtin``, and excludes external site-packages installs.
     Returns {library_id: coverage_lines}, sorted by library id.
+
+    ``version`` applies to EVERY library generated, which is correct precisely
+    because the barn is versioned in lockstep (ADR 0023) — the share pipeline
+    bumps all libraries to one version and passes that same value here.
     """
     root = Path(repo_root).resolve() if repo_root else Path.cwd()
 
@@ -137,5 +192,5 @@ def generate_all_docs(repo_root: str | None) -> dict[str, list[str]]:
     for lib_id in sorted(registry.list_names()):
         module_dir = Path(registry.get_library_identity(lib_id).folder_path).resolve()
         if root == module_dir or root in module_dir.parents:
-            results[lib_id] = _generate_one(service, lib_id, module_dir)
+            results[lib_id] = _generate_one(service, lib_id, module_dir, version)
     return results

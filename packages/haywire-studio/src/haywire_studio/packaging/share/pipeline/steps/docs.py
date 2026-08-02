@@ -31,21 +31,35 @@ def command(pipeline: "SharePipeline", json_path: Path | None = None) -> list[st
     the whole barn, and its root-relative filter naturally excludes
     site-packages installs and ``--dev`` mode's out-of-tree dev-repo
     libraries.
+
+    ``--version`` carries ``pipeline.version`` across the subprocess
+    boundary. Running after the bump is NOT by itself enough to get the new
+    version into the docs: libraries typically declare
+    ``version=importlib.metadata.version(...)``, which reads the installed
+    dist-info, and an editable install's dist-info still holds the previous
+    version until the environment is re-synced. Passing it explicitly makes
+    the published version an input rather than something re-derived from
+    ambient install state.
     """
     target = str(json_path) if json_path is not None else "<json-path>"
     # Bare "haywire": the console script installed by haywire-studio's
     # [project.scripts] entry point, resolved via PATH. The venv's bin/ is
     # on PATH whenever the studio itself is runnable, so this stays on the
     # same interpreter/virtualenv as the caller without hardcoding a path.
-    return ["haywire", "docs", "--all", "--json", target]
+    argv = ["haywire", "docs", "--all", "--json", target]
+    if pipeline.version is not None:
+        argv += ["--version", pipeline.version]
+    return argv
 
 
 async def apply(pipeline: "SharePipeline", on_output: Callable[[str], None] | None = None) -> DocsResult:
     """Regenerate every barn library's docs. Always runs — no yes/no gate.
 
     Must run AFTER the version bump: ``render_quickref`` embeds
-    ``v{doc.version}``, so generating first would publish a QUICKREF
-    stating the previous version.
+    ``v{doc.version}``, and this step renders ``pipeline.version``, which
+    step 3 sets. Generating first would publish a QUICKREF stating the
+    previous version. See :func:`command` for why the ordering alone does
+    not achieve that and the version is passed explicitly.
 
     Coverage gaps are read-only feedback and never fail the step; only a
     non-zero exit (a crash) raises :class:`DocsGenerationError`.

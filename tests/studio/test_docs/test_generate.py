@@ -8,6 +8,7 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire_studio.packaging.docs.generate import (
     _library_id_for_path,
     _package_root,
+    _pyproject_version,
     generate_all_docs,
     generate_docs,
 )
@@ -82,6 +83,66 @@ def test_package_root_none_for_baked_in_library(tmp_path):
     module = tmp_path / "pkg" / "sub" / "builtin"
     module.mkdir(parents=True)
     assert _package_root(module) is None
+
+
+def test_pyproject_version_read_from_package_root(tmp_path):
+    """The docs version comes from SOURCE, not from the installed dist-info.
+
+    Libraries commonly declare version=importlib.metadata.version(...), which
+    an editable install leaves stale after a bump — the pyproject is the one
+    place that is correct the instant write_barn_versions() runs.
+    """
+    lib = tmp_path / "haybale-x"
+    module = lib / "haybale_x"
+    module.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-x"\nversion = "1.2.3"\n')
+    assert _pyproject_version(module) == "1.2.3"
+
+
+def test_pyproject_version_none_without_a_package_root(tmp_path):
+    """A baked-in library (builtin inside core) has no pyproject to read."""
+    module = tmp_path / "pkg" / "sub" / "builtin"
+    module.mkdir(parents=True)
+    assert _pyproject_version(module) is None
+
+
+def test_pyproject_version_none_when_no_version_line(tmp_path):
+    """No version line → None, leaving the caller on its existing fallback
+    rather than inventing one."""
+    lib = tmp_path / "haybale-x"
+    module = lib / "haybale_x"
+    module.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-x"\n')
+    assert _pyproject_version(module) is None
+
+
+def test_pyproject_version_ignores_dependency_version_pins(tmp_path):
+    """Only the top-level [project] version line counts — a `version` inside a
+    dependency spec or another table must not be mistaken for the library's."""
+    lib = tmp_path / "haybale-x"
+    module = lib / "haybale_x"
+    module.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-x"\nversion = "2.0.0"\n\n[tool.other]\n    version = "9.9.9"\n'
+    )
+    assert _pyproject_version(module) == "2.0.0"
+
+
+@pytest.mark.integration
+def test_generate_renders_explicit_version_over_declared(clean_haybale_testing):
+    """An explicit version wins over the library's declared one.
+
+    This is the share pipeline's path: it passes the version it just bumped
+    to, so QUICKREF cannot contradict the tag and install_spec published
+    alongside it.
+    """
+    repo = Path(__file__).resolve().parents[3]
+    lib_root = repo / "barn" / "haybale-testing"
+
+    generate_docs(str(lib_root), "9.8.7")
+
+    quickref = (lib_root / "haybale_testing" / "QUICKREF.md").read_text()
+    assert "(v9.8.7)" in quickref
 
 
 @pytest.mark.integration
