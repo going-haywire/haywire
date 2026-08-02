@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-core"
 label = "Core"
-min_version = "0.0.31"
+version = "0.0.32"
 description = "Fundamental components for hayire graphs"
 author = "maybites"
 source = "pypi"
@@ -14,4 +14,4 @@ install_spec = "haybale-core"
 tags = ["core", "types", "widgets", "skins", "adapters"]
 dependencies = []
 source_url = "https://github.com/going-haywire/haywire"
-docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/main/barn/haybale-core/haybale_core/"
+docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/master/barn/haybale-core/haybale_core/"
