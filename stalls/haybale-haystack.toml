@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-haystack"
 label = "Haystack"
-version = "0.0.32"
+version = "0.0.33"
 description = "File-centric multi-graph manager"
 author = "Haywire Team"
 source = "pypi"
