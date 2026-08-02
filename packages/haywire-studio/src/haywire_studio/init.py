@@ -657,7 +657,16 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     subprocess.run(["git", "init"], cwd=str(project_dir), check=True, capture_output=True)
     subprocess.run(["git", "add", "."], cwd=str(project_dir), check=True, capture_output=True)
     subprocess.run(
-        ["git", "commit", "-m", "Initial commit: haywire project scaffold"],
+        [
+            "git",
+            "-c",
+            "user.name=Haywire Scaffold",
+            "-c",
+            "user.email=scaffold@haywire.local",
+            "commit",
+            "-m",
+            "Initial commit: haywire project scaffold",
+        ],
         cwd=str(project_dir),
         check=True,
         capture_output=True,
