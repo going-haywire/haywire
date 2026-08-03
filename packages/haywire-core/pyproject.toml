@@ -20,6 +20,11 @@ dependencies = [
     "attrs==25.4.0",
     "cattrs==25.3.0",
     "toml>=0.10.2",
+    # Style-preserving TOML round-trip. `toml` parses to plain dicts, so
+    # re-serializing a file a human wrote destroys every comment in it. Code
+    # that EDITS a user's pyproject.toml/marketplace.toml must go through
+    # haywire.core.tomlio, never toml.dumps.
+    "tomlkit>=0.13",
     "packaging",
     "typing_extensions",
     "markdown2>=2.5",

@@ -36,6 +36,8 @@ from typing import Protocol, runtime_checkable
 
 import toml
 
+from haywire.core.tomlio import edit_toml
+
 
 # ──────────────────────────────────────────────────────────────────────────────
 # Public types
@@ -347,10 +349,9 @@ def set_pyproject_dependencies(lib_dir: Path, dependencies: list[str]) -> None:
     pyproject = lib_dir / "pyproject.toml"
     if not pyproject.is_file():
         raise FileNotFoundError(f"no pyproject.toml at {pyproject}")
-    data = toml.loads(pyproject.read_text())
-    project = data.setdefault("project", {})
-    project["dependencies"] = list(dependencies)
-    pyproject.write_text(toml.dumps(data))
+    with edit_toml(pyproject) as data:
+        project = data.setdefault("project", {})
+        project["dependencies"] = list(dependencies)
 
 
 def _format_specifier(dist: str, *, strict: bool) -> str:

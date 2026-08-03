@@ -25,6 +25,8 @@ from pathlib import Path
 from typing import TYPE_CHECKING
 
 import toml
+
+from haywire.core.tomlio import edit_toml
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import Version
 
@@ -175,21 +177,23 @@ def apply(pipeline: "SharePipeline", specifier: str) -> list[Path]:
         pyproject = lib_dir / "pyproject.toml"
         if not pyproject.is_file():
             continue
-        data = toml.loads(pyproject.read_text())
-        project = data.setdefault("project", {})
-        deps: list[str] = project.setdefault("dependencies", [])
-        new_deps: list[str] = []
-        found = False
-        for entry in deps:
-            if _dep_name(entry).lower() == _CORE:
+        # edit_toml, not a toml.loads/dumps round trip: this is the library
+        # author's own pyproject.toml, and rebuilding it from parsed dicts
+        # deletes every comment they wrote.
+        with edit_toml(pyproject) as data:
+            project = data.setdefault("project", {})
+            deps = project.setdefault("dependencies", [])
+            new_deps: list[str] = []
+            found = False
+            for entry in deps:
+                if _dep_name(str(entry)).lower() == _CORE:
+                    new_deps.append(f"{_CORE}{text}")
+                    found = True
+                else:
+                    new_deps.append(str(entry))
+            if not found:
                 new_deps.append(f"{_CORE}{text}")
-                found = True
-            else:
-                new_deps.append(entry)
-        if not found:
-            new_deps.append(f"{_CORE}{text}")
-        project["dependencies"] = new_deps
-        pyproject.write_text(toml.dumps(data))
+            project["dependencies"] = new_deps
         written.append(pyproject)
 
     pipeline.requires_haywire = text

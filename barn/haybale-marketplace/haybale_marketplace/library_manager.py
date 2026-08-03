@@ -16,12 +16,12 @@ from pathlib import Path
 from typing import Any
 
 from haywire.core.library.registry import LibraryRegistry
+from haywire.core.tomlio import edit_toml
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
 from haywire.core.library.decorator_io import _set_decorator_list_field
 from haywire.core.marketstall import Haybale
 from haywire.ui.modals.install_progress_modal import PostInstallHints
-import toml
 
 
 def _sanitize_name(name: str) -> str:
@@ -85,55 +85,59 @@ def _write_install_to_pyproject(
         ``[tool.uv.sources]`` with ``{ path = "...", editable = true }``
 
     The caller decides which rows apply; this helper just writes what it's told.
+
+    Edited through ``edit_toml`` rather than a toml.loads/dumps round trip:
+    this is the *user's* pyproject.toml, and rebuilding it from parsed dicts
+    silently deletes every comment they wrote.
     """
-    data = toml.loads(pyproject_path.read_text())
-    project = data.setdefault("project", {})
-    deps: list[str] = project.setdefault("dependencies", [])
+    with edit_toml(pyproject_path) as data:
+        project = data.setdefault("project", {})
+        deps = project.setdefault("dependencies", [])
 
-    floor = f"{pkg_name}~={version}" if version else pkg_name
-    new_deps: list[str] = []
-    found = False
-    for entry in deps:
-        if _dep_name(entry).lower() == pkg_name.lower():
+        floor = f"{pkg_name}~={version}" if version else pkg_name
+        new_deps: list[str] = []
+        found = False
+        for entry in deps:
+            if _dep_name(str(entry)).lower() == pkg_name.lower():
+                new_deps.append(floor)
+                found = True
+            else:
+                new_deps.append(str(entry))
+        if not found:
             new_deps.append(floor)
-            found = True
-        else:
-            new_deps.append(entry)
-    if not found:
-        new_deps.append(floor)
-    project["dependencies"] = new_deps
+        project["dependencies"] = new_deps
 
-    if source == "git":
-        url, tag, subdir = _parse_git_install_spec(install_spec)
-        git_entry: dict[str, Any] = {"git": url}
-        if tag:
-            git_entry["tag"] = tag
-        if subdir:
-            git_entry["subdirectory"] = subdir
-        sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
-        sources[pkg_name] = git_entry
-    elif source == "local":
-        sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
-        sources[pkg_name] = {"path": install_spec, "editable": True}
-
-    pyproject_path.write_text(toml.dumps(data))
+        if source == "git":
+            url, tag, subdir = _parse_git_install_spec(install_spec)
+            git_entry: dict[str, Any] = {"git": url}
+            if tag:
+                git_entry["tag"] = tag
+            if subdir:
+                git_entry["subdirectory"] = subdir
+            sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
+            sources[pkg_name] = git_entry
+        elif source == "local":
+            sources = data.setdefault("tool", {}).setdefault("uv", {}).setdefault("sources", {})
+            sources[pkg_name] = {"path": install_spec, "editable": True}
 
 
 def _remove_install_from_pyproject(pyproject_path: Path, pkg_name: str) -> None:
-    """Remove a haybale's entry from [project] dependencies and [tool.uv.sources]."""
-    data = toml.loads(pyproject_path.read_text())
-    project = data.get("project")
-    if project:
-        deps = project.get("dependencies", [])
-        project["dependencies"] = [d for d in deps if _dep_name(d).lower() != pkg_name.lower()]
+    """Remove a haybale's entry from [project] dependencies and [tool.uv.sources].
 
-    sources = data.get("tool", {}).get("uv", {}).get("sources", {})
-    sources.pop(pkg_name, None)
-    # Also try a hyphen/underscore variant — uv normalizes these.
-    sources.pop(pkg_name.replace("-", "_"), None)
-    sources.pop(pkg_name.replace("_", "-"), None)
+    Comment-preserving for the same reason as
+    :func:`_write_install_to_pyproject` — see its docstring.
+    """
+    with edit_toml(pyproject_path) as data:
+        project = data.get("project")
+        if project:
+            deps = project.get("dependencies", [])
+            project["dependencies"] = [str(d) for d in deps if _dep_name(str(d)).lower() != pkg_name.lower()]
 
-    pyproject_path.write_text(toml.dumps(data))
+        sources = data.get("tool", {}).get("uv", {}).get("sources", {})
+        sources.pop(pkg_name, None)
+        # Also try a hyphen/underscore variant — uv normalizes these.
+        sources.pop(pkg_name.replace("-", "_"), None)
+        sources.pop(pkg_name.replace("_", "-"), None)
 
 
 def _dep_name(dep_entry: str) -> str:
@@ -153,28 +157,27 @@ def _apply_os_to_pyproject(pyproject_path: Path, os_values: list[str]) -> None:
       - Empty list after filtering OR all three present → remove [tool.haywire].os
         entirely (absent = "all platforms").
       - Non-empty subset → write the filtered list in canonical order.
-      - Preserves other [tool.*] sections (hatch, etc.) verbatim.
+      - Preserves other [tool.*] sections (hatch, etc.) verbatim — including
+        their comments, which a toml.loads/dumps round trip would delete.
     """
     # Filter to allowed values, then canonicalize order to (macos, windows, linux).
     filtered = [v for v in _DECLARABLE_OS_VALUES if v in os_values]
 
-    data = toml.loads(pyproject_path.read_text())
-    tool = data.setdefault("tool", {})
+    with edit_toml(pyproject_path) as data:
+        tool = data.setdefault("tool", {})
 
-    if not filtered or len(filtered) == len(_DECLARABLE_OS_VALUES):
-        # Remove the section entirely.
-        haywire = tool.get("haywire")
-        if haywire is not None:
-            haywire.pop("os", None)
-            if not haywire:
-                tool.pop("haywire", None)
-        if not tool:
-            data.pop("tool", None)
-    else:
-        haywire = tool.setdefault("haywire", {})
-        haywire["os"] = filtered
-
-    pyproject_path.write_text(toml.dumps(data))
+        if not filtered or len(filtered) == len(_DECLARABLE_OS_VALUES):
+            # Remove the section entirely.
+            haywire = tool.get("haywire")
+            if haywire is not None:
+                haywire.pop("os", None)
+                if not haywire:
+                    tool.pop("haywire", None)
+            if not tool:
+                data.pop("tool", None)
+        else:
+            haywire = tool.setdefault("haywire", {})
+            haywire["os"] = filtered
 
 
 class LibraryManager:
@@ -804,13 +807,15 @@ class LibraryManager:
         marketplace_path = workspace / ".haywire" / "marketplace.toml"
         try:
             if marketplace_path.exists():
-                data = toml.loads(marketplace_path.read_text())
-                for heap in data.get("heaps", []):
-                    if heap.get("name", "").lower() == dist_name.lower():
-                        heap["label"] = label_val
-                        heap["description"] = desc_val
-                        break
-                marketplace_path.write_text(toml.dumps(data))
+                # Comment-preserving: the marketplace file is hand-editable
+                # (the browser offers an Edit File button for it), so a
+                # rebuild-from-dicts write would delete the user's notes.
+                with edit_toml(marketplace_path) as data:
+                    for heap in data.get("heaps", []):
+                        if heap.get("name", "").lower() == dist_name.lower():
+                            heap["label"] = label_val
+                            heap["description"] = desc_val
+                            break
         except (OSError, KeyError) as e:
             return False, f"Failed to update marketplace.toml: {e}"
 

@@ -11,9 +11,9 @@ from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
-import toml
 
 from haywire.core.library.decorator_io import _set_decorator_list_field
+from haywire.core.tomlio import edit_toml
 
 
 # ---------------------------------------------------------------------------
@@ -147,16 +147,15 @@ def rename_library(
     sink("Updating lib pyproject.toml...")
     try:
         lib_pyproject = old_lib_dir / "pyproject.toml"
-        data = toml.loads(lib_pyproject.read_text())
-        data["project"]["name"] = new_lib_name
-        data["project"]["description"] = desc_val
-        ep = data.get("project", {}).get("entry-points", {}).get("haywire.libraries", {})
-        old_ep_key = next(iter(ep), None)
-        if old_ep_key:
-            del ep[old_ep_key]
-        ep[new_name] = f"{new_module}:Library"
-        data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] = [new_module]
-        lib_pyproject.write_text(toml.dumps(data))
+        with edit_toml(lib_pyproject) as data:
+            data["project"]["name"] = new_lib_name
+            data["project"]["description"] = desc_val
+            ep = data.get("project", {}).get("entry-points", {}).get("haywire.libraries", {})
+            old_ep_key = next(iter(ep), None)
+            if old_ep_key:
+                del ep[old_ep_key]
+            ep[new_name] = f"{new_module}:Library"
+            data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] = [new_module]
     except (OSError, KeyError) as e:
         return False, f"Failed to update lib pyproject.toml: {e}"
 
@@ -171,17 +170,16 @@ def rename_library(
     sink("Updating project pyproject.toml...")
     try:
         project_pyproject = workspace / "pyproject.toml"
-        data = toml.loads(project_pyproject.read_text())
-        deps = data.get("project", {}).get("dependencies", [])
-        data["project"]["dependencies"] = [
-            new_lib_name if d.lower() == dist_name.lower() else d for d in deps
-        ]
-        sources = data.get("tool", {}).get("uv", {}).get("sources", {})
-        old_key = next((k for k in sources if k.lower() == dist_name.lower()), None)
-        if old_key:
-            del sources[old_key]
-        sources[new_lib_name] = {"workspace": True}
-        project_pyproject.write_text(toml.dumps(data))
+        with edit_toml(project_pyproject) as data:
+            deps = data.get("project", {}).get("dependencies", [])
+            data["project"]["dependencies"] = [
+                new_lib_name if str(d).lower() == dist_name.lower() else str(d) for d in deps
+            ]
+            sources = data.get("tool", {}).get("uv", {}).get("sources", {})
+            old_key = next((k for k in sources if k.lower() == dist_name.lower()), None)
+            if old_key:
+                del sources[old_key]
+            sources[new_lib_name] = {"workspace": True}
     except (OSError, KeyError) as e:
         return False, f"Failed to update project pyproject.toml: {e}"
 
@@ -189,15 +187,14 @@ def rename_library(
     sink("Updating marketplace.toml...")
     try:
         if marketplace_path.exists():
-            data = toml.loads(marketplace_path.read_text())
-            for heap in data.get("heaps", []):
-                if heap.get("name", "").lower() == dist_name.lower():
-                    heap["name"] = new_lib_name
-                    heap["path"] = str(new_lib_dir)
-                    heap["label"] = label_val
-                    heap["description"] = desc_val
-                    break
-            marketplace_path.write_text(toml.dumps(data))
+            with edit_toml(marketplace_path) as data:
+                for heap in data.get("heaps", []):
+                    if heap.get("name", "").lower() == dist_name.lower():
+                        heap["name"] = new_lib_name
+                        heap["path"] = str(new_lib_dir)
+                        heap["label"] = label_val
+                        heap["description"] = desc_val
+                        break
     except (OSError, KeyError) as e:
         return False, f"Failed to update marketplace.toml: {e}"
 

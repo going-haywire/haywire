@@ -112,3 +112,64 @@ def test_apply_os_to_pyproject_preserves_other_tool_sections(tmp_path: Path) -> 
     data = toml.loads(pyproject.read_text())
     assert data["tool"]["haywire"]["os"] == ["macos"]
     assert data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] == ["haybale_foo"]
+
+
+def test_apply_os_to_pyproject_preserves_comments(tmp_path: Path) -> None:
+    """Comments in the author's pyproject.toml survive the write.
+
+    Regression: the write used to round-trip through toml.loads/toml.dumps,
+    which rebuilds the document from plain dicts and silently deletes every
+    comment. Reported after an uninstall stripped a repo's own pyproject.
+    """
+    from haybale_marketplace.library_manager import _apply_os_to_pyproject
+
+    lib_dir = _scaffold_minimal_heap(tmp_path)
+    pyproject = lib_dir / "pyproject.toml"
+    pyproject.write_text(
+        pyproject.read_text()
+        + "\n# Pinned deliberately — do not bump without reading the release notes.\n"
+        + '[tool.hatch.build.targets.wheel]\npackages = ["haybale_foo"]\n'
+    )
+
+    _apply_os_to_pyproject(pyproject, ["macos"])
+
+    body = pyproject.read_text()
+    assert "# Pinned deliberately — do not bump without reading the release notes." in body
+    assert toml.loads(body)["tool"]["haywire"]["os"] == ["macos"]
+
+
+def test_install_writeback_preserves_comments(tmp_path: Path) -> None:
+    """Same guarantee on the install path, which edits the *project* file."""
+    from haybale_marketplace.library_manager import _write_install_to_pyproject
+
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "demo"\n'
+        "# alpha is pinned until upstream fixes the regression.\n"
+        'dependencies = ["alpha~=1.0"]\n'
+    )
+
+    _write_install_to_pyproject(pyproject, "haybale-foo", "1.2.3", "pypi", "haybale-foo==1.2.3")
+
+    body = pyproject.read_text()
+    assert "# alpha is pinned until upstream fixes the regression." in body
+    assert "haybale-foo~=1.2.3" in body
+
+
+def test_uninstall_writeback_preserves_comments(tmp_path: Path) -> None:
+    """And on the uninstall path — the one the bug was reported from."""
+    from haybale_marketplace.library_manager import _remove_install_from_pyproject
+
+    pyproject = tmp_path / "pyproject.toml"
+    pyproject.write_text(
+        '[project]\nname = "demo"\n'
+        "# Keep alpha: the vendored fork is not on PyPI.\n"
+        'dependencies = ["alpha~=1.0", "haybale-foo~=1.2.3"]\n'
+    )
+
+    _remove_install_from_pyproject(pyproject, "haybale-foo")
+
+    body = pyproject.read_text()
+    assert "# Keep alpha: the vendored fork is not on PyPI." in body
+    assert "haybale-foo" not in body
+    assert "alpha~=1.0" in body
