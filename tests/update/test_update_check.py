@@ -76,8 +76,8 @@ def test_rewrite_pins_moves_every_lockstep_dist(tmp_path):
     new_text = rewrite_pins(path, "0.0.35")
     deps = toml.loads(new_text)["project"]["dependencies"]
 
-    assert "haywire-studio~=0.0.35" in deps
-    assert "haybale-marketplace~=0.0.35" in deps
+    assert "haywire-studio>=0.0.35" in deps
+    assert "haybale-marketplace>=0.0.35" in deps
     assert "numpy>=1.0" in deps
 
 
@@ -93,9 +93,15 @@ def test_rewrite_pins_does_not_write_the_file(tmp_path):
     assert path.read_text() == before
 
 
-def test_rewrite_pins_preserves_the_declared_operator(tmp_path):
-    """A project pinned with >= keeps >=; the update moves the version, not the
-    author's chosen operator."""
+def test_rewrite_pins_normalizes_lockstep_dists_to_a_floor(tmp_path):
+    """Lockstep dists always land on ``>=``, whatever operator they carried.
+
+    This used to preserve the declared operator, on the reasoning that an update
+    moves the version and not the author's chosen policy. But on lockstep dists
+    that operator is not the author's choice — it is whatever tool wrote the
+    line — and preserving ``~=0.0.X`` kept a ceiling that blocks 0.1.0. See
+    ``tests/update/test_update_pin.py`` for the full parametrized case.
+    """
     from haywire.core.update.pin import rewrite_pins
 
     path = _root_pyproject(tmp_path, pin=">=0.0.34")

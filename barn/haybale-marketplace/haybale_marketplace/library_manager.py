@@ -79,7 +79,7 @@ def _write_install_to_pyproject(
     """Write/update a project pyproject.toml entry for an installed haybale.
 
     Writes one of:
-      - pypi → only ``[project] dependencies = "<name>~=X.Y.Z"``
+      - pypi → only ``[project] dependencies = "<name>>=X.Y.Z"``
       - git  → ``[project] dependencies`` + ``[tool.uv.sources]`` with git+subdirectory
       - local (heap outside barn) → ``[project] dependencies`` +
         ``[tool.uv.sources]`` with ``{ path = "...", editable = true }``
@@ -94,7 +94,14 @@ def _write_install_to_pyproject(
         project = data.setdefault("project", {})
         deps = project.setdefault("dependencies", [])
 
-        floor = f"{pkg_name}~={version}" if version else pkg_name
+        # A floor (``>=``), not a compatible release (``~=``). ``~=X.Y.Z`` also
+        # stamps a ceiling — ``~=0.0.33`` excludes 0.1.0 — and a ceiling written
+        # by a tool at install time is not a policy anyone chose; it is just
+        # what got emitted. It then persists in the user's pyproject and blocks
+        # the next minor release. Same reasoning as ``_release_pin`` in
+        # haywire_studio/init.py, which scaffolds ``>=`` for exactly this reason.
+        # Authors who genuinely want a ceiling type it themselves.
+        floor = f"{pkg_name}>={version}" if version else pkg_name
         new_deps: list[str] = []
         found = False
         for entry in deps:
@@ -138,6 +145,24 @@ def _remove_install_from_pyproject(pyproject_path: Path, pkg_name: str) -> None:
         # Also try a hyphen/underscore variant — uv normalizes these.
         sources.pop(pkg_name.replace("-", "_"), None)
         sources.pop(pkg_name.replace("_", "-"), None)
+
+
+def _version_from_dist_info(site_packages: Path, package_name: str) -> str | None:
+    """The version in ``<site-packages>/<name>-<version>.dist-info``, or None.
+
+    Installers normalize the distribution name in that directory: runs of
+    ``-``/``_``/``.`` collapse to a single ``_``. So ``haybale-core`` is found at
+    ``haybale_core-0.0.34.dist-info``, and callers may pass either spelling.
+    """
+    normalized = re.sub(r"[-_.]+", "_", package_name).lower()
+    for entry in site_packages.glob("*.dist-info"):
+        stem = entry.name[: -len(".dist-info")]
+        name, _, version = stem.rpartition("-")
+        if not version:
+            continue
+        if re.sub(r"[-_.]+", "_", name).lower() == normalized:
+            return version
+    return None
 
 
 def _dep_name(dep_entry: str) -> str:
@@ -629,12 +654,42 @@ class LibraryManager:
     def get_installed_version(self, package_name: str) -> str | None:
         """Return the currently installed version of a pip package, or None.
 
-        Uses importlib.metadata so it works for both PyPI and git installs.
+        Reads the venv's ``*.dist-info`` off disk rather than asking
+        ``importlib.metadata`` in this process. Both describe the same venv, but
+        only one of them is guaranteed to describe it as it is *now*: this
+        process imported these packages at startup, and the metadata cache it
+        built then survives an install unless
+        :meth:`_invalidate_caches` succeeds in clearing it — which it does
+        through ``FastPath.__new__.cache_clear()``, a private CPython API
+        swallowed by ``except AttributeError`` if it ever moves.
+
+        The consequence of a stale read here is durable, not cosmetic: this
+        feeds the version written into the user's pyproject.toml, so a stale
+        number becomes a pin that outlives the process. Reading the directory
+        cannot go stale.
         """
+        site_packages = self._site_packages_dir()
+        if site_packages is not None:
+            version = _version_from_dist_info(site_packages, package_name)
+            if version is not None:
+                return version
+        # No venv located (or no dist-info for this name, e.g. an editable
+        # install laid out differently) — fall back to the in-process view.
         try:
             return importlib.metadata.version(package_name)
         except importlib.metadata.PackageNotFoundError:
             return None
+
+    def _site_packages_dir(self) -> Path | None:
+        """The venv's site-packages directory, or None if it can't be located."""
+        if not self.venv_path:
+            return None
+        candidates = sorted((Path(self.venv_path) / "lib").glob("python*/site-packages"))
+        if candidates:
+            return candidates[0]
+        # Windows layout.
+        win = Path(self.venv_path) / "Lib" / "site-packages"
+        return win if win.is_dir() else None
 
     @staticmethod
     def _norm(name: str) -> str:

@@ -16,7 +16,25 @@ from packaging.requirements import InvalidRequirement, Requirement
 from packaging.version import InvalidVersion, Version
 
 # Dists released in lockstep with the framework. A pin bump moves all of them.
-LOCKSTEP_DISTS: tuple[str, ...] = ("haywire-studio", "haywire-core", "haybale-marketplace")
+#
+# MUST equal [tool.haywire.release] pip_publish_order + git_publish_order in the
+# monorepo root pyproject.toml. Restated here rather than read from it because
+# this runs in an INSTALLED venv, where that file does not exist —
+# ``tests/update/test_update_pin.py`` fails if the two ever diverge.
+#
+# Incompleteness is silent and costly: a lockstep dist missing from this tuple
+# keeps whatever floor the marketplace wrote for it, and since the lockfile has
+# already resolved that floor, ``uv sync`` honours the stale entry and the dist
+# never moves. That is how haybale-core sat at 0.0.33 through a 0.0.34 update.
+LOCKSTEP_DISTS: tuple[str, ...] = (
+    "haywire-core",
+    "haywire-studio",
+    "haybale-core",
+    "haybale-studio",
+    "haybale-marketplace",
+    "haybale-graph-editor",
+    "haybale-haystack",
+)
 
 
 def _installed_version(dist: str) -> str:
@@ -33,25 +51,25 @@ def _dep_name(entry: str) -> str:
     return re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0].strip()
 
 
-def _operator(entry: str, name: str) -> str:
-    """The operator the author already chose (``~=`` / ``>=`` / ``==``).
-
-    Preserved rather than normalized: an update moves the version, never the
-    author's declared compatibility policy.
-    """
-    tail = entry[len(name) :].strip()
-    for op in ("~=", ">=", "==", ">"):
-        if tail.startswith(op):
-            return op
-    return ">="
-
-
 def rewrite_pins(pyproject_path: Path, version: str) -> str:
     """The new file TEXT with every lockstep pin moved to *version*.
 
     Returns text rather than writing, because the conflict check needs
     write-resolve-restore: it holds the original in memory, writes this,
     resolves, and restores in a ``finally``.
+
+    Lockstep dists are rewritten to ``>=version``, discarding whatever operator
+    the line carried. This used to preserve the existing operator, on the
+    reasoning that an update moves the version and not the author's declared
+    compatibility policy — but on the lockstep set that operator is not the
+    author's policy. Nobody hand-writes ``haybale-core~=0.0.33``; it is whatever
+    tool last touched the file emitted, and the marketplace's write-back emitted
+    ``~=``. Preserving it promoted a tool's default into a permanent ceiling:
+    ``~=0.0.X`` means ``>=0.0.X, ==0.0.*``, which silently blocks 0.1.0 for every
+    project that ever installed a library through the marketplace.
+
+    Non-lockstep deps are copied through verbatim, operator and all — those
+    specifiers *are* the author's policy.
     """
     data = toml.loads(pyproject_path.read_text(encoding="utf-8"))
     deps = data.get("project", {}).get("dependencies", []) or []
@@ -61,7 +79,7 @@ def rewrite_pins(pyproject_path: Path, version: str) -> str:
     for entry in deps:
         name = _dep_name(entry)
         if name.lower() in lockstep:
-            new_deps.append(f"{name}{_operator(entry, name)}{version}")
+            new_deps.append(f"{name}>={version}")
         else:
             new_deps.append(entry)
     data.setdefault("project", {})["dependencies"] = new_deps

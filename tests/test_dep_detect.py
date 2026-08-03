@@ -100,7 +100,7 @@ def test_haywire_core_import_emits_haywire_core(tmp_path: Path) -> None:
     result = detect_deps(lib, libraries=FakeLibrarySource())
     assert result.library_decorator == []
     assert len(result.pyproject) == 1
-    assert result.pyproject[0].startswith("haywire-core~=")
+    assert result.pyproject[0].startswith("haywire-core>=")
 
 
 @pytest.mark.unit
@@ -116,7 +116,7 @@ def test_haywire_ui_import_emits_haywire_core_not_studio(tmp_path: Path) -> None
     result = detect_deps(lib, libraries=FakeLibrarySource())
     assert result.library_decorator == []
     assert len(result.pyproject) == 1
-    assert result.pyproject[0].startswith("haywire-core~=")
+    assert result.pyproject[0].startswith("haywire-core>=")
     assert not any(s.startswith("haywire-studio") for s in result.pyproject)
 
 
@@ -124,7 +124,7 @@ def test_haywire_ui_import_emits_haywire_core_not_studio(tmp_path: Path) -> None
 def test_bare_haywire_import_emits_haywire_core_conservative(tmp_path: Path) -> None:
     lib = _make_library(tmp_path, init_body="import haywire\n")
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert any(s.startswith("haywire-core~=") for s in result.pyproject)
+    assert any(s.startswith("haywire-core>=") for s in result.pyproject)
     assert not any(s.startswith("haywire-studio") for s in result.pyproject)
 
 
@@ -140,7 +140,7 @@ def test_core_and_ui_together_emit_haywire_core_once(tmp_path: Path) -> None:
         ),
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert [s for s in result.pyproject if s.startswith("haywire-core~=")]
+    assert [s for s in result.pyproject if s.startswith("haywire-core>=")]
     assert not any(s.startswith("haywire-studio") for s in result.pyproject)
     assert len(result.pyproject) == 1
 
@@ -169,13 +169,13 @@ def test_registered_library_lands_in_both_outputs(tmp_path: Path) -> None:
     result = detect_deps(lib, libraries=src)
     assert result.library_decorator == ["haybale_core"]
     assert len(result.pyproject) == 1
-    assert result.pyproject[0].startswith("haybale-core~=")
+    assert result.pyproject[0].startswith("haybale-core>=")
 
 
 @pytest.mark.unit
 def test_unregistered_haybale_shaped_module_is_third_party(tmp_path: Path) -> None:
     """A module whose distribution looks like 'haybale-foo' but is NOT in the
-    registry is treated as third-party (pyproject only, >= not ~=)."""
+    registry is treated as third-party (pyproject only, decorator empty)."""
     # We need a real installed dist for the resolver to find something. Pick
     # `toml` (third-party, definitely installed, definitely not a library).
     lib = _make_library(tmp_path, init_body="import toml\n")
@@ -188,14 +188,34 @@ def test_unregistered_haybale_shaped_module_is_third_party(tmp_path: Path) -> No
 
 @pytest.mark.unit
 def test_third_party_uses_geq_specifier(tmp_path: Path) -> None:
-    """Third-party packages use >= rather than ~= because we don't know
-    their compatibility commitments."""
+    """Every suggested specifier is a floor. ``~=`` would stamp a ceiling
+    nobody chose and that nobody would revisit."""
     lib = _make_library(tmp_path, init_body="import pytest\n")
     result = detect_deps(lib, libraries=FakeLibrarySource())
     assert len(result.pyproject) == 1
     spec = result.pyproject[0]
     assert "~=" not in spec
     assert spec.startswith("pytest>=")
+
+
+@pytest.mark.unit
+def test_framework_and_library_specifiers_are_floors_not_ceilings(tmp_path: Path) -> None:
+    """Framework/registered dists get ``>=`` too, not ``~=``.
+
+    These used to be "strict" on the theory that the lockstep convention earned
+    a tighter specifier. It earns the opposite: lockstep dists move together, so
+    a per-dist ``~=0.0.X`` ceiling expresses no real boundary while silently
+    excluding 0.1.0 from every library the suggester touched.
+    """
+    lib = _make_library(
+        tmp_path,
+        init_body=("from haywire.core.node.registry import NodeRegistry\nfrom haybale_core import types\n"),
+    )
+    result = detect_deps(lib, libraries=FakeLibrarySource({"core": "haybale-core"}))
+
+    assert result.pyproject, "expected suggested dependencies"
+    for spec in result.pyproject:
+        assert "~=" not in spec, f"ceiling suggested for {spec!r}"
 
 
 @pytest.mark.unit
@@ -224,15 +244,15 @@ def test_relative_imports_are_ignored(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_version_in_specifier_matches_installed(tmp_path: Path) -> None:
-    """The ~= version uses the running-interpreter's installed version of
-    the dist, not the library's own version."""
+    """The specifier's version uses the running-interpreter's installed
+    version of the dist, not the library's own version."""
     lib = _make_library(
         tmp_path,
         init_body="from haywire.core.node.registry import NodeRegistry\n",
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
     installed = importlib.metadata.version("haywire-core")
-    assert f"haywire-core~={installed}" in result.pyproject
+    assert f"haywire-core>={installed}" in result.pyproject
 
 
 @pytest.mark.unit

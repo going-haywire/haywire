@@ -298,7 +298,7 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
             # The ENTIRE `haywire` top-level package ships in haywire-core —
             # including haywire.ui
 
-            pyproject.append(_format_specifier("haywire-core", strict=True))
+            pyproject.append(_format_specifier("haywire-core"))
             resolved["haywire"] = "haywire-core"
             continue
 
@@ -311,17 +311,17 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
         if dist in registered_dists:
             # Registered haywire library — emit to both outputs.
             decorator.append(module)
-            pyproject.append(_format_specifier(dist, strict=True))
+            pyproject.append(_format_specifier(dist))
         elif dist.startswith("haywire-"):
             # Framework dist reached via a top-level other than `haywire` —
             # e.g. `import haywire_studio` resolving to haywire-studio.
             # Framework, so pyproject only (not the @library decorator).
             # `candidates` is a set, so each module is visited once and no
             # duplicate guard is needed.
-            pyproject.append(_format_specifier(dist, strict=True))
+            pyproject.append(_format_specifier(dist))
         else:
             # Third-party.
-            pyproject.append(_format_specifier(dist, strict=False))
+            pyproject.append(_format_specifier(dist))
 
     decorator.sort()
     pyproject.sort()
@@ -354,13 +354,21 @@ def set_pyproject_dependencies(lib_dir: Path, dependencies: list[str]) -> None:
         project["dependencies"] = list(dependencies)
 
 
-def _format_specifier(dist: str, *, strict: bool) -> str:
-    """Render a ``<dist><op><version>`` requirement string.
+def _format_specifier(dist: str) -> str:
+    """Render a ``<dist>>=<version>`` requirement string.
 
-    ``strict=True`` uses ``~=`` (compatible-release) and is for haywire
-    framework + registered libraries that follow Plan A's lockstep
-    convention. ``strict=False`` uses ``>=`` for third-party packages whose
-    compatibility commitments we cannot assume.
+    Always a floor, for framework and third-party alike. Framework and
+    registered-library dists used to get ``~=`` (compatible-release) on the
+    reasoning that the lockstep convention justified a tighter specifier. It
+    does not — it inverts. ``~=X.Y.Z`` means ``>=X.Y.Z, ==X.Y.*``, so a
+    suggested ``haywire-core~=0.0.34`` bakes in a ceiling that excludes 0.1.0,
+    and lockstep dists are exactly the ones with no independent compatibility
+    boundary to express: they move together, so pinning one below the others is
+    never what the author meant.
+
+    A ceiling that a tool suggests is also the kind nobody revisits. Authors who
+    want one write it themselves — see ``_release_pin`` in
+    ``haywire_studio/init.py``, which scaffolds ``>=`` for the same reason.
 
     Falls back to bare ``<dist>`` if the installed version can't be read —
     rare, but handles the case where a library imports something that is
@@ -369,5 +377,4 @@ def _format_specifier(dist: str, *, strict: bool) -> str:
     version = _installed_version(dist)
     if version is None:
         return dist
-    operator = "~=" if strict else ">="
-    return f"{dist}{operator}{version}"
+    return f"{dist}>={version}"

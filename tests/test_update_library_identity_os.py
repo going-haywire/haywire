@@ -153,7 +153,11 @@ def test_install_writeback_preserves_comments(tmp_path: Path) -> None:
 
     body = pyproject.read_text()
     assert "# alpha is pinned until upstream fixes the regression." in body
-    assert "haybale-foo~=1.2.3" in body
+    # A floor, not "~=1.2.3": a ceiling written by the installer is not a policy
+    # the author chose, and it later blocks the next minor release.
+    assert "haybale-foo>=1.2.3" in body
+    # Somebody else's pin is untouched — that ~= IS a deliberate author choice.
+    assert "alpha~=1.0" in body
 
 
 def test_uninstall_writeback_preserves_comments(tmp_path: Path) -> None:
@@ -173,3 +177,43 @@ def test_uninstall_writeback_preserves_comments(tmp_path: Path) -> None:
     assert "# Keep alpha: the vendored fork is not on PyPI." in body
     assert "haybale-foo" not in body
     assert "alpha~=1.0" in body
+
+
+def test_installed_version_reads_dist_info_not_the_running_process(tmp_path: Path) -> None:
+    """The version written into pyproject.toml comes from disk, not from
+    ``importlib.metadata`` in this process.
+
+    This process imported these packages at startup; an install that happens
+    afterwards does not update that cached view unless cache invalidation — which
+    leans on a private CPython API behind ``except AttributeError`` — works. A
+    stale read here does not stay in memory: it becomes a version pin in the
+    user's pyproject.toml. Reading the directory cannot go stale.
+    """
+    from haybale_marketplace.library_manager import LibraryManager
+
+    site_packages = tmp_path / "lib" / "python3.12" / "site-packages"
+    site_packages.mkdir(parents=True)
+    (site_packages / "haybale_core-0.0.34.dist-info").mkdir()
+
+    manager = LibraryManager.__new__(LibraryManager)
+    manager.venv_path = str(tmp_path)
+
+    # importlib.metadata would report whatever this interpreter loaded; the
+    # dist-info on disk says 0.0.34, and that is what must win. Hyphen and
+    # underscore spellings both resolve, since installers normalize the dir name.
+    assert manager.get_installed_version("haybale-core") == "0.0.34"
+    assert manager.get_installed_version("haybale_core") == "0.0.34"
+
+
+def test_installed_version_returns_none_for_absent_dist(tmp_path: Path) -> None:
+    """A name with no dist-info and no in-process metadata resolves to None,
+    so the caller writes a bare requirement rather than inventing a version."""
+    from haybale_marketplace.library_manager import LibraryManager
+
+    site_packages = tmp_path / "lib" / "python3.12" / "site-packages"
+    site_packages.mkdir(parents=True)
+
+    manager = LibraryManager.__new__(LibraryManager)
+    manager.venv_path = str(tmp_path)
+
+    assert manager.get_installed_version("haybale-not-installed") is None
