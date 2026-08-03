@@ -53,11 +53,31 @@ grep -E "^FAILED|^ERROR" /tmp/t.log
 grep -E "passed|failed" /tmp/t.log | tail -1
 ```
 
-## `-m unit` is not a usable tier
+## `sys.modules.pop()` in a teardown is not cleanup
 
-It currently fails on `test_split_edge_reroute` with
-`assert <class ...EXEC> is <class ...EXEC>` — the module-reload identity trap in
-[project_registry_force_reload_bug.md](project_registry_force_reload_bug.md).
-The file passes when run alone, so this is cross-test pollution the `unit`
-selection exposes, not a real defect in that test. Scope with a path or `-k`
-instead.
+`-m unit` used to fail on `test_split_edge_reroute` with
+`assert <class ...EXEC> is <class ...EXEC>`. Fixed — but the shape recurs.
+
+`test_registry_remove_library.py` overwrites the real `haybale_core` in
+`sys.modules` with a fake, then cleans up with `sys.modules.pop()`. That is not
+symmetric: `pop` *removes* an entry that existed beforehand, so the next
+importer re-executes the module and builds a second set of class objects.
+Anything holding the originals then fails `is` against identically-named
+classes.
+
+Two details make it hard to find:
+
+- **It needs two files.** A test that imports the real module must run first for
+  there to be anything to clobber, so it only appears under selections that
+  order them that way — `-m unit` did, the full suite did not.
+- **Restoring only what you planted is not enough.** `remove_library()` ejects
+  every `haybale_core.*` submodule by prefix, including ones the test never
+  touched but the package had already imported. `haybale_core.types.specs` is
+  where `EXEC` lives; a fixture listing only the planted keys leaves exactly the
+  entry whose loss causes the failure. Snapshot **by prefix**.
+
+Whenever a test mutates `sys.modules`, snapshot and restore — same discipline
+the DI context and settings registry already require. `assert Foo is Foo`
+failing with two identical reprs is the signature; see also
+[project_registry_force_reload_bug.md](project_registry_force_reload_bug.md) and
+[feedback_barn_module_reload_test_trap.md](feedback_barn_module_reload_test_trap.md).

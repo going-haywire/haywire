@@ -70,11 +70,8 @@ uv run pytest tests/ -k "edge"            # filtered by name
 uv run pytest -m "not browser and not perf"  # pre-commit gate: ~2.5 min, 2985 tests
 uv run pytest                             # everything incl. Playwright browser tests — slowest
 uv run pytest -m integration              # integration only (full library system, slow)
+uv run pytest -m unit                     # unit tests only (~1m40s, 1252 tests)
 uv run pytest --cov                       # with coverage
-#
-# `-m unit` is NOT a reliable tier: it currently fails on an isolation artifact
-# (test_split_edge_reroute, an `assert Foo is Foo` reload-identity failure that
-# passes when its file runs alone). Use a path or -k instead.
 
 # Running the long tiers without fighting the terminal
 #
@@ -122,7 +119,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 
 - [feedback_barn_module_reload_test_trap.md](.insights/feedback_barn_module_reload_test_trap.md) — top-of-file imports of barn classes go stale after `importlib.reload`. Use `importlib.import_module` + `patch.object`.
 - [project_registry_force_reload_bug.md](.insights/project_registry_force_reload_bug.md) — fixed in `7b7d86e`; symptom was `assert Foo is Foo` failing (same name, distinct objects). If it ever recurs, look for `force_reload=True` on initial registry scans.
-- [project_slow_test_outliers.md](.insights/project_slow_test_outliers.md) — a multi-second test is almost always an accidental network call paid as a timeout, or serial `subprocess` spawns — not real work. `--durations=25` first; `-m unit` is a broken tier.
+- [project_slow_test_outliers.md](.insights/project_slow_test_outliers.md) — a multi-second test is almost always an accidental network call paid as a timeout, or serial `subprocess` spawns — not real work (`--durations=25` first). Also: `sys.modules.pop()` in a teardown deletes a pre-existing entry, causing `assert Foo is Foo` failures two files later — snapshot by prefix.
 - [project_playwright_asyncio_order_trap.md](.insights/project_playwright_asyncio_order_trap.md) — the first Playwright test parks a running event loop in the main thread for the rest of the session; anyio tests after it fail. `tests/conftest.py` auto-marks `tests/ui/harness/` with `browser` and sorts browser tests last — Playwright tests elsewhere must carry `@pytest.mark.browser`. Ambient-DI leakage is contained by snapshot/restore in the `test_injector` fixtures; never call `create_test_injector()` directly in a test.
 
 ### Architecture traps
