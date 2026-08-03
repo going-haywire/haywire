@@ -5,9 +5,8 @@ breaking into steps: the ones that take seconds, touch the network, or write
 something the user would want to see coming.
 
 The Share Project wizard established the shape; Refresh Libraries, Uninstall
-Library and Install/Update followed. Anything with the same profile (adding a
-marketplace source, for instance) should use it rather than grow its own
-sequence of modals.
+Library, Install/Update and Add Source followed. Anything with the same
+profile should use it rather than grow its own sequence of modals.
 
 A stepper is also how you replace a confirm modal whose warning is a *claim*.
 The old uninstall modal asserted that "any graph nodes using this library will
@@ -15,6 +14,13 @@ show as errors" without checking; the flow's impact step greps every
 `*.haywire` in the workspace for `"<library_id>:"` and reports what it finds.
 If a modal is telling the user something the app could verify, that is the
 signal to make it a step.
+
+And it is how you fix a flow that asks *after* it acts. The old Add Source
+dialog wrote the subscription, then fetched the source to look for name
+collisions, then prompted — so cancelling that prompt left a live
+subscription with its collisions unresolved, and a source that could not be
+fetched was subscribed anyway. If a modal apologises for something already
+done, the steps are in the wrong order.
 
 ## Why steps
 
@@ -126,6 +132,23 @@ chain rather than re-reading.
 If the underlying call cannot accept a precomputed plan, add an optional
 parameter that defaults to today's behaviour (`known_removals=None` recomputes)
 so non-UI callers are untouched.
+
+## More than one mutating step
+
+The default is one. Every read-only step before it can be abandoned freely,
+which is what makes the flow safe to explore.
+
+Add Source is the exception: it subscribes, then refreshes. Those are
+genuinely independent operations — the subscription is correct whether or not
+the refresh succeeds, and refresh can be re-run from the toolbar — so
+collapsing them into one step would make a refresh failure look like the
+subscribe had failed.
+
+The rule for a second mutating step: the step before it must be
+**terminal-capable**. Add Source's `added` step offers both *Refresh now* and
+*Done*, and closing there is a legitimate end rather than an abandonment. If
+the user cannot honestly stop at the intermediate state, it is one operation
+and belongs in one step.
 
 ## Inform, or block?
 

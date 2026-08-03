@@ -282,15 +282,22 @@ class LibraryBrowserEditor(BaseEditor):
         self._render_list(context)
 
     def _on_add_source_click(self, context: "SessionContext") -> None:
-        """Open the Add Source dialog. On a successful add, run refresh so the
-        new source's packages land in the project marketplace cache before we
-        re-render."""
-        from .library_marketplace_dialog import show_add_source_dialog
+        """Open the Add Source flow.
 
-        def _after_added() -> None:
-            self._do_refresh(context, missing_state_severity="silent")
+        Stepped rather than a dialog: the flow probes the source and settles
+        any name collisions *before* writing the subscription, where the old
+        dialog wrote first and asked afterwards. It also owns the refresh, so
+        there is no silent post-add refresh to run here — only a re-render
+        once the popup closes.
+        """
+        from ._add_source_flow import build_target, show_add_source_flow
 
-        show_add_source_dialog(on_added=_after_added)
+        target = build_target(context)
+        if target is None:
+            ui.notify("Marketplace state not available", type="warning")
+            return
+
+        show_add_source_flow(target, on_done=lambda: self._after_refresh_flow(context))
 
     def _on_share_project_click(self, context: "SessionContext") -> None:
         """Open the Share Project wizard for the current workspace.
