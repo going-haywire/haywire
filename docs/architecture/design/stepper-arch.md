@@ -4,10 +4,17 @@
 breaking into steps: the ones that take seconds, touch the network, or write
 something the user would want to see coming.
 
-The Share Project wizard established the shape; the Refresh Libraries flow is
-the second consumer. Anything with the same profile (installing, updating and
-uninstalling libraries, adding a marketplace source) should use it rather than
+The Share Project wizard established the shape; Refresh Libraries and
+Uninstall Library followed. Anything with the same profile (installing and
+updating libraries, adding a marketplace source) should use it rather than
 grow its own sequence of modals.
+
+A stepper is also how you replace a confirm modal whose warning is a *claim*.
+The old uninstall modal asserted that "any graph nodes using this library will
+show as errors" without checking; the flow's impact step greps every
+`*.haywire` in the workspace for `"<library_id>:"` and reports what it finds.
+If a modal is telling the user something the app could verify, that is the
+signal to make it a step.
 
 ## Why steps
 
@@ -98,6 +105,25 @@ def _panel_sources(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
   the share wizard renders one message/remedy row per `PreconditionFailure`,
   the refresh flow swaps in an Edit File button for the one error a retry
   cannot fix. Return `False` to fall back to the plain message.
+
+## Inform, or block?
+
+An impact step can either refuse to advance or show what it found and let the
+user decide. Both exist:
+
+- **Block** when the operation is *guaranteed* to break something and the app
+  can say so unambiguously — the share wizard's preconditions step, or the
+  `@library` dependents gate on the Uninstall button (which lives upstream of
+  the flow, in `LibraryOverviewEditor`, and is why the uninstall flow never
+  re-checks dependents: they are empty by construction by the time it opens).
+- **Inform + explicit confirm** when the consequence is real but the call is
+  the user's — graphs that reference a library, or pip packages that require
+  it. The uninstall flow always advances from `impact` to `confirm`; the
+  danger-coloured button on `confirm` is the gate.
+
+Prefer informing. A block the user cannot override turns into a dead end when
+the app's model is wrong, and the flow's whole value is that the user now has
+the facts.
 
 ## Warnings vs errors
 

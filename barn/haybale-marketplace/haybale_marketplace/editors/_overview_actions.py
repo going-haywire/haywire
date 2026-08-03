@@ -5,13 +5,12 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from nicegui import background_tasks, ui
+from nicegui import ui
 from nicegui.element import Element
 
 from haywire.core.library.info import LibraryInfo
 from haywire.core.session.signals import LibraryCatalogChanged
 from haywire.ui import elements as hui
-from haywire.ui.modals import confirm_modal
 
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
@@ -62,24 +61,38 @@ def confirm_uninstall(
     manager: "LibraryManager",
     context: "SessionContext",
 ) -> None:
-    def _on_confirm():
-        client = ui.context.client
+    """Open the stepped uninstall flow.
 
-        async def _run_with_client():
-            with client:
-                await do_uninstall(library_id, label, manager, context)
+    Replaces a single confirm modal whose warning ("any graph nodes using this
+    library will show as errors") was asserted but never checked. The flow
+    checks it — plus the pip reverse-dependencies ``uv uninstall`` does not
+    resolve — and only then offers the destructive button.
+    """
+    from pathlib import Path
 
-        background_tasks.create(_run_with_client(), name=f"uninstall-{library_id}")
+    from ._uninstall_flow import show_uninstall_flow
+    from ._uninstall_flow.chrome import ManagerUninstallSource
 
-    confirm_modal(
-        title=f"Uninstall {label}?",
-        message=(
-            "This will disable the library and remove it from the venv. "
-            "Any graph nodes using this library will show as errors."
-        ),
-        confirm_label="Uninstall",
-        danger=True,
-        on_confirm=_on_confirm,
+    workspace_root = getattr(context.app, "workspace_root", None)
+
+    # Mutable cell: on_done is wired before the flow object exists, and it
+    # needs to know whether the uninstall actually happened.
+    holder: dict[str, object] = {}
+
+    def _after() -> None:
+        # Only drop the selection when the library actually went away — a
+        # flow abandoned at the impact step must leave the overview intact.
+        flow = holder.get("flow")
+        if flow is not None and getattr(flow, "succeeded", False):
+            context.active_library = None
+        notify_library_changed(context)
+
+    holder["flow"] = show_uninstall_flow(
+        ManagerUninstallSource(manager),
+        library_id,
+        label,
+        workspace_root=Path(workspace_root) if workspace_root else None,
+        on_done=_after,
     )
 
 
@@ -88,28 +101,3 @@ def create_log_in_card(container: Element, title: str) -> "ui.log":
         with hui.expansion_section(title, icon=hui.icon.terminal):
             log = ui.log(max_lines=50).classes("w-full h-32")
     return log
-
-
-async def do_uninstall(
-    library_id: str,
-    label: str,
-    manager: "LibraryManager",
-    context: "SessionContext",
-) -> None:
-    from haywire.ui.modals import library_operation_progress_modal
-
-    ui.notify(f"Uninstalling {label}…", type="info")
-    progress = library_operation_progress_modal(title=f"Uninstalling {label}…")
-
-    success, message, hints = await manager.uninstall_streaming(library_id, progress.push)
-
-    if success:
-        progress.push(f"--- {label} uninstalled successfully ---")
-        progress.finish(hints=hints)
-        ui.notify(f"Uninstalled: {label}", type="positive")
-        context.active_library = None
-        notify_library_changed(context)
-    else:
-        progress.push(f"--- ERROR: {message} ---")
-        progress.finish(error=message, hints=hints)
-        ui.notify(message, type="negative")
