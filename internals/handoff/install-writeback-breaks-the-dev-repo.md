@@ -84,6 +84,49 @@ being edited in place" — it gates the source editor and Farmhand's write tool
 registry.get_library_install_type(library_id) is InstallType.EDITABLE
 ```
 
+## Where this now lands (written after the install flow shipped)
+
+The stepped install flow exists as of `885e6bc5`, so this no longer needs new
+UI — only a field, a check, and a paragraph of panel copy.
+
+**The check belongs in `InstallFlow.advance_from_selected`**, alongside the
+`dry_run` call, in
+`barn/haybale-marketplace/haybale_marketplace/editors/_install_flow/_state.py`.
+That method is already the flow's one read-only probe, and it already returns
+its findings for the `checked` panel to render.
+
+Two pieces of wiring, both small:
+
+1. **`InstallSource` needs one more method.** The protocol currently exposes
+   `dry_run`, `install` and `get_installed_version`. Add something like
+   `get_install_type(dist_name) -> str` and implement it on
+   `ManagerInstallSource` (in the same package's `chrome.py`) as
+   `manager.registry.get_library_install_type(...)`. Note the registry keys by
+   **library_id**, not distribution name — `ManagerUninstallSource` in
+   `_uninstall_flow/chrome.py` hit the same mismatch and is worth copying from.
+   Its adapter also shows the enum→str translation the protocol wants.
+2. **A field on the flow**, e.g. `replaces_editable: bool`, set in the same
+   method and rendered by `_panel_checked` next to the collateral-upgrade list.
+
+The panel already has the right shape for it: `_panel_checked` renders a
+warning row with `--hw-warning` when `removals` is non-empty. An editable
+replacement is the same class of consequence and can reuse that treatment.
+
+**Do not block.** Per the inform-vs-block rule the flow already follows, this
+is inform + explicit confirm — the Install button on `checked` is the gate.
+The one exception in that flow (a framework conflict) blocks because uv's
+resolver has already refused; nothing refuses here.
+
+Two facts worth carrying into the fix:
+
+- The venv change is **not undone by reverting `pyproject.toml`**. Restoring a
+  dev machine needs the `uv pip install -e …` line from the section below, and
+  the surviving symlink makes the breakage easy to miss.
+- Whatever text the panel shows should say the source folder survives — that
+  is the same wording the uninstall flow already uses for EDITABLE libraries
+  (`_uninstall_flow/_state.py`, the warning appended in
+  `advance_from_confirm`).
+
 ## Open questions
 
 1. **Warn, or block?** By the project's own inform-vs-block rule (see
