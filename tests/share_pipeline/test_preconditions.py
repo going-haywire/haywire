@@ -693,11 +693,17 @@ def test_apply_precondition_fix_add_origin_accepts_unknown_host(tmp_path: Path) 
     assert _get_remote_url(repo) == url
 
 
-def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path) -> None:
+def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path, bare_remote: Path) -> None:
     """End-to-end: missing-origin repo -> check_preconditions() finds the
     add_origin failure -> apply the fix -> re-run check_preconditions() and
-    confirm that SPECIFIC failure is gone. The fake URL may still fail
-    reachability — that's fine, only the missing-remote failure must clear."""
+    confirm that SPECIFIC failure is gone.
+
+    The origin URL is the local ``bare_remote`` path, not a fake host. Once a
+    remote exists, check_preconditions() runs a real ``git ls-remote`` against
+    it; an unroutable URL like ``git@example.com:...`` does not fail fast, it
+    blocks until the 60s timeout. That put a minute of network wait into the
+    fast suite for a test whose subject is the missing-remote failure clearing.
+    """
     repo = tmp_path / "add_origin_e2e"
     _init_repo(repo)
     _add_lib(repo)
@@ -708,7 +714,7 @@ def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path)
     assert matches, report.failures
 
     pipeline = SharePipeline(repo)
-    pipeline.apply_precondition_fix("add_origin", url="git@example.com:foo/bar.git")
+    pipeline.apply_precondition_fix("add_origin", url=str(bare_remote))
 
     report2 = pipeline.check_preconditions()
     assert not any("No 'origin' remote is configured" in f.message for f in report2.failures)

@@ -61,14 +61,34 @@ uv run haywire docs barn/haybale-mylib   # one library
 uv run haywire docs --all                # every in-repo library, one load
 
 # Tests
-uv run pytest                        # all tests
-uv run pytest -m "not browser and not perf"  # fast local loop (~33s): skips the Playwright browser harness
-uv run pytest -m unit                # unit tests only (fast)
-uv run pytest -m integration         # integration tests (full library system, slow)
-uv run pytest -m "not integration"   # everything except slow integration tests
-uv run pytest tests/ -k "edge"       # filtered by name
-uv run pytest --cov                  # with coverage
-uv run pytest tests/path/to/file.py  # single file
+#
+# Pick the SMALLEST tier that covers the change; run the full suite once at the
+# end, not on every iteration.
+uv run pytest tests/path/to/file.py       # single file — seconds; the default while iterating
+uv run pytest tests/some_dir/             # one area
+uv run pytest tests/ -k "edge"            # filtered by name
+uv run pytest -m "not browser and not perf"  # pre-commit gate: ~2.5 min, 2985 tests
+uv run pytest                             # everything incl. Playwright browser tests — slowest
+uv run pytest -m integration              # integration only (full library system, slow)
+uv run pytest --cov                       # with coverage
+#
+# `-m unit` is NOT a reliable tier: it currently fails on an isolation artifact
+# (test_split_edge_reroute, an `assert Foo is Foo` reload-identity failure that
+# passes when its file runs alone). Use a path or -k instead.
+
+# Running the long tiers without fighting the terminal
+#
+# `addopts` includes `-v`, so a full run emits thousands of lines and the tail
+# is easily buried under the studio's post-run update banner. Redirect, then
+# read the exit code — it is the actual pass/fail signal:
+#
+#   uv run pytest -m "not browser and not perf" -q > /tmp/t.log 2>&1; echo "exit=$?"
+#   grep -E "^FAILED|^ERROR" /tmp/t.log     # what broke
+#   grep -E "passed|failed" /tmp/t.log | tail -1   # the summary line
+#
+# Use a timeout ≥ 600000 ms for the full suite. `--durations=25` shows where the
+# time goes; anything over ~5s in the non-browser suite is worth a look — a 60s
+# outlier is usually an accidental network call, not real work.
 
 # Code quality
 # CI's ruff job runs BOTH `ruff check` and `ruff format --check`. They catch
@@ -102,6 +122,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 
 - [feedback_barn_module_reload_test_trap.md](.insights/feedback_barn_module_reload_test_trap.md) — top-of-file imports of barn classes go stale after `importlib.reload`. Use `importlib.import_module` + `patch.object`.
 - [project_registry_force_reload_bug.md](.insights/project_registry_force_reload_bug.md) — fixed in `7b7d86e`; symptom was `assert Foo is Foo` failing (same name, distinct objects). If it ever recurs, look for `force_reload=True` on initial registry scans.
+- [project_slow_test_outliers.md](.insights/project_slow_test_outliers.md) — a multi-second test is almost always an accidental network call paid as a timeout, or serial `subprocess` spawns — not real work. `--durations=25` first; `-m unit` is a broken tier.
 - [project_playwright_asyncio_order_trap.md](.insights/project_playwright_asyncio_order_trap.md) — the first Playwright test parks a running event loop in the main thread for the rest of the session; anyio tests after it fail. `tests/conftest.py` auto-marks `tests/ui/harness/` with `browser` and sorts browser tests last — Playwright tests elsewhere must carry `@pytest.mark.browser`. Ambient-DI leakage is contained by snapshot/restore in the `test_injector` fixtures; never call `create_test_injector()` directly in a test.
 
 ### Architecture traps

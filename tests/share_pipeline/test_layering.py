@@ -9,8 +9,10 @@ cannot loop back.
 from __future__ import annotations
 
 import ast
+import os
 import subprocess
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 _SHARE_ROOT = (
@@ -83,18 +85,28 @@ def test_leaf_modules_have_no_in_package_dependencies() -> None:
 
 def test_every_share_module_imports_standalone() -> None:
     """Each module must import in a fresh interpreter without its siblings
-    being imported first — the regression the old §5 rule guarded by hand."""
+    being imported first — the regression the old §5 rule guarded by hand.
+
+    One interpreter per module is the point (a shared one would let an earlier
+    import satisfy a later module's missing dependency), but the modules are
+    independent of each other, so the spawns run concurrently. Serially this
+    was ~44s of almost pure process-startup latency; the work is I/O-bound, so
+    threads are enough and the isolation guarantee is unchanged.
+    """
     modules = []
     for path in sorted(_SHARE_ROOT.rglob("*.py")):
         rel = path.relative_to(_SHARE_ROOT).with_suffix("")
         parts = [p for p in rel.parts if p != "__init__"]
         modules.append(".".join(["haywire_studio.packaging.share", *parts]))
 
-    for name in modules:
-        result = subprocess.run(
+    def _import(name: str) -> tuple[str, subprocess.CompletedProcess[str]]:
+        return name, subprocess.run(
             [sys.executable, "-c", f"import {name}"],
             capture_output=True,
             text=True,
             timeout=60,
         )
-        assert result.returncode == 0, f"{name} failed to import:\n{result.stderr}"
+
+    with ThreadPoolExecutor(max_workers=min(8, (os.cpu_count() or 4))) as pool:
+        for name, result in pool.map(_import, modules):
+            assert result.returncode == 0, f"{name} failed to import:\n{result.stderr}"
