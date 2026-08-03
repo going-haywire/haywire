@@ -1,4 +1,10 @@
-"""Popup entry point, progress bar, error banner, and step dispatch."""
+"""Popup entry point and step→panel wiring for the Share Project wizard.
+
+The progress bar, error banner and warning rows are the shared stepper
+chrome; what stays here is the share-specific part — the panel map and the
+structured ``PreconditionFailure`` rows that replace the generic one-line
+error message.
+"""
 
 from __future__ import annotations
 
@@ -7,11 +13,10 @@ from typing import Callable
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
-from haywire.ui.components.popup import Popup
+from haywire.ui.components.stepper import Panel, show_step_flow
 from haywire_studio.packaging.share.pipeline import SharePipeline
 
-from .copy import STEPS, _STEP_TITLES
+from ._state import ShareWizard
 from .panels import (
     _panel_checked,
     _panel_commit,
@@ -24,7 +29,6 @@ from .panels import (
     _panel_version,
     _render_fix,
 )
-from ._state import ShareWizard
 
 
 def show_share_wizard(
@@ -38,114 +42,50 @@ def show_share_wizard(
     stays available (the wizard mutates nothing that needs undoing), but the
     step buttons are the intended path.
     """
-    popup = Popup(
+    wizard = ShareWizard(pipeline=SharePipeline(repo_root), popup=None)
+
+    panels: dict[str, Panel[ShareWizard]] = {
+        "preconditions": _panel_preconditions,
+        "checked": _panel_checked,
+        "drift": _panel_drift,
+        "framework": _panel_framework,
+        "version": _panel_version,
+        "docs": _panel_docs,
+        "commit": _panel_commit,
+        "push": _panel_push,
+        # on_done fires from the popup's close handler below, so the Done
+        # button only has to dismiss — otherwise closing after Done would run
+        # the callback twice.
+        "done": lambda flow, _rerender: _panel_done(flow, None),
+    }
+
+    wizard.popup = show_step_flow(
+        wizard,
+        panels,
         title="Share Project",
         width="620px",
-        closable=True,
-        backdrop_click_close=False,
-        escape_close=False,
+        on_done=on_done,
+        error_detail=_render_precondition_failures,
     )
-    wizard = ShareWizard(pipeline=SharePipeline(repo_root), popup=popup)
-
-    with popup:
-        body = ui.column().classes("w-full gap-2")
-
-    def _render() -> None:
-        body.clear()
-        with body:
-            _render_progress(wizard)
-            _render_step(wizard, _render, on_done)
-
-    wizard.on_render = _render
-    _render()
-    popup.open()
     return wizard
 
 
-def _render_progress(wizard: ShareWizard) -> None:
-    """A one-line step indicator. Colours come from --hw-* tokens only."""
-    index = STEPS.index(wizard.step)
-    with ui.row().classes("w-full items-center gap-1"):
-        for position, name in enumerate(STEPS[:-1]):
-            done = position < index
-            active = position == index
-            colour = "var(--hw-positive)" if done else ("var(--hw-accent)" if active else "var(--hw-border)")
-            ui.element("div").classes("flex-1 rounded").style(f"height: 3px; background: {colour};").tooltip(
-                _STEP_TITLES[name]
-            )
-    ui.label(_STEP_TITLES[wizard.step]).classes("text-sm font-medium")
+def _render_precondition_failures(flow: ShareWizard, rerender: Callable[[], None]) -> bool:
+    """Render each structured failure as its own message/remedy row.
 
-
-def _render_error(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
-    """Inline error banner with a Retry button. Same visual as the progress modal."""
-    if wizard.error is None:
-        return
-    with (
-        ui.row()
-        .classes("w-full items-start gap-2 p-2 rounded")
-        .style("border-left: 3px solid var(--hw-danger); background: var(--hw-danger-bg);")
-    ):
-        ui.icon("error", size="16px").classes("hw-text-danger flex-shrink-0 mt-0.5")
-        with ui.column().classes("gap-1 flex-1"):
-            if wizard.precondition_failures:
-                # Structured failures: each gets its own message + remedy row
-                # so a multi-line remedy (install commands, etc.) stays
-                # readable instead of collapsing into wizard.error's one line.
-                with ui.column().classes("gap-2 w-full"):
-                    for failure in wizard.precondition_failures:
-                        with ui.column().classes("gap-0.5"):
-                            ui.label(failure.message).classes("text-xs hw-text-danger whitespace-pre-line")
-                            if failure.remedy:
-                                ui.label(failure.remedy).classes(
-                                    "text-xs hw-text-dim font-mono whitespace-pre-line"
-                                )
-                            if failure.fix_id:
-                                _render_fix(wizard, rerender, failure)
-            else:
-                ui.label(wizard.error).classes("text-xs hw-text-danger whitespace-pre-line")
-            if wizard.manual_command:
-                hui.code_snippet(wizard.manual_command)
-
-    def _retry() -> None:
-        wizard.retry()
-        rerender()
-
-    ui.button("Retry", on_click=_retry).props("flat dense")
-
-
-def _render_warnings(wizard: ShareWizard) -> None:
-    for warning in wizard.warnings:
-        with ui.row().classes("w-full items-start gap-2"):
-            ui.icon("warning", size="14px").classes("flex-shrink-0 mt-0.5").style(
-                "color: var(--hw-warning);"
-            )
-            ui.label(warning).classes("text-xs hw-text-muted")
-
-
-def _render_step(
-    wizard: ShareWizard,
-    rerender: Callable[[], None],
-    on_done: Callable[[], None] | None,
-) -> None:
-    """Dispatch to the current step's panel."""
-    _render_warnings(wizard)
-    _render_error(wizard, rerender)
-
-    if wizard.step == "preconditions":
-        _panel_preconditions(wizard, rerender)
-    elif wizard.step == "checked":
-        _panel_checked(wizard, rerender)
-    elif wizard.step == "drift":
-        _panel_drift(wizard, rerender)
-    elif wizard.step == "framework":
-        _panel_framework(wizard, rerender)
-    elif wizard.step == "version":
-        _panel_version(wizard, rerender)
-    elif wizard.step == "docs":
-        _panel_docs(wizard, rerender)
-    elif wizard.step == "commit":
-        _panel_commit(wizard, rerender)
-    elif wizard.step == "push":
-        _panel_push(wizard, rerender)
-    else:
-        _panel_done(wizard, on_done)
+    A multi-line remedy (install commands, etc.) stays readable this way
+    instead of collapsing into ``flow.error``'s one line. Returns False when
+    the wizard has no structured failures, which leaves the shared chrome to
+    render the plain message.
+    """
+    if not flow.precondition_failures:
+        return False
+    with ui.column().classes("gap-2 w-full"):
+        for failure in flow.precondition_failures:
+            with ui.column().classes("gap-0.5"):
+                ui.label(failure.message).classes("text-xs hw-text-danger whitespace-pre-line")
+                if failure.remedy:
+                    ui.label(failure.remedy).classes("text-xs hw-text-dim font-mono whitespace-pre-line")
+                if failure.fix_id:
+                    _render_fix(flow, rerender, failure)
+    return True

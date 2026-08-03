@@ -253,8 +253,33 @@ class LibraryBrowserEditor(BaseEditor):
         self._render_list(context)
 
     def _on_refresh_click(self, context: "SessionContext") -> None:
-        """Run MarketplaceState.refresh(), surface result via ui.notify + inline banner."""
-        self._do_refresh(context, missing_state_severity="warning")
+        """Open the Refresh Libraries flow.
+
+        Stepped rather than one-shot: fetching is a network round-trip per
+        source and the write overwrites the project's cached library list, so
+        the user gets to see the per-source outcome and the resulting deltas
+        before anything is written. The silent post-Add-Source path still
+        calls :meth:`_do_refresh` directly — there the user didn't ask for a
+        refresh, so there is no decision to present.
+        """
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
+
+        from ._refresh_flow import show_refresh_flow
+
+        if context.app_data is None or MarketplaceState not in context.app_data:
+            ui.notify("Marketplace state not available", type="warning")
+            return
+
+        show_refresh_flow(
+            context.app_data[MarketplaceState],
+            on_done=lambda: self._after_refresh_flow(context),
+            on_edit_global=lambda: self._on_edit_file_click(context),
+        )
+
+    def _after_refresh_flow(self, context: "SessionContext") -> None:
+        """Re-render once the flow closes — an applied refresh rewrote the cache."""
+        self._refresh_error = None
+        self._render_list(context)
 
     def _on_add_source_click(self, context: "SessionContext") -> None:
         """Open the Add Source dialog. On a successful add, run refresh so the
@@ -288,12 +313,13 @@ class LibraryBrowserEditor(BaseEditor):
         show_share_wizard(Path(workspace_root))
 
     def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
-        """Refresh the marketplace and re-render.
+        """Refresh the marketplace in one shot and re-render.
 
-        Shared by the toolbar Refresh button and the post-Add-Source auto-refresh.
-        ``missing_state_severity`` is "warning" for explicit clicks (surface the
-        problem) and "silent" for auto-flows (the user didn't ask for refresh —
-        a missing state means we just skip and re-render).
+        The auto-flow path (post-Add-Source), where the user didn't ask for a
+        refresh and so has no decision to make — the explicit toolbar button
+        opens the stepped flow instead. ``missing_state_severity`` is
+        "warning" when a caller wants a missing state surfaced and "silent"
+        when it should just skip and re-render.
         """
         from haywire.core.marketstall import MalformedMarketplaceError
 

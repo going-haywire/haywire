@@ -5,14 +5,19 @@ from pathlib import Path
 from typing import Optional
 
 from haywire.core.marketstall import (
+    FetchedSources,
     Haybale,
     MalformedMarketplaceError,
     MarketplaceFile,
     RefreshReport,
+    ResolvedCatalog,
+    apply_refresh as runtime_apply,
+    fetch_sources as runtime_fetch_sources,
     parse_global_marketplace,
     parse_project_marketplace,
     refresh as runtime_refresh,
     remove_stale_haybale_from_project,
+    resolve_catalog as runtime_resolve,
 )
 from haywire.core.state.base import AppState
 from haywire.core.state.decorator import state
@@ -140,6 +145,42 @@ class MarketplaceState(AppState):
             global_path=self._global_path(),
             project_path=project_path,
         )
+        self.last_report = report
+        return report
+
+    # ------------------------------------------------------------------
+    # Phased refresh — the same pipeline, stopped between phases
+    # ------------------------------------------------------------------
+    #
+    # A UI that wants to show the user what a refresh would do before writing
+    # anything drives these three in order. Only apply_refresh() mutates, so a
+    # flow abandoned before it leaves the project file untouched.
+
+    def fetch_sources(self) -> Optional[FetchedSources]:
+        """Phase 1 — fetch every subscription. Blocking: call in a thread.
+
+        None when there is no project path, mirroring refresh()'s empty-report
+        posture for a workspace-less session.
+        """
+        project_path = self._project_path()
+        if project_path is None:
+            return None
+        return runtime_fetch_sources(
+            global_path=self._global_path(),
+            project_path=project_path,
+        )
+
+    def resolve(self, fetched: FetchedSources) -> ResolvedCatalog:
+        """Phase 2 — pure; safe to call on the event loop."""
+        return runtime_resolve(fetched)
+
+    def apply_refresh(self, fetched: FetchedSources, resolved: ResolvedCatalog) -> RefreshReport:
+        """Phase 3 — write the project file. Caches the report like refresh()."""
+        project_path = self._project_path()
+        if project_path is None:
+            self.last_report = RefreshReport()
+            return self.last_report
+        report = runtime_apply(fetched, resolved, project_path=project_path)
         self.last_report = report
         return report
 

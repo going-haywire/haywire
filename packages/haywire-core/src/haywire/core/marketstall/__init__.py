@@ -41,16 +41,28 @@ from haywire.core.marketstall.refresh import (
     apply_first_come_first_served,
     apply_heaps_shadow,
     apply_ignores,
+    fetch_sources,
     mark_stale_against_previous,
     refresh,
 )
+from haywire.core.marketstall.refresh import (
+    # Aliased at the package boundary: bare `apply`/`resolve` are too generic
+    # for a namespace that also exports apply_blocked, apply_ignores, etc.
+    apply as apply_refresh,
+)
+from haywire.core.marketstall.refresh import (
+    resolve as resolve_catalog,
+)
 from haywire.core.marketstall.types import (
+    FetchedSources,
     FetchResult,
     Haybale,
     MarketplaceFile,
     ProjectMarketplaceFile,
     RefreshOutcome,
     RefreshReport,
+    ResolvedCatalog,
+    SourceOutcome,
     Subscription,
 )
 from haywire.core.marketstall.subscribe import (
@@ -68,12 +80,15 @@ from haywire.core.marketstall.url_resolution import (
 
 __all__ = [
     # Dataclasses / enums
+    "FetchedSources",
     "FetchResult",
     "Haybale",
     "MarketplaceFile",
     "ProjectMarketplaceFile",
     "RefreshOutcome",
     "RefreshReport",
+    "ResolvedCatalog",
+    "SourceOutcome",
     "Subscription",
     "RemoteMarketplaceContents",
     "SubscriptionConflict",
@@ -93,6 +108,9 @@ __all__ = [
     "gc_orphans",
     # Refresh
     "refresh",
+    "fetch_sources",
+    "resolve_catalog",
+    "apply_refresh",
     "apply_ignores",
     "apply_blocked",
     "apply_heaps_shadow",

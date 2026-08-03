@@ -2,14 +2,12 @@
 
 from __future__ import annotations
 
-from typing import Callable
+from typing import Awaitable, Callable
 
 from nicegui import ui
 
-from ._state import ShareWizard
 
-
-def _advance(wizard: ShareWizard, rerender: Callable[[], None], coro_factory):
+def advance(rerender: Callable[[], None], coro_factory: Callable[[], Awaitable[None]]):
     """Wrap an advance call so the panel re-renders afterwards.
 
     Returns the coroutine rather than scheduling it: NiceGUI wraps a returned
@@ -19,27 +17,26 @@ def _advance(wizard: ShareWizard, rerender: Callable[[], None], coro_factory):
     See .insights/feedback_nicegui_async.md.
     """
 
-    async def _run():
+    async def _run() -> None:
         await coro_factory()
         rerender()
 
     return _run()
 
 
-def _busy_advance(
-    wizard: ShareWizard,
+def busy_advance(
     rerender: Callable[[], None],
     button: ui.button,
-    coro_factory,
+    coro_factory: Callable[[], Awaitable[None]],
 ):
     """Put *button* in a loading state for the duration of the step.
 
     These steps take seconds (a network round-trip, a multi-library scan), so
     without this the UI looks dead while the thread works. Returned, not
-    scheduled — see :func:`_advance` for why.
+    scheduled — see :func:`advance` for why.
     """
 
-    async def _run():
+    async def _run() -> None:
         button.props("loading")
         try:
             await coro_factory()

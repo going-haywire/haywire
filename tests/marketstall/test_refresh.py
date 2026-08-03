@@ -591,3 +591,163 @@ def test_malformed_caches_do_not_discard_heaps(tmp_path):
 
     assert pm.caches == []
     assert [h["name"] for h in pm.heaps] == ["haybale-local"]
+
+
+# ── Three-phase pipeline: fetch_sources / resolve / apply ────────────────────
+#
+# The phase split exists so a UI can show what a refresh WOULD do before it
+# does it, so the load-bearing property under test is that the first two
+# phases leave the project file untouched.
+
+
+def _stall_global(tmp_path: Path, url: str = "https://alice.example/marketstall.toml") -> Path:
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(f'[[stalls]]\nurl = "{url}"\nignores = []\ndoubles = []\nblocked = []\n')
+    return global_path
+
+
+@pytest.mark.unit
+def test_fetch_sources_writes_nothing(tmp_path: Path) -> None:
+    from haywire.core.marketstall.refresh import fetch_sources
+
+    global_path = _stall_global(tmp_path)
+    project_path = tmp_path / "project.toml"
+
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    assert not project_path.exists()
+    assert fetched.sources_fetched == 1
+    assert fetched.unavailable_urls == []
+
+
+@pytest.mark.unit
+def test_resolve_writes_nothing_and_reports_deltas(tmp_path: Path) -> None:
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+
+    global_path = _stall_global(tmp_path)
+    project_path = tmp_path / "project.toml"
+
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    resolved = resolve(fetched)
+
+    assert not project_path.exists()
+    assert resolved.resolved_count == 1
+    assert resolved.newly_added == ["haybale-foo"]
+    assert resolved.newly_stale == []
+
+
+@pytest.mark.unit
+def test_resolve_is_pure_and_repeatable(tmp_path: Path) -> None:
+    """resolve() may be called repeatedly on one fetch without drift."""
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+
+    global_path = _stall_global(tmp_path)
+    project_path = tmp_path / "project.toml"
+
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    first = resolve(fetched)
+    second = resolve(fetched)
+
+    assert [h.name for h in first.haybales] == [h.name for h in second.haybales]
+    assert first.newly_added == second.newly_added
+
+
+@pytest.mark.unit
+def test_apply_writes_project_file_and_returns_report(tmp_path: Path) -> None:
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+    from haywire.core.marketstall.refresh import apply, fetch_sources, resolve
+
+    global_path = _stall_global(tmp_path)
+    project_path = tmp_path / "project.toml"
+
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    report = apply(fetched, resolve(fetched), project_path=project_path, cache_dir=tmp_path / "c")
+
+    assert project_path.exists()
+    assert [h.name for h in parse_project_marketplace(project_path).caches] == ["haybale-foo"]
+    assert report.haybales_resolved == 1
+    assert report.sources_fetched == 1
+
+
+@pytest.mark.unit
+def test_phases_compose_to_same_report_as_refresh(tmp_path: Path) -> None:
+    """The split must not change what refresh() reports."""
+    from haywire.core.marketstall.refresh import apply, fetch_sources, refresh, resolve
+
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+
+    def _run_composed(root: Path):
+        global_path = _stall_global(root)
+        project_path = root / "project.toml"
+        with patch.object(marketstall_cache, "_urlopen") as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+            fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=root / "c")
+        return apply(fetched, resolve(fetched), project_path=project_path, cache_dir=root / "c")
+
+    def _run_oneshot(root: Path):
+        global_path = _stall_global(root)
+        project_path = root / "project.toml"
+        with patch.object(marketstall_cache, "_urlopen") as mock_open:
+            mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+            return refresh(global_path=global_path, project_path=project_path, cache_dir=root / "c")
+
+    split_dir = tmp_path / "split"
+    split_dir.mkdir()
+    oneshot_dir = tmp_path / "oneshot"
+    oneshot_dir.mkdir()
+
+    assert _run_composed(split_dir) == _run_oneshot(oneshot_dir)
+
+
+@pytest.mark.unit
+def test_fetch_sources_records_unavailable_without_writing(tmp_path: Path) -> None:
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+    from haywire.core.marketstall.types import RefreshOutcome
+
+    global_path = _stall_global(tmp_path, "https://gone.example/marketstall.toml")
+    project_path = tmp_path / "project.toml"
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=OSError):
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    assert fetched.unavailable_urls == ["https://gone.example/marketstall.toml"]
+    assert fetched.outcomes[0].outcome is RefreshOutcome.UNAVAILABLE
+    assert fetched.outcomes[0].body is None
+    assert not project_path.exists()
+    # An unreachable source resolves to an empty catalog, not an exception.
+    assert resolve(fetched).resolved_count == 0
+
+
+@pytest.mark.unit
+def test_resolve_marks_newly_stale_against_previous(tmp_path: Path) -> None:
+    """A cached entry whose source no longer lists it shows up in newly_stale."""
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+
+    global_path = _stall_global(tmp_path)
+    project_path = tmp_path / "project.toml"
+    project_path.write_text('[[caches]]\nname = "haybale-gone"\nversion = "0.1.0"\n')
+
+    fake_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = fake_body.encode()
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    resolved = resolve(fetched)
+
+    assert resolved.newly_stale == ["haybale-gone"]
+    assert resolved.newly_added == ["haybale-foo"]

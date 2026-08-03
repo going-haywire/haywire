@@ -11,7 +11,8 @@ from haywire.ui import elements as hui
 from haywire.ui.modals import restart_affordance
 from haywire_studio.packaging.share.pipeline import PreconditionFailure
 
-from .async_helpers import _advance, _busy_advance
+from haywire.ui.components.stepper import advance as _advance
+from haywire.ui.components.stepper import busy_advance as _busy_advance
 from .copy import _DRIFT_EXPLANATIONS, _DRIFT_OPTIONS
 from ._state import ShareWizard
 
@@ -43,7 +44,6 @@ def _render_fix(wizard: ShareWizard, rerender: Callable[[], None], failure: Prec
 
         fix_button.on_click(
             lambda: _busy_advance(
-                wizard,
                 rerender,
                 fix_button,
                 lambda: wizard.advance_from_preconditions_fix(fix_id, **_kwargs()),
@@ -67,7 +67,7 @@ def _panel_preconditions(wizard: ShareWizard, rerender: Callable[[], None]) -> N
     ).classes("text-xs hw-text-dim")
     with ui.row().classes("w-full justify-end gap-2"):
         check = ui.button("Check").props("flat dense").style("color: var(--hw-positive);")
-        check.on_click(lambda: _busy_advance(wizard, rerender, check, wizard.advance_from_preconditions))
+        check.on_click(lambda: _busy_advance(rerender, check, wizard.advance_from_preconditions))
 
 
 def _panel_checked(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
@@ -98,7 +98,7 @@ def _panel_checked(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
     with ui.row().classes("w-full justify-end gap-2"):
         scan = ui.button("Scan").props("flat dense").style("color: var(--hw-positive);")
-        scan.on_click(lambda: _busy_advance(wizard, rerender, scan, wizard.advance_from_checked))
+        scan.on_click(lambda: _busy_advance(rerender, scan, wizard.advance_from_checked))
 
 
 def _panel_drift(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
@@ -108,7 +108,7 @@ def _panel_drift(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         with ui.row().classes("w-full justify-end gap-2"):
             ui.button(
                 "Continue",
-                on_click=lambda: _advance(wizard, rerender, lambda: wizard.advance_from_drift("skip")),
+                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_drift("skip")),
             ).props("flat dense").style("color: var(--hw-positive);")
         return
 
@@ -175,7 +175,6 @@ def _panel_drift(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         confirm = ui.button("Confirm").props("flat dense")
         confirm.on_click(
             lambda: _busy_advance(
-                wizard,
                 rerender,
                 confirm,
                 lambda: wizard.advance_from_drift(str(choice.value)),
@@ -228,7 +227,7 @@ def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
             "Continue",
-            on_click=lambda: _advance(wizard, rerender, lambda: wizard.advance_from_framework(_spec())),
+            on_click=lambda: _advance(rerender, lambda: wizard.advance_from_framework(_spec())),
         ).props("flat dense").style("color: var(--hw-positive);")
 
 
@@ -274,7 +273,7 @@ def _panel_version(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
             "Bump",
-            on_click=lambda: _advance(wizard, rerender, lambda: wizard.advance_from_version(_spec())),
+            on_click=lambda: _advance(rerender, lambda: wizard.advance_from_version(_spec())),
         ).props("flat dense").style("color: var(--hw-positive);")
 
 
@@ -286,12 +285,12 @@ def _panel_docs(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     log = ui.log(max_lines=200).classes("w-full text-xs").style("height: 160px; font-family: monospace;")
     for line in wizard.log_lines:
         log.push(line)
-    wizard._log_element = log  # noqa: SLF001 — the wizard owns this element
+    wizard.attach_log(log)
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
             "Generate",
-            on_click=lambda: _advance(wizard, rerender, wizard.advance_from_docs),
+            on_click=lambda: _advance(rerender, wizard.advance_from_docs),
         ).props("flat dense").style("color: var(--hw-positive);")
 
 
@@ -344,7 +343,6 @@ def _panel_commit(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         ui.button(
             "Commit and tag",
             on_click=lambda: _advance(
-                wizard,
                 rerender,
                 lambda: wizard.advance_from_commit(
                     (message_input.value or plan.message).strip(), _included()
@@ -360,12 +358,12 @@ def _panel_push(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     ui.label("Pushes the commit and tag to origin.").classes("text-xs hw-text-dim")
 
     log = ui.log(max_lines=200).classes("w-full text-xs").style("height: 140px; font-family: monospace;")
-    wizard._log_element = log  # noqa: SLF001
+    wizard.attach_log(log)
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
             "Push",
-            on_click=lambda: _advance(wizard, rerender, wizard.advance_from_push),
+            on_click=lambda: _advance(rerender, wizard.advance_from_push),
         ).props("flat dense").style("color: var(--hw-positive);")
 
 

@@ -120,6 +120,7 @@ nav:
   - Architecture:
       - Overview: architecture/overview/overview-arch.md
       - Design: architecture/design/design-arch.md
+      - Stepper (multi-step flows): architecture/design/stepper-arch.md
       - Graph: architecture/graph/graph-arch.md
       - Execution:
           - Overview: architecture/execution/execution-arch.md

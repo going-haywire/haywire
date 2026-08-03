@@ -155,3 +155,67 @@ class RefreshReport:
     haybales_resolved: int = 0
     new_stale: int = 0
     updates_available: int = 0
+
+
+@dataclass(frozen=True)
+class SourceOutcome:
+    """What one subscription URL yielded during the fetch phase.
+
+    ``body`` is None exactly when ``outcome`` is UNAVAILABLE. ``discovered``
+    marks a stall URL that came from a [[markets]] body rather than from the
+    user's own subscription list — the UI labels those differently because the
+    user never subscribed to them directly.
+    """
+
+    url: str
+    outcome: RefreshOutcome
+    body: str | None = None
+    cache_age: float | None = None
+    discovered: bool = False
+
+
+@dataclass
+class FetchedSources:
+    """Read-only result of the fetch phase — no file has been written yet.
+
+    Carries the parsed global marketplace and the previous project file so the
+    resolve phase stays a pure function of this object: fetch once, resolve as
+    often as the caller likes.
+    """
+
+    global_file: MarketplaceFile
+    previous: ProjectMarketplaceFile
+    outcomes: list[SourceOutcome] = field(default_factory=list)
+    discovered_stall_urls: list[str] = field(default_factory=list)
+
+    @property
+    def sources_fetched(self) -> int:
+        return sum(1 for o in self.outcomes if o.outcome is RefreshOutcome.FRESH)
+
+    @property
+    def sources_from_cache(self) -> int:
+        return sum(1 for o in self.outcomes if o.outcome is RefreshOutcome.CACHE_FALLBACK)
+
+    @property
+    def unavailable_urls(self) -> list[str]:
+        return [o.url for o in self.outcomes if o.outcome is RefreshOutcome.UNAVAILABLE]
+
+
+@dataclass
+class ResolvedCatalog:
+    """The catalog the apply phase would write, plus the deltas that justify it.
+
+    Produced without mutating anything, so a UI can show "3 newly stale, 2
+    updates available" and let the user decide whether to commit the write.
+    ``newly_stale`` / ``newly_added`` are names, not Haybales — they exist to
+    be listed in a confirmation panel.
+    """
+
+    haybales: list[Haybale] = field(default_factory=list)
+    newly_stale: list[str] = field(default_factory=list)
+    newly_added: list[str] = field(default_factory=list)
+    updates_available: int = 0
+
+    @property
+    def resolved_count(self) -> int:
+        return sum(1 for h in self.haybales if not h.stale)
