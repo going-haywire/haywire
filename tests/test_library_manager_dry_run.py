@@ -332,3 +332,76 @@ async def test_empty_known_removals_is_not_treated_as_absent():
 
     never_called.assert_not_called()
     mgr.registry.remove_library.assert_not_called()
+
+
+@pytest.mark.unit
+async def test_streaming_emits_carriage_return_progress_updates():
+    """uv renders download progress with \\r and no newline.
+
+    A line-oriented reader emits nothing until the bar finishes — for a large
+    package that is 30+ seconds of a log that looks hung. Each \\r-terminated
+    frame must surface as it arrives.
+    """
+    import sys
+
+    mgr = _make_manager()
+    script = (
+        "import sys\n"
+        "for pct in (0, 50, 100):\n"
+        "    sys.stdout.write(f'Downloading {pct}%\\r'); sys.stdout.flush()\n"
+        "sys.stdout.write('Installed 1 package\\n')\n"
+    )
+    seen: list[str] = []
+    with patch.object(mgr, "_uv_cmd", return_value=[sys.executable, "-c", script]):
+        ok, tail = await mgr._run_uv_streaming(["ignored"], seen.append)
+
+    assert ok
+    assert seen == [
+        "Downloading 0%",
+        "Downloading 50%",
+        "Downloading 100%",
+        "Installed 1 package",
+    ]
+
+
+@pytest.mark.unit
+async def test_streaming_emits_trailing_output_without_newline():
+    """A final line with no trailing newline must not be swallowed."""
+    import sys
+
+    mgr = _make_manager()
+    script = "import sys; sys.stdout.write('no trailing newline')"
+    seen: list[str] = []
+    with patch.object(mgr, "_uv_cmd", return_value=[sys.executable, "-c", script]):
+        await mgr._run_uv_streaming(["ignored"], seen.append)
+
+    assert seen == ["no trailing newline"]
+
+
+@pytest.mark.unit
+async def test_streaming_normalizes_crlf_to_one_break():
+    """CRLF is one line ending, not an empty line between two."""
+    import sys
+
+    mgr = _make_manager()
+    script = "import sys; sys.stdout.write('alpha\\r\\nbeta\\r\\n')"
+    seen: list[str] = []
+    with patch.object(mgr, "_uv_cmd", return_value=[sys.executable, "-c", script]):
+        await mgr._run_uv_streaming(["ignored"], seen.append)
+
+    assert seen == ["alpha", "beta"]
+
+
+@pytest.mark.unit
+async def test_streaming_reports_failure_with_recent_lines():
+    """The error tail must survive the chunked reader."""
+    import sys
+
+    mgr = _make_manager()
+    script = "import sys; sys.stdout.write('boom\\n'); sys.exit(1)"
+    seen: list[str] = []
+    with patch.object(mgr, "_uv_cmd", return_value=[sys.executable, "-c", script]):
+        ok, tail = await mgr._run_uv_streaming(["ignored"], seen.append)
+
+    assert ok is False
+    assert "boom" in tail

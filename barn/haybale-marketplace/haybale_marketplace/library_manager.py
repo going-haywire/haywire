@@ -243,6 +243,13 @@ class LibraryManager:
 
         uv writes progress/results to stderr, so we merge stderr into
         stdout to get a single stream for the UI log.
+
+        Read in chunks and split on BOTH ``\\n`` and ``\\r``, rather than
+        iterating lines. uv renders download progress as a bar that rewrites
+        itself with carriage returns and no newline, so a line-oriented reader
+        emits nothing at all while a large package downloads — for
+        haybale-visiongraph that is 30+ seconds of a log that looks hung.
+        Splitting on ``\\r`` surfaces each bar update as it arrives.
         """
         cmd = self._uv_cmd(args)
         proc = await asyncio.create_subprocess_exec(
@@ -252,13 +259,36 @@ class LibraryManager:
         )
         assert proc.stdout is not None
         last_lines: list[str] = []
-        async for line in proc.stdout:
-            text = line.decode().rstrip()
+        pending = ""
+
+        def _emit(text: str) -> None:
+            text = text.rstrip()
+            if not text:
+                return
             on_output(text)
             last_lines.append(text)
             # Keep only last few lines for error reporting
             if len(last_lines) > 10:
                 last_lines.pop(0)
+
+        while True:
+            chunk = await proc.stdout.read(1024)
+            if not chunk:
+                break
+            pending += chunk.decode(errors="replace")
+            # Normalize CRLF first so a Windows line ending is one break, not two.
+            pending = pending.replace("\r\n", "\n")
+            while True:
+                index = min(
+                    (i for i in (pending.find("\n"), pending.find("\r")) if i != -1),
+                    default=-1,
+                )
+                if index == -1:
+                    break
+                _emit(pending[:index])
+                pending = pending[index + 1 :]
+
+        _emit(pending)
         await proc.wait()
         return proc.returncode == 0, "\n".join(last_lines)
 
