@@ -1,10 +1,37 @@
 """Tests for TabSlot — the tabbed variant for the EDIT / INFO slots."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 
 from haywire.core.session.signals import Reveal
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior, SlotName
+
+
+def _slot(*, session: Any, registry: Any, **kwargs: Any) -> TabSlot:
+    """Construct a TabSlot from structural test doubles.
+
+    ``_FakeRegistry`` / a SimpleNamespace session implement only the slice the
+    slot touches; the casts keep that seam in one place.
+    """
+    return TabSlot(session=cast(Any, session), registry=cast(Any, registry), **kwargs)
+
+
+def _render(slot: TabSlot, container: Any) -> Any:
+    """Render into a ``_FakeContainer`` stand-in for a NiceGUI Element."""
+    return slot.render(cast(Any, container))
+
+
+def _add(slot: TabSlot, *, editor_cls: Any, **kwargs: Any) -> Any:
+    """Add a binding backed by a structural fake editor class."""
+    return slot.add_binding(editor_cls=cast(Any, editor_cls), **kwargs)
+
+
+def _find(slot: TabSlot, *args: Any) -> Any:
+    """``find_binding`` narrowed to non-None (a miss is a broken precondition)."""
+    found = slot.find_binding(*args)
+    assert found is not None, f"no binding for {args!r}"
+    return found
 
 
 class _FakeRegistry:
@@ -36,6 +63,15 @@ _REGISTRY = _FakeRegistry()
 
 
 class _FakeContainer:
+    # Tests stamp ad-hoc marker attributes on instances to record how the
+    # element was constructed; __setattr__/__getattr__ are typed loosely so
+    # those recordings need no per-site casts.
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+
+    def __getattr__(self, name: str) -> Any:
+        raise AttributeError(name)
+
     def __init__(self):
         self.clear_calls = 0
         self.visible = True
@@ -116,32 +152,32 @@ def test_tab_slot_reveal_adds_binding_and_makes_active(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
 
     opened = slot.reveal(Reveal(editor=cls, binding_id="/tmp/a", label="a.graph"))
     assert opened is True
     assert slot.active_binding_id == "a::/tmp/a"
-    assert slot.find_binding("a", "/tmp/a") is not None
+    assert _find(slot, "a", "/tmp/a") is not None
 
 
 def test_tab_slot_reveal_existing_activates_no_duplicate(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="/tmp/a")
-    binding = slot.find_binding("a", "/tmp/a")
+    _add(slot, editor_key="a", editor_cls=cls, binding_id="/tmp/a")
+    binding = _find(slot, "a", "/tmp/a")
     slot._active = binding
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
 
     # Already the active tab: reveal returns False (no change).
     assert slot.reveal(Reveal(editor=cls, binding_id="/tmp/a", label="a")) is False
@@ -153,16 +189,16 @@ def test_tab_slot_close_binding_removes_and_promotes_sibling(monkeypatch):
     cls_a = _editor_cls("a")
     cls_b = _editor_cls("b")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls_a, binding_id="p1")
-    slot.add_binding(editor_key="b", editor_cls=cls_b, binding_id="p2")
-    wrapper_a = slot.find_binding("a", "p1")
+    _add(slot, editor_key="a", editor_cls=cls_a, binding_id="p1")
+    _add(slot, editor_key="b", editor_cls=cls_b, binding_id="p2")
+    wrapper_a = _find(slot, "a", "p1")
     slot._active = wrapper_a
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
 
     assert slot.close_binding(wrapper_a) is True
     assert slot.find_binding("a", "p1") is None
@@ -173,19 +209,19 @@ def test_tab_slot_repayload_updates_ids(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="old")
-    wrapper = slot.find_binding("a", "old")
+    _add(slot, editor_key="a", editor_cls=cls, binding_id="old")
+    wrapper = _find(slot, "a", "old")
     slot._active = wrapper
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
 
     assert slot.repayload(wrapper, "new", new_label="new.graph") is True
     assert slot.active_binding_id == "a::new"
-    assert slot.find_binding("a", "new") is not None
+    assert _find(slot, "a", "new") is not None
     assert slot.find_binding("a", "old") is None
 
 
@@ -193,20 +229,20 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
-    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p2")
-    slot._active = slot.find_binding("a", "p1")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=cls, binding_id="p1")
+    _add(slot, editor_key="a", editor_cls=cls, binding_id="p2")
+    slot._active = _find(slot, "a", "p1")
+    _render(slot, _FakeContainer())
 
     closed = slot.close_tabs_for("p1")
     assert closed == 1
     assert slot.find_binding("a", "p1") is None
-    assert slot.find_binding("a", "p2") is not None
+    assert _find(slot, "a", "p2") is not None
 
 
 # ---------------------------------------------------------------------------
@@ -267,15 +303,15 @@ class _VetoEditor:
 def test_on_tab_close_clicked_calls_wrapper_close(monkeypatch):
     _install_ui_fakes(monkeypatch)
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="veto:editor:1", editor_cls=_VetoEditor)
-    target = slot.find_binding("veto:editor:1")
+    _add(slot, editor_key="veto:editor:1", editor_cls=_VetoEditor)
+    target = _find(slot, "veto:editor:1")
     slot._active = target
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
     target._instantiate()
     target._instance.allow = True
 
@@ -288,22 +324,22 @@ def test_on_tab_close_clicked_calls_wrapper_close(monkeypatch):
 def test_on_tab_close_clicked_respects_veto(monkeypatch):
     _install_ui_fakes(monkeypatch)
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="veto:editor:1", editor_cls=_VetoEditor)
-    target = slot.find_binding("veto:editor:1")
+    _add(slot, editor_key="veto:editor:1", editor_cls=_VetoEditor)
+    target = _find(slot, "veto:editor:1")
     slot._active = target
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
     target._instantiate()
     target._instance.allow = False  # veto
 
     _run_async(slot._on_tab_close_clicked("veto:editor:1"))
 
     # Tab still there
-    assert slot.find_binding("veto:editor:1") is target
+    assert _find(slot, "veto:editor:1") is target
 
 
 def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
@@ -318,11 +354,11 @@ def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
         signal=lambda s: signals_seen.append(s),
         reveal=lambda r: None,
     )
-    slot = TabSlot(session=sess, name=SlotName.EDIT, registry=reg)
-    slot.add_binding(editor_key="a", editor_cls=cls)
-    target = slot.find_binding("a")
+    slot = _slot(session=sess, name=SlotName.EDIT, registry=reg)
+    _add(slot, editor_key="a", editor_cls=cls)
+    target = _find(slot, "a")
     slot._active = target
-    slot.render(_FakeContainer())
+    _render(slot, _FakeContainer())
 
     _run_async(slot._on_tab_close_clicked("a"))
 
@@ -347,13 +383,13 @@ def test_dirty_wrapper_renders_slot_owned_dirty_marker(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
-    target = slot.find_binding("a", "p1")
+    _add(slot, editor_key="a", editor_cls=cls, binding_id="p1")
+    target = _find(slot, "a", "p1")
     target.label = "my.graph"
     slot._active = target
     target.set_dirty(True)
@@ -373,13 +409,13 @@ def test_clean_wrapper_renders_no_dirty_marker(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()
-    slot = TabSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.EDIT,
         registry=reg,
     )
-    slot.add_binding(editor_key="a", editor_cls=cls, binding_id="p1")
-    target = slot.find_binding("a", "p1")
+    _add(slot, editor_key="a", editor_cls=cls, binding_id="p1")
+    target = _find(slot, "a", "p1")
     target.label = "my.graph"
     slot._active = target
     # is_dirty is False by default

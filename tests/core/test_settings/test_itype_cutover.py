@@ -12,18 +12,18 @@ def test_setting_accepts_itype():
 
 
 def test_setting_rejects_python_type():
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # noqa: PT012 (the class body is the call under test)
 
         class bag(NodeSettings):
-            x = setting[float](1.0)  # python type no longer allowed
+            x = setting[float](1.0)  # type: ignore[type-var]  # python type no longer allowed
 
         _ = bag
 
 
 def test_setting_rejects_explicit_python_type_kwarg():
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # noqa: PT012 (the class body is the call under test)
 
         class bag(NodeSettings):
-            x = setting[STRING]("hi", type_=str)  # type_=str is a python type
+            x = setting[STRING]("hi", type_=str)  # type: ignore[arg-type]  # a python type
 
         _ = bag

@@ -16,7 +16,10 @@ def handles_event(*event_classes: Type[BaseGraphEvent]):
     """Decorator to register methods as handlers for specific event classes"""
 
     def decorator(func: Callable):
-        setattr(func, "_handles_event_classes", event_classes)
+        # setattr, not attribute assignment: stamping a marker onto a Callable
+        # is invisible to the type system, so the direct form fails mypy with
+        # "Callable[..., Any] has no attribute _handles_event_classes".
+        setattr(func, "_handles_event_classes", event_classes)  # noqa: B010
         return func
 
     return decorator

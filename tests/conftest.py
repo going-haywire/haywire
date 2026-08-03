@@ -6,7 +6,7 @@ Provides fixtures for different test scopes and scenarios.
 
 import importlib
 from pathlib import Path
-from typing import Callable, Generator
+from typing import Any, Callable, Generator, TYPE_CHECKING
 
 import pytest
 from injector import Injector
@@ -22,6 +22,11 @@ from haywire.core.state import LibraryStateContainer
 from haywire.core.undo.interfaces import IHistoryManager
 from haywire.core.undo.history_manager import HistoryManager
 from haywire.core.undo.config import UndoConfig
+
+if TYPE_CHECKING:
+    from haywire.core.edge.edge_wrapper import EdgeWrapper
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.node.node_wrapper import NodeWrapper
 
 
 # ==============================================================================
@@ -254,7 +259,7 @@ def _restore_ambient_di(snap: dict) -> None:
         setattr(modules[mod], name, value)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def test_injector(project_root: Path) -> Generator[Injector, None, None]:
     """
     Provide a fresh test injector for each test.
@@ -278,7 +283,7 @@ def test_injector(project_root: Path) -> Generator[Injector, None, None]:
     _restore_ambient_di(snap)
 
 
-@pytest.fixture(scope="function")
+@pytest.fixture
 def test_injector_with_undo(project_root: Path) -> Generator[Injector, None, None]:
     """
     Provide test injector (kept for backwards-compat; undo is now per-graph).
@@ -480,7 +485,7 @@ def make_node_with_setting(library_system):
             registry.set_global(TestingSettings.default_intensity._setting_key, 0.5)
             body[f"{field}_watched"] = watch(TestingSettings.default_intensity, type_=FLOAT)
         bag_cls = type(accessor, (NodeSettings,), body)
-        node_cls = node(label="Promotion Test Node")(
+        node_cls: type = node(label="Promotion Test Node")(
             type("_PromotionTestNode", (BaseNode,), {accessor: bag_cls})
         )
         return node_cls("n1", _make_stub_node_wrapper("w1"))
@@ -507,3 +512,39 @@ def register_edit_state() -> Callable[[LibraryStateContainer, str], type]:
         return edit_state_cls
 
     return _register
+
+
+# ==============================================================================
+# Graph construction helpers
+# ==============================================================================
+
+
+def make_node(graph: "BaseGraph", registry_key: str, **kwargs: Any) -> "NodeWrapper":
+    """``graph.create_node_wrapper`` narrowed to a non-Optional NodeWrapper.
+
+    The factory is Optional-returning, but tests overwhelmingly treat a failed
+    creation as a broken precondition rather than a case under test. Narrowing
+    here keeps the failure loud (and typed) instead of surfacing later as an
+    ``AttributeError`` on None.
+    """
+    wrapper = graph.create_node_wrapper(registry_key, **kwargs)
+    assert wrapper is not None, f"node creation failed for {registry_key!r}"
+    return wrapper
+
+
+def make_edge(
+    graph: "BaseGraph",
+    source_node_id: str,
+    outlet_port_id: str,
+    sink_node_id: str,
+    inlet_port_id: str,
+    **kwargs: Any,
+) -> "EdgeWrapper":
+    """``graph.create_edge_wrapper`` narrowed to a non-Optional EdgeWrapper.
+
+    A None here means the graph refused to build an edge at all — distinct from
+    building an *invalid* edge, which tests assert on via ``edge.state``.
+    """
+    edge = graph.create_edge_wrapper(source_node_id, outlet_port_id, sink_node_id, inlet_port_id, **kwargs)
+    assert edge is not None, f"edge creation failed: {outlet_port_id} -> {inlet_port_id}"
+    return edge

@@ -146,7 +146,7 @@ class WidgetFactory(IWidgetFactory):
                     library_identity=lc_event.library_identity,
                 )
 
-                raise error
+                raise error from e
         return widget_instance, lc_event
 
     def _on_widget_reloaded(self, batch: list[LifeCycleEvent]) -> None:

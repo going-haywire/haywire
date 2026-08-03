@@ -15,6 +15,8 @@ from haywire.core.execution.event_source import SystemEventType
 from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 
+from tests.conftest import make_edge, make_node
+
 
 @pytest.mark.integration
 class TestControlPayload:
@@ -22,9 +24,9 @@ class TestControlPayload:
         """Two EdgeLinkTestNodes wired source.execute_out → sink.execute_inlet."""
         from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
 
-        source = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(100, 100))
-        sink = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(300, 100))
-        edge = graph.create_edge_wrapper(source.node_id, "execute_out", sink.node_id, "execute_inlet")
+        source = make_node(graph, EdgeLinkTestNode.class_identity.registry_key, position=(100, 100))
+        sink = make_node(graph, EdgeLinkTestNode.class_identity.registry_key, position=(300, 100))
+        edge = make_edge(graph, source.node_id, "execute_out", sink.node_id, "execute_inlet")
         return source, sink, edge
 
     def test_exec_edge_builds_adapter_chain(self, graph_with_library_system: BaseGraph, library_system):
@@ -72,20 +74,14 @@ class TestControlPayloadEndToEnd:
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode
         from haybale_testing.nodes.testbed.control_payload_node import ControlPayloadTestNode
 
-        begin = graph.create_node_wrapper(TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
-        conduit_a = graph.create_node_wrapper(
-            ControlPayloadTestNode.class_identity.registry_key, position=(200, 0)
-        )
-        conduit_b = graph.create_node_wrapper(
-            ControlPayloadTestNode.class_identity.registry_key, position=(400, 0)
-        )
-        sink = graph.create_node_wrapper(
-            ControlPayloadTestNode.class_identity.registry_key, position=(600, 0)
-        )
+        begin = make_node(graph, TestBeginPlayNode.class_identity.registry_key, position=(0, 0))
+        conduit_a = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(200, 0))
+        conduit_b = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(400, 0))
+        sink = make_node(graph, ControlPayloadTestNode.class_identity.registry_key, position=(600, 0))
 
-        graph.create_edge_wrapper(begin.node_id, "exec", conduit_a.node_id, "exec_in")
-        graph.create_edge_wrapper(conduit_a.node_id, "exec_out", conduit_b.node_id, "exec_in")
-        graph.create_edge_wrapper(conduit_b.node_id, "exec_out", sink.node_id, "exec_in")
+        make_edge(graph, begin.node_id, "exec", conduit_a.node_id, "exec_in")
+        make_edge(graph, conduit_a.node_id, "exec_out", conduit_b.node_id, "exec_in")
+        make_edge(graph, conduit_b.node_id, "exec_out", sink.node_id, "exec_in")
 
         return conduit_a, conduit_b, sink
 

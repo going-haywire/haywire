@@ -10,7 +10,7 @@ def service(project_root):
         enable_file_watching=False,
         watch_settings=False,
     )
-    yield svc
+    return svc
 
 
 @pytest.mark.integration

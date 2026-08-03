@@ -1,5 +1,7 @@
 """Tests for SessionContext."""
 
+from typing import Any, cast
+
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 
@@ -13,13 +15,13 @@ class FakeApp:
 
 
 def test_theme_keys_default_to_none():
-    ctx = SessionContext(session_id="test-123", app=FakeApp())
+    ctx = SessionContext(session_id="test-123", app=cast(Any, FakeApp()))
     assert ctx.active_workbench_theme_key is None
     assert ctx.active_node_theme_key is None
 
 
 def test_theme_keys_can_be_set():
-    ctx = SessionContext(session_id="test-123", app=FakeApp())
+    ctx = SessionContext(session_id="test-123", app=cast(Any, FakeApp()))
     # SessionContext._signal_emit forwards to self.session.publish; the
     # write goes through the signal_field descriptor which calls _signal_emit
     # via instance.session — wire a minimal stub so the emit succeeds.
@@ -50,7 +52,7 @@ def test_editor_cluster_fields_are_not_on_session_context():
         "selected_edges",
         "clipboard",
     )
-    ctx = SessionContext(session_id="test-123", app=FakeApp())
+    ctx = SessionContext(session_id="test-123", app=cast(Any, FakeApp()))
     for name in removed_fields:
         assert not hasattr(SessionContext, name), (
             f"SessionContext should not declare {name!r} (moved to EditState in v1.2 C5)"

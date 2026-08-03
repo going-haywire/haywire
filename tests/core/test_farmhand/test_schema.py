@@ -19,7 +19,11 @@ def test_types_defaults_and_required():
 
 
 def test_optional_and_containers():
-    async def run(self, ctx, name: str | None = None, ids: list[str] = [], meta: dict = {}): ...
+    # The mutable defaults are the fixture, not a mistake: this signature is
+    # only ever introspected (never called), and the assertions below check
+    # that `[]` is carried through into the derived schema's "default".
+    async def run(self, ctx, name: str | None = None, ids: list[str] = [], meta: dict = {}):  # noqa: B006
+        ...
 
     schema = derive_input_schema(run)
     assert schema["properties"]["name"]["type"] == "string"

@@ -133,7 +133,7 @@ def graph_to_python_script(graph: "BaseGraph") -> str:
 
     # 6. Create all edges
     lines.append("    # Create connections")
-    for edge_id, edge_wrapper in graph.edge_wrappers.items():
+    for _edge_id, edge_wrapper in graph.edge_wrappers.items():
         source_var, _ = node_vars[edge_wrapper.source_node_id]
         sink_var, _ = node_vars[edge_wrapper.sink_node_id]
 

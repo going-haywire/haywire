@@ -80,7 +80,7 @@ def test_promoted_port_carries_the_settings_widget_config(library_system):
         threshold = setting[FLOAT](0.5, min=0.0, max=1.0)
         mode = setting[CHOICES]("fast", widget_config={"options": ["fast", "precise"]})
 
-    node_cls = node(label="Widget Config Node")(
+    node_cls: type = node(label="Widget Config Node")(
         type("_WidgetConfigNode", (BaseNode,), {"filter": WidgetConfigBag})
     )
     test_node = node_cls("widget-config-node", MagicMock())

@@ -101,7 +101,7 @@ class TestEditorDecorator:
                 pass
 
     def test_sets_class_library(self):
-        assert hasattr(_TestEditor, "class_library")
+        assert _TestEditor.class_library is not None
 
 
 # ---------------------------------------------------------------------------
@@ -196,7 +196,7 @@ class TestOpenBehavior:
         assert _OpensEnumEditor.class_identity.opens is OpenBehavior.ON_CONTEXT
 
     def test_opens_rejects_typo(self):
-        with pytest.raises(ValueError):
+        with pytest.raises(ValueError, match="not a valid OpenBehavior"):
 
             @editor(registry_id="op_bad", default_slot=SlotName.EDIT, opens="per_documnt")
             class _OpensTypoEditor(BaseEditor):

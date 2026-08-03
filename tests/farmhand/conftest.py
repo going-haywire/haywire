@@ -119,7 +119,8 @@ def farmhand_bare_server(project_root: Path, tmp_path_factory):
 
 def call_tool_json(result) -> dict:
     """Parse a CallToolResult's structured-JSON text content."""
-    assert result.content and result.content[0].type == "text"
+    assert result.content
+    assert result.content[0].type == "text"
     return json.loads(result.content[0].text)
 
 
@@ -141,6 +142,6 @@ def make_caller(handle):
     return farmhand_call
 
 
-@pytest.fixture()
+@pytest.fixture
 def farmhand_call(farmhand_server):
     return make_caller(farmhand_server)

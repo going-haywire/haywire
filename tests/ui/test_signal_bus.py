@@ -12,7 +12,7 @@
 """
 
 from dataclasses import dataclass
-from typing import ClassVar
+from typing import Any, ClassVar, cast
 from unittest.mock import MagicMock
 
 import pytest
@@ -62,7 +62,7 @@ def _make_session(session_manager=None) -> Session:
 def test_bus_subscribe_and_publish_delivers():
     bus = SignalBus()
     seen: list[Signal] = []
-    bus.subscribe(_LocalSignalA, seen.append)
+    bus.subscribe(cast(Any, _LocalSignalA), seen.append)
 
     signal = _LocalSignalA()
     bus.publish(signal)
@@ -90,8 +90,8 @@ def test_bus_exact_class_match_not_isinstance():
     bus = SignalBus()
     base_seen: list[Signal] = []
     derived_seen: list[Signal] = []
-    bus.subscribe(_LocalSignalA, base_seen.append)
-    bus.subscribe(_DerivedSignal, derived_seen.append)
+    bus.subscribe(cast(Any, _LocalSignalA), base_seen.append)
+    bus.subscribe(cast(Any, _DerivedSignal), derived_seen.append)
 
     bus.publish(_DerivedSignal())
     assert base_seen == []
@@ -106,8 +106,8 @@ def test_bus_only_matching_type_fires():
     bus = SignalBus()
     a_calls: list[Signal] = []
     b_calls: list[Signal] = []
-    bus.subscribe(_LocalSignalA, a_calls.append)
-    bus.subscribe(_LocalSignalB, b_calls.append)
+    bus.subscribe(cast(Any, _LocalSignalA), a_calls.append)
+    bus.subscribe(cast(Any, _LocalSignalB), b_calls.append)
 
     bus.publish(_LocalSignalA())
     assert len(a_calls) == 1
@@ -117,9 +117,9 @@ def test_bus_only_matching_type_fires():
 def test_bus_registration_order_is_preserved():
     bus = SignalBus()
     log: list[str] = []
-    bus.subscribe(_LocalSignalA, lambda e: log.append("first"))
-    bus.subscribe(_LocalSignalA, lambda e: log.append("second"))
-    bus.subscribe(_LocalSignalA, lambda e: log.append("third"))
+    bus.subscribe(cast(Any, _LocalSignalA), lambda e: log.append("first"))
+    bus.subscribe(cast(Any, _LocalSignalA), lambda e: log.append("second"))
+    bus.subscribe(cast(Any, _LocalSignalA), lambda e: log.append("third"))
 
     bus.publish(_LocalSignalA())
     assert log == ["first", "second", "third"]
@@ -133,8 +133,8 @@ def test_bus_handler_exception_does_not_block_subsequent_handlers():
         log.append("boom")
         raise RuntimeError("intentional")
 
-    bus.subscribe(_LocalSignalA, boom)
-    bus.subscribe(_LocalSignalA, lambda e: log.append("after"))
+    bus.subscribe(cast(Any, _LocalSignalA), boom)
+    bus.subscribe(cast(Any, _LocalSignalA), lambda e: log.append("after"))
 
     # Should not raise.
     bus.publish(_LocalSignalA())
@@ -144,7 +144,7 @@ def test_bus_handler_exception_does_not_block_subsequent_handlers():
 def test_bus_unsubscribe_handle_removes_subscription():
     bus = SignalBus()
     calls: list[Signal] = []
-    unsub = bus.subscribe(_LocalSignalA, calls.append)
+    unsub = bus.subscribe(cast(Any, _LocalSignalA), calls.append)
 
     bus.publish(_LocalSignalA())
     assert len(calls) == 1
@@ -156,7 +156,7 @@ def test_bus_unsubscribe_handle_removes_subscription():
 
 def test_bus_double_unsubscribe_is_noop():
     bus = SignalBus()
-    unsub = bus.subscribe(_LocalSignalA, lambda e: None)
+    unsub = bus.subscribe(cast(Any, _LocalSignalA), lambda e: None)
     unsub()
     unsub()  # should not raise
 
@@ -164,7 +164,7 @@ def test_bus_double_unsubscribe_is_noop():
 def test_bus_subscribe_rejects_non_signal_type():
     bus = SignalBus()
     with pytest.raises(TypeError):
-        bus.subscribe(str, lambda e: None)  # type: ignore[arg-type]
+        bus.subscribe(cast(Any, str), lambda e: None)  # type: ignore[arg-type]
 
 
 def test_bus_subscribe_rejects_instance_instead_of_class():
@@ -183,9 +183,9 @@ def test_bus_snapshot_iteration_isolates_mid_dispatch_subscribe():
     second_fires = []
 
     def first(event):
-        bus.subscribe(_LocalSignalA, lambda e: second_fires.append(e))
+        bus.subscribe(cast(Any, _LocalSignalA), lambda e: second_fires.append(e))
 
-    bus.subscribe(_LocalSignalA, first)
+    bus.subscribe(cast(Any, _LocalSignalA), first)
     bus.publish(_LocalSignalA())
     assert second_fires == []  # not in this dispatch
 
@@ -207,8 +207,8 @@ def test_bus_snapshot_iteration_isolates_mid_dispatch_unsubscribe():
     def other(event):
         log.append("other")
 
-    bus.subscribe(_LocalSignalA, first)
-    other_unsub = bus.subscribe(_LocalSignalA, other)
+    bus.subscribe(cast(Any, _LocalSignalA), first)
+    other_unsub = bus.subscribe(cast(Any, _LocalSignalA), other)
 
     bus.publish(_LocalSignalA())
     # "other" still fires this pass — snapshot was taken before dispatch.
@@ -225,9 +225,9 @@ def test_bus_subscriber_count_and_subscribed_types():
     assert bus.subscriber_count(_LocalSignalA) == 0
     assert bus.subscribed_types() == ()
 
-    unsub = bus.subscribe(_LocalSignalA, lambda e: None)
-    bus.subscribe(_LocalSignalA, lambda e: None)
-    bus.subscribe(_LocalSignalB, lambda e: None)
+    unsub = bus.subscribe(cast(Any, _LocalSignalA), lambda e: None)
+    bus.subscribe(cast(Any, _LocalSignalA), lambda e: None)
+    bus.subscribe(cast(Any, _LocalSignalB), lambda e: None)
     assert bus.subscriber_count(_LocalSignalA) == 2
     assert bus.subscriber_count(_LocalSignalB) == 1
     assert set(bus.subscribed_types()) == {_LocalSignalA, _LocalSignalB}
@@ -239,8 +239,8 @@ def test_bus_subscriber_count_and_subscribed_types():
 def test_bus_clear_drops_all_subscriptions():
     bus = SignalBus()
     calls: list[Signal] = []
-    bus.subscribe(_LocalSignalA, calls.append)
-    bus.subscribe(_LocalSignalB, calls.append)
+    bus.subscribe(cast(Any, _LocalSignalA), calls.append)
+    bus.subscribe(cast(Any, _LocalSignalB), calls.append)
 
     bus.clear()
     bus.publish(_LocalSignalA())
@@ -257,7 +257,7 @@ def test_bus_clear_drops_all_subscriptions():
 def test_session_subscribe_and_publish_pass_through():
     session = _make_session()
     received: list[Signal] = []
-    session.subscribe(_LocalSignalA, received.append)
+    session.subscribe(cast(Any, _LocalSignalA), received.append)
 
     signal = _LocalSignalA()
     session.publish(signal)
@@ -290,7 +290,7 @@ def test_session_publish_cross_session_skips_local_bus_directly():
     sm = MagicMock()
     session = _make_session(session_manager=sm)
     received: list[Signal] = []
-    session.subscribe(_CrossSignal, received.append)
+    session.subscribe(cast(Any, _CrossSignal), received.append)
 
     session.publish(_CrossSignal())
 
@@ -304,7 +304,7 @@ def test_session_dispatch_reaches_bus_subscribers():
     """Peer-broadcast incoming signals fan out to bus subscribers."""
     session = _make_session()
     received: list[Signal] = []
-    session.subscribe(GraphDataMutated, received.append)
+    session.subscribe(cast(Any, GraphDataMutated), received.append)
 
     signal = GraphDataMutated()
     session._dispatch(signal)
@@ -315,7 +315,7 @@ def test_session_dispatch_reaches_bus_subscribers():
 def test_session_subscribe_returns_working_unsubscribe_handle():
     session = _make_session()
     received: list[Signal] = []
-    unsub = session.subscribe(_LocalSignalA, received.append)
+    unsub = session.subscribe(cast(Any, _LocalSignalA), received.append)
 
     session.publish(_LocalSignalA())
     assert len(received) == 1
@@ -328,7 +328,7 @@ def test_session_subscribe_returns_working_unsubscribe_handle():
 def test_session_cleanup_clears_bus_subscriptions():
     session = _make_session()
     received: list[Signal] = []
-    session.subscribe(_LocalSignalA, received.append)
+    session.subscribe(cast(Any, _LocalSignalA), received.append)
 
     session.cleanup()
     session.publish(_LocalSignalA())

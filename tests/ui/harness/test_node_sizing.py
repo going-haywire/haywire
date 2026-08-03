@@ -20,6 +20,7 @@ import pytest
 from playwright.sync_api import Page
 
 from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.probe import attr, box as probe_box
 
 _URL = "http://localhost:8090/graph-size"
 
@@ -27,7 +28,7 @@ pytestmark = pytest.mark.ui
 
 
 def _node_id(page: Page) -> str:
-    return page.get_attribute("#size-node-id", "data-node")
+    return attr(page, "#size-node-id", "data-node")
 
 
 def _slot_box(page: Page, node_id: str) -> dict:
@@ -96,7 +97,7 @@ def test_manual_width_is_a_minimum(page: Page, harness):
     # The card must FILL the slot: the skin's own clamps (min-w-64 max-w-sm)
     # are released by the data-size-adapt CSS, so card width == slot width.
     card_w = _card_width(page, nid)
-    assert card_w is not None and abs(card_w - box["width"]) < 2.0, (
+    assert card_w is not None and abs(card_w - box["width"]) < 2.0, (  # noqa: PT018
         f"card does not fill the manual-width slot: card={card_w} slot={box['width']}"
     )
 
@@ -113,7 +114,7 @@ def test_manual_width_expands_past_skin_max(page: Page, harness):
     box = _slot_box(page, nid)
     assert abs(box["width"] - 500.0) < 2.0, f"slot not at its 500px minimum: {box}"
     card_w = _card_width(page, nid)
-    assert card_w is not None and abs(card_w - 500.0) < 2.0, (
+    assert card_w is not None and abs(card_w - 500.0) < 2.0, (  # noqa: PT018
         f"card stuck below the 500px minimum (max-w-sm not released?): card={card_w}"
     )
 
@@ -147,7 +148,7 @@ def test_gadget_appears_for_single_selection(page: Page, harness):
 
     # Deselect via an empty-area box-select drag near the zoom viewport's
     # top-left (clear of the node) → selection clears → gadget disappears.
-    zoom_box = page.locator('[data-testid="size-zoom"]').bounding_box()
+    zoom_box = probe_box(page.locator('[data-testid="size-zoom"]'), "size-zoom")
     ex, ey = zoom_box["x"] + 20, zoom_box["y"] + 20
     page.mouse.move(ex, ey)
     page.mouse.down()
@@ -169,7 +170,7 @@ def test_gadget_follows_node_drag(page: Page, harness):
     assert page.locator('[data-testid="resize-gadget"]').is_visible()
 
     def gadget_box() -> dict:
-        return page.locator('[data-testid="resize-gadget"]').bounding_box()
+        return probe_box(page.locator('[data-testid="resize-gadget"]'), "resize-gadget")
 
     g_before = gadget_box()
     n_before = _slot_box(page, nid)
@@ -204,7 +205,7 @@ def test_drag_right_grip_sets_width_minimum(page: Page, harness):
     page.wait_for_selector('.hw-resize-grip[data-handle="right"]')
 
     before = _slot_box(page, nid)
-    grip = page.locator('.hw-resize-grip[data-handle="right"]').bounding_box()
+    grip = probe_box(page.locator('.hw-resize-grip[data-handle="right"]'), "right grip")
     gx, gy = grip["x"] + grip["width"] / 2, grip["y"] + grip["height"] / 2
 
     page.mouse.move(gx, gy)

@@ -1,6 +1,8 @@
 # tests/ui/panel/test_panel_base.py
 """BasePanel base class: classmethod poll (default True); abstract draw; actions=None default."""
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.ui.panel import BasePanel
@@ -11,7 +13,7 @@ def test_panel_default_poll_returns_true():
         def draw(self, ctx, layout):
             pass
 
-    assert P.poll(ctx=None) is True
+    assert P.poll(ctx=cast(Any, None)) is True
 
 
 def test_panel_subclass_can_override_poll():
@@ -23,7 +25,7 @@ def test_panel_subclass_can_override_poll():
         def draw(self, ctx, layout):
             pass
 
-    assert P.poll(ctx=None) is False
+    assert P.poll(ctx=cast(Any, None)) is False
 
 
 def test_panel_draw_is_required():
@@ -33,7 +35,7 @@ def test_panel_draw_is_required():
         pass
 
     with pytest.raises(TypeError, match="abstract"):
-        P()
+        cast(Any, P)()
 
 
 def test_panel_with_draw_can_be_instantiated():

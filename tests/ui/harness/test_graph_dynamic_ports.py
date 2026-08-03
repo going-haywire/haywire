@@ -61,7 +61,8 @@ def _has_pin(page: Page, id_prefix: str) -> bool:
     return _pin_screen(page, id_prefix) is not None
 
 
-def _close(a: dict, b: dict, tol: float = 4.0) -> bool:
+def _close(a: dict | None, b: dict | None, tol: float = 4.0) -> bool:
+    assert a is not None and b is not None, "missing bounding box"  # noqa: PT018
     return abs(a["x"] - b["x"]) < tol and abs(a["y"] - b["y"]) < tol
 
 

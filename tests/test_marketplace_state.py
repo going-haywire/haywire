@@ -42,16 +42,13 @@ def state_with_workspace(tmp_path, fake_home, monkeypatch):
 
 
 @pytest.mark.unit
-def test_marketplace_state_is_an_app_state() -> None:
-    """MarketplaceState extends AppState and carries the @state(label=...) decorator."""
-    from haywire.core.state.base import AppState
+def test_marketplace_state_is_constructible() -> None:
+    """MarketplaceState carries the @state(label=...) decorator and builds bare."""
     from haybale_marketplace.state.marketplace_state import MarketplaceState
 
-    assert issubclass(MarketplaceState, AppState)
     # @state(...) attaches class_identity (set by LibraryStateRegistry at scan time;
     # we don't depend on that here — just verify the class is constructible).
-    state = MarketplaceState()
-    assert state is not None
+    assert MarketplaceState() is not None
 
 
 @pytest.mark.unit

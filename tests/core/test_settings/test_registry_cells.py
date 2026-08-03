@@ -53,7 +53,7 @@ def test_cell_for_seeds_from_set_tier(registry):
 
 def test_set_global_writes_through_to_cell(registry):
     cell = registry.cell_for(KEY)
-    seen = []
+    seen: list = []
     cell.on_changed.append(seen.append)
 
     registry.set_global(KEY, 2.5, tier="workspace")

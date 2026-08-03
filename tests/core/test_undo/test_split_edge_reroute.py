@@ -4,6 +4,8 @@ Covers the SplitEdgeWithRerouteAction composite (child structure + real
 execution against a live graph) and the editor entry point.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
@@ -105,7 +107,7 @@ def test_split_action_raises_on_missing_edge():
 def test_add_ports_action_rejigs_to_new_type():
     from haywire.core.undo.actions.graph_actions import _AddReroutePortsAction
 
-    calls = {"rejig_include": None, "added": []}
+    calls: dict = {"rejig_include": None, "added": []}
 
     class _Spec:
         def __init__(self, kind, id):
@@ -140,7 +142,9 @@ def test_add_ports_action_rejigs_to_new_type():
         def get_node_wrapper(self, node_id):
             return type("W", (), {"node": _Node()})()
 
-    action = _AddReroutePortsAction(graph=_G(), node_id="r", itype=_Type, inlet_id="in", outlet_id="out")
+    action = _AddReroutePortsAction(
+        graph=cast(Any, _G)(), node_id="r", itype=_Type, inlet_id="in", outlet_id="out"
+    )
     action._execute_impl()
     assert calls["rejig_include"] == ["in", "out"]
     assert calls["added"] == [("inlet", "in"), ("outlet", "out")]
@@ -155,7 +159,9 @@ def test_add_ports_action_raises_on_missing_node():
         def get_node_wrapper(self, node_id):
             return None
 
-    action = _AddReroutePortsAction(graph=_G(), node_id="r", itype=object(), inlet_id="in", outlet_id="out")
+    action = _AddReroutePortsAction(
+        graph=cast(Any, _G)(), node_id="r", itype=object(), inlet_id="in", outlet_id="out"
+    )
     with pytest.raises(RuntimeError, match="not found"):
         action._execute_impl()
 
@@ -180,8 +186,8 @@ def test_editor_split_returns_reroute_id(monkeypatch):
     monkeypatch.setattr(editor_module, "SplitEdgeWithRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
-    ed.graph = object()
-    ed.history_manager = _HM()
+    ed.graph = cast(Any, object())
+    ed.history_manager = cast(Any, _HM())
 
     result = ed.split_edge_with_reroute("e0", (1.0, 2.0), registry_key=_RR_KEY)
 
@@ -198,7 +204,7 @@ def test_editor_split_returns_none_on_error():
 
     ed = Editor.__new__(Editor)
     ed.graph = BaseGraph(graph_id="g", name="G")
-    ed.history_manager = _HM()
+    ed.history_manager = cast(Any, _HM())
     # Unknown edge -> action ctor raises inside the try -> None.
     assert ed.split_edge_with_reroute("nope", (0.0, 0.0), registry_key=_RR_KEY) is None
 
@@ -259,7 +265,8 @@ def _reroute_validator_with_ports(ports):
 def test_validate_reroute_portless_latent_state_is_valid():
     validator, wrapper, _F, _P = _reroute_validator_with_ports([])
     ok, err, _ = validator.validate_node(wrapper)
-    assert ok and err is None
+    assert ok
+    assert err is None
 
 
 def test_validate_reroute_configured_pair_is_valid():
@@ -271,7 +278,8 @@ def test_validate_reroute_configured_pair_is_valid():
         ]
     )
     ok, err, _ = validator.validate_node(wrapper)
-    assert ok and err is None
+    assert ok
+    assert err is None
 
 
 def test_validate_reroute_outlet_only_is_invalid():
@@ -292,7 +300,8 @@ def test_validate_reroute_accepts_control_passthrough_pair():
         ]
     )
     ok, err, _ = validator.validate_node(wrapper)
-    assert ok and err is None
+    assert ok
+    assert err is None
 
 
 def test_validate_reroute_accepts_callback_passthrough_pair():
@@ -305,7 +314,8 @@ def test_validate_reroute_accepts_callback_passthrough_pair():
         ]
     )
     ok, err, _ = validator.validate_node(wrapper)
-    assert ok and err is None
+    assert ok
+    assert err is None
 
 
 def test_validate_reroute_rejects_mixed_flow_types():
@@ -361,7 +371,7 @@ class TestSplitEdgeRerouteIntegration:
         original_edge_id = edge.edge_id
 
         action = SplitEdgeWithRerouteAction(
-            graph=graph, edge_id=edge.edge_id, position=(200.0, 200.0), **self._reroute_args()
+            graph=cast(Any, graph), edge_id=edge.edge_id, position=(200.0, 200.0), **self._reroute_args()
         )
         action._execute_impl()
 
@@ -410,7 +420,7 @@ class TestSplitEdgeRerouteIntegration:
         original_edge_id = edge.edge_id
 
         action = SplitEdgeWithRerouteAction(
-            graph=graph,
+            graph=cast(Any, graph),
             edge_id=edge.edge_id,
             position=(200.0, 200.0),
             **self._reroute_args(),
@@ -449,7 +459,7 @@ class TestSplitEdgeRerouteIntegration:
         original_edge_id = edge.edge_id
 
         action = SplitEdgeWithRerouteAction(
-            graph=graph, edge_id=edge.edge_id, position=(200.0, 200.0), **self._reroute_args()
+            graph=cast(Any, graph), edge_id=edge.edge_id, position=(200.0, 200.0), **self._reroute_args()
         )
         action._execute_impl()
         action._undo_impl()
@@ -485,5 +495,6 @@ def test_callback_edge_from_reroute_is_invalid():
         source_node_id = "reroute_1"
 
     validator = StructuralValidator.__new__(StructuralValidator)
-    ok, err, _ = validator._validate_callback_edge(_EdgeWrapper())
-    assert not ok and err is not None
+    ok, err, _ = validator._validate_callback_edge(cast(Any, _EdgeWrapper()))
+    assert not ok
+    assert err is not None

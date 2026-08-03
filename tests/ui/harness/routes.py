@@ -11,7 +11,7 @@ Routes:
 from __future__ import annotations
 
 import importlib
-from typing import TYPE_CHECKING
+from typing import Any, TYPE_CHECKING
 
 from fastapi import Request
 from fastapi.responses import JSONResponse
@@ -100,7 +100,7 @@ def _build_connect_graph(node_factory):
 
     src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
     dst = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3950.0, 3700.0))
-    assert src is not None and dst is not None, "could not create connect-fixture nodes"
+    assert src is not None and dst is not None, "could not create connect-fixture nodes"  # noqa: PT018
     return graph, editor
 
 
@@ -127,7 +127,7 @@ def _build_dynamic_graph(node_factory):
 
     dyn = graph.create_node_wrapper(_DYNAMIC_KEY, position=(3600.0, 3700.0))
     sink = graph.create_node_wrapper(_EDGE_LINK_KEY, position=(3980.0, 3700.0))
-    assert dyn is not None and sink is not None, "could not create dynamic-fixture nodes"
+    assert dyn is not None and sink is not None, "could not create dynamic-fixture nodes"  # noqa: PT018
 
     ok = editor.create_edge(dyn.node_id, _DYNAMIC_OUTLET, sink.node_id, _EDGE_LINK_INLET)
     assert ok, f"could not connect {_DYNAMIC_OUTLET} -> {_EDGE_LINK_INLET}"
@@ -532,7 +532,11 @@ def register_routes(library_service) -> None:
         content = graph.create_node_wrapper("testing:node:SizeBoxContentNode", position=(3600.0, 3700.0))
         aspect = graph.create_node_wrapper("testing:node:SizeBoxAspectNode", position=(4100.0, 3700.0))
         fixed = graph.create_node_wrapper("testing:node:SizeBoxFixedNode", position=(4600.0, 3700.0))
-        assert None not in (content, aspect, fixed), "could not create widget-box fixture nodes"
+        # Individually asserted so mypy narrows each one (a tuple membership
+        # test does not); a failure also names the node that could not be built.
+        assert content is not None, "could not create SizeBoxContentNode"
+        assert aspect is not None, "could not create SizeBoxAspectNode"
+        assert fixed is not None, "could not create SizeBoxFixedNode"
 
         def _set_manual(node_id: str, width: float, height: float) -> None:
             editor.set_property(node_id, "size_adapt", "manual")
@@ -572,6 +576,7 @@ def register_routes(library_service) -> None:
             # (post widget-unification cutover); its element_type_cls is the
             # underlying Python type (FLOAT -> float, BOOL -> bool, ...).
             py_type = getattr(defn._type, "element_type_cls", None) or str
+            coerced: Any
             if py_type is bool:
                 coerced = raw_value.lower() in ("true", "1", "yes")
             else:

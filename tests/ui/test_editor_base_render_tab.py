@@ -1,6 +1,7 @@
 """Tests for BaseEditor.draw_tab — the default tab/icon interior renderer."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 
 from haywire.ui.editor import base as base_mod
 from haywire.ui.editor.base import BaseEditor
@@ -41,11 +42,14 @@ def _install_base_ui_fakes(monkeypatch):
 
 
 class _MinimalEditor(BaseEditor):
-    class_identity = SimpleNamespace(
-        registry_key="t:editor:1",
-        label="My Editor",
-        icon="account_tree",
-        default_slot=SlotName.EDIT,
+    class_identity = cast(
+        Any,
+        SimpleNamespace(
+            registry_key="t:editor:1",
+            label="My Editor",
+            icon="account_tree",
+            default_slot=SlotName.EDIT,
+        ),
     )
 
     def draw(self, context, container) -> None:  # pragma: no cover - unused here
@@ -54,7 +58,7 @@ class _MinimalEditor(BaseEditor):
 
 def _make_editor(label: str = "") -> _MinimalEditor:
     wrapper = SimpleNamespace(label=label)
-    editor = _MinimalEditor(wrapper)
+    editor = _MinimalEditor(cast(Any, wrapper))
     return editor
 
 
@@ -62,7 +66,7 @@ def test_draw_tab_horizontal_default_draws_label_from_wrapper(monkeypatch):
     created = _install_base_ui_fakes(monkeypatch)
     editor = _make_editor(label="graph.hwg")
 
-    editor.draw_tab(SimpleNamespace(), orientation="horizontal")
+    editor.draw_tab(cast(Any, SimpleNamespace()), orientation="horizontal")
 
     labels = [el for kind, el in created if kind == "label"]
     assert any(el._args and el._args[0] == "graph.hwg" for el in labels)
@@ -74,7 +78,7 @@ def test_draw_tab_horizontal_falls_back_to_class_label(monkeypatch):
     created = _install_base_ui_fakes(monkeypatch)
     editor = _make_editor(label="")  # empty wrapper label
 
-    editor.draw_tab(SimpleNamespace(), orientation="horizontal")
+    editor.draw_tab(cast(Any, SimpleNamespace()), orientation="horizontal")
 
     labels = [el for kind, el in created if kind == "label"]
     assert any(el._args and el._args[0] == "My Editor" for el in labels)
@@ -84,7 +88,7 @@ def test_draw_tab_vertical_default_draws_icon_with_tooltip(monkeypatch):
     created = _install_base_ui_fakes(monkeypatch)
     editor = _make_editor(label="ignored-in-vertical")
 
-    editor.draw_tab(SimpleNamespace(), orientation="vertical")
+    editor.draw_tab(cast(Any, SimpleNamespace()), orientation="vertical")
 
     icons = [el for kind, el in created if kind == "icon"]
     assert any(el._args and el._args[0] == "account_tree" for el in icons)

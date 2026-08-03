@@ -118,7 +118,6 @@ class TestToCssVars:
 
 class TestThemeDecorator:
     def test_class_identity_set(self):
-        assert hasattr(TestDarkTheme, "class_identity")
         assert TestDarkTheme.class_identity.registry_id == "TestDarkTheme"
         assert TestDarkTheme.class_identity.theme_type == "workbench"
 

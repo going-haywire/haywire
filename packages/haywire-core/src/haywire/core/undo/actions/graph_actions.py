@@ -364,17 +364,17 @@ class RemoveElementsAction(ActionBase):
     def _undo_impl(self) -> None:
         """Restore all removed elements."""
         # First, restore node wrappers
-        for node_id, node_wrapper in self.removed_node_wrappers.items():
+        for _node_id, node_wrapper in self.removed_node_wrappers.items():
             self.graph.add_node_wrapper(node_wrapper)
 
         # then, restore all edges connected to restored nodes
-        for edge_id, edge_wrapper in self.node_connected_edge_wrappers.items():
+        for _edge_id, edge_wrapper in self.node_connected_edge_wrappers.items():
             # Re-add existing wrapper
             self.graph.add_edge_wrapper(edge_wrapper)
 
         # Then, restore standalone connections
         # (that weren't connected to removed nodes)
-        for edge_id, edge_wrapper in self.removed_edge_wrappers.items():
+        for _edge_id, edge_wrapper in self.removed_edge_wrappers.items():
             self.graph.add_edge_wrapper(edge_wrapper)
 
         # Clear away store after restoration otherwise

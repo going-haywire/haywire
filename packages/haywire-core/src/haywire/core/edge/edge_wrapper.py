@@ -785,7 +785,7 @@ class EdgeWrapper:
                 self._state.example_test_value = self._first_adapter.get_test_value()
                 if self._state.execution_count > 0:
                     start_time = time.perf_counter()
-                    for i in range(self._state.execution_count):
+                    for _i in range(self._state.execution_count):
                         self._state.example_test_result = self._first_adapter.test(
                             self._state.example_test_value
                         )

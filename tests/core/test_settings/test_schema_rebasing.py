@@ -204,4 +204,6 @@ class TestRegistryReadsPropFields:
     def test_no_setting_descriptor_in_codebase(self):
         """SettingDescriptor no longer exists — importing it raises ImportError."""
         with pytest.raises(ImportError):
-            from haywire.core.settings.descriptors import SettingDescriptor  # noqa: F401
+            from haywire.core.settings.descriptors import (  # type: ignore[import-untyped,import-not-found]  # noqa: F401
+                SettingDescriptor,
+            )

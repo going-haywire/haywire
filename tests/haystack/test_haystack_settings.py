@@ -15,13 +15,6 @@ def test_default_new_counter_starts_at_one():
     assert s.new_counter == 1
 
 
-def test_settings_class_subclasses_library_settings():
-    from haybale_haystack.settings.haystack_settings import HaystackSettings
-    from haywire.core.settings.settings_library import LibrarySettings
-
-    assert issubclass(HaystackSettings, LibrarySettings)
-
-
 def test_can_set_and_read_last_haystack_name():
     from haybale_haystack.settings.haystack_settings import HaystackSettings
     from haywire.core.settings.registry import SettingsRegistry

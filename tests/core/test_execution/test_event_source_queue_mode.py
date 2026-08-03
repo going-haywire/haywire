@@ -17,6 +17,8 @@ from haywire.core.execution.scheduler import QueueMode
 from haywire.core.graph.base import BaseGraph
 from haywire.core.di.config import LibrarySystemService
 
+from tests.conftest import make_edge, make_node
+
 
 def _scheduler_for(interpreter: Interpreter, callback_name: str):
     """Return the scheduler of the flow subscribed to ``callback:<name>``."""
@@ -36,8 +38,8 @@ class TestEventNodeQueueMode:
         )
         from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintNode
 
-        custom_callback = graph.create_node_wrapper(
-            CustomCallbackNode.class_identity.registry_key, position=(100, 100)
+        custom_callback = make_node(
+            graph, CustomCallbackNode.class_identity.registry_key, position=(100, 100)
         )
         # Set the name + queue mode first, then flip mode_switch last — its
         # on_change="redraw" rebuilds the subscription and captures both.
@@ -45,8 +47,8 @@ class TestEventNodeQueueMode:
         custom_callback.node.ports["queue_mode"].set_value(queue_mode)
         custom_callback.node.ports["mode_switch"].set_value(True)
 
-        print_msg = graph.create_node_wrapper(PrintNode.class_identity.registry_key, position=(300, 100))
-        graph.create_edge_wrapper(custom_callback.node_id, "triggered", print_msg.node_id, "exec")
+        print_msg = make_node(graph, PrintNode.class_identity.registry_key, position=(300, 100))
+        make_edge(graph, custom_callback.node_id, "triggered", print_msg.node_id, "exec")
         return graph
 
     def test_drop_event_node_yields_drop_scheduler(

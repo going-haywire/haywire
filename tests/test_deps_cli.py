@@ -105,7 +105,7 @@ def test_never_imports_or_constructs_share_pipeline() -> None:
     assert "SharePipeline" not in dir(deps_cli_module)
     src = deps_cli_module.__spec__.loader.get_source(deps_cli_module.__name__)  # type: ignore[union-attr]
     imported_modules = set()
-    imported_names = set()
+    imported_names: set[str] = set()
     for node in ast.walk(ast.parse(src)):
         if isinstance(node, ast.ImportFrom) and node.module:
             imported_modules.add(node.module)

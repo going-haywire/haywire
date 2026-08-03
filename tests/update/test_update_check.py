@@ -114,7 +114,8 @@ def test_startup_mismatch_fires_when_the_pin_is_ahead_of_the_installed(tmp_path)
         notice = startup_mismatch(path)
 
     assert notice is not None
-    assert "0.0.35" in notice and "0.0.34" in notice
+    assert "0.0.35" in notice
+    assert "0.0.34" in notice
     assert "uv run haywire" in notice
 
 

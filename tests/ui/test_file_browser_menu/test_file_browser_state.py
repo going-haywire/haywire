@@ -22,10 +22,3 @@ def test_right_clicked_file_can_be_set_and_cleared():
     assert state.right_clicked_file == p
     state.right_clicked_file = None
     assert state.right_clicked_file is None
-
-
-def test_state_class_is_a_session_state():
-    from haybale_studio.state.file_browser_state import FileBrowserState
-    from haywire.core.state.base import SessionState
-
-    assert issubclass(FileBrowserState, SessionState)

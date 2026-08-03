@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from typing import cast
+
 import pytest
 
 from scripts import generate_marketstall
@@ -175,7 +177,7 @@ def test_emit_stall_toml_round_trips_via_tomllib() -> None:
         "docs_url": "https://raw.githubusercontent.com/example/fake-workspace/main/x/y/",
     }
 
-    out_text = generate_marketstall.emit_stall_toml(entry)
+    out_text = generate_marketstall.emit_stall_toml(cast(dict, entry))
     import tomllib
 
     parsed = tomllib.loads(out_text)
@@ -205,7 +207,7 @@ def test_emit_stall_toml_includes_name_in_header() -> None:
         "source_url": "u",
         "docs_url": "d2",
     }
-    out = generate_marketstall.emit_stall_toml(entry)
+    out = generate_marketstall.emit_stall_toml(cast(dict, entry))
     assert out.startswith("# Marketstall for haybale-x")
 
 
@@ -252,7 +254,7 @@ def test_emit_stall_toml_escapes_quotes_in_strings() -> None:
         "source_url": "u",
         "docs_url": "d",
     }
-    out = generate_marketstall.emit_stall_toml(entry)
+    out = generate_marketstall.emit_stall_toml(cast(dict, entry))
     import tomllib
 
     parsed = tomllib.loads(out)
@@ -275,7 +277,7 @@ def test_emit_stall_toml_escapes_control_characters() -> None:
         "source_url": "u",
         "docs_url": "d",
     }
-    out = generate_marketstall.emit_stall_toml(entry)
+    out = generate_marketstall.emit_stall_toml(cast(dict, entry))
     import tomllib
 
     parsed = tomllib.loads(out)

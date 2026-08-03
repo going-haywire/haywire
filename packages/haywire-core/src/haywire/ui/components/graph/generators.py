@@ -72,7 +72,7 @@ window.EventValidators = {{
         interfaces = []
 
         for events in [user_events, sync_events]:
-            for event_type, info in events.items():
+            for _event_type, info in events.items():
                 interface_name = f"{info['class_name']}Data"
                 fields = info["fields"]
 
@@ -149,7 +149,7 @@ export interface {interface_name} {{"""
     def _generate_event_validators(events: Dict) -> str:
         """Generate event validation methods as object methods (not class methods)"""
         methods = []
-        for event_type, info in events.items():
+        for _event_type, info in events.items():
             method_name = f"validate{info['class_name'].replace('Event', '')}"
             required_fields = info["fields"]
 

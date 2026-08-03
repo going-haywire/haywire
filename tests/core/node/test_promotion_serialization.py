@@ -67,7 +67,8 @@ class TestEdgeIntoPromotedInletSurvives:
         pid = type(src.node.example).__dict__["example_float"].storage_key
 
         edge = graph.create_edge_wrapper(src.node_id, pid, sink.node_id, pid)
-        assert edge is not None and edge.state.is_valid()
+        assert edge is not None
+        assert edge.state.is_valid()
 
         data = graph.to_dict()
         graph.clear()

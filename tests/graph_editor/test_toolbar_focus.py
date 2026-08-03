@@ -16,5 +16,13 @@ def test_toolbar_focus_available_mirrors_selection(make_ctx_with_selection):
 
 
 def test_toolbar_actions_is_runtime_checkable_protocol():
-    # ToolbarActions declares the overflow verb.
-    assert hasattr(ToolbarActions, "open_overflow_menu")
+    # @runtime_checkable is the real contract: providers are matched
+    # structurally via isinstance(), which static typing cannot enforce.
+    class _Provider:
+        def open_overflow_menu(self) -> None: ...
+
+    class _NotAProvider:
+        pass
+
+    assert isinstance(_Provider(), ToolbarActions)
+    assert not isinstance(_NotAProvider(), ToolbarActions)

@@ -1,3 +1,4 @@
+from typing import cast
 import subprocess
 from pathlib import Path
 
@@ -34,7 +35,7 @@ def _init_repo_with_lib(tmp_path: Path) -> Path:
 
 def test_examples_url_emitted_when_folder_has_graphs(tmp_path):
     lib = _init_repo_with_lib(tmp_path)
-    entry = _build_entry_for_library(lib)
+    entry = cast(dict, _build_entry_for_library(lib))
     assert entry is not None
     assert entry["examples_url"].endswith("/examples/")
     assert "raw.githubusercontent.com" in entry["examples_url"]
@@ -45,7 +46,7 @@ def test_examples_url_emitted_when_folder_has_graphs(tmp_path):
 def test_no_examples_url_when_folder_absent(tmp_path):
     lib = _init_repo_with_lib(tmp_path)
     (lib / "examples" / "demo.haywire").unlink()  # now empty
-    entry = _build_entry_for_library(lib)
+    entry = cast(dict, _build_entry_for_library(lib))
     assert "examples_url" not in entry
 
 
@@ -56,7 +57,7 @@ def test_tag_pins_install_spec_and_raw_content_urls(tmp_path):
     library "publishing" refers to."""
     lib = _init_repo_with_lib(tmp_path)
 
-    entry = _build_entry_for_library(lib, tag="v1.0.0")
+    entry = cast(dict, _build_entry_for_library(lib, tag="v1.0.0"))
 
     assert entry is not None
     assert entry["install_spec"] == (

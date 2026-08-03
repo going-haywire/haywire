@@ -49,7 +49,8 @@ def test_the_banner_names_both_versions_and_the_relaunch_command():
 
     text = confirmed.banner_text("0.0.34", "0.0.35")
 
-    assert "0.0.34" in text and "0.0.35" in text
+    assert "0.0.34" in text
+    assert "0.0.35" in text
     assert "uv run haywire" in text
 
 

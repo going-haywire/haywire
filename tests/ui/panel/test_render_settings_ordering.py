@@ -10,6 +10,8 @@ occurrence of that same category name opens a SECOND, separate section (the
 accepted "interleaved categories split into two blocks" tradeoff).
 """
 
+from typing import Any, cast
+
 import pytest
 
 from nicegui import Client, ui
@@ -33,7 +35,7 @@ def _walk(element):
 
 
 def _render(bag) -> "ui.column":
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:

@@ -1,5 +1,7 @@
 """Tests for StdoutTee (formerly ConsoleBridge)."""
 
+from typing import Any, cast
+
 import sys
 
 from haywire.ui.console_bridge import StdoutTee, console_print
@@ -31,7 +33,7 @@ class FakeStream:
 
 def test_split_writes_reassemble_into_one_line():
     fake = FakeStream()
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
     received: list[str] = []
     tee.add_sink(received.append)
 
@@ -44,7 +46,7 @@ def test_split_writes_reassemble_into_one_line():
 
 def test_trailing_partial_line_held_back():
     fake = FakeStream()
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
     received: list[str] = []
     tee.add_sink(received.append)
 
@@ -57,7 +59,7 @@ def test_trailing_partial_line_held_back():
 
 def test_real_stream_receives_every_byte_unmodified():
     fake = FakeStream()
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
     tee.add_sink(lambda line: None)
 
     tee.write("partial")
@@ -68,7 +70,7 @@ def test_real_stream_receives_every_byte_unmodified():
 
 def test_broken_sink_does_not_break_write_or_drop_later_sinks():
     fake = FakeStream()
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
     received: list[str] = []
 
     def bad_sink(line: str) -> None:
@@ -84,7 +86,7 @@ def test_broken_sink_does_not_break_write_or_drop_later_sinks():
 
 def test_sink_that_prints_does_not_recurse():
     fake = FakeStream()
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
     calls: list[str] = []
 
     def printing_sink(line: str) -> None:
@@ -101,7 +103,7 @@ def test_sink_that_prints_does_not_recurse():
 def test_install_twice_leaves_exactly_one_wrapper(monkeypatch):
     fake = FakeStream()
     monkeypatch.setattr(sys, "stdout", fake)
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
 
     tee.install()
     first = sys.stdout
@@ -113,7 +115,7 @@ def test_install_twice_leaves_exactly_one_wrapper(monkeypatch):
 
 def test_detach_unregisters_sink():
     fake = FakeStream()
-    tee = StdoutTee(fake)
+    tee = StdoutTee(cast(Any, fake))
     received: list[str] = []
     detach = tee.add_sink(received.append)
 

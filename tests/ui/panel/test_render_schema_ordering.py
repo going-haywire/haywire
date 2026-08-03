@@ -9,6 +9,8 @@ sorting by (category, order, setting_key) because it aggregates keys across
 independent classes with no shared declaration sequence.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from nicegui import Client, ui
@@ -69,7 +71,7 @@ def registry() -> SettingsRegistry:
 
 
 def test_schema_fields_render_in_declaration_order(registry: SettingsRegistry):
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:
@@ -103,7 +105,7 @@ def test_render_keys_still_sorts_by_order_not_declaration():
     reg = SettingsRegistry()
     reg.register_schema(_KeysUnchangedBagAlpha)
 
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:

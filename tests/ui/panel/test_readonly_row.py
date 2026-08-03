@@ -2,6 +2,8 @@
 mirror-ness no longer forces a bespoke rendering path (Task 7). ui_state=
 DISABLED is the general chrome mechanism (ADR 0020), applied uniformly."""
 
+from typing import Any, cast
+
 import pytest
 from nicegui import Client, ui
 
@@ -38,7 +40,7 @@ def _menu_item_text(item) -> str:
     return ""
 
 
-def _menu_items(row) -> dict[str, object]:
+def _menu_items(row) -> dict[str, Any]:
     return {_menu_item_text(el): el for el in _walk(row) if type(el).__name__ == "MenuItem"}
 
 
@@ -52,7 +54,7 @@ def _reset_enabled(row) -> bool:
 
 
 def _render(node, accessor="filter"):
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:

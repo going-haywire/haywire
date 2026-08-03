@@ -1,5 +1,7 @@
 """Unit tests for LibraryStateContainer."""
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.library.identity import LibraryIdentity
@@ -26,7 +28,7 @@ def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
     )
 
 
-def make_added_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
+def make_added_event(cls: Any, lib_id: LibraryIdentity) -> LifeCycleEvent:
     return LifeCycleEvent(
         registry_key=cls.class_identity.registry_key,
         event_type=LifeCycleEventType.CLASS_ADDED,
@@ -35,7 +37,7 @@ def make_added_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
     )
 
 
-def make_removed_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
+def make_removed_event(cls: Any, lib_id: LibraryIdentity) -> LifeCycleEvent:
     return LifeCycleEvent(
         registry_key=cls.class_identity.registry_key,
         event_type=LifeCycleEventType.CLASS_REMOVED,
@@ -89,7 +91,7 @@ class TestLibraryStateContainer:
             identity = lib_id
             enabled = True
 
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]
 
     def test_class_removed_event_calls_on_disable_and_drops_instance(self):
@@ -115,7 +117,7 @@ class TestLibraryStateContainer:
             identity = lib_id
             enabled = True
 
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]
 
         container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
@@ -229,7 +231,7 @@ class TestLibraryStateContainer:
             identity = lib_id
             enabled = True
 
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["v1-enable"]
 
         # Hot-reload event: CLASS_RELOADED fires on an already-enabled library,
@@ -298,7 +300,7 @@ class TestEnabledLibraryIdsFilter:
             identity = lib_id
             enabled = True
 
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]  # now
 
     def test_class_removed_for_unknown_library_is_dropped(self):
@@ -362,7 +364,7 @@ class TestEnabledLibraryIdsFilter:
             identity = marked
             enabled = True
 
-        container.on_library_enabled(FakeMarked())
+        container.on_library_enabled(cast(Any, FakeMarked()))
         assert calls == ["marked"]
         assert UnmarkedState in container  # still there, just not enabled
 
@@ -395,7 +397,7 @@ class TestOnLibraryEnabledCatchUp:
             enabled = True
 
         # Phase 2: on_library_enabled enables (fired after library.enable() returns).
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]
 
     def test_on_library_enabled_marks_library_for_subsequent_events(self):
@@ -419,7 +421,7 @@ class TestOnLibraryEnabledCatchUp:
             enabled = True
 
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]
 
         # CLASS_REMOVED now passes the filter.
@@ -437,7 +439,7 @@ class TestOnLibraryEnabledCatchUp:
             identity = lib_id
             enabled = True
 
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
 
         assert lib_id.id in container._enabled_library_ids
 
@@ -459,8 +461,8 @@ class TestOnLibraryEnabledCatchUp:
             enabled = True
 
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-        container.on_library_enabled(FakeLibrary())
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
+        container.on_library_enabled(cast(Any, FakeLibrary()))
 
         assert calls == ["enable"]
 
@@ -492,7 +494,7 @@ class TestOnLibraryEnabledCatchUp:
             enabled = True
 
         # Only midi library enabled.
-        container.on_library_enabled(MidiLib())
+        container.on_library_enabled(cast(Any, MidiLib()))
 
         assert MidiState in container
         assert AudioState in container  # instantiated, just not enabled
@@ -513,10 +515,10 @@ class TestOnLibraryDisabled:
             identity = lib_id
             enabled = True
 
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert lib_id.id in container._enabled_library_ids
 
-        container.on_library_disabled(FakeLibrary())
+        container.on_library_disabled(cast(Any, FakeLibrary()))
         assert lib_id.id not in container._enabled_library_ids
 
     def test_class_removed_after_disable_is_dropped(self):
@@ -543,13 +545,13 @@ class TestOnLibraryDisabled:
 
         # Full enable cycle.
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]
 
         # Disable: CLASS_REMOVED fires while library is still marked enabled,
         # then on_library_disabled drops the id.
         container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
-        container.on_library_disabled(FakeLibrary())
+        container.on_library_disabled(cast(Any, FakeLibrary()))
         assert calls == ["enable", "disable"]
         assert MyState not in container
 
@@ -586,12 +588,12 @@ class TestOnLibraryDisabled:
 
         # First enable — two phases.
         container.on_lifecycle_events([make_added_event(MyState, lib_id)])
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable"]
 
         # Disable.
         container.on_lifecycle_events([make_removed_event(MyState, lib_id)])
-        container.on_library_disabled(FakeLibrary())
+        container.on_library_disabled(cast(Any, FakeLibrary()))
         assert calls == ["enable", "disable"]
         assert MyState not in container
 
@@ -601,7 +603,7 @@ class TestOnLibraryDisabled:
         assert calls == ["enable", "disable"]  # on_enable not yet
 
         # Re-enable — phase 2: on_library_enabled calls on_enable.
-        container.on_library_enabled(FakeLibrary())
+        container.on_library_enabled(cast(Any, FakeLibrary()))
         assert calls == ["enable", "disable", "enable"]
 
     def test_disable_of_unknown_library_is_a_noop(self):
@@ -616,7 +618,7 @@ class TestOnLibraryDisabled:
             enabled = True
 
         # Should not raise.
-        container.on_library_disabled(FakeLibrary())
+        container.on_library_disabled(cast(Any, FakeLibrary()))
         assert lib_id.id not in container._enabled_library_ids
 
 

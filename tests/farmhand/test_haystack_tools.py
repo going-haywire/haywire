@@ -68,7 +68,8 @@ def test_save_and_reopen(farmhand_call):
                 {"binding_id": bid, "save_as": "graphs/farmhand_t12.haywire"},
             )
         )
-        assert result["path"] and result["unsaved"] is False
+        assert result["path"]
+        assert result["unsaved"] is False
     finally:
         # bid changed to the saved path after save-as; close whatever is open.
         listing = call_tool_json(_call(farmhand_call, "haystack_list_graphs", {}))

@@ -140,7 +140,7 @@ class TestPanelDecorator:
                 pass
 
     def test_sets_class_library(self):
-        assert hasattr(_TestNodePanelA, "class_library")
+        assert _TestNodePanelA.class_library is not None
 
     def test_display_panel_has_no_action_protocol(self):
         assert _TestNodeDisplayPanel.class_identity.action_protocol is None

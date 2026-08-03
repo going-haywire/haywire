@@ -15,7 +15,8 @@ def test_examples_link_present_when_url_set():
     labels = [lbl for lbl, _ in links]
     assert "Examples" in labels
     assert "Tests" not in labels  # tests_url is quiet metadata, not surfaced
-    assert "Docs" in labels and "Source" in labels
+    assert "Docs" in labels
+    assert "Source" in labels
 
 
 def test_no_examples_link_when_url_absent():

@@ -1,10 +1,37 @@
 """Tests for IconSlot — the bar-of-icons variant for the ACTION / CONTEXT slots."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 
 from haywire.core.session.signals import Reveal
 from haywire.ui.app.icon_slot import IconSlot
 from haywire.ui.editor.identity import SlotName
+
+
+def _slot(*, session: Any, registry: Any, **kwargs: Any) -> IconSlot:
+    """Construct a IconSlot from structural test doubles.
+
+    ``_FakeRegistry`` / a SimpleNamespace session implement only the slice the
+    slot touches; the casts keep that seam in one place.
+    """
+    return IconSlot(session=cast(Any, session), registry=cast(Any, registry), **kwargs)
+
+
+def _render(slot: IconSlot, container: Any) -> Any:
+    """Render into a ``_FakeContainer`` stand-in for a NiceGUI Element."""
+    return slot.render(cast(Any, container))
+
+
+def _add(slot: IconSlot, *, editor_cls: Any, **kwargs: Any) -> Any:
+    """Add a binding backed by a structural fake editor class."""
+    return slot.add_binding(editor_cls=cast(Any, editor_cls), **kwargs)
+
+
+def _find(slot: IconSlot, *args: Any) -> Any:
+    """``find_binding`` narrowed to non-None (a miss is a broken precondition)."""
+    found = slot.find_binding(*args)
+    assert found is not None, f"no binding for {args!r}"
+    return found
 
 
 class _FakeRegistry:
@@ -36,6 +63,15 @@ _REGISTRY = _FakeRegistry()
 
 
 class _FakeContainer:
+    # Tests stamp ad-hoc marker attributes on instances to record how the
+    # element was constructed; __setattr__/__getattr__ are typed loosely so
+    # those recordings need no per-site casts.
+    def __setattr__(self, name: str, value: Any) -> None:
+        object.__setattr__(self, name, value)
+
+    def __getattr__(self, name: str) -> Any:
+        raise AttributeError(name)
+
     def __init__(self):
         self.clear_calls = 0
         self.visible = True
@@ -163,16 +199,16 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot._active = slot.find_binding("a")
+    _add(slot, editor_key="a", editor_cls=a)
+    slot._active = _find(slot, "a")
     parent = _FakeContainer()
-    slot.render(parent)
+    _render(slot, parent)
 
     kinds = [k for k, _ in created]
     # A row wrapper, then a column for the bar, then the area tab_panels.
@@ -192,19 +228,19 @@ def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     b = _editor_cls("b")
-    signals = []
+    signals: list = []
     session = SimpleNamespace(context=None, signal=signals.append)
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=session,
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot.add_binding(editor_key="b", editor_cls=b)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    _add(slot, editor_key="b", editor_cls=b)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     tab_elements = [c for (kind, c) in created if kind == "tab"]
     assert len(tab_elements) == 2, "one tab per wrapper expected"
@@ -230,15 +266,15 @@ def test_icon_slot_has_no_fold_toggle_button(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     # No ui.button is created for the icon bar anymore.
     assert not [c for (kind, c) in created if kind == "button"]
@@ -248,18 +284,18 @@ def test_icon_slot_click_active_icon_collapses(monkeypatch):
     """Clicking the active icon collapses the slot (VS Code idiom)."""
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
-    vis_calls = []
+    vis_calls: list = []
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     _click_tab(created, "a")  # "a" is the active icon
     assert slot.visible is False
@@ -270,18 +306,18 @@ def test_icon_slot_click_while_collapsed_reexpands(monkeypatch):
     """Clicking any icon while collapsed re-opens the slot."""
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
-    vis_calls = []
+    vis_calls: list = []
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     _click_tab(created, "a")  # collapse
     assert slot.visible is False
@@ -301,19 +337,19 @@ def test_icon_slot_click_inactive_icon_switches_without_collapsing(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     b = _editor_cls("b")
-    vis_calls = []
+    vis_calls: list = []
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
         on_visibility_change=vis_calls.append,
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot.add_binding(editor_key="b", editor_cls=b)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    _add(slot, editor_key="b", editor_cls=b)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     _click_tab(created, "b")
     assert slot.active_key == "b"
@@ -328,16 +364,16 @@ def test_icon_slot_collapsed_click_other_icon_expands_and_switches(monkeypatch):
     a = _editor_cls("a")
     b = _editor_cls("b")
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot.add_binding(editor_key="b", editor_cls=b)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    _add(slot, editor_key="b", editor_cls=b)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     _click_tab(created, "a")  # collapse (a is active)
     assert slot.visible is False
@@ -352,15 +388,15 @@ def test_icon_slot_reveal_into_collapsed_slot_auto_expands(monkeypatch):
     created = _install_ui_fakes(monkeypatch)
     a = _editor_cls("a")
     reg = _FakeRegistry()
-    slot = IconSlot(
+    slot = _slot(
         session=SimpleNamespace(context=None),
         name=SlotName.CONTEXT,
         registry=reg,
         bar_place="right",
     )
-    slot.add_binding(editor_key="a", editor_cls=a)
-    slot._active = slot.find_binding("a")
-    slot.render(_FakeContainer())
+    _add(slot, editor_key="a", editor_cls=a)
+    slot._active = _find(slot, "a")
+    _render(slot, _FakeContainer())
 
     _click_tab(created, "a")  # collapse; "a" stays the active binding
     assert slot.visible is False

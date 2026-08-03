@@ -39,4 +39,5 @@ def test_signature_and_doc_returns_plain_text():
     sig, doc = _signature_and_doc(names[0])
     assert "greet(name" in sig
     assert "Say hello." in doc
-    assert "<" not in sig and "<" not in doc  # plain text, not HTML
+    assert "<" not in sig
+    assert "<" not in doc

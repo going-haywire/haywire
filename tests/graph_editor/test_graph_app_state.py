@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any, Optional, cast
 
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 
@@ -24,7 +24,7 @@ class _Container:
 def test_register_then_get_returns_container():
     state = GraphAppState()
     c = _Container(binding_id="a")
-    state.register(c)
+    state.register(cast(Any, c))
     assert state.get("a") is c
 
 
@@ -48,26 +48,27 @@ def test_get_by_graph_finds_container_by_identity():
     state = GraphAppState()
     graph = object()
     c = _Container(binding_id="__unsaved_1__", editor=_Editor(graph=graph))
-    state.register(c)
+    state.register(cast(Any, c))
     # Simulate a save-as rekey: the owning library updates the container's
     # binding_id and moves the registry key; the graph object is unchanged.
     c.binding_id = "graphs/foo.haywire"
     state.rekey("__unsaved_1__", "graphs/foo.haywire")
-    found = state.get_by_graph(graph)
+    found = state.get_by_graph(cast(Any, graph))
     assert found is c
+    assert found is not None
     assert found.binding_id == "graphs/foo.haywire"
 
 
 def test_get_by_graph_unknown_graph_returns_none():
     state = GraphAppState()
-    state.register(_Container(binding_id="a", editor=_Editor(graph=object())))
-    assert state.get_by_graph(object()) is None
+    state.register(cast(Any, _Container(binding_id="a", editor=_Editor(graph=object()))))
+    assert state.get_by_graph(cast(Any, object())) is None
 
 
 def test_unregister_removes_container():
     state = GraphAppState()
     c = _Container(binding_id="a")
-    state.register(c)
+    state.register(cast(Any, c))
     state.unregister("a")
     assert state.get("a") is None
 
@@ -82,15 +83,15 @@ def test_register_same_id_replaces():
     state = GraphAppState()
     c1 = _Container(binding_id="a", display_name="first")
     c2 = _Container(binding_id="a", display_name="second")
-    state.register(c1)
-    state.register(c2)
+    state.register(cast(Any, c1))
+    state.register(cast(Any, c2))
     assert state.get("a") is c2
 
 
 def test_rekey_moves_container():
     state = GraphAppState()
     c = _Container(binding_id="old")
-    state.register(c)
+    state.register(cast(Any, c))
     state.rekey("old", "new")
     assert state.get("old") is None
     assert state.get("new") is c
@@ -104,7 +105,7 @@ def test_rekey_unknown_old_id_is_noop():
 def test_rekey_to_same_id_is_noop():
     state = GraphAppState()
     c = _Container(binding_id="a")
-    state.register(c)
+    state.register(cast(Any, c))
     state.rekey("a", "a")
     assert state.get("a") is c
 
@@ -119,8 +120,8 @@ def test_rekey_overwrites_existing_destination():
     state = GraphAppState()
     c1 = _Container(binding_id="a")
     c2 = _Container(binding_id="b")
-    state.register(c1)
-    state.register(c2)
+    state.register(cast(Any, c1))
+    state.register(cast(Any, c2))
     state.rekey("a", "b")
     assert state.get("a") is None
     assert state.get("b") is c1
@@ -130,8 +131,8 @@ def test_all_containers_returns_snapshot():
     state = GraphAppState()
     c1 = _Container(binding_id="a")
     c2 = _Container(binding_id="b")
-    state.register(c1)
-    state.register(c2)
+    state.register(cast(Any, c1))
+    state.register(cast(Any, c2))
     result = state.all_containers()
     assert len(result) == 2
     assert c1 in result

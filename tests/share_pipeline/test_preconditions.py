@@ -252,7 +252,9 @@ def test_invalid_os_declaration_fails_with_remedy(project: Path) -> None:
     assert matches, report.failures
     for f in matches:
         assert f.remedy
-        assert "macos" in f.remedy and "windows" in f.remedy and "linux" in f.remedy
+        assert "macos" in f.remedy
+        assert "windows" in f.remedy
+        assert "linux" in f.remedy
         assert "other" in f.remedy
 
 

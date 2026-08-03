@@ -11,6 +11,8 @@ construction time (ADR 0019 / ADR 0018 plain-port half):
 - a serializable widget_config (list/dict options) constructs fine
 """
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.barn.builtin.types import CHOICES
@@ -35,7 +37,9 @@ class TestPlainPortRejectsCallable:
             widget_config={"options": _dynamic_options},  # a live callable
         )
         with pytest.raises(TypeError, match="mode"):
-            DataPort.from_spec(spec, library_system.get_type_registry(), None, None)
+            DataPort.from_spec(
+                cast(Any, spec), library_system.get_type_registry(), cast(Any, None), cast(Any, None)
+            )
 
     def test_nested_callable_under_properties_raises(self, library_system):
         from haywire.core.types.port import DataPort
@@ -45,7 +49,9 @@ class TestPlainPortRejectsCallable:
             widget_config={"properties": {"options": _dynamic_options}},
         )
         with pytest.raises(TypeError, match="mode"):
-            DataPort.from_spec(spec, library_system.get_type_registry(), None, None)
+            DataPort.from_spec(
+                cast(Any, spec), library_system.get_type_registry(), cast(Any, None), cast(Any, None)
+            )
 
 
 class TestSerializableWidgetConfigOk:
@@ -53,7 +59,9 @@ class TestSerializableWidgetConfigOk:
         from haywire.core.types.port import DataPort
 
         spec = CHOICES.as_config("mode", widget_config={"options": ["a", "b"]})
-        port = DataPort.from_spec(spec, library_system.get_type_registry(), None, None)
+        port = DataPort.from_spec(
+            cast(Any, spec), library_system.get_type_registry(), cast(Any, None), cast(Any, None)
+        )
         assert port.widget_config["options"] == ["a", "b"]
 
 
@@ -67,5 +75,7 @@ class TestPromotedPortAllowsCallable:
             widget_config={"options": _dynamic_options},
         )
         # Must NOT raise: promoted ports never serialize widget_config.
-        port = DataPort.from_spec(spec, library_system.get_type_registry(), None, None)
+        port = DataPort.from_spec(
+            cast(Any, spec), library_system.get_type_registry(), cast(Any, None), cast(Any, None)
+        )
         assert port.promoted is True

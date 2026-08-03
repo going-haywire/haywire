@@ -43,7 +43,8 @@ def test_poisoned_edge_skips_only_itself(graph_with_library_system, library_syst
     string_pid = type(a.node.example).__dict__["example_string"].storage_key
     edge1 = graph.create_edge_wrapper(a.node_id, float_pid, b.node_id, float_pid)
     edge2 = graph.create_edge_wrapper(a.node_id, string_pid, b.node_id, string_pid)
-    assert edge1 is not None and edge2 is not None
+    assert edge1 is not None
+    assert edge2 is not None
 
     data = graph.to_dict()
     assert len(data["edges"]) == 2
@@ -64,7 +65,8 @@ def test_poisoned_edge_skips_only_itself(graph_with_library_system, library_syst
     graph.clear()
     graph.load_from_dict(data)
 
-    assert a.node_id in graph.node_wrappers and b.node_id in graph.node_wrappers
+    assert a.node_id in graph.node_wrappers
+    assert b.node_id in graph.node_wrappers
     # The poisoned edge is gone; the healthy sibling edge after it still loads.
     assert first_edge_id not in graph.edge_wrappers
     assert second_edge_id in graph.edge_wrappers, "healthy edge must survive a poisoned sibling"

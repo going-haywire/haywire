@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.library.identity import LibraryIdentity
@@ -22,7 +24,7 @@ def _make_identity(**overrides) -> LibraryIdentity:
         id="test",
     )
     base.update(overrides)
-    return LibraryIdentity(**base)
+    return LibraryIdentity(**cast(Any, base))
 
 
 @pytest.mark.unit

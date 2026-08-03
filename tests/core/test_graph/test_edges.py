@@ -12,6 +12,40 @@ Tests connection behaviors between different port types:
 
 import pytest
 from haywire.core.graph.base import BaseGraph
+from haywire.core.edge.edge_wrapper import EdgeWrapper
+from haywire.core.node.node_wrapper import NodeWrapper
+
+
+def _make_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
+    """Create one EdgeLinkTestNode, failing loudly if the factory returns None.
+
+    ``create_node_wrapper`` is Optional-returning; every test here treats a
+    failed creation as a broken precondition rather than a scenario, so narrow
+    it once with a clear message instead of dereferencing None downstream.
+    """
+    from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+
+    wrapper = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=position)
+    assert wrapper is not None, f"node creation failed at {position}"
+    return wrapper
+
+
+def _link(
+    graph: BaseGraph,
+    source: NodeWrapper,
+    outlet: str,
+    sink: NodeWrapper,
+    inlet: str,
+    lazy: bool = False,
+) -> EdgeWrapper:
+    """Create an edge, asserting the wrapper exists.
+
+    A None here means the graph refused to build an edge at all — distinct from
+    building an *invalid* edge, which the tests assert on via ``edge.state``.
+    """
+    edge = graph.create_edge_wrapper(source.node_id, outlet, sink.node_id, inlet, lazy=lazy)
+    assert edge is not None, f"edge creation failed: {outlet} -> {inlet}"
+    return edge
 
 
 @pytest.mark.integration
@@ -22,24 +56,19 @@ class TestEdges:
     # Helpers
     # ------------------------------------------------------------------
 
-    def _create_two_nodes(self, graph: BaseGraph):
+    def _create_two_nodes(self, graph: BaseGraph) -> tuple[NodeWrapper, NodeWrapper]:
         """Create two EdgeLinkTestNode instances and return their wrappers."""
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        return _make_node(graph, (100, 100)), _make_node(graph, (300, 100))
 
-        node_a = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(100, 100))
-        node_b = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(300, 100))
-        return node_a, node_b
-
-    def _create_three_nodes(self, graph: BaseGraph):
+    def _create_three_nodes(self, graph: BaseGraph) -> tuple[NodeWrapper, NodeWrapper, NodeWrapper]:
         """Create three EdgeLinkTestNode instances and return their wrappers."""
-        from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
+        return (
+            _make_node(graph, (100, 100)),
+            _make_node(graph, (300, 100)),
+            _make_node(graph, (500, 100)),
+        )
 
-        node_a = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(100, 100))
-        node_b = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(300, 100))
-        node_c = graph.create_node_wrapper(EdgeLinkTestNode.class_identity.registry_key, position=(500, 100))
-        return node_a, node_b, node_c
-
-    def _get_port(self, node_wrapper, port_id):
+    def _get_port(self, node_wrapper: NodeWrapper, port_id: str):
         """Get a DataPort by id from a node wrapper."""
         return node_wrapper.node.ports[port_id]
 
@@ -52,7 +81,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
 
         assert edge is not None
         assert edge.state.is_valid()
@@ -72,8 +101,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "bool_inlet")
 
         assert edge_1 is not None
         assert edge_2 is not None
@@ -105,12 +134,12 @@ class TestEdges:
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
         # First: a valid bool→bool connection
-        edge_valid = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_valid = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
         assert edge_valid is not None
         assert edge_valid.state.is_valid()
 
         # Second: try to connect exec outlet → data inlet (cross flow-type)
-        edge_invalid = graph.create_edge_wrapper(node_b.node_id, "execute_out", node_c.node_id, "bool_inlet")
+        edge_invalid = _link(graph, node_b, "execute_out", node_c, "bool_inlet")
 
         # The invalid edge should not be functional
         assert not edge_invalid.state.is_functional()
@@ -134,11 +163,11 @@ class TestEdges:
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
         # First: int→int connection
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "int_outlet", node_c.node_id, "int_inlet")
+        edge_1 = _link(graph, node_a, "int_outlet", node_c, "int_inlet")
         assert edge_1.state.is_valid()
 
         # Second: bool→int connection (requires BoolToIntAdapter)
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "int_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "int_inlet")
         assert edge_2.state.is_valid()
 
         inlet_port = self._get_port(node_c, "int_inlet")
@@ -157,12 +186,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet"
-        )
-        edge_2 = graph.create_edge_wrapper(
-            node_b.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet"
-        )
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "pooled_bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "pooled_bool_inlet")
 
         assert edge_1 is not None
         assert edge_2 is not None
@@ -182,9 +207,9 @@ class TestEdges:
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
         # bool→pooled_int (requires BoolToIntAdapter)
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "pooled_int_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "pooled_int_inlet")
         # int→pooled_int (same type)
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "int_outlet", node_c.node_id, "pooled_int_inlet")
+        edge_2 = _link(graph, node_b, "int_outlet", node_c, "pooled_int_inlet")
 
         assert edge_1.state.is_valid()
         assert edge_2.state.is_valid()
@@ -197,8 +222,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
-        edge_2 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
+        edge_2 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
 
         assert edge_1.state.is_valid()
         assert edge_2.state.is_valid()
@@ -216,7 +241,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
 
         assert edge.state.is_valid()
         # ReturnAdapter has no registry keys
@@ -227,7 +252,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "int_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "int_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
@@ -237,7 +262,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "float_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "float_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 2
@@ -247,7 +272,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "string_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "string_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 3
@@ -262,9 +287,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "array_string_outlet", node_b.node_id, "pooled_array_string_inlet"
-        )
+        edge = _link(graph, node_a, "array_string_outlet", node_b, "pooled_array_string_inlet")
 
         assert edge.state.is_valid()
         # Same element type ARRAY[STRING] → ARRAY[STRING] = ReturnAdapter
@@ -284,9 +307,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "array_bool_outlet", node_b.node_id, "pooled_array_string_inlet"
-        )
+        edge = _link(graph, node_a, "array_bool_outlet", node_b, "pooled_array_string_inlet")
 
         assert edge.state.is_valid()
         # Should have adapter(s) for element conversion
@@ -306,7 +327,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "temperature_outlet", node_b.node_id, "float_inlet")
+        edge = _link(graph, node_a, "temperature_outlet", node_b, "float_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 0
@@ -322,9 +343,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "temperature_outlet", node_b.node_id, "string_inlet"
-        )
+        edge = _link(graph, node_a, "temperature_outlet", node_b, "string_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) >= 1
@@ -340,7 +359,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "float_outlet", node_b.node_id, "temperature_inlet")
+        edge = _link(graph, node_a, "float_outlet", node_b, "temperature_inlet")
 
         assert not edge.state.is_built
         assert edge.state.error_build is not None
@@ -354,7 +373,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_b.node_id, "execute_inlet")
+        edge = _link(graph, node_a, "execute_out", node_b, "execute_inlet")
 
         assert edge is not None
         assert edge.state.is_formally_validated
@@ -367,8 +386,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_b.node_id, "execute_inlet")
-        edge_2 = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_c.node_id, "execute_inlet")
+        edge_1 = _link(graph, node_a, "execute_out", node_b, "execute_inlet")
+        edge_2 = _link(graph, node_a, "execute_out", node_c, "execute_inlet")
 
         outlet_port = self._get_port(node_a, "execute_out")
         assert outlet_port.allow_multiple_links is False
@@ -389,8 +408,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_c.node_id, "execute_inlet")
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "execute_out", node_c.node_id, "execute_inlet")
+        edge_1 = _link(graph, node_a, "execute_out", node_c, "execute_inlet")
+        edge_2 = _link(graph, node_b, "execute_out", node_c, "execute_inlet")
 
         inlet_port = self._get_port(node_c, "execute_inlet")
         assert len(inlet_port._linked_edges) == 2
@@ -407,7 +426,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "callback_outlet", node_b.node_id, "callback_inlet")
+        edge = _link(graph, node_a, "callback_outlet", node_b, "callback_inlet")
 
         assert edge is not None
         assert edge.state.is_formally_validated
@@ -425,7 +444,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "execute_out", node_b, "bool_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -437,7 +456,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "execute_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "execute_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -449,7 +468,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_b.node_id, "callback_inlet")
+        edge = _link(graph, node_a, "execute_out", node_b, "callback_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -461,7 +480,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "callback_outlet", node_b.node_id, "execute_inlet")
+        edge = _link(graph, node_a, "callback_outlet", node_b, "execute_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -473,7 +492,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "callback_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "callback_outlet", node_b, "bool_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -485,7 +504,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "callback_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "callback_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -501,7 +520,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_outlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_outlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -513,7 +532,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_inlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_inlet", node_b, "bool_inlet")
 
         assert not edge.state.is_formally_validated
         assert edge.state.error_formal is not None
@@ -532,7 +551,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, _ = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_a.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_a, "bool_inlet")
 
         assert edge is not None
         assert not edge.state.is_formally_validated
@@ -548,7 +567,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
         assert edge.state.is_valid()
 
         outlet_port = self._get_port(node_a, "bool_outlet")
@@ -572,12 +591,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet"
-        )
-        edge_2 = graph.create_edge_wrapper(
-            node_b.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet"
-        )
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "pooled_bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "pooled_bool_inlet")
 
         assert edge_1.state.is_valid()
         assert edge_2.state.is_valid()
@@ -600,7 +615,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
 
         state = edge.state
         assert state.is_registered
@@ -619,7 +634,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "execute_out", node_b, "bool_inlet")
 
         state = edge.state
         assert not state.is_valid()
@@ -638,9 +653,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_b.node_id, "pooled_array_string_inlet"
-        )
+        edge = _link(graph, node_a, "bool_outlet", node_b, "pooled_array_string_inlet")
 
         assert not edge.state.is_built
         assert not edge.state.is_valid()
@@ -654,7 +667,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "int_outlet", node_b.node_id, "float_inlet")
+        edge = _link(graph, node_a, "int_outlet", node_b, "float_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
@@ -664,7 +677,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "int_outlet", node_b.node_id, "string_inlet")
+        edge = _link(graph, node_a, "int_outlet", node_b, "string_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 2
@@ -674,7 +687,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "float_outlet", node_b.node_id, "string_inlet")
+        edge = _link(graph, node_a, "float_outlet", node_b, "string_inlet")
 
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
@@ -737,8 +750,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "bool_inlet")
 
         inlet_port = self._get_port(node_c, "bool_inlet")
 
@@ -759,8 +772,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "bool_inlet")
 
         # edge_1 is displaced, edge_2 is active
         assert not edge_1.state.is_linked
@@ -786,7 +799,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
         assert edge.state.is_valid()
 
         outlet_port = self._get_port(node_a, "bool_outlet")
@@ -809,11 +822,11 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
         assert edge_1.state.is_valid()
 
         # Displace edge_1 at the inlet
-        graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        _link(graph, node_b, "bool_outlet", node_c, "bool_inlet")
 
         outlet_port_a = self._get_port(node_a, "bool_outlet")
 
@@ -834,11 +847,11 @@ class TestEdges:
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
         # Exec outlets are single-connection
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "execute_out", node_b.node_id, "execute_inlet")
+        edge_1 = _link(graph, node_a, "execute_out", node_b, "execute_inlet")
         assert edge_1.state.is_valid()
 
         # Displace edge_1 at the outlet
-        graph.create_edge_wrapper(node_a.node_id, "execute_out", node_c.node_id, "execute_inlet")
+        _link(graph, node_a, "execute_out", node_c, "execute_inlet")
 
         outlet_port_a = self._get_port(node_a, "execute_out")
         inlet_port_b = self._get_port(node_b, "execute_inlet")
@@ -862,8 +875,8 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "bool_inlet")
 
         # edge_1 is displaced; simulate hot reload failure
         edge_1._state.is_built = False
@@ -899,7 +912,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
         assert edge.state.is_valid()
 
         # Simulate node validation request (e.g. port reconfiguration)
@@ -928,7 +941,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
         assert edge.state.is_valid()
 
         # Remember old port objects
@@ -965,7 +978,7 @@ class TestEdges:
         node_a, node_b = self._create_two_nodes(graph)
 
         # bool→int requires BoolToIntAdapter
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "int_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "int_inlet")
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
 
@@ -994,8 +1007,8 @@ class TestEdges:
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
         # edge_1 will be displaced by edge_2
-        edge_1 = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
-        edge_2 = graph.create_edge_wrapper(node_b.node_id, "bool_outlet", node_c.node_id, "bool_inlet")
+        edge_1 = _link(graph, node_a, "bool_outlet", node_c, "bool_inlet")
+        edge_2 = _link(graph, node_b, "bool_outlet", node_c, "bool_inlet")
 
         assert not edge_1.state.is_linked
         assert edge_2.state.is_valid()
@@ -1026,7 +1039,7 @@ class TestEdges:
         node_b, _ = self._create_two_nodes(graph)
 
         # Connect to dynamic_outlet_1 (exists with default port_count=2)
-        edge = graph.create_edge_wrapper(dyn_node.node_id, "dynamic_outlet_1", node_b.node_id, "int_inlet")
+        edge = _link(graph, dyn_node, "dynamic_outlet_1", node_b, "int_inlet")
         assert edge.state.is_valid()
 
         # Reconfigure to port_count=1 — removes dynamic_inlet_1, dynamic_outlet_1
@@ -1052,7 +1065,7 @@ class TestEdges:
         node_b, _ = self._create_two_nodes(graph)
 
         # Connect to dynamic_outlet_0 (always present when count >= 1)
-        edge = graph.create_edge_wrapper(dyn_node.node_id, "dynamic_outlet_0", node_b.node_id, "int_inlet")
+        edge = _link(graph, dyn_node, "dynamic_outlet_0", node_b, "int_inlet")
         assert edge.state.is_valid()
 
         # Reconfigure to port_count=3 — dynamic_outlet_0 survives, adds 2
@@ -1081,7 +1094,7 @@ class TestEdges:
         node_b, _ = self._create_two_nodes(graph)
 
         # Connect to the static bool_outlet
-        edge = graph.create_edge_wrapper(dyn_node.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, dyn_node, "bool_outlet", node_b, "bool_inlet")
         assert edge.state.is_valid()
 
         # Reconfigure dynamic ports to 0 — removes all dynamic ports
@@ -1104,9 +1117,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet", lazy=True
-        )
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet", lazy=True)
 
         assert edge is not None
         assert edge.state.is_valid()
@@ -1118,9 +1129,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet", lazy=True
-        )
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet", lazy=True)
 
         # Serialize and check
         edge_dict = edge.edge.to_dict()
@@ -1128,9 +1137,7 @@ class TestEdges:
 
         # Eager edge should serialize as False
         node_c, _ = self._create_two_nodes(graph)
-        eager_edge = graph.create_edge_wrapper(
-            node_a.node_id, "int_outlet", node_c.node_id, "int_inlet", lazy=False
-        )
+        eager_edge = _link(graph, node_a, "int_outlet", node_c, "int_inlet", lazy=False)
         assert eager_edge.edge.to_dict()["is_lazy"] is False
 
     def test_eager_edge_defers_on_change(self, graph_with_library_system: BaseGraph, library_system):
@@ -1142,7 +1149,7 @@ class TestEdges:
         node_a, node_b = self._create_two_nodes(graph)
 
         # Connect bool→bool (eager, same type, no adapter)
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet")
         assert edge.state.is_valid()
 
         inlet_port = self._get_port(node_b, "bool_inlet")
@@ -1165,9 +1172,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet", lazy=True
-        )
+        edge = _link(graph, node_a, "bool_outlet", node_b, "bool_inlet", lazy=True)
         assert edge.state.is_valid()
 
         inlet_port = self._get_port(node_b, "bool_inlet")
@@ -1197,9 +1202,7 @@ class TestEdges:
         node_a, node_b = self._create_two_nodes(graph)
 
         # bool→int requires adapter (BoolToIntAdapter)
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_b.node_id, "int_inlet", lazy=True
-        )
+        edge = _link(graph, node_a, "bool_outlet", node_b, "int_inlet", lazy=True)
         assert edge.state.is_valid()
         assert len(edge.edge.chain_adapter_keys) == 1
 
@@ -1229,9 +1232,7 @@ class TestEdges:
         graph = graph_with_library_system
         node_a, node_b = self._create_two_nodes(graph)
 
-        edge = graph.create_edge_wrapper(
-            node_a.node_id, "int_outlet", node_b.node_id, "int_inlet", lazy=True
-        )
+        edge = _link(graph, node_a, "int_outlet", node_b, "int_inlet", lazy=True)
         assert edge.state.is_valid()
 
         inlet_port = self._get_port(node_b, "int_inlet")
@@ -1256,12 +1257,8 @@ class TestEdges:
         node_a, node_b, node_c = self._create_three_nodes(graph)
 
         # Both connect to pooled_bool_inlet on node_c
-        eager_edge = graph.create_edge_wrapper(
-            node_a.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet", lazy=False
-        )
-        lazy_edge = graph.create_edge_wrapper(
-            node_b.node_id, "bool_outlet", node_c.node_id, "pooled_bool_inlet", lazy=True
-        )
+        eager_edge = _link(graph, node_a, "bool_outlet", node_c, "pooled_bool_inlet", lazy=False)
+        lazy_edge = _link(graph, node_b, "bool_outlet", node_c, "pooled_bool_inlet", lazy=True)
         assert eager_edge.state.is_valid()
         assert lazy_edge.state.is_valid()
 

@@ -135,6 +135,7 @@ def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
             result = derive_share_url_only(repo)
 
     assert result.share_url is None
+    assert result.warning is not None
     assert "marketstall.toml" in result.warning
 
 

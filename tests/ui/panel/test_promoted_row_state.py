@@ -1,5 +1,7 @@
 """The Properties row marks a promoted field as inlet-driven (data-promoted)."""
 
+from typing import Any, cast
+
 import pytest
 from nicegui import Client, ui
 from nicegui import app as _app  # noqa: F401
@@ -34,7 +36,7 @@ def test_promoted_field_row_is_marked(make_node_with_setting):
 
     promote_setting(node, "filter", "threshold")
 
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:
@@ -46,7 +48,7 @@ def test_promoted_field_row_is_marked(make_node_with_setting):
 def test_unpromoted_field_row_is_not_marked(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
 
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:
@@ -88,7 +90,7 @@ def _menu_item_text(item) -> str:
     return ""
 
 
-def _menu_items(row) -> dict[str, object]:
+def _menu_items(row) -> dict[str, Any]:
     """Map of menu-item text -> MenuItem element inside the row's context menu."""
     return {_menu_item_text(el): el for el in _walk(row) if type(el).__name__ == "MenuItem"}
 
@@ -126,7 +128,8 @@ def test_promoted_unlinked_inlet_row_is_read_only(make_node_with_setting):
     assert _row_hint(row) == "promoted to inlet"
     assert not _has_editable_widget(row), "promoted inlet must render read-only, no editable widget"
     lbl = _find_promoted_label(row)
-    assert lbl is not None and lbl.text == "promoted"
+    assert lbl is not None
+    assert lbl.text == "promoted"
 
 
 def test_promoted_linked_inlet_row_shows_driven_hint(make_node_with_setting):
@@ -195,7 +198,7 @@ def _dirty_label(row) -> bool:
 
 
 def _render(node):
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:
@@ -304,7 +307,7 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
     demote_setting(node, pid)
     assert node.filter.is_locally_set("threshold")
 
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:
@@ -312,7 +315,8 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
 
         row = _find_field_row(anchor, "threshold")
         assert row is not None
-        assert _reset_enabled(row) and _dirty_label(row)
+        assert _reset_enabled(row)
+        assert _dirty_label(row)
 
         _click(_menu_items(row)["Reset to default"])
 
@@ -358,7 +362,8 @@ def test_menu_promote_click_promotes_inlet(make_node_with_setting):
 
     assert is_field_promoted(node.filter, "threshold")
     pid = type(node.filter).__dict__["threshold"].storage_key
-    assert pid in node.ports and node.ports[pid].is_inlet()
+    assert pid in node.ports
+    assert node.ports[pid].is_inlet()
 
 
 def test_menu_promote_click_promotes_outlet(make_node_with_setting):
@@ -367,7 +372,8 @@ def test_menu_promote_click_promotes_outlet(make_node_with_setting):
     _click(_menu_items(row)["Promote to outlet"])
 
     pid = type(node.filter).__dict__["threshold"].storage_key
-    assert pid in node.ports and not node.ports[pid].is_inlet()
+    assert pid in node.ports
+    assert not node.ports[pid].is_inlet()
 
 
 def test_menu_demote_click_demotes(make_node_with_setting):
@@ -470,7 +476,8 @@ def test_promoted_config_row_is_read_only(make_node_with_setting):
     assert _row_hint(row) == "promoted to config"
     assert not _has_editable_widget(row), "promoted config must render read-only, no editable widget"
     lbl = _find_promoted_label(row)
-    assert lbl is not None and lbl.text == "promoted"
+    assert lbl is not None
+    assert lbl.text == "promoted"
 
 
 def test_promoted_config_row_reset_is_meaningless(make_node_with_setting):

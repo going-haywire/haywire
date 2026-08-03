@@ -12,6 +12,8 @@ edges, 11 NumberWidgets each) without tracking stale keys.
 from __future__ import annotations
 
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
@@ -52,7 +54,7 @@ def nicegui_slot_context():
     if not _CLIENT:
         # Materialize NiceGUI's default client/slot once and cache it. The client
         # persists across the per-test Slot.stacks reset; only the stack is cleared.
-        _CLIENT.append(Client(_noop_page, request=None))
+        _CLIENT.append(Client(cast(Any, _noop_page), request=None))
     with _CLIENT[0]:
         yield
 

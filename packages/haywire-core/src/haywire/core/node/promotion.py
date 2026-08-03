@@ -106,7 +106,7 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
         "label": getattr(descriptor, "_label", "") or getattr(descriptor, "_attr_name", ""),
         "description": getattr(descriptor, "_description", "") or "",
         "order": getattr(descriptor, "_order", 0),
-        "type_cls": getattr(descriptor, "_type"),
+        "type_cls": descriptor._type,
     }
     widget_key = getattr(descriptor, "widget_key", "")
     if widget_key:

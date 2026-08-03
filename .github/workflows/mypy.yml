@@ -38,3 +38,4 @@ jobs:
         barn/haybale-testing/haybale_testing/
         barn/haybale-example/haybale_example/
         barn/haybale-TEST_A/haybale_test_a/
+        tests/

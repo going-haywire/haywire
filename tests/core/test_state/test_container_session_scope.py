@@ -20,6 +20,7 @@ Covers:
 """
 
 import logging
+from typing import Any
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
@@ -50,7 +51,7 @@ def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
     )
 
 
-def make_added_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
+def make_added_event(cls: Any, lib_id: LibraryIdentity) -> LifeCycleEvent:
     return LifeCycleEvent(
         registry_key=cls.class_identity.registry_key,
         event_type=LifeCycleEventType.CLASS_ADDED,
@@ -59,7 +60,7 @@ def make_added_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
     )
 
 
-def make_removed_event(cls: type, lib_id: LibraryIdentity) -> LifeCycleEvent:
+def make_removed_event(cls: Any, lib_id: LibraryIdentity) -> LifeCycleEvent:
     return LifeCycleEvent(
         registry_key=cls.class_identity.registry_key,
         event_type=LifeCycleEventType.CLASS_REMOVED,

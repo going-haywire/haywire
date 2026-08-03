@@ -1,6 +1,7 @@
 """Regression tests for on_context reveal dispatch (singleton tab per class)."""
 
 from types import SimpleNamespace
+from typing import Any, cast
 
 from haywire.core.session.signals import Reveal
 from haywire.ui.app.shell import AppShell
@@ -23,7 +24,7 @@ class _FakeSession:
                 bottom=SimpleNamespace(tabs=[], active_tab_key=None, visible=False, size=200),
             )
         )
-        self._editors = {}
+        self._editors: dict = {}
 
     def subscribe(self, _event_type, _handler):
         return lambda: None
@@ -75,16 +76,16 @@ class _FakeTabbedSlot(TabSlot):
     active_binding = None  # type: ignore[assignment]
     active_binding_id = None  # type: ignore[assignment]
     visible = None  # type: ignore[assignment]
-    bindings = None  # type: ignore[assignment]
+    bindings: list = None  # type: ignore[assignment]
 
     def __init__(self, name: str) -> None:
         # Bypass Slot.__init__ — we manage all state as plain attributes.
-        self.name = name
-        self.bindings: list[_FakeBinding] = []
-        self.active_key: str | None = None
-        self.active_binding: _FakeBinding | None = None
+        self.name = name  # type: ignore[assignment]
+        self.bindings = []
+        self.active_key = None
+        self.active_binding = None
 
-    def find_binding(self, editor_key: str, binding_id):
+    def find_binding(self, editor_key: str, binding_id):  # type: ignore[override]
         for b in self.bindings:
             if b.editor_key == editor_key and b.binding_id == binding_id:
                 return b
@@ -133,12 +134,12 @@ def _build_test_shell_with_editors(entries: list[tuple]) -> tuple:
     classes = {key: _make_editor_cls(key, slot, opens) for key, slot, opens in entries}
     registry = _FakeEditorRegistry(classes)
     session = _FakeSession()
-    shell = AppShell(session=session, editor_registry=registry)
+    shell = AppShell(session=cast(Any, session), editor_registry=cast(Any, registry))
 
     # Replace managed slots with fake tabbed slots for all referenced slots.
     slot_names = {slot for _, slot, _ in entries}
     for slot_name in slot_names:
-        shell._managed_slots[slot_name] = _FakeTabbedSlot(slot_name)
+        shell._managed_slots[cast(Any, slot_name)] = _FakeTabbedSlot(slot_name)
 
     return shell, session
 
@@ -146,6 +147,7 @@ def _build_test_shell_with_editors(entries: list[tuple]) -> tuple:
 def _reveal(shell: AppShell, registry_key: str, binding_id=None) -> None:
     """Look up the editor class on the shell and dispatch a Reveal for it."""
     editor_cls = shell._editor_registry.get_by_key(registry_key)
+    assert editor_cls is not None, registry_key
     shell._reveal_editor(Reveal(editor=editor_cls, binding_id=binding_id))
 
 

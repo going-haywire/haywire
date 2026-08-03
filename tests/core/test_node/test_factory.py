@@ -45,7 +45,7 @@ class TestNodeFactory:
 
         # Now both the test and NodeWrapper see the same registry
         graph = graph_with_library_system
-        created_node = graph.create_node_wrapper("certainly.nonexistent.node", [50, 50])
+        created_node = graph.create_node_wrapper("certainly.nonexistent.node", (50, 50))
 
         error_node = node_registry._get_error_node()
         assert error_node is not None  # Now it exists!

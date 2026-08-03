@@ -29,6 +29,7 @@ from haybale_testing.widgets.oversized_content_widget import (
     CONTENT_WIDTH,
 )
 from tests.ui.harness.nav import goto_ready
+from tests.ui.harness.probe import attr
 
 _URL = "http://localhost:8090/graph-widget-box"
 
@@ -36,7 +37,7 @@ pytestmark = pytest.mark.ui
 
 
 def _node_id(page: Page, which: str) -> str:
-    return page.get_attribute(f"#{which}-node-id", "data-node")
+    return attr(page, f"#{which}-node-id", "data-node")
 
 
 def _slot_box(page: Page, node_id: str) -> dict:
@@ -205,7 +206,7 @@ def test_declared_box_frees_the_node_to_shrink(page: Page, harness, which):
 
 
 @pytest.mark.parametrize(
-    "which,attr",
+    ("which", "attr"),
     [("aspect", "data-hw-widget-inline-box"), ("fixed", "data-hw-widget-box")],
 )
 def test_removing_the_marker_restores_the_content_floor(page: Page, harness, which, attr):

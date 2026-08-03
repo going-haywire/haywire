@@ -10,7 +10,7 @@ PORT_NODE_KEY = "example:node:MathOP"
 SETTINGS_NODE_KEY = "testing:node:SettingsNode"
 
 
-@pytest.fixture()
+@pytest.fixture
 def graph_and_editor(library_system):
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor

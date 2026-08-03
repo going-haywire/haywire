@@ -14,7 +14,7 @@ def test_widget_decorator_no_longer_requires_compatible_types():
 def test_widget_decorator_rejects_compatible_types():
     import pytest
 
-    with pytest.raises(TypeError):
+    with pytest.raises(TypeError):  # noqa: PT012 (the decorator is the call under test)
 
         @widget(description="legacy", compatible_types=set())
         class W(BaseWidget):

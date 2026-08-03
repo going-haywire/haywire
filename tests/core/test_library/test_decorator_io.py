@@ -113,7 +113,7 @@ def test_merge_raises_on_missing_file(tmp_path: Path):
     must not swallow it, since apply_drift_replace relies on it propagating
     through its ManifestError translation boundary."""
     missing = tmp_path / "does_not_exist" / "__init__.py"
-    with pytest.raises(OSError):
+    with pytest.raises(FileNotFoundError):
         merge_decorator_list_field(missing, "dependencies", ["x"], mode="replace")
 
 

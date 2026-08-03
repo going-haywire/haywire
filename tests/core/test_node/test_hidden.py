@@ -7,6 +7,8 @@ the converged behaviour that an empty ``menu=""`` routes a *visible* node to the
 top-level ``misc`` category rather than hiding it.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.node import node, BaseNode, NodeFactory, NodeRegistry
@@ -25,8 +27,8 @@ def test_hidden_node_absent_from_menu(node_registry: NodeRegistry):
         def init(self):
             pass
 
-    node_registry._register_class(VisibleNode, VisibleNode.class_library)
-    node_registry._register_class(HiddenNode, HiddenNode.class_library)
+    node_registry._register_class(cast(Any, VisibleNode), VisibleNode.class_library)
+    node_registry._register_class(cast(Any, HiddenNode), HiddenNode.class_library)
 
     factory = NodeFactory(node_registry)
 
@@ -51,7 +53,7 @@ def test_empty_menu_routes_visible_node_to_misc(node_registry: NodeRegistry):
         def init(self):
             pass
 
-    node_registry._register_class(UncategorizedNode, UncategorizedNode.class_library)
+    node_registry._register_class(cast(Any, UncategorizedNode), UncategorizedNode.class_library)
 
     menu = NodeFactory(node_registry).get_menu_structure()
     assert "misc" in menu

@@ -4,6 +4,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
+from typing import Any, cast
+
 import pytest
 from unittest.mock import MagicMock, patch
 
@@ -193,7 +195,7 @@ async def test_dry_run_passes_constraints_file():
     async def fake_run(args, on_output):
         captured["args"] = list(args)
         idx = args.index("-c")
-        captured["body"] = Path(args[idx + 1]).read_text()
+        captured["body"] = cast(Any, Path(args[idx + 1]).read_text())
         return True, ""
 
     with patch.object(mgr, "_framework_constraints", return_value=["haywire-core==0.0.34"]):
@@ -224,7 +226,8 @@ async def test_install_passes_identical_flags_to_dry_run():
     install_flags = [a for a in seen[1] if a.startswith("-") and a != "-c"]
     assert dry_flags == ["--dry-run", "--no-sources"]
     assert install_flags == ["--no-sources"]
-    assert "-c" in seen[0] and "-c" in seen[1]
+    assert "-c" in seen[0]
+    assert "-c" in seen[1]
 
 
 @pytest.mark.unit

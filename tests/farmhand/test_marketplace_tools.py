@@ -21,7 +21,8 @@ def _call(farmhand_call, tool: str, args: dict):
 
 def test_list_available_returns_paginated_catalog(farmhand_call):
     result = call_tool_json(_call(farmhand_call, "marketplace_list_available", {"limit": 10, "offset": 0}))
-    assert "total" in result and "haybales" in result  # may be empty in a test workspace
+    assert "total" in result
+    assert "haybales" in result
 
 
 def test_get_library_docs_for_installed_library(farmhand_call):

@@ -89,6 +89,24 @@ class TestSimpleModeCharacterization:
         bag.strength = 0.9
         assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
 
+    def test_to_dict_omits_field_written_back_to_its_default(self):
+        """A field set away from its default and then back is NOT serialized.
+
+        ``to_dict`` gates on two independent conditions — ``_is_locally_set``
+        AND ``value != default``. Writing back to the default is the only input
+        that separates them: unlike ``reset()``, it leaves the field locally set
+        (see ``test_set_to_default_value_still_marks_locally_set`` for the
+        never-written echo-guard case), so ONLY the value comparison keeps it
+        out of ``values``. Without this case, dropping that comparison from
+        ``to_dict`` passes every other test in this file.
+        """
+        bag = SimpleBag()
+        bag.strength = 0.9
+        bag.strength = 0.5  # back to the default, without reset()
+
+        assert bag.is_locally_set("strength")  # still an override on the cell
+        assert bag.to_dict() == {"values": {}, "promoted": {}}
+
     def test_from_dict_notifies_attached_subscribers(self):
         # Subscription rides the cell event (ADR 0016): the restore writes the
         # cell, so an already-attached subscriber sees it. Load-time restores

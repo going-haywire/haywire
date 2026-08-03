@@ -896,14 +896,15 @@ _global_injector: Optional[Injector] = None
 _global_library_system: Optional[LibrarySystemService] = None
 
 
-def set_global_injector(injector: Injector) -> None:
+def set_global_injector(injector: Injector | None) -> None:
     """
     Set the global DI injector.
 
     This should be called during application initialization.
 
     Args:
-        injector: The configured injector to use globally
+        injector: The configured injector to use globally (or None to clear,
+            as test teardown does — mirrors ``set_library_system``)
     """
     global _global_injector
     _global_injector = injector

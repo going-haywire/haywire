@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 from types import SimpleNamespace
-from typing import Optional
+from typing import Any, Optional, cast
 from unittest.mock import MagicMock
 
 from haywire.core.session.signals import ActiveGraphMoved
@@ -96,7 +96,7 @@ def _make_context(entry: Optional[_FakeEntry], existing_active_graph=None):
         data=data,
         app_data=app_data,
     )
-    session.context = ctx
+    session.context = ctx  # type: ignore[assignment]
     return ctx
 
 
@@ -167,5 +167,5 @@ def test_on_focus_missing_entry_force_closes_via_wrapper() -> None:
 
     # Editor closes itself via wrapper.force_close — no event emitted.
     assert ctx.session.signals == []
-    assert ed.wrapper.force_close_calls == [True]
+    assert cast(Any, ed.wrapper).force_close_calls == [True]
     assert ctx.data.edit_stub.active_graph is None

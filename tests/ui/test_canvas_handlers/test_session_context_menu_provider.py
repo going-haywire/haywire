@@ -6,6 +6,8 @@ Verifies that the provider:
 - Clears active_port/active_edge when the popup close callback is invoked
 """
 
+from typing import Any, cast
+
 import importlib
 from unittest.mock import MagicMock, patch
 
@@ -77,7 +79,7 @@ def make_context(register_edit_state, session=None) -> tuple[SessionContext, typ
     sid = "test-session"
     EditStateCls = register_edit_state(app.library_state_container, sid)
 
-    ctx = SessionContext(session_id=sid, app=app)
+    ctx = SessionContext(session_id=sid, app=cast(Any, app))
     ctx.session = session or MagicMock()
     return ctx, EditStateCls
 
@@ -131,7 +133,7 @@ def test_panels_that_return_false_from_poll_are_not_drawn(register_edit_state):
         registry_id="always_false_panel",
     )
     class AlwaysFalsePanel(BasePanel):
-        actions: SelectionContextActions
+        actions: Any
 
         @classmethod
         def poll(cls, context):
@@ -165,7 +167,7 @@ def test_panels_that_return_true_from_poll_are_drawn(register_edit_state):
         registry_id="always_true_panel",
     )
     class AlwaysTruePanel(BasePanel):
-        actions: SelectionContextActions
+        actions: Any
 
         @classmethod
         def poll(cls, context):
@@ -199,7 +201,7 @@ def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
         registry_id="edge_only_panel",
     )
     class EdgeOnlyPanel(BasePanel):
-        actions: EdgeContextActions
+        actions: Any
 
         @classmethod
         def poll(cls, context):
@@ -225,7 +227,7 @@ def test_panels_for_wrong_focus_are_not_drawn(register_edit_state):
 def test_close_callback_clears_active_port_and_edge(register_edit_state):
     session = MagicMock()
     ctx, EditStateCls = make_context(register_edit_state, session=session)
-    edit = ctx.data[EditStateCls]
+    edit: Any = ctx.data[EditStateCls]
     edit.active_port = MagicMock()
     edit.active_edge = MagicMock()
     SelectionContextActions = _current_actions().SelectionContextActions
@@ -239,7 +241,7 @@ def test_close_callback_clears_active_port_and_edge(register_edit_state):
         registry_id="close_cb_panel",
     )
     class _Panel(BasePanel):
-        actions: SelectionContextActions
+        actions: Any
 
         @classmethod
         def poll(cls, context):
@@ -266,7 +268,7 @@ def test_close_cleanup_runs_immediately_when_no_panels_visible(register_edit_sta
     """No visible panel → gesture ends at once: active_port/edge cleared without an opened popup."""
     session = MagicMock()
     ctx, EditStateCls = make_context(register_edit_state, session=session)
-    edit = ctx.data[EditStateCls]
+    edit: Any = ctx.data[EditStateCls]
     edit.active_port = MagicMock()
     edit.active_edge = MagicMock()
     registry = PanelRegistry()

@@ -10,6 +10,7 @@ Verifies:
 
 import sys
 from types import SimpleNamespace
+from typing import Any, cast
 
 from unittest.mock import MagicMock, patch
 
@@ -40,7 +41,7 @@ def make_context(register_edit_state) -> tuple[SessionContext, type]:
     container = LibraryStateContainer(LibraryStateRegistry())
     sid = "test"
     EditStateCls = register_edit_state(container, sid)
-    ctx = attach_stub_session(SessionContext(session_id=sid, app=_make_app(container)))
+    ctx = attach_stub_session(SessionContext(session_id=sid, app=cast(Any, _make_app(container))))
     return ctx, EditStateCls
 
 

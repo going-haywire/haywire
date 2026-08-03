@@ -79,7 +79,8 @@ def test_render_component_node_lists_ports():
     )
     out = render_component(rec)
     assert "lib:node:resize" in out
-    assert "img" in out and "inlet" in out
+    assert "img" in out
+    assert "inlet" in out
     assert "Does the resize." in out  # verbatim docstring
 
 

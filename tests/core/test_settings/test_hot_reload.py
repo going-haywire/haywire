@@ -42,7 +42,6 @@ class TestRegisterSchema:
         registry = SettingsRegistry()
         registry.register_schema(_HotGS)
 
-        assert hasattr(_HotGS, "class_identity")
         assert _HotGS.class_identity.namespace == "hot.gs"
 
 

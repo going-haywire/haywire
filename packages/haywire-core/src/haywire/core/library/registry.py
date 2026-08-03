@@ -395,7 +395,7 @@ class LibraryRegistry:
 
         # Register all instantiated libraries
         logger.info("\n📝 Registering libraries...")
-        for library_id, library_instance in instantiated_libraries.items():
+        for _library_id, library_instance in instantiated_libraries.items():
             self._register_library_instance(library_instance)
 
         # Check for removed libraries
@@ -510,7 +510,7 @@ class LibraryRegistry:
             logger.error(
                 f"Library {library_folder_name}: Failed instantiating {e} \n {traceback.format_exc()}"
             )
-            raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}")
+            raise LibraryLoadError(f"Failed instantiating library {library_folder_name}: {e}") from e
 
     def _bundled_module_path(self, library_path: str) -> Optional[str]:
         """Return the dotted import path for a library bundled inside the installed

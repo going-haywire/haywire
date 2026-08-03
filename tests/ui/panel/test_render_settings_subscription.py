@@ -13,6 +13,8 @@ is pure callback bookkeeping on the model, observable on Settings._subscriptions
 (callback -> cell adapters, ADR 0016).
 """
 
+from typing import Any, cast
+
 import pytest
 
 
@@ -34,7 +36,7 @@ def _noop_page() -> None:  # registration target for a headless Client
 @pytest.fixture
 def client() -> Client:
     """A headless NiceGUI client whose slot stack render_settings can build into."""
-    return Client(_noop_page, request=None)
+    return Client(cast(Any, _noop_page), request=None)
 
 
 def _make_bag():

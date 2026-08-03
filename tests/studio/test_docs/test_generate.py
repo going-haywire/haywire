@@ -2,6 +2,8 @@ import shutil
 import subprocess
 from pathlib import Path
 
+from typing import Any, cast
+
 import pytest
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.registry import LibraryRegistry
@@ -223,8 +225,8 @@ def test_library_id_for_path_raises_on_ambiguous_shared_parent(tmp_path):
     lib_b_folder.mkdir(parents=True)
 
     registry = LibraryRegistry()
-    registry._libraries["lib_a"] = _FakeLibrary(_make_identity("lib_a", lib_a_folder))
-    registry._libraries["lib_b"] = _FakeLibrary(_make_identity("lib_b", lib_b_folder))
+    registry._libraries["lib_a"] = cast(Any, _FakeLibrary)(_make_identity("lib_a", lib_a_folder))
+    registry._libraries["lib_b"] = cast(Any, _FakeLibrary)(_make_identity("lib_b", lib_b_folder))
 
     service = _FakeService(registry)
 
@@ -243,8 +245,8 @@ def test_library_id_for_path_resolves_unambiguous_exact_and_nested_paths(tmp_pat
     lib_b_folder.mkdir(parents=True)
 
     registry = LibraryRegistry()
-    registry._libraries["lib_a"] = _FakeLibrary(_make_identity("lib_a", lib_a_folder))
-    registry._libraries["lib_b"] = _FakeLibrary(_make_identity("lib_b", lib_b_folder))
+    registry._libraries["lib_a"] = cast(Any, _FakeLibrary)(_make_identity("lib_a", lib_a_folder))
+    registry._libraries["lib_b"] = cast(Any, _FakeLibrary)(_make_identity("lib_b", lib_b_folder))
 
     service = _FakeService(registry)
 

@@ -3,6 +3,8 @@ batch redraw/revalidate/reset, poll contracts)."""
 
 from unittest.mock import MagicMock
 
+from typing import Any, cast
+
 import pytest
 
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
@@ -101,11 +103,11 @@ def test_copy_and_delete_panels_use_count_aware_labels(monkeypatch):
 
     panel = DeleteSelectionPanel()
     panel.actions = actions
-    panel.draw(ctx, _FakeLayout())
+    panel.draw(ctx, cast(Any, _FakeLayout()))
 
     panel2 = CopySelectionPanel()
     panel2.actions = actions
-    panel2.draw(ctx, _FakeLayout())
+    panel2.draw(ctx, cast(Any, _FakeLayout()))
 
     assert "Delete 3 Nodes" in rendered_labels
     assert "Copy 3 Nodes" in rendered_labels

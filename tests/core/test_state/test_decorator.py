@@ -74,7 +74,7 @@ class TestStateDecorator:
             pass
 
         with pytest.raises(TypeError, match="@state can only be applied"):
-            state()(_NotAState)
+            state()(_NotAState)  # type: ignore[type-var]
 
     def test_rejects_bare_library_state_subclass(self):
         from haywire.core.state import LibraryState
@@ -85,4 +85,4 @@ class TestStateDecorator:
             pass
 
         with pytest.raises(TypeError, match="@state can only be applied"):
-            state()(_BareMarker)
+            state()(_BareMarker)  # type: ignore[type-abstract]

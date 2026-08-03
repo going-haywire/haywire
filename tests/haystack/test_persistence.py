@@ -3,6 +3,7 @@
 from pathlib import Path
 from unittest.mock import MagicMock
 
+
 import pytest
 
 
@@ -85,7 +86,7 @@ def test_dump_includes_execute_flag_for_running_entries(tmp_workspace):
 
     entry = GraphEntry(graph=g, editor=MagicMock(), path=p, unsaved=False)
     # Mark it as currently executing
-    entry.interpreter = MagicMock()
+    entry.interpreter = MagicMock()  # type: ignore[method-assign]
     entry.interpreter.is_executing = True
 
     state = MagicMock()
@@ -460,7 +461,9 @@ def test_load_skips_graph_whose_autostart_fails(tmp_workspace, caplog):
     (tmp_workspace / "haystacks" / "mix.toml").write_text(toml.dumps(toml_doc))
 
     bad_entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=g2, unsaved=False)
-    bad_entry.start_execution = MagicMock(return_value=CompileResult(ok=False, error="broken graph"))
+    bad_entry.start_execution = MagicMock(  # type: ignore[method-assign]
+        return_value=CompileResult(ok=False, error="broken graph")
+    )
     ok_entry = GraphEntry(graph=MagicMock(), editor=MagicMock(), path=g1, unsaved=False)
 
     state = MagicMock()

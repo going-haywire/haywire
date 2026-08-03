@@ -1,5 +1,7 @@
 """Unit tests for node_data-carrying creation and the paste action."""
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.graph.base import BaseGraph
@@ -39,7 +41,7 @@ def test_add_node_action_forwards_node_data():
             seen["node_data"] = node_data
             return object()
 
-    action = AddNodeAction(graph=_G(), registry_key="k", position=(0, 0), node_data={"a": 1})
+    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_data={"a": 1})
     action._execute_impl()
     assert seen["node_data"] == {"a": 1}
 
@@ -54,7 +56,7 @@ def test_add_node_action_default_node_data_is_none():
             seen["node_data"] = node_data
             return object()
 
-    action = AddNodeAction(graph=_G(), registry_key="k", position=(0, 0))
+    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0))
     action._execute_impl()
     assert seen["node_data"] is None
 
@@ -77,7 +79,7 @@ def test_add_node_action_redo_reuses_wrapper_without_recreating():
             assert wrapper is sentinel  # redo re-adds the SAME built wrapper
             return wrapper
 
-    action = AddNodeAction(graph=_G(), registry_key="k", position=(0, 0), node_data={"a": 1})
+    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_data={"a": 1})
     action._execute_impl()  # first execution -> create
     action._execute_impl()  # redo -> add, NOT create
     assert calls["create"] == 1
@@ -124,7 +126,7 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
         def generate_unique_node_id(self, prefix="node"):
             return next(ids)
 
-    action = PasteClipboardAction(graph=_G(), payload=payload, paste_x=0.0, paste_y=0.0)
+    action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
 
     node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
     edge_actions = [a for a in action.actions if isinstance(a, AddEdgeAction)]
@@ -132,9 +134,10 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
     # node_data carries the original "v" plus the overwritten paste position in
     # props' "values" block — the ADR 0019 nested shape from_dict restores from
     # (so build()'s _initialize_from_dict restore lands the paste point).
-    assert {a.node_data["v"] for a in node_actions} == {1, 2}
+    assert {cast(dict, a.node_data)["v"] for a in node_actions} == {1, 2}
     assert all(
-        "posX" in a.node_data["props"]["values"] and "posY" in a.node_data["props"]["values"]
+        "posX" in cast(dict, a.node_data)["props"]["values"]
+        and "posY" in cast(dict, a.node_data)["props"]["values"]
         for a in node_actions
     )
     assert len(edge_actions) == 1
@@ -159,7 +162,7 @@ def test_paste_builds_actions_for_unknown_registry_keys_too():
         def generate_unique_node_id(self, prefix="node"):
             return "new_x"
 
-    action = PasteClipboardAction(graph=_G(), payload=payload, paste_x=0.0, paste_y=0.0)
+    action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
     node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
     assert [a.registry_key for a in node_actions] == ["totally.unknown"]
 
@@ -180,7 +183,7 @@ def test_paste_offsets_positions_to_paste_point():
 
     # paste at (500, 600): offset = (500-100, 600-200) = (400, 400)
     # node at (100,200) -> (100+400, 200+400) = (500, 600)
-    action = PasteClipboardAction(graph=_G(), payload=payload, paste_x=500.0, paste_y=600.0)
+    action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=500.0, paste_y=600.0)
     node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
     assert len(node_actions) == 1
     assert node_actions[0].position == (500.0, 600.0)
@@ -209,7 +212,7 @@ def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
             "generate_unique_node_id": lambda self, prefix="node": "new_x",
         },
     )()
-    ed.history_manager = _HM()
+    ed.history_manager = cast(Any, _HM())
 
     result = ed.paste_clipboard(payload, 10.0, 20.0)
     # Returns (new_node_ids, new_edge_ids) so callers can auto-select the paste.
@@ -228,7 +231,7 @@ def test_add_node_action_forwards_node_id():
             seen["node_id"] = node_id
             return object()
 
-    action = AddNodeAction(graph=_G(), registry_key="k", position=(0, 0), node_id="pre_minted_1")
+    action = AddNodeAction(graph=cast(Any, _G)(), registry_key="k", position=(0, 0), node_id="pre_minted_1")
     action._execute_impl()
     assert seen["node_id"] == "pre_minted_1"
 
@@ -250,7 +253,7 @@ def test_paste_node_actions_carry_pre_minted_ids():
         def generate_unique_node_id(self, prefix="node"):
             return next(ids)
 
-    action = PasteClipboardAction(graph=_G(), payload=payload, paste_x=0.0, paste_y=0.0)
+    action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
     node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
     assert {a.node_id for a in node_actions} == {"mint_a", "mint_b"}
 
@@ -330,14 +333,15 @@ def test_paste_execution_edge_connects_created_nodes():
             return None
 
     graph = _RecordingGraph()
-    action = PasteClipboardAction(graph=graph, payload=payload, paste_x=0.0, paste_y=0.0)
+    action = PasteClipboardAction(graph=cast(Any, graph), payload=payload, paste_x=0.0, paste_y=0.0)
 
     # EXECUTE the composite (this is what unit tests never did).
     action._execute_impl()
 
     # Two new nodes created, ids differ from originals (n1/n2).
     assert len(graph.node_wrappers) == 2
-    assert "n1" not in graph.node_wrappers and "n2" not in graph.node_wrappers
+    assert "n1" not in graph.node_wrappers
+    assert "n2" not in graph.node_wrappers
 
     # Exactly one edge, connecting the two CREATED node ids (remap agreed).
     assert len(graph.edges) == 1
@@ -367,7 +371,7 @@ def test_editor_paste_clipboard_returns_none_on_error():
 
     ed = Editor.__new__(Editor)
     ed.graph = type("G", (), {"generate_unique_node_id": lambda self, prefix="node": "new_x"})()
-    ed.history_manager = _HM()
+    ed.history_manager = cast(Any, _HM())
 
     assert ed.paste_clipboard(payload, 0.0, 0.0) is None
 
@@ -410,7 +414,7 @@ class TestPasteExecutionIntegration:
         assert len(payload["nodes"]) == 2
         assert len(payload["edges"]) == 1  # both-endpoints edge retained
 
-        action = PasteClipboardAction(graph=graph, payload=payload, paste_x=500.0, paste_y=500.0)
+        action = PasteClipboardAction(graph=cast(Any, graph), payload=payload, paste_x=500.0, paste_y=500.0)
         # EXECUTE the paste against the real graph (the missing test category).
         action._execute_impl()
 
@@ -474,7 +478,9 @@ class TestPasteExecutionIntegration:
         # Paste at a DIFFERENT point; single-node bbox.min == node pos, so the
         # offset lands the node exactly at the paste point.
         paste_x, paste_y = 1234.0, 4321.0
-        action = PasteClipboardAction(graph=graph, payload=payload, paste_x=paste_x, paste_y=paste_y)
+        action = PasteClipboardAction(
+            graph=cast(Any, graph), payload=payload, paste_x=paste_x, paste_y=paste_y
+        )
         action._execute_impl()
 
         new_node_ids = set(graph.node_wrappers.keys()) - original_ids

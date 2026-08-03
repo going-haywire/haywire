@@ -50,7 +50,9 @@ def _expected_size(extent: float) -> int:
 def _trigger_validation(graph: BaseGraph) -> ValidationResult:
     """Mark a synthetic dirty node and force an immediate validation batch."""
     graph._validation.mark_node_dirty("_synthetic_", ChangeReason.NODE_MOVED)
-    return graph._validation.force_immediate_validation()
+    result = graph._validation.force_immediate_validation()
+    assert result is not None, "forced validation produced no result"
+    return result
 
 
 # ---------------------------------------------------------------------------

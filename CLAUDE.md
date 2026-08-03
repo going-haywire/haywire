@@ -77,7 +77,7 @@ uv run ruff check .                          # lint (line-length = 109)
 uv run ruff format --check .                 # verify formatting — same as CI; fails on drift
 uv run ruff format .                         # apply formatting in place to FIX drift, then re-commit
 # type checking (haybale-visiongraph is a gitignored local-only symlink — excluded so this matches CI)
-uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale-core/haybale_core/ barn/haybale-studio/haybale_studio/ barn/haybale-testing/haybale_testing/ barn/haybale-example/haybale_example/ barn/haybale-TEST_A/haybale_test_a/
+uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale-core/haybale_core/ barn/haybale-studio/haybale_studio/ barn/haybale-testing/haybale_testing/ barn/haybale-example/haybale_example/ barn/haybale-TEST_A/haybale_test_a/ tests/
 ```
 
 ## Traps and gotchas

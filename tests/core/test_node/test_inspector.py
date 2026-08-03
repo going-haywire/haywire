@@ -17,7 +17,8 @@ def test_ports_returns_portinfo_with_schema_shape(graph_with_library_system):
     assert ports
     for p in ports:
         assert isinstance(p, PortInfo)
-        assert isinstance(p.id, str) and p.id
+        assert isinstance(p.id, str)
+        assert p.id
         assert p.direction in ("inlet", "outlet", "config")
         assert p.flow_type in ("data", "control", "callback", "none")
         assert isinstance(p.hidden, bool)
@@ -53,9 +54,12 @@ def test_settings_returns_settinginfo_with_resolved_defaults(graph_with_library_
     assert settings
     for s in settings:
         assert isinstance(s, SettingInfo)
-        assert isinstance(s.name, str) and s.name
-        assert isinstance(s.bag, str) and s.bag
-        assert isinstance(s.category, str) and s.category  # never "" — "root" default
+        assert isinstance(s.name, str)
+        assert s.name
+        assert isinstance(s.bag, str)
+        assert s.bag
+        assert isinstance(s.category, str)
+        assert s.category
         # default must be a plain value, never a zero-arg callable left unresolved
         assert not callable(s.default)
 

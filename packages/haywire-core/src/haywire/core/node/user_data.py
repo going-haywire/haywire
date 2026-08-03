@@ -83,7 +83,7 @@ class NodeStore:
         except KeyError:
             raise AttributeError(
                 f"NodeStore has no attribute '{name}'. Initialize it first: self.store.{name} = value"
-            )
+            ) from None
 
     def __setattr__(self, name: str, value: Any) -> None:
         if name.startswith("_"):
@@ -98,7 +98,7 @@ class NodeStore:
             try:
                 del self._data[name]
             except KeyError:
-                raise AttributeError(name)
+                raise AttributeError(name) from None
 
     # =========================================================================
     # Dict-Style Access

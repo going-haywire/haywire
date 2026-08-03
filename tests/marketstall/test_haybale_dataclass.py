@@ -198,46 +198,50 @@ def test_refresh_report_sources_partition() -> None:
 
 @pytest.mark.unit
 def test_public_surface_imports_from_marketstall_package() -> None:
-    """All major types and functions are importable from haywire.core.marketstall."""
-    from haywire.core import marketstall
+    """All major types and functions are re-exported from haywire.core.marketstall.
 
-    # Dataclasses
-    assert hasattr(marketstall, "Haybale")
-    assert hasattr(marketstall, "Subscription")
-    assert hasattr(marketstall, "MarketplaceFile")
-    assert hasattr(marketstall, "ProjectMarketplaceFile")
-    assert hasattr(marketstall, "RefreshOutcome")
-    assert hasattr(marketstall, "RefreshReport")
-    assert hasattr(marketstall, "FetchResult")
-    # Parsers
-    assert hasattr(marketstall, "parse_global_marketplace")
-    assert hasattr(marketstall, "parse_project_marketplace")
-    assert hasattr(marketstall, "parse_marketstall_body")
-    assert hasattr(marketstall, "parse_remote_marketplace_body")
-    # Serializers
-    assert hasattr(marketstall, "serialize_global_marketplace")
-    assert hasattr(marketstall, "serialize_project_marketplace")
-    # Refresh
-    assert hasattr(marketstall, "refresh")
-    # Helpers
-    assert hasattr(marketstall, "add_market_subscription_to_global")
-    assert hasattr(marketstall, "add_stall_subscription_to_global")
-    assert hasattr(marketstall, "add_heap_to_project")
-    assert hasattr(marketstall, "remove_stale_haybale_from_project")
-    assert hasattr(marketstall, "record_ignore_on_source")
-    assert hasattr(marketstall, "record_block_on_source")
-    assert hasattr(marketstall, "detect_subscription_conflicts")
-    # Errors
-    assert hasattr(marketstall, "MalformedMarketplaceError")
-    assert hasattr(marketstall, "DuplicateHeapNameError")
-    assert hasattr(marketstall, "RemoteFetchError")
-    # Platform
-    assert hasattr(marketstall, "current_os")
-    assert hasattr(marketstall, "haybale_supports_current_os")
-    # URL resolution
-    assert hasattr(marketstall, "classify_input")
-    assert hasattr(marketstall, "InputForm")
-    assert hasattr(marketstall, "BareRepoUrlRejectedError")
+    A plain import is the assertion: a missing re-export raises ImportError
+    naming the symbol, and mypy checks the names statically too.
+    """
+    from haywire.core.marketstall import (  # noqa: F401
+        # Dataclasses
+        Haybale,
+        Subscription,
+        MarketplaceFile,
+        ProjectMarketplaceFile,
+        RefreshOutcome,
+        RefreshReport,
+        FetchResult,
+        # Parsers
+        parse_global_marketplace,
+        parse_project_marketplace,
+        parse_marketstall_body,
+        parse_remote_marketplace_body,
+        # Serializers
+        serialize_global_marketplace,
+        serialize_project_marketplace,
+        # Refresh
+        refresh,
+        # Helpers
+        add_market_subscription_to_global,
+        add_stall_subscription_to_global,
+        add_heap_to_project,
+        remove_stale_haybale_from_project,
+        record_ignore_on_source,
+        record_block_on_source,
+        detect_subscription_conflicts,
+        # Errors
+        MalformedMarketplaceError,
+        DuplicateHeapNameError,
+        RemoteFetchError,
+        # Platform
+        current_os,
+        haybale_supports_current_os,
+        # URL resolution
+        classify_input,
+        InputForm,
+        BareRepoUrlRejectedError,
+    )
 
 
 @pytest.mark.unit

@@ -243,7 +243,7 @@ def main_menu():
                 input("This will uninstall and reinstall all libraries. Continue? [y/N]: ").strip().lower()
             )
             if confirm == "y":
-                for key, lib in LIBRARIES.items():
+                for _key, lib in LIBRARIES.items():
                     print(f"\n--- Processing {lib['name']} ---")
                     uninstall_library(lib)
                     install_library(lib, editable=True)

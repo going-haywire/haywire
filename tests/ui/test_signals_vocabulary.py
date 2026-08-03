@@ -44,15 +44,6 @@ from haywire.core.session.session_manager import SessionManager
 # ----------------------------------------------------------------------
 
 
-def test_command_signal_is_signal_subclass():
-    assert issubclass(CommandSignal, Signal)
-
-
-def test_observation_signals_are_signal_subclass():
-    assert issubclass(SelectionMoved, Signal)
-    assert issubclass(GraphDataMutated, Signal)
-
-
 def test_signal_cross_session_defaults_false():
     assert Signal.cross_session is False
     assert SelectionMoved.cross_session is False
@@ -67,12 +58,12 @@ def test_cross_session_signals_declared_correctly():
 
 
 def test_error_logged_is_observation_signal():
-    assert issubclass(ErrorLogged, Signal)
+    # Negative relationship: an observation signal must NOT be routable as a
+    # command. Static typing checks the positive edge, never this one.
     assert not issubclass(ErrorLogged, CommandSignal)
 
 
 def test_error_ledger_changed_is_observation_signal():
-    assert issubclass(ErrorLedgerChanged, Signal)
     assert not issubclass(ErrorLedgerChanged, CommandSignal)
 
 

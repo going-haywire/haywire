@@ -3,6 +3,8 @@ _seed_signal_fields. Exercises identity short-circuit, class-level
 synthetic class access, shadowing rejection, host validation, mutable-
 default deep-copy seeding."""
 
+from typing import Any, cast
+
 import pytest
 from haywire.core.session.signals import Signal, SignalSource, signal_field
 from haywire.core.session.signals.descriptor import (
@@ -50,7 +52,7 @@ def test_write_emits_signal():
     h = H()
     h.x = 5
     assert len(h.emitted) == 1
-    assert isinstance(h.emitted[0], H.x)
+    assert isinstance(h.emitted[0], cast(Any, H.x))
 
 
 def test_identity_short_circuit():
@@ -141,5 +143,5 @@ def test_synthetic_signal_class_has_readable_qualname():
 
     # __qualname__ includes the enclosing scope (test function adds <locals>),
     # so assert the suffix and the bare name instead of a literal.
-    assert HostClass.field_name.__qualname__.endswith("HostClass.field_name")
-    assert HostClass.field_name.__name__ == "field_name"
+    assert cast(Any, HostClass.field_name).__qualname__.endswith("HostClass.field_name")
+    assert cast(Any, HostClass.field_name).__name__ == "field_name"

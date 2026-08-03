@@ -1,3 +1,5 @@
+from typing import Any, cast
+
 import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
 
 from unittest.mock import MagicMock
@@ -19,7 +21,7 @@ def _ui_node_with_props(size_adapt: str, width: float, height: float) -> UINode:
 
 def _style_str(n: UINode) -> str:
     # _apply_size writes with replace= so the slot's inline style is authoritative.
-    return n.container_slot.style.call_args.kwargs["replace"]
+    return cast(Any, n.container_slot).style.call_args.kwargs["replace"]
 
 
 def test_apply_size_manual_writes_both_axes_as_minimums():
@@ -28,8 +30,8 @@ def test_apply_size_manual_writes_both_axes_as_minimums():
     style = _style_str(n)
     assert "min-width: 300" in style
     assert "min-height: 180" in style
-    assert n.container_slot._props["data-size-adapt"] == "manual"
-    n.container_slot.update.assert_called()
+    assert cast(Any, n.container_slot)._props["data-size-adapt"] == "manual"
+    cast(Any, n.container_slot).update.assert_called()
 
 
 def test_apply_size_manual_width_writes_only_width_min():
@@ -62,23 +64,23 @@ def test_apply_size_auto_clears_inline_size():
     # auto axes carry no inline width/height (empty declarations)
     assert "width:" not in style
     assert "height:" not in style
-    assert n.container_slot._props["data-size-adapt"] == "auto"
+    assert cast(Any, n.container_slot)._props["data-size-adapt"] == "auto"
 
 
 def test_size_change_restyles_slot_without_redraw():
     n = _ui_node_with_props("manual", 300.0, 180.0)
-    n.render = MagicMock()  # spy: must NOT be called by a size change
+    n.render = MagicMock()  # type: ignore[method-assign]  # spy: must NOT be called by a size change
 
     n.wrapper.node.props.width = 260.0
     n._on_size_field_change(260.0, 300.0)  # simulate a width change to 260
 
     n.render.assert_not_called()
-    n.container_slot.update.assert_called()
+    cast(Any, n.container_slot).update.assert_called()
 
 
 def test_subscribe_size_fields_wires_three_fields():
     n = _ui_node_with_props("auto", 200.0, 200.0)
-    n.wrapper.node.props.subscribe_field = MagicMock()
+    n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_size_fields()
     watched = {call.args[0] for call in n.wrapper.node.props.subscribe_field.call_args_list}
     assert watched == {"width", "height", "size_adapt"}

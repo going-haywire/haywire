@@ -7,6 +7,8 @@ Verifies registration metadata (action+focus) and poll() contracts for:
 - Selection panels: TestCopySelection, TestPasteSelection
 """
 
+from typing import Any, cast
+
 import pytest
 from unittest.mock import MagicMock
 
@@ -63,8 +65,8 @@ def make_context(
     app = FakeApp()
     sid = "test"
     EditStateCls = register_edit_state(app.library_state_container, sid)
-    ctx = attach_stub_session(SessionContext(session_id=sid, app=app))
-    edit = ctx.data[EditStateCls]
+    ctx = attach_stub_session(SessionContext(session_id=sid, app=cast(Any, app)))
+    edit: Any = ctx.data[EditStateCls]
     edit.active_node = active_node
     edit.active_edge = active_edge
     if clipboard is not None:
@@ -306,13 +308,13 @@ def test_selection_action_panel_focus_is_test_selection_focus(panel_cls):
 
 def test_copy_selection_poll_true_when_nodes_selected(register_edit_state):
     ctx, EditStateCls = make_context(register_edit_state)
-    ctx.data[EditStateCls].selected_nodes = {"n1"}
+    cast(Any, ctx.data[EditStateCls]).selected_nodes = {"n1"}
     assert CopySelectionPanel.poll(ctx) is True
 
 
 def test_copy_selection_poll_false_when_nothing_selected(register_edit_state):
     ctx, EditStateCls = make_context(register_edit_state)
-    edit = ctx.data[EditStateCls]
+    edit: Any = ctx.data[EditStateCls]
     edit.selected_nodes = set()
     edit.selected_edges = set()
     assert CopySelectionPanel.poll(ctx) is False

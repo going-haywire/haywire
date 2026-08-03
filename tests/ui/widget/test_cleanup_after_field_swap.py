@@ -59,7 +59,7 @@ class _no_warning:
 
     def __enter__(self) -> "_no_warning":
         self._handler = logging.Handler()
-        self._handler.emit = self._records.append  # type: ignore[method-assign]
+        self._handler.emit = self._records.append  # type: ignore[method-assign,assignment]
         self._logger.addHandler(self._handler)
         return self
 

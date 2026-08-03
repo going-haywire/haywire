@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any, cast
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -68,7 +70,7 @@ def test_on_focus_fires_active_file_signal() -> None:
     # signal on assignment; that's what fires now (the editor no longer
     # calls session.signal(ActiveFileMoved()) manually).
     assert len(ctx.session.signals) == 1
-    assert isinstance(ctx.session.signals[0], SessionContext.active_file)
+    assert isinstance(ctx.session.signals[0], cast(Any, SessionContext.active_file))
 
 
 def test_on_focus_short_circuits_when_file_unchanged() -> None:

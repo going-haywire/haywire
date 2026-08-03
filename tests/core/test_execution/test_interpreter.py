@@ -10,6 +10,8 @@ from haywire.core.execution.interpreter import Interpreter
 from haywire.core.graph.base import BaseGraph
 from haywire.core.di.config import LibrarySystemService
 
+from tests.conftest import make_node
+
 
 @pytest.mark.integration
 @pytest.mark.slow
@@ -29,12 +31,10 @@ class TestInterpreter:
         from haybale_testing.nodes.testbed.begin_play_node import TestBeginPlayNode as BeginPlayNode
         from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
 
-        begin_play = graph.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key, position=(100, 100)
-        )
+        begin_play = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(100, 100))
 
-        print_msg = graph.create_node_wrapper(
-            PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
+        print_msg = make_node(
+            graph, PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
         )
 
         graph.create_edge_wrapper(begin_play.node_id, "exec", print_msg.node_id, "exec")
@@ -55,15 +55,13 @@ class TestInterpreter:
         from haybale_testing.nodes.testbed.print_node import TestPrintNode as PrintTerminalMessageNode
         from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode as MathOP
 
-        begin_play = graph.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key, position=(100, 100)
+        begin_play = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(100, 100))
+
+        print_msg = make_node(
+            graph, PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
         )
 
-        print_msg = graph.create_node_wrapper(
-            PrintTerminalMessageNode.class_identity.registry_key, position=(300, 100)
-        )
-
-        math_op = graph.create_node_wrapper(MathOP.class_identity.registry_key, position=(200, 100))
+        math_op = make_node(graph, MathOP.class_identity.registry_key, position=(200, 100))
 
         graph.create_edge_wrapper(begin_play.node_id, "exec", print_msg.node_id, "exec")
         graph.create_edge_wrapper(begin_play.node_id, "timestamp", math_op.node_id, "value_a")
@@ -138,13 +136,9 @@ class TestInterpreter:
         graph = graph_with_library_system
 
         # Flow 1: BeginPlay → EmitCallback
-        begin_play = graph.create_node_wrapper(
-            BeginPlayNode.class_identity.registry_key, position=(100, 100)
-        )
+        begin_play = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(100, 100))
 
-        emit_callback = graph.create_node_wrapper(
-            EmitCallbackNode.class_identity.registry_key, position=(300, 100)
-        )
+        emit_callback = make_node(graph, EmitCallbackNode.class_identity.registry_key, position=(300, 100))
 
         # Set mode to use custom callback name and set the callback name
         emit_callback.node.ports["mode_switch"].set_value(True)
@@ -153,16 +147,16 @@ class TestInterpreter:
         graph.create_edge_wrapper(begin_play.node_id, "exec", emit_callback.node_id, "execute")
 
         # Flow 2: CustomCallback → PrintMessage
-        custom_callback = graph.create_node_wrapper(
-            CustomCallbackNode.class_identity.registry_key, position=(100, 300)
+        custom_callback = make_node(
+            graph, CustomCallbackNode.class_identity.registry_key, position=(100, 300)
         )
 
         # Set mode to use custom callback name and set the listener name
         custom_callback.node.ports["mode_switch"].set_value(True)
         custom_callback.node.ports["custom_callback_name"].set_value("test_callback")
 
-        print_msg = graph.create_node_wrapper(
-            PrintTerminalMessageNode.class_identity.registry_key, position=(300, 300)
+        print_msg = make_node(
+            graph, PrintTerminalMessageNode.class_identity.registry_key, position=(300, 300)
         )
 
         print_msg.node.ports["message"].set_value("Callback received!")
@@ -346,20 +340,16 @@ class TestInterpreter:
         from haybale_core.nodes.events.begin_play import BeginPlayNode
         from haybale_core.nodes.events.shutdown import ShutdownNode
 
-        begin = graph.create_node_wrapper(BeginPlayNode.class_identity.registry_key, position=(0, 0))
+        begin = make_node(graph, BeginPlayNode.class_identity.registry_key, position=(0, 0))
         shutdown = (
-            graph.create_node_wrapper(ShutdownNode.class_identity.registry_key, position=(0, 200))
+            make_node(graph, ShutdownNode.class_identity.registry_key, position=(0, 200))
             if with_shutdown
             else None
         )
 
         for i in range(2):
-            emit = graph.create_node_wrapper(
-                TickEmitNode.class_identity.registry_key, position=(200, i * 300)
-            )
-            tick = graph.create_node_wrapper(
-                TickEventNode.class_identity.registry_key, position=(400, i * 300)
-            )
+            emit = make_node(graph, TickEmitNode.class_identity.registry_key, position=(200, i * 300))
+            tick = make_node(graph, TickEventNode.class_identity.registry_key, position=(400, i * 300))
             # Tick listener feeds the emitter's pooled callback inlet.
             graph.create_edge_wrapper(tick.node_id, "listen_callback", emit.node_id, "callback_names")
             # BeginPlay starts each emitter.

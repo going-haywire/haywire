@@ -3,6 +3,7 @@ import importlib
 import pytest
 from haywire.core.di.config import LibrarySystemService
 from haywire.core.graph.base import BaseGraph
+from haywire.core.node.base import BaseNode
 from haywire.core.state import LibraryStateContainer
 
 
@@ -79,23 +80,26 @@ class TestLibrariesAndRegistries:
         assert isinstance(type_registry.list_names(), list)
 
     def test_node_factory_with_libraries(self, library_system: LibrarySystemService):
-        """Test that node factory can access library nodes."""
+        """The node factory resolves every registered key to a node class.
+
+        Previously this called a non-existent ``node_factory.create_node`` and
+        swallowed the AttributeError into ``pytest.skip``, so it never ran.
+        ``get_node`` is the real resolution API.
+        """
         node_factory = library_system.get_node_factory()
         node_registry = library_system.get_node_registry()
 
-        assert node_factory is not None
         available_nodes = node_registry.list_names()
+        assert available_nodes, "library system registered no nodes"
 
-        # If we have any nodes available, test creation
-        if available_nodes:
-            # Create an empty graph for testing
-            graph = BaseGraph(graph_id="integration_test_graph", name="Integration Test")
+        first_node_key = available_nodes[0]
+        node_cls, node_error = node_factory.get_node(first_node_key)
 
-            # Try to create the first available node
-            first_node_key = available_nodes[0]
-            try:
-                node_instance = node_factory.create_node(first_node_key, "test_node_1", graph)
-                assert node_instance is not None
-                assert node_instance.node_id == "test_node_1"
-            except Exception as e:
-                pytest.skip(f"Could not create node {first_node_key}: {e}")
+        assert node_error is None, f"{first_node_key} resolved to an error node: {node_error}"
+        assert issubclass(node_cls, BaseNode)
+
+        # The resolved class is instantiable and carries the id it was given.
+        graph = BaseGraph(graph_id="integration_test_graph", name="Integration Test")
+        wrapper = graph.create_node_wrapper(first_node_key, position=(0, 0))
+        assert wrapper is not None
+        assert wrapper.node.node_id == wrapper.node_id

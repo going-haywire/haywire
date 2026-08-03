@@ -17,7 +17,9 @@ def test_component_record_defaults_are_empty_not_none():
         settings=[],
         extra={},
     )
-    assert rec.ports == [] and rec.settings == [] and rec.extra == {}
+    assert rec.ports == []
+    assert rec.settings == []
+    assert rec.extra == {}
 
 
 def test_library_doc_holds_components():

@@ -1,5 +1,7 @@
 """GraphEntry — dataclass tests."""
 
+from typing import Any, cast
+
 from pathlib import Path
 from unittest.mock import MagicMock
 
@@ -9,7 +11,7 @@ def test_graph_entry_default_unsaved():
 
     g = MagicMock()
     e = MagicMock()
-    entry = GraphEntry(graph=g, editor=e, path=None, unsaved=True)
+    entry = GraphEntry(graph=cast(Any, g), editor=cast(Any, e), path=None, unsaved=True)
     assert entry.unsaved is True
     assert entry.path is None
     assert entry.interpreter is None
@@ -54,7 +56,7 @@ def test_display_name_falls_back_to_graph_name():
 
     g = MagicMock()
     g.name = "MyGraph"
-    entry = GraphEntry(graph=g, editor=MagicMock(), path=None, unsaved=True)
+    entry = GraphEntry(graph=cast(Any, g), editor=MagicMock(), path=None, unsaved=True)
     assert entry.display_name == "MyGraph"
 
 
@@ -62,7 +64,7 @@ def test_display_name_falls_back_to_untitled():
     from haybale_haystack.graph_entry import GraphEntry
 
     g = MagicMock(spec=[])  # no .name attribute
-    entry = GraphEntry(graph=g, editor=MagicMock(), path=None, unsaved=True)
+    entry = GraphEntry(graph=cast(Any, g), editor=MagicMock(), path=None, unsaved=True)
     assert entry.display_name == "Untitled"
 
 
@@ -118,7 +120,7 @@ def test_graph_entry_save_delegates_to_haystack():
             return None  # no rename
 
     fake = _FakeHaystack()
-    entry = GraphEntry(graph=object(), editor=object(), haystack=fake)
+    entry = GraphEntry(graph=cast(Any, object()), editor=cast(Any, object()), haystack=cast(Any, fake))
     result = entry.save()
 
     assert captured["entry"] is entry
@@ -135,7 +137,9 @@ def test_graph_entry_save_propagates_new_binding_id():
         def _save_entry(self, entry, save_as=None):
             return "new-id-from-save-as"
 
-    entry = GraphEntry(graph=object(), editor=object(), haystack=_FakeHaystack())
+    entry = GraphEntry(
+        graph=cast(Any, object()), editor=cast(Any, object()), haystack=cast(Any, _FakeHaystack())
+    )
     assert entry.save(save_as=Path("/tmp/x.haywire")) == "new-id-from-save-as"
 
 
@@ -153,9 +157,9 @@ def test_graph_entry_holds_haystack_back_reference():
     fake_editor = object()
 
     entry = GraphEntry(
-        graph=fake_graph,
-        editor=fake_editor,
-        haystack=sentinel_haystack,
+        graph=cast(Any, fake_graph),
+        editor=cast(Any, fake_editor),
+        haystack=cast(Any, sentinel_haystack),
     )
     assert entry.haystack is sentinel_haystack
 

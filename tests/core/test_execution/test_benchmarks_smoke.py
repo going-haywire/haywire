@@ -27,7 +27,7 @@ def _bench_dir() -> Path:
 
 
 sys.path.insert(0, str(_bench_dir()))
-import cases as bench_cases  # noqa: E402  (after sys.path tweak)
+import cases as bench_cases  # type: ignore[import-not-found]  # noqa: E402
 
 pytestmark = [pytest.mark.perf, pytest.mark.integration]
 

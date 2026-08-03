@@ -101,7 +101,7 @@ def test_the_original_is_restored_even_when_the_resolve_raises(tmp_path):
     before = (root / "pyproject.toml").read_text()
 
     with patch("haywire.core.update.conflict._uv_sync_dry_run", side_effect=OSError("uv is gone")):
-        with pytest.raises(OSError):
+        with pytest.raises(OSError, match="uv is gone"):
             check_pin_conflict(root, "0.0.35")
 
     assert (root / "pyproject.toml").read_text() == before

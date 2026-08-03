@@ -49,4 +49,5 @@ def test_sync_to_view_cost():
     )
     # No ratio assertion: ADR-0007 establishes the base-class choice is perf-
     # irrelevant. This test exists to surface the numbers, not to gate CI.
-    assert base_default > 0 and base_converter > 0
+    assert base_default > 0
+    assert base_converter > 0

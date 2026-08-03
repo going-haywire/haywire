@@ -1,6 +1,7 @@
 """Tests for the hardened git subprocess helpers."""
 
 import subprocess
+from dataclasses import FrozenInstanceError
 from pathlib import Path
 
 import pytest
@@ -104,7 +105,7 @@ def test_local_git_does_not_pass_hardened_env(tmp_path: Path, monkeypatch) -> No
 
 def test_git_result_is_frozen() -> None:
     result = GitResult(ok=True, stdout="", stderr="", returncode=0, timed_out=False)
-    with pytest.raises(Exception):
+    with pytest.raises(FrozenInstanceError):
         result.ok = False  # type: ignore[misc]
 
 

@@ -123,7 +123,7 @@ def test_select_widget_handles_dict_options():
 
 def test_select_widget_empty_options():
     """SelectWidget should handle missing options gracefully."""
-    config = {"properties": {}}
+    config: dict = {"properties": {}}
 
     port = make_string_port_with_config(config)
     widget = SelectWidget(port)

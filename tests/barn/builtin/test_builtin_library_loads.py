@@ -8,12 +8,6 @@ def test_builtin_library_identity():
     assert Library.class_identity.id == "builtin"
 
 
-def test_builtin_library_is_baselibrary():
-    from haywire.core.library.base import BaseLibrary
-
-    assert issubclass(Library, BaseLibrary)
-
-
 @pytest.mark.integration
 def test_builtin_library_discovered_at_priority_one():
     """The registry discovers the bundled builtin library via core_libraries_path."""

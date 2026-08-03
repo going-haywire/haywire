@@ -198,7 +198,7 @@ class SkinFactory:
                 library_identity=lc_event.library_identity,
             )
 
-            raise error
+            raise error from e
 
     def add_factory_lifecycle_subscriber(
         self, node_id: str, skin_registry_key: str, callback: FactoryEventCallback

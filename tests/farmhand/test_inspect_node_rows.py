@@ -112,7 +112,8 @@ def test_by_name_expands_a_hidden_field():
     rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters(["threshold"], [], [], [])))
     row = rows["threshold"]
     assert row["value"] == 5
-    assert row["min"] == 0 and row["max"] == 10
+    assert row["min"] == 0
+    assert row["max"] == 10
     # Still flagged: the agent must know the user cannot see this field.
     assert row["ui_state"] == "hidden"
 

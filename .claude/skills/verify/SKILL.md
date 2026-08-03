@@ -10,7 +10,7 @@ Run each step in sequence, stopping at the first failure. Report a pass/fail sta
 ```sh
 uv run ruff check .                   # lint
 uv run ruff format --check .          # format check
-uv run mypy packages/haywire-core/src/  # type check
+uv run mypy packages/haywire-core/src/ tests/  # type check (tests/ is in scope too)
 uv run pytest -m "not integration"    # unit + other fast tests
 uv run pytest -m integration          # integration tests (slow)
 ```

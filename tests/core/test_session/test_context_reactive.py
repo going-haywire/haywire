@@ -14,6 +14,7 @@ on ``SessionContext``. The descriptor-mechanism tests below use
 representative example.
 """
 
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from haywire.core.session.context import SessionContext
@@ -47,9 +48,9 @@ def test_active_file_write_stores_and_emits():
     assert ctx.active_file is sentinel
     # Write went through the descriptor; the descriptor emitted the
     # synthetic signal via session.publish.
-    ctx.session.publish.assert_called_once()
-    emitted = ctx.session.publish.call_args.args[0]
-    assert isinstance(emitted, SessionContext.active_file)
+    cast(Any, ctx.session.publish).assert_called_once()
+    emitted = cast(Any, ctx.session.publish).call_args.args[0]
+    assert isinstance(emitted, cast(Any, SessionContext.active_file))
 
 
 def test_each_instance_has_independent_storage():
@@ -76,7 +77,7 @@ def test_all_documented_signal_fields_are_present():
     for name in expected_fields:
         # Class-level access returns the synthetic Signal subclass.
         cls_attr = getattr(SessionContext, name)
-        assert isinstance(cls_attr, type) and issubclass(cls_attr, Signal), (
+        assert isinstance(cls_attr, type) and issubclass(cls_attr, Signal), (  # noqa: PT018
             f"{name} class access is not a Signal subclass: {cls_attr!r}"
         )
         # Instance-level access returns the stored value (default None

@@ -50,8 +50,10 @@ class TestNodeSkinGraphTier:
         loaded = list(g2.node_wrappers.values())
         overridden = [w for w in loaded if w.node.props.is_locally_set("skin")]
         tracking = [w for w in loaded if not w.node.props.is_locally_set("skin")]
-        assert len(overridden) == 1 and overridden[0].node.props.skin == "skin-node"
-        assert len(tracking) == 1 and tracking[0].node.props.skin == "skin-graph"
+        assert len(overridden) == 1
+        assert overridden[0].node.props.skin == "skin-node"
+        assert len(tracking) == 1
+        assert tracking[0].node.props.skin == "skin-graph"
 
     def test_pre_feature_graph_without_props_block_loads(self, graph_with_library_system):
         graph_obj = graph_with_library_system

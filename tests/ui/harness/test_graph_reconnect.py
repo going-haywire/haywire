@@ -124,7 +124,7 @@ def test_reconnect_anchor_stays_on_outlet_pin(page: Page, harness):
 
     # Simulate the node redraw that detaches the held pin element mid-drag.
     detach = _replace_anchor_pin(page, "BeginPlay")
-    assert detach["oldConnected"] is False and detach["newConnected"] is True, (
+    assert detach["oldConnected"] is False and detach["newConnected"] is True, (  # noqa: PT018
         f"pin-replace did not detach as expected: {detach}"
     )
 

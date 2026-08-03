@@ -43,13 +43,6 @@ def test_haystack_state_starts_empty(settings_registry_wired):
     assert state.all_entries() == []
 
 
-def test_haystack_state_is_an_app_state():
-    from haybale_haystack.state.haystack_state import HaystackState
-    from haywire.core.state.base import AppState
-
-    assert issubclass(HaystackState, AppState)
-
-
 def test_create_new_increments_counter_and_adds_entry(state_with_mocked_deps):
     state = state_with_mocked_deps
     initial_count = len(state.all_entries())

@@ -358,8 +358,6 @@ class TestInheritance:
 
 class TestSettingDescriptorAncestry:
     def test_setting_is_field_descriptor(self):
-        assert issubclass(setting, SettingDescriptor)
+        # What `setting[FLOAT](...)` actually leaves on the class body goes
+        # through __class_getitem__, so the runtime check is not tautological.
         assert isinstance(_Simple.threshold, SettingDescriptor)
-
-    def test_setting_subclasses_only(self):
-        assert issubclass(setting, SettingDescriptor)

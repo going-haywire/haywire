@@ -17,6 +17,8 @@ fallback. _widget_is_disabled() accepts either signal.
 
 import logging
 
+from typing import Any, cast
+
 import pytest
 
 
@@ -95,7 +97,7 @@ class GatedSettings(Settings):
 
 
 def _render(bag) -> "ui.column":
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         anchor = ui.column()
         with anchor:

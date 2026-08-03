@@ -11,10 +11,23 @@ from __future__ import annotations
 import textwrap
 from pathlib import Path
 
+from typing import cast
+
 import pytest
 import toml
 
 from haywire_studio.packaging.share.pipeline import SharePipeline
+
+
+def _apply_recorder(applied: list, spec) -> list:
+    """Record *spec* and return an empty result list.
+
+    A helper rather than ``applied.append(spec) or []`` because
+    ``list.append`` returns None, which mypy rejects in value position.
+    """
+    applied.append(spec)
+    return []
+
 
 pytestmark = pytest.mark.unit
 
@@ -151,8 +164,11 @@ def test_marketstall_entry_carries_the_same_answer_as_the_pyproject_floor(tmp_pa
     pipeline = SharePipeline(root)
     pipeline.apply_framework(">=0.0.34")
 
-    entry = _build_entry_for_library(
-        root / "barn" / "haybale-alpha", requires_haywire=pipeline.requires_haywire
+    entry = cast(
+        dict,
+        _build_entry_for_library(
+            root / "barn" / "haybale-alpha", requires_haywire=cast(str, pipeline.requires_haywire)
+        ),
     )
 
     assert entry["requires_haywire"] == ">=0.0.34"
@@ -170,7 +186,7 @@ def test_entry_omits_requires_haywire_when_undeclared(tmp_path):
     root = _project(tmp_path)
     entry = _build_entry_for_library(root / "barn" / "haybale-alpha")
 
-    assert "requires_haywire" not in entry
+    assert "requires_haywire" not in cast(dict, entry)
 
 
 def test_yes_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):
@@ -180,7 +196,7 @@ def test_yes_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):
     from haywire_studio.packaging.share import cli as share_cli
 
     applied: list[str] = []
-    monkeypatch.setattr(SharePipeline, "apply_framework", lambda self, spec: applied.append(spec) or [])
+    monkeypatch.setattr(SharePipeline, "apply_framework", lambda self, spec: _apply_recorder(applied, spec))
 
     assert share_cli._resolve_framework_answer(SharePipeline(_project(tmp_path)), None) is None
     assert applied == []
@@ -192,7 +208,7 @@ def test_yes_with_the_flag_raises_the_floor(tmp_path, monkeypatch):
     from haywire_studio.packaging.share import cli as share_cli
 
     applied: list[str] = []
-    monkeypatch.setattr(SharePipeline, "apply_framework", lambda self, spec: applied.append(spec) or [])
+    monkeypatch.setattr(SharePipeline, "apply_framework", lambda self, spec: _apply_recorder(applied, spec))
 
     pipeline = SharePipeline(_project(tmp_path))
     assert share_cli._resolve_framework_answer(pipeline, ">=0.0.34") == ">=0.0.34"

@@ -89,7 +89,8 @@ def test_query_detail_adds_port_setup_fields(farmhand_call):
         assert inlet["promoted"] is False
         # A concrete data type resolves to a registry key (not None) on data ports.
         data_port = next(p for p in node["ports"] if p["flow_type"] == "data")
-        assert isinstance(data_port["data_type"], str) and ":" in data_port["data_type"]
+        assert isinstance(data_port["data_type"], str)
+        assert ":" in data_port["data_type"]
     finally:
         _close(farmhand_call, bid)
 
@@ -408,7 +409,8 @@ def test_inspect_data_value_carries_value_opinion(farmhand_call):
         assert num["is_set"] is False  # inheriting, not overridden
         assert num["default"] == 3
         # Constraint/schema keys belong to data='all'.
-        assert "min" not in num and "type" not in num
+        assert "min" not in num
+        assert "type" not in num
         # Descriptions are not repeated once past info — name is the join key.
         assert "description" not in num
     finally:
@@ -425,7 +427,8 @@ def test_inspect_data_all_carries_constraints(farmhand_call):
         num = rows["example_int"]
         assert num["type"] == "INT"
         assert num["value"] == 3
-        assert num["min"] == 0 and num["max"] == 100
+        assert num["min"] == 0
+        assert num["max"] == 100
 
         # CHOICES exposes its valid set — the agent cannot guess these.
         assert rows["example_choices"]["options"] == ["fast", "balanced", "quality"]
@@ -452,7 +455,8 @@ def test_inspect_ports_grouped_by_direction(farmhand_call):
         # info depth: authoring intent, no direction key (the group IS the direction).
         first = info["inlets"][0]
         assert "direction" not in first
-        assert "data_type" in first and "value" not in first
+        assert "data_type" in first
+        assert "value" not in first
 
         deep = _inspect(farmhand_call, bid, node_id, ["ports"], data="value")["ports"]
         inlet = deep["inlets"][0]

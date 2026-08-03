@@ -10,6 +10,8 @@ existing editor teardown/recreate path is the recovery mechanism."""
 import importlib
 import sys
 
+from typing import Any, cast
+
 import pytest
 
 
@@ -45,8 +47,8 @@ def test_hot_reload_creates_fresh_signal_class():
     # Both still inherit Signal.
     from haywire.core.session.signals import Signal
 
-    assert issubclass(OldSignal, Signal)
-    assert issubclass(NewSignal, Signal)
+    assert issubclass(cast(Any, OldSignal), Signal)
+    assert issubclass(cast(Any, NewSignal), Signal)
 
 
 def test_old_class_subscribers_do_not_receive_new_class_emits():
@@ -65,10 +67,10 @@ def test_old_class_subscribers_do_not_receive_new_class_emits():
     NewSignal = NewState.x
 
     bus = SignalBus()
-    old_received = []
-    new_received = []
-    bus.subscribe(OldSignal, lambda s: old_received.append(s))
-    bus.subscribe(NewSignal, lambda s: new_received.append(s))
+    old_received: list = []
+    new_received: list = []
+    bus.subscribe(cast(Any, OldSignal), lambda s: old_received.append(s))
+    bus.subscribe(cast(Any, NewSignal), lambda s: new_received.append(s))
 
     new_instance = NewState(bus)
     new_instance.x = 99  # writes the new class's field; emits NewSignal
@@ -77,4 +79,4 @@ def test_old_class_subscribers_do_not_receive_new_class_emits():
     assert old_received == []
     # New subscriber: fires once, with a NewSignal instance.
     assert len(new_received) == 1
-    assert isinstance(new_received[0], NewSignal)
+    assert isinstance(new_received[0], cast(Any, NewSignal))

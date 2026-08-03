@@ -4,9 +4,20 @@ Covers DissolveRerouteAction: child-action structure, partial connection
 handling, and the editor entry point.
 """
 
+from typing import Any, cast
+
 import pytest
 
 pytestmark = pytest.mark.unit
+
+
+def _children(action) -> list:
+    """``action.actions`` as concrete children.
+
+    The attribute is typed ``list[IAction]``, but these tests assert on the
+    fields of the concrete child actions the dissolve composes.
+    """
+    return list(action.actions)
 
 
 # ---------------------------------------------------------------------------
@@ -14,9 +25,14 @@ pytestmark = pytest.mark.unit
 # ---------------------------------------------------------------------------
 
 
-def _make_edge(source_node_id, outlet_port_id, sink_node_id, inlet_port_id, edge_id):
+def _make_edge(source_node_id, outlet_port_id, sink_node_id, inlet_port_id, edge_id) -> Any:
     class _E:
-        pass
+        # Stamped below; declared so the attribute bag type-checks.
+        source_node_id: Any
+        outlet_port_id: Any
+        sink_node_id: Any
+        inlet_port_id: Any
+        edge_id: Any
 
     e = _E()
     e.source_node_id = source_node_id
@@ -60,12 +76,12 @@ def test_dissolve_fully_connected_creates_bridge_and_remove():
     downstream = _make_edge("reroute_1", "out", "B", "value_a", "e_down")
     graph = _FakeGraph(edges=[upstream, downstream])
 
-    action = DissolveRerouteAction(graph=graph, node_id="reroute_1")
+    action = DissolveRerouteAction(graph=cast(Any, graph), node_id="reroute_1")
 
-    kinds = [type(a) for a in action.actions]
+    kinds = [type(a) for a in _children(action)]
     assert kinds == [RemoveElementsAction, AddEdgeAction]
 
-    remove, bridge = action.actions
+    remove, bridge = _children(action)
     assert remove.nodes == ["reroute_1"]
     assert bridge.source_node_id == "A"
     assert bridge.outlet_pin_id == "result"
@@ -86,17 +102,17 @@ def test_dissolve_fan_out_creates_multiple_bridges():
     down2 = _make_edge("reroute_1", "out", "C", "value_b", "e_d2")
     graph = _FakeGraph(edges=[upstream, down1, down2])
 
-    action = DissolveRerouteAction(graph=graph, node_id="reroute_1")
+    action = DissolveRerouteAction(graph=cast(Any, graph), node_id="reroute_1")
 
-    kinds = [type(a) for a in action.actions]
+    kinds = [type(a) for a in _children(action)]
     assert kinds == [RemoveElementsAction, AddEdgeAction, AddEdgeAction]
 
-    remove = action.actions[0]
+    remove = _children(action)[0]
     assert remove.nodes == ["reroute_1"]
 
-    sinks = {a.sink_node_id for a in action.actions[1:]}
+    sinks = {a.sink_node_id for a in _children(action)[1:]}
     assert sinks == {"B", "C"}
-    for bridge in action.actions[1:]:
+    for bridge in _children(action)[1:]:
         assert bridge.source_node_id == "A"
         assert bridge.outlet_pin_id == "result"
 
@@ -114,14 +130,14 @@ def test_dissolve_control_fan_in_bridges_all_upstreams():
     downstream = _make_edge("reroute_1", "out", "C", "exec", "e_down")
     graph = _FakeGraph(edges=[up1, up2, downstream])
 
-    action = DissolveRerouteAction(graph=graph, node_id="reroute_1")
+    action = DissolveRerouteAction(graph=cast(Any, graph), node_id="reroute_1")
 
-    kinds = [type(a) for a in action.actions]
+    kinds = [type(a) for a in _children(action)]
     assert kinds == [RemoveElementsAction, AddEdgeAction, AddEdgeAction]
 
-    sources = {a.source_node_id for a in action.actions[1:]}
+    sources = {a.source_node_id for a in _children(action)[1:]}
     assert sources == {"A", "B"}
-    for bridge in action.actions[1:]:
+    for bridge in _children(action)[1:]:
         assert bridge.sink_node_id == "C"
         assert bridge.inlet_pin_id == "exec"
 
@@ -137,9 +153,9 @@ def test_dissolve_no_upstream_skips_bridges():
     downstream = _make_edge("reroute_1", "out", "B", "value_a", "e_down")
     graph = _FakeGraph(edges=[downstream])
 
-    action = DissolveRerouteAction(graph=graph, node_id="reroute_1")
+    action = DissolveRerouteAction(graph=cast(Any, graph), node_id="reroute_1")
 
-    kinds = [type(a) for a in action.actions]
+    kinds = [type(a) for a in _children(action)]
     assert AddEdgeAction not in kinds
     assert any(a is RemoveElementsAction for a in kinds)
 
@@ -155,9 +171,9 @@ def test_dissolve_no_downstream_skips_bridges():
     upstream = _make_edge("A", "result", "reroute_1", "in", "e_up")
     graph = _FakeGraph(edges=[upstream])
 
-    action = DissolveRerouteAction(graph=graph, node_id="reroute_1")
+    action = DissolveRerouteAction(graph=cast(Any, graph), node_id="reroute_1")
 
-    kinds = [type(a) for a in action.actions]
+    kinds = [type(a) for a in _children(action)]
     assert AddEdgeAction not in kinds
     assert any(a is RemoveElementsAction for a in kinds)
 
@@ -171,9 +187,9 @@ def test_dissolve_no_edges_only_removes_node():
 
     graph = _FakeGraph(edges=[])
 
-    action = DissolveRerouteAction(graph=graph, node_id="reroute_1")
+    action = DissolveRerouteAction(graph=cast(Any, graph), node_id="reroute_1")
 
-    kinds = [type(a) for a in action.actions]
+    kinds = [type(a) for a in _children(action)]
     assert kinds == [RemoveElementsAction]
 
 
@@ -184,7 +200,7 @@ def test_dissolve_raises_on_missing_node():
     graph = _FakeGraph(node_id="exists", edges=[])
 
     with pytest.raises(ValueError, match="not found"):
-        DissolveRerouteAction(graph=graph, node_id="does_not_exist")
+        DissolveRerouteAction(graph=cast(Any, graph), node_id="does_not_exist")
 
 
 def test_editor_dissolve_returns_true_on_success(monkeypatch):
@@ -204,8 +220,8 @@ def test_editor_dissolve_returns_true_on_success(monkeypatch):
     monkeypatch.setattr(editor_module, "DissolveRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
-    ed.graph = object()
-    ed.history_manager = _HM()
+    ed.graph = cast(Any, object())
+    ed.history_manager = cast(Any, _HM())
 
     result = ed.dissolve_reroute("reroute_1")
 
@@ -228,8 +244,8 @@ def test_editor_dissolve_returns_false_on_error(monkeypatch):
     monkeypatch.setattr(editor_module, "DissolveRerouteAction", _FakeAction)
 
     ed = Editor.__new__(Editor)
-    ed.graph = object()
-    ed.history_manager = _HM()
+    ed.graph = cast(Any, object())
+    ed.history_manager = cast(Any, _HM())
 
     assert ed.dissolve_reroute("reroute_1") is False
 
@@ -278,7 +294,7 @@ class TestDissolveRerouteIntegration:
         node_a, node_b, reroute_id, _ = self._split_graph(graph)
         original_ids = {node_a.node_id, node_b.node_id}
 
-        action = DissolveRerouteAction(graph=graph, node_id=reroute_id)
+        action = DissolveRerouteAction(graph=cast(Any, graph), node_id=reroute_id)
         action._execute_impl()
 
         # Reroute node is gone.
@@ -301,7 +317,7 @@ class TestDissolveRerouteIntegration:
         snapshot_edges = set(graph.edge_wrappers.keys())
         snapshot_nodes = set(graph.node_wrappers.keys())
 
-        action = DissolveRerouteAction(graph=graph, node_id=reroute_id)
+        action = DissolveRerouteAction(graph=cast(Any, graph), node_id=reroute_id)
         action._execute_impl()
         action._undo_impl()
 

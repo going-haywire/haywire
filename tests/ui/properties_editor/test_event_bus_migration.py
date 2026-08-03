@@ -2,7 +2,7 @@
 
 Verifies that:
 
-- ``PropertiesEditor._panel_registry`` returns the registry from
+- ``cast(Any, PropertiesEditor)._panel_registry`` returns the registry from
   ``context.app.library_service.get_panel_registry()``.
 - The migrated editor no longer carries the legacy ``_RELEVANT_SIGNALS``,
   ``redraw_on_signal`` / ``on_signal``, or framework-side
@@ -20,7 +20,7 @@ resilience) are in ``tests/ui/panel/test_redraw_coordinator.py``.
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Optional
+from typing import Any, Optional, cast
 from unittest.mock import MagicMock
 
 
@@ -102,16 +102,16 @@ def _wire_coordinator(editor, context) -> None:
     """
     editor._context = context
     registry = editor._resolve_panel_registry(context)
-    if registry is not None and editor._coordinator is None:
+    if registry is not None and cast(Any, editor)._coordinator is None:
         from haywire.ui.panel import PanelRedrawCoordinator
 
-        editor._coordinator = PanelRedrawCoordinator(
+        cast(Any, editor)._coordinator = PanelRedrawCoordinator(
             registry=registry,
             session=context.session,
             on_redraw=editor.wrapper.redraw,
             focus_provider=lambda: editor._compute_toolbar_focuses(registry),
         )
-        editor._coordinator.start()
+        cast(Any, editor)._coordinator.start()
 
 
 # ----------------------------------------------------------------------
@@ -126,7 +126,7 @@ def test_properties_editor_panel_registry_helper_returns_app_registry():
     wrapper = _make_properties_editor_wrapper(session)
     editor = wrapper.instance
     assert editor is not None
-    assert editor._panel_registry(session.context) is panel_registry
+    assert cast(Any, editor)._panel_registry(session.context) is panel_registry
 
 
 def test_properties_editor_no_longer_carries_legacy_signal_surface():
@@ -176,10 +176,10 @@ def test_cleanup_stops_redraws_and_clears_coordinator():
     wrapper.set_redraw_callback(lambda w: redraws.append(w))
 
     _wire_coordinator(editor, session.context)
-    assert editor._coordinator is not None
+    assert cast(Any, editor)._coordinator is not None
 
     editor.cleanup()
-    assert editor._coordinator is None
+    assert cast(Any, editor)._coordinator is None
 
     session.publish(SelectionMoved())
     assert redraws == []
@@ -200,7 +200,7 @@ def test_hot_reload_triggers_cleanup_and_stops_redraws():
     wrapper.set_redraw_callback(lambda w: redraws.append(w))
 
     _wire_coordinator(editor, session.context)
-    assert editor._coordinator is not None
+    assert cast(Any, editor)._coordinator is not None
 
     class _ReloadedPropertiesEditor(PropertiesEditor):
         pass
@@ -213,7 +213,7 @@ def test_hot_reload_triggers_cleanup_and_stops_redraws():
     )
     wrapper._on_lifecycle_event(reload_event)
 
-    assert editor._coordinator is None
+    assert cast(Any, editor)._coordinator is None
     redraws.clear()
     session.publish(SelectionMoved())
     assert redraws == []
@@ -228,7 +228,7 @@ def test_no_coordinator_when_chain_returns_none():
     assert editor is not None
 
     _wire_coordinator(editor, session.context)
-    assert editor._coordinator is None
+    assert cast(Any, editor)._coordinator is None
 
 
 def test_no_coordinator_when_chain_is_missing():
@@ -245,7 +245,7 @@ def test_no_coordinator_when_chain_is_missing():
     assert editor is not None
 
     _wire_coordinator(editor, session.context)
-    assert editor._coordinator is None
+    assert cast(Any, editor)._coordinator is None
 
 
 def test_no_coordinator_when_get_panel_registry_raises():
@@ -266,4 +266,4 @@ def test_no_coordinator_when_get_panel_registry_raises():
     assert editor is not None
 
     _wire_coordinator(editor, session.context)  # must not raise
-    assert editor._coordinator is None
+    assert cast(Any, editor)._coordinator is None

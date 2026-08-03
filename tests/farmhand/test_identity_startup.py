@@ -1,5 +1,7 @@
 """setup_farmhand writes the studio sidecar when Farmhand is enabled."""
 
+from typing import Any, cast
+
 import pytest
 
 from haywire_studio.farmhand.identity import IDENTITY_FILENAME, read_identity
@@ -15,7 +17,7 @@ class _FakeHost:
         self.mounted_port = port
 
 
-@pytest.fixture()
+@pytest.fixture
 def app_state(tmp_path, monkeypatch):
     # setup_farmhand imports FarmhandHost locally from farmhand.host — patch the
     # source module so the local import picks up the fake.
@@ -29,7 +31,7 @@ def app_state(tmp_path, monkeypatch):
     state = app_module.HaywireApp(workspace_root=str(tmp_path))
     # library_service is referenced by setup_farmhand's FarmhandHost(...) call;
     # _FakeHost ignores it, so a bare attribute is enough.
-    state.library_service = object()
+    state.library_service = cast(Any, object())
     return state, tmp_path, app_module
 
 

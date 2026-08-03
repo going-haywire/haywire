@@ -22,7 +22,6 @@ class TestBaseNode:
             def init(self):
                 pass
 
-        assert hasattr(TestNode, "class_identity")
         assert TestNode.class_identity.registry_id == "TestNode"
 
     def test_node_metadata(self):
@@ -65,7 +64,7 @@ class TestBaseNodeWithLibraries:
             # Try to create the first available node
             first_node_key = available_nodes[0]
 
-            nodeWrapper = graph.create_node_wrapper(first_node_key, [100, 100])
+            nodeWrapper = graph.create_node_wrapper(first_node_key, (100, 100))
 
             assert nodeWrapper is not None
             assert nodeWrapper.node.class_identity.registry_key == first_node_key
@@ -87,7 +86,8 @@ class TestBaseNodeWithLibraries:
         if not available_nodes:
             pytest.skip("No nodes available in test libraries")
 
-        wrapper = graph_with_library_system.create_node_wrapper(available_nodes[0], [0, 0])
+        wrapper = graph_with_library_system.create_node_wrapper(available_nodes[0], (0, 0))
+        assert wrapper is not None
         node_instance = wrapper.node
 
         def boom() -> None:

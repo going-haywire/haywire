@@ -32,4 +32,4 @@ def test_choices_kwarg_is_gone():
     import pytest
 
     with pytest.raises(TypeError):
-        setting[CHOICES]("fast", choices=["fast"])  # deleted kwarg
+        setting[CHOICES]("fast", choices=["fast"])  # type: ignore[call-arg]  # deleted kwarg

@@ -15,14 +15,6 @@ from haybale_studio.skins.node_skin import NodeSkin
 
 
 @pytest.mark.unit
-def test_skin_has_diagnostics_button_renderer():
-    # The skin must provide a single unified method to render the diagnostics
-    # badge, covering both errors and advisory warnings.
-    assert hasattr(DefaultNodeSkin, "_render_diagnostics_button")
-    assert callable(DefaultNodeSkin._render_diagnostics_button)
-
-
-@pytest.mark.unit
 def test_render_wires_diagnostics_badge_behind_combined_guard():
     # The badge must be wired into render(), guarded so it fires when there are
     # errors OR warnings OR a deprecation notice. (A full DOM render needs a

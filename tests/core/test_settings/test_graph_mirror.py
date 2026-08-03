@@ -5,6 +5,8 @@ exposing exactly the path the wiring walks (node.wrapper.graph) — no
 library system needed.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.di.test_config import create_test_settings_registry
@@ -69,7 +71,7 @@ def _make_chain():
     registry = _registry()
     set_settings_registry(registry)
     graph_obj = BaseGraph(graph_id="g", name="G", validation_scheduler=SyncScheduler())
-    bag = ChainedBag(registry=registry, node=_StubNode(graph_obj))
+    bag = ChainedBag(registry=registry, node=cast(Any, _StubNode)(graph_obj))
     bag._subscribe_settings()
     return registry, graph_obj, bag
 
@@ -123,7 +125,7 @@ def test_detached_bag_holds_descriptor_default():
     default surfaces the detachment instead of masking it."""
     registry = _registry()
     registry.set_global(SKIN_KEY, "skin-fw")
-    bag = ChainedBag(registry=registry, node=None)
+    bag = ChainedBag(registry=registry, node=cast(Any, None))
     bag._subscribe_settings()
     assert bag.skin is None  # descriptor default, not "skin-fw"
     registry.set_global(SKIN_KEY, "skin-fw-2")

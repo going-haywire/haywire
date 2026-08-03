@@ -18,10 +18,26 @@ tested in test_icon_slot.py / test_tab_slot.py / test_slot.py.
 import logging
 from types import SimpleNamespace
 
+from typing import Any, cast
+
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
 from haywire.core.session.signals import Close, Reveal
 from haywire.ui.editor.identity import OpenBehavior, SlotName
+
+
+def _shell(*, session: Any, editor_registry: Any) -> AppShell:
+    """Build an AppShell from structural test doubles.
+
+    ``_FakeSession`` / ``_FakeEditorRegistry`` implement only the slice AppShell
+    touches; casting here keeps that seam in one place.
+    """
+    return AppShell(session=cast(Any, session), editor_registry=cast(Any, editor_registry))
+
+
+def _install_slot(shell: AppShell, name: SlotName, slot: Any) -> None:
+    """Register a ``_FakeSlot`` in the shell's managed-slot table."""
+    shell._managed_slots[name] = cast(Any, slot)
 
 
 class _FakeSession:
@@ -34,7 +50,7 @@ class _FakeSession:
                 "info": {"active_key": None, "visible": False, "size": 200, "editors": []},
             }
         )
-        self._editors = {}
+        self._editors: dict = {}
         self.signals_seen: list = []
 
     def subscribe(self, _event_type, _handler):
@@ -129,22 +145,22 @@ class _FakeEditorRegistry:
 
 
 def test_on_slot_resize_routes_to_named_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
+    shell = _shell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     slot = _FakeSlot("info")
-    shell._managed_slots[SlotName.INFO] = slot
+    _install_slot(shell, SlotName.INFO, slot)
     shell._on_slot_resize(SimpleNamespace(args={"slot": "info", "size": 275}))
     assert slot.size_calls == [275]
 
 
 def test_on_slot_resize_ignores_unknown_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
+    shell = _shell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     shell._on_slot_resize(SimpleNamespace(args={"slot": "mystery", "size": 100}))  # no crash
 
 
 def test_on_slot_resize_ignores_malformed_args() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
+    shell = _shell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     slot = _FakeSlot("info")
-    shell._managed_slots[SlotName.INFO] = slot
+    _install_slot(shell, SlotName.INFO, slot)
     shell._on_slot_resize(SimpleNamespace(args="not a dict"))
     shell._on_slot_resize(SimpleNamespace(args=None))
     shell._on_slot_resize(SimpleNamespace(args={"slot": "info"}))
@@ -160,24 +176,25 @@ def test_reveal_editor_routes_through_slot() -> None:
     target_key = "right:editor:two"
     cls = _make_editor_cls(target_key, SlotName.CONTEXT, OpenBehavior.REQUIRED)
     registry = _FakeEditorRegistry({target_key: cls})
-    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    shell = _shell(session=_FakeSession(), editor_registry=registry)
     fake = _FakeSlot("context", active_key="right:editor:one")
-    shell._managed_slots[SlotName.CONTEXT] = fake
+    _install_slot(shell, SlotName.CONTEXT, fake)
 
     shell._reveal_editor(Reveal(editor=cls))
 
     assert fake.reveal_calls == [(target_key, None, "")]
-    assert shell.session.signals_seen == []  # reveal must not republish anything
+    # reveal must not republish anything (recorder lives on the _FakeSession)
+    assert cast(Any, shell.session).signals_seen == []
 
 
 def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
     target_key = "ghost:editor:zzz"
     cls = _make_editor_cls(target_key, "ghost-slot", OpenBehavior.REQUIRED)
     registry = _FakeEditorRegistry({target_key: cls})
-    shell = AppShell(session=_FakeSession(), editor_registry=registry)
+    shell = _shell(session=_FakeSession(), editor_registry=registry)
     # No slot registered under "ghost-slot", so the reveal must be dropped.
     fake = _FakeSlot("context", active_key="right:editor:one")
-    shell._managed_slots[SlotName.CONTEXT] = fake
+    _install_slot(shell, SlotName.CONTEXT, fake)
 
     with caplog.at_level(logging.WARNING, logger="haywire.ui.app.shell"):
         shell._reveal_editor(Reveal(editor=cls))
@@ -192,13 +209,13 @@ def test_reveal_editor_unhostable_slot_logs_warning(caplog) -> None:
 
 
 def test_close_lifecycle_command_closes_matching_wrappers_in_every_slot() -> None:
-    shell = AppShell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
+    shell = _shell(session=_FakeSession(), editor_registry=_FakeEditorRegistry({}))
     left = _FakeSlot("action")
     main = _FakeSlot("edit")
     bottom = _FakeSlot("info")
-    shell._managed_slots[SlotName.ACTION] = left
-    shell._managed_slots[SlotName.EDIT] = main
-    shell._managed_slots[SlotName.INFO] = bottom
+    _install_slot(shell, SlotName.ACTION, left)
+    _install_slot(shell, SlotName.EDIT, main)
+    _install_slot(shell, SlotName.INFO, bottom)
 
     shell._close_payload(Close(binding_id="/tmp/a.graph"))
     assert left.close_tabs_for_calls == ["/tmp/a.graph"]

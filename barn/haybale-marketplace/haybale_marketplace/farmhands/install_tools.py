@@ -25,7 +25,7 @@ class MarketplaceDryRunInstallTool(Farmhand):
         try:
             affected = await _library_manager(ctx).dry_run(install_spec)
         except RuntimeError as exc:
-            raise FarmhandError("resolver_failed", str(exc), ids={"install_spec": install_spec})
+            raise FarmhandError("resolver_failed", str(exc), ids={"install_spec": install_spec}) from exc
         return {
             "summary": f"Install of '{install_spec}' would touch {len(affected)} distributions.",
             "affected_distributions": affected,

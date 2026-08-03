@@ -118,12 +118,12 @@ def test_element_census_per_node(library_system, nicegui_slot_context):
         buckets[label] += 1
         return orig_init(self, *a, **k)
 
-    Element.__init__ = counting_init
+    Element.__init__ = counting_init  # type: ignore[method-assign]
     try:
         with ui.card():
             skin_factory.render(skin_registry_key=skin_key, wrapper=one)
     finally:
-        Element.__init__ = orig_init
+        Element.__init__ = orig_init  # type: ignore[method-assign]
 
     total = sum(buckets.values())
     print("\n--- Element constructions for ONE node-card, by skin call site ---")

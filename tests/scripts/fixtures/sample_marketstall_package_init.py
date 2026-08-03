@@ -1,4 +1,10 @@
-"""Sample package init used by tests for the marketstall generator's @library parser."""
+"""Sample package init used by tests for the marketstall generator's @library parser.
+
+Parsed as TEXT by the generator — never imported as Python, so the bare
+``@library`` name below is intentionally undefined.
+"""
+
+# mypy: ignore-errors
 
 from importlib.metadata import version as _pkg_version
 

@@ -106,9 +106,9 @@ def test_reset_notifies_subscribers():
 
 def test_on_change_and_stored_params_are_gone():
     with pytest.raises(TypeError):
-        setting[FLOAT](1.0, on_change="_cb")
+        setting[FLOAT](1.0, on_change="_cb")  # type: ignore[call-arg]
     with pytest.raises(TypeError):
-        setting[FLOAT](1.0, stored=False)
+        setting[FLOAT](1.0, stored=False)  # type: ignore[call-arg]
 
 
 # ---------------------------------------------------------------------------

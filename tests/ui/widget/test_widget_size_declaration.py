@@ -15,6 +15,8 @@ tests (declaration -> resolution -> stamped element).
 
 import dataclasses
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.ui.widget.base import BaseWidget
@@ -85,7 +87,7 @@ class _PlainWidget(BaseWidget):
 
 
 def test_resolution_falls_back_to_the_class_declaration():
-    w = _BoxedWidget(_StubPort())
+    w = _BoxedWidget(cast(Any, _StubPort()))
     assert w.min_width == 160
     assert w.min_height == 90
     assert w.max_height is None
@@ -93,14 +95,14 @@ def test_resolution_falls_back_to_the_class_declaration():
 
 def test_call_site_config_overrides_the_class_declaration():
     port = _StubPort({"min_width": 320, "max_height": 250})
-    w = _BoxedWidget(port)
+    w = _BoxedWidget(cast(Any, port))
     assert w.min_width == 320  # overridden at the call site
     assert w.min_height == 90  # untouched keys keep the class value
     assert w.max_height == 250  # declared only at the call site
 
 
 def test_undeclared_widget_resolves_to_none():
-    w = _PlainWidget(_StubPort())
+    w = _PlainWidget(cast(Any, _StubPort()))
     assert w.min_width is None
     assert w.min_height is None
     assert w.max_height is None
@@ -108,14 +110,14 @@ def test_undeclared_widget_resolves_to_none():
 
 def test_config_classmethod_round_trips_the_box():
     cfg = _BoxedWidget.config(min_width=320)
-    w = _BoxedWidget(_StubPort(cfg["config"]))
+    w = _BoxedWidget(cast(Any, _StubPort(cfg["config"])))
     assert w.min_width == 320
 
 
 @pytest.mark.parametrize("field", ["min_width", "min_height", "max_height"])
 def test_non_integer_declaration_is_rejected(field):
     """A CSS px value — a str would silently emit `--hw-...: 160pxpx`."""
-    w = _BoxedWidget(_StubPort({field: "160px"}))
+    w = _BoxedWidget(cast(Any, _StubPort({field: "160px"})))
     with pytest.raises(TypeError, match=field):
         getattr(w, field)
 
@@ -139,7 +141,7 @@ class _StubElement:
 
 def test_stamp_writes_custom_props_and_box_marker():
     el = _StubElement()
-    stamp_size_declaration(el, _BoxedWidget(_StubPort()))
+    stamp_size_declaration(cast(Any, el), _BoxedWidget(cast(Any, _StubPort())))
 
     assert el._props[BOX_ATTR]
     style = "; ".join(el.styles)
@@ -149,7 +151,7 @@ def test_stamp_writes_custom_props_and_box_marker():
 
 def test_stamp_is_a_noop_for_an_undeclared_widget():
     el = _StubElement()
-    stamp_size_declaration(el, _PlainWidget(_StubPort()))
+    stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort())))
 
     assert el._props == {}
     assert el.styles == []
@@ -157,7 +159,7 @@ def test_stamp_is_a_noop_for_an_undeclared_widget():
 
 def test_max_height_stamps_independently_of_the_box():
     el = _StubElement()
-    stamp_size_declaration(el, _PlainWidget(_StubPort({"max_height": 250})))
+    stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"max_height": 250}))))
 
     assert MAX_HEIGHT_ATTR in el._props
     assert BOX_ATTR not in el._props  # ceiling and intrinsic box are separate knobs
@@ -168,7 +170,7 @@ def test_width_only_declaration_contains_the_inline_axis():
     """min_width alone is a valid, distinct mode — the block axis stays content-driven
     so aspect-ratio content keeps growing proportionally."""
     el = _StubElement()
-    stamp_size_declaration(el, _PlainWidget(_StubPort({"min_width": 160})))
+    stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"min_width": 160}))))
 
     assert el._props[INLINE_BOX_ATTR]
     assert BOX_ATTR not in el._props
@@ -181,7 +183,7 @@ def test_height_only_declaration_is_ignored_and_warned(caplog):
     """CSS can contain the inline axis alone, but has no block-axis equivalent."""
     el = _StubElement()
     with caplog.at_level("WARNING"):
-        stamp_size_declaration(el, _PlainWidget(_StubPort({"min_height": 90})))
+        stamp_size_declaration(cast(Any, el), _PlainWidget(cast(Any, _StubPort({"min_height": 90}))))
 
     assert BOX_ATTR not in el._props
     assert INLINE_BOX_ATTR not in el._props
@@ -190,7 +192,7 @@ def test_height_only_declaration_is_ignored_and_warned(caplog):
 
 
 def test_stamp_tolerates_a_headless_element():
-    stamp_size_declaration(None, _BoxedWidget(_StubPort()))  # must not raise
+    stamp_size_declaration(cast(Any, None), _BoxedWidget(cast(Any, _StubPort())))  # must not raise
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +215,7 @@ def test_a_bare_iwidget_implementation_carries_the_declaration():
             return None
 
     el = _StubElement()
-    stamp_size_declaration(el, Bare(_StubPort()))
+    stamp_size_declaration(cast(Any, el), Bare(_StubPort()))
 
     assert el._props[BOX_ATTR]
     style = "; ".join(el.styles)

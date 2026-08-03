@@ -174,9 +174,14 @@ def create_test_bag(
     bag_cls: type | None = None,
     predefined_local: Optional[dict[str, Any]] = None,
     predefined_global: Optional[dict[str, Any]] = None,
-) -> tuple["SettingsRegistry", Settings]:
+) -> tuple["SettingsRegistry", Any]:
     """
     Create an isolated registry + Settings instance for unit tests.
+
+    The bag is returned as ``Any`` rather than ``Settings``: its fields come
+    from ``bag_cls`` (or the default test bag) and are resolved through
+    descriptors at runtime, so a static ``Settings`` type would reject every
+    real field access (``bag.bg_color``, ``bag.strength``, ...).
 
     Args:
         bag_cls:           Settings subclass to instantiate.  Defaults to a minimal

@@ -9,6 +9,8 @@ freshly-loaded headless graph is correct before any change fires.
 These tests are headless — no UI subscriber — which is exactly the gap P4 left.
 """
 
+from typing import Any
+
 import pytest
 
 from haywire.core.settings import Settings, SettingsRegistry, setting, shadow
@@ -27,7 +29,7 @@ def _make_mirror_bag(*, use_watch: bool):
     """
     from haywire.core.settings import shadow, watch
 
-    factory = watch if use_watch else shadow
+    factory: Any = watch if use_watch else shadow
 
     class MirrorBag(Settings):
         color = factory(GLOBAL_KEY, label="Color", type_=COLOR)

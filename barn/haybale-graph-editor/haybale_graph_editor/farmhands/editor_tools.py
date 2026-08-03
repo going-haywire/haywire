@@ -597,18 +597,26 @@ class GraphEditorInspectNodeTool(Farmhand):
         ctx: FarmhandContext,
         binding_id: str,
         node_id: str,
-        get: list[str] = [],
+        get: list[str] | None = None,
         data: str = "info",
-        by_name: list[str] = [],
-        by_bag: list[str] = [],
-        by_category: list[str] = [],
-        by_dir: list[str] = [],
+        by_name: list[str] | None = None,
+        by_bag: list[str] | None = None,
+        by_category: list[str] | None = None,
+        by_dir: list[str] | None = None,
     ) -> dict:
+        # The published schema comes from input_schema_override above, so these
+        # defaults are internal only — normalizing None here cannot change the
+        # tool's advertised contract.
+        by_name = by_name or []
+        by_bag = by_bag or []
+        by_category = by_category or []
+        by_dir = by_dir or []
+
         editor = _editor(ctx, binding_id)
         wrapper = _node(editor, node_id)
         node = wrapper.node
 
-        sections = list(dict.fromkeys(get))
+        sections = list(dict.fromkeys(get or []))
         if not sections:
             raise FarmhandError(
                 "no_section_selected",
@@ -802,8 +810,12 @@ class GraphEditorRemoveElementsTool(Farmhand):
         self,
         ctx: FarmhandContext,
         binding_id: str,
-        nodes: list[str] = [],
-        edges: list[str] = [],
+        # noqa: B006 — this tool has no input_schema_override, so the signature
+        # IS the published MCP schema: `[]` derives `"default": []`, while
+        # `None` would derive `"default": null` and change the tool contract.
+        # Both lists are read-only below, so the shared-default trap is inert.
+        nodes: list[str] = [],  # noqa: B006
+        edges: list[str] = [],  # noqa: B006
     ) -> dict:
         editor = _editor(ctx, binding_id)
         ctx.fence(editor)
@@ -910,17 +922,19 @@ class GraphEditorPromoteSettingTool(Farmhand):
         editor = _editor(ctx, binding_id)
         try:
             port_type = PortType[direction.upper()]
-        except KeyError:
+        except KeyError as exc:
             raise FarmhandError(
                 "bad_direction",
                 f"direction must be one of inlet/outlet/config; got '{direction}'.",
                 ids={"direction": direction},
-            )
+            ) from exc
         node = _node(editor, node_id).node
         try:
             promote_setting(node, accessor, field, port_type)
         except ValueError as exc:
-            raise FarmhandError("not_promotable", str(exc), ids={"node_id": node_id, "field": field})
+            raise FarmhandError(
+                "not_promotable", str(exc), ids={"node_id": node_id, "field": field}
+            ) from exc
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Promoted {accessor}.{field} on {node_id} as {direction}."}
 

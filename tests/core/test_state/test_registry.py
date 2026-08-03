@@ -1,5 +1,7 @@
 """Unit tests for LibraryStateRegistry."""
 
+from typing import cast
+
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import AppState, LibraryState
 from haywire.core.state.registry import LibraryStateRegistry
@@ -49,12 +51,11 @@ class TestLibraryStateRegistry:
 
         reg = LibraryStateRegistry()
         lib_id = make_lib_identity()
-        key = reg._register_class(MyState, lib_id)
+        key = cast(str, reg._register_class(MyState, lib_id))
 
         assert key == "midi:state:MyState"
         assert reg.has(key)
         assert reg.get(key) is MyState
-        assert hasattr(MyState, "class_identity")
         assert MyState.class_identity.class_name == "MyState"
         assert MyState.class_identity.registry_key == "midi:state:MyState"
 
@@ -75,7 +76,7 @@ class TestLibraryStateRegistry:
 
         reg = LibraryStateRegistry()
         lib_id = make_lib_identity()
-        key = reg._register_class(MyState, lib_id)
+        key = cast(str, reg._register_class(MyState, lib_id))
         removed = reg._unregister_class(key)
 
         assert removed is MyState
@@ -125,7 +126,7 @@ class TestGetClassesForLibrary:
 
         reg = LibraryStateRegistry()
         midi = make_lib_identity()
-        key = reg._register_class(MyState, midi)
+        key = cast(str, reg._register_class(MyState, midi))
         reg._unregister_class(key)
 
         result = reg.get_classes_for_library(midi)

@@ -10,7 +10,7 @@ def _make_model(initial=1.0):
     indirection (Task 9): the model forwards raw values, it never decides
     write policy (validate/coerce/error-chrome live in the caller's closure).
     """
-    edits = []
+    edits: list = []
     cell = FLOAT.create_field(default_override={"value": initial})
     model = SettingWidgetModel(
         field_id="x",
@@ -56,7 +56,6 @@ def test_get_value_reads_the_cell_live():
 def test_data_is_the_provided_cell():
     model, cell, _ = _make_model()
     assert model.data is cell
-    assert hasattr(model.data, "on_changed")
 
 
 def test_set_value_does_not_touch_cell_even_when_on_edit_is_a_noop():

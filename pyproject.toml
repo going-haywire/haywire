@@ -78,12 +78,41 @@ mypy_path = [
 module = ["toml", "nicegui.*", "jedi", "jedi.*", "markdown2", "pygments.*", "visiongraph.*", "depthai"]
 ignore_missing_imports = true
 
+# Test functions rarely carry a return annotation, and mypy skips the BODY of
+# any untyped function by default — so without this, most of tests/ was parsed
+# but never actually analysed. Scoped to tests/ deliberately: production code
+# has not been measured under this flag yet.
+[[tool.mypy.overrides]]
+module = ["tests.*"]
+check_untyped_defs = true
+
 [tool.ruff]
 line-length = 109
 exclude = ["playground/"]
 
 [tool.ruff.lint]
-extend-select = ["E501"]
+# PT (flake8-pytest-style) and B (bugbear) catch problems neither mypy nor the
+# default rules see: blind `pytest.raises(Exception)`, composite asserts that
+# hide which half failed, mutable argument defaults, unchained re-raises.
+# B applies repo-wide; PT is scoped to tests/ below.
+extend-select = ["E501", "PT", "B"]
+
+# Three B rules are switched off repo-wide rather than fixed, because each
+# would force an architectural change rather than correct a defect:
+#   B027 — empty non-abstract methods in an ABC. These are the framework's
+#          documented OPTIONAL lifecycle hooks (BaseEditor.on_focus/on_blur,
+#          IType, BaseWidget, IHistoryManager): "default is a no-op; override
+#          to ...". Marking them @abstractmethod would force every editor,
+#          widget and type author to write empty stubs.
+#   B024 — same cause: an ABC whose subclass contract is entirely optional.
+#   B008 — a function call in a default argument. The one occurrence is the
+#          standard late-binding capture (`lambda text=error.format_detailed()`)
+#          which REQUIRES definition-time evaluation to work.
+ignore = ["B027", "B024", "B008"]
+
+[tool.ruff.lint.per-file-ignores]
+# PT is a pytest-only style; production code has no test functions to lint.
+"!tests/**" = ["PT"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

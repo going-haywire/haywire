@@ -13,13 +13,15 @@ import pytest
 from haywire.core.graph.base import BaseGraph
 from haywire.core.types.enums import ShowWidgetStrategy
 
+from tests.conftest import make_edge, make_node
+
 
 def _create_two_nodes(graph: BaseGraph):
     from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
 
     key = EdgeLinkTestNode.class_identity.registry_key
-    node_a = graph.create_node_wrapper(key, position=(100, 100))
-    node_b = graph.create_node_wrapper(key, position=(300, 100))
+    node_a = make_node(graph, key, position=(100, 100))
+    node_b = make_node(graph, key, position=(300, 100))
     return node_a, node_b
 
 
@@ -53,7 +55,7 @@ class TestShouldShowWidgetResolution:
         assert inlet.should_show_widget() is True
 
         # Link an edge → widget hides.
-        graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        make_edge(graph, node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
         assert inlet.is_linked()
         assert inlet.should_show_widget() is False
 
@@ -64,7 +66,7 @@ class TestShouldShowWidgetResolution:
         inlet.show_widget = ShowWidgetStrategy.WHEN_LINKED
 
         assert inlet.should_show_widget() is False
-        graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        make_edge(graph, node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
         assert inlet.should_show_widget() is True
 
     def test_always_and_never_ignore_link_state(self, graph_with_library_system: BaseGraph, library_system):
@@ -78,7 +80,7 @@ class TestShouldShowWidgetResolution:
         assert inlet.should_show_widget() is False
 
         # Linking does not change either verdict.
-        graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        make_edge(graph, node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
         inlet.show_widget = ShowWidgetStrategy.ALWAYS
         assert inlet.should_show_widget() is True
         inlet.show_widget = ShowWidgetStrategy.NEVER
@@ -133,7 +135,7 @@ class TestLinkChangeRequestsEndpointRedraw:
 
         graph._validation.subscribe(capture)
         try:
-            graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+            make_edge(graph, node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
         finally:
             graph._validation.unsubscribe(capture)
 
@@ -148,7 +150,7 @@ class TestLinkChangeRequestsEndpointRedraw:
 
         graph = graph_with_library_system
         node_a, node_b = _create_two_nodes(graph)
-        edge = graph.create_edge_wrapper(node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
+        edge = make_edge(graph, node_a.node_id, "bool_outlet", node_b.node_id, "bool_inlet")
 
         seen: dict[str, ChangeReason] = {}
 

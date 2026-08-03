@@ -889,7 +889,7 @@ class NodeData:
                 ctx, p0.get_value(), p1.get_value(), p2.get_value(), p3.get_value(), p4.get_value()
             )
         else:
-            port_refs = list(zip(param_names, ports))
+            port_refs = list(zip(param_names, ports, strict=False))
             cache: dict[str, Any] = {name: None for name in param_names}
 
             def extract_dict():
@@ -950,7 +950,7 @@ class NodeData:
         self._port_order_counter = 0
 
         # Recreate each port from PortSpec
-        for port_id, spec in ports_data.items():
+        for _port_id, spec in ports_data.items():
             # Use same instantiation path as add()
             port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 

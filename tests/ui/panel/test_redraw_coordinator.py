@@ -13,7 +13,7 @@ extraction.
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Callable
+from typing import Any, Callable, cast
 
 
 from haywire.core.session.signals import Signal
@@ -94,7 +94,7 @@ def _make_coordinator(registry, session):
         registry=registry,
         session=session,
         on_redraw=lambda: redraws.append(1),
-        focus_provider=lambda: [focus],
+        focus_provider=lambda: cast(Any, [focus]),
     )
     return coord, redraws, focus
 

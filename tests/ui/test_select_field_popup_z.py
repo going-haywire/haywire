@@ -10,6 +10,8 @@ The lift is opt-in rather than always-on because the QMenu teleports to
 widget sitting *behind* a popup float above that popup.
 """
 
+from typing import Any, cast
+
 import pytest
 from nicegui import Client, ui
 from nicegui import app as _app  # noqa: F401
@@ -27,7 +29,7 @@ def _noop_page() -> None:  # registration target for a headless Client
 
 def _build(**kwargs) -> ui.select:
     """Build a select inside a headless client (the slot stack needs one)."""
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client, ui.column():
         return hui.select_field(**kwargs)
 

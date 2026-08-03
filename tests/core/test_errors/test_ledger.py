@@ -24,7 +24,7 @@ def _identity(lib_id: str = "testing") -> LibraryIdentity:
     )
 
 
-@pytest.fixture()
+@pytest.fixture
 def ledger():
     fresh = ErrorLedger(max_entries=5)
     set_error_ledger(fresh)

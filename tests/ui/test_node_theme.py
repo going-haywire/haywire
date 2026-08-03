@@ -82,7 +82,6 @@ class TestGetColor:
 
 class TestThemeDecorator:
     def test_class_identity_set(self):
-        assert hasattr(TestNodeTheme, "class_identity")
         assert TestNodeTheme.class_identity.registry_id == "TestNodeTheme"
         assert TestNodeTheme.class_identity.theme_type == "node"
 

@@ -1,5 +1,7 @@
 """Tests for SessionContextMenuProvider's _OpenMenuContext lifecycle and action methods."""
 
+from typing import Any, cast
+
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
@@ -49,7 +51,7 @@ def _make_provider(on_emit_event=None, on_emit_sync_event=None) -> SessionContex
         on_emit_sync_event=on_emit_sync_event,
     )
     # Expose the stub for tests that need to seed selection/edge values.
-    provider._test_edit_stub = edit_stub  # type: ignore[attr-defined]
+    cast(Any, provider)._test_edit_stub = edit_stub  # type: ignore[attr-defined]
     return provider
 
 
@@ -104,7 +106,7 @@ def test_provider_satisfies_selection_context_actions():
 def test_delete_edge_emits_user_remove_event():
     from haywire.ui.components.graph.event_definitions import UserRemoveEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
     provider.delete_edge("edge-1")
 
@@ -118,9 +120,9 @@ def test_copy_selection_uses_session_context_selection():
     """copy_selection reads ctx.data[EditState].selected_* and emits UserCopySelectedEvent."""
     from haywire.ui.components.graph.event_definitions import UserCopySelectedEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
-    edit = provider._test_edit_stub
+    edit = cast(Any, provider)._test_edit_stub
     edit.selected_nodes = {"a", "b"}
     edit.selected_edges = {"e1"}
 
@@ -142,8 +144,8 @@ def test_paste_at_click_emits_clipboard_paste_request_via_sync_channel():
     """
     from haywire.ui.components.graph.event_definitions import SyncRequestClipboardPasteEvent
 
-    captured = []
-    sync_captured = []
+    captured: list = []
+    sync_captured: list = []
     provider = _make_provider(
         on_emit_event=captured.append,
         on_emit_sync_event=sync_captured.append,
@@ -165,7 +167,7 @@ def test_paste_at_click_emits_clipboard_paste_request_via_sync_channel():
 
 def test_paste_at_click_no_open_ctx_is_noop():
     """If no popup is open, paste_at_click does nothing."""
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
     provider._open_ctx = None
 
@@ -177,7 +179,7 @@ def test_paste_at_click_no_open_ctx_is_noop():
 def test_create_node_at_click_emits_node_create_request_event():
     from haywire.ui.components.graph.event_definitions import NodeCreateRequestEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
     provider._open_ctx = _OpenMenuContext(
         click_pos=(0.0, 0.0),
@@ -197,7 +199,7 @@ def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     """reconnect_active_edge reads ctx.data[EditState].active_edge AND _open_ctx.edge_reconnect_end."""
     from haywire.ui.components.graph.event_definitions import SyncEdgeReconnectEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
 
     # Set up a fake edge in active_edge so reconnect_active_edge sees it.
@@ -208,7 +210,7 @@ def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
     wrapper.sink_node_id = "snk-node"
     wrapper.inlet_port_id = "in-pin"
 
-    provider._test_edit_stub.active_edge = wrapper
+    cast(Any, provider)._test_edit_stub.active_edge = wrapper
     provider._open_ctx = _OpenMenuContext(
         click_pos=(0.0, 0.0),
         edge_reconnect_end=True,  # clicked near inlet → anchor on outlet (source) side
@@ -225,7 +227,7 @@ def test_reconnect_active_edge_uses_open_ctx_and_active_edge():
 
 def test_reconnect_active_edge_no_active_edge_is_noop():
     """If no active edge, reconnect_active_edge does nothing."""
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
     provider._open_ctx = _OpenMenuContext(click_pos=(0, 0))
     # active_edge is None by default
@@ -266,7 +268,7 @@ def test_open_menu_creates_open_ctx_with_click_pos():
     provider = _make_provider()
     _register_visible_node_panel(provider, NodeContextActions, NodeFocus)
     # _open_menu opens a Popup which requires NiceGUI runtime — patch it.
-    provider._build_popup = MagicMock(return_value=MagicMock())  # see implementation below
+    provider._build_popup = MagicMock(return_value=MagicMock())  # type: ignore[method-assign]  # see implementation below
 
     provider._open_menu(NodeContextActions, NodeFocus, (100.0, 200.0))
 
@@ -288,8 +290,7 @@ def test_open_menu_clears_open_ctx_on_close(monkeypatch):
         on_close_callback.append(cb)
 
     popup.on_close = capture_on_close
-    provider._build_popup = MagicMock(return_value=popup)
-
+    provider._build_popup = MagicMock(return_value=popup)  # type: ignore[method-assign]
     provider._open_menu(NodeContextActions, NodeFocus, (0.0, 0.0))
     assert provider._open_ctx is not None
 
@@ -305,8 +306,7 @@ def test_open_menu_no_visible_panels_runs_cleanup_without_opening():
 
     provider = _make_provider()  # empty registry → no visible panels
     popup = MagicMock()
-    provider._build_popup = MagicMock(return_value=popup)
-
+    provider._build_popup = MagicMock(return_value=popup)  # type: ignore[method-assign]
     provider._open_menu(NodeContextActions, NodeFocus, (0.0, 0.0))
 
     popup.open.assert_not_called()
@@ -316,9 +316,9 @@ def test_open_menu_no_visible_panels_runs_cleanup_without_opening():
 def test_redraw_selection_emits_element_redraw_for_whole_selection():
     from haywire.ui.components.graph.event_definitions import ElementRedrawEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
-    edit = provider._test_edit_stub
+    edit = cast(Any, provider)._test_edit_stub
     edit.selected_nodes = {"a", "b"}
     edit.selected_edges = set()
 
@@ -334,9 +334,9 @@ def test_redraw_selection_emits_element_redraw_for_whole_selection():
 def test_revalidate_selection_emits_element_revalidate_for_whole_selection():
     from haywire.ui.components.graph.event_definitions import ElementRevalidateEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
-    edit = provider._test_edit_stub
+    edit = cast(Any, provider)._test_edit_stub
     edit.selected_nodes = {"a"}
     edit.selected_edges = set()
 
@@ -349,9 +349,9 @@ def test_revalidate_selection_emits_element_revalidate_for_whole_selection():
 def test_reset_selection_emits_element_reset_for_whole_selection():
     from haywire.ui.components.graph.event_definitions import ElementResetEvent
 
-    captured = []
+    captured: list = []
     provider = _make_provider(on_emit_event=captured.append)
-    edit = provider._test_edit_stub
+    edit = cast(Any, provider)._test_edit_stub
     edit.selected_nodes = {"a"}
     edit.selected_edges = set()
 
@@ -376,7 +376,7 @@ def test_on_selection_context_writes_selection_from_payload(monkeypatch):
     """on_selection_context seeds EditState.selected_* from the event payload
     before opening the menu, so menu panels poll against fresh state."""
     provider = _make_provider()
-    edit = provider._test_edit_stub
+    edit = cast(Any, provider)._test_edit_stub
     # Prevent the real popup/registry machinery from running.
     monkeypatch.setattr(provider, "_open_menu", lambda *a, **k: None)
 

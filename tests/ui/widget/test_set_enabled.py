@@ -12,7 +12,7 @@ Real NiceGUI elements need a Client slot context, hence the integration
 marker (same pattern as tests/ui/panel/test_promoted_row_state.py).
 """
 
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from nicegui import Client, ui
@@ -45,7 +45,7 @@ class _ContainerRootWidget(BaseWidget):
 
 def _rendered(widget_cls) -> BaseWidget:
     w = widget_cls(make_float_port())
-    client = Client(_noop_page, request=None)
+    client = Client(cast(Any, _noop_page), request=None)
     with client:
         w.render()
     return w
@@ -55,20 +55,20 @@ class TestQuasarBranch:
     def test_disable_sets_quasar_disable_prop(self):
         w = _rendered(_NumberRootWidget)
         w.set_enabled(False)
-        assert w.ui_element._props.get("disable") is True
+        assert cast(Any, w.ui_element)._props.get("disable") is True
 
     def test_reenable_clears_quasar_disable_prop(self):
         w = _rendered(_NumberRootWidget)
         w.set_enabled(False)
         w.set_enabled(True)
-        assert w.ui_element._props.get("disable") is False
+        assert cast(Any, w.ui_element)._props.get("disable") is False
 
 
 class TestCssFallbackBranch:
     def test_disable_applies_211_style(self):
         w = _rendered(_ContainerRootWidget)
         w.set_enabled(False)
-        style = w.ui_element._style
+        style = cast(Any, w.ui_element)._style
         assert style.get("opacity") == "0.5"
         assert style.get("pointer-events") == "none"
 
@@ -76,7 +76,7 @@ class TestCssFallbackBranch:
         w = _rendered(_ContainerRootWidget)
         w.set_enabled(False)
         w.set_enabled(True)
-        style = w.ui_element._style
+        style = cast(Any, w.ui_element)._style
         assert "opacity" not in style
         assert "pointer-events" not in style
 

@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from types import SimpleNamespace
-from typing import Any
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 from haywire.ui.app.tab_slot import TabSlot
@@ -71,10 +71,13 @@ def _fake_nicegui(monkeypatch):
 class _FakeEditor(BaseEditor):
     """Minimal BaseEditor subclass that records on_focus / draw calls."""
 
-    class_identity = SimpleNamespace(
-        registry_key="test:editor:fake",
-        label="Fake",
-        default_slot=SlotName.EDIT,
+    class_identity = cast(
+        Any,
+        SimpleNamespace(
+            registry_key="test:editor:fake",
+            label="Fake",
+            default_slot=SlotName.EDIT,
+        ),
     )
 
     def __init__(self, wrapper) -> None:
@@ -126,7 +129,7 @@ class _FakeRegistry:
 def _make_slot(session, *keys):
     """Build a TabSlot with wrappers for each key; first key is active."""
     reg = _FakeRegistry()
-    slot = TabSlot(session=session, name=SlotName.EDIT, registry=reg)
+    slot = TabSlot(session=cast(Any, session), name=SlotName.EDIT, registry=cast(Any, reg))
     for k in keys:
         slot.add_binding(editor_key=k, editor_cls=_FakeEditor, binding_id=None)
     if keys:
@@ -160,7 +163,7 @@ def test_switch_to_does_not_call_on_focus_when_target_already_active():
     """Re-selecting the active binding must NOT re-fire on_focus."""
     session = _make_session()
     slot = _make_slot(session, "e1")
-    b1 = slot.find_binding("e1")
+    b1 = cast(Any, slot.find_binding("e1"))
 
     slot._render_area_contents(MagicMock())
     assert b1.instance is not None
@@ -177,11 +180,11 @@ def test_add_binding_activate_true_calls_on_focus():
     once its instance has been created by the subsequent draw."""
     session = _make_session()
     reg = _FakeRegistry()
-    slot = TabSlot(session=session, name=SlotName.EDIT, registry=reg)
+    slot = TabSlot(session=cast(Any, session), name=SlotName.EDIT, registry=cast(Any, reg))
     slot._area_panel_container = MagicMock()
 
     slot.add_binding(editor_key="e_new", editor_cls=_FakeEditor, binding_id=None, activate=True)
-    w_new = slot.find_binding("e_new")
+    w_new = cast(Any, slot.find_binding("e_new"))
 
     # draw creates the instance; on_focus fires on subsequent switch_to after
     # the instance exists. For the first activation, the wrapper's on_focus is
@@ -200,10 +203,10 @@ def test_on_focus_raising_is_captured_in_wrapper_state():
 
     session = _make_session()
     reg = _FakeRegistry()
-    slot = TabSlot(session=session, name=SlotName.EDIT, registry=reg)
+    slot = TabSlot(session=cast(Any, session), name=SlotName.EDIT, registry=cast(Any, reg))
     slot.add_binding(editor_key="e1", editor_cls=_RaisingEditor, binding_id=None)
     slot.add_binding(editor_key="e2", editor_cls=_FakeEditor, binding_id=None)
-    b1 = slot.find_binding("e1")
+    b1 = cast(Any, slot.find_binding("e1"))
     b2 = slot.find_binding("e2")
     slot._active = b1
 

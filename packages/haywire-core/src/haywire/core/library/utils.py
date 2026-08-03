@@ -62,7 +62,7 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
 
         # Look for Library class with class_identity
         if hasattr(module, "Library"):
-            lib_class = getattr(module, "Library")
+            lib_class = module.Library
             if hasattr(lib_class, "class_identity"):
                 return lib_class.class_identity
 

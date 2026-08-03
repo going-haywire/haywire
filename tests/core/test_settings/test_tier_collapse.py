@@ -18,7 +18,7 @@ def _reg_with(name="exec.threads", default=4):
 
 class TestSettingValueSetUnset:
     def test_unset_is_not_set(self):
-        sv = SettingValue.unset()
+        sv: SettingValue = SettingValue.unset()
         assert sv.is_set is False
         assert sv.value is None
 
@@ -35,7 +35,7 @@ class TestSettingValueSetUnset:
         assert SettingValue.from_dict(sv.to_dict()) == sv
 
     def test_roundtrip_unset(self):
-        sv = SettingValue.unset()
+        sv: SettingValue = SettingValue.unset()
         assert sv.to_dict() == {}
         assert SettingValue.from_dict({}) == sv
 
@@ -113,4 +113,6 @@ class TestSettingModeRemoved:
 
     def test_settingmode_enum_gone(self):
         with pytest.raises(ImportError):
-            from haywire.core.settings.enums import SettingMode  # noqa: F401
+            from haywire.core.settings.enums import (  # type: ignore[import-untyped,import-not-found]  # noqa: F401
+                SettingMode,
+            )

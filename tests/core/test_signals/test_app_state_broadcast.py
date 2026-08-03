@@ -3,18 +3,13 @@
 Verifies routing: SessionContext/SessionState publish to the local bus;
 AppState broadcasts to every session via SessionManager."""
 
+from typing import Any, cast
+
 import weakref
 from unittest.mock import MagicMock
 
 from haywire.core.session.signals import Signal, SignalSource
 from haywire.core.state.base import AppState, SessionState
-
-
-def test_session_context_inherits_signal_source():
-    """SessionContext must be a SignalSource subclass."""
-    from haywire.core.session.context import SessionContext
-
-    assert issubclass(SessionContext, SignalSource)
 
 
 def test_session_context_signal_emit_delegates_to_session_publish():
@@ -34,6 +29,8 @@ def test_session_context_signal_emit_delegates_to_session_publish():
 
 
 def test_session_state_inherits_signal_source():
+    # Inherited transitively via LibraryState, not declared on the class itself —
+    # a refactor of that middle layer could silently sever it.
     assert issubclass(SessionState, SignalSource)
 
 
@@ -103,6 +100,6 @@ def test_app_state_signal_emit_silent_when_manager_gone():
 
     mgr = _Disposable()
     state = MyAppState()
-    state._session_manager = weakref.ref(mgr)
+    state._session_manager = weakref.ref(cast(Any, mgr))
     del mgr
     state._signal_emit(Tick())  # must not raise

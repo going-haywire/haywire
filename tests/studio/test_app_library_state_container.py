@@ -8,5 +8,4 @@ class TestAppLibraryStateContainer:
         from haywire_studio.app import HaywireApp
 
         app = HaywireApp()
-        assert hasattr(app, "library_state_container")
         assert isinstance(app.library_state_container, LibraryStateContainer)

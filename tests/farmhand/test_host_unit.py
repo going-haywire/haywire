@@ -2,6 +2,8 @@
 
 from unittest.mock import patch
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.farmhand import FarmhandError
@@ -157,7 +159,7 @@ def test_mount_disables_dns_rebinding_protection_when_loopback_unrestricted(tmp_
         settings_cls.return_value.require_auth = True
         network_cls.return_value.restrict_to_loopback = False
         host.mount(8082, app_target=target)
-    assert host._session_manager.security_settings.enable_dns_rebinding_protection is False
+    assert cast(Any, host._session_manager).security_settings.enable_dns_rebinding_protection is False
 
 
 def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
@@ -170,6 +172,6 @@ def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
         settings_cls.return_value.require_auth = True
         network_cls.return_value.restrict_to_loopback = True
         host.mount(8082, app_target=target)
-    security = host._session_manager.security_settings
+    security = cast(Any, host._session_manager).security_settings
     assert security.enable_dns_rebinding_protection is True
     assert "127.0.0.1:8082" in security.allowed_hosts

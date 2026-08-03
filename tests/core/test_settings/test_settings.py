@@ -12,6 +12,8 @@ Covers:
 - Direct binding on node instances via @node decorator
 """
 
+from typing import Any, cast
+
 import pytest
 from haywire.core.settings import (
     Settings,
@@ -26,6 +28,13 @@ from haywire.core.settings import (
 )
 from haywire.core.di.test_config import create_test_bag
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
+
+
+def _vec_meta(type_cls):
+    """``get_vec_meta`` narrowed — a real vector type always has metadata."""
+    meta = get_vec_meta(type_cls)
+    assert meta is not None, f"{type_cls!r} has no vec metadata"
+    return meta
 
 
 # ---------------------------------------------------------------------------
@@ -343,9 +352,8 @@ class TestNodeDirectBinding:
                 strength = setting[FLOAT](0.5, min=0.0, max=1.0, label="Strength")
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
-        n = _TestBindingNode("n1", wrapper)
+        n = cast(Any, _TestBindingNode)("n1", wrapper)
 
-        assert hasattr(n, "filter")
         assert isinstance(n.filter, NodeSettings)
 
     def test_direct_read(self):
@@ -357,7 +365,7 @@ class TestNodeDirectBinding:
                 threshold = setting[FLOAT](0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
-        n = _TestReadNode("n1", wrapper)
+        n = cast(Any, _TestReadNode)("n1", wrapper)
 
         assert n.params.threshold == 0.7
 
@@ -370,7 +378,7 @@ class TestNodeDirectBinding:
                 threshold = setting[FLOAT](0.7)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
-        n = _TestWriteNode("n1", wrapper)
+        n = cast(Any, _TestWriteNode)("n1", wrapper)
 
         n.params.threshold = 0.9
         assert n.params.threshold == 0.9
@@ -394,13 +402,13 @@ class TestNodeDirectBinding:
                 strength = setting[FLOAT](0.5)
 
         wrapper = type("W", (), {"node_id": "w1", "notify": lambda *a: None})()
-        n = _TestSerialNode("n1", wrapper)
+        n = cast(Any, _TestSerialNode)("n1", wrapper)
         n.filter.strength = 0.9
 
         data = n._to_dict()
         assert data["settings"]["filter"]["values"]["strength"] == 0.9
 
-        n2 = _TestSerialNode("n2", wrapper)
+        n2 = cast(Any, _TestSerialNode)("n2", wrapper)
         n2._initialize_from_dict({"settings": data["settings"]})
         assert n2.filter.strength == 0.9
 
@@ -532,18 +540,18 @@ class TestVecTypes:
         assert VecSettings.__dict__["color"]._type is VEC4F
 
     def test_get_vec_meta_returns_correct_length(self):
-        assert get_vec_meta(Vec3f).length == 3
-        assert get_vec_meta(Vec2i).length == 2
-        assert get_vec_meta(Vec4f).length == 4
+        assert _vec_meta(Vec3f).length == 3
+        assert _vec_meta(Vec2i).length == 2
+        assert _vec_meta(Vec4f).length == 4
 
     def test_get_vec_meta_returns_correct_element_type(self):
-        assert get_vec_meta(Vec3f).element_type is float
-        assert get_vec_meta(Vec2i).element_type is int
+        assert _vec_meta(Vec3f).element_type is float
+        assert _vec_meta(Vec2i).element_type is int
 
     def test_get_vec_meta_labels(self):
-        assert get_vec_meta(Vec2i).labels == ("X", "Y")
-        assert get_vec_meta(Vec3i).labels == ("X", "Y", "Z")
-        assert get_vec_meta(Vec4i).labels == ("W", "X", "Y", "Z")
+        assert _vec_meta(Vec2i).labels == ("X", "Y")
+        assert _vec_meta(Vec3i).labels == ("X", "Y", "Z")
+        assert _vec_meta(Vec4i).labels == ("W", "X", "Y", "Z")
 
     def test_get_vec_meta_returns_none_for_plain_list(self):
         assert get_vec_meta(list) is None

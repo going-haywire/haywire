@@ -21,6 +21,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from types import SimpleNamespace
+from typing import Any, cast
 from unittest.mock import MagicMock
 
 
@@ -93,7 +94,7 @@ def _make_session() -> Session:
     return session
 
 
-def _make_wrapper(editor_cls: type, session: Session) -> EditorWrapper:
+def _make_wrapper(editor_cls: Any, session: Session) -> EditorWrapper:
     return EditorWrapper(
         editor_key=getattr(editor_cls.class_identity, "registry_key", "test:editor"),
         editor_cls=editor_cls,
@@ -102,7 +103,8 @@ def _make_wrapper(editor_cls: type, session: Session) -> EditorWrapper:
     )
 
 
-def _identity(key: str = "test:editor") -> SimpleNamespace:
+def _identity(key: str = "test:editor") -> Any:
+    """Structural stand-in for EditorIdentity (only a few fields are read)."""
     return SimpleNamespace(
         registry_key=key,
         label=key,
@@ -301,7 +303,7 @@ def test_wrapper_redraw_on_handler_triggers_wrapper_redraw():
     session.publish(signal)
 
     assert wrapper.instance is not None
-    assert wrapper.instance.calls == [("on_a", signal)]  # type: ignore[attr-defined]
+    assert cast(Any, wrapper.instance).calls == [("on_a", signal)]  # type: ignore[attr-defined]
     assert redraw_calls == [wrapper]
 
 
@@ -328,7 +330,7 @@ def test_wrapper_react_on_handler_does_not_trigger_redraw():
     session.publish(_SignalB())
 
     assert wrapper.instance is not None
-    assert len(wrapper.instance.calls) == 1  # type: ignore[attr-defined]
+    assert len(cast(Any, wrapper.instance).calls) == 1  # type: ignore[attr-defined]
     assert redraw_calls == []  # react_on is side-effect only
 
 
@@ -462,7 +464,7 @@ def test_wrapper_hot_reload_re_subscribes_against_new_class():
     # And the new instance is the one that receives events — the old
     # subscription is gone so only one call lands.
     session.publish(_SignalA())
-    assert wrapper.instance.calls == 1  # type: ignore[attr-defined]
+    assert cast(Any, wrapper.instance).calls == 1  # type: ignore[attr-defined]
 
 
 class _OneOf(_StubEditorBase):
@@ -497,14 +499,14 @@ def test_two_wrappers_in_one_session_each_receive_events_independently():
     assert w2._instantiate() is True
 
     session.publish(_SignalA())
-    assert w1.instance.calls == 1  # type: ignore[attr-defined]
-    assert w2.instance.calls == 1  # type: ignore[attr-defined]
+    assert cast(Any, w1.instance).calls == 1  # type: ignore[attr-defined]
+    assert cast(Any, w2.instance).calls == 1  # type: ignore[attr-defined]
 
     # Cleaning up one doesn't affect the other.
     w1.cleanup()
     session.publish(_SignalA())
     assert w1.instance is None
-    assert w2.instance.calls == 2  # type: ignore[attr-defined]
+    assert cast(Any, w2.instance).calls == 2  # type: ignore[attr-defined]
 
 
 class _UndecoratedEditor(_StubEditorBase):

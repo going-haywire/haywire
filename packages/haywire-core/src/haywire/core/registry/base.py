@@ -848,7 +848,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
 
             if snapshot["needs_reregistring"]:
                 # Re-register classes from snapshot
-                for hw_name, class_info in snapshot["registered_classes"].items():
+                for _hw_name, class_info in snapshot["registered_classes"].items():
                     self._unregister_class(class_info["class"].class_identity.registry_key)
                     self._register_class(class_info["class"], library_identity)
 
