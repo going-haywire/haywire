@@ -41,16 +41,16 @@ jobs:
     - name: Run unit tests
       run: |
         uv run pytest -m unit \
-          --cov=src/haywire \
-          --cov=libraries \
+          --cov=packages \
+          --cov=barn \
           --cov-report=xml \
           --cov-report=term-missing
-    
+
     - name: Run integration tests
       run: |
         uv run pytest -m integration \
-          --cov=src/haywire \
-          --cov=libraries \
+          --cov=packages \
+          --cov=barn \
           --cov-append \
           --cov-report=xml \
           --cov-report=term-missing
@@ -91,37 +91,11 @@ jobs:
     - name: Run UI tests
       run: uv run pytest -m ui
 
-  lint:
-    name: Linting
-    runs-on: ubuntu-latest
-    
-    steps:
-    - name: Checkout repository
-      uses: actions/checkout@v4
-    
-    - name: Install uv
-      uses: astral-sh/setup-uv@v3
-      with:
-        enable-cache: true
-    
-    - name: Set up Python
-      run: uv python install 3.12
-
-    - name: Install dependencies
-      run: |
-        uv sync --all-extras --dev
-
-    - name: Run ruff check
-      run: |
-        uv run ruff check src/ tests/
-      continue-on-error: true
-    
-    - name: Run ruff format check
-      run: |
-        uv run ruff format --check src/ tests/
-      continue-on-error: true
-    
-    - name: Run mypy
-      run: |
-        uv run mypy src/
-      continue-on-error: true
+# Linting lives in dedicated blocking workflows, not here:
+#   ruff.yml — `ruff check .` + `ruff format --check .` (whole repo)
+#   mypy.yml — packages/ + barn/ + tests/
+# A `lint` job used to sit here running `ruff check src/ tests/` and
+# `mypy src/` under continue-on-error. `src/` has not existed since the
+# monorepo restructure (86e9cafa, 2026-02-20), so every step failed with
+# E902 and was swallowed into a green check. Removed rather than repointed:
+# the two workflows above already cover it, and they can actually fail.
