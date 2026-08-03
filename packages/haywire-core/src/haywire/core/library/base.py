@@ -58,7 +58,11 @@ class BaseLibrary(ABC):
         return self._enabled
 
     def enable(self):
-        """Enable the library and register its components"""
+        """Enable the library and register its components.
+
+        MAY RUN OFF THE EVENT LOOP — the marketplace calls this from a worker
+        thread after an install. So no hook reached from here may call NiceGUI.
+        """
         if not self._enabled:
             self._enabled = True
             self.register_components()
@@ -116,7 +120,11 @@ class BaseLibrary(ABC):
         return self.registries.get(cls)
 
     def on_library_enable(self):
-        """Hook called when the library is enabled"""
+        """Hook called when the library is enabled.
+
+        Override to acquire resources at enable time. Do NOT call NiceGUI from
+        here — see :meth:`enable` for why.
+        """
         self._register_log_level_setting()
 
     def on_library_disable(self):
@@ -167,6 +175,8 @@ class BaseLibrary(ABC):
         """
         Register this library's components with the global registries
         This method is called by the library registry when loading the library
+
+        Do NOT call NiceGUI from here — see :meth:`enable` for why.
         """
         pass
 

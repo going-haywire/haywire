@@ -485,7 +485,11 @@ class LibraryManager:
         await asyncio.to_thread(self.registry.scan_for_libraries)
 
         on_output("Enabling libraries...")
-        self.registry.enable_all_libraries()
+        # Threaded for enabling imports every library's module tree, which
+        # for a package like haybale-visiongraph (depthai, opencv) is seconds
+        # of synchronous work. On the event loop it would stop NiceGUI answering
+        # its heartbeat and the browser reports the connection lost mid-install.
+        await asyncio.to_thread(self.registry.enable_all_libraries)
 
         if source_pkg is not None:
             self._sync_install_to_pyproject(source_pkg, on_output)

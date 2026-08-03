@@ -34,6 +34,9 @@ class LibraryState(SignalSource):
 
         Default: no-op. Override on subclasses that need to wire up
         callbacks, rehydrate persisted state, or otherwise initialise.
+
+        Do NOT call NiceGUI from here — no ``ui.notify()``, no element
+        creation, no ``ui.timer()``.
         """
 
     def on_disable(self) -> None:

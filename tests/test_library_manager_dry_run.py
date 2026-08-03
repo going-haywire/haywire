@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import threading
 from pathlib import Path
 
 from typing import Any, cast
@@ -405,3 +406,35 @@ async def test_streaming_reports_failure_with_recent_lines():
 
     assert ok is False
     assert "boom" in tail
+
+
+@pytest.mark.unit
+async def test_install_enables_libraries_off_the_event_loop():
+    """Enabling imports every library's module tree — seconds for a package
+    like haybale-visiongraph. On the event loop that stops NiceGUI answering
+    its heartbeat and the browser reports the connection lost mid-install.
+    """
+    import asyncio as _asyncio
+
+    mgr = _make_manager()
+    called_in_thread: dict[str, bool] = {}
+    main_thread = threading.current_thread()
+
+    def _enable_all():
+        called_in_thread["off_loop"] = threading.current_thread() is not main_thread
+
+    mgr.registry.list_names.return_value = []
+    mgr.registry.enable_all_libraries.side_effect = _enable_all
+
+    async def fake_run(args, on_output):
+        return True, ""
+
+    with patch.object(mgr, "_framework_constraints", return_value=[]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            with patch.object(_asyncio, "to_thread", wraps=_asyncio.to_thread) as spy:
+                await mgr.install("haybale-foo", lambda line: None, None, [])
+
+    assert called_in_thread.get("off_loop") is True
+    threaded = {c.args[0] for c in spy.call_args_list if c.args}
+    assert mgr.registry.enable_all_libraries in threaded
+    assert mgr.registry.scan_for_libraries in threaded

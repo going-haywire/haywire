@@ -86,6 +86,8 @@ The decorator does **not** carry a scope parameter. Scope is determined by which
 
 Both are optional and duck-typed. If absent, the framework skips them silently.
 
+**Do not call NiceGUI from `on_enable`.** No `ui.notify()`, no element creation, no `ui.timer()`. The hook runs in a worker thread - detached from the nicegui's base thread.
+
 **Reactivity is opt-in via `signal_field()`.** Plain attributes are not reactive — `devices: dict = {}` is a normal Python dict. `devices: list = signal_field([])` is a signal-emitting cell that re-renders subscribed UI panels when it's assigned a new value.
 
 ```python
