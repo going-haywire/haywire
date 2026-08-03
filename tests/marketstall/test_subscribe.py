@@ -261,3 +261,158 @@ def test_subscribe_pasted_block_without_haybales_raises(tmp_path: Path) -> None:
             paste_dir=tmp_path / "stalls",
             cache_dir=tmp_path / "cache",
         )
+
+
+# ── Two-phase API: resolve_source / subscribe ────────────────────────────────
+#
+# The split exists so a UI can show what a source offers, and which names it
+# collides with, BEFORE the subscription is written. The load-bearing property
+# is that resolve_source leaves the disk untouched.
+
+
+@pytest.mark.unit
+def test_resolve_source_writes_nothing(tmp_path: Path) -> None:
+    from haywire.core.marketstall import resolve_source
+
+    global_path = tmp_path / "marketplace.toml"
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
+        resolved = resolve_source("https://alice.example/marketstall.toml", cache_dir=tmp_path / "cache")
+
+    assert resolved.kind == "stall"
+    assert not global_path.exists()
+
+
+@pytest.mark.unit
+def test_resolve_source_reports_offered_haybales(tmp_path: Path) -> None:
+    """The probe step needs the package list to show and to collide against."""
+    from haywire.core.marketstall import resolve_source
+
+    body = (
+        '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n\n'
+        '[[haybales]]\nname = "haybale-bar"\nversion = "0.2.0"\n'
+    )
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
+        resolved = resolve_source("https://alice.example/marketstall.toml", cache_dir=tmp_path / "cache")
+
+    assert [h.name for h in resolved.haybales] == ["haybale-foo", "haybale-bar"]
+
+
+@pytest.mark.unit
+def test_resolve_pasted_block_writes_no_file(tmp_path: Path) -> None:
+    """A pasted block stays in memory until subscribe() commits it."""
+    from haywire.core.marketstall import resolve_source
+
+    paste_dir = tmp_path / "stalls"
+    block = '[[haybales]]\nname = "haybale-pasted"\nversion = "0.1.0"\n'
+
+    resolved = resolve_source(block, cache_dir=tmp_path / "cache")
+
+    assert resolved.is_paste
+    assert resolved.pasted_body == block
+    assert not paste_dir.exists()
+
+
+@pytest.mark.unit
+def test_subscribe_writes_the_global_file(tmp_path: Path) -> None:
+    from haywire.core.marketstall import resolve_source, subscribe
+    from haywire.core.marketstall.parsing import parse_global_marketplace
+
+    global_path = tmp_path / "marketplace.toml"
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
+        resolved = resolve_source("https://alice.example/marketstall.toml", cache_dir=tmp_path / "cache")
+    assert not global_path.exists()
+
+    result = subscribe(resolved, global_path, paste_dir=tmp_path / "stalls")
+
+    assert result.kind == "stall"
+    assert parse_global_marketplace(global_path).stalls[0].url == result.persist_url
+
+
+@pytest.mark.unit
+def test_subscribe_persists_a_pasted_block(tmp_path: Path) -> None:
+    """The paste file appears only once subscribe() runs."""
+    from haywire.core.marketstall import resolve_source, subscribe
+
+    global_path = tmp_path / "marketplace.toml"
+    paste_dir = tmp_path / "stalls"
+    block = '[[haybales]]\nname = "haybale-pasted"\nversion = "0.1.0"\n'
+
+    resolved = resolve_source(block, cache_dir=tmp_path / "cache")
+    assert not paste_dir.exists()
+
+    result = subscribe(resolved, global_path, paste_dir=paste_dir)
+
+    assert (paste_dir / "haybale-pasted.toml").is_file()
+    assert result.persist_url.startswith("file://")
+    assert "haybale-pasted.toml" in result.persist_url
+
+
+@pytest.mark.unit
+def test_abandoning_after_resolve_leaves_nothing_behind(tmp_path: Path) -> None:
+    """The whole point of the split: probe a source, decline, change nothing."""
+    from haywire.core.marketstall import resolve_source
+
+    global_path = tmp_path / "marketplace.toml"
+    paste_dir = tmp_path / "stalls"
+    block = '[[haybales]]\nname = "haybale-pasted"\nversion = "0.1.0"\n'
+
+    resolve_source(block, cache_dir=tmp_path / "cache")
+
+    assert not global_path.exists()
+    assert not paste_dir.exists()
+
+
+@pytest.mark.unit
+def test_resolve_source_rejects_unsafe_paste_name_before_writing(tmp_path: Path) -> None:
+    """A path-traversal name must fail on the read step, not at write time."""
+    from haywire.core.marketstall import SubscribeError, resolve_source
+
+    block = '[[haybales]]\nname = "../../evil"\nversion = "0.1.0"\n'
+
+    with pytest.raises(SubscribeError):
+        resolve_source(block, cache_dir=tmp_path / "cache")
+
+
+@pytest.mark.unit
+def test_resolve_source_detects_a_marketplace(tmp_path: Path) -> None:
+    from haywire.core.marketstall import resolve_source
+
+    body = '[[stalls]]\nurl = "https://bob.example/marketstall.toml"\n'
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
+        resolved = resolve_source("https://alice.example/marketplace.toml", cache_dir=tmp_path / "cache")
+
+    assert resolved.kind == "market"
+
+
+@pytest.mark.unit
+def test_phases_compose_to_the_same_result_as_the_one_shot(tmp_path: Path) -> None:
+    """The split must not change what resolve_and_subscribe returns."""
+    from haywire.core.marketstall import resolve_and_subscribe, resolve_source, subscribe
+
+    body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+
+    split_dir = tmp_path / "split"
+    one_dir = tmp_path / "one"
+    split_dir.mkdir()
+    one_dir.mkdir()
+
+    with patch.object(marketstall_cache, "_urlopen") as mock_open:
+        mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
+        resolved = resolve_source("https://alice.example/marketstall.toml", cache_dir=split_dir / "cache")
+        split = subscribe(resolved, split_dir / "marketplace.toml", paste_dir=split_dir / "stalls")
+        one = resolve_and_subscribe(
+            one_dir / "marketplace.toml",
+            "https://alice.example/marketstall.toml",
+            paste_dir=one_dir / "stalls",
+            cache_dir=one_dir / "cache",
+        )
+
+    assert split == one

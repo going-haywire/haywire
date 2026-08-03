@@ -66,10 +66,13 @@ from haywire.core.marketstall.types import (
     Subscription,
 )
 from haywire.core.marketstall.subscribe import (
+    ResolvedSource,
     SubscribeError,
     SubscribeResult,
     SubscriptionKind,
     resolve_and_subscribe,
+    resolve_source,
+    subscribe,
 )
 from haywire.core.marketstall.url_resolution import (
     BareRepoUrlRejectedError,
@@ -137,6 +140,9 @@ __all__ = [
     "classify_input",
     # Add Source orchestration
     "resolve_and_subscribe",
+    "resolve_source",
+    "subscribe",
+    "ResolvedSource",
     "SubscribeResult",
     "SubscribeError",
     "SubscriptionKind",
