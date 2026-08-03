@@ -4,10 +4,10 @@
 breaking into steps: the ones that take seconds, touch the network, or write
 something the user would want to see coming.
 
-The Share Project wizard established the shape; Refresh Libraries and
-Uninstall Library followed. Anything with the same profile (installing and
-updating libraries, adding a marketplace source) should use it rather than
-grow its own sequence of modals.
+The Share Project wizard established the shape; Refresh Libraries, Uninstall
+Library and Install/Update followed. Anything with the same profile (adding a
+marketplace source, for instance) should use it rather than grow its own
+sequence of modals.
 
 A stepper is also how you replace a confirm modal whose warning is a *claim*.
 The old uninstall modal asserted that "any graph nodes using this library will
@@ -105,6 +105,27 @@ def _panel_sources(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
   the share wizard renders one message/remedy row per `PreconditionFailure`,
   the refresh flow swaps in an Edit File button for the one error a retry
   cannot fix. Return `False` to fall back to the plain message.
+
+## Carry the plan into the apply step
+
+When a read-only step computes something the mutating step also needs, pass it
+forward rather than letting the apply step recompute it. Two reasons, and the
+second matters more:
+
+1. The expensive part runs once. `uv pip install --dry-run` is a full resolver
+   round; the install flow's `checked` step pays for it, and `install()` takes
+   the result via `known_removals` instead of resolving again.
+2. **What the user approved is what executes.** A recomputed plan can differ
+   from the one on screen — the environment may have changed in between — so
+   the confirmation would be about a set that no longer applies.
+
+The refresh flow does the same thing, one layer down: `fetch_sources()` →
+`resolve()` → `apply()` hands `FetchedSources` and `ResolvedCatalog` along the
+chain rather than re-reading.
+
+If the underlying call cannot accept a precomputed plan, add an optional
+parameter that defaults to today's behaviour (`known_removals=None` recomputes)
+so non-UI callers are untouched.
 
 ## Inform, or block?
 

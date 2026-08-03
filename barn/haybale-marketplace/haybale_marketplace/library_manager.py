@@ -373,6 +373,7 @@ class LibraryManager:
         install_spec: str,
         on_output: Callable[[str], None],
         source_pkg: "Haybale | None" = None,
+        known_removals: "list[str] | None" = None,
     ) -> tuple[bool, str, PostInstallHints]:
         """Install a package with live output streaming.
 
@@ -387,6 +388,12 @@ class LibraryManager:
         and DI singletons still hold, so post-eviction the two versions'
         classes coexist. That is a property of the operation, not of the
         library, so it is not the author's flag to withhold.
+
+        ``known_removals`` lets a caller that has *already* run :meth:`dry_run`
+        hand over its result instead of paying for a second resolver round —
+        and, more importantly, guarantees that the eviction set acted on is
+        the same one the user was shown and approved. Omit it (the default)
+        and this computes its own, which is what every non-UI caller does.
         """
         constraints = self._write_constraints_file()
         if Path(install_spec).is_dir():
@@ -401,11 +408,14 @@ class LibraryManager:
 
         # Pre-evict libraries that pip is about to upgrade. Capture each
         # evicted library's hints BEFORE remove_library() drops the identity.
-        try:
-            to_remove = await self.dry_run(install_spec)
-        except RuntimeError:
-            # Resolver failure — the actual install will also fail and report it.
-            to_remove = []
+        if known_removals is not None:
+            to_remove = list(known_removals)
+        else:
+            try:
+                to_remove = await self.dry_run(install_spec)
+            except RuntimeError:
+                # Resolver failure — the actual install will also fail and report it.
+                to_remove = []
 
         evicted_restart_hint = PostInstallHints()
         evicted: list[str] = []

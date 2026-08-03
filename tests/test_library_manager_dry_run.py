@@ -246,3 +246,89 @@ async def test_dry_run_resolver_failure_names_the_shell_control():
 
     assert "Check for updates" in str(exc.value)
     assert "no solution found" in str(exc.value)
+
+
+@pytest.mark.unit
+async def test_install_with_known_removals_skips_the_second_resolve():
+    """A caller that already ran dry_run() must not pay for a second one.
+
+    The UI flow shows the user the collateral upgrades from its own dry_run
+    and then confirms; recomputing them inside install() would both cost a
+    second resolver round and risk acting on a different set than the one
+    approved.
+    """
+    mgr = _make_manager()
+    seen: list[list[str]] = []
+
+    async def fake_run(args, on_output):
+        seen.append(list(args))
+        return True, ""
+
+    mgr.registry.list_names.return_value = []
+    with patch.object(mgr, "_framework_constraints", return_value=[]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            await mgr.install("haybale-foo", lambda line: None, None, [])
+
+    # Exactly one uv invocation: the install itself, no --dry-run pass.
+    assert len(seen) == 1
+    assert "--dry-run" not in seen[0]
+
+
+@pytest.mark.unit
+async def test_install_without_known_removals_still_dry_runs():
+    """The default path is unchanged for every non-UI caller."""
+    mgr = _make_manager()
+    seen: list[list[str]] = []
+
+    async def fake_run(args, on_output):
+        seen.append(list(args))
+        return True, ""
+
+    mgr.registry.list_names.return_value = []
+    with patch.object(mgr, "_framework_constraints", return_value=[]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            await mgr.install("haybale-foo", lambda line: None)
+
+    assert len(seen) == 2
+    assert "--dry-run" in seen[0]
+
+
+@pytest.mark.unit
+async def test_known_removals_drives_the_eviction_set():
+    """The supplied list is what gets evicted — not a recomputed one."""
+    from haywire.core.library.install_type import InstallType
+
+    mgr = _make_manager()
+
+    async def fake_run(args, on_output):
+        return True, ""
+
+    mgr.registry.list_names.return_value = []
+    mgr.registry.find_library_by_distribution_name.return_value = "vision"
+    mgr.registry.get_library_install_type.return_value = InstallType.REGULAR
+
+    with patch.object(mgr, "_framework_constraints", return_value=[]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            with patch.object(mgr, "dry_run") as never_called:
+                await mgr.install("haybale-foo", lambda line: None, None, ["haybale-vision"])
+
+    never_called.assert_not_called()
+    mgr.registry.remove_library.assert_called_once_with("vision")
+
+
+@pytest.mark.unit
+async def test_empty_known_removals_is_not_treated_as_absent():
+    """[] means 'nothing to evict', not 'go find out' — the distinction is None."""
+    mgr = _make_manager()
+
+    async def fake_run(args, on_output):
+        return True, ""
+
+    mgr.registry.list_names.return_value = []
+    with patch.object(mgr, "_framework_constraints", return_value=[]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            with patch.object(mgr, "dry_run") as never_called:
+                await mgr.install("haybale-foo", lambda line: None, None, [])
+
+    never_called.assert_not_called()
+    mgr.registry.remove_library.assert_not_called()

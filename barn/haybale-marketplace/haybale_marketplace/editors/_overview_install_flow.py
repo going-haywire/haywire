@@ -1,8 +1,15 @@
-"""Install / update / version-picker flow for LibraryOverviewEditor."""
+"""Install / update / version-picker entry points for LibraryOverviewEditor.
+
+Both install entry points now open the stepped flow in ``_install_flow/``.
+The three modals they used to drive — ``install_safety_modal``,
+``upgrade_impact_modal`` and ``library_operation_progress_modal`` — are no
+longer called from here; their content became the flow's first, second and
+third steps respectively. They remain in ``haywire.ui.modals`` as public API
+rather than being deleted, since third-party libraries may use them.
+"""
 
 from __future__ import annotations
 
-import asyncio
 import logging
 from typing import TYPE_CHECKING
 
@@ -29,24 +36,26 @@ def install_with_safety_check(
     manager: "LibraryManager",
     context: "SessionContext",
 ) -> None:
-    """Interpose the safety modal before install_package.
+    """Open the Install / Update flow for *pkg*.
 
-    The modal fires on every Install click. The user can Cancel, Block the
-    source (drops the haybale from AVAILABLE permanently), or Install.
+    Replaces the old modal chain (safety modal → upgrade-impact modal →
+    progress modal, with an asyncio.Future hand-rolled to await the middle
+    one's decision). The flow's first step carries the trust notice the safety
+    modal used to show, and its resolve step carries the collateral-upgrade
+    list, so the same three decisions happen in one place with the resolver
+    run once instead of twice.
+
+    *button* is accepted for call-site compatibility and no longer used: the
+    flow owns its own busy state.
     """
     from haywire.core.marketstall import (
         record_block_on_source,
         resolve_block_target,
     )
-    from haywire.ui.modals import install_safety_modal
 
     from haybale_marketplace.state.marketplace_state import MarketplaceState
 
-    def _on_install():
-        # Return the coroutine (don't schedule it). The modal awaits it,
-        # which keeps the NiceGUI slot context intact so ui.notify() inside
-        # install_package works. See .insights/feedback_nicegui_async.md.
-        return install_package(pkg.install_spec, pkg.name, button, manager, context, pkg)
+    from ._install_flow import ManagerInstallSource, show_install_flow
 
     def _on_block() -> None:
         if context.app_data is None or MarketplaceState not in context.app_data:
@@ -74,19 +83,26 @@ def install_with_safety_check(
             context.active_library = None
         notify_library_changed(context)
 
-    def _on_cancel() -> None:
-        ui.notify(f"Install of {pkg.name} cancelled", type="info")
+    def _after() -> None:
+        flow = holder.get("flow")
+        if flow is not None and getattr(flow, "succeeded", False):
+            installed = find_installed_by_dist_name(pkg.name, manager)
+            if installed:
+                context.active_library = installed
+        notify_library_changed(context)
 
-    install_safety_modal(
-        haybale_name=pkg.name,
-        source_url=pkg.source_url or "",
-        on_install=_on_install,
+    holder: dict[str, object] = {}
+    holder["flow"] = show_install_flow(
+        ManagerInstallSource(manager),
+        pkg.install_spec,
+        pkg.name,
+        package=pkg,
+        on_done=_after,
         on_block=_on_block,
-        on_cancel=_on_cancel,
     )
 
 
-async def install_package(
+def install_package(
     install_spec: str,
     name: str,
     button: Button | None,
@@ -94,99 +110,37 @@ async def install_package(
     context: "SessionContext",
     source_pkg: Haybale | None = None,
 ) -> None:
-    """Install a package using the 3-step flow:
-    dry-run → optional upgrade-impact confirmation → streaming progress popup.
+    """Open the Install / Update flow for *install_spec*.
 
-    ``source_pkg`` enables write-back to the project's pyproject.toml so the
-    install is reproducible via ``uv sync``.
+    The Update button's entry point, and the version picker's. Was a coroutine
+    that drove three modals in sequence; the flow owns that sequence now, so
+    this is synchronous and the call sites no longer await anything.
+
+    ``source_pkg`` still enables write-back to the project's pyproject.toml so
+    the install is reproducible via ``uv sync`` — it is handed to install()
+    unchanged.
+
+    *button* is accepted for call-site compatibility and no longer used: the
+    flow owns its own busy state.
     """
-    from haywire.ui.modals import library_operation_progress_modal, upgrade_impact_modal
+    from ._install_flow import ManagerInstallSource, show_install_flow
 
-    if button:
-        try:
-            button.disable()
-            button.props("loading")
-        except Exception:
-            pass
-
-    # Step 1: dry-run to discover collateral upgrades
-    try:
-        removals = await manager.dry_run(install_spec)
-    except RuntimeError as exc:
-        ui.notify(str(exc), type="negative")
-        if button:
-            try:
-                button.enable()
-                button.props(remove="loading")
-            except Exception:
-                pass
-        return
-
-    # Step 2: if collateral upgrades exist, confirm with the user
-    if removals:
-        loop = asyncio.get_event_loop()
-        decision: asyncio.Future[bool] = loop.create_future()
-
-        def _on_continue() -> None:
-            if not decision.done():
-                decision.set_result(True)
-
-        def _on_cancel() -> None:
-            if not decision.done():
-                decision.set_result(False)
-
-        upgrade_impact_modal(
-            installing=name,
-            also_upgrading=removals,
-            on_continue=_on_continue,
-            on_cancel=_on_cancel,
-        )
-
-        try:
-            proceed = await decision
-        finally:
-            pass
-
-        if not proceed:
-            if button:
-                try:
-                    button.enable()
-                    button.props(remove="loading")
-                except Exception:
-                    pass
-            return
-
-    # Step 3: open progress popup and run the install
-    try:
-        progress = library_operation_progress_modal(title=f"Installing {name}…")
-
-        success, message, hints = await manager.install(install_spec, progress.push, source_pkg)
-
-        if success:
-            progress.push(f"--- {name} installed successfully ---")
-            progress.finish(
-                hints=hints,
-                restart_reason=(
-                    f"Upgrading to this version of {name} left the library registry "
-                    "out of sync with what's on disk."
-                ),
-            )
-            ui.notify(f"Installed: {name}", type="positive")
+    def _after() -> None:
+        flow = holder.get("flow")
+        if flow is not None and getattr(flow, "succeeded", False):
             installed = find_installed_by_dist_name(name, manager)
             if installed:
                 context.active_library = installed
-            notify_library_changed(context)
-        else:
-            progress.push(f"--- ERROR: {message} ---")
-            progress.finish(error=message, hints=hints)
-            ui.notify(message, type="negative")
-    finally:
-        if button:
-            try:
-                button.enable()
-                button.props(remove="loading")
-            except Exception:
-                pass
+        notify_library_changed(context)
+
+    holder: dict[str, object] = {}
+    holder["flow"] = show_install_flow(
+        ManagerInstallSource(manager),
+        install_spec,
+        name,
+        package=source_pkg,
+        on_done=_after,
+    )
 
 
 def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "SessionContext") -> None:
