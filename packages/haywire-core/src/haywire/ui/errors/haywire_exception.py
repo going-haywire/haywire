@@ -86,8 +86,8 @@ def render_error_details(
             ui.label(f"{error.category}").classes("text-base font-bold hw-text-body")
             ui.button(
                 icon=hui.icon.copy,
-                on_click=lambda text=error.format_detailed(): ui.run_javascript(
-                    f"navigator.clipboard.writeText({text!r})"
+                on_click=lambda: ui.run_javascript(
+                    f"navigator.clipboard.writeText({error.format_detailed()!r})"
                 ),
             ).props("flat dense").classes("ml-2").tooltip("Copy detailed error to clipboard")
 

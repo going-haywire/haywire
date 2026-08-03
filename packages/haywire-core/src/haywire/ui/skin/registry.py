@@ -7,7 +7,6 @@ from haywire.core.registry.lifecycle_event import LifeCycleEvent
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.registry.base import BaseRegistry
 
-from .interface import IBaseSkin
 from .base import BaseSkin
 
 logger = logging.getLogger(__name__)
@@ -29,8 +28,8 @@ class SkinRegistry(BaseRegistry[BaseSkin]):
         try:
             return (
                 inspect.isclass(cls)
-                and issubclass(cls, IBaseSkin)
-                and cls != IBaseSkin
+                and issubclass(cls, BaseSkin)
+                and cls != BaseSkin
                 and hasattr(cls, "class_identity")
             )
         except TypeError:

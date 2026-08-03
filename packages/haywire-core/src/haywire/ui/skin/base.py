@@ -13,7 +13,6 @@ from haywire.core.registry.identity import BaseIdentity
 from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
 from ..widget.sizing import stamp_size_declaration
-from .interface import IBaseSkin
 from .nodecard import UINodeCard
 
 logger = logging.getLogger(__name__)
@@ -29,7 +28,7 @@ class SkinIdentity(BaseIdentity):
     _error_priority: int = 0
 
 
-class BaseSkin(IBaseSkin, ABC):
+class BaseSkin(ABC):
     """
     Abstract base class for all NodeSkin classes.
 

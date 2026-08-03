@@ -97,22 +97,22 @@ exclude = ["playground/"]
 # B applies repo-wide; PT is scoped to tests/ below.
 extend-select = ["E501", "PT", "B"]
 
-# Three B rules are switched off repo-wide rather than fixed, because each
-# would force an architectural change rather than correct a defect:
-#   B027 — empty non-abstract methods in an ABC. These are the framework's
-#          documented OPTIONAL lifecycle hooks (BaseEditor.on_focus/on_blur,
-#          IType, BaseWidget, IHistoryManager): "default is a no-op; override
-#          to ...". Marking them @abstractmethod would force every editor,
-#          widget and type author to write empty stubs.
-#   B024 — same cause: an ABC whose subclass contract is entirely optional.
-#   B008 — a function call in a default argument. The one occurrence is the
-#          standard late-binding capture (`lambda text=error.format_detailed()`)
-#          which REQUIRES definition-time evaluation to work.
-ignore = ["B027", "B024", "B008"]
-
 [tool.ruff.lint.per-file-ignores]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
+
+# B027 — empty non-abstract methods in an ABC. The four files below are the
+# framework's public authoring surfaces, and every flagged method there is a
+# documented OPTIONAL lifecycle hook ("default is a no-op; override to ..."):
+# BaseEditor.on_focus/on_blur/cleanup, IWidget.cleanup, IType._validate_port_type
+# /_configure_port, IAction.cleanup. Marking them @abstractmethod would force
+# every third-party editor, widget, type and undo-action author to write an
+# empty stub. Scoped per-file on purpose: a new empty ABC method anywhere else
+# still fails CI, which is the part of the rule worth keeping.
+"packages/haywire-core/src/haywire/ui/editor/base.py" = ["B027"]
+"packages/haywire-core/src/haywire/ui/widget/interface.py" = ["B027"]
+"packages/haywire-core/src/haywire/core/types/interface.py" = ["B027"]
+"packages/haywire-core/src/haywire/core/undo/interfaces.py" = ["B027"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]
