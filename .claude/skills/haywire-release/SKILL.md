@@ -76,11 +76,12 @@ Validate the input against the regex `^\d+\.\d+\.\d+(?:[a-z0-9.+!*-]*)?$` (PEP 4
 Also reject if the new version equals the current version — the bump script would
 report "Nothing to do" and the release would be a no-op.
 
-- **At `0.1.0`: revisit every published framework floor.** `~=0.0.X` specifiers
-  in the wild exclude `0.1.0` by construction. Every haybale published with a
+- **At `0.1.0`: revisit every published framework floor.** In-repo packages use
+  `>=` floors, so they are unaffected. But `~=0.0.X` specifiers published in the
+  wild exclude `0.1.0` by construction: any third-party haybale carrying a
   compatible-release requirement will stop being installable on the new
   framework unless its author republishes with a widened specifier. Announce it
-  and sweep the in-repo barns before tagging.
+  before tagging.
 
 ### Step 2 — run the gate tests
 

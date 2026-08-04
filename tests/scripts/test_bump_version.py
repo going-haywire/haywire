@@ -93,8 +93,8 @@ def test_rewrite_pyproject_rewrites_sibling_constraints_only() -> None:
 
     new_text, _ = bump_version.rewrite_pyproject(src, "0.0.2", known_siblings)
 
-    assert '"beta-pkg~=0.0.2"' in new_text
-    assert '"gamma-pkg~=0.0.2"' in new_text
+    assert '"beta-pkg>=0.0.2"' in new_text
+    assert '"gamma-pkg>=0.0.2"' in new_text
     # external libs are untouched even if their version coincidentally matches:
     assert '"external-lib>=1.0"' in new_text
     assert '"unrelated~=3.2.0"' in new_text
@@ -102,13 +102,13 @@ def test_rewrite_pyproject_rewrites_sibling_constraints_only() -> None:
 
 @pytest.mark.unit
 def test_rewrite_pyproject_handles_first_migration_from_other_operator() -> None:
-    """Bump script can also migrate >= constraints to ~= on the first run."""
-    src = '[project]\nname = "alpha"\nversion = "0.1.0"\ndependencies = [\n    "beta-pkg>=0.1.0",\n]\n'
+    """Bump script can also migrate ~= constraints to >= on the first run."""
+    src = '[project]\nname = "alpha"\nversion = "0.1.0"\ndependencies = [\n    "beta-pkg~=0.1.0",\n]\n'
     known_siblings = {"alpha", "beta-pkg"}
 
     new_text, _ = bump_version.rewrite_pyproject(src, "0.0.1", known_siblings)
 
-    assert '"beta-pkg~=0.0.1"' in new_text
+    assert '"beta-pkg>=0.0.1"' in new_text
 
 
 @pytest.mark.unit
@@ -135,7 +135,7 @@ def test_rewrite_pyproject_preserves_comments_and_blank_lines() -> None:
 
 @pytest.mark.unit
 def test_rewrite_pyproject_idempotent_when_target_matches_current() -> None:
-    src = '[project]\nname = "alpha"\nversion = "0.0.2"\ndependencies = ["beta-pkg~=0.0.2"]\n'
+    src = '[project]\nname = "alpha"\nversion = "0.0.2"\ndependencies = ["beta-pkg>=0.0.2"]\n'
     known_siblings = {"alpha", "beta-pkg"}
 
     new_text, edits = bump_version.rewrite_pyproject(src, "0.0.2", known_siblings)
@@ -174,14 +174,14 @@ def test_apply_bump_writes_files_and_returns_diff(tmp_path: Path) -> None:
     gamma_dir = tmp_path / "subdir-b/gamma"
     gamma_dir.mkdir(parents=True)
     (gamma_dir / "pyproject.toml").write_text(
-        '[project]\nname = "gamma-pkg"\nversion = "0.0.1"\ndependencies = ["alpha-pkg~=0.0.1"]\n'
+        '[project]\nname = "gamma-pkg"\nversion = "0.0.1"\ndependencies = ["alpha-pkg>=0.0.1"]\n'
     )
 
     diff_text, edited_count = bump_version.apply_bump(root, new_version="0.0.2", dry_run=False)
 
     assert edited_count == 4
     assert 'version = "0.0.2"' in (alpha_dir / "pyproject.toml").read_text()
-    assert '"alpha-pkg~=0.0.2"' in (gamma_dir / "pyproject.toml").read_text()
+    assert '"alpha-pkg>=0.0.2"' in (gamma_dir / "pyproject.toml").read_text()
     # Diff should reference all four files:
     assert "alpha/pyproject.toml" in diff_text
     assert "beta/pyproject.toml" in diff_text

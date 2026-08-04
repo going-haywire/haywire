@@ -175,10 +175,10 @@ Versions are managed at the monorepo level by `scripts/bump_version.py`, invoked
 
 - The repo declares which packages release in lockstep (`[tool.haywire.release]` in the repo root `pyproject.toml`).
 - A release bumps every member's `[project] version` to the same value.
-- Inter-package dependencies use `~=` compatible-release operators (`haywire-core~=0.0.1`) so any patch within the lockstep tier is acceptable.
+- Inter-package dependencies use `>=` floor operators (`haywire-core>=0.0.1`) so any later release is acceptable. A `~=X.Y.Z` compatible-release constraint would also stamp a *ceiling* — `~=0.0.37` excludes 0.1.0 — and a bound written by tooling is not an author's policy.
 - CI publishes to PyPI; the marketstall in `gh-pages` is regenerated from `scripts/generate_marketstall.py` as part of the same workflow.
 
-Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The `~=` convention is a haywire-team practice.
+Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The `>=` convention is a haywire-team practice.
 
 ## 6. Hosting your marketstall
 
@@ -268,7 +268,7 @@ with `haywire share` (interactive) or the Library Overview Editor's Detect
 Dependencies button (§3).
 
 **You're working in `--dev` mode and want to share a library that has dev-repo dependencies.**
-`haywire share`'s output uses `source = "git"` for haywire's `dependencies` field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style `pyproject.toml` won't survive `pip install`. Make sure the published version of your library declares versioned dependencies (`haybale-core~=0.0.1`), not editable path sources. `haywire share` handles this correctly when the dependencies are listed in the library's `pyproject.toml` rather than in the project root's `pyproject.toml`.
+`haywire share`'s output uses `source = "git"` for haywire's `dependencies` field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style `pyproject.toml` won't survive `pip install`. Make sure the published version of your library declares versioned dependencies (`haybale-core>=0.0.1`), not editable path sources. `haywire share` handles this correctly when the dependencies are listed in the library's `pyproject.toml` rather than in the project root's `pyproject.toml`.
 
 ## 9. Reading on
 

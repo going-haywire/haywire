@@ -468,7 +468,7 @@ A compliant library SHOULD additionally provide:
 - **Hand-authored `NOTES.md`** in the module directory — the author's "what & why" content
   that the generator prepends to `README.md`.
 - **Semver discipline** — patch versions for fixes, minor for new features, major for
-  breaking changes. `~=X.Y.Z` constraints depend on this.
+  breaking changes. `>=X.Y.Z` constraints depend on this.
 
 ### Private repos and auth
 

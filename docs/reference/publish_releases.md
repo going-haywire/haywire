@@ -119,7 +119,7 @@ default_tags = []
 2. The skill runs the gate tests: `pytest -m "not integration"`. Failure stops here.
 3. The skill patches every `pyproject.toml` referenced by `publish_order + lockstep_unpublished`:
    - `[project] version = "0.0.2"`
-   - All `~=` inter-package constraints updated to the new floor (e.g. `haywire-core~=0.0.2`).
+   - All `>=` inter-package constraints updated to the new floor (e.g. `haywire-core>=0.0.2`).
 4. The skill re-locks (`uv lock`) and **bakes the docs**
    (`scripts/bake_docs.py --version v0.0.2`) — this regenerates the gitignored
    `packages/haywire-core/src/haywire/_baked_docs/` tree the haywire-core wheel

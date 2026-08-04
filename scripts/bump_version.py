@@ -3,8 +3,8 @@
 Reads [tool.haywire.release] from the workspace root pyproject.toml,
 then surgically edits every listed package's pyproject.toml:
   - rewrites `version = "X.Y.Z"` to the new version,
-  - rewrites every `"<sibling>~=A.B.C"` dep on a known sibling to
-    `"<sibling>~=<new>"`.
+  - rewrites every `"<sibling>>=A.B.C"` dep on a known sibling to
+    `"<sibling>>=<new>"`.
 
 Prints a unified diff of all changes and asks for confirmation before
 writing. Use --yes to skip the prompt (for scripted use).
@@ -83,7 +83,7 @@ def locate_packages(root_pyproject: Path, config: ReleaseConfig) -> dict[str, Pa
 # nested tables. `[project]` is the only top-level table where this should fire.
 _VERSION_LINE_RE = re.compile(r'^(?P<lead>\s*version\s*=\s*")[^"]+(?P<trail>")', re.MULTILINE)
 
-# Matches a quoted PEP 508 requirement like "pkg-name~=0.0.1" or "pkg-name>=0.1.0",
+# Matches a quoted PEP 508 requirement like "pkg-name>=0.0.1" or "pkg-name~=0.1.0",
 # capturing the name and operator separately. Used to rewrite sibling deps only.
 _DEP_REQ_RE = re.compile(
     r'"(?P<name>[A-Za-z0-9_.-]+)(?P<op>~=|>=|==|>|<|<=)(?P<ver>[0-9][0-9A-Za-z.+!*-]*)"'
@@ -99,7 +99,12 @@ def rewrite_pyproject(
 
     Edits:
       * one `version = "..."` line at top of `[project]`
-      * every `"<sibling>~=..."` (or other operator) dep — rewritten to `~=<new_version>`.
+      * every `"<sibling>>=..."` (or other operator) dep — rewritten to `>=<new_version>`.
+
+    A floor, not a compatible release: `~=X.Y.Z` means `>=X.Y.Z, ==X.Y.*`, so a
+    lockstep `~=0.0.37` silently excludes 0.1.0 for every consumer. The bump
+    script's operator is a tool default, not an author policy — it must not
+    stamp a ceiling nobody asked for.
 
     Non-sibling deps are left untouched. If `new_version` already matches everywhere,
     returns source unchanged and edits == [].
@@ -123,7 +128,7 @@ def rewrite_pyproject(
         if name not in known_siblings:
             return m.group(0)
         old = m.group(0)
-        new = f'"{name}~={new_version}"'
+        new = f'"{name}>={new_version}"'
         if old == new:
             return old
         edits.append(f"dep {name}: {old} → {new}")
