@@ -3243,10 +3243,10 @@ runs — there's no flag to skip it.</p>
 <ul>
 <li>The repo declares which packages release in lockstep (<code>[tool.haywire.release]</code> in the repo root <code>pyproject.toml</code>).</li>
 <li>A release bumps every member's <code>[project] version</code> to the same value.</li>
-<li>Inter-package dependencies use <code>~=</code> compatible-release operators (<code>haywire-core~=0.0.1</code>) so any patch within the lockstep tier is acceptable.</li>
+<li>Inter-package dependencies use <code>&gt;=</code> floor operators (<code>haywire-core&gt;=0.0.1</code>) so any later release is acceptable. A <code>~=X.Y.Z</code> compatible-release constraint would also stamp a <em>ceiling</em> — <code>~=0.0.37</code> excludes 0.1.0 — and a bound written by tooling is not an author's policy.</li>
 <li>CI publishes to PyPI; the marketstall in <code>gh-pages</code> is regenerated from <code>scripts/generate_marketstall.py</code> as part of the same workflow.</li>
 </ul>
-<p>Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The <code>~=</code> convention is a haywire-team practice.</p>
+<p>Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The <code>&gt;=</code> convention is a haywire-team practice.</p>
 <h2 id="6-hosting-your-marketstall">6. Hosting your marketstall<a class="headerlink" href="#6-hosting-your-marketstall" title="Permanent link">&para;</a></h2>
 <p>A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:</p>
 <table>
@@ -3341,7 +3341,7 @@ command prints which library and which manifest entries are missing. Resolve it
 with <code>haywire share</code> (interactive) or the Library Overview Editor's Detect
 Dependencies button (§3).</p>
 <p><strong>You're working in <code>--dev</code> mode and want to share a library that has dev-repo dependencies.</strong>
-<code>haywire share</code>'s output uses <code>source = "git"</code> for haywire's <code>dependencies</code> field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style <code>pyproject.toml</code> won't survive <code>pip install</code>. Make sure the published version of your library declares versioned dependencies (<code>haybale-core~=0.0.1</code>), not editable path sources. <code>haywire share</code> handles this correctly when the dependencies are listed in the library's <code>pyproject.toml</code> rather than in the project root's <code>pyproject.toml</code>.</p>
+<code>haywire share</code>'s output uses <code>source = "git"</code> for haywire's <code>dependencies</code> field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style <code>pyproject.toml</code> won't survive <code>pip install</code>. Make sure the published version of your library declares versioned dependencies (<code>haybale-core&gt;=0.0.1</code>), not editable path sources. <code>haywire share</code> handles this correctly when the dependencies are listed in the library's <code>pyproject.toml</code> rather than in the project root's <code>pyproject.toml</code>.</p>
 <h2 id="9-reading-on">9. Reading on<a class="headerlink" href="#9-reading-on" title="Permanent link">&para;</a></h2>
 <ul>
 <li>The <strong>consumer side</strong> of this flow: <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a>.</li>

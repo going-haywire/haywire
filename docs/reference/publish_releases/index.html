@@ -3183,7 +3183,7 @@ documentation only; if it ever disagrees with this section, the section wins.</p
 <li>The skill runs the gate tests: <code>pytest -m "not integration"</code>. Failure stops here.</li>
 <li>The skill patches every <code>pyproject.toml</code> referenced by <code>publish_order + lockstep_unpublished</code>:</li>
 <li><code>[project] version = "0.0.2"</code></li>
-<li>All <code>~=</code> inter-package constraints updated to the new floor (e.g. <code>haywire-core~=0.0.2</code>).</li>
+<li>All <code>&gt;=</code> inter-package constraints updated to the new floor (e.g. <code>haywire-core&gt;=0.0.2</code>).</li>
 <li>The skill re-locks (<code>uv lock</code>) and <strong>bakes the docs</strong>
    (<code>scripts/bake_docs.py --version v0.0.2</code>) — this regenerates the gitignored
    <code>packages/haywire-core/src/haywire/_baked_docs/</code> tree the haywire-core wheel
