@@ -5,9 +5,9 @@ Written when the studio mounts the Farmhand MCP endpoint so a later process
 the studio on a given port — reuse it, ask the user, or clean up a stale one.
 
 Sits beside farmhand_token (see auth.py) and follows the same .haywire/ +
-.gitignore discipline. Stdlib only — no psutil. The recycled-pid guard is
-best-effort: os.kill(pid, 0) proves liveness; a matching create_time (when
-obtainable) proves it is the same process, but its absence never blocks.
+.gitignore discipline. The recycled-pid guard is best-effort: os.kill(pid, 0)
+proves liveness; a matching create_time (via psutil, when obtainable) proves
+it is the same process, but its absence never blocks.
 """
 
 from __future__ import annotations
@@ -82,11 +82,11 @@ def identity_status(ident: dict) -> str:
         return "dead"
     recorded = ident.get("started_at")
     try:
-        import psutil as psutil  # type: ignore[import-untyped]  # optional; absent by default — guarded import
+        import psutil
 
         actual = psutil.Process(pid).create_time()
         if isinstance(recorded, (int, float)) and abs(actual - recorded) > 2.0:
             return "recycled"
     except Exception:
-        pass  # psutil absent or lookup failed — cannot disprove liveness
+        pass  # lookup failed — cannot disprove liveness
     return "alive"

@@ -21,6 +21,7 @@ dependencies = [
     "jedi>=0.19",
     "fastapi",
     "mcp>=1.28,<2",
+    "psutil",
 ]
 
 [project.scripts]

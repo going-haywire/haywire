@@ -11,9 +11,9 @@ authors = [
 keywords = ["haywire", "node-editor", "visual-programming", "example"]
 
 dependencies = [
-    "haywire-core~=0.0.36",
-    "haybale-core~=0.0.36",
-    "haybale-studio~=0.0.36",
+    "haywire-core>=0.0.36",
+    "haybale-core>=0.0.36",
+    "haybale-studio>=0.0.36",
     "nicegui>=3.12.1",
     "typing_extensions"]
 

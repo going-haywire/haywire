@@ -11,8 +11,7 @@ authors = [
 keywords = ["haywire", "node-editor", "visual-programming", "core"]
 
 dependencies = [
-    "haywire-core~=0.0.36",
-    "nicegui>=3.12.1",
+    "haywire-core>=0.0.36",
     "typing_extensions"]
 
 # Entry point for Haywire library discovery

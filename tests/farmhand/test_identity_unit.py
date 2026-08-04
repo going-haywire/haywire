@@ -61,6 +61,12 @@ def test_read_round_trips_write(tmp_path):
 
 def test_status_alive_for_current_process(tmp_path):
     ident = write_identity(tmp_path, port=8082)  # pid == this test process
+    # write_identity stamps started_at with the write-time wall clock, not this
+    # process's actual create_time — fine for a real studio (written once near
+    # launch) but wrong here since pytest has been running for a while. Align it
+    # so the psutil recycled-pid check compares against the true create_time.
+    psutil = pytest.importorskip("psutil")
+    ident["started_at"] = psutil.Process(os.getpid()).create_time()
     assert identity_status(ident) == "alive"
 
 
