@@ -74,7 +74,11 @@ def build_edit_dialog(
 
         hui.section_label("Identity")
         label_input = hui.input_field(label="Label", value=lib.identity.label)
-        version_input = hui.input_field(label="Version", value=lib.identity.version or "0.1.0")
+        # Version is not editable here — it's set by Share/publish (lockstep bump),
+        # which overwrites this on the next publish regardless of what's typed here.
+        ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
+            "text-xs hw-text-dim"
+        )
         desc_input = hui.input_field(label="Description", value=lib.identity.description)
         author_input = hui.input_field(label="Author", value=lib.identity.author)
         author_url_input = hui.input_field(label="Author URL", value=lib.identity.author_url)
@@ -96,6 +100,22 @@ def build_edit_dialog(
                     detect_dependencies(d, m, ilib, mp)
                 ),
             )
+
+        hui.separator()
+
+        hui.section_label("Post-install requirements")
+        ui.label(
+            "Declares what a browser tab or the Studio process must do after this "
+            "library is installed, updated, or uninstalled."
+        ).classes("text-xs hw-text-dim")
+        needs_refresh_input = ui.checkbox(
+            "Needs page reload (registers new Vue components or JS resources)",
+            value=lib.identity.needs_refresh,
+        ).props("dense")
+        needs_restart_input = ui.checkbox(
+            "Needs Studio restart (C-extension modules, import-time global mutation)",
+            value=lib.identity.needs_restart,
+        ).props("dense")
 
         # OS multi-select. Visible only for heaps (writable pyproject.toml).
         _is_heap = is_project_library(lib, marketplace_path)
@@ -151,13 +171,14 @@ def build_edit_dialog(
         async def _save():
             identity = {
                 "label": label_input.value.strip(),
-                "version": version_input.value.strip().lstrip("vV"),
                 "description": desc_input.value.strip(),
                 "url": url_input.value.strip(),
                 "author": author_input.value.strip(),
                 "author_url": author_url_input.value.strip(),
                 "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
                 "dependencies": [d.strip() for d in deps_input.value.split(",") if d.strip()],
+                "needs_refresh": bool(needs_refresh_input.value),
+                "needs_restart": bool(needs_restart_input.value),
             }
             # Include `os` only if the multi-select was rendered (heap libraries).
             if os_select is not None:

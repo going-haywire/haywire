@@ -81,6 +81,23 @@ def merge_decorator_list_field(
     init_file.write_text(content)
 
 
+def _set_decorator_bool_field(content: str, field: str, value: bool) -> str:
+    """Replace or insert a bool field inside the @library(...) decorator.
+
+    Mirrors :func:`_set_decorator_list_field` for ``True``/``False`` literal
+    fields (``needs_refresh``, ``needs_restart``) rather than list fields.
+    """
+    value_repr = "True" if value else "False"
+    pattern = rf"([ \t]+{re.escape(field)}=)(True|False),?"
+    if re.search(pattern, content):
+        return re.sub(pattern, rf"\g<1>{value_repr},", content)
+    insert_line = f"    {field}={value_repr},\n"
+    if "    file_watcher=" in content:
+        return content.replace("    file_watcher=", insert_line + "    file_watcher=", 1)
+    replacement = f"\n    {field}={value_repr}," + r"\g<1>"
+    return re.sub(r"(\n\)\nclass )", replacement, content, count=1)
+
+
 def _set_decorator_list_field(content: str, field: str, values: list[str]) -> str:
     """Replace or insert a list field inside the @library(...) decorator.
 

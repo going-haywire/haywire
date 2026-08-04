@@ -307,6 +307,8 @@ class LibraryBrowserEditor(BaseEditor):
         artifact being published is repo-shaped and every barn/* library versions
         in lockstep. See docs/adr/0023-project-scoped-lockstep-sharing.md.
         """
+        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+
         from ._share_wizard import show_share_wizard
 
         workspace_root = getattr(context.app, "workspace_root", None)
@@ -317,7 +319,10 @@ class LibraryBrowserEditor(BaseEditor):
             )
             return
 
-        show_share_wizard(Path(workspace_root))
+        app_data = getattr(context, "app_data", None)
+        manager_state = app_data.get(LibraryManagerState) if app_data else None
+        manager = manager_state.manager if manager_state is not None else None
+        show_share_wizard(Path(workspace_root), manager=manager)
 
     def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
         """Refresh the marketplace in one shot and re-render.

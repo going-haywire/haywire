@@ -6,6 +6,7 @@ import pytest
 
 from haywire.core.library.decorator_io import (
     _get_decorator_list_field,
+    _set_decorator_bool_field,
     _set_decorator_list_field,
     merge_decorator_list_field,
     norm_dep,
@@ -125,3 +126,27 @@ def test_set_decorator_list_field_still_works_directly():
     content = _INIT_TEMPLATE.format(deps="'a'")
     rewritten = _set_decorator_list_field(content, "dependencies", ["b", "c"])
     assert "dependencies=['b', 'c']," in rewritten
+
+
+@pytest.mark.unit
+def test_set_decorator_bool_field_replaces_existing_value():
+    content = (
+        "@library(\n"
+        "    id='x',\n"
+        "    needs_restart=False,\n"
+        "    file_watcher=True,\n"
+        ")\n"
+        "class Library:\n"
+        "    pass\n"
+    )
+    rewritten = _set_decorator_bool_field(content, "needs_restart", True)
+    assert "needs_restart=True," in rewritten
+    assert "needs_restart=False," not in rewritten
+
+
+@pytest.mark.unit
+def test_set_decorator_bool_field_inserts_before_file_watcher_when_absent():
+    content = _INIT_TEMPLATE.format(deps="'a'")
+    rewritten = _set_decorator_bool_field(content, "needs_refresh", True)
+    assert "needs_refresh=True," in rewritten
+    assert rewritten.index("needs_refresh=True") < rewritten.index("file_watcher=True")

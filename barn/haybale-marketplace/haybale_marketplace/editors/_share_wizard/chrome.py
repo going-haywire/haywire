@@ -9,7 +9,7 @@ error message.
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Callable
+from typing import TYPE_CHECKING, Callable
 
 from nicegui import ui
 
@@ -30,10 +30,14 @@ from .panels import (
     _render_fix,
 )
 
+if TYPE_CHECKING:
+    from haybale_marketplace.library_manager import LibraryManager
+
 
 def show_share_wizard(
     repo_root: Path,
     *,
+    manager: "LibraryManager | None" = None,
     on_done: Callable[[], None] | None = None,
 ) -> ShareWizard:
     """Open the Share Project wizard and return its state machine.
@@ -41,8 +45,13 @@ def show_share_wizard(
     Not closable mid-flight past the commit step: the popup's own close button
     stays available (the wizard mutates nothing that needs undoing), but the
     step buttons are the intended path.
+
+    *manager* lets the version-bump step hot-swap the live registry after
+    writing new @library(version=...) decorators (see
+    ShareWizard._hot_swap_bumped_libraries). Pass None to skip that — the
+    bump is then file-only, exactly as before.
     """
-    wizard = ShareWizard(pipeline=SharePipeline(repo_root), popup=None)
+    wizard = ShareWizard(pipeline=SharePipeline(repo_root), popup=None, manager=manager)
 
     panels: dict[str, Panel[ShareWizard]] = {
         "preconditions": _panel_preconditions,

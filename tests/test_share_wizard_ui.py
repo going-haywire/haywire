@@ -199,6 +199,142 @@ async def test_version_bump_advances_to_docs(project: Path) -> None:
     assert wizard.pipeline.version == "0.3.2"
 
 
+class _FakeIdentity:
+    def __init__(self, needs_restart: bool) -> None:
+        self.needs_restart = needs_restart
+
+
+class _FakeRegistry:
+    """Just enough of LibraryRegistry's surface for _hot_swap_bumped_libraries."""
+
+    def __init__(self, dist_to_lib_id: dict[str, str], needs_restart: dict[str, bool]) -> None:
+        self._dist_to_lib_id = dist_to_lib_id
+        self._needs_restart = needs_restart
+        self.removed: list[str] = []
+        self.scanned = False
+        self.enabled_all = False
+
+    def find_library_by_distribution_name(self, dist_name: str) -> str | None:
+        return self._dist_to_lib_id.get(dist_name)
+
+    def get_library_identity(self, lib_id: str) -> _FakeIdentity:
+        return _FakeIdentity(self._needs_restart.get(lib_id, False))
+
+    def remove_library(self, lib_id: str) -> bool:
+        self.removed.append(lib_id)
+        return True
+
+    def scan_for_libraries(self) -> None:
+        self.scanned = True
+
+    def enable_all_libraries(self) -> None:
+        self.enabled_all = True
+
+
+class _FakeManager:
+    def __init__(self, registry: _FakeRegistry) -> None:
+        self.registry = registry
+
+
+@pytest.mark.anyio
+async def test_version_bump_hot_swaps_live_library_when_manager_present(project: Path) -> None:
+    """Option B: a bumped barn library still loaded in the running process is
+    evicted (registry.remove_library) and rescanned in place, mirroring
+    update_library_identity()'s metadata-edit path — so a restart is not
+    needed for the common case of a plain version bump."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.packaging.share.pipeline import SharePipeline
+
+    registry = _FakeRegistry(
+        dist_to_lib_id={"haybale-alpha": "alpha"},
+        needs_restart={"alpha": False},
+    )
+    wizard = ShareWizard(
+        pipeline=SharePipeline(project),
+        popup=None,
+        manager=_FakeManager(registry),  # type: ignore[arg-type]
+    )
+    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
+    await wizard.advance_from_version("patch")
+
+    assert registry.removed == ["alpha"]
+    assert registry.scanned
+    assert registry.enabled_all
+    assert wizard.hot_swapped_libraries == ["alpha"]
+    assert wizard.hot_swap_needs_restart is False
+
+
+@pytest.mark.anyio
+async def test_version_bump_hot_swap_ors_needs_restart_across_libraries(project: Path) -> None:
+    registry = _FakeRegistry(
+        dist_to_lib_id={"haybale-alpha": "alpha"},
+        needs_restart={"alpha": True},
+    )
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.packaging.share.pipeline import SharePipeline
+
+    wizard = ShareWizard(
+        pipeline=SharePipeline(project),
+        popup=None,
+        manager=_FakeManager(registry),  # type: ignore[arg-type]
+    )
+    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
+    await wizard.advance_from_version("patch")
+
+    assert wizard.hot_swap_needs_restart is True
+
+
+@pytest.mark.anyio
+async def test_version_bump_without_manager_skips_hot_swap(project: Path) -> None:
+    """No manager (e.g. the CLI, or a studio without a live registry) — the
+    bump stays file-only, exactly as before Option B."""
+    wizard = _wizard(project)
+    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
+    await wizard.advance_from_version("patch")
+
+    assert wizard.hot_swapped_libraries == []
+    assert wizard.hot_swap_needs_restart is False
+
+
+@pytest.mark.anyio
+async def test_version_bump_skips_library_not_found_live(project: Path) -> None:
+    """A dist name the live registry has never heard of (not yet enabled, or
+    this manager tracks a different set) is skipped, not an error — the bump
+    itself already succeeded on disk and is not rolled back."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.packaging.share.pipeline import SharePipeline
+
+    registry = _FakeRegistry(dist_to_lib_id={}, needs_restart={})
+    wizard = ShareWizard(
+        pipeline=SharePipeline(project),
+        popup=None,
+        manager=_FakeManager(registry),  # type: ignore[arg-type]
+    )
+    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_framework(">=0.0.1")
+    await wizard.advance_from_version("patch")
+
+    assert registry.removed == []
+    assert not registry.scanned
+    assert wizard.hot_swapped_libraries == []
+    assert wizard.step == "docs"
+
+
 @pytest.mark.anyio
 async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -> None:
     """Where the fix is cheapest — 'pick 0.3.2 instead' costs nothing here."""

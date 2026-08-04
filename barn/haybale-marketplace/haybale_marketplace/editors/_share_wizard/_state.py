@@ -21,7 +21,7 @@ from __future__ import annotations
 import asyncio
 import logging
 from pathlib import Path
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
 
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
@@ -42,6 +42,9 @@ from haywire_studio.packaging.share.pipeline import (
 
 from .copy import STEP_TITLES, STEPS
 
+if TYPE_CHECKING:
+    from haybale_marketplace.library_manager import LibraryManager
+
 logger = logging.getLogger(__name__)
 
 
@@ -51,10 +54,20 @@ class ShareWizard(StepFlow):
     STEPS = STEPS
     STEP_TITLES = STEP_TITLES
 
-    def __init__(self, *, pipeline: SharePipeline, popup: Optional[Popup]) -> None:
+    def __init__(
+        self,
+        *,
+        pipeline: SharePipeline,
+        popup: Optional[Popup],
+        manager: "LibraryManager | None" = None,
+    ) -> None:
         super().__init__()
         self.pipeline = pipeline
         self.popup = popup
+        # Optional: lets advance_from_version() hot-swap the live registry after
+        # a bump (Option B). None when the wizard is driven without a running
+        # studio (e.g. the CLI) — the bump is then file-only, same as before.
+        self.manager = manager
         self.precondition_failures: list[PreconditionFailure] | None = None
 
         self.preconditions_report: PreconditionsReport | None = None
@@ -66,6 +79,12 @@ class ShareWizard(StepFlow):
         self.commit_plan: CommitPlan | None = None
         self.commit_result: CommitResult | None = None
         self.push_result: PushResult | None = None
+        # Set by advance_from_version() when it hot-swaps at least one library.
+        # _panel_done reads this to decide whether the restart affordance is
+        # still needed (a library that declared needs_restart=True) or the
+        # hot-swap already made the running registry current.
+        self.hot_swap_needs_restart: bool = False
+        self.hot_swapped_libraries: list[str] = []
 
     # ── state transitions ────────────────────────────────────────────────────
 
@@ -196,7 +215,51 @@ class ShareWizard(StepFlow):
             return
         if result.lock_warning:
             self.warnings.append(result.lock_warning)
+        await self._hot_swap_bumped_libraries()
         self.step = "docs"
+
+    async def _hot_swap_bumped_libraries(self) -> None:
+        """Re-import every bumped barn library still live in this process.
+
+        apply_bump() only rewrote each library's @library(version=...) decorator
+        on disk — same file-level edit update_library_identity() makes for a
+        metadata-only change, and like that path this evicts the stale module
+        (registry.remove_library()) and rescans, so the running registry picks
+        up the new version without a restart in the common case.
+
+        Best-effort: a library not found live (not yet enabled, or this wizard
+        is driven without a manager — e.g. the CLI) is skipped, not an error —
+        the bump itself already succeeded and is not rolled back.
+
+        needs_restart is OR'd across every hot-swapped library, same semantics
+        as install()'s eviction path: a library's author-declared flag is
+        binding, and the running process may still hold stale module objects
+        underneath the freshly reloaded class even after remove_library().
+        """
+        if self.manager is None or self.pipeline.version is None:
+            return
+        registry = self.manager.registry
+        plan = self.version_plan
+        dist_names = [lib.name for lib in plan.current] if plan is not None else []
+
+        swapped: list[str] = []
+        needs_restart = False
+        for dist_name in dist_names:
+            lib_id = registry.find_library_by_distribution_name(dist_name)
+            if lib_id is None:
+                continue
+            identity = registry.get_library_identity(lib_id)
+            needs_restart = needs_restart or identity.needs_restart
+            registry.remove_library(lib_id)
+            swapped.append(lib_id)
+
+        if not swapped:
+            return
+
+        await asyncio.to_thread(registry.scan_for_libraries)
+        registry.enable_all_libraries()
+        self.hot_swapped_libraries = swapped
+        self.hot_swap_needs_restart = needs_restart
 
     async def advance_from_docs(self) -> None:
         self.retry()

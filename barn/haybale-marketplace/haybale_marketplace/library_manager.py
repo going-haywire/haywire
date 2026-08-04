@@ -19,7 +19,7 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire.core.tomlio import edit_toml
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.library.decorator_io import _set_decorator_list_field
+from haywire.core.library.decorator_io import _set_decorator_bool_field, _set_decorator_list_field
 from haywire.core.marketstall import Haybale
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
@@ -557,7 +557,14 @@ class LibraryManager:
         # Per Q5/B: refresh is install-only for uninstall.
         hints = PostInstallHints(needs_restart=lib_hints.needs_restart)
 
+        # disable_library() first: fires _fire_library_disabled (LibraryStateContainer
+        # relies on it to drop this library from its instance-filter set) and persists
+        # the disabled-set write. remove_library() then does the rest of the teardown —
+        # unregister, drop tracking dicts, eject sys.modules — so a later reinstall of
+        # the same library doesn't hand back a stale cached module (its own disable()
+        # call is a no-op the second time; see BaseLibrary.disable()).
         self.registry.disable_library(library_id)
+        self.registry.remove_library(library_id)
 
         success, stderr = await self._run_uv_streaming(
             ["uninstall", dist_name],
@@ -844,8 +851,10 @@ class LibraryManager:
         """Update identity metadata in __init__.py and marketplace.toml.
 
         Lightweight alternative to rename — only rewrites metadata fields
-        (label, version, description, url, author, author_url).  No directory
-        rename, no pyproject.toml changes, no uv sync required.
+        (label, description, url, author, author_url, tags, dependencies,
+        needs_refresh, needs_restart). Never touches version — that's set by
+        Share/publish (lockstep bump). No directory rename, no pyproject.toml
+        changes, no uv sync required.
 
         After writing the files the library is disabled and its module is
         ejected from sys.modules so the caller can rescan to pick up the
@@ -866,28 +875,32 @@ class LibraryManager:
             return False, f"Library package directory not found: {pkg_dir}"
 
         label_val = identity.get("label", "")
-        version_val = identity.get("version", "0.1.0")
         desc_val = identity.get("description", "")
         url_val = identity.get("url", "")
         author_val = identity.get("author", "")
         author_url_val = identity.get("author_url", "")
         tags_list: list[str] = identity.get("tags") or []
         deps_list: list[str] = identity.get("dependencies") or []
+        needs_refresh_val = bool(identity.get("needs_refresh", False))
+        needs_restart_val = bool(identity.get("needs_restart", False))
 
-        # Update __init__.py decorator fields
+        # Update __init__.py decorator fields. version is deliberately excluded —
+        # it's set by Share/publish (lockstep bump), which overwrites it on the
+        # next publish regardless of what a caller passes here.
         try:
             init_file = pkg_dir / "__init__.py"
             if not init_file.exists():
                 return False, f"__init__.py not found at {init_file}"
             content = init_file.read_text()
             content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
-            content = re.sub(r"(    version=')[^']*(')", rf"\g<1>{version_val}\2", content)
             content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
             content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
             content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
             content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
             content = _set_decorator_list_field(content, "tags", tags_list)
             content = _set_decorator_list_field(content, "dependencies", deps_list)
+            content = _set_decorator_bool_field(content, "needs_refresh", needs_refresh_val)
+            content = _set_decorator_bool_field(content, "needs_restart", needs_restart_val)
             init_file.write_text(content)
         except OSError as e:
             return False, f"Failed to update __init__.py: {e}"

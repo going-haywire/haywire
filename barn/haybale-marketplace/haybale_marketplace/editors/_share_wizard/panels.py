@@ -389,14 +389,23 @@ def _panel_done(wizard: ShareWizard, on_done: Callable[[], None] | None) -> None
         if on_done is not None:
             on_done()
 
-    # A completed share always rewrote every barn library's @library(version=…)
-    # decorator, so the running registry holds the pre-bump identities and
-    # marketstall.toml was rebuilt underneath it. Unconditional, but optional —
-    # Done still dismisses without restarting.
-    restart_affordance(
-        reason="Publishing bumped every barn library's version, so the loaded registry is now stale.",
-        compact=True,
-    )
+    # advance_from_version() hot-swaps every bumped library it can reach in the
+    # live registry (Option B) — remove_library() + rescan, same eviction
+    # ShareWizard._hot_swap_bumped_libraries uses. When that ran and no
+    # hot-swapped library declared needs_restart=True, the running registry is
+    # already current and no restart is needed. Otherwise (no manager was
+    # available — e.g. driven from the CLI — or a library demands it) the
+    # affordance is still shown.
+    if wizard.hot_swapped_libraries and not wizard.hot_swap_needs_restart:
+        ui.label(
+            f"Reloaded {len(wizard.hot_swapped_libraries)} bumped "
+            f"librar{'y' if len(wizard.hot_swapped_libraries) == 1 else 'ies'} — no restart needed."
+        ).classes("text-xs hw-text-dim")
+    else:
+        restart_affordance(
+            reason="Publishing bumped every barn library's version, so the loaded registry is now stale.",
+            compact=True,
+        )
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button("Done", on_click=_close).props("flat dense").style("color: var(--hw-positive);")
