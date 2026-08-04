@@ -6,7 +6,7 @@
 [[haybales]]
 name = "haybale-graph-editor"
 label = "Graph Editor"
-version = "0.0.35"
+version = "0.0.36"
 description = "Visual graph editor library — host-agnostic"
 author = "Haywire Team"
 source = "pypi"
