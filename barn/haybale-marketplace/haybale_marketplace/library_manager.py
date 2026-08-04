@@ -828,10 +828,21 @@ class LibraryManager:
 
     @staticmethod
     def build_versioned_spec(pkg: "Haybale", version: str) -> str:
-        """Build a version-pinned install spec for a specific version.
+        """Build an install spec pinned to *version*, regardless of what pkg.install_spec holds.
 
         For PyPI: returns '{name}=={version}'.
-        For git: appends '@{version}' to the base URL before any #subdirectory.
+        For git: replaces any existing '@tag' on the base URL with '@{version}', preserving
+        any '#subdirectory=...' fragment.
+
+        Use this — never pkg.install_spec directly — whenever a specific version is required
+        (an update, a version-picker install). pkg.install_spec is often unpinned: a PyPI
+        catalog entry with no explicit spec defaults to the bare package name
+        (haywire.core.marketstall.parsing._parse_haybale_entry), which only asks uv for "any
+        version that satisfies current constraints" — not this one. Passed unpinned to
+        LibraryManager.install(), which always applies a constraints file pinning the framework
+        packages (FRAMEWORK_PACKAGES) to whatever's currently installed, uv can legally resolve
+        straight back to the already-installed version: the install reports success and nothing
+        changes.
         """
         if pkg.source == "pypi":
             return f"{pkg.name}=={version}"

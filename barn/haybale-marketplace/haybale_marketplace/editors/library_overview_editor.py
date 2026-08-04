@@ -495,16 +495,25 @@ class LibraryOverviewEditor(BaseEditor):
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
                                         if update_available and marketplace_pkg:
+                                            # build_versioned_spec pins to pkg.version — see its
+                                            # docstring for why marketplace_pkg.install_spec alone
+                                            # isn't safe to use here.
                                             ui.button(
                                                 "Update",
                                                 icon="arrow_upward",
                                                 on_click=lambda e,
-                                                spec=marketplace_pkg.install_spec,
                                                 n=marketplace_pkg.name,
                                                 m=manager,
                                                 ctx=context,
                                                 pkg=marketplace_pkg: (
-                                                    install_package(spec, n, e.sender, m, ctx, pkg)
+                                                    install_package(
+                                                        m.build_versioned_spec(pkg, pkg.version),
+                                                        n,
+                                                        e.sender,
+                                                        m,
+                                                        ctx,
+                                                        pkg,
+                                                    )
                                                 ),
                                             ).props("size=sm color=warning flat")
                                         else:

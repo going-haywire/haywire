@@ -21,6 +21,22 @@ def test_parse_haybale_entry_minimal() -> None:
 
 
 @pytest.mark.unit
+def test_parse_haybale_entry_install_spec_defaults_to_bare_name_unpinned() -> None:
+    """A catalog entry with no explicit `install_spec` falls back to the bare
+    package name — NOT a version-pinned spec. `uv pip install <name>` (no
+    `==version`) can resolve to any version satisfying the current resolver
+    constraints, including the already-installed one, so callers that need
+    a specific version (e.g. the marketplace's "Update" button) must build a
+    pinned spec themselves (LibraryManager.build_versioned_spec) rather than
+    pass this field through verbatim."""
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.2.0"})
+    assert h.install_spec == "haybale-foo"
+    assert "==" not in h.install_spec
+
+
+@pytest.mark.unit
 def test_parse_haybale_entry_full() -> None:
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
