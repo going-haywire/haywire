@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 from nicegui import ui
 
+from haywire.core.library.install_type import InstallType
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -24,6 +25,8 @@ from haywire.core.session.signals import (
     LibraryCatalogChanged,
     Reveal,
 )
+
+from haybale_marketplace.editors._overview_edit_dialog import is_project_library
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -490,6 +493,11 @@ class LibraryBrowserEditor(BaseEditor):
 
         q = self._search_query.lower().strip()
 
+        # Needed by is_required() below (is_project_library) as well as the
+        # available/updates_available block further down.
+        workspace_root = getattr(context.app, "workspace_root", None)
+        marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
+
         def _label(lib) -> str:
             return _lib_view(lib).label
 
@@ -507,12 +515,23 @@ class LibraryBrowserEditor(BaseEditor):
             )
 
         def is_required(lib) -> bool:
-            # Required = some other installed library declares this one in its
-            # @library(dependencies=[...]) decorator. Same signal the overview
-            # editor uses to gate the Disable / Uninstall buttons, so the purple
-            # badge and the disabled button always agree.
+            # Required if any of:
+            #  - some other installed library declares this one in its
+            #    @library(dependencies=[...]) decorator (same signal the overview
+            #    editor uses to gate the Disable / Uninstall buttons, so the
+            #    purple badge and the disabled button always agree);
+            #  - it's framework-owned (InstallType.FOLDER, e.g. "builtin") —
+            #    disabling it has no legitimate use and nothing else protects
+            #    disable_library() from being called on it;
+            #  - it's this workspace's own project-local library — it has no
+            #    Uninstall path in this UI (see is_project_library), so
+            #    disabling it doesn't make sense either.
             if not hasattr(lib, "identity"):
                 return False
+            if lib.install_type is InstallType.FOLDER:
+                return True
+            if is_project_library(lib, str(marketplace_path) if marketplace_path else None):
+                return True
             return bool(manager.get_installed_dependents(lib.identity.id))
 
         # Always compute the exclusion set so required libs never bleed into ENABLED,
@@ -538,10 +557,9 @@ class LibraryBrowserEditor(BaseEditor):
 
         # Parse marketplace.toml once to build both `available` (packages not yet
         # installed) and `updates_available` (dist names with newer cached versions).
+        # workspace_root / marketplace_path computed earlier, above is_required().
         available: list = []
         updates_available: set[str] = set()
-        workspace_root = getattr(context.app, "workspace_root", None)
-        marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
         if marketplace_path and marketplace_path.exists():
             try:
                 from packaging.version import Version
