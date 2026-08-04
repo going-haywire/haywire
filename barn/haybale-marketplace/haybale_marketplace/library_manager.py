@@ -354,6 +354,44 @@ class LibraryManager:
         "top bar — then install this library again."
     )
 
+    #: Shown when the resolver failed for a reason we did NOT prove. Never
+    #: guess a cause here: an earlier version blamed the framework for every
+    #: non-zero uv exit and so told users to upgrade Haywire when the real
+    #: fault was a stale index cache, which upgrading cannot fix.
+    UNRESOLVED_MESSAGE = "The install could not be resolved. uv reported:"
+
+    def _framework_conflict_message(self) -> str:
+        """The framework-conflict text, with the installed versions appended.
+
+        "A different version" alone is not actionable — it names neither what
+        is running nor what is wanted. What is running is knowable here; what
+        is wanted lives in the wheel's Requires-Dist and is visible in the uv
+        output printed underneath, so this supplies the half uv does not.
+        """
+        installed = ", ".join(line.replace("==", " ") for line in self._framework_constraints())
+        if not installed:
+            return self.FRAMEWORK_CONFLICT_MESSAGE
+        return f"{self.FRAMEWORK_CONFLICT_MESSAGE}\n\nYou are running: {installed}."
+
+    @staticmethod
+    def _spec_package_name(install_spec: str) -> str | None:
+        """Best-effort distribution name from an install spec, for --refresh-package.
+
+        Handles the three shapes the marketplace produces: a bare/pinned PyPI
+        name (``haybale-foo``, ``haybale-foo==1.2``), a PEP 508 direct
+        reference (``haybale-foo @ git+…``), and a plain ``git+URL``. Returns
+        None for the git+URL form — there is no distribution name in it, and
+        uv re-clones those anyway, so no refresh is needed.
+        """
+        spec = install_spec.strip()
+        if spec.startswith("git+"):
+            return None
+        if "@" in spec:  # PEP 508 direct reference: name @ url
+            spec = spec.split("@", 1)[0]
+        # Strip any version specifier / extras off a plain requirement.
+        name = re.split(r"[<>=!~\[;]", spec, maxsplit=1)[0].strip()
+        return name or None
+
     def _framework_constraints(self) -> list[str]:
         """``name==version`` lines pinning every installed framework package.
 
@@ -386,6 +424,61 @@ class LibraryManager:
             handle.write("\n".join(lines) + "\n")
         return Path(handle.name)
 
+    def _resolver_args(self, install_spec: str, *, dry_run: bool, constraints: Path | None) -> list[str]:
+        """Build the uv argv shared by :meth:`dry_run` and :meth:`install`.
+
+        One builder, because the two must agree on every resolver-affecting
+        flag — if they diverge, the pre-eviction set and the actual install
+        act on different resolutions.
+        """
+        args = ["install"]
+        if dry_run:
+            args.append("--dry-run")
+        if Path(install_spec).is_dir():
+            args += ["-e", install_spec]
+        else:
+            # --no-sources: ignore [tool.uv.sources] inside the resolved tree.
+            # A published haybale's git+URL may clone into a workspace whose
+            # root pyproject.toml has dev-time path overrides (uv treats the
+            # subdirectory as a workspace member and applies them). Without
+            # this flag the resolver replaces already-installed editable
+            # haywire packages with bogus path-traversal git URLs.
+            args += ["--no-sources", install_spec]
+            # --refresh-package: we are acting on a version the marketstall
+            # refresh just told us about, which is exactly when uv's cached
+            # copy of the index page is most likely to predate it. uv does not
+            # revalidate on a resolution miss — it reports "no version of X"
+            # for a version that is published — so without this a just-released
+            # library is unreachable until the cache TTL expires. Scoped to the
+            # one package that matters; a blanket --refresh would refetch the
+            # whole tree on every install.
+            pkg = self._spec_package_name(install_spec)
+            if pkg:
+                args += ["--refresh-package", pkg]
+        if constraints is not None:
+            args += ["-c", str(constraints)]
+        return args
+
+    async def _constraints_caused_failure(self, install_spec: str) -> bool:
+        """Whether the framework constraints file is what made the resolve fail.
+
+        Re-resolves WITHOUT ``-c``. The constraints file pins the framework
+        packages to what is installed, and it is the only thing doing so — uv
+        would otherwise be free to upgrade core/studio alongside the library.
+        So if dropping it turns a failure into a success, the failure was by
+        construction a framework conflict.
+
+        This is a measurement, not a guess: it asks uv, which reads the real
+        ``Requires-Dist`` off the wheel, rather than pattern-matching uv's
+        prose (which is human-facing, line-wrapped, and not a stable contract)
+        or re-deriving the answer from catalog metadata (a second, weaker
+        source of truth that is already known to drift). It also catches
+        transitive conflicts, which a direct-dependency check would miss.
+        """
+        args = self._resolver_args(install_spec, dry_run=True, constraints=None)
+        success, _ = await self._run_uv_streaming(args, lambda _line: None)
+        return success
+
     async def dry_run(self, install_spec: str) -> list[str]:
         """Run `uv pip install --dry-run` and return distribution names of packages
         that would be removed (upgraded) by the install.
@@ -396,20 +489,12 @@ class LibraryManager:
 
         Raises:
             RuntimeError: when uv's dependency resolver fails (non-zero exit).
+                The message names the framework conflict only when that has
+                been proven by re-resolving without the constraints file;
+                otherwise it reports uv's output without ascribing a cause.
         """
         constraints = self._write_constraints_file()
-        if Path(install_spec).is_dir():
-            args = ["install", "--dry-run", "-e", install_spec]
-        else:
-            # --no-sources: ignore [tool.uv.sources] inside the resolved tree.
-            # A published haybale's git+URL may clone into a workspace whose
-            # root pyproject.toml has dev-time path overrides (uv treats the
-            # subdirectory as a workspace member and applies them). Without
-            # this flag the resolver replaces already-installed editable
-            # haywire packages with bogus path-traversal git URLs.
-            args = ["install", "--dry-run", "--no-sources", install_spec]
-        if constraints is not None:
-            args += ["-c", str(constraints)]
+        args = self._resolver_args(install_spec, dry_run=True, constraints=constraints)
 
         collected: list[str] = []
 
@@ -418,7 +503,9 @@ class LibraryManager:
 
         success, stderr = await self._run_uv_streaming(args, _collect)
         if not success:
-            raise RuntimeError(f"{self.FRAMEWORK_CONFLICT_MESSAGE}\n\n{stderr}")
+            if constraints is not None and await self._constraints_caused_failure(install_spec):
+                raise RuntimeError(f"{self._framework_conflict_message()}\n\n{stderr}")
+            raise RuntimeError(f"{self.UNRESOLVED_MESSAGE}\n\n{stderr}")
 
         full_output = "\n".join(collected)
         return self._parse_dry_run_removals(full_output)
@@ -450,16 +537,10 @@ class LibraryManager:
         the same one the user was shown and approved. Omit it (the default)
         and this computes its own, which is what every non-UI caller does.
         """
+        # Flags come from the same builder dry_run() uses — they must match
+        # exactly or the pre-eviction set and the actual install diverge.
         constraints = self._write_constraints_file()
-        if Path(install_spec).is_dir():
-            args = ["install", "-e", install_spec]
-        else:
-            # --no-sources and -c: see dry_run() for rationale. Must match the
-            # dry-run flags exactly or the pre-eviction set and the actual
-            # install diverge.
-            args = ["install", "--no-sources", install_spec]
-        if constraints is not None:
-            args += ["-c", str(constraints)]
+        args = self._resolver_args(install_spec, dry_run=False, constraints=constraints)
 
         # Pre-evict libraries that pip is about to upgrade. Capture each
         # evicted library's hints BEFORE remove_library() drops the identity.

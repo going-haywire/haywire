@@ -24,6 +24,7 @@ from __future__ import annotations
 
 import argparse
 import ast
+import re
 import sys
 import tomllib
 from dataclasses import dataclass
@@ -150,6 +151,7 @@ def build_entry(
     meta = extract_library_metadata(init_py)
 
     sibling_haybale = _filter_haybale_siblings(pyproject_deps)
+    requires_haywire = _haywire_core_specifier(pyproject_deps)
     docs_url = (
         f"https://raw.githubusercontent.com/{_strip_github_prefix(config.source_url)}/"
         f"{config.docs_branch}/{subdirectory}/{module_name}/"
@@ -160,7 +162,7 @@ def build_entry(
     else:
         install_spec = name
 
-    return {
+    entry: dict[str, object] = {
         "name": name,
         "label": meta.label or name,
         "version": version,
@@ -173,6 +175,30 @@ def build_entry(
         "source_url": config.source_url,
         "docs_url": docs_url,
     }
+    # Omitted rather than emitted empty when undeclared — an absent field means
+    # "no requirement", which is exactly how the parser and the gate read it.
+    if requires_haywire:
+        entry["requires_haywire"] = requires_haywire
+    return entry
+
+
+def _haywire_core_specifier(deps: list[str]) -> str:
+    """The ``haywire-core`` version specifier from a list of PEP 508 dep strings.
+
+    In-repo packages never run the share wizard, so nobody authors a
+    ``requires_haywire`` for them. The floor in ``pyproject.toml`` is the same
+    value the wizard writes to its first carrier, so deriving from it
+    reproduces the authored answer rather than inventing a second one.
+
+    Returns "" when haywire-core is absent or pinned by no specifier — both
+    mean "nothing to declare", and the entry omits the field.
+    """
+    for dep in deps:
+        head = dep.split(";", 1)[0].split(" @ ", 1)[0].strip()
+        name = re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0].strip()
+        if name == "haywire-core":
+            return head[len(name) :].strip()
+    return ""
 
 
 def _filter_haybale_siblings(deps: list[str]) -> list[str]:
@@ -203,6 +229,7 @@ _ENTRY_FIELD_ORDER: tuple[str, ...] = (
     "name",
     "label",
     "version",
+    "requires_haywire",
     "description",
     "author",
     "source",

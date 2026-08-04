@@ -277,3 +277,60 @@ async def test_elapsed_grows_while_installing() -> None:
     flow.started_at = time.monotonic() - 5.0
 
     assert flow.elapsed >= 5.0
+
+
+@pytest.mark.anyio
+async def test_declared_framework_requirement_blocks_before_the_resolver() -> None:
+    """A library whose author declared a framework it cannot have must be
+    refused without paying for a resolver round.
+
+    Before the gate existed, requires_haywire was parsed and stored but never
+    consulted, so this cost seconds of uv and surfaced several steps in.
+    """
+    source = _FakeSource()
+    pkg = Haybale(
+        name="haybale-vision",
+        version="0.3.0",
+        install_spec="haybale-vision==0.3.0",
+        requires_haywire=">=99.0.0",
+    )
+    flow = _flow(source, package=pkg)
+
+    await flow.advance_from_selected()
+
+    assert flow.blocked is True
+    assert flow.step == "selected"
+    assert source.dry_run_calls == 0  # never reached the resolver
+    assert ">=99.0.0" in (flow.error or "")
+
+
+@pytest.mark.anyio
+async def test_undeclared_requirement_still_reaches_the_resolver() -> None:
+    """An absent requires_haywire must not block: CI-generated entries and any
+    entry predating the field carry none, and the resolver is the real guard."""
+    source = _FakeSource()
+    flow = _flow(source, package=_pkg())  # no requires_haywire
+
+    await flow.advance_from_selected()
+
+    assert flow.blocked is False
+    assert source.dry_run_calls == 1
+    assert flow.step == "checked"
+
+
+@pytest.mark.anyio
+async def test_satisfied_requirement_reaches_the_resolver() -> None:
+    """A declared requirement the running framework satisfies is not a block."""
+    source = _FakeSource()
+    pkg = Haybale(
+        name="haybale-vision",
+        version="0.3.0",
+        install_spec="haybale-vision==0.3.0",
+        requires_haywire=">=0.0.1",
+    )
+    flow = _flow(source, package=pkg)
+
+    await flow.advance_from_selected()
+
+    assert flow.blocked is False
+    assert source.dry_run_calls == 1

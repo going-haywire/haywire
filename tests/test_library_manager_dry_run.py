@@ -225,20 +225,30 @@ async def test_install_passes_identical_flags_to_dry_run():
 
     dry_flags = [a for a in seen[0] if a.startswith("-") and a != "-c"]
     install_flags = [a for a in seen[1] if a.startswith("-") and a != "-c"]
-    assert dry_flags == ["--dry-run", "--no-sources"]
-    assert install_flags == ["--no-sources"]
+    assert dry_flags == ["--dry-run", "--no-sources", "--refresh-package"]
+    assert install_flags == ["--no-sources", "--refresh-package"]
     assert "-c" in seen[0]
     assert "-c" in seen[1]
+    # The refreshed package must be the one being installed, in both calls.
+    assert seen[0][seen[0].index("--refresh-package") + 1] == "haybale-foo"
+    assert seen[1][seen[1].index("--refresh-package") + 1] == "haybale-foo"
 
 
 @pytest.mark.unit
 async def test_dry_run_resolver_failure_names_the_shell_control():
     """A framework-blocked install must tell the user where the remedy lives —
-    the shell's check-for-updates control — not dump raw resolver text alone."""
+    the shell's check-for-updates control — not dump raw resolver text alone.
+
+    "Framework-blocked" is proven, not assumed: the constrained resolve fails
+    and the unconstrained one succeeds, so the constraints file (which pins the
+    framework to what is installed) is what blocked it.
+    """
     mgr = _make_manager()
 
     async def fake_run(args, on_output):
-        return False, "error: no solution found: haywire-core==0.0.34 is unsatisfiable"
+        if "-c" in args:
+            return False, "error: no solution found: haywire-core==0.0.34 is unsatisfiable"
+        return True, ""  # drops the constraints -> resolves fine
 
     with patch.object(mgr, "_framework_constraints", return_value=["haywire-core==0.0.34"]):
         with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
@@ -247,6 +257,71 @@ async def test_dry_run_resolver_failure_names_the_shell_control():
 
     assert "Check for updates" in str(exc.value)
     assert "no solution found" in str(exc.value)
+    # The versions actually running — the half uv's output cannot supply.
+    assert "haywire-core 0.0.34" in str(exc.value)
+
+
+@pytest.mark.unit
+async def test_dry_run_unproven_failure_does_not_blame_the_framework():
+    """When dropping the constraints does NOT fix the resolve, the framework is
+    not the proven cause and must not be named.
+
+    The regression this locks down: a stale uv index cache hides a published
+    version, uv says "no version of X", and the old code told the user to
+    upgrade Haywire — advice that cannot fix a cache and sends them to a
+    control that will report no update available.
+    """
+    mgr = _make_manager()
+
+    async def fake_run(args, on_output):
+        return False, "no version of haybale-foo==0.0.37"  # fails with AND without -c
+
+    with patch.object(mgr, "_framework_constraints", return_value=["haywire-core==0.0.34"]):
+        with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+            with pytest.raises(RuntimeError) as exc:
+                await mgr.dry_run("haybale-foo==0.0.37")
+
+    assert "Check for updates" not in str(exc.value)
+    assert "Haywire framework" not in str(exc.value)
+    assert "no version of haybale-foo==0.0.37" in str(exc.value)
+
+
+@pytest.mark.unit
+async def test_dry_run_refreshes_the_index_for_the_target_package():
+    """uv does not revalidate a cached index page on a resolution miss, so a
+    just-published version reads as nonexistent until the TTL expires. The
+    install path must refresh the one package it is acting on."""
+    mgr = _make_manager()
+    captured: dict[str, list[str]] = {}
+
+    async def fake_run(args, on_output):
+        captured["args"] = list(args)
+        return True, ""
+
+    with patch.object(mgr, "_run_uv_streaming", side_effect=fake_run):
+        await mgr.dry_run("haybale-marketplace==0.0.37")
+
+    args = captured["args"]
+    assert args[args.index("--refresh-package") + 1] == "haybale-marketplace"
+
+
+@pytest.mark.unit
+@pytest.mark.parametrize(
+    ("spec", "expected"),
+    [
+        ("haybale-foo", "haybale-foo"),
+        ("haybale-foo==0.0.37", "haybale-foo"),
+        ("haybale-foo>=1.0,<2", "haybale-foo"),
+        ("haybale-foo[extra]==1.0", "haybale-foo"),
+        ("haybale-foo @ git+https://example.com/x.git", "haybale-foo"),
+        ("git+https://example.com/x.git", None),
+    ],
+)
+def test_spec_package_name_covers_every_spec_shape(spec, expected):
+    """--refresh-package needs a distribution name; a bare git+URL has none."""
+    from haybale_marketplace.library_manager import LibraryManager
+
+    assert LibraryManager._spec_package_name(spec) == expected
 
 
 @pytest.mark.unit

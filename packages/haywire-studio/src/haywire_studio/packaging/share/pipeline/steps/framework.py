@@ -11,8 +11,11 @@ The single answer is written into two disjoint carriers:
   * the ``haywire-core`` floor in each library's ``pyproject.toml``, which is
     the ONLY guard on the bare ``uv add haybale-foo`` path (no UI to warn
     anyone), and
-  * ``requires_haywire`` in the marketstall entry, which the marketplace uses
-    as a pre-emptive gate before the constraint file refuses the install.
+  * ``requires_haywire`` in the marketstall entry, which the marketplace reads
+    in ``haywire.core.marketstall.framework_gate`` as a pre-emptive gate before
+    the constraint file refuses the install. Advisory only: it is author-
+    declared metadata and can be stale or absent, so a pass proves nothing and
+    the resolver stays the real guard.
 
 Never a ceiling by default: a ``<0.1.0`` stamped today becomes a lie the
 moment 0.1.0 ships and nobody will remember to update it.

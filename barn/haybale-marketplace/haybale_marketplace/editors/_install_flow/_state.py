@@ -10,10 +10,13 @@ One flow serves both operations: an update is an install with a different
 
 Two postures, deliberately different:
 
-* A **framework conflict** blocks. ``dry_run`` raises when uv's resolver
-  refuses to satisfy the spec without moving a framework-owned package, and
-  no amount of confirming makes that installable — the remedy is to update
-  Haywire itself. The step stays put with the resolver's message.
+* A **framework conflict** blocks, and is caught at either of two points: the
+  author's declared ``requires_haywire`` (free, checked first) or uv's
+  resolver refusing to satisfy the spec without moving a framework-owned
+  package. No amount of confirming makes either installable — the remedy is
+  to update Haywire itself. The step stays put with the message. The declared
+  check is advisory and can only ever catch a subset; the resolver is what
+  actually guarantees the guard.
 * **Collateral upgrades** inform. Replacing another library is a real
   consequence but a legitimate one, so it is shown and confirmed rather than
   forbidden.
@@ -25,7 +28,7 @@ import logging
 import time
 from typing import Optional, Protocol
 
-from haywire.core.marketstall import Haybale
+from haywire.core.marketstall import Haybale, check_requires_haywire
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
@@ -114,8 +117,21 @@ class InstallFlow(StepFlow):
         ``uv pip install --dry-run`` is a real resolver round — seconds, and
         blocking — so it runs in a thread rather than starving NiceGUI's
         heartbeat.
+
+        The declared framework requirement is checked FIRST, because it is
+        free and the resolver round is not: when the author already told us
+        this library cannot run here, spending seconds to have uv reach the
+        same conclusion only delays the same answer. The check is advisory —
+        it passes whenever nothing is proven (see ``check_requires_haywire``)
+        — so the resolver below remains the real guard.
         """
         self.retry()
+        if self.package is not None:
+            verdict = check_requires_haywire(self.package.requires_haywire)
+            if not verdict.ok:
+                self.blocked = True
+                self.error = verdict.message
+                return
         try:
             self.removals = await self.source.dry_run(self.install_spec)
         except RuntimeError as exc:

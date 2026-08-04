@@ -15,6 +15,11 @@ from haywire.core.marketstall.errors import (
     MalformedMarketplaceError,
     RemoteFetchError,
 )
+from haywire.core.marketstall.framework_gate import (
+    FrameworkVerdict,
+    check_requires_haywire,
+    installed_core_version,
+)
 from haywire.core.marketstall.helpers import (
     SubscriptionConflict,
     add_heap_to_project,
@@ -85,6 +90,7 @@ __all__ = [
     # Dataclasses / enums
     "FetchedSources",
     "FetchResult",
+    "FrameworkVerdict",
     "Haybale",
     "MarketplaceFile",
     "ProjectMarketplaceFile",
@@ -98,6 +104,8 @@ __all__ = [
     "ClassifiedInput",
     "InputForm",
     # Parsers + serializers
+    "check_requires_haywire",
+    "installed_core_version",
     "parse_global_marketplace",
     "parse_project_marketplace",
     "parse_marketstall_body",
