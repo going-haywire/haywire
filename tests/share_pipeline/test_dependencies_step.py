@@ -207,3 +207,53 @@ def test_written_set_never_duplicates(project: Path) -> None:
     pipeline.apply_additions({lib: ["numpy>=2.0"]}, {})
 
     assert pipeline.written.count(lib / "pyproject.toml") == 1
+
+
+# ── formatting ───────────────────────────────────────────────────────────────
+
+
+def test_writes_preserve_layout_and_entry_comments(project: Path) -> None:
+    """A one-entry-per-line array stays that way, comments and all.
+
+    tomlkit keeps an array's existing layout across in-place `append`,
+    `__setitem__` and `del`, but assigning a fresh Python list replaces the
+    array wholesale — collapsing it to one long inline row and silently
+    deleting every per-entry comment the author wrote. `dep_edit` therefore
+    mutates the live array and never reassigns it.
+    """
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text(
+        "[project]\n"
+        'name = "haybale-alpha"\n'
+        'version = "0.1.0"\n'
+        "# what this library needs\n"
+        "dependencies = [\n"
+        '    "haywire-core>=0.0.31",\n'
+        '    "toml",  # loose on purpose\n'
+        '    "nicegui>=3.12.1",\n'
+        "]\n"
+    )
+
+    pipeline = SharePipeline(project)
+    pipeline.apply_framework(">=0.0.38")
+    pipeline.apply_additions({lib: ["numpy>=2.0"]}, {})
+    pipeline.apply_removals({lib: ["nicegui"]})
+
+    text = (lib / "pyproject.toml").read_text()
+    assert '    "haywire-core>=0.0.38",\n' in text
+    assert '    "numpy>=2.0",\n' in text
+    assert '    "toml",  # loose on purpose\n' in text
+    assert "# what this library needs\n" in text
+    assert "nicegui" not in text
+
+
+def test_an_inline_array_is_left_inline(project: Path) -> None:
+    """Style is preserved, not imposed — this is the author's file."""
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.1.0"\ndependencies = ["toml"]\n'
+    )
+
+    SharePipeline(project).apply_additions({lib: ["numpy>=2.0"]}, {})
+
+    assert 'dependencies = ["toml", "numpy>=2.0"]' in (lib / "pyproject.toml").read_text()

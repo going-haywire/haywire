@@ -26,6 +26,7 @@ library author's own files.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import toml
 
@@ -59,18 +60,13 @@ def set_dependency(lib_dir: Path, entry: str) -> None:
     target = norm_dep(dependency_name(entry))
     with edit_toml(lib_dir / "pyproject.toml") as data:
         project = data.setdefault("project", {})
-        deps = [str(item) for item in project.get("dependencies", []) or []]
-        out: list[str] = []
-        found = False
-        for item in deps:
-            if norm_dep(dependency_name(item)) == target:
-                out.append(entry)
-                found = True
-            else:
-                out.append(item)
-        if not found:
-            out.append(entry)
-        project["dependencies"] = out
+        deps = _dependencies_array(project)
+        for index, item in enumerate(deps):
+            if norm_dep(dependency_name(str(item))) == target:
+                deps[index] = entry
+                break
+        else:
+            deps.append(entry)
 
 
 def add_dependencies(lib_dir: Path, entries: list[str]) -> None:
@@ -85,15 +81,14 @@ def add_dependencies(lib_dir: Path, entries: list[str]) -> None:
         return
     with edit_toml(lib_dir / "pyproject.toml") as data:
         project = data.setdefault("project", {})
-        deps = [str(item) for item in project.get("dependencies", []) or []]
-        declared = {norm_dep(dependency_name(item)) for item in deps}
+        deps = _dependencies_array(project)
+        declared = {norm_dep(dependency_name(str(item))) for item in deps}
         for entry in entries:
             name = norm_dep(dependency_name(entry))
             if name in declared:
                 continue
             deps.append(entry)
             declared.add(name)
-        project["dependencies"] = deps
 
 
 def remove_dependencies(lib_dir: Path, dist_names: list[str]) -> None:
@@ -108,5 +103,28 @@ def remove_dependencies(lib_dir: Path, dist_names: list[str]) -> None:
     targets = {norm_dep(name) for name in dist_names}
     with edit_toml(lib_dir / "pyproject.toml") as data:
         project = data.setdefault("project", {})
-        deps = [str(item) for item in project.get("dependencies", []) or []]
-        project["dependencies"] = [item for item in deps if norm_dep(dependency_name(item)) not in targets]
+        deps = _dependencies_array(project)
+        # Back to front: deleting shifts every later index.
+        for index in range(len(deps) - 1, -1, -1):
+            if norm_dep(dependency_name(str(deps[index]))) in targets:
+                del deps[index]
+
+
+def _dependencies_array(project: Any) -> Any:
+    """The live ``[project] dependencies`` array, created empty if absent.
+
+    Returns the tomlkit array ITSELF, never a copy. Mutating it in place is
+    what preserves the author's formatting: tomlkit keeps an array's existing
+    layout — multi-line with one entry per line, trailing comma, indentation,
+    and any per-entry comments — across `append`, `__setitem__` and `del`, but
+    assigning a fresh Python list replaces the array wholesale and renders it
+    inline, silently discarding both the layout and the comments.
+
+    Style is preserved, not imposed: an array the author wrote inline stays
+    inline. This is their file.
+    """
+    deps = project.get("dependencies")
+    if deps is None:
+        project["dependencies"] = []
+        deps = project["dependencies"]
+    return deps
