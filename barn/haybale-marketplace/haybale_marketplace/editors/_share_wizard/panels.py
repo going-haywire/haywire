@@ -197,7 +197,7 @@ def _panel_unused(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         return out
 
     with ui.row().classes("w-full justify-end gap-2"):
-        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        cont = ui.button("Apply").props("flat dense").style("color: var(--hw-positive);")
         cont.on_click(
             lambda: _busy_advance(rerender, cont, lambda: wizard.advance_from_unused(_selection()))
         )
@@ -262,7 +262,7 @@ def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None
         return entries, decorators, skipped
 
     with ui.row().classes("w-full justify-end gap-2"):
-        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        cont = ui.button("Apply").props("flat dense").style("color: var(--hw-positive);")
 
         async def _go() -> None:
             entries, decorators, skipped = _resolve()
@@ -325,7 +325,7 @@ def _panel_floors(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         return out
 
     with ui.row().classes("w-full justify-end gap-2"):
-        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        cont = ui.button("Apply").props("flat dense").style("color: var(--hw-positive);")
         cont.on_click(
             lambda: _busy_advance(rerender, cont, lambda: wizard.advance_from_floors(_selection()))
         )
@@ -351,7 +351,7 @@ def _panel_confirm(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
-            "Continue",
+            "Confirm",
             on_click=lambda: _advance(rerender, wizard.advance_from_confirm),
         ).props("flat dense").style("color: var(--hw-positive);")
 
@@ -361,12 +361,18 @@ def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
     A floor restricts CONSUMERS rather than recording what you tested, so the
     recommended option keeps the current declaration — it locks nobody out.
+
+    The FIRST screen in the wizard that writes to disk, which is why its button
+    says Apply rather than Continue. No section label: the stepper already
+    titles this screen, and repeating it inside the body says nothing new.
     """
     plan = wizard.framework_plan
     if plan is None:
         return
 
-    hui.section_label("Framework requirement")
+    ui.label("Writes the haywire-core floor into every barn library's pyproject.toml.").classes(
+        "text-xs hw-text-dim"
+    )
     ui.label(f"haywire-core, installed: {plan.installed or 'unknown'}").classes(
         "text-xs hw-text-dim font-mono"
     )
@@ -395,7 +401,7 @@ def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
-            "Continue",
+            "Apply",
             on_click=lambda: _advance(rerender, lambda: wizard.advance_from_framework(_spec())),
         ).props("flat dense").style("color: var(--hw-positive);")
 

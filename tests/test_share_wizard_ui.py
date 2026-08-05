@@ -886,6 +886,39 @@ def test_findings_step_is_named_for_what_it_shows() -> None:
     assert STEP_TITLES["detect"] == "Findings"
 
 
+def test_writing_screens_say_apply_not_continue() -> None:
+    """The button label is the honest signal for whether a screen writes.
+
+    "Continue" on a screen that rewrites pyproject.toml understates it; the
+    author reads it as paging forward. Each screen that can write says Apply,
+    the confirm screen says Confirm, and the read-only ones keep Continue —
+    including a writing screen's EMPTY state, where there is nothing to apply.
+    """
+    from pathlib import Path as _Path
+
+    source = _Path(
+        "barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard/panels.py"
+    ).read_text()
+
+    # One Apply per writing screen: framework, unused, undeclared, floors.
+    assert source.count('"Apply"') == 4
+    assert source.count('"Confirm"') == 1
+
+
+def test_framework_panel_does_not_repeat_its_own_step_title() -> None:
+    """The stepper already titles the screen; a section label saying the same
+    thing costs a line and adds nothing."""
+    from pathlib import Path as _Path
+
+    from haybale_marketplace.editors._share_wizard.copy import STEP_TITLES
+
+    source = _Path(
+        "barn/haybale-marketplace/haybale_marketplace/editors/_share_wizard/panels.py"
+    ).read_text()
+
+    assert f'hui.section_label("{STEP_TITLES["framework"]}")' not in source
+
+
 def test_every_wizard_select_is_marked_in_popup() -> None:
     """The wizard renders inside a Popup, so every select it builds must carry
     in_popup=True. A QMenu defaults to z-6000 and the Popup card is z-7001, so
