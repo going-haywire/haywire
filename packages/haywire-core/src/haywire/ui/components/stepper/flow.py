@@ -72,6 +72,26 @@ class StepFlow:
         self.error = str(exc)
         self.manual_command = getattr(exc, "manual_command", None)
 
+    async def advance(self) -> None:
+        """Run the current step's ``advance_from_<step>`` coroutine.
+
+        Dispatch by name, so a caller that does not know which step is current
+        (``show_step_flow``'s ``auto_start``) can still drive the flow. Panels
+        keep calling their own ``advance_from_*`` directly — most pass
+        arguments, which this cannot.
+
+        A step whose method takes required arguments cannot be dispatched this
+        way; that is a programming error at the call site (auto-starting a flow
+        whose first step needs an answer), so the TypeError is left to surface
+        rather than swallowed.
+        """
+        method = getattr(self, f"advance_from_{self.step}", None)
+        if method is None:
+            raise AttributeError(
+                f"{type(self).__name__} has no advance_from_{self.step}() for step {self.step!r}"
+            )
+        await method()
+
     def push_log(self, line: str) -> None:
         """Collect a streamed output line, mirroring it into the log element.
 

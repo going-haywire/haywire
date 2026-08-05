@@ -51,6 +51,7 @@ def show_step_flow(
     width: str = "620px",
     on_done: Callable[[], None] | None = None,
     error_detail: ErrorDetail[FlowT] | None = None,
+    auto_start: bool = False,
 ) -> Popup:
     """Open *flow* in a popup and return it.
 
@@ -61,6 +62,18 @@ def show_step_flow(
     The popup stays closable throughout: a flow mutates nothing that needs
     undoing until its final step, so abandoning it early is always safe. The
     step buttons are the intended path, not the only one.
+
+    *auto_start* runs the first step's ``advance_from_<step>`` as soon as the
+    popup opens, instead of waiting for a click. For a first step that only
+    CHECKS — no decision to make, nothing written — that click asks the user to
+    confirm an intent they already expressed by opening the flow. Opt-in
+    because it is wrong for a first step that presents a choice, and because a
+    flow whose first step mutates must never run unprompted.
+
+    The advance is scheduled with ``ui.timer(..., once=True)`` rather than
+    awaited here: ``show_step_flow`` is sync (it returns the Popup its caller
+    keeps), and the first render must reach the browser before a step that
+    takes seconds begins, or the popup appears already-stalled.
     """
     missing = [s for s in flow.STEPS if s not in panels]
     if missing:
@@ -90,6 +103,14 @@ def show_step_flow(
     if on_done is not None:
         popup.on_close(on_done)
     popup.open()
+    if auto_start:
+
+        async def _start() -> None:
+            await flow.advance()
+            _render()
+
+        # once=True fires on the next tick, after this render has been flushed.
+        ui.timer(0.05, _start, once=True)
     return popup
 
 
