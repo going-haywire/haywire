@@ -133,10 +133,29 @@ runs — there's no flag to skip it.
 
 ### 4.4 Git remote requirements
 
-`haywire share` needs three things from your git setup before it will publish anything, checked in this order:
+Any precondition failure stops `haywire share` and reports the single
+earliest problem it found — checks run in order below, and an earlier
+failure makes a later one moot, so fixing one and re-running can surface the
+next. In the GUI wizard, this is a **remedy modal**: message and remedy
+text, plus (for the three failures below with an unambiguous, no-input
+repair) a button that performs the fix right there, with your permission.
+Either way the modal ends with **Restart Wizard**, which re-runs every check
+from the top — cheap enough that it costs nothing.
 
-1. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The GUI wizard's "Check the project" step offers this as an inline **Add origin remote** fix (§8).
-2. **The remote's host is recognized.** GitHub and GitLab (`github.com`, `gitlab.com`) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in `~/.haywire/config.toml`:
+`haywire share` needs four things from your git setup before it will publish anything, checked in this order:
+
+1. **The working tree is clean.** `git status --porcelain` must be empty —
+   no staged, unstaged, or untracked changes anywhere in the repo, not just
+   under `barn/`. This is deliberately strict: if a later step fails
+   partway through, the publish pipeline reverts everything it has written
+   by resetting the whole working tree, and that revert is only safe
+   because nothing else could have been sitting there dirty when the run
+   started. Commit or stash first. This applies to `haywire share` on the
+   command line exactly as it does in the GUI wizard — both run the same
+   checks. (A step-1 failure itself never mutates anything and never
+   triggers a revert — there's nothing yet to revert.)
+2. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The GUI wizard's remedy modal offers this as an **Add origin remote** fix (§8).
+3. **The remote's host is recognized.** GitHub and GitLab (`github.com`, `gitlab.com`) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in `~/.haywire/config.toml`:
 
    ```toml
    [[hosts]]
@@ -144,8 +163,8 @@ runs — there's no flag to skip it.
    provider = "gitlab"   # or "github"
    ```
 
-   This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 3.
-3. **The push will be accepted.** `haywire share`'s commit step runs a `git push --dry-run` before it commits or tags anything, so a credential problem surfaces before anything is written. Because the wizard and `--yes` both push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:
+   This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 4. A remote pointing at a local filesystem path (a sibling clone, a shared network drive) skips this check entirely — it isn't an unrecognized host, since there's no hostname to recognize or fail to recognize.
+4. **The push will be accepted.** `haywire share`'s commit step runs a `git push --dry-run` before it commits or tags anything, so a credential problem surfaces before anything is written. Because the wizard and `--yes` both push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:
    - An **HTTPS** remote (`https://gitlab.example.com/...`) needs a credential cached ahead of time — a personal access token stored via a credential helper (`git config --global credential.helper osxkeychain` on macOS, then push once by hand to seed it) is the common approach.
    - An **SSH** remote (`git@gitlab.example.com:...`) needs a key registered with the host and `ssh-agent` running, so no passphrase prompt blocks the push either.
 
@@ -268,11 +287,14 @@ Three causes worth checking:
 **Detect Dependencies didn't pick up an import.**
 The scan is static AST analysis, so dynamic imports (`importlib.import_module(name)`, `__import__(...)`) are invisible to it. Declare those manually in both manifests — and prefer Union over Replace in that library, since Replace would drop them again.
 
+**`haywire share` fails with "Working tree is not clean.".**
+You have uncommitted changes somewhere in the repo — not just under `barn/`. The publish pipeline reverts everything it writes if a later step fails partway through, by resetting the whole working tree, and that's only safe when nothing else was dirty to begin with. Commit or stash your changes, then retry.
+
 **`haywire share` produces a URL with `<REPO_URL>` placeholder.**
-The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`. In the GUI wizard, the "Check the project" step offers this as an inline **Add origin remote** fix — type the URL and it runs the command for you, then re-checks in place.
+The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`. In the GUI wizard, this failure's remedy modal offers an **Add origin remote** fix — type the URL and click through it, then Restart Wizard.
 
 **`haywire share` fails with "Host '\<hostname\>' is not recognized.".**
-Your `origin` remote points at a host haywire doesn't ship built-in support for — anything other than `github.com`/`gitlab.com`, typically a self-hosted GitLab or GitHub Enterprise instance. Add it to `~/.haywire/config.toml` per [§4.4](#44-git-remote-requirements), then retry. This is unrelated to push access — see the next entry if the push itself also fails.
+Your `origin` remote points at a host haywire doesn't ship built-in support for — anything other than `github.com`/`gitlab.com`, typically a self-hosted GitLab or GitHub Enterprise instance. In the GUI wizard, this failure's remedy modal offers to write the needed `~/.haywire/config.toml` entry for you — click through it, then Restart Wizard. From the CLI, add it by hand per [§4.4](#44-git-remote-requirements) and retry. This is unrelated to push access — see the next entry if the push itself also fails.
 
 **`haywire share` fails with "Push failed: ... terminal prompts disabled".**
 git tried to prompt for a username/password and couldn't — the wizard and `--yes` both push non-interactively, so there's no terminal to prompt on. You need a credential cached *before* running share: either switch the remote to SSH (`git remote set-url origin git@<host>:<owner>/<repo>.git`) with a key registered on the host and `ssh-agent` running, or keep HTTPS and cache a personal access token via a git credential helper. See [§4.4](#44-git-remote-requirements) for both paths and links to your host's own credential docs — this is a general git-auth problem, not something haywire's pipeline can resolve for you.
@@ -281,7 +303,7 @@ git tried to prompt for a username/password and couldn't — the wizard and `--y
 That library's `pyproject.toml` doesn't parse as TOML. Fix the TOML in `barn/<lib>/pyproject.toml` so it parses, then try again.
 
 **`haywire share` fails with "Invalid manifest at `barn/<lib>/pyproject.toml`: ...".**
-The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list. In the GUI wizard, this failure offers an inline fix button (**Remove invalid values**, or **Correct to macos**/**Correct to windows** when every bad value maps unambiguously) that rewrites the field for you, then re-checks in place.
+The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list. In the GUI wizard, this failure's remedy modal offers a fix button (**Remove invalid values**, or **Correct to macos**/**Correct to windows** when every bad value maps unambiguously) that rewrites the field for you — click through it, then Restart Wizard.
 
 **`haywire share` fails with "HEAD is detached — no branch is currently checked out.".**
 You're not on a branch. If the remedy names one or more branches (e.g. `` This commit is on `main`, `feature-x` — run `git switch main`. ``), switch to the first one it lists. If it instead says the commit isn't on any branch, create one and publish from there: `git switch -c my-branch`.
