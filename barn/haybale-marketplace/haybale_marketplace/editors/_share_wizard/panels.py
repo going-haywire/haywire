@@ -204,7 +204,12 @@ def _panel_unused(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
-    """Imports with no declaration. Per-item pin choice.
+    """Imported distributions the pyproject omits. Per-item pin choice.
+
+    Only ``pyproject_missing`` appears here. The ``@library(dependencies)``
+    registrations were applied at the framework step without asking — they are
+    provably true and constrain nothing, so listing them among things the
+    author must decide about would offer a choice that does not exist.
 
     The only screen whose "leave it" option is recorded: an undeclared import
     is the one dependency state that breaks a consumer's install, so choosing
@@ -212,16 +217,16 @@ def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None
     """
     report = wizard.drift_report
     if report is None or not report.needs_decision:
-        ui.label("Every import is declared.").classes("text-xs hw-text-dim")
+        ui.label("Every import the source uses is declared.").classes("text-xs hw-text-dim")
         with ui.row().classes("w-full justify-end gap-2"):
             ui.button(
                 "Continue",
-                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_undeclared({}, {})),
+                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_undeclared({})),
             ).props("flat dense").style("color: var(--hw-positive);")
         return
 
     ui.label(
-        "The source imports these but the manifests do not declare them. "
+        "The source imports these but pyproject.toml does not declare them. "
         "Published as-is, consumers install the library and it fails on import."
     ).classes("text-xs hw-text-dim")
 
@@ -241,10 +246,8 @@ def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None
                 custom = hui.input_field(placeholder=f">={installed}" if installed else ">=1.0")
                 custom.bind_visibility_from(pin, "value", lambda v: v == "custom")
                 controls.append((drift.lib_dir, dep, installed, pin, custom))
-        for dep in drift.decorator_missing:
-            ui.label(f"@library(dependencies): {dep}").classes("text-xs font-mono ml-1 hw-text-dim")
 
-    def _resolve() -> tuple[dict[Path, list[str]], dict[Path, list[str]], bool]:
+    def _resolve() -> tuple[dict[Path, list[str]], bool]:
         entries: dict[Path, list[str]] = {}
         skipped = False
         for lib_dir, dep, installed, pin, custom in controls:
@@ -258,15 +261,14 @@ def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None
                 entries.setdefault(lib_dir, []).append(f"{dep}>={installed}" if installed else dep)
             else:
                 entries.setdefault(lib_dir, []).append(f"{dep}{(custom.value or '').strip()}")
-        decorators = {d.lib_dir: list(d.decorator_missing) for d in report.drifted if d.decorator_missing}
-        return entries, decorators, skipped
+        return entries, skipped
 
     with ui.row().classes("w-full justify-end gap-2"):
         cont = ui.button("Apply").props("flat dense").style("color: var(--hw-positive);")
 
         async def _go() -> None:
-            entries, decorators, skipped = _resolve()
-            await wizard.advance_from_undeclared(entries, decorators, skipped=skipped)
+            entries, skipped = _resolve()
+            await wizard.advance_from_undeclared(entries, skipped=skipped)
 
         cont.on_click(lambda: _busy_advance(rerender, cont, _go))
 
@@ -337,17 +339,37 @@ def _panel_confirm(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     Reached only once every custom specifier parses — an invalid one keeps the
     author on its own screen, so this never shows a line that would not survive
     a write.
+
+    Also the second and last place the automatic ``@library(dependencies)``
+    edits are named. They were never offered as a choice, so the author's only
+    protection against a surprise in ``git diff`` is that the wizard says what
+    it did — twice, and unprompted.
     """
     written = wizard.dependency_writes()
-    if not written:
+    registrations = wizard.decorator_registrations
+
+    if not written and not registrations:
         ui.label("No dependency declarations changed.").classes("text-xs hw-text-dim")
     else:
-        ui.label("These libraries' dependencies now read:").classes("text-xs hw-text-dim")
-        for lib_dir, entries in written.items():
-            hui.section_label(lib_dir.name)
-            with ui.column().classes("gap-0.5 ml-1"):
-                for entry in entries:
-                    ui.label(entry).classes("text-xs font-mono hw-text-dim")
+        if registrations:
+            ui.label(
+                "Added to @library(dependencies) automatically — imported haywire "
+                "libraries the decorator did not list:"
+            ).classes("text-xs hw-text-dim")
+            for lib_dir, names in registrations.items():
+                with ui.row().classes("items-baseline gap-2 ml-1"):
+                    ui.label(", ".join(names)).classes("text-xs font-mono").style(
+                        "color: var(--hw-warning);"
+                    )
+                    ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+
+        if written:
+            ui.label("These libraries' dependencies now read:").classes("text-xs hw-text-dim pt-2")
+            for lib_dir, entries in written.items():
+                hui.section_label(lib_dir.name)
+                with ui.column().classes("gap-0.5 ml-1"):
+                    for entry in entries:
+                        ui.label(entry).classes("text-xs font-mono hw-text-dim")
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(

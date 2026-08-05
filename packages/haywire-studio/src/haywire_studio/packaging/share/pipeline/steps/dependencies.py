@@ -90,9 +90,8 @@ def apply_removals(pipeline: "SharePipeline", removals: dict[Path, list[str]]) -
 def apply_additions(
     pipeline: "SharePipeline",
     pyproject_entries: dict[Path, list[str]],
-    decorator_entries: dict[Path, list[str]],
 ) -> list[Path]:
-    """Declare what the source imports but the manifests omit.
+    """Declare the imported distributions the pyproject omits.
 
     *pyproject_entries* maps a library dir to fully-formed PEP 508 entries —
     the author already chose each one's pin via the screen's per-item control,
@@ -100,10 +99,8 @@ def apply_additions(
     Distributions already declared are skipped by ``add_dependencies``: an
     addition never restates an existing floor.
 
-    *decorator_entries* maps a library dir to package names for
-    ``@library(dependencies=[...])``. Merged in union mode — the decorator
-    lists which libraries must be enabled, and dropping one there breaks
-    hot-reload scope tracking.
+    The ``@library(dependencies=[...])`` list is NOT written here — see
+    :func:`apply_decorator_registrations`, which needs no author input.
     """
     written: list[Path] = []
     for lib_dir, entries in pyproject_entries.items():
@@ -115,7 +112,30 @@ def apply_additions(
             raise ManifestError(str(exc)) from exc
         written.append(lib_dir / "pyproject.toml")
 
-    for lib_dir, names in decorator_entries.items():
+    return pipeline.record(written)
+
+
+def apply_decorator_registrations(
+    pipeline: "SharePipeline", registrations: dict[Path, list[str]]
+) -> list[Path]:
+    """Add imported haywire libraries to ``@library(dependencies=[...])``.
+
+    Applied automatically — the author is told, never asked. There is nothing
+    to decide: ``detect_deps`` emits a name here only when the source imports
+    it AND it resolves to an installed, registered haywire library, so every
+    entry is provably true. It carries no version specifier and narrows nothing
+    for consumers; it drives hot-reload scope tracking and the marketplace's
+    enable/disable gating, both of which are simply wrong without it.
+
+    Union mode: existing entries are never dropped, so a name the author added
+    by hand for a dynamic import survives.
+
+    Writes ``__init__.py``, which is hand-authored source rather than a
+    manifest — the reason this is reported on the Findings and Confirm screens
+    instead of happening quietly.
+    """
+    written: list[Path] = []
+    for lib_dir, names in registrations.items():
         if not names:
             continue
         module_dir = find_module_dir(lib_dir)
@@ -129,7 +149,6 @@ def apply_additions(
         except _MANIFEST_FAILURE_TYPES as exc:
             raise ManifestError(str(exc)) from exc
         written.append(init_file)
-
     return pipeline.record(written)
 
 

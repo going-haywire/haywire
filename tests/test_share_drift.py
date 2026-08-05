@@ -262,7 +262,10 @@ def test_lag_flagged_for_haybale_dep_with_tilde_equals(tmp_path: Path, monkeypat
     )
     drift = detect_share_drift(lib)
     assert drift.pyproject_version_lag == [("haybale-core", "0.1.0", "0.5.0")]
-    assert drift.has_drift
+    # Lag is a reported fact, not drift — and the decorator gap this fixture
+    # also has is repaired automatically, so neither gates the publish.
+    assert drift.has_drift is False
+    assert drift.has_findings is True
 
 
 @pytest.mark.unit

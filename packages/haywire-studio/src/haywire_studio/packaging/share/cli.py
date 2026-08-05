@@ -66,18 +66,18 @@ def _resolve_framework_answer(pipeline: SharePipeline, specifier: str | None) ->
     return specifier
 
 
-def _detected_additions(drift: object) -> tuple[list[str], list[str]]:
-    """The pyproject entries and decorator names --yes would declare.
+def _decorator_registrations(report: object) -> dict[Path, list[str]]:
+    """Per-library ``@library(dependencies)`` entries to add without asking.
 
-    Declared with NO floor, matching the interactive screen's default: a floor
-    is the oldest version that works, which nothing here can compute, and an
-    unpinned declaration constrains no consumer. The report already names what
-    is missing, so nothing is re-detected.
+    Read off every library with findings, not just the drifted ones: a missing
+    registration is no longer drift, so a library whose only gap is this would
+    not appear in ``report.drifted`` at all.
     """
-    return (
-        list(drift.pyproject_missing),  # type: ignore[attr-defined]
-        list(drift.decorator_missing),  # type: ignore[attr-defined]
-    )
+    return {
+        drift.lib_dir: list(drift.decorator_missing)
+        for drift in report.libraries  # type: ignore[attr-defined]
+        if drift.decorator_missing
+    }
 
 
 def _run_yes(
@@ -97,19 +97,28 @@ def _run_yes(
     print("✓ Preconditions OK")
 
     report = pipeline.check_drift()
+
+    registrations = _decorator_registrations(report)
+    if registrations:
+        for lib_dir, names in registrations.items():
+            for name in names:
+                print(f"  + {lib_dir.name}: @library(dependencies) {name}")
+        pipeline.apply_decorator_registrations(registrations)
+        print("✓ Registered imported libraries in @library(dependencies)")
+
     if report.needs_decision:
         # Declaring an import the source actually uses is unambiguously
-        # correct, so --yes does it rather than refusing. Removals and floor
-        # changes are NOT touched here: both are optional, and one is lossy.
-        pyproject_entries: dict[Path, list[str]] = {}
-        decorator_entries: dict[Path, list[str]] = {}
-        for d in report.drifted:
-            entries, names = _detected_additions(d)
-            pyproject_entries[d.lib_dir] = entries
-            decorator_entries[d.lib_dir] = names
-            for dep in entries + names:
-                print(f"  + {d.lib_dir.name}: {dep}")
-        pipeline.apply_additions(pyproject_entries, decorator_entries)
+        # correct, so --yes does it rather than refusing. Declared with no
+        # floor: nothing here can compute the oldest version that works.
+        # Removals and floor changes are NOT touched — optional, and one is
+        # lossy.
+        pyproject_entries: dict[Path, list[str]] = {
+            d.lib_dir: list(d.pyproject_missing) for d in report.drifted
+        }
+        for lib_dir, entries in pyproject_entries.items():
+            for dep in entries:
+                print(f"  + {lib_dir.name}: {dep}")
+        pipeline.apply_additions(pyproject_entries)
         print("✓ Declared every detected import")
     else:
         print("✓ Every import is declared")
@@ -193,7 +202,7 @@ def _print_detect_report(report: object) -> None:
         for row in rows:
             print(f"    {row}")
     if printed:
-        print("\n  Nothing is changed yet — the next steps decide what to do about each.")
+        print("\n  Nothing is changed yet — the next steps handle each of these.")
     else:
         print("  Nothing to report.")
 
@@ -239,6 +248,16 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     pipeline.apply_framework(specifier)
     print(f"✓ Framework requirement set to haywire-core{specifier}")
 
+    # Applied without asking, at the first writing step so it lands once:
+    # every entry names a registered haywire library the source imports, so
+    # there is nothing to decide. Reported, not silent — it edits __init__.py.
+    registrations = _decorator_registrations(report)
+    if registrations:
+        for lib_dir, names in registrations.items():
+            print(f"  + {lib_dir.name}: @library(dependencies) {', '.join(names)}")
+        pipeline.apply_decorator_registrations(registrations)
+        print("✓ Registered imported libraries in @library(dependencies)")
+
     print("\n── 4. Unused declarations ──")
     unused = {d.lib_dir: list(d.unused_declarations) for d in report.libraries if d.unused_declarations}
     if not unused:
@@ -258,16 +277,14 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     if not report.needs_decision:
         print("  None.")
     else:
-        pyproject_entries: dict[Path, list[str]] = {}
-        decorator_entries: dict[Path, list[str]] = {}
-        for d in report.drifted:
-            entries, names = _detected_additions(d)
-            for dep in entries + names:
-                print(f"  {d.lib_dir.name}: {dep}")
-            pyproject_entries[d.lib_dir] = entries
-            decorator_entries[d.lib_dir] = names
+        pyproject_entries: dict[Path, list[str]] = {
+            d.lib_dir: list(d.pyproject_missing) for d in report.drifted
+        }
+        for lib_dir, entries in pyproject_entries.items():
+            for dep in entries:
+                print(f"  {lib_dir.name}: {dep}")
         if _confirm("Declare them?"):
-            pipeline.apply_additions(pyproject_entries, decorator_entries)
+            pipeline.apply_additions(pyproject_entries)
             print("✓ Declared")
         else:
             pipeline.acknowledge_undeclared()

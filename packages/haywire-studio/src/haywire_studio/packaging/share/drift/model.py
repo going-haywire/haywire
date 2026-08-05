@@ -8,11 +8,20 @@ from pathlib import Path
 class DepDrift:
     """What one library's declarations and its actual imports say about each other.
 
-    All lists are sorted. Only the two ``missing`` lists are drift: something
-    the source imports is undeclared, so the published library will fail to
-    install. Everything else here is a *fact about the library*, reported so
-    the author can act on it, and deliberately NOT a defect:
+    All lists are sorted. Only ``pyproject_missing`` is drift: an import the
+    published manifest does not declare, so a consumer installs the library and
+    it fails on import. Everything else is a *fact about the library*, and each
+    is handled differently:
 
+    * ``decorator_missing`` — registered haywire libraries the source imports
+      that ``@library(dependencies=[...])`` does not list. Applied
+      AUTOMATICALLY, never offered as a choice, because there is nothing to
+      decide: ``detect_deps`` only emits a name here when the source imports it
+      AND it resolves to an installed, registered library, so the entry is
+      provably true. It carries no version specifier, narrows nothing for
+      consumers, and its only effects are hot-reload scope tracking and the
+      marketplace's enable/disable gating. Reported rather than silent, though
+      — it edits a hand-authored ``__init__.py``, not a manifest.
     * ``unused_declarations`` — declared but not imported. Inert for consumers;
       common for transitive deps and optional features. Removing is a decision,
       never automatic, because ``detect_deps`` cannot see dynamic imports.
@@ -25,7 +34,8 @@ class DepDrift:
       consumer compatibility from the author's dev-machine state.
     * ``unresolved`` — imports that mapped to no distribution, usually dynamic.
 
-    Consequently ``has_drift`` counts the missing lists only.
+    Consequently ``has_drift`` counts ``pyproject_missing`` only: you cannot
+    refuse to publish over something the tool fixes unconditionally.
     """
 
     lib_dir: Path
@@ -37,8 +47,12 @@ class DepDrift:
 
     @property
     def has_drift(self) -> bool:
-        """True iff something imported is undeclared — the only breaking state."""
-        return bool(self.pyproject_missing or self.decorator_missing)
+        """True iff an imported distribution is undeclared — the breaking state.
+
+        Excludes ``decorator_missing``: that is repaired automatically, so it is
+        never a state the author is asked to resolve or allowed to decline.
+        """
+        return bool(self.pyproject_missing)
 
     @property
     def has_findings(self) -> bool:

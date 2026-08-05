@@ -138,13 +138,17 @@ class SharePipeline:
         """Drop declarations the source no longer imports, per library."""
         return steps_dependencies.apply_removals(self, removals)
 
-    def apply_additions(
-        self,
-        pyproject_entries: dict[Path, list[str]],
-        decorator_entries: dict[Path, list[str]],
-    ) -> list[Path]:
-        """Declare imports the manifests omit, using the author's chosen pins."""
-        return steps_dependencies.apply_additions(self, pyproject_entries, decorator_entries)
+    def apply_additions(self, pyproject_entries: dict[Path, list[str]]) -> list[Path]:
+        """Declare imports the pyproject omits, using the author's chosen pins."""
+        return steps_dependencies.apply_additions(self, pyproject_entries)
+
+    def apply_decorator_registrations(self, registrations: dict[Path, list[str]]) -> list[Path]:
+        """Register imported haywire libraries in ``@library(dependencies)``.
+
+        Applied without asking — every entry is provably true and constrains
+        nothing. Callers report it rather than offering it.
+        """
+        return steps_dependencies.apply_decorator_registrations(self, registrations)
 
     def apply_floors(self, floors: dict[Path, list[str]]) -> list[Path]:
         """Rewrite the declared floors the author chose to change."""

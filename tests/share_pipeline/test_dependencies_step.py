@@ -129,7 +129,7 @@ def test_additions_never_restate_an_existing_floor(project: Path) -> None:
     """An addition declares what is missing; changing a specifier is another step's job."""
     lib = project / "barn" / "haybale-alpha"
 
-    SharePipeline(project).apply_additions({lib: ["haywire-core>=9.9.9", "numpy>=2.0"]}, {})
+    SharePipeline(project).apply_additions({lib: ["haywire-core>=9.9.9", "numpy>=2.0"]})
 
     assert _deps(lib) == ["haywire-core~=0.0.1", "numpy>=2.0"]
 
@@ -158,7 +158,7 @@ def test_extras_and_markers_survive_every_write(project: Path) -> None:
 
     pipeline = SharePipeline(project)
     pipeline.apply_framework(">=0.0.38")
-    pipeline.apply_additions({lib: ["numpy>=2.0"]}, {})
+    pipeline.apply_additions({lib: ["numpy>=2.0"]})
 
     after = _deps(lib)
     assert "visiongraph[onnx,openvino,mediapipe]" in after
@@ -183,11 +183,61 @@ def test_empty_mappings_write_nothing(project: Path) -> None:
 
     pipeline = SharePipeline(project)
     pipeline.apply_removals({})
-    pipeline.apply_additions({}, {})
+    pipeline.apply_additions({})
     pipeline.apply_floors({})
 
     assert (lib / "pyproject.toml").read_text() == before
     assert pipeline.written == []
+
+
+def test_decorator_gap_alone_is_not_drift(project: Path) -> None:
+    """It is repaired unconditionally, so it can never be a state to resolve.
+
+    Refusing to publish over something the tool always fixes would be asking a
+    question with one answer.
+    """
+    with patch.object(
+        steps_detect,
+        "detect_share_drift",
+        side_effect=lambda lib_dir: DepDrift(lib_dir=lib_dir, decorator_missing=["haybale_studio"]),
+    ):
+        report = SharePipeline(project).check_drift()
+
+    assert report.needs_decision is False
+    # Still reported — the author is told, just not asked.
+    assert len(report.findings_only) == 2
+
+
+def test_decorator_registrations_are_applied_in_union_mode(project: Path) -> None:
+    """Existing entries survive: a name added by hand for a dynamic import
+    would otherwise be dropped by a tool that cannot see that import.
+
+    Note ``merge_decorator_list_field`` normalizes separators, so the kept
+    entry may come back hyphenated — the registration is what must survive,
+    not its spelling.
+    """
+    lib = project / "barn" / "haybale-alpha"
+    init = lib / "haybale_alpha" / "__init__.py"
+
+    pipeline = SharePipeline(project)
+    pipeline.apply_decorator_registrations({lib: ["haybale_studio"]})
+
+    source = init.read_text()
+    assert "haybale_studio" in source
+    assert "haybale_core" in source or "haybale-core" in source
+    assert init in pipeline.written
+
+
+def test_decorator_registrations_never_touch_pyproject(project: Path) -> None:
+    """Separate carriers, separate writes — this one only edits __init__.py."""
+    lib = project / "barn" / "haybale-alpha"
+    before = (lib / "pyproject.toml").read_text()
+
+    pipeline = SharePipeline(project)
+    pipeline.apply_decorator_registrations({lib: ["haybale_studio"]})
+
+    assert (lib / "pyproject.toml").read_text() == before
+    assert [p.name for p in pipeline.written] == ["__init__.py"]
 
 
 def test_acknowledge_undeclared_records_the_choice(project: Path) -> None:
@@ -204,7 +254,7 @@ def test_written_set_never_duplicates(project: Path) -> None:
     pipeline = SharePipeline(project)
 
     pipeline.apply_framework(">=0.0.38")
-    pipeline.apply_additions({lib: ["numpy>=2.0"]}, {})
+    pipeline.apply_additions({lib: ["numpy>=2.0"]})
 
     assert pipeline.written.count(lib / "pyproject.toml") == 1
 
@@ -236,7 +286,7 @@ def test_writes_preserve_layout_and_entry_comments(project: Path) -> None:
 
     pipeline = SharePipeline(project)
     pipeline.apply_framework(">=0.0.38")
-    pipeline.apply_additions({lib: ["numpy>=2.0"]}, {})
+    pipeline.apply_additions({lib: ["numpy>=2.0"]})
     pipeline.apply_removals({lib: ["nicegui"]})
 
     text = (lib / "pyproject.toml").read_text()
@@ -254,6 +304,6 @@ def test_an_inline_array_is_left_inline(project: Path) -> None:
         '[project]\nname = "haybale-alpha"\nversion = "0.1.0"\ndependencies = ["toml"]\n'
     )
 
-    SharePipeline(project).apply_additions({lib: ["numpy>=2.0"]}, {})
+    SharePipeline(project).apply_additions({lib: ["numpy>=2.0"]})
 
     assert 'dependencies = ["toml", "numpy>=2.0"]' in (lib / "pyproject.toml").read_text()

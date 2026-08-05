@@ -101,6 +101,23 @@ class ShareWizard(StepFlow):
         except _meta.PackageNotFoundError:
             return ""
 
+    @property
+    def decorator_registrations(self) -> dict[Path, list[str]]:
+        """Per-library ``@library(dependencies)`` entries the wizard adds itself.
+
+        Not a decision, so not a screen: every name here is a registered haywire
+        library the source demonstrably imports. Surfaced on Findings and again
+        on Confirm so the author sees the edit, but never asked about.
+        """
+        report = self.drift_report
+        if report is None:
+            return {}
+        return {
+            drift.lib_dir: list(drift.decorator_missing)
+            for drift in report.libraries
+            if drift.decorator_missing
+        }
+
     def dependency_writes(self) -> dict[Path, list[str]]:
         """Each touched library's current ``[project] dependencies``, from disk.
 
@@ -217,6 +234,11 @@ class ShareWizard(StepFlow):
         the current declaration" computed from a value another step had already
         rewritten, and the recommended option silently raised the floor.
 
+        Also applies the ``@library(dependencies)`` registrations, which need no
+        author input — see ``apply_decorator_registrations``. Done here, at the
+        first writing step, so it lands exactly once no matter which of the
+        later screens the author interacts with.
+
         An invalid specifier raises InvalidSpecifierError (a ShareError), which
         keeps the user on this step with the message inline — same retry-in-place
         posture as every other step.
@@ -224,6 +246,10 @@ class ShareWizard(StepFlow):
         self.retry()
         try:
             self.pipeline.apply_framework(specifier)
+            if self.decorator_registrations:
+                await asyncio.to_thread(
+                    self.pipeline.apply_decorator_registrations, self.decorator_registrations
+                )
         except ShareError as exc:
             self.fail(exc)
             return
@@ -247,7 +273,6 @@ class ShareWizard(StepFlow):
     async def advance_from_undeclared(
         self,
         pyproject_entries: dict[Path, list[str]],
-        decorator_entries: dict[Path, list[str]],
         *,
         skipped: bool = False,
     ) -> None:
@@ -259,8 +284,8 @@ class ShareWizard(StepFlow):
         """
         self.retry()
         try:
-            if pyproject_entries or decorator_entries:
-                await asyncio.to_thread(self.pipeline.apply_additions, pyproject_entries, decorator_entries)
+            if pyproject_entries:
+                await asyncio.to_thread(self.pipeline.apply_additions, pyproject_entries)
             if skipped:
                 self.pipeline.acknowledge_undeclared()
         except ShareError as exc:

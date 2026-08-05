@@ -63,10 +63,11 @@ DETECT_SECTIONS = {
         "--hw-danger",
     ),
     "decorator_missing": (
-        "Undeclared in @library(dependencies)",
-        "These are missing from the decorator's list, which drives hot-reload "
-        "scope tracking and the marketplace's enable/disable gating. The library "
-        "itself still works without them.",
+        "Missing @library(dependencies) registrations",
+        "Imported haywire libraries the decorator does not list. Not imports "
+        "that fail — the list drives hot-reload scope tracking and the "
+        "marketplace's enable/disable gating. The wizard adds these for you; "
+        "there is nothing to decide.",
         "--hw-warning",
     ),
     "unused_declarations": (

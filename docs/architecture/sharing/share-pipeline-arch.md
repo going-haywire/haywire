@@ -41,7 +41,7 @@ The wizard renders **six** screens over the two dependency modules, because the 
 | Wizard screen | Backed by |
 |---|---|
 | Detect | `detect.py` |
-| Framework requirement | `dependencies.apply_framework()` |
+| Framework requirement | `dependencies.apply_framework()` + `apply_decorator_registrations()` |
 | Unused declarations | `dependencies.apply_removals()` |
 | Undeclared imports | `dependencies.apply_additions()` |
 | Version floors | `dependencies.apply_floors()` |
@@ -73,8 +73,8 @@ Reporting rather than raising also matters for the wizard's first panel: the men
 
 The findings split by consequence, not by category:
 
-- **`drifted`** — the library has an **undeclared import** (`pyproject_missing` or `decorator_missing`). This is the only state that breaks a consumer's install, so it is the only one `DepDrift.has_drift` and `DriftReport.needs_decision` count.
-- **`findings_only`** — something to report, nothing broken: **unused declarations** (declared, never imported), **version floor lag** (a declared floor below the installed version), and unresolved imports (usually dynamic).
+- **`drifted`** — the library has an **undeclared import** (`pyproject_missing`): the source imports a distribution the published manifest omits. This is the only state that breaks a consumer's install, so it is the only one `DepDrift.has_drift` and `DriftReport.needs_decision` count.
+- **`findings_only`** — something to report, nothing to refuse over: **decorator registrations** (repaired automatically, see §2.3), **unused declarations** (declared, never imported), **version floor lag** (a declared floor below the installed version), and unresolved imports (usually dynamic).
 
 Version floor lag is deliberately *not* drift. A floor states the oldest version that still works, which requires resolving and testing candidate versions — static scanning cannot reach it, so "installed is newer" only means time passed. Raising it automatically would narrow consumer compatibility based on the author's dev-machine state, which is exactly what the codebase already refuses to do for third-party deps.
 
@@ -86,7 +86,8 @@ Every write to a library's `[project] dependencies` lives in `steps/dependencies
 
 - `apply_framework(specifier)` — the `haywire-core` entry, and nothing else. The one authored floor in the flow.
 - `apply_removals({lib: [dist, …]})` — drops unused declarations the author ticked.
-- `apply_additions({lib: [entry, …]}, {lib: [name, …]})` — declares undeclared imports with the author's chosen pins. Skips distributions already declared: an addition never restates an existing floor.
+- `apply_additions({lib: [entry, …]})` — declares undeclared imports with the author's chosen pins. Skips distributions already declared: an addition never restates an existing floor.
+- `apply_decorator_registrations({lib: [name, …]})` — adds imported haywire libraries to `@library(dependencies=[...])`. **Applied without asking**, at the framework step so it lands exactly once. There is nothing to decide: `detect_deps` emits a name here only when the source imports it *and* it resolves to an installed registered library, so every entry is provably true, carries no version specifier, and narrows nothing for consumers. It is *reported* on the Findings and Confirm screens rather than done silently, because it edits a hand-authored `__init__.py` rather than a manifest.
 - `apply_floors({lib: [entry, …]})` — rewrites only the floors the author actively changed.
 
 An empty mapping writes nothing, so "keep them" is a real answer on every screen.
@@ -135,7 +136,7 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 |---|---|---|
 | 1 | `check_preconditions()` / `require_preconditions()` | — (nothing to apply; failures are fixed outside the pipeline) |
 | 2 | `check_drift()` | — (Detect is pure) |
-| 3 | `plan_framework()` | `apply_framework()`, `apply_removals()`, `apply_additions()`, `apply_floors()`, `acknowledge_undeclared()` |
+| 3 | `plan_framework()` | `apply_framework()`, `apply_decorator_registrations()`, `apply_removals()`, `apply_additions()`, `apply_floors()`, `acknowledge_undeclared()` |
 | 4 | `plan_version()`, `check_tag_available()` | `apply_bump()` |
 | 5 | `docs_command()` | `apply_docs()` |
 | 6 | `plan_commit()`, `barn_dirty_files()` | `apply_marketstall()`, `apply_commit()` |
@@ -143,7 +144,7 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 
 This split is what lets the wizard show a preview before committing to an action (the Detect report before any dependency write, the Confirm screen before the version bump, commit file list before committing, dry-run push before the real push) while the CLI's `--yes` mode drives the exact same methods without ever rendering the intermediate state.
 
-Step 3's applies take **mappings of what the author chose**, not a mode flag. An empty mapping writes nothing, which is what makes "keep them" a real answer on every screen rather than a branch the caller has to remember to skip.
+Step 3's applies take **mappings of what the author chose**, not a mode flag. An empty mapping writes nothing, which is what makes "keep them" a real answer on every screen rather than a branch the caller has to remember to skip. `apply_decorator_registrations()` is the exception that proves it: nothing about it is chosen, so it has no screen — it runs alongside `apply_framework()` and is reported afterwards.
 
 **A prior, now-removed layer once sat on top of this split**: a standalone read-only `plan()` method returning a `SharePlan`, backing a `haywire share --check` CLI mode that reported staleness without publishing. That layer was deleted by the CLI Surface Simplification plan — `--check`'s own preconditions (no detached HEAD, must be on the default branch) made it fail on every PR checkout by construction, since a PR checkout is always one or the other. It has no replacement inside `SharePipeline`; CI-facing drift detection now lives entirely in the separate `haywire deps check` command (§6), which never touches `SharePipeline` at all. The per-step plan/apply split described in the table above is unaffected by that removal — it was never what `plan()`/`--check` was built from.
 
