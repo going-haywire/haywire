@@ -9,61 +9,43 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.ui.modals import restart_affordance
-from haywire_studio.packaging.share.pipeline import PreconditionFailure
 
 from haywire.ui.components.stepper import advance as _advance
 from haywire.ui.components.stepper import busy_advance as _busy_advance
 from ._state import ShareWizard
 from .copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
+from .remedy_modal import show_remedy_modal, show_rollback_modal
 
 
-def _render_fix(wizard: ShareWizard, rerender: Callable[[], None], failure: PreconditionFailure) -> None:
-    """One failure's own repair button, inline in its message/remedy row.
+def _drain_pending_modal(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Open whichever modal the last failure queued, exactly once.
 
-    ``add_origin`` is the only fix that takes user input — its URL field is
-    the wizard's one and only form, kept inline here rather than in a dialog.
-    The button stays disabled until that field is non-empty; every other fix
-    needs no input and its button is live immediately.
+    Called first thing by every panel: a step's failure keeps the user on
+    that step, so the panel that re-renders after fail() is the one that owes
+    the modal. take_pending_modal() is one-shot, so redraws don't restack it
+    — see .insights/feedback_nicegui_redraw_deletes_handler_slot.md for why
+    the modal can't just be opened from the shared error banner instead.
     """
-    fix_id = failure.fix_id
-    assert fix_id is not None  # guarded by the caller
+    pending = wizard.take_pending_modal()
+    if pending is None:
+        return
 
-    with ui.row().classes("w-full items-center gap-2 mt-1"):
-        url_input: ui.input | None = None
-        if fix_id == "add_origin":
-            url_input = hui.input_field(placeholder="git remote URL").classes("flex-1")
+    def _restart() -> None:
+        wizard.retry()
+        rerender()
 
-        fix_button = (
-            ui.button(failure.fix_label or "Fix").props("flat dense").style("color: var(--hw-positive);")
-        )
-
-        def _kwargs() -> dict[str, str]:
-            if url_input is not None:
-                return {"url": (url_input.value or "").strip()}
-            return {"lib_dir": failure.lib_dir} if failure.lib_dir is not None else {}
-
-        fix_button.on_click(
-            lambda: _busy_advance(
-                rerender,
-                fix_button,
-                lambda: wizard.advance_from_preconditions_fix(fix_id, **_kwargs()),
-            )
-        )
-
-        if url_input is not None:
-            fix_button.set_enabled(False)
-            bound_input = url_input
-
-            def _on_url_change() -> None:
-                fix_button.set_enabled(bool((bound_input.value or "").strip()))
-
-            bound_input.on_value_change(_on_url_change)
+    if isinstance(pending, str):
+        show_rollback_modal(pending, on_close=_restart)
+    else:
+        show_remedy_modal(wizard, pending, on_restart=_restart)
 
 
 def _panel_preconditions(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    _drain_pending_modal(wizard, rerender)
+
     ui.label(
-        "Checks that git is available, that barn/ holds at least one library, "
-        "and that origin is set and reachable."
+        "Checks that your working tree is clean, that git is available, that barn/ "
+        "holds at least one library, and that origin is set, recognized, and reachable."
     ).classes("text-xs hw-text-dim")
     with ui.row().classes("w-full justify-end gap-2"):
         check = ui.button("Check").props("flat dense").style("color: var(--hw-positive);")

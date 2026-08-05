@@ -17,11 +17,12 @@ class ShareError(RuntimeError):
 
 
 class PreconditionsError(ShareError):
-    """One or more step-1 preconditions failed.
+    """The (single) step-1 precondition failure. See PreconditionFailure.kind
+    for the two ways the wizard's remedy modal presents it.
 
-    Carries EVERY failure rather than the first: a user missing both a remote
-    and a barn library should see both in one pass, not discover the second
-    after fixing the first.
+    ``failures`` stays list-typed (kept as ``PreconditionsReport.failures`` is)
+    for callers not yet migrated; ``check()`` never populates more than one
+    entry since it stops at the first failure it finds.
     """
 
     def __init__(self, failures: list[PreconditionFailure]) -> None:
@@ -33,6 +34,10 @@ class PreconditionsError(ShareError):
                 for remedy_line in failure.remedy.splitlines():
                     lines.append(f"      {remedy_line}")
         super().__init__("\n".join(lines))
+
+    @property
+    def failure(self) -> PreconditionFailure | None:
+        return self.failures[0] if self.failures else None
 
 
 class ManifestError(ShareError):

@@ -1,17 +1,16 @@
 """Popup entry point and step→panel wiring for the Share Project wizard.
 
 The progress bar, error banner and warning rows are the shared stepper
-chrome; what stays here is the share-specific part — the panel map and the
-structured ``PreconditionFailure`` rows that replace the generic one-line
-error message.
+chrome; what stays here is the share-specific part — just the panel map.
+Remedy modals (for step-1 failures) and the rollback modal (for mid-pipeline
+failures) are opened from the panels themselves, not from this shell — see
+``remedy_modal.py`` and ``panels.py::_drain_pending_modal``.
 """
 
 from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
-
-from nicegui import ui
 
 from haywire.ui.components.stepper import Panel, show_step_flow
 from haywire_studio.packaging.share.pipeline import SharePipeline
@@ -31,7 +30,6 @@ from .panels import (
     _panel_preconditions,
     _panel_push,
     _panel_version,
-    _render_fix,
 )
 
 if TYPE_CHECKING:
@@ -82,27 +80,5 @@ def show_share_wizard(
         title="Share Project",
         width="620px",
         on_done=on_done,
-        error_detail=_render_precondition_failures,
     )
     return wizard
-
-
-def _render_precondition_failures(flow: ShareWizard, rerender: Callable[[], None]) -> bool:
-    """Render each structured failure as its own message/remedy row.
-
-    A multi-line remedy (install commands, etc.) stays readable this way
-    instead of collapsing into ``flow.error``'s one line. Returns False when
-    the wizard has no structured failures, which leaves the shared chrome to
-    render the plain message.
-    """
-    if not flow.precondition_failures:
-        return False
-    with ui.column().classes("gap-2 w-full"):
-        for failure in flow.precondition_failures:
-            with ui.column().classes("gap-0.5"):
-                ui.label(failure.message).classes("text-xs hw-text-danger whitespace-pre-line")
-                if failure.remedy:
-                    ui.label(failure.remedy).classes("text-xs hw-text-dim font-mono whitespace-pre-line")
-                if failure.fix_id:
-                    _render_fix(flow, rerender, failure)
-    return True

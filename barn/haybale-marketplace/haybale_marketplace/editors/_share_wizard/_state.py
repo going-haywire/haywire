@@ -68,7 +68,16 @@ class ShareWizard(StepFlow):
         # a bump (Option B). None when the wizard is driven without a running
         # studio (e.g. the CLI) — the bump is then file-only, same as before.
         self.manager = manager
-        self.precondition_failures: list[PreconditionFailure] | None = None
+        self.precondition_failure: PreconditionFailure | None = None
+        # One-shot: set by fail(), drained by the current panel on its next
+        # render (see _drain_pending_modal in panels.py). Either a
+        # PreconditionFailure (step 1 -> remedy modal) or the plain error
+        # string of a rolled-back mid-pipeline failure (-> rollback modal,
+        # Task 7). Kept separate from `precondition_failure` (which persists
+        # so the open modal can read it) precisely so a redraw does not
+        # reopen the dialog — see
+        # .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
+        self.pending_modal: PreconditionFailure | str | None = None
 
         self.preconditions_report: PreconditionsReport | None = None
         self.drift_report: DriftReport | None = None
@@ -146,18 +155,32 @@ class ShareWizard(StepFlow):
         Warnings are kept: a stale uv.lock is still stale after a retry.
         """
         super().retry()
-        self.precondition_failures = None
+        self.precondition_failure = None
+        self.pending_modal = None
 
     def fail(self, exc: BaseException) -> None:
         """Record a failure without advancing. Keeps the user on the step.
 
-        ``PreconditionsError`` carries structured ``PreconditionFailure``
-        objects — stashed separately so ``_render_error`` can render each as
-        its own message/remedy row instead of falling back to the single
-        collapsed ``error`` string every other ``ShareError`` subtype gets.
+        ``PreconditionsError`` carries a single structured ``PreconditionFailure``
+        — stashed separately so the wizard can open a remedy modal instead of
+        the shared chrome's generic one-line error banner. ``pending_modal`` is
+        the one-shot request the panel drains on its next render; see
+        :meth:`take_pending_modal`.
         """
         super().fail(exc)
-        self.precondition_failures = exc.failures if isinstance(exc, PreconditionsError) else None
+        self.precondition_failure = exc.failure if isinstance(exc, PreconditionsError) else None
+        if self.precondition_failure is not None:
+            self.pending_modal = self.precondition_failure
+
+    def take_pending_modal(self) -> PreconditionFailure | str | None:
+        """Return the queued modal request, clearing it. One-shot by design.
+
+        Pure state, no NiceGUI: the panel calls this during its own render and
+        opens the dialog itself, keeping this class testable without a browser
+        (the split this module's docstring describes).
+        """
+        pending, self.pending_modal = self.pending_modal, None
+        return pending
 
     async def advance_from_preconditions(self) -> None:
         """Report only on the project's health — the drift scan is step 2.
@@ -175,39 +198,6 @@ class ShareWizard(StepFlow):
         except ShareError as exc:
             self.fail(exc)
             return
-        self.step = "checked"
-
-    async def advance_from_preconditions_fix(self, fix_id: str, **kwargs: str) -> None:
-        """Apply one precondition repair, then re-check from scratch.
-
-        This is the side step off "preconditions": a failure's own fix
-        button, not the main Check button. The repair itself never proves the
-        project is now shareable — only a full re-check does — so this always
-        re-runs :meth:`SharePipeline.check_preconditions` afterwards and
-        replaces ``precondition_failures`` with whatever it finds, same as a
-        fresh Check click would. Success lands on "checked", exactly where
-        the Check button lands; it never reaches past that on its own — the
-        user still presses Scan.
-
-        ``apply_precondition_fix`` can itself raise ``PreconditionsError``
-        (e.g. add_origin finding a pre-existing remote) — a single
-        synthesized failure from a wholly different call path than step 1's
-        batch report, but still a ``ShareError``, so ``fail`` renders it the
-        same way: one failure, one message/remedy row, no fix_id on it.
-        """
-        self.retry()
-        try:
-            await asyncio.to_thread(self.pipeline.apply_precondition_fix, fix_id, **kwargs)
-            report = await asyncio.to_thread(self.pipeline.check_preconditions)
-        except ShareError as exc:
-            self.fail(exc)
-            return
-        if not report.ok:
-            self.preconditions_report = None
-            self.precondition_failures = report.failures
-            self.error = "Cannot share this project yet."
-            return
-        self.preconditions_report = report
         self.step = "checked"
 
     async def advance_from_checked(self) -> None:

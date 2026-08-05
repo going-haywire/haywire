@@ -129,10 +129,50 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
     assert wizard.step == "preconditions"
     assert wizard.error is not None
     assert "barn" in wizard.error
-    assert wizard.precondition_failures
+    assert wizard.precondition_failure is not None
     from haywire_studio.packaging.share.pipeline import PreconditionFailure
 
-    assert all(isinstance(f, PreconditionFailure) for f in wizard.precondition_failures)
+    assert isinstance(wizard.precondition_failure, PreconditionFailure)
+
+
+@pytest.mark.anyio
+async def test_precondition_failure_queues_an_inform_modal(tmp_path: Path) -> None:
+    """A failure the wizard cannot repair queues a modal request carrying the
+    failure itself. The panel drains it on next render (rendering is smoke-
+    tested only in this file — see the module docstring)."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.packaging.share.pipeline import SharePipeline
+
+    repo = tmp_path / "broken"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+
+    wizard = ShareWizard(pipeline=SharePipeline(repo), popup=None)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.step == "preconditions"
+    assert wizard.precondition_failure is not None
+    assert wizard.precondition_failure.kind == "inform"
+    assert wizard.pending_modal is not None
+
+
+@pytest.mark.anyio
+async def test_draining_the_pending_modal_clears_it(tmp_path: Path) -> None:
+    """One-shot: the panel drains on render, so a redraw cannot reopen the
+    dialog (the failure itself stays on the wizard for the modal to read)."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.packaging.share.pipeline import SharePipeline
+
+    repo = tmp_path / "broken2"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+
+    wizard = ShareWizard(pipeline=SharePipeline(repo), popup=None)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.take_pending_modal() is not None
+    assert wizard.take_pending_modal() is None
+    assert wizard.pending_modal is None
 
 
 @pytest.mark.anyio
@@ -707,36 +747,45 @@ def noremote_project(tmp_path: Path) -> Path:
 
 
 @pytest.mark.anyio
-async def test_strip_os_fix_reaches_checked_with_no_error(os_project: Path) -> None:
-    """The wizard's whole point: take fix_id/lib_dir straight off the failure
-    object (no string-parsing) and land on the same step a clean Check would."""
+async def test_strip_os_fix_then_recheck_reaches_checked(os_project: Path) -> None:
+    """The act-modal's contract, minus the dialog: take fix_id/lib_dir straight
+    off the failure (no string-parsing), apply it, then Restart Wizard —
+    which is retry() + advance_from_preconditions() — lands on 'checked'."""
     wizard = _wizard(os_project)
     await wizard.advance_from_preconditions()
 
-    assert wizard.step == "preconditions"
-    assert wizard.precondition_failures
-    matches = [f for f in wizard.precondition_failures if f.fix_id == "strip_os"]
-    assert matches, wizard.precondition_failures
-    failure = matches[0]
+    failure = wizard.precondition_failure
+    assert failure is not None
+    assert failure.fix_id == "strip_os"
+    assert failure.kind == "act"
     assert failure.lib_dir is not None
 
-    await wizard.advance_from_preconditions_fix(failure.fix_id, lib_dir=failure.lib_dir)
+    wizard.pipeline.apply_precondition_fix("strip_os", lib_dir=failure.lib_dir)
+    subprocess.run(["git", "add", "-A"], cwd=os_project, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "strip invalid os"], cwd=os_project, check=True, capture_output=True
+    )
+
+    wizard.retry()
+    await wizard.advance_from_preconditions()
 
     assert wizard.step == "checked"
     assert wizard.error is None
-    assert wizard.precondition_failures is None
+    assert wizard.precondition_failure is None
 
 
 @pytest.mark.anyio
-async def test_add_origin_fix_against_reachable_remote_reaches_checked(noremote_project: Path) -> None:
-    """A good URL (pointed at a real bare repo) clears the missing-origin
-    failure AND passes reachability, landing on 'checked'."""
+async def test_add_origin_fix_then_recheck_against_reachable_remote_reaches_checked(
+    noremote_project: Path,
+) -> None:
+    """Same shape with add_origin: a good URL (a real bare repo) clears the
+    missing-origin failure AND passes reachability, landing on 'checked'."""
     wizard = _wizard(noremote_project)
     await wizard.advance_from_preconditions()
 
-    assert wizard.step == "preconditions"
-    matches = [f for f in (wizard.precondition_failures or []) if f.fix_id == "add_origin"]
-    assert matches, wizard.precondition_failures
+    failure = wizard.precondition_failure
+    assert failure is not None
+    assert failure.fix_id == "add_origin"
 
     other_remote = noremote_project.parent / "other_remote.git"
     other_remote.mkdir()
@@ -748,7 +797,10 @@ async def test_add_origin_fix_against_reachable_remote_reaches_checked(noremote_
         capture_output=True,
     )
 
-    await wizard.advance_from_preconditions_fix("add_origin", url=str(other_remote))
+    wizard.pipeline.apply_precondition_fix("add_origin", url=str(other_remote))
+
+    wizard.retry()
+    await wizard.advance_from_preconditions()
 
     assert wizard.step == "checked"
     assert wizard.error is None
@@ -758,23 +810,33 @@ async def test_add_origin_fix_against_reachable_remote_reaches_checked(noremote_
 async def test_add_origin_fix_with_bad_url_swaps_in_the_reachability_failure(
     noremote_project: Path,
 ) -> None:
-    """A bad URL: the reachability failure replaces the missing-remote one,
-    with its own remedy. The wizard stays on 'preconditions', not 'checked'."""
+    """A bad-but-recognized-host URL: after the fix + re-check, the failure is
+    now the reachability one (kind == 'inform'), not the missing-origin one.
+
+    The host must be one `resolve_host()` recognizes (github.com here) —
+    otherwise the new host-recognition probe (Task 4) would catch it first
+    and this would exercise a different failure than the one under test.
+    """
     wizard = _wizard(noremote_project)
     await wizard.advance_from_preconditions()
-    assert any(f.fix_id == "add_origin" for f in wizard.precondition_failures or [])
+    assert wizard.precondition_failure is not None
+    assert wizard.precondition_failure.fix_id == "add_origin"
 
-    await wizard.advance_from_preconditions_fix(
-        "add_origin", url="https://example.invalid/nowhere/nothing.git"
+    wizard.pipeline.apply_precondition_fix(
+        "add_origin", url="https://github.com/haywire-nonexistent-org/nowhere.git"
     )
+
+    wizard.retry()
+    await wizard.advance_from_preconditions()
 
     assert wizard.step == "preconditions"
     assert wizard.error is not None
-    failures = wizard.precondition_failures or []
-    assert not any("No 'origin' remote is configured" in f.message for f in failures)
-    assert any("Cannot reach origin" in f.message for f in failures)
-    reach_failure = next(f for f in failures if "Cannot reach origin" in f.message)
-    assert reach_failure.remedy
+    failure = wizard.precondition_failure
+    assert failure is not None
+    assert failure.kind == "inform"
+    assert "No 'origin' remote is configured" not in failure.message
+    assert "Cannot reach origin" in failure.message
+    assert failure.remedy
 
 
 @pytest.mark.anyio
@@ -783,38 +845,55 @@ async def test_fix_success_never_advances_past_checked(os_project: Path) -> None
     normal successful Check would, never at 'drift' or beyond."""
     wizard = _wizard(os_project)
     await wizard.advance_from_preconditions()
-    failure = next(f for f in wizard.precondition_failures if f.fix_id == "strip_os")
+    failure = wizard.precondition_failure
+    assert failure is not None
+    assert failure.fix_id == "strip_os"
 
-    await wizard.advance_from_preconditions_fix(failure.fix_id, lib_dir=failure.lib_dir)
+    wizard.pipeline.apply_precondition_fix("strip_os", lib_dir=failure.lib_dir)
+    subprocess.run(["git", "add", "-A"], cwd=os_project, check=True, capture_output=True)
+    subprocess.run(
+        ["git", "commit", "-m", "strip invalid os"], cwd=os_project, check=True, capture_output=True
+    )
+
+    wizard.retry()
+    await wizard.advance_from_preconditions()
 
     assert wizard.step == "checked"
     assert wizard.drift_report is None
 
 
-@pytest.mark.anyio
-async def test_failing_fix_is_caught_and_rendered_without_crashing(project: Path) -> None:
+def test_failing_fix_raises_preconditions_error(project: Path) -> None:
     """add_origin against a project that already has an origin raises
     PreconditionsError from a completely different call path than step 1's
-    batch check — it must still land in the existing _fail()/error rendering
-    without crashing, and the wizard must stay on 'preconditions'."""
+    batch check. The act-modal (remedy_modal.py) catches this at the call
+    site and shows it inline in the dialog — there is no wizard method to
+    "render without crashing" any more, so this test asserts the raise
+    directly rather than driving it through the (now-deleted)
+    advance_from_preconditions_fix."""
+    from haywire_studio.packaging.share.pipeline import PreconditionsError
+
     wizard = _wizard(project)
-    await wizard.advance_from_preconditions()
-    assert wizard.step == "checked"  # `project` fixture already has an origin
 
-    # Force the wizard back to the preconditions step to exercise the fix
-    # path the way the UI would (the button only ever appears there).
-    wizard.step = "preconditions"
+    with pytest.raises(PreconditionsError, match="already exists"):
+        wizard.pipeline.apply_precondition_fix("add_origin", url="git@example.com:foo/bar.git")
 
-    await wizard.advance_from_preconditions_fix("add_origin", url="git@example.com:foo/bar.git")
 
-    assert wizard.step == "preconditions"
-    assert wizard.error is not None
-    assert "already exists" in wizard.error
-    # This is a single synthesized failure, not a step-1 batch report — the
-    # existing _fail() still renders it as one failure row without crashing.
-    assert wizard.precondition_failures is not None
-    assert len(wizard.precondition_failures) == 1
-    assert wizard.precondition_failures[0].fix_id is None
+def test_append_host_config_writes_a_hosts_entry(tmp_path: Path, monkeypatch) -> None:
+    """The add_host_config fix writes a [[hosts]] entry the resolver then honors.
+
+    Asserted through load_self_hosted_hosts() rather than by string-matching
+    the file: what matters is that resolve_host() will now recognize the host,
+    not the exact bytes written.
+    """
+    from haywire.core.marketstall.host_providers import config as host_config
+    from haybale_marketplace.editors._share_wizard.remedy_modal import append_host_config
+
+    cfg = tmp_path / ".haywire" / "config.toml"
+    monkeypatch.setattr(host_config, "_user_config_path", lambda: cfg)
+
+    append_host_config("git.example-corp.internal")
+
+    assert host_config.load_self_hosted_hosts(cfg) == {"git.example-corp.internal": "gitlab"}
 
 
 def test_every_pin_choice_is_explained() -> None:
