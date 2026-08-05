@@ -42,7 +42,7 @@ def _parse_haybale_entry(raw: dict) -> Haybale:
     return Haybale(
         name=name,
         version=version,
-        requires_haywire=raw.get("requires_haywire", ""),
+        require=raw.get("require", ""),
         label=raw.get("label", ""),
         description=raw.get("description", ""),
         author=raw.get("author", ""),

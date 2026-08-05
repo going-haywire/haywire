@@ -167,7 +167,7 @@ def mark_stale_against_previous(
             Haybale(
                 name=prev.name,
                 version=prev.version,
-                requires_haywire=prev.requires_haywire,
+                require=prev.require,
                 label=prev.label,
                 description=prev.description,
                 author=prev.author,

@@ -86,6 +86,41 @@ class ShareWizard(StepFlow):
         self.hot_swap_needs_restart: bool = False
         self.hot_swapped_libraries: list[str] = []
 
+    # ── read-only helpers for the panels ─────────────────────────────────────
+
+    def installed_version(self, dist_name: str) -> str:
+        """The installed version of *dist_name*, or "" when it cannot be read.
+
+        Feeds the "floor at the installed version" pin option. Empty means the
+        option degrades to a bare declaration rather than inventing a floor.
+        """
+        import importlib.metadata as _meta
+
+        try:
+            return _meta.version(dist_name)
+        except _meta.PackageNotFoundError:
+            return ""
+
+    def dependency_writes(self) -> dict[Path, list[str]]:
+        """Each touched library's current ``[project] dependencies``, from disk.
+
+        Read back rather than reconstructed from the choices: the confirm screen
+        exists to show what the writes actually produced, and a preview built
+        from intent would agree with itself even when the write disagreed.
+        """
+        from haywire.core.library.dep_edit import read_dependencies
+
+        out: dict[Path, list[str]] = {}
+        for path in self.pipeline.written:
+            if path.name != "pyproject.toml":
+                continue
+            lib_dir = path.parent
+            try:
+                out[lib_dir] = read_dependencies(lib_dir)
+            except (OSError, ValueError):
+                continue
+        return out
+
     # ── state transitions ────────────────────────────────────────────────────
 
     def retry(self) -> None:
@@ -159,39 +194,28 @@ class ShareWizard(StepFlow):
         self.step = "checked"
 
     async def advance_from_checked(self) -> None:
-        """Run the drift scan. Costs ~0.5s per barn library, so: a thread."""
+        """Run the detect scan. Costs ~0.5s per barn library, so: a thread."""
         self.retry()
         try:
             self.drift_report = await asyncio.to_thread(self.pipeline.check_drift)
-        except ShareError as exc:
-            self.fail(exc)
-            return
-        self.step = "drift"
-
-    async def advance_from_drift(self, choice: str) -> None:
-        """*choice* is ``"union"``, ``"replace"``, or ``"skip"``.
-
-        Replace can destructively remove declared deps, so it is a real
-        decision the caller must have already confirmed — never an auto-fix.
-        """
-        self.retry()
-        report = self.drift_report
-        try:
-            if report is not None and report.needs_decision:
-                if choice == "union":
-                    await asyncio.to_thread(self.pipeline.apply_drift_union, report)
-                elif choice == "replace":
-                    await asyncio.to_thread(self.pipeline.apply_drift_replace, report)
-                else:
-                    self.pipeline.acknowledge_drift()
             self.framework_plan = await asyncio.to_thread(self.pipeline.plan_framework)
         except ShareError as exc:
             self.fail(exc)
             return
+        self.step = "detect"
+
+    async def advance_from_detect(self) -> None:
+        """Detect writes nothing, so there is nothing to apply — just move on."""
+        self.retry()
         self.step = "framework"
 
     async def advance_from_framework(self, specifier: str) -> None:
-        """Write the one project-wide framework requirement, then plan the bump.
+        """Write the one authored floor: ``haywire-core``, everywhere.
+
+        Runs BEFORE the other dependency screens so ``plan_framework()`` reads
+        the author's actual prior declaration. When this ran after them, "keep
+        the current declaration" computed from a value another step had already
+        rewritten, and the recommended option silently raised the floor.
 
         An invalid specifier raises InvalidSpecifierError (a ShareError), which
         keeps the user on this step with the message inline — same retry-in-place
@@ -200,6 +224,69 @@ class ShareWizard(StepFlow):
         self.retry()
         try:
             self.pipeline.apply_framework(specifier)
+        except ShareError as exc:
+            self.fail(exc)
+            return
+        self.step = "unused"
+
+    async def advance_from_unused(self, removals: dict[Path, list[str]]) -> None:
+        """Drop the declarations the author ticked. An empty mapping writes nothing.
+
+        Irreversible here, and a dynamic import is indistinguishable from an
+        unused declaration, so nothing is pre-selected.
+        """
+        self.retry()
+        try:
+            if removals:
+                await asyncio.to_thread(self.pipeline.apply_removals, removals)
+        except ShareError as exc:
+            self.fail(exc)
+            return
+        self.step = "undeclared"
+
+    async def advance_from_undeclared(
+        self,
+        pyproject_entries: dict[Path, list[str]],
+        decorator_entries: dict[Path, list[str]],
+        *,
+        skipped: bool = False,
+    ) -> None:
+        """Declare the imports the author chose to declare, with their chosen pins.
+
+        *skipped* marks that at least one import is being published undeclared —
+        the one dependency state that breaks a consumer's install, and therefore
+        the only one that is recorded rather than silently allowed.
+        """
+        self.retry()
+        try:
+            if pyproject_entries or decorator_entries:
+                await asyncio.to_thread(self.pipeline.apply_additions, pyproject_entries, decorator_entries)
+            if skipped:
+                self.pipeline.acknowledge_undeclared()
+        except ShareError as exc:
+            self.fail(exc)
+            return
+        self.step = "floors"
+
+    async def advance_from_floors(self, floors: dict[Path, list[str]]) -> None:
+        """Rewrite only the floors the author actively changed.
+
+        Every control defaults to the declared specifier, so an untouched screen
+        yields an empty mapping and nothing narrows.
+        """
+        self.retry()
+        try:
+            if floors:
+                await asyncio.to_thread(self.pipeline.apply_floors, floors)
+        except ShareError as exc:
+            self.fail(exc)
+            return
+        self.step = "confirm"
+
+    async def advance_from_confirm(self) -> None:
+        """The dependency writes are done; plan the version bump."""
+        self.retry()
+        try:
             self.version_plan = await asyncio.to_thread(self.pipeline.plan_version)
         except ShareError as exc:
             self.fail(exc)

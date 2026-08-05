@@ -113,7 +113,6 @@ def test_apply_writes_the_floor_into_every_barn_library(tmp_path):
         deps = toml.loads((root / "barn" / lib / "pyproject.toml").read_text())["project"]["dependencies"]
         assert "haywire-core>=0.0.34" in deps
         assert "numpy>=1.0" in deps or lib == "haybale-beta"
-    assert pipeline.requires_haywire == ">=0.0.34"
 
 
 def test_apply_adds_the_dependency_when_undeclared(tmp_path):
@@ -155,38 +154,59 @@ def test_reordered_equivalent_specifiers_are_not_drift(tmp_path):
     assert not specifiers_equal(">=0.0.31", ">=0.0.34")
 
 
-def test_marketstall_entry_carries_the_same_answer_as_the_pyproject_floor(tmp_path, monkeypatch):
-    """One authored answer, two disjoint carriers: the wheel's Requires-Dist
-    floor guards `uv add`, requires_haywire guards the marketplace install."""
+def test_marketstall_entry_is_derived_from_the_pyproject_floor(tmp_path, monkeypatch):
+    """The entry is a PROJECTION of the floor, not a second authored copy.
+
+    Nothing is passed in: _build_entry_for_library reads the library's own
+    pyproject at write time, so the two cannot disagree and a publish cannot
+    stamp a stale or empty requirement.
+    """
     from haywire_studio.packaging.share.marketstall import _build_entry_for_library
 
     root = _project(tmp_path)
-    pipeline = SharePipeline(root)
-    pipeline.apply_framework(">=0.0.34")
+    SharePipeline(root).apply_framework(">=0.0.34")
 
-    entry = cast(
-        dict,
-        _build_entry_for_library(
-            root / "barn" / "haybale-alpha", requires_haywire=cast(str, pipeline.requires_haywire)
-        ),
-    )
+    entry = cast(dict, _build_entry_for_library(root / "barn" / "haybale-alpha"))
 
-    assert entry["requires_haywire"] == ">=0.0.34"
+    assert entry["require"] == "haywire-core>=0.0.34"
     deps = toml.loads((root / "barn" / "haybale-alpha" / "pyproject.toml").read_text())["project"][
         "dependencies"
     ]
     assert "haywire-core>=0.0.34" in deps
 
 
-def test_entry_omits_requires_haywire_when_undeclared(tmp_path):
-    """A standalone write_marketstall() outside the pipeline declares nothing;
-    the key is simply absent rather than an empty string."""
+def test_entry_emits_a_bare_token_when_the_floor_is_absent(tmp_path):
+    """Declared-with-no-floor is a real answer and must survive to the entry."""
     from haywire_studio.packaging.share.marketstall import _build_entry_for_library
 
     root = _project(tmp_path)
-    entry = _build_entry_for_library(root / "barn" / "haybale-alpha")
+    lib = root / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.1.0"\ndependencies = ["haywire-core"]\n'
+    )
 
-    assert "requires_haywire" not in cast(dict, entry)
+    entry = cast(dict, _build_entry_for_library(lib))
+
+    assert entry["require"] == "haywire-core"
+
+
+def test_entry_omits_require_when_core_is_undeclared(tmp_path):
+    """No haywire-core entry at all means no requirement to publish.
+
+    Distinct from the bare-token case above: absent is "nobody answered",
+    which the gate reads as "do not block".
+    """
+    from haywire_studio.packaging.share.marketstall import _build_entry_for_library
+
+    root = _project(tmp_path)
+    lib = root / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.1.0"\ndependencies = ["numpy>=1.0"]\n'
+    )
+
+    entry = cast(dict, _build_entry_for_library(lib))
+
+    assert entry.get("require", "") == ""
 
 
 def test_yes_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):

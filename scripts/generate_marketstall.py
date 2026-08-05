@@ -24,11 +24,12 @@ from __future__ import annotations
 
 import argparse
 import ast
-import re
 import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+
+from haywire.core.marketstall.requirement import haywire_core_requirement
 
 
 @dataclass(frozen=True)
@@ -151,7 +152,11 @@ def build_entry(
     meta = extract_library_metadata(init_py)
 
     sibling_haybale = _filter_haybale_siblings(pyproject_deps)
-    requires_haywire = _haywire_core_specifier(pyproject_deps)
+    # Derived from the library's own floor, never authored beside it — see
+    # haywire.core.marketstall.requirement. The wizard emits this same token
+    # for the libraries it publishes, so both producers agree by construction
+    # rather than by convention.
+    require = haywire_core_requirement(pyproject_deps)
     docs_url = (
         f"https://raw.githubusercontent.com/{_strip_github_prefix(config.source_url)}/"
         f"{config.docs_branch}/{subdirectory}/{module_name}/"
@@ -177,28 +182,11 @@ def build_entry(
     }
     # Omitted rather than emitted empty when undeclared — an absent field means
     # "no requirement", which is exactly how the parser and the gate read it.
-    if requires_haywire:
-        entry["requires_haywire"] = requires_haywire
+    # A bare "haywire-core" is NOT that case: it means the author declared the
+    # dependency with no floor, and it is emitted.
+    if require is not None:
+        entry["require"] = require
     return entry
-
-
-def _haywire_core_specifier(deps: list[str]) -> str:
-    """The ``haywire-core`` version specifier from a list of PEP 508 dep strings.
-
-    In-repo packages never run the share wizard, so nobody authors a
-    ``requires_haywire`` for them. The floor in ``pyproject.toml`` is the same
-    value the wizard writes to its first carrier, so deriving from it
-    reproduces the authored answer rather than inventing a second one.
-
-    Returns "" when haywire-core is absent or pinned by no specifier — both
-    mean "nothing to declare", and the entry omits the field.
-    """
-    for dep in deps:
-        head = dep.split(";", 1)[0].split(" @ ", 1)[0].strip()
-        name = re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0].strip()
-        if name == "haywire-core":
-            return head[len(name) :].strip()
-    return ""
 
 
 def _filter_haybale_siblings(deps: list[str]) -> list[str]:
@@ -229,7 +217,7 @@ _ENTRY_FIELD_ORDER: tuple[str, ...] = (
     "name",
     "label",
     "version",
-    "requires_haywire",
+    "require",
     "description",
     "author",
     "source",

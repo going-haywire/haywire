@@ -15,13 +15,11 @@ checkable without mutation.
 from __future__ import annotations
 
 from .chrome import show_share_wizard
-from .copy import _DRIFT_EXPLANATIONS, _DRIFT_OPTIONS, STEPS
+from .copy import STEPS
 from ._state import ShareWizard
 
 __all__ = [
     "STEPS",
     "ShareWizard",
-    "_DRIFT_EXPLANATIONS",
-    "_DRIFT_OPTIONS",
     "show_share_wizard",
 ]

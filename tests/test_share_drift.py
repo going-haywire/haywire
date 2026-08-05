@@ -11,15 +11,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
-import toml
 
 from haywire.core.library.dep_detect import EntryPointLibrarySource
 from haywire_studio.packaging.share import (
     DepDrift,
     _format_drift_report,
-    apply_drift_fix,
     detect_share_drift,
-    union_pyproject_deps,
 )
 
 # One venv metadata scan for the whole module (see tests/conftest.py).
@@ -234,76 +231,6 @@ def test_format_drift_report_groups_pyproject_decorator_unresolved(tmp_path: Pat
     assert report.index("@library") < report.index("Unresolved")
 
 
-# ──────────────────────────────────────────────────────────────────────────────
-# apply_drift_fix
-# ──────────────────────────────────────────────────────────────────────────────
-
-
-@pytest.mark.unit
-def test_apply_drift_fix_writes_missing_pyproject_deps(tmp_path: Path) -> None:
-    """After apply, the library's pyproject.toml contains the missing deps."""
-    lib = _make_library(
-        tmp_path,
-        pyproject_deps=[],
-        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
-    )
-    drift = detect_share_drift(lib)
-    assert drift.has_drift  # sanity
-
-    apply_drift_fix(drift)
-
-    data = toml.loads((lib / "pyproject.toml").read_text())
-    deps = data["project"]["dependencies"]
-    assert any(d.startswith("haywire-core") for d in deps)
-
-
-@pytest.mark.unit
-def test_apply_drift_fix_preserves_existing_pyproject_deps(tmp_path: Path) -> None:
-    """Existing declarations (even with custom version pins) are preserved
-    on the union — apply only adds, never removes or overwrites."""
-    lib = _make_library(
-        tmp_path,
-        pyproject_deps=["numpy>=1.25"],  # unused but declared
-        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
-    )
-    drift = detect_share_drift(lib)
-    apply_drift_fix(drift)
-
-    data = toml.loads((lib / "pyproject.toml").read_text())
-    deps = data["project"]["dependencies"]
-    assert "numpy>=1.25" in deps
-    assert any(d.startswith("haywire-core") for d in deps)
-
-
-@pytest.mark.unit
-def test_apply_drift_fix_idempotent(tmp_path: Path) -> None:
-    """Running apply twice produces the same pyproject."""
-    lib = _make_library(
-        tmp_path,
-        pyproject_deps=[],
-        init_body_imports="from haywire.core.node.registry import NodeRegistry\n",
-    )
-    apply_drift_fix(detect_share_drift(lib))
-    first = (lib / "pyproject.toml").read_text()
-    apply_drift_fix(detect_share_drift(lib))
-    second = (lib / "pyproject.toml").read_text()
-    assert first == second
-
-
-@pytest.mark.unit
-def test_apply_drift_fix_no_op_when_no_drift(tmp_path: Path) -> None:
-    """apply_drift_fix on a clean DepDrift is a no-op."""
-    lib = _make_library(tmp_path)
-    drift = DepDrift(lib_dir=lib)
-    apply_drift_fix(drift)  # must not raise
-    assert toml.loads((lib / "pyproject.toml").read_text())["project"]["name"] == "haybale-fake"
-
-
-# ──────────────────────────────────────────────────────────────────────────────
-# EntryPointLibrarySource sanity
-# ──────────────────────────────────────────────────────────────────────────────
-
-
 @pytest.mark.unit
 def test_entry_point_source_finds_dev_workspace_libraries() -> None:
     """In the dev venv, EntryPointLibrarySource should resolve haybale-core
@@ -436,101 +363,6 @@ def test_lag_skipped_when_dep_not_installed(tmp_path: Path, monkeypatch) -> None
     )
     drift = detect_share_drift(lib)
     assert drift.pyproject_version_lag == []
-
-
-@pytest.mark.unit
-def test_apply_drift_fix_rewrites_lagging_floor(tmp_path: Path, monkeypatch) -> None:
-    """`apply_drift_fix` must bump the lagging floor to the installed version,
-    preserving the original operator (spec §12.3)."""
-    import importlib.metadata as _meta
-
-    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
-    lib = _make_library(
-        tmp_path,
-        pyproject_deps=["haybale-core~=0.1.0"],
-        init_body_imports="from haybale_core import types\n",
-    )
-    drift = detect_share_drift(lib)
-    assert drift.has_drift
-    apply_drift_fix(drift)
-
-    data = toml.loads((lib / "pyproject.toml").read_text())
-    deps = data["project"]["dependencies"]
-    assert "haybale-core~=0.5.0" in deps
-    # The old floor should be gone.
-    assert "haybale-core~=0.1.0" not in deps
-
-
-@pytest.mark.unit
-def test_apply_drift_fix_preserves_gte_operator(tmp_path: Path, monkeypatch) -> None:
-    """Operator preservation: `>=` stays `>=` after the fix."""
-    import importlib.metadata as _meta
-
-    monkeypatch.setattr(_meta, "version", lambda dist: "0.5.0" if dist == "haybale-core" else "0.0.0")
-    lib = _make_library(
-        tmp_path,
-        pyproject_deps=["haybale-core>=0.1.0"],
-        init_body_imports="from haybale_core import types\n",
-    )
-    drift = detect_share_drift(lib)
-    apply_drift_fix(drift)
-
-    data = toml.loads((lib / "pyproject.toml").read_text())
-    assert "haybale-core>=0.5.0" in data["project"]["dependencies"]
-
-
-@pytest.mark.unit
-def test_union_bumps_haybale_floor_to_detected_spec() -> None:
-    """Per spec §12.3: when the user has `haybale-X~=0.1.0` and detect finds
-    `haybale-X~=0.5.0` (because 0.5.0 is installed), Union must NOT keep both
-    as duplicates. It must collapse to the detected (higher) spec."""
-    libs = _FakeLibrarySource(["haybale-core"])
-    out = union_pyproject_deps(
-        current=["haybale-core~=0.1.0"],
-        detected=["haybale-core~=0.5.0"],
-        libraries=libs,
-    )
-    assert out == ["haybale-core~=0.5.0"]
-
-
-@pytest.mark.unit
-def test_union_keeps_user_spec_for_third_party() -> None:
-    """Third-party deps must not have their floors silently bumped during
-    Union — that would narrow consumer compatibility based on the author's
-    dev-machine state (spec §12.1)."""
-    libs = _FakeLibrarySource([])  # no registered haybales
-    out = union_pyproject_deps(
-        current=["numpy~=1.0"],
-        detected=["numpy~=2.0"],
-        libraries=libs,
-    )
-    assert out == ["numpy~=1.0"]
-
-
-@pytest.mark.unit
-def test_union_adds_new_dist_from_detected() -> None:
-    """A dist that only the detected side has should be added."""
-    libs = _FakeLibrarySource(["haybale-core"])
-    out = union_pyproject_deps(
-        current=["haybale-core~=0.1.0"],
-        detected=["haybale-core~=0.1.0", "haywire-core~=0.0.1"],
-        libraries=libs,
-    )
-    assert "haywire-core~=0.0.1" in out
-    assert "haybale-core~=0.1.0" in out
-
-
-@pytest.mark.unit
-def test_union_keeps_dist_only_in_current() -> None:
-    """A dist that only the user has (perhaps optional / not yet imported)
-    must NOT be removed by Union."""
-    libs = _FakeLibrarySource([])
-    out = union_pyproject_deps(
-        current=["click>=8"],
-        detected=[],
-        libraries=libs,
-    )
-    assert out == ["click>=8"]
 
 
 @pytest.mark.unit

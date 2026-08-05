@@ -451,8 +451,8 @@ def test_parse_haybale_entry_no_longer_reads_min_version():
 def test_parse_haybale_entry_reads_requires_haywire():
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
-    h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.1.0", "requires_haywire": ">=0.0.31"})
-    assert h.requires_haywire == ">=0.0.31"
+    h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.1.0", "require": ">=0.0.31"})
+    assert h.require == ">=0.0.31"
 
 
 @pytest.mark.unit
@@ -462,4 +462,4 @@ def test_requires_haywire_is_optional():
     from haywire.core.marketstall.parsing import _parse_haybale_entry
 
     h = _parse_haybale_entry({"name": "haybale-foo", "version": "0.1.0"})
-    assert h.requires_haywire == ""
+    assert h.require == ""

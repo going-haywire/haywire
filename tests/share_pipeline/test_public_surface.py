@@ -26,10 +26,11 @@ _WIZARD_IMPORTS = (
     "VersionPlan",
 )
 
-# Names other in-repo consumers reach for.
+# Names other in-repo consumers reach for. `union_pyproject_deps` used to sit
+# here for _overview_edit_dialog; both are gone — dependency authoring moved
+# into the share wizard, which took the last barn→app import with it.
 _OTHER_CONSUMER_IMPORTS = (
     "derive_share_url_only",  # _share_wizard._panel_done
-    "union_pyproject_deps",  # _overview_edit_dialog
     "detect_share_drift",  # deps_cli
 )
 

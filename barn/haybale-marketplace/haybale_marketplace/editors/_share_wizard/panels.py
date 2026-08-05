@@ -13,8 +13,8 @@ from haywire_studio.packaging.share.pipeline import PreconditionFailure
 
 from haywire.ui.components.stepper import advance as _advance
 from haywire.ui.components.stepper import busy_advance as _busy_advance
-from .copy import _DRIFT_EXPLANATIONS, _DRIFT_OPTIONS
 from ._state import ShareWizard
+from .copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
 
 
 def _render_fix(wizard: ShareWizard, rerender: Callable[[], None], failure: PreconditionFailure) -> None:
@@ -101,90 +101,246 @@ def _panel_checked(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         scan.on_click(lambda: _busy_advance(rerender, scan, wizard.advance_from_checked))
 
 
-def _panel_drift(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+def _finding_rows(drift: object, field: str) -> list[str]:
+    """One finding list rendered as display strings."""
+    if field == "pyproject_version_lag":
+        return [
+            f"{dist}: declared {declared}, installed {installed}"
+            for dist, declared, installed in getattr(drift, field)
+        ]
+    return list(getattr(drift, field))
+
+
+def _panel_detect(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """The read-only report. Writes nothing; every section is informational.
+
+    Severity is carried by colour, not by grouping: only undeclared imports
+    break a consumer's install. The rest are facts about the library, and the
+    screens that follow offer them without implying they are defects.
+    """
     report = wizard.drift_report
-    if report is None or not report.needs_decision:
-        ui.label("No dependency drift — every import is declared.").classes("text-xs hw-text-dim")
+    if report is None or not report.libraries:
+        ui.label("Nothing to report — every import is declared and nothing is stale.").classes(
+            "text-xs hw-text-dim"
+        )
+    else:
+        for drift in report.libraries:
+            hui.section_label(drift.lib_dir.name)
+            with ui.column().classes("gap-1 ml-1"):
+                for field, (title, blurb, token) in DETECT_SECTIONS.items():
+                    rows = _finding_rows(drift, field)
+                    if not rows:
+                        continue
+                    ui.label(title).classes("text-xs font-medium").style(f"color: var({token});")
+                    ui.label(blurb).classes("text-xs hw-text-dim")
+                    for row in rows:
+                        ui.label(row).classes("text-xs font-mono ml-2 hw-text-dim")
+
+    with ui.row().classes("w-full justify-end gap-2"):
+        ui.button(
+            "Continue",
+            on_click=lambda: _advance(rerender, wizard.advance_from_detect),
+        ).props("flat dense").style("color: var(--hw-positive);")
+
+
+def _panel_unused(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Declarations the source no longer imports. Nothing is pre-selected.
+
+    The only destructive choice in the flow, and the one place ``detect_deps``'
+    blind spot bites: a dynamic import looks exactly like an unused declaration,
+    so removing is opt-in per item.
+    """
+    report = wizard.drift_report
+    rows = [(d.lib_dir, dep) for d in (report.libraries if report else []) for dep in d.unused_declarations]
+
+    if not rows:
+        ui.label("Every declared dependency is imported somewhere.").classes("text-xs hw-text-dim")
         with ui.row().classes("w-full justify-end gap-2"):
             ui.button(
                 "Continue",
-                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_drift("skip")),
+                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_unused({})),
             ).props("flat dense").style("color: var(--hw-positive);")
         return
 
-    ui.label("These imports are not declared:").classes("text-xs hw-text-dim")
-    for drift in report.drifted:
-        hui.section_label(drift.lib_dir.name)
-        with ui.column().classes("gap-0.5 ml-1"):
-            for dep in drift.pyproject_missing:
-                ui.label(f"+ pyproject.toml: {dep}").classes("text-xs font-mono").style(
-                    "color: var(--hw-positive);"
-                )
-            for dep in drift.decorator_missing:
-                ui.label(f"+ @library(dependencies): {dep}").classes("text-xs font-mono").style(
-                    "color: var(--hw-positive);"
-                )
-            for dist, declared, installed in drift.pyproject_version_lag:
-                ui.label(f"~ {dist}: declared {declared}, installed {installed}").classes(
-                    "text-xs font-mono hw-text-dim"
-                )
+    ui.label(
+        "These are declared but never imported. Harmless to consumers — removing "
+        "is a tidy-up, and it cannot be undone from here."
+    ).classes("text-xs hw-text-dim")
 
-    hui.section_label("How should this be resolved?")
-    # Width comes from w-full, not min_width="100%": a percentage min-width
-    # resolves against a content-sized parent and collapses the dropdown.
-    #
-    # in_popup lifts the dropdown above the Popup card; without it the QMenu
-    # (z-6000) opens behind the card (z-7001) and the list looks empty.
-    choice = hui.select_field(
-        options=_DRIFT_OPTIONS,
-        value=wizard.drift_choice,
-        label="Action",
-        in_popup=True,
-    ).classes("w-full")
+    boxes: list[tuple[Path, str, ui.checkbox]] = []
+    current: Path | None = None
+    for lib_dir, dep in rows:
+        if lib_dir != current:
+            hui.section_label(lib_dir.name)
+            current = lib_dir
+        box = ui.checkbox(dep, value=False).props("dense").classes("text-xs ml-1")
+        boxes.append((lib_dir, dep, box))
 
-    # The explanation is the point of the select: the three words alone can't
-    # convey that Replace deletes and Skip publishes known-undeclared deps.
-    explanation = ui.column().classes("gap-1 w-full")
-
-    def _describe() -> None:
-        explanation.clear()
-        selected = choice.value
-        if selected is None:
-            return
-        body, token, icon = _DRIFT_EXPLANATIONS[selected]
-        with explanation:
-            with (
-                ui.row()
-                .classes("w-full items-start gap-2 p-2 rounded")
-                .style(f"border-left: 3px solid var({token});")
-            ):
-                ui.icon(icon, size="16px").classes("flex-shrink-0 mt-0.5").style(f"color: var({token});")
-                ui.label(body).classes("text-xs hw-text-dim")
-
-    def _on_change() -> None:
-        wizard.drift_choice = choice.value
-        _describe()
-        confirm.set_enabled(choice.value is not None)
-        # Colour the commitment: Replace deletes, Skip ships undeclared deps.
-        token = _DRIFT_EXPLANATIONS[choice.value][1] if choice.value else "--hw-positive"
-        confirm.style(f"color: var({token});")
-
-    choice.on_value_change(_on_change)
+    def _selection() -> dict[Path, list[str]]:
+        out: dict[Path, list[str]] = {}
+        for lib_dir, dep, box in boxes:
+            if box.value:
+                out.setdefault(lib_dir, []).append(dep)
+        return out
 
     with ui.row().classes("w-full justify-end gap-2"):
-        confirm = ui.button("Confirm").props("flat dense")
-        confirm.on_click(
-            lambda: _busy_advance(
-                rerender,
-                confirm,
-                lambda: wizard.advance_from_drift(str(choice.value)),
-            )
+        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        cont.on_click(
+            lambda: _busy_advance(rerender, cont, lambda: wizard.advance_from_unused(_selection()))
         )
 
-    # Applies the initial state (disabled until chosen) through the same path
-    # the change handler uses, so a re-render after a failure restores the
-    # previous selection rather than resetting it.
-    _on_change()
+
+def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Imports with no declaration. Per-item pin choice.
+
+    The only screen whose "leave it" option is recorded: an undeclared import
+    is the one dependency state that breaks a consumer's install, so choosing
+    to publish it anyway sets the acknowledgement flag.
+    """
+    report = wizard.drift_report
+    if report is None or not report.needs_decision:
+        ui.label("Every import is declared.").classes("text-xs hw-text-dim")
+        with ui.row().classes("w-full justify-end gap-2"):
+            ui.button(
+                "Continue",
+                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_undeclared({}, {})),
+            ).props("flat dense").style("color: var(--hw-positive);")
+        return
+
+    ui.label(
+        "The source imports these but the manifests do not declare them. "
+        "Published as-is, consumers install the library and it fails on import."
+    ).classes("text-xs hw-text-dim")
+
+    controls: list[tuple[Path, str, str, ui.select, ui.input]] = []
+    for drift in report.drifted:
+        hui.section_label(drift.lib_dir.name)
+        for dep in drift.pyproject_missing:
+            installed = wizard.installed_version(dep)
+            with ui.column().classes("gap-1 ml-1 w-full"):
+                ui.label(dep).classes("text-xs font-mono")
+                pin = hui.select_field(
+                    options=PIN_OPTIONS,
+                    value="none",
+                    label="Declare as",
+                    in_popup=True,
+                ).classes("w-full")
+                custom = hui.input_field(placeholder=f">={installed}" if installed else ">=1.0")
+                custom.bind_visibility_from(pin, "value", lambda v: v == "custom")
+                controls.append((drift.lib_dir, dep, installed, pin, custom))
+        for dep in drift.decorator_missing:
+            ui.label(f"@library(dependencies): {dep}").classes("text-xs font-mono ml-1 hw-text-dim")
+
+    def _resolve() -> tuple[dict[Path, list[str]], dict[Path, list[str]], bool]:
+        entries: dict[Path, list[str]] = {}
+        skipped = False
+        for lib_dir, dep, installed, pin, custom in controls:
+            mode = str(pin.value)
+            if mode == "skip":
+                skipped = True
+                continue
+            if mode == "none":
+                entries.setdefault(lib_dir, []).append(dep)
+            elif mode == "installed":
+                entries.setdefault(lib_dir, []).append(f"{dep}>={installed}" if installed else dep)
+            else:
+                entries.setdefault(lib_dir, []).append(f"{dep}{(custom.value or '').strip()}")
+        decorators = {d.lib_dir: list(d.decorator_missing) for d in report.drifted if d.decorator_missing}
+        return entries, decorators, skipped
+
+    with ui.row().classes("w-full justify-end gap-2"):
+        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+
+        async def _go() -> None:
+            entries, decorators, skipped = _resolve()
+            await wizard.advance_from_undeclared(entries, decorators, skipped=skipped)
+
+        cont.on_click(lambda: _busy_advance(rerender, cont, _go))
+
+
+def _panel_floors(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Declared floors below the installed version.
+
+    Every control starts on **keep**, which writes nothing. A floor states the
+    OLDEST version that works — not the newest available — and nothing here can
+    compute that, so the default must be inert.
+    """
+    report = wizard.drift_report
+    rows = [
+        (d.lib_dir, dist, declared, installed)
+        for d in (report.libraries if report else [])
+        for dist, declared, installed in d.pyproject_version_lag
+    ]
+
+    if not rows:
+        ui.label("Every declared floor is at or above the installed version.").classes("text-xs hw-text-dim")
+        with ui.row().classes("w-full justify-end gap-2"):
+            ui.button(
+                "Continue",
+                on_click=lambda: _advance(rerender, lambda: wizard.advance_from_floors({})),
+            ).props("flat dense").style("color: var(--hw-positive);")
+        return
+
+    ui.label(
+        "These declare a floor below what is installed here. That is not a defect: "
+        "raising it locks out consumers who could have installed fine."
+    ).classes("text-xs hw-text-dim")
+
+    controls: list[tuple[Path, str, str, str, ui.select, ui.input]] = []
+    current: Path | None = None
+    for lib_dir, dist, declared, installed in rows:
+        if lib_dir != current:
+            hui.section_label(lib_dir.name)
+            current = lib_dir
+        with ui.column().classes("gap-1 ml-1 w-full"):
+            ui.label(f"{dist} — declared {declared}, installed {installed}").classes("text-xs font-mono")
+            mode = hui.select_field(
+                options=FLOOR_OPTIONS, value="keep", label="Floor", in_popup=True
+            ).classes("w-full")
+            custom = hui.input_field(placeholder=f">={installed}")
+            custom.bind_visibility_from(mode, "value", lambda v: v == "custom")
+            controls.append((lib_dir, dist, declared, installed, mode, custom))
+
+    def _selection() -> dict[Path, list[str]]:
+        out: dict[Path, list[str]] = {}
+        for lib_dir, dist, _declared, installed, mode, custom in controls:
+            choice = str(mode.value)
+            if choice == "keep":
+                continue
+            spec = f">={installed}" if choice == "sync" else (custom.value or "").strip()
+            out.setdefault(lib_dir, []).append(f"{dist}{spec}")
+        return out
+
+    with ui.row().classes("w-full justify-end gap-2"):
+        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        cont.on_click(
+            lambda: _busy_advance(rerender, cont, lambda: wizard.advance_from_floors(_selection()))
+        )
+
+
+def _panel_confirm(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """What the dependency screens actually wrote, per library.
+
+    Reached only once every custom specifier parses — an invalid one keeps the
+    author on its own screen, so this never shows a line that would not survive
+    a write.
+    """
+    written = wizard.dependency_writes()
+    if not written:
+        ui.label("No dependency declarations changed.").classes("text-xs hw-text-dim")
+    else:
+        ui.label("These libraries' dependencies now read:").classes("text-xs hw-text-dim")
+        for lib_dir, entries in written.items():
+            hui.section_label(lib_dir.name)
+            with ui.column().classes("gap-0.5 ml-1"):
+                for entry in entries:
+                    ui.label(entry).classes("text-xs font-mono hw-text-dim")
+
+    with ui.row().classes("w-full justify-end gap-2"):
+        ui.button(
+            "Continue",
+            on_click=lambda: _advance(rerender, wizard.advance_from_confirm),
+        ).props("flat dense").style("color: var(--hw-positive);")
 
 
 def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:

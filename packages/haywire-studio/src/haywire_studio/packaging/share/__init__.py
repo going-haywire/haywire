@@ -20,7 +20,6 @@ from __future__ import annotations
 
 from haywire_studio.packaging.share import barn
 from haywire_studio.packaging.share import git
-from haywire_studio.packaging.share.drift.apply import apply_drift_fix, union_pyproject_deps
 from haywire_studio.packaging.share.drift.detect import detect_share_drift
 from haywire_studio.packaging.share.drift.model import DepDrift
 from haywire_studio.packaging.share.drift.report import _format_drift_report
@@ -64,7 +63,6 @@ __all__ = [
     "_get_remote_url",
     "_read_library_dependencies",
     "_update_readme_markers",
-    "apply_drift_fix",
     "barn",
     "build_marketstall_entries",
     "derive_share_url_only",
@@ -75,6 +73,5 @@ __all__ = [
     "read_manifest",
     "read_manifest_lenient",
     "strip_undeclarable_os_values",
-    "union_pyproject_deps",
     "write_marketstall",
 ]

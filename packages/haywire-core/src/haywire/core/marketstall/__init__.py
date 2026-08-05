@@ -17,7 +17,7 @@ from haywire.core.marketstall.errors import (
 )
 from haywire.core.marketstall.framework_gate import (
     FrameworkVerdict,
-    check_requires_haywire,
+    check_require,
     installed_core_version,
 )
 from haywire.core.marketstall.helpers import (
@@ -41,6 +41,10 @@ from haywire.core.marketstall.parsing import (
     serialize_project_marketplace,
 )
 from haywire.core.marketstall.platform import current_os, haybale_supports_current_os
+from haywire.core.marketstall.requirement import (
+    haywire_core_requirement,
+    requirement_specifier,
+)
 from haywire.core.marketstall.refresh import (
     apply_blocked,
     apply_first_come_first_served,
@@ -104,7 +108,9 @@ __all__ = [
     "ClassifiedInput",
     "InputForm",
     # Parsers + serializers
-    "check_requires_haywire",
+    "check_require",
+    "haywire_core_requirement",
+    "requirement_specifier",
     "installed_core_version",
     "parse_global_marketplace",
     "parse_project_marketplace",

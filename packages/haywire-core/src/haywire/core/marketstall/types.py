@@ -17,10 +17,14 @@ class Haybale:
 
     name: str
     version: str
-    # Full PEP 440 specifier for the framework this library needs
-    # (">=0.0.31", "~=0.0.31", ">=0.0.31,<1.0.0") — the author picks the
-    # operator, so this is never a bare version. Empty means undeclared.
-    requires_haywire: str = ""
+    # The framework requirement as a full PEP 508 token, identical in shape to
+    # the library's own pyproject entry: "haywire-core>=0.0.31",
+    # "haywire-core~=0.0.31,<1.0.0", or the bare "haywire-core" when the author
+    # deliberately declared no floor. Empty means undeclared — a state distinct
+    # from the bare name, which is why this carries the package name and not
+    # just the specifier. Derived from the library's pyproject at write time,
+    # never authored independently. See haywire.core.marketstall.requirement.
+    require: str = ""
     label: str = ""
     description: str = ""
     author: str = ""
@@ -46,7 +50,7 @@ class Haybale:
         "name",
         "label",
         "version",
-        "requires_haywire",
+        "require",
         "description",
         "author",
         "source",
