@@ -155,6 +155,85 @@ def test_unreachable_remote_fails(tmp_path: Path) -> None:
     assert any("origin" in f.message or "origin" in f.remedy for f in report.failures)
 
 
+def _repo_with_origin(tmp_path: Path, name: str, origin: str) -> Path:
+    """A committed, clean repo with one barn library and *origin* set.
+
+    Local helper: every host-recognition test needs exactly this shape, and
+    the clean-tree probe (Task 3) means the commit is mandatory, not optional.
+    """
+    repo = tmp_path / name
+    _init_repo(repo)
+    _add_lib(repo)
+    subprocess.run(["git", "remote", "add", "origin", origin], cwd=repo, check=True, capture_output=True)
+    _commit(repo)
+    return repo
+
+
+def test_unrecognized_host_fails_with_the_config_snippet(tmp_path: Path) -> None:
+    """A self-hosted domain with no [[hosts]] entry fails here, and the remedy
+    is the exact TOML to paste — the act-modal (Task 6) writes this verbatim.
+
+    It also does NOT reach the reachability probe: that round-trip would be
+    wasted against a host haywire cannot build URLs for regardless. Proven by
+    the message being about recognition, not reachability, even though this
+    origin is equally unreachable.
+    """
+    repo = _repo_with_origin(tmp_path, "unknownhost", "https://git.example-corp.internal/team/repo.git")
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    assert report.failure is not None
+    assert "git.example-corp.internal" in report.failure.message
+    assert "not recognized" in report.failure.message.lower()
+    assert "Cannot reach origin" not in report.failure.message
+    assert "[[hosts]]" in report.failure.remedy
+    assert 'hostname = "git.example-corp.internal"' in report.failure.remedy
+    assert report.failure.kind == "act"
+    assert report.failure.fix_id == "add_host_config"
+    # The act-modal reads the hostname from lib_dir rather than re-parsing
+    # the remedy text — this is that contract.
+    assert report.failure.lib_dir == "git.example-corp.internal"
+
+
+def test_local_path_origin_skips_host_recognition_entirely(tmp_path: Path, bare_remote: Path) -> None:
+    """THE REGRESSION GUARD for this task. A filesystem-path origin has no
+    hostname at all (`urlsplit('/tmp/x.git').hostname == ''`), and must be
+    treated as not-a-host — NOT as an unrecognized host.
+
+    Every bare_remote-backed fixture in this repo (and in
+    tests/test_share_wizard_ui.py) points origin at a local path, so getting
+    this wrong fails ~25 otherwise-unrelated tests with
+    "Host '' is not recognized."
+    """
+    repo = _repo_with_origin(tmp_path, "localpath", str(bare_remote))
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is True
+
+
+def test_recognized_host_passes_through_to_the_reachability_probe(tmp_path: Path, monkeypatch) -> None:
+    """A recognized host moves PAST this probe to reachability.
+
+    resolve_host is stubbed rather than pointing at real github.com: the point
+    is the control flow after recognition succeeds, and the origin is a
+    nonexistent local path so the next probe fails fast and offline.
+    """
+    from haywire_studio.packaging.share.pipeline.steps import preconditions as precond_module
+
+    monkeypatch.setattr(precond_module, "resolve_host", lambda hostname: object())
+
+    repo = _repo_with_origin(tmp_path, "recognized", "https://git.example-corp.internal/team/repo.git")
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    assert report.failure is not None
+    assert "not recognized" not in report.failure.message.lower()
+    assert "Cannot reach origin" in report.failure.message
+
+
 def test_check_stops_at_the_first_failure(tmp_path: Path) -> None:
     """No barn/ AND no origin are both true here, but only the first-encountered
     problem (no barn/, which is probed before origin) is reported — an earlier

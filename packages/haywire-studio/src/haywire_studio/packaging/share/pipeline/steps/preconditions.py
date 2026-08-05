@@ -4,8 +4,10 @@ from __future__ import annotations
 
 from pathlib import Path
 from typing import TYPE_CHECKING
+from urllib.parse import urlsplit
 
 
+from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire_studio.packaging.share.git import git, git_remote
 from haywire_studio.packaging.share.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire_studio.packaging.share.manifest.os_field import describe_os_fix, invalid_os_values
@@ -198,6 +200,45 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         )
 
     remote_url = remote.stdout.strip()
+
+    # Host recognition applies only to remotes that NAME a network host.
+    # `git remote get-url` legitimately returns a local filesystem path
+    # (`/srv/git/foo.git`, a sibling clone, a test's bare repo), for which
+    # urlsplit() yields an empty hostname. That is not-a-host, not an
+    # unrecognized host: there is no config entry that would make it
+    # recognizable and nothing for the marketstall to build a browser URL
+    # from, so the probe has no opinion and skips. ssh_to_https() runs first
+    # so the scp form (git@host:owner/repo) resolves to its real hostname
+    # rather than falling into this same empty-hostname branch.
+    https_url = ssh_to_https(remote_url).removesuffix(".git").rstrip("/")
+    hostname = (urlsplit(https_url).hostname or "").lower()
+    if hostname and resolve_host(hostname) is None:
+        return PreconditionsReport(
+            failures=[
+                PreconditionFailure(
+                    message=f"Host '{hostname}' is not recognized.",
+                    remedy=(
+                        f"Add this to ~/.haywire/config.toml:\n\n"
+                        f"[[hosts]]\n"
+                        f'hostname = "{hostname}"\n'
+                        f'provider = "gitlab"   # or "github"\n\n'
+                        f"This only teaches haywire how to build browser-friendly URLs for "
+                        f"this host — it has nothing to do with push access."
+                    ),
+                    kind="act",
+                    fix_id="add_host_config",
+                    # lib_dir carries the fix's SUBJECT: the hostname here, a
+                    # barn library directory for strip_os. Reused rather than
+                    # adding a fourth near-identical field, and it keeps the
+                    # act-modal from re-parsing `remedy` prose to recover it.
+                    fix_label="Add host to config.toml",
+                    lib_dir=hostname,
+                )
+            ],
+            remote_url=remote_url,
+            barn_libraries=barn_libraries,
+        )
+
     reachable = git_remote(["ls-remote", "--symref", "origin", "HEAD"], cwd=pipeline.repo_root, timeout=60.0)
     if not reachable.ok:
         detail = (reachable.stderr or reachable.stdout).strip().splitlines()
