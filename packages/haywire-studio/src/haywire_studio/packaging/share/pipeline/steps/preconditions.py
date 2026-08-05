@@ -69,6 +69,31 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
             barn_libraries=[],
         )
 
+    # Whole repo, not scoped to barn/: if the tree is proven clean before the
+    # wizard writes anything, any dirt found after a later-step failure is
+    # provably this run's own writes, which is what makes a blanket revert
+    # safe (see steps/rollback.py). git status --porcelain covers staged,
+    # unstaged, and untracked files.
+    dirty = git(["status", "--porcelain"], cwd=pipeline.repo_root, timeout=10.0)
+    if dirty.ok and dirty.stdout.strip():
+        dirty_files = [line[3:].strip() for line in dirty.stdout.splitlines() if line.strip()]
+        listed = "\n".join(f"  {f}" for f in dirty_files)
+        return PreconditionsReport(
+            failures=[
+                PreconditionFailure(
+                    message=f"Working tree is not clean:\n{listed}",
+                    remedy=(
+                        "Commit or stash these changes before sharing. The publish pipeline "
+                        "reverts everything it writes on failure by resetting the whole working "
+                        "tree — anything already uncommitted here would be lost along with it, "
+                        "so nothing may be dirty before the wizard starts."
+                    ),
+                )
+            ],
+            remote_url=None,
+            barn_libraries=[],
+        )
+
     barn = pipeline.repo_root / "barn"
     barn_libraries: list[Path] = []
     if not barn.is_dir():

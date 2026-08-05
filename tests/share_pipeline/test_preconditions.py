@@ -51,7 +51,7 @@ def bare_remote(tmp_path: Path) -> Path:
 
 @pytest.fixture
 def project(tmp_path: Path, bare_remote: Path) -> Path:
-    """A shareable project: git repo, one barn library, origin pointing at a real bare repo."""
+    """A shareable project: git repo, one barn library, origin pointing at a real bare repo, clean tree."""
     repo = tmp_path / "project"
     _init_repo(repo)
     _add_lib(repo)
@@ -61,6 +61,7 @@ def project(tmp_path: Path, bare_remote: Path) -> Path:
         check=True,
         capture_output=True,
     )
+    _commit(repo)
     return repo
 
 
@@ -70,6 +71,33 @@ def test_healthy_project_passes(project: Path) -> None:
     assert report.failures == []
     assert report.remote_url is not None
     assert [p.name for p in report.barn_libraries] == ["haybale-alpha"]
+
+
+def test_dirty_working_tree_fails_first_and_lists_every_dirty_file(
+    tmp_path: Path, bare_remote: Path
+) -> None:
+    """A dirty tree wins over every other probe, and names every offending
+    file so the user can act without re-running `git status` themselves.
+
+    The repo is otherwise healthy EXCEPT that it is also missing an origin —
+    proving ordering, since stop-at-first-failure means only the earliest
+    probe can show. Two dirty files, one modified and one untracked, cover
+    both halves of `git status --porcelain` output.
+    """
+    repo = tmp_path / "dirty"
+    _init_repo(repo)
+    _add_lib(repo)
+    _commit(repo)
+    (repo / "barn" / "haybale-alpha" / "pyproject.toml").write_text('[project]\nname = "x"\n')
+    (repo / "untracked.txt").write_text("scratch")
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    assert report.failure is not None
+    assert "working tree" in report.failure.message.lower()
+    assert "untracked.txt" in report.failure.message
+    assert "pyproject.toml" in report.failure.message
 
 
 def test_missing_barn_directory_fails(tmp_path: Path, bare_remote: Path) -> None:
@@ -121,6 +149,7 @@ def test_unreachable_remote_fails(tmp_path: Path) -> None:
         check=True,
         capture_output=True,
     )
+    _commit(repo)
     report = SharePipeline(repo).check_preconditions()
     assert report.ok is False
     assert any("origin" in f.message or "origin" in f.remedy for f in report.failures)
@@ -255,6 +284,7 @@ def test_invalid_os_declaration_fails_with_remedy(project: Path) -> None:
     lib = project / "barn" / "haybale-alpha"
     pyproject = lib / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
 
@@ -275,6 +305,7 @@ def test_invalid_os_declaration_carries_strip_os_fix_id(project: Path) -> None:
     lib = project / "barn" / "haybale-alpha"
     pyproject = lib / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
 
@@ -292,6 +323,7 @@ def test_invalid_os_declaration_fix_label_states_correction_when_unambiguous(pro
     lib = project / "barn" / "haybale-alpha"
     pyproject = lib / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["osx"]\n')
+    _commit(project, "add correctable os")
 
     report = SharePipeline(project).check_preconditions()
 
@@ -312,6 +344,7 @@ def test_malformed_toml_fails_with_remedy(project: Path) -> None:
     """
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+    _commit(project, "corrupt toml")
 
     report = SharePipeline(project).check_preconditions()
 
@@ -333,6 +366,7 @@ def test_malformed_toml_carries_no_fix_id(project: Path) -> None:
     fix_id must stay None, unlike the InvalidOsDeclarationError branch."""
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+    _commit(project, "corrupt toml")
 
     report = SharePipeline(project).check_preconditions()
 
@@ -354,6 +388,7 @@ def test_malformed_manifest_is_two_faces_of_one_condition(project: Path) -> None
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+    _commit(project, "corrupt toml")
 
     report = SharePipeline(project).check_preconditions()
     assert report.ok is False
@@ -535,16 +570,23 @@ def test_apply_precondition_fix_raises_for_unknown_fix_id(project: Path) -> None
 
 def test_apply_precondition_fix_strip_os_repairs_the_named_library(project: Path) -> None:
     """apply_precondition_fix('strip_os', lib_dir=...) rewrites the right
-    library's pyproject.toml so a re-run of check_preconditions passes."""
+    library's pyproject.toml so a re-run of check_preconditions passes.
+
+    Committed after the mutation and again after the fix: the clean-tree
+    probe runs before every other probe, so each edit must be committed
+    before the next check_preconditions() call can reach the probe it
+    means to exercise — matching what "Restart Wizard" actually re-checks."""
     lib = project / "barn" / "haybale-alpha"
     pyproject = lib / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
     assert report.ok is False
 
     pipeline = SharePipeline(project)
     pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
+    _commit(project, "strip invalid os")
 
     text = pyproject.read_text()
     assert 'os = ["macos"]' in text
@@ -563,9 +605,11 @@ def test_apply_precondition_fix_strip_os_dedups_reversed_near_miss_order(project
     lib = project / "barn" / "haybale-alpha"
     pyproject = lib / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["osx", "macos"]\n')
+    _commit(project, "add near-miss os")
 
     pipeline = SharePipeline(project)
     pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
+    _commit(project, "strip near-miss os")
 
     data = toml.loads(pyproject.read_text())
     os_values = data["tool"]["haywire"]["os"]
@@ -584,6 +628,7 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
     lib = project / "barn" / "haybale-alpha"
     pyproject = lib / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
     assert report.ok is False
@@ -594,6 +639,7 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
 
     pipeline = SharePipeline(project)
     pipeline.apply_precondition_fix("strip_os", lib_dir=failure.lib_dir)
+    _commit(project, "strip invalid os")
 
     assert 'os = ["macos"]' in pyproject.read_text()
     assert pipeline.check_preconditions().ok is True
@@ -626,6 +672,7 @@ def test_missing_origin_carries_add_origin_fix_id(tmp_path: Path) -> None:
     repo = tmp_path / "noremote_fixid"
     _init_repo(repo)
     _add_lib(repo)
+    _commit(repo)
 
     report = SharePipeline(repo).check_preconditions()
 
@@ -719,6 +766,7 @@ def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path,
     repo = tmp_path / "add_origin_e2e"
     _init_repo(repo)
     _add_lib(repo)
+    _commit(repo)
 
     report = SharePipeline(repo).check_preconditions()
     assert report.ok is False

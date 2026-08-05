@@ -673,9 +673,16 @@ async def test_retry_clears_only_the_error(project: Path) -> None:
 
 @pytest.fixture
 def os_project(project: Path) -> Path:
-    """`project`, but with an invalid `[tool.haywire].os` declaration."""
+    """`project`, but with an invalid `[tool.haywire].os` declaration.
+
+    Committed after the mutation: the clean-tree precondition runs before the
+    manifest probe, so an uncommitted edit here would mask the very failure
+    these tests are about.
+    """
     pyproject = project / "barn" / "haybale-alpha" / "pyproject.toml"
     pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    subprocess.run(["git", "add", "-A"], cwd=project, check=True, capture_output=True)
+    subprocess.run(["git", "commit", "-m", "invalid os"], cwd=project, check=True, capture_output=True)
     return project
 
 
