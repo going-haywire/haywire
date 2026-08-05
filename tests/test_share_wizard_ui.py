@@ -862,6 +862,30 @@ def test_detect_sections_cover_every_dep_drift_finding() -> None:
     assert set(DETECT_SECTIONS) == reportable
 
 
+def test_findings_copy_is_descriptive_not_imperative() -> None:
+    """The Findings screen reports; its only button is Continue, which resolves
+    nothing. An instruction here ("Add these to the list") reads as a promise
+    that Continue will carry it out, and the author walks past a decision they
+    were never actually offered."""
+    from haybale_marketplace.editors._share_wizard.copy import DETECT_SECTIONS
+
+    # Sentence-initial imperatives — a blurb opening with one is giving orders.
+    banned = ("add ", "remove ", "declare ", "fix ", "update ", "run ", "set ")
+    for field, (_title, blurb, _token) in DETECT_SECTIONS.items():
+        opening = blurb.lower()
+        assert not opening.startswith(banned), (
+            f"{field}'s blurb opens with an instruction: {blurb!r}. "
+            "Findings describes what IS; the later screens do the acting."
+        )
+
+
+def test_findings_step_is_named_for_what_it_shows() -> None:
+    """Every other step title is a noun phrase. A verb implies the screen acts."""
+    from haybale_marketplace.editors._share_wizard.copy import STEP_TITLES
+
+    assert STEP_TITLES["detect"] == "Findings"
+
+
 def test_every_wizard_select_is_marked_in_popup() -> None:
     """The wizard renders inside a Popup, so every select it builds must carry
     in_popup=True. A QMenu defaults to z-6000 and the Popup card is z-7001, so

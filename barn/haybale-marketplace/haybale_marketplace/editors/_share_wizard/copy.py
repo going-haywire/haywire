@@ -28,7 +28,9 @@ STEPS = (
 STEP_TITLES = {
     "preconditions": "Check the project",
     "checked": "Scan dependencies",
-    "detect": "Detect",
+    # "Findings", not "Detect": every other title names what the screen shows,
+    # and a verb here implies the screen is about to do something. It reports.
+    "detect": "Findings",
     "framework": "Framework requirement",
     "unused": "Unused declarations",
     "undeclared": "Undeclared imports",
@@ -43,10 +45,16 @@ STEP_TITLES = {
 
 # What each Detect finding means, in consumer terms, keyed by DepDrift field.
 #
-# The panel groups by FINDING, so each blurb is stated ONCE above every
-# instance — it must read as a general statement about the category, never
-# about one library. Severity is carried by the colour token, not by the
-# wording: only the first BREAKS an install.
+# Two rules these blurbs must keep:
+#
+# 1. DESCRIPTIVE, never imperative. Detect's only button is Continue, and it
+#    resolves nothing — "Add these to the list" reads as a promise that
+#    Continue will add them. State what IS; the later screens do the acting.
+# 2. GENERAL, never about one library. The panel groups by finding, so each
+#    blurb is printed once above every instance across the whole project.
+#
+# Severity is carried by the colour token, not by the wording: only the first
+# BREAKS a consumer's install.
 DETECT_SECTIONS = {
     "pyproject_missing": (
         "Undeclared imports",
@@ -56,15 +64,16 @@ DETECT_SECTIONS = {
     ),
     "decorator_missing": (
         "Undeclared in @library(dependencies)",
-        "Add these to the list so hot-reload scope tracking and the marketplace's "
-        "enable/disable gating know about them. The library still works without "
-        "it.",
+        "These are missing from the decorator's list, which drives hot-reload "
+        "scope tracking and the marketplace's enable/disable gating. The library "
+        "itself still works without them.",
         "--hw-warning",
     ),
     "unused_declarations": (
         "Declared, not imported",
         "Declared but never imported. Harmless to consumers, and a dynamic import "
-        "looks exactly like this, so nothing is removed unless you say so.",
+        "looks exactly like this — which is why removing them is offered one by "
+        "one rather than done for you.",
         "--hw-text-dim",
     ),
     "pyproject_version_lag": (

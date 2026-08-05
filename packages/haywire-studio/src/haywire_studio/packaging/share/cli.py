@@ -169,8 +169,9 @@ def _print_detect_report(report: object) -> None:
 
     Grouping by library instead repeats the same explanation once per library
     and forces the reader to work out which name is the subject and which is
-    the container. Mirrors the wizard's Detect screen so both surfaces read
-    the same way.
+    the container. Mirrors the wizard's Findings screen so both surfaces read
+    the same way — including the closing note, since this step reports and
+    resolves nothing.
     """
     libraries = report.libraries  # type: ignore[attr-defined]
     printed = False
@@ -191,7 +192,9 @@ def _print_detect_report(report: object) -> None:
         print(f"\n  {heading}:")
         for row in rows:
             print(f"    {row}")
-    if not printed:
+    if printed:
+        print("\n  Nothing is changed yet — the next steps decide what to do about each.")
+    else:
         print("  Nothing to report.")
 
 
@@ -211,7 +214,7 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     pipeline.require_preconditions()
     print("✓ git, barn/, and origin all OK")
 
-    print("\n── 2. Detect ──")
+    print("\n── 2. Findings ──")
     report = pipeline.check_drift()
     _print_detect_report(report)
 
