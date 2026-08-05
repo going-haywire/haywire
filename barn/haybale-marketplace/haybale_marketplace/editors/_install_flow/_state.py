@@ -28,7 +28,7 @@ import logging
 import time
 from typing import Optional, Protocol
 
-from haywire.core.marketstall import Haybale, check_requires_haywire
+from haywire.core.marketstall import Haybale, check_require
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
@@ -122,12 +122,12 @@ class InstallFlow(StepFlow):
         free and the resolver round is not: when the author already told us
         this library cannot run here, spending seconds to have uv reach the
         same conclusion only delays the same answer. The check is advisory —
-        it passes whenever nothing is proven (see ``check_requires_haywire``)
+        it passes whenever nothing is proven (see ``check_require``)
         — so the resolver below remains the real guard.
         """
         self.retry()
         if self.package is not None:
-            verdict = check_requires_haywire(self.package.requires_haywire)
+            verdict = check_require(self.package.require)
             if not verdict.ok:
                 self.blocked = True
                 self.error = verdict.message

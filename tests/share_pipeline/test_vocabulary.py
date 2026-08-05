@@ -112,11 +112,21 @@ def test_bump_result_lists_written_files() -> None:
     assert result.lock_warning == "uv lock failed"
 
 
-def test_drift_report_needs_decision_only_when_actionable() -> None:
-    assert DriftReport(drifted=[], unresolved_only=[]).needs_decision is False
-    assert DriftReport(drifted=[object()], unresolved_only=[]).needs_decision is True
-    # Unresolved imports are informational — they never gate the wizard.
-    assert DriftReport(drifted=[], unresolved_only=[object()]).needs_decision is False
+def test_drift_report_needs_decision_only_when_something_breaks() -> None:
+    assert DriftReport(drifted=[], findings_only=[]).needs_decision is False
+    assert DriftReport(drifted=[object()], findings_only=[]).needs_decision is True
+    # Unused declarations, lagging floors and unresolved imports are all
+    # reportable facts — none of them gate the wizard.
+    assert DriftReport(drifted=[], findings_only=[object()]).needs_decision is False
+
+
+def test_drift_report_lists_every_library_with_findings() -> None:
+    """The Detect screen renders both buckets; drifted leads."""
+    broken, noted = object(), object()
+
+    report = DriftReport(drifted=[broken], findings_only=[noted])
+
+    assert report.libraries == [broken, noted]
 
 
 def test_commit_plan_separates_accumulated_from_dirty_barn() -> None:

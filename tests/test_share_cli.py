@@ -8,7 +8,7 @@ import pytest
 import toml
 
 from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps import drift as steps_drift
+from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
 
 pytestmark = pytest.mark.unit
 
@@ -64,7 +64,7 @@ def test_yes_runs_the_whole_pipeline(project: Path) -> None:
     from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift),
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
         _fake_docs(),
     ):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
@@ -83,7 +83,7 @@ def test_yes_uses_the_supplied_message(project: Path) -> None:
     from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift),
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
         _fake_docs(),
     ):
         run_share_cli(
@@ -109,20 +109,51 @@ def test_yes_without_bump_fails_fast(project: Path, capsys) -> None:
     assert "--bump" in capsys.readouterr().out
 
 
-def test_yes_stops_on_unresolved_drift(project: Path, capsys) -> None:
-    """Replace can destructively remove declared deps — never a non-interactive default."""
+def test_yes_declares_undeclared_imports_rather_than_refusing(project: Path) -> None:
+    """Declaring an import the source actually uses is unambiguously correct.
+
+    The old behaviour refused ANY drift, because both apply modes mutated and
+    one removed declarations. Removals are now their own optional step, so the
+    only thing left for --yes to do here is the safe, corrective one.
+    """
     from haywire_studio.packaging.share import DepDrift
     from haywire_studio.packaging.share.cli import run_share_cli
 
     def _drifty(lib_dir: Path):
-        return DepDrift(lib_dir=lib_dir, pyproject_missing=["numpy"])
+        return DepDrift(lib_dir=lib_dir, pyproject_missing=["toml"])
 
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_drifty):
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_drifty),
+        _fake_docs(),
+    ):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
 
-    assert code != 0
-    out = capsys.readouterr().out
-    assert "drift" in out.lower()
+    assert code == 0
+    table = toml.loads((project / "barn" / "haybale-alpha" / "pyproject.toml").read_text())["project"]
+    assert any(entry.startswith("toml") for entry in table.get("dependencies", []))
+
+
+def test_yes_never_removes_declarations(project: Path) -> None:
+    """Removals are lossy and stay interactive — --yes must not guess."""
+    from haywire_studio.packaging.share import DepDrift
+    from haywire_studio.packaging.share.cli import run_share_cli
+
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.3.1"\ndependencies = ["numpy>=1.0"]\n'
+    )
+
+    def _unused(lib_dir: Path):
+        return DepDrift(lib_dir=lib_dir, unused_declarations=["numpy"])
+
+    with (
+        patch.object(steps_detect, "detect_share_drift", side_effect=_unused),
+        _fake_docs(),
+    ):
+        run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
+
+    table = toml.loads((lib / "pyproject.toml").read_text())["project"]
+    assert table["dependencies"] == ["numpy>=1.0"]
 
 
 def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> None:
@@ -130,7 +161,7 @@ def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> 
 
     subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
 
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         code = run_share_cli(repo_root=project, yes=True, bump="patch", message=None)
 
     assert code != 0
@@ -143,7 +174,7 @@ def test_yes_prints_the_share_url(project: Path, capsys) -> None:
     from haywire_studio.packaging.share.cli import run_share_cli
 
     with (
-        patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift),
+        patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
         _fake_docs(),
     ):
         run_share_cli(repo_root=project, yes=True, bump="patch", message=None)

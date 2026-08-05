@@ -70,7 +70,7 @@ All `[[haybales]]` and `[[caches]]` entries (in both files, plus what marketplac
 |---|---|---|---|
 | `name` | string | yes | Pip distribution name (e.g. `haybale-visiongraph`). |
 | `version` | string | yes | The version this entry advertises — what the author published. Not a floor; nothing resolves against it. Its only job is the update comparison. |
-| `requires_haywire` | string | no | Full PEP 440 specifier for the framework this library needs (`>=0.0.31`). Absent means undeclared. |
+| `require` | string | no | The framework requirement as a full PEP 508 token (`haywire-core>=0.0.31`), or the bare `haywire-core` when declared with no floor. Absent means undeclared. Derived from the library's own pyproject floor at write time, never authored separately. |
 | `label` | string | no | Human display name. |
 | `description` | string | no | One-line description. |
 | `author` | string | no | Author name(s). |
@@ -252,7 +252,6 @@ After install, the Library System inspects each library's filesystem location an
 | Action | `EDITABLE` | `REGULAR` | `FOLDER` |
 |---|---|---|---|
 | Edit identity (label, version, dependencies, etc.) | yes | no | no |
-| Detect Dependencies button | yes | no | no |
 | Save source code | yes | no | no |
 | Hot-reload | yes | no | yes |
 | Disable / Enable | yes | yes | yes |
@@ -365,7 +364,7 @@ Running `haywire share` at a repo root with a `barn/` containing libraries write
 name             = "haybale-my-lib"
 label            = "My Lib"
 version          = "0.1.0"
-requires_haywire = ">=0.0.31"
+require = "haywire-core>=0.0.31"
 description      = "..."
 author           = "Your Name"
 source           = "git"

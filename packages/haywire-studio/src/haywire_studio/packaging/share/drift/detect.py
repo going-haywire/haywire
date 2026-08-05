@@ -21,7 +21,7 @@ from haywire_studio.packaging.share.drift.model import DepDrift
 from haywire_studio.packaging.share.drift.versionspec import (
     _parse_floor_spec,
     _strip_specifier,
-    _version_tuple,
+    version_lags,
 )
 from haywire_studio.packaging.share.manifest.deps import _read_library_dependencies
 from haywire_studio.packaging.share.manifest.reader import read_manifest_lenient
@@ -73,6 +73,11 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     detected_py_names = {_strip_specifier(s) for s in detected.pyproject}
     pyproject_missing = sorted(detected_py_names - decl_py_names)
 
+    # Declared but never imported. Reported, never removed automatically: a
+    # dynamic import detect_deps cannot see looks exactly like an unused
+    # declaration, so acting on this without asking would break the library.
+    unused_declarations = sorted(decl_py_names - detected_py_names)
+
     # Decorator deps round-trip as bare module names in detect_deps output;
     # _read_library_dependencies already converts to pip-package form. Re-
     # normalize both sides so "haybale_core" and "haybale-core" compare equal.
@@ -86,6 +91,7 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
         lib_dir=lib_dir,
         pyproject_missing=pyproject_missing,
         decorator_missing=decorator_missing,
+        unused_declarations=unused_declarations,
         pyproject_version_lag=pyproject_version_lag,
         unresolved=list(detected.unresolved),
     )
@@ -96,8 +102,14 @@ def _detect_pyproject_version_lag(
     *,
     libraries: EntryPointLibrarySource,
 ) -> list[tuple[str, str, str]]:
-    """Flag declared haybale-* deps whose floor lags the installed version.
-    Only ``~=``, ``>=``, ``>`` operators are checked.
+    """Report declared haybale-* deps whose floor sits below the installed version.
+
+    A fact, not a finding: see :class:`DepDrift`. Nothing here is ever raised
+    automatically, and this does not count toward ``has_drift``.
+
+    Scoped to registered haywire libraries and to the ``~=``/``>=``/``>``
+    operators. ``==`` and ``<`` express deliberate intent that "lag" does not
+    describe.
     """
     import importlib.metadata as _meta
 
@@ -120,6 +132,6 @@ def _detect_pyproject_version_lag(
             installed = _meta.version(dist_name)
         except _meta.PackageNotFoundError:
             continue
-        if _version_tuple(installed) > _version_tuple(declared_floor):
+        if version_lags(declared_floor, installed):
             out.append((dist_name, declared_floor, installed))
     return sorted(out)

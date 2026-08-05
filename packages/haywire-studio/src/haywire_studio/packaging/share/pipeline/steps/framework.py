@@ -1,4 +1,4 @@
-"""Framework-requirement step — one project-wide answer, two carriers.
+"""Framework-requirement planning — what the author is offered, and why.
 
 A floor is a restriction on CONSUMERS, not a record of what the author
 tested: raising it forces every consumer to upgrade their project before
@@ -6,16 +6,17 @@ they can install, and some cannot. So the recommended option is always the
 lowest necessary one — keep what is already declared — and raising it is a
 deliberate, consequence-annotated choice.
 
-The single answer is written into two disjoint carriers:
+The answer is written to ONE place: the ``haywire-core`` floor in each
+library's ``pyproject.toml``. That is the only guard on the bare
+``uv add haybale-foo`` path, which has no UI to warn anyone. The marketstall's
+``require`` field is *derived* from it at write time rather than authored
+alongside it — one truth, one projection, so the two cannot disagree.
 
-  * the ``haywire-core`` floor in each library's ``pyproject.toml``, which is
-    the ONLY guard on the bare ``uv add haybale-foo`` path (no UI to warn
-    anyone), and
-  * ``requires_haywire`` in the marketstall entry, which the marketplace reads
-    in ``haywire.core.marketstall.framework_gate`` as a pre-emptive gate before
-    the constraint file refuses the install. Advisory only: it is author-
-    declared metadata and can be stale or absent, so a pass proves nothing and
-    the resolver stays the real guard.
+This module plans; ``steps/dependencies.py`` writes. The split matters because
+planning must read the author's ACTUAL prior declaration: when the write lived
+next to the other dependency writes, "keep the current declaration" computed
+from a value another step had already rewritten, and the recommended,
+consequence-free-looking option silently raised the floor.
 
 Never a ceiling by default: a ``<0.1.0`` stamped today becomes a lie the
 moment 0.1.0 ships and nobody will remember to update it.
@@ -23,13 +24,13 @@ moment 0.1.0 ships and nobody will remember to update it.
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 import toml
 
-from haywire.core.tomlio import edit_toml
+from haywire.core.marketstall.requirement import CORE as _CORE
+from haywire.core.marketstall.requirement import haywire_core_requirement, requirement_specifier
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import Version
 
@@ -38,8 +39,6 @@ from haywire_studio.packaging.share.pipeline.results import FrameworkOption, Fra
 
 if TYPE_CHECKING:
     from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-
-_CORE = "haywire-core"
 
 
 def _installed_core_version() -> str:
@@ -52,22 +51,37 @@ def _installed_core_version() -> str:
         return ""
 
 
-def _dep_name(entry: str) -> str:
-    """The bare package name from a PEP 508 dependency string."""
-    head = entry.split(";", 1)[0].split(" @ ", 1)[0]
-    return re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0].strip()
+def haywire_core_requirement_of(lib_dir: Path) -> str | None:
+    """This library's ``haywire-core`` requirement token, or None if undeclared.
+
+    The marketstall's ``require`` field is exactly this value — see
+    ``steps/commit.apply_marketstall``. Distinguishing "declared with no floor"
+    (``"haywire-core"``) from "not declared" (``None``) is the reason the token
+    carries the package name rather than a bare specifier.
+    """
+    pyproject = lib_dir / "pyproject.toml"
+    if not pyproject.is_file():
+        return None
+    try:
+        data = toml.loads(pyproject.read_text())
+    except toml.TomlDecodeError:
+        # Reporting-only path: step 1 already surfaces a malformed manifest as
+        # a precondition failure, and crashing here would take the whole plan
+        # down over a fault the author has already been told about.
+        return None
+    deps = [str(entry) for entry in data.get("project", {}).get("dependencies", []) or []]
+    return haywire_core_requirement(deps)
 
 
 def haywire_core_floor(lib_dir: Path) -> str:
-    """The ``haywire-core`` specifier this library declares, or "" if none."""
-    pyproject = lib_dir / "pyproject.toml"
-    if not pyproject.is_file():
-        return ""
-    data = toml.loads(pyproject.read_text())
-    for entry in data.get("project", {}).get("dependencies", []) or []:
-        if _dep_name(entry).lower() == _CORE:
-            return entry[len(_dep_name(entry)) :].strip()
-    return ""
+    """The ``haywire-core`` specifier this library declares, or "" if none.
+
+    Empty for both "undeclared" and "declared with no floor" — the two are the
+    same answer to "what constrains the framework version?". Callers that must
+    tell them apart use :func:`haywire_core_requirement_of`.
+    """
+    token = haywire_core_requirement_of(lib_dir)
+    return requirement_specifier(token) if token else ""
 
 
 def specifiers_equal(left: str, right: str) -> bool:
@@ -164,41 +178,3 @@ def plan(pipeline: "SharePipeline") -> FrameworkPlan:
             )
         )
     return FrameworkPlan(installed=installed, declared=declared, options=options)
-
-
-def apply(pipeline: "SharePipeline", specifier: str) -> list[Path]:
-    """Write *specifier* as the ``haywire-core`` floor in every barn library.
-
-    Stores the answer on the pipeline so step 5's marketstall rebuild can emit
-    the same value as ``requires_haywire`` — one authored answer, two carriers.
-    """
-    parsed = parse_specifier(specifier)
-    text = str(parsed)
-
-    written: list[Path] = []
-    for lib_dir in pipeline._barn_library_dirs():
-        pyproject = lib_dir / "pyproject.toml"
-        if not pyproject.is_file():
-            continue
-        # edit_toml, not a toml.loads/dumps round trip: this is the library
-        # author's own pyproject.toml, and rebuilding it from parsed dicts
-        # deletes every comment they wrote.
-        with edit_toml(pyproject) as data:
-            project = data.setdefault("project", {})
-            deps = project.setdefault("dependencies", [])
-            new_deps: list[str] = []
-            found = False
-            for entry in deps:
-                if _dep_name(str(entry)).lower() == _CORE:
-                    new_deps.append(f"{_CORE}{text}")
-                    found = True
-                else:
-                    new_deps.append(str(entry))
-            if not found:
-                new_deps.append(f"{_CORE}{text}")
-            project["dependencies"] = new_deps
-        written.append(pyproject)
-
-    pipeline.requires_haywire = text
-    pipeline.record(written)
-    return written

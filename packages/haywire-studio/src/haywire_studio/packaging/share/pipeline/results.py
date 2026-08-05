@@ -87,20 +87,26 @@ class BumpResult:
 
 @dataclass(frozen=True)
 class DriftReport:
-    """Step 2's findings, aggregated across barn libraries.
+    """The Detect step's findings, aggregated across barn libraries.
 
-    ``drifted`` holds ``DepDrift`` objects with actionable drift;
-    ``unresolved_only`` holds those with only unmapped imports. Only the former
-    is a decision — unresolved imports are usually dynamic and would otherwise
-    gate every run.
+    ``drifted`` holds ``DepDrift`` objects with undeclared imports — the one
+    state that breaks a consumer's install. ``findings_only`` holds libraries
+    with something to report but nothing broken: unused declarations, lagging
+    floors, unresolved imports. Only the former forces a decision; the rest are
+    offered, and leaving them alone is a valid answer.
     """
 
     drifted: list[Any]
-    unresolved_only: list[Any]
+    findings_only: list[Any]
 
     @property
     def needs_decision(self) -> bool:
         return bool(self.drifted)
+
+    @property
+    def libraries(self) -> list[Any]:
+        """Every library with anything to show, drifted first."""
+        return [*self.drifted, *self.findings_only]
 
 
 @dataclass(frozen=True)

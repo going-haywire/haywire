@@ -62,6 +62,44 @@ def test_apply_marketstall_records_what_it_wrote(project: Path) -> None:
     assert result.out_path in pipeline.written
 
 
+def test_published_require_always_matches_the_declared_floor(project: Path) -> None:
+    """The invariant that replaced the runtime consistency precondition.
+
+    `require` is derived from each library's own pyproject at write time, so a
+    disagreement between the two is unreachable rather than merely checked. If
+    this ever fails, derivation has been replaced by a second authored copy and
+    the whole two-carrier drift class is back.
+    """
+    import toml as _toml
+
+    lib = project / "barn" / "haybale-alpha"
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "0.3.2"\n'
+        'dependencies = ["haywire-core>=0.0.31", "numpy"]\n'
+    )
+    pipeline = SharePipeline(project)
+    pipeline.version = "0.3.2"
+
+    result = pipeline.apply_marketstall()
+
+    entry = _toml.loads(result.out_path.read_text())["haybales"][0]
+    assert entry["require"] == "haywire-core>=0.0.31"
+
+
+def test_published_require_tracks_a_changed_floor(project: Path) -> None:
+    """Change the floor, republish: the entry follows without anyone syncing it."""
+    import toml as _toml
+
+    pipeline = SharePipeline(project)
+    pipeline.version = "0.3.2"
+    pipeline.apply_framework(">=0.0.38")
+
+    result = pipeline.apply_marketstall()
+
+    entry = _toml.loads(result.out_path.read_text())["haybales"][0]
+    assert entry["require"] == "haywire-core>=0.0.38"
+
+
 def test_apply_marketstall_translates_manifest_read_error(project: Path) -> None:
     """A malformed pyproject.toml surfaces as MarketstallError, not a raw ManifestReadError."""
     from haywire_studio.packaging.share.pipeline import MarketstallError

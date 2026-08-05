@@ -12,6 +12,7 @@ import toml
 
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.marketstall import Haybale
+from haywire.core.marketstall.requirement import haywire_core_requirement
 from haywire_studio.packaging.share.barn import barn_library_dirs
 from haywire_studio.packaging.share.manifest.deps import _read_library_dependencies, _read_library_label
 from haywire_studio.packaging.share.manifest.reader import read_manifest
@@ -25,9 +26,7 @@ from haywire_studio.packaging.share.url import (
 )
 
 
-def _build_entry_for_library(
-    lib_dir: Path, *, tag: str | None = None, requires_haywire: str = ""
-) -> dict | None:
+def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict | None:
     """Build a marketplace entry for one library directory.
 
     Returns the entry dict (TOML-serializable), or None if `lib_dir` lacks a
@@ -43,10 +42,12 @@ def _build_entry_for_library(
     repo with no tags yet), falls back to the previous branch/ref-less
     behavior unchanged.
 
-    `requires_haywire` is the project-wide framework specifier the share
-    pipeline authored (step 2b). Empty for standalone calls — the key is then
-    omitted from the entry entirely rather than written as "", so an absent
-    declaration stays absent.
+    The framework requirement is DERIVED from this library's own
+    ``haywire-core`` floor, not passed in: the pyproject is the truth and
+    ``require`` is its projection, so a standalone call and a full pipeline run
+    emit the same value and neither can publish a stale one. Per-library, so a
+    library whose floor genuinely differs is reported honestly instead of being
+    flattened to one project-wide string.
     """
     pyproject_path = lib_dir / "pyproject.toml"
     if not pyproject_path.exists():
@@ -62,6 +63,12 @@ def _build_entry_for_library(
 
     authors = project.get("authors", [])
     author = authors[0].get("name", "") if authors else ""
+
+    # Derived, never passed in: the library's own floor IS the requirement, and
+    # the entry is its projection. None (undeclared) omits the key entirely;
+    # the bare name (declared, no floor) is emitted, because those two states
+    # are different answers and the field is shaped to tell them apart.
+    require = haywire_core_requirement([str(entry) for entry in project.get("dependencies", []) or []])
 
     git_root = _find_git_root(lib_dir)
     remote_url = _get_remote_url(git_root) if git_root else None
@@ -145,7 +152,7 @@ def _build_entry_for_library(
         name=name,
         label=label,
         version=version,
-        requires_haywire=requires_haywire,
+        require=require or "",
         description=description,
         author=author,
         source="git",
@@ -183,9 +190,7 @@ class MarketstallWriteResult:
         return [self.out_path, *self.readmes]
 
 
-def build_marketstall_entries(
-    repo_root: Path, *, tag: str | None = None, requires_haywire: str = ""
-) -> list[dict]:
+def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> list[dict]:
     """Build a marketstall entry for every ``barn/*`` library, sorted by directory.
 
     The feed's contract is "every haybale this repo offers", so it is always
@@ -196,8 +201,8 @@ def build_marketstall_entries(
     docs_url, examples_url, tests_url) to that tag instead of the current
     branch — see :func:`_build_entry_for_library`.
 
-    ``requires_haywire``, when given, is stamped on every entry — see
-    :func:`_build_entry_for_library`.
+    Each entry's framework requirement is derived from that library's own
+    ``haywire-core`` floor — see :func:`_build_entry_for_library`.
 
     Raises :class:`NoBarnError` when ``<repo_root>/barn`` does not exist.
     """
@@ -207,7 +212,7 @@ def build_marketstall_entries(
 
     entries: list[dict] = []
     for lib_dir in barn_library_dirs(repo_root):
-        entry = _build_entry_for_library(lib_dir, tag=tag, requires_haywire=requires_haywire)
+        entry = _build_entry_for_library(lib_dir, tag=tag)
         if entry is not None:
             entries.append(entry)
     return entries
@@ -224,12 +229,11 @@ def write_marketstall(
     *,
     update_readme: bool = True,
     tag: str | None = None,
-    requires_haywire: str = "",
 ) -> MarketstallWriteResult:
     """Rebuild ``<repo_root>/marketstall.toml`` from every ``barn/*`` library.
 
-    Deliberately does NOT run the dependency-drift gate: drift is the share
-    pipeline's step 2, where the user makes a Union/Replace decision, and a
+    Deliberately does NOT run the dependency detect step: that is the pipeline's
+    own step, where the author resolves what they choose to resolve, and a
     second gate here would re-ask a settled question. Prints nothing — callers
     own their own output.
 
@@ -239,10 +243,10 @@ def write_marketstall(
     step 5); direct/standalone callers that don't have a tag yet get the
     previous branch-based behavior unchanged.
 
-    ``requires_haywire``, when given, is stamped on every entry (step 2b of
-    the pipeline authors it before this runs).
+    Every entry's ``require`` is derived from that library's pyproject floor at
+    write time, so a standalone call emits the same value the pipeline would.
     """
-    entries = build_marketstall_entries(repo_root, tag=tag, requires_haywire=requires_haywire)
+    entries = build_marketstall_entries(repo_root, tag=tag)
 
     out_path = repo_root / "marketstall.toml"
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))

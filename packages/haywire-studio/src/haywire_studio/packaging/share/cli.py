@@ -52,15 +52,32 @@ def _resolve_framework_answer(pipeline: SharePipeline, specifier: str | None) ->
     """Apply a supplied framework specifier, or leave the declaration alone.
 
     No flag means keep the declared floor. That default is INERT — it changes
-    nothing and locks nobody out — which is exactly what --yes is for. This
-    differs from the drift precedent, which refuses in --yes mode because both
-    of its options mutate and one is lossy. Raising a floor, the
-    consumer-excluding direction, always needs the explicit flag.
+    nothing and locks nobody out — which is exactly what --yes is for. Raising
+    a floor, the consumer-excluding direction, always needs the explicit flag.
+
+    Not applying is now genuinely harmless: the marketstall's ``require`` is
+    derived from the pyproject floor at write time, so skipping this leaves the
+    published entry stating the floor that is actually declared rather than
+    stamping an empty one.
     """
     if specifier is None:
         return None
     pipeline.apply_framework(specifier)
     return specifier
+
+
+def _detected_additions(drift: object) -> tuple[list[str], list[str]]:
+    """The pyproject entries and decorator names --yes would declare.
+
+    Declared with NO floor, matching the interactive screen's default: a floor
+    is the oldest version that works, which nothing here can compute, and an
+    unpinned declaration constrains no consumer. The report already names what
+    is missing, so nothing is re-detected.
+    """
+    return (
+        list(drift.pyproject_missing),  # type: ignore[attr-defined]
+        list(drift.decorator_missing),  # type: ignore[attr-defined]
+    )
 
 
 def _run_yes(
@@ -79,15 +96,23 @@ def _run_yes(
     pipeline.require_preconditions()
     print("✓ Preconditions OK")
 
-    drift = pipeline.check_drift()
-    if drift.needs_decision:
-        # Union is additive and safe, but Replace destructively removes declared
-        # deps — that decision is never made on the user's behalf.
-        print("✗ Dependency drift found. Resolve it interactively with `haywire share`:")
-        for d in drift.drifted:
-            print(f"  - {d.lib_dir.name}")
-        return EXIT_FAILED
-    print("✓ No dependency drift")
+    report = pipeline.check_drift()
+    if report.needs_decision:
+        # Declaring an import the source actually uses is unambiguously
+        # correct, so --yes does it rather than refusing. Removals and floor
+        # changes are NOT touched here: both are optional, and one is lossy.
+        pyproject_entries: dict[Path, list[str]] = {}
+        decorator_entries: dict[Path, list[str]] = {}
+        for d in report.drifted:
+            entries, names = _detected_additions(d)
+            pyproject_entries[d.lib_dir] = entries
+            decorator_entries[d.lib_dir] = names
+            for dep in entries + names:
+                print(f"  + {d.lib_dir.name}: {dep}")
+        pipeline.apply_additions(pyproject_entries, decorator_entries)
+        print("✓ Declared every detected import")
+    else:
+        print("✓ Every import is declared")
 
     answer = _resolve_framework_answer(pipeline, requires_haywire)
     if answer:
@@ -141,37 +166,29 @@ def _confirm(prompt: str) -> bool:
 
 
 def _run_interactive(pipeline: SharePipeline) -> int:
-    """Prompt through the same six steps the wizard walks."""
+    """Prompt through the same screens the wizard walks."""
     print("── 1. Preconditions ──")
     pipeline.require_preconditions()
     print("✓ git, barn/, and origin all OK")
 
-    print("\n── 2. Dependency drift ──")
-    drift = pipeline.check_drift()
-    if drift.needs_decision:
-        for d in drift.drifted:
-            print(f"  {d.lib_dir.name}:")
-            for dep in d.pyproject_missing:
-                print(f"    + pyproject.toml: {dep}")
-            for dep in d.decorator_missing:
-                print(f"    + @library(dependencies): {dep}")
-        choice = _ask("Union (add missing) / Replace (overwrite) / Skip", default="Union").lower()
-        if choice.startswith("u"):
-            pipeline.apply_drift_union(drift)
-            print("✓ Merged detected dependencies")
-        elif choice.startswith("r"):
-            print("Replace removes declarations the source no longer imports.")
-            if not _confirm("Really replace?"):
-                return EXIT_FAILED
-            pipeline.apply_drift_replace(drift)
-            print("✓ Replaced declared dependencies")
-        else:
-            pipeline.acknowledge_drift()
-            print("⚠ Continuing with unresolved drift")
-    else:
-        print("✓ No drift")
+    print("\n── 2. Detect ──")
+    report = pipeline.check_drift()
+    for d in report.libraries:
+        print(f"  {d.lib_dir.name}:")
+        for dep in d.pyproject_missing:
+            print(f"    ! undeclared import: {dep}")
+        for dep in d.decorator_missing:
+            print(f"    ! undeclared in @library(dependencies): {dep}")
+        for dep in d.unused_declarations:
+            print(f"    · declared, not imported: {dep}")
+        for dist, declared, installed in d.pyproject_version_lag:
+            print(f"    · {dist} floor {declared}, installed {installed}")
+        for dep in d.unresolved:
+            print(f"    ? unresolved import: {dep}")
+    if not report.libraries:
+        print("  Nothing to report.")
 
-    print("\n── 2b. Framework requirement ──")
+    print("\n── 3. Framework requirement ──")
     fw = pipeline.plan_framework()
     print(f"  haywire-core, installed: {fw.installed or '(unknown)'}")
     for index, option in enumerate(fw.options, start=1):
@@ -182,18 +199,71 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     print(f"  {len(fw.options) + 1}. custom …   any valid PEP 440 specifier")
     choice = _ask("Choose", default="1")
     if choice.strip() == str(len(fw.options) + 1):
-        pipeline.apply_framework(_ask("Specifier (e.g. >=0.0.31)"))
-        print(f"✓ Framework requirement set to {pipeline.requires_haywire}")
+        specifier = _ask("Specifier (e.g. >=0.0.31)")
     else:
         try:
-            picked = fw.options[int(choice) - 1]
+            specifier = fw.options[int(choice) - 1].specifier
         except (ValueError, IndexError):
             print("✗ Not one of the offered options.")
             return EXIT_FAILED
-        pipeline.apply_framework(picked.specifier)
-        print(f"✓ Framework requirement set to {pipeline.requires_haywire}")
+    pipeline.apply_framework(specifier)
+    print(f"✓ Framework requirement set to haywire-core{specifier}")
 
-    print("\n── 3. Version ──")
+    print("\n── 4. Unused declarations ──")
+    unused = {d.lib_dir: list(d.unused_declarations) for d in report.libraries if d.unused_declarations}
+    if not unused:
+        print("  None.")
+    else:
+        for lib_dir, names in unused.items():
+            print(f"  {lib_dir.name}: {', '.join(names)}")
+        print("  Removing is irreversible here and a dynamic import looks identical")
+        print("  to an unused declaration.")
+        if _confirm("Remove them?"):
+            pipeline.apply_removals(unused)
+            print("✓ Removed")
+        else:
+            print("· Kept")
+
+    print("\n── 5. Undeclared imports ──")
+    if not report.needs_decision:
+        print("  None.")
+    else:
+        pyproject_entries: dict[Path, list[str]] = {}
+        decorator_entries: dict[Path, list[str]] = {}
+        for d in report.drifted:
+            entries, names = _detected_additions(d)
+            for dep in entries + names:
+                print(f"  {d.lib_dir.name}: {dep}")
+            pyproject_entries[d.lib_dir] = entries
+            decorator_entries[d.lib_dir] = names
+        if _confirm("Declare them?"):
+            pipeline.apply_additions(pyproject_entries, decorator_entries)
+            print("✓ Declared")
+        else:
+            pipeline.acknowledge_undeclared()
+            print("⚠ Publishing with imports left undeclared — consumers may fail to install")
+
+    print("\n── 6. Version floors ──")
+    lagging = {d.lib_dir: list(d.pyproject_version_lag) for d in report.libraries if d.pyproject_version_lag}
+    if not lagging:
+        print("  Every declared floor is at or above what is installed.")
+    else:
+        for lib_dir, rows in lagging.items():
+            for dist, declared, installed in rows:
+                print(f"  {lib_dir.name}: {dist} declares {declared}, {installed} installed")
+        print("  A floor states the OLDEST version that works, which nothing here can")
+        print("  compute — installed being newer is not evidence the floor is wrong.")
+        if _confirm("Sync these floors to the installed versions?"):
+            floors = {
+                lib_dir: [f"{dist}>={installed}" for dist, _declared, installed in rows]
+                for lib_dir, rows in lagging.items()
+            }
+            pipeline.apply_floors(floors)
+            print("✓ Synced")
+        else:
+            print("· Kept")
+
+    print("\n── 7. Version ──")
     version_plan = pipeline.plan_version()
     for lib in version_plan.current:
         print(f"  {lib.name}: {lib.version or '(none)'}")
@@ -209,11 +279,11 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     if bump_result.lock_warning:
         print(f"⚠ {bump_result.lock_warning}")
 
-    print("\n── 4. Docs ──")
+    print("\n── 8. Docs ──")
     docs = asyncio.run(pipeline.apply_docs(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Docs regenerated ({docs.total_gaps} coverage gap(s))")
 
-    print("\n── 5. Marketstall, commit, tag ──")
+    print("\n── 9. Marketstall, commit, tag ──")
     stall = pipeline.apply_marketstall()
     print(f"✓ Wrote {stall.out_path}")
     if stall.warning:
@@ -247,7 +317,7 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     result = pipeline.apply_commit(plan, include_barn=include_barn)
     print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
 
-    print("\n── 6. Push ──")
+    print("\n── 10. Push ──")
     if not _confirm(f"Push {result.tag} to origin?"):
         print(f"Not pushed. Run this when ready:\n  git {' '.join(pipeline.push_command())}")
         return EXIT_OK

@@ -32,8 +32,9 @@ from haywire_studio.packaging.share.pipeline.results import (
     VersionPlan,
 )
 from haywire_studio.packaging.share.pipeline.steps import commit as steps_commit
+from haywire_studio.packaging.share.pipeline.steps import dependencies as steps_dependencies
+from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
 from haywire_studio.packaging.share.pipeline.steps import docs as steps_docs
-from haywire_studio.packaging.share.pipeline.steps import drift as steps_drift
 from haywire_studio.packaging.share.pipeline.steps import framework as steps_framework
 from haywire_studio.packaging.share.pipeline.steps import preconditions as steps_preconditions
 from haywire_studio.packaging.share.pipeline.steps import push as steps_push
@@ -57,15 +58,14 @@ class SharePipeline:
         # in) and never uses `git add -A`.
         self.written: list[Path] = []
         self.remote_url: str | None = None
-        # Set when the user chose to continue past unresolved drift rather than
-        # fix it. Step 5 records it in nothing — it exists so a caller can tell
-        # "clean" from "acknowledged" without re-running detection.
-        self.drift_acknowledged = False
+        # Set when the author chose to publish a library WITHOUT declaring
+        # something its source imports. Narrow on purpose: an undeclared import
+        # is the one dependency state that breaks a consumer's install, so it
+        # is the one that `--yes` refuses to guess at. Unused declarations,
+        # lagging floors and pin choices all have safe defaults and need no
+        # acknowledgement.
+        self.undeclared_acknowledged = False
         self.version: str | None = None
-        # The one project-wide framework requirement, set by apply_framework().
-        # Step 5 reads it so the marketstall entry and the pyproject floor
-        # carry the same authored answer.
-        self.requires_haywire: str | None = None
 
     # ── Step 1: preconditions ────────────────────────────────────────────────
 
@@ -107,29 +107,24 @@ class SharePipeline:
                 self.written.append(path)
         return paths
 
-    # ── Step 2: dependency drift ─────────────────────────────────────────────
+    # ── Step 2: detect (pure) ────────────────────────────────────────────────
 
     def check_drift(self) -> DriftReport:
-        """Scan every barn library for dependency drift."""
-        return steps_drift.check(self)
+        """Report every barn library's dependency findings. Writes nothing."""
+        return steps_detect.check(self)
 
-    def apply_drift_union(self, report: DriftReport) -> list[Path]:
-        """Additively merge detected dependencies into what is declared."""
-        return steps_drift.apply_union(self, report)
-
-    def apply_drift_replace(self, report: DriftReport) -> list[Path]:
-        """Overwrite declared dependencies with exactly what was detected."""
-        return steps_drift.apply_replace(self, report)
-
-    def acknowledge_drift(self) -> None:
-        """Record that the user chose to publish without resolving drift."""
-        self.drift_acknowledged = True
+    def acknowledge_undeclared(self) -> None:
+        """Record that the author is publishing a knowingly-undeclared import."""
+        self.undeclared_acknowledged = True
 
     def _barn_library_dirs(self) -> list[Path]:
         """Every ``barn/*`` directory holding a pyproject.toml, sorted."""
         return barn_library_dirs(self.repo_root)
 
-    # ── Step 2b: framework requirement ───────────────────────────────────────
+    # ── Steps 2b–2e: the dependency writes ───────────────────────────────────
+    #
+    # Each apply touches only the entries it owns; see steps/dependencies.py
+    # for why that is a correctness property and not a style choice.
 
     def plan_framework(self) -> FrameworkPlan:
         """The framework requirement on offer: keep, raise, or compatible."""
@@ -137,7 +132,23 @@ class SharePipeline:
 
     def apply_framework(self, specifier: str) -> list[Path]:
         """Write *specifier* as the haywire-core floor in every barn library."""
-        return steps_framework.apply(self, specifier)
+        return steps_dependencies.apply_framework(self, specifier)
+
+    def apply_removals(self, removals: dict[Path, list[str]]) -> list[Path]:
+        """Drop declarations the source no longer imports, per library."""
+        return steps_dependencies.apply_removals(self, removals)
+
+    def apply_additions(
+        self,
+        pyproject_entries: dict[Path, list[str]],
+        decorator_entries: dict[Path, list[str]],
+    ) -> list[Path]:
+        """Declare imports the manifests omit, using the author's chosen pins."""
+        return steps_dependencies.apply_additions(self, pyproject_entries, decorator_entries)
+
+    def apply_floors(self, floors: dict[Path, list[str]]) -> list[Path]:
+        """Rewrite the declared floors the author chose to change."""
+        return steps_dependencies.apply_floors(self, floors)
 
     # ── Step 3: version bump (lockstep) ──────────────────────────────────────
 

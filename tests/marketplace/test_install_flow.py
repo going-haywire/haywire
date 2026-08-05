@@ -284,7 +284,7 @@ async def test_declared_framework_requirement_blocks_before_the_resolver() -> No
     """A library whose author declared a framework it cannot have must be
     refused without paying for a resolver round.
 
-    Before the gate existed, requires_haywire was parsed and stored but never
+    Before the gate existed, require was parsed and stored but never
     consulted, so this cost seconds of uv and surfaced several steps in.
     """
     source = _FakeSource()
@@ -292,7 +292,7 @@ async def test_declared_framework_requirement_blocks_before_the_resolver() -> No
         name="haybale-vision",
         version="0.3.0",
         install_spec="haybale-vision==0.3.0",
-        requires_haywire=">=99.0.0",
+        require="haywire-core>=99.0.0",
     )
     flow = _flow(source, package=pkg)
 
@@ -306,10 +306,10 @@ async def test_declared_framework_requirement_blocks_before_the_resolver() -> No
 
 @pytest.mark.anyio
 async def test_undeclared_requirement_still_reaches_the_resolver() -> None:
-    """An absent requires_haywire must not block: CI-generated entries and any
+    """An absent require must not block: CI-generated entries and any
     entry predating the field carry none, and the resolver is the real guard."""
     source = _FakeSource()
-    flow = _flow(source, package=_pkg())  # no requires_haywire
+    flow = _flow(source, package=_pkg())  # no require
 
     await flow.advance_from_selected()
 
@@ -326,7 +326,7 @@ async def test_satisfied_requirement_reaches_the_resolver() -> None:
         name="haybale-vision",
         version="0.3.0",
         install_spec="haybale-vision==0.3.0",
-        requires_haywire=">=0.0.1",
+        require="haywire-core>=0.0.1",
     )
     flow = _flow(source, package=pkg)
 

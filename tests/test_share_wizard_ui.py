@@ -7,7 +7,7 @@ from unittest.mock import AsyncMock, patch
 import pytest
 
 from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps import drift as steps_drift
+from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
 from haywire_studio.packaging.share.pipeline.steps import push as steps_push
 from haywire_studio.packaging.share.pipeline.steps import version as steps_version
 
@@ -101,12 +101,12 @@ async def test_healthy_project_reports_a_pass_before_scanning(project: Path) -> 
 
 
 @pytest.mark.anyio
-async def test_scan_advances_to_drift(project: Path) -> None:
+async def test_scan_advances_to_detect(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-    assert wizard.step == "drift"
+    assert wizard.step == "detect"
     assert wizard.error is None
     assert wizard.drift_report is not None
 
@@ -139,7 +139,7 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
 async def test_clean_drift_skips_straight_to_version(project: Path) -> None:
     """Nothing to decide means nothing to ask."""
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
     assert wizard.drift_report is not None
@@ -150,35 +150,68 @@ async def test_clean_drift_skips_straight_to_version(project: Path) -> None:
 
 
 @pytest.mark.anyio
-async def test_drift_union_advances(project: Path) -> None:
+async def test_detect_writes_nothing_and_advances(project: Path) -> None:
+    """The report is read-only; the first write is the framework floor."""
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_drifty):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_drifty):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        with patch.object(steps_drift, "apply_drift_fix"):
-            await wizard.advance_from_drift("union")
+        await wizard.advance_from_detect()
     assert wizard.step == "framework"
+    assert wizard.pipeline.written == []
 
 
 @pytest.mark.anyio
-async def test_drift_skip_records_the_acknowledgement(project: Path) -> None:
+async def test_declining_to_declare_records_the_acknowledgement(project: Path) -> None:
+    """Publishing a knowingly-undeclared import is the one state worth flagging."""
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_drifty):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_drifty):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
-    assert wizard.step == "framework"
-    assert wizard.pipeline.drift_acknowledged is True
+        await wizard.advance_from_detect()
+        await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {}, skipped=True)
+    assert wizard.step == "floors"
+    assert wizard.pipeline.undeclared_acknowledged is True
+
+
+@pytest.mark.anyio
+async def test_keeping_everything_writes_only_the_framework_floor(project: Path) -> None:
+    """Every dependency screen's default answer is inert."""
+    wizard = _wizard(project)
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_drifty):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+        await wizard.advance_from_detect()
+        await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+    assert wizard.step == "confirm"
+    assert [p.name for p in wizard.pipeline.written] == ["pyproject.toml"]
 
 
 @pytest.mark.anyio
 async def test_version_plan_is_loaded_for_the_next_panel(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     assert wizard.version_plan is not None
     assert wizard.version_plan.common_version == "0.3.1"
 
@@ -189,11 +222,15 @@ async def test_version_plan_is_loaded_for_the_next_panel(project: Path) -> None:
 @pytest.mark.anyio
 async def test_version_bump_advances_to_docs(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     assert wizard.step == "docs"
     assert wizard.pipeline.version == "0.3.2"
@@ -254,11 +291,15 @@ async def test_version_bump_hot_swaps_live_library_when_manager_present(project:
         popup=None,
         manager=_FakeManager(registry),  # type: ignore[arg-type]
     )
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     assert registry.removed == ["alpha"]
@@ -282,11 +323,15 @@ async def test_version_bump_hot_swap_ors_needs_restart_across_libraries(project:
         popup=None,
         manager=_FakeManager(registry),  # type: ignore[arg-type]
     )
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     assert wizard.hot_swap_needs_restart is True
@@ -297,11 +342,15 @@ async def test_version_bump_without_manager_skips_hot_swap(project: Path) -> Non
     """No manager (e.g. the CLI, or a studio without a live registry) — the
     bump stays file-only, exactly as before Option B."""
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     assert wizard.hot_swapped_libraries == []
@@ -322,11 +371,15 @@ async def test_version_bump_skips_library_not_found_live(project: Path) -> None:
         popup=None,
         manager=_FakeManager(registry),  # type: ignore[arg-type]
     )
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     assert registry.removed == []
@@ -340,11 +393,15 @@ async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -
     """Where the fix is cheapest — 'pick 0.3.2 instead' costs nothing here."""
     subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     assert wizard.step == "version"
@@ -356,11 +413,15 @@ async def test_tag_collision_keeps_the_user_on_the_version_step(project: Path) -
 async def test_lock_warning_surfaces_without_blocking(project: Path) -> None:
     (project / "uv.lock").write_text("")
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     with patch.object(steps_version, "refresh_lockfile", return_value=(False, "uv lock failed: boom")):
         await wizard.advance_from_version("patch")
 
@@ -375,11 +436,15 @@ async def test_lock_warning_surfaces_without_blocking(project: Path) -> None:
 @pytest.mark.anyio
 async def test_docs_step_advances_and_keeps_coverage(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -394,11 +459,15 @@ async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
     from haywire_studio.packaging.share.pipeline import DocsGenerationError
 
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     with patch.object(
@@ -415,11 +484,15 @@ async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
 @pytest.mark.anyio
 async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
 
     async def _streamy(self, on_output=None):
@@ -441,11 +514,15 @@ async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
 @pytest.mark.anyio
 async def test_commit_advances_to_push(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -462,11 +539,15 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
     from haywire_studio.packaging.share import git as gitcmd
 
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -496,11 +577,15 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
 @pytest.mark.anyio
 async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
     asset.write_bytes(b"\x89PNG")
@@ -525,11 +610,15 @@ async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
 @pytest.mark.anyio
 async def test_push_completes_the_wizard(project: Path) -> None:
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -545,11 +634,15 @@ async def test_push_failure_is_retryable_in_place(project: Path) -> None:
     from haywire_studio.packaging.share.pipeline import PushError
 
     wizard = _wizard(project)
-    with patch.object(steps_drift, "detect_share_drift", side_effect=_no_drift):
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
         await wizard.advance_from_preconditions()
         await wizard.advance_from_checked()
-        await wizard.advance_from_drift("skip")
+        await wizard.advance_from_detect()
         await wizard.advance_from_framework(">=0.0.1")
+        await wizard.advance_from_unused({})
+        await wizard.advance_from_undeclared({}, {})
+        await wizard.advance_from_floors({})
+        await wizard.advance_from_confirm()
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
@@ -725,23 +818,48 @@ async def test_failing_fix_is_caught_and_rendered_without_crashing(project: Path
     assert wizard.precondition_failures[0].fix_id is None
 
 
-def test_every_drift_choice_is_explained() -> None:
-    """The three words can't carry the semantics on their own: the choice that
-    sounds safest (Replace) deletes, and the neutral-sounding one (Skip) ships
-    libraries whose deps are undeclared. Each option must state its effect."""
-    from haybale_marketplace.editors._share_wizard import _DRIFT_EXPLANATIONS, _DRIFT_OPTIONS
+def test_every_pin_choice_is_explained() -> None:
+    """The labels can't carry the semantics on their own.
 
-    assert set(_DRIFT_OPTIONS) == {"union", "replace", "skip"}
-    assert set(_DRIFT_EXPLANATIONS) == set(_DRIFT_OPTIONS)
+    "Skip" sounds like the neutral option and is the only one that ships a
+    library consumers cannot import, so each choice must state its effect.
+    """
+    from haybale_marketplace.editors._share_wizard.copy import PIN_EXPLANATIONS, PIN_OPTIONS
 
-    # Replace is the destructive one and must say so.
-    assert "REMOVED" in _DRIFT_EXPLANATIONS["replace"][0]
-    assert _DRIFT_EXPLANATIONS["replace"][1] == "--hw-danger"
-    # Union is additive and must promise that nothing is lost.
-    assert "Nothing is removed" in _DRIFT_EXPLANATIONS["union"][0]
-    assert _DRIFT_EXPLANATIONS["union"][1] == "--hw-positive"
-    # Skip must name the consequence for consumers, not just "does nothing".
-    assert "unresolved" in _DRIFT_EXPLANATIONS["skip"][0]
+    assert set(PIN_OPTIONS) == {"none", "installed", "custom", "skip"}
+    assert set(PIN_EXPLANATIONS) == set(PIN_OPTIONS)
+
+    # Skip is the one that breaks consumers and must say so.
+    assert "fail to import" in PIN_EXPLANATIONS["skip"][0]
+    assert PIN_EXPLANATIONS["skip"][1] == "--hw-danger"
+    # No-pin is the safe default and must promise it constrains nobody.
+    assert "constrain" in PIN_EXPLANATIONS["none"][0].lower()
+    assert PIN_EXPLANATIONS["none"][1] == "--hw-positive"
+    # Floor-at-installed is legitimate but exclusionary; it must name that.
+    assert "lock out" in PIN_EXPLANATIONS["installed"][0]
+
+
+def test_floor_options_lead_with_keeping_the_declaration() -> None:
+    """The inert answer must be first, and must exist.
+
+    A floor states the OLDEST version that works. Nothing in the wizard can
+    compute that, so "keep" has to be available and has to be the default.
+    """
+    from haybale_marketplace.editors._share_wizard.copy import FLOOR_OPTIONS
+
+    assert next(iter(FLOOR_OPTIONS)) == "keep"
+    assert set(FLOOR_OPTIONS) == {"keep", "sync", "custom"}
+
+
+def test_detect_sections_cover_every_dep_drift_finding() -> None:
+    """A finding with no copy renders as a blank section the author cannot act on."""
+    import dataclasses
+
+    from haybale_marketplace.editors._share_wizard.copy import DETECT_SECTIONS
+    from haywire_studio.packaging.share import DepDrift
+
+    reportable = {f.name for f in dataclasses.fields(DepDrift)} - {"lib_dir"}
+    assert set(DETECT_SECTIONS) == reportable
 
 
 def test_every_wizard_select_is_marked_in_popup() -> None:

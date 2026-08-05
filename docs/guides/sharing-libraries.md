@@ -141,7 +141,7 @@ Each `barn/*` library becomes one `[[haybales]]` entry in the generated
 name             = "haybale-my-lib"
 label            = "My Lib"
 version          = "0.1.0"
-requires_haywire = ">=0.0.31"
+require = "haywire-core>=0.0.31"
 description      = "One-line summary of what the library does."
 author           = "Your Name"
 source           = "git"
@@ -159,10 +159,12 @@ A few points worth knowing as an author (every field is defined in [the `Haybale
 - `dependencies` lists pip distribution names of the haybale libraries you depend on — *not* the underscore form used inside the `@library` decorator.
 - `version` is the version this entry advertises — what you published. It is not
   a floor and nothing resolves against it; its only job is the update comparison.
-- `requires_haywire` declares which framework versions your library needs, as a
-  full PEP 440 specifier. Keep it as low as your library actually allows: a floor
-  restricts *consumers*, and raising it forces every one of them to update their
-  project before they can install you.
+- `require` declares which framework versions your library needs, as a full PEP
+  508 token (`haywire-core>=0.0.31`). It is derived from the `haywire-core` entry
+  in your library's own `pyproject.toml`, so you set it once, in one place. Keep
+  it as low as your library actually allows: a floor restricts *consumers*, and
+  raising it forces every one of them to update their project before they can
+  install you.
 - The four ref-bearing URLs (`install_spec`, `docs_url`, `examples_url`, `tests_url`) all pin to the release tag `v<version>` created by this run — not the branch you published from — so they stay correct even after your branch is deleted.
 
 `haywire share` derives all this from each library's `pyproject.toml`, its `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.

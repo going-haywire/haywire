@@ -1,14 +1,39 @@
-"""Step vocabulary and dependency-drift copy for the Share Project wizard."""
+"""Step vocabulary and dependency copy for the Share Project wizard.
+
+Screens are named after the FINDING, not the operation. "Unused declarations"
+is a true description of that screen whether the author removes them or keeps
+them; "Removals" would be true in only one branch. The names also match the
+headings in the Detect report, so a finding reads identically where it is
+reported and where it is resolved.
+"""
 
 from __future__ import annotations
 
-STEPS = ("preconditions", "checked", "drift", "framework", "version", "docs", "commit", "push", "done")
+STEPS = (
+    "preconditions",
+    "checked",
+    "detect",
+    "framework",
+    "unused",
+    "undeclared",
+    "floors",
+    "confirm",
+    "version",
+    "docs",
+    "commit",
+    "push",
+    "done",
+)
 
 STEP_TITLES = {
     "preconditions": "Check the project",
     "checked": "Scan dependencies",
-    "drift": "Dependencies",
+    "detect": "Detect",
     "framework": "Framework requirement",
+    "unused": "Unused declarations",
+    "undeclared": "Undeclared imports",
+    "floors": "Version floors",
+    "confirm": "Confirm",
     "version": "Version",
     "docs": "Documentation",
     "commit": "Review and commit",
@@ -16,37 +41,85 @@ STEP_TITLES = {
     "done": "Shared",
 }
 
-# Union leads: it is the only choice that is both corrective and safe.
-_DRIFT_OPTIONS = {
-    "union": "Union — add what's missing",
-    "replace": "Replace — overwrite declarations",
-    "skip": "Skip — publish as-is",
+# What each Detect finding means, in consumer terms. Severity is carried by the
+# colour token, not by the wording: only the first BREAKS an install.
+DETECT_SECTIONS = {
+    "pyproject_missing": (
+        "Undeclared imports",
+        "The source imports these but pyproject.toml does not declare them. "
+        "Consumers install the library and it fails on import.",
+        "--hw-danger",
+    ),
+    "decorator_missing": (
+        "Undeclared in @library(dependencies)",
+        "These libraries must be enabled for this one to work, but the decorator "
+        "does not say so — dependency resolution and hot-reload scope tracking "
+        "both read that list.",
+        "--hw-danger",
+    ),
+    "unused_declarations": (
+        "Declared, not imported",
+        "Declared but never imported. Harmless to consumers, and a dynamic import "
+        "looks exactly like this, so nothing is removed unless you say so.",
+        "--hw-text-dim",
+    ),
+    "pyproject_version_lag": (
+        "Version floors",
+        "A declared floor sits below the version installed here. That is not "
+        "evidence the floor is wrong: a floor states the OLDEST version that "
+        "works, which nothing can compute from source alone.",
+        "--hw-text-dim",
+    ),
+    "unresolved": (
+        "Unresolved imports",
+        "These imports mapped to no installed distribution, so nothing can tell "
+        "whether they need declaring. Usually dynamic or conditional.",
+        "--hw-warning",
+    ),
 }
 
-# (explanation, colour token, icon). The words alone can't carry these
-# semantics: the two that sound safest are the destructive one and the one
-# that ships a knowingly-broken artifact.
-_DRIFT_EXPLANATIONS = {
-    "union": (
-        "Adds the dependencies listed above to each library's pyproject.toml and "
-        "@library decorator, and raises any lagging version floors. Nothing is "
-        "removed — declarations you already have are kept as they are.",
+# Per-item pin choices on the Undeclared imports screen. "no-pin" leads: it
+# constrains nobody, and the correct floor is not computable from source.
+PIN_OPTIONS = {
+    "none": "No pin — declare it, constrain nothing",
+    "installed": "Floor at the installed version",
+    "custom": "Custom specifier…",
+    "skip": "Skip — do not declare",
+}
+
+PIN_EXPLANATIONS = {
+    "none": (
+        "Declares the dependency but constrains no version. Consumers resolve "
+        "whatever fits the rest of their project — the safest default, since "
+        "nothing here knows the oldest version that actually works.",
         "--hw-positive",
-        "add_circle",
+        "check_circle",
     ),
-    "replace": (
-        "Overwrites each library's declarations with exactly what its source "
-        "imports. Anything declared but no longer imported is REMOVED — including "
-        "deps you added deliberately, such as optional or runtime-only ones. "
-        "The wizard cannot undo this.",
+    "installed": (
+        "Declares it with a floor at the version installed on this machine. "
+        "Correct when you know you rely on something recent; it does lock out "
+        "consumers on older versions.",
+        "--hw-text-dim",
+        "vertical_align_bottom",
+    ),
+    "custom": (
+        "Write the specifier yourself. Validated before the confirm step.",
+        "--hw-text-dim",
+        "edit",
+    ),
+    "skip": (
+        "Leaves the import undeclared and publishes anyway. Consumers will fail "
+        "to import until they install it by hand — choose this only when the "
+        "import is optional or guarded.",
         "--hw-danger",
         "warning",
     ),
-    "skip": (
-        "Changes nothing and publishes with the drift unresolved. The libraries "
-        "above will install for consumers without these dependencies, so they "
-        "fail on import until each one is installed by hand.",
-        "--hw-warning",
-        "info",
-    ),
+}
+
+# Per-item choices on the Version floors screen. "keep" is pre-selected and is
+# a no-op, so the no-interaction outcome is provably no change.
+FLOOR_OPTIONS = {
+    "keep": "Keep the declared floor",
+    "sync": "Sync to the installed version",
+    "custom": "Custom specifier…",
 }

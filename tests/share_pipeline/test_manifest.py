@@ -5,8 +5,8 @@ Two postures share one parsing path (Task 2 plan):
 * Reading *to report* (`detect_share_drift`, `read_barn_versions`) must
   degrade to `{}` on a bad file — the report should still surface what's
   missing rather than crash.
-* Reading *to rewrite* (`apply_drift_fix`, `_build_entry_for_library`) must
-  raise, or a corrupt file could get silently overwritten.
+* Reading *to rewrite* (the `dep_edit` operations, `_build_entry_for_library`)
+  must raise, or a corrupt file could get silently overwritten.
 """
 
 from __future__ import annotations
@@ -14,12 +14,12 @@ from __future__ import annotations
 from pathlib import Path
 
 import pytest
+import toml
 
+from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
 from haywire_studio.packaging.share import (
-    DepDrift,
     InvalidOsDeclarationError,
     ManifestReadError,
-    apply_drift_fix,
     read_manifest,
     read_manifest_lenient,
 )
@@ -84,15 +84,25 @@ def test_strict_read_raises_on_undeclarable_os_value(tmp_path: Path) -> None:
         read_manifest(lib_dir)
 
 
-def test_apply_drift_fix_raises_before_writing(tmp_path: Path) -> None:
-    """The old guard degraded and then crashed inside set_pyproject_dependencies.
-    The strict read must fail BEFORE anything is written."""
+@pytest.mark.parametrize(
+    "write",
+    [
+        pytest.param(lambda d: add_dependencies(d, ["haywire-core>=0.0.1"]), id="add"),
+        pytest.param(lambda d: set_dependency(d, "haywire-core>=0.0.1"), id="set"),
+        pytest.param(lambda d: remove_dependencies(d, ["haywire-core"]), id="remove"),
+    ],
+)
+def test_dependency_writes_raise_before_touching_a_broken_file(tmp_path: Path, write) -> None:
+    """A corrupt manifest must fail the read, not get silently overwritten.
+
+    Every entry-level operation reads the current array before editing it, so
+    each one has to fail closed — a writer that degraded to `{}` here would
+    replace the author's unparseable file with a synthesized one.
+    """
     lib_dir = _make_lib(tmp_path, pyproject_text="[[[broken")
     before = (lib_dir / "pyproject.toml").read_text()
 
-    drift = DepDrift(lib_dir=lib_dir, pyproject_missing=["haywire-core"])
-    with pytest.raises(ManifestReadError):
-        apply_drift_fix(drift)
+    with pytest.raises(toml.TomlDecodeError):
+        write(lib_dir)
 
-    after = (lib_dir / "pyproject.toml").read_text()
-    assert after == before
+    assert (lib_dir / "pyproject.toml").read_text() == before

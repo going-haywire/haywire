@@ -2,6 +2,8 @@
 
 import re
 
+from packaging.version import InvalidVersion, Version
+
 
 def _strip_specifier(spec: str) -> str:
     """Strip PEP 440 version operators and extras from a requirement string."""
@@ -36,13 +38,20 @@ def _parse_floor_spec(spec: str) -> tuple[str, str] | None:
     return None
 
 
-def _version_tuple(version: str) -> tuple[int, ...]:
-    """Best-effort numeric tuple for version comparison. Non-numeric segments
-    sort as 0 so pre-release tails don't crash the comparison; this gate's
-    job is to surface obvious lag, not to enforce strict PEP 440."""
-    parts = re.split(r"[.\-+]", version)
-    out: list[int] = []
-    for p in parts:
-        m = re.match(r"(\d+)", p)
-        out.append(int(m.group(1)) if m else 0)
-    return tuple(out)
+def version_lags(declared_floor: str, installed: str) -> bool:
+    """Whether *installed* is strictly newer than *declared_floor*.
+
+    Real PEP 440 comparison, not a numeric-tuple approximation. The former
+    hand-rolled tuple sorted non-numeric segments as 0, so ``0.0.38rc1``
+    compared *equal* to ``0.0.38`` and ``1.0`` sorted below ``1.0.0``. That was
+    tolerable while lag was an internal gate; it is not tolerable now that the
+    comparison's result is stated to the author as a fact about their project.
+
+    Unparseable input returns False: an unreadable version is a gap in our
+    metadata, and reporting lag we cannot substantiate is exactly the guessing
+    this design removes.
+    """
+    try:
+        return Version(installed) > Version(declared_floor)
+    except InvalidVersion:
+        return False

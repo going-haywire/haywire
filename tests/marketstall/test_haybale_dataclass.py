@@ -246,13 +246,13 @@ def test_public_surface_imports_from_marketstall_package() -> None:
 
 @pytest.mark.unit
 def test_requires_haywire_defaults_empty_and_round_trips():
-    """requires_haywire holds a FULL PEP 440 specifier, not a bare version —
+    """require holds a FULL PEP 440 specifier, not a bare version —
     the author picks the operator. Absent means no declared requirement."""
     from haywire.core.marketstall import Haybale
 
     bare = Haybale(name="haybale-foo", version="0.1.0")
-    assert bare.requires_haywire == ""
-    assert "requires_haywire" not in bare.to_dict()
+    assert bare.require == ""
+    assert "require" not in bare.to_dict()
 
-    declared = Haybale(name="haybale-foo", version="0.1.0", requires_haywire=">=0.0.31,<1.0.0")
-    assert declared.to_dict()["requires_haywire"] == ">=0.0.31,<1.0.0"
+    declared = Haybale(name="haybale-foo", version="0.1.0", require=">=0.0.31,<1.0.0")
+    assert declared.to_dict()["require"] == ">=0.0.31,<1.0.0"

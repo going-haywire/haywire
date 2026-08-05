@@ -1,23 +1,31 @@
 """Pre-emptive framework-requirement check for a marketstall entry.
 
 The gate the share pipeline's framework step always described but nobody
-built: ``requires_haywire`` was authored, written to the marketstall entry,
-parsed, round-tripped and preserved across refreshes — and then never
+built: the framework requirement was authored, written to the marketstall
+entry, parsed, round-tripped and preserved across refreshes — and then never
 consulted. Every framework conflict surfaced only when uv's resolver refused
 the install, several steps into the flow.
 
 What this is worth, and what it is NOT: this is an **advisory** check against
-author-declared metadata, so it reads a catalog value that can be stale,
-absent, or simply wrong. It is therefore allowed to say "no declared problem"
-and be mistaken — the constraints file in ``LibraryManager`` still refuses the
+author-declared metadata, so it reads a catalog value that can be absent or
+simply wrong. It is therefore allowed to say "no declared problem" and be
+mistaken — the constraints file in ``LibraryManager`` still refuses the
 install at resolve time, and uv, which reads the real ``Requires-Dist`` off
 the wheel, remains the authority. The gate only moves a knowable "no" earlier,
 to the button the user just pressed. It must never be the sole guard, and a
-missing ``requires_haywire`` must never block anything.
+missing ``require`` must never block anything.
+
+Staleness is no longer one of the failure modes for entries this repo
+publishes: ``require`` is derived from the library's own pyproject floor at
+write time rather than authored beside it, so the two cannot disagree. A
+hand-edited catalog still can, hence "advisory".
 
 Only ``haywire-core`` is checked. It is the one package every haybale depends
 on, the carrier the share wizard writes its floor to, and the version the
-framework moves in lockstep with — so a core mismatch implies the rest.
+framework moves in lockstep with — so a core mismatch implies the rest. The
+``require`` token names the package anyway, matching the pyproject entry it
+projects; a token naming anything else is metadata this gate cannot act on and
+is passed through rather than blocked on.
 """
 
 from __future__ import annotations
@@ -28,7 +36,8 @@ from dataclasses import dataclass
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import InvalidVersion, Version
 
-_CORE = "haywire-core"
+from haywire.core.marketstall.requirement import CORE as _CORE
+from haywire.core.marketstall.requirement import dependency_name, requirement_specifier
 
 
 @dataclass(frozen=True)
@@ -52,14 +61,21 @@ def installed_core_version() -> str:
         return ""
 
 
-def check_requires_haywire(requires_haywire: str, installed: str | None = None) -> FrameworkVerdict:
-    """Whether *requires_haywire* admits the running ``haywire-core``.
+def check_require(require: str, installed: str | None = None) -> FrameworkVerdict:
+    """Whether the *require* token admits the running ``haywire-core``.
+
+    *require* is a full PEP 508 token — ``"haywire-core>=0.0.38"`` — matching
+    the shape of the library's own pyproject entry. A bare ``"haywire-core"``
+    means the author declared the dependency with no floor, which constrains
+    nothing and therefore passes.
 
     Returns ``ok=True`` for every case where no conflict is PROVEN, which
-    deliberately includes all four ways the check can fail to apply:
+    deliberately includes all six ways the check can fail to apply:
 
-    * no requirement declared (an older or CI-generated marketstall entry),
-    * a requirement that is not a parseable PEP 440 specifier,
+    * no requirement declared (an entry that omits the field),
+    * a token naming some package other than ``haywire-core``,
+    * a token with no specifier (declared, no floor),
+    * a specifier that is not parseable PEP 440,
     * an installed version that is not parseable, and
     * ``haywire-core`` not installed at all.
 
@@ -68,7 +84,17 @@ def check_requires_haywire(requires_haywire: str, installed: str | None = None) 
     wall in front of an install that may well succeed. The resolver still
     has the final say either way.
     """
-    declared = (requires_haywire or "").strip()
+    token = (require or "").strip()
+    if not token:
+        return FrameworkVerdict(ok=True)
+
+    # A token for anything else is metadata we cannot act on — only
+    # haywire-core is checked (see the module docstring for why that is
+    # sufficient), so a foreign name is a gap, not a conflict.
+    if dependency_name(token).lower() != _CORE:
+        return FrameworkVerdict(ok=True)
+
+    declared = requirement_specifier(token)
     if not declared:
         return FrameworkVerdict(ok=True)
 

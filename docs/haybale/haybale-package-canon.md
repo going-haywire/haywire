@@ -376,7 +376,7 @@ entry carries no `#subdirectory=` fragment and its paths sit at the repo root:
 [[haybales]]
 name             = "haybale-image"
 version          = "1.0.0"
-requires_haywire = ">=0.0.31"
+require = "haywire-core>=0.0.31"
 description      = "Image processing nodes for haywire — resize, filter, format convert."
 author           = "Author Name"
 source           = "git"
@@ -392,7 +392,7 @@ Or for a PyPI-published version:
 [[haybales]]
 name             = "haybale-image"
 version          = "1.0.0"
-requires_haywire = ">=0.0.31"
+require = "haywire-core>=0.0.31"
 source           = "pypi"
 install_spec     = "haybale-image>=1.0.0"
 docs_url         = ""   # falls back to PyPI long_description
