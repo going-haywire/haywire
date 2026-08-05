@@ -41,8 +41,12 @@ STEP_TITLES = {
     "done": "Shared",
 }
 
-# What each Detect finding means, in consumer terms. Severity is carried by the
-# colour token, not by the wording: only the first BREAKS an install.
+# What each Detect finding means, in consumer terms, keyed by DepDrift field.
+#
+# The panel groups by FINDING, so each blurb is stated ONCE above every
+# instance — it must read as a general statement about the category, never
+# about one library. Severity is carried by the colour token, not by the
+# wording: only the first BREAKS an install.
 DETECT_SECTIONS = {
     "pyproject_missing": (
         "Undeclared imports",
@@ -52,10 +56,10 @@ DETECT_SECTIONS = {
     ),
     "decorator_missing": (
         "Undeclared in @library(dependencies)",
-        "These libraries must be enabled for this one to work, but the decorator "
-        "does not say so — dependency resolution and hot-reload scope tracking "
-        "both read that list.",
-        "--hw-danger",
+        "Add these to the list so hot-reload scope tracking and the marketplace's "
+        "enable/disable gating know about them. The library still works without "
+        "it.",
+        "--hw-warning",
     ),
     "unused_declarations": (
         "Declared, not imported",

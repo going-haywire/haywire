@@ -200,6 +200,60 @@ def test_precondition_failure_exits_before_any_write(tmp_path: Path) -> None:
     assert toml.loads((lib / "pyproject.toml").read_text())["project"]["version"] == "0.1.0"
 
 
+# ── detect report ────────────────────────────────────────────────────────────
+
+
+def test_detect_report_groups_by_finding_not_by_library(capsys) -> None:
+    """Each explanation appears ONCE, with every instance listed under it.
+
+    Grouping by library repeated the same paragraph per library and left the
+    reader to work out which name was the subject and which the container.
+    """
+    from types import SimpleNamespace
+
+    from haywire_studio.packaging.share.cli import _print_detect_report
+
+    def _drift(name: str, **kwargs):
+        fields: dict[str, list] = dict(
+            pyproject_missing=[],
+            decorator_missing=[],
+            unused_declarations=[],
+            pyproject_version_lag=[],
+            unresolved=[],
+        )
+        fields.update(kwargs)
+        return SimpleNamespace(lib_dir=Path(f"barn/{name}"), **fields)
+
+    _print_detect_report(
+        SimpleNamespace(
+            libraries=[
+                _drift("haybale-example", decorator_missing=["haybale_studio"]),
+                _drift("haybale-marketplace", decorator_missing=["haybale_studio"]),
+                _drift("haybale-studio", pyproject_missing=["haywire-studio"]),
+            ]
+        )
+    )
+
+    out = capsys.readouterr().out
+    # One heading per finding, however many libraries it spans.
+    assert out.count("Undeclared in @library(dependencies)") == 1
+    # Both instances sit under it, each naming its own library.
+    assert "haybale_studio  in haybale-example" in out
+    assert "haybale_studio  in haybale-marketplace" in out
+    # A different finding gets its own heading.
+    assert "haywire-studio  in haybale-studio" in out
+
+
+def test_detect_report_says_so_when_there_is_nothing(capsys) -> None:
+    from types import SimpleNamespace
+
+    from haywire_studio.packaging.share.cli import _print_detect_report
+
+    _print_detect_report(SimpleNamespace(libraries=[]))
+
+    assert "Nothing to report" in capsys.readouterr().out
+
+
 # ── argparse surface ─────────────────────────────────────────────────────────
 
 

@@ -155,6 +155,46 @@ def _run_yes(
 # ── interactive ──────────────────────────────────────────────────────────────
 
 
+_DETECT_SECTIONS: tuple[tuple[str, str], ...] = (
+    ("pyproject_missing", "Undeclared imports — pyproject.toml does not declare these"),
+    ("decorator_missing", "Undeclared in @library(dependencies) — hot-reload and enable gating"),
+    ("unused_declarations", "Declared, not imported"),
+    ("pyproject_version_lag", "Version floors below what is installed"),
+    ("unresolved", "Unresolved imports — mapped to no installed distribution"),
+)
+
+
+def _print_detect_report(report: object) -> None:
+    """Print the findings grouped by KIND, each instance naming its library.
+
+    Grouping by library instead repeats the same explanation once per library
+    and forces the reader to work out which name is the subject and which is
+    the container. Mirrors the wizard's Detect screen so both surfaces read
+    the same way.
+    """
+    libraries = report.libraries  # type: ignore[attr-defined]
+    printed = False
+    for field, heading in _DETECT_SECTIONS:
+        rows: list[str] = []
+        for drift in libraries:
+            library = drift.lib_dir.name
+            if field == "pyproject_version_lag":
+                rows += [
+                    f"{dist}  in {library} — declares {declared}, {installed} installed"
+                    for dist, declared, installed in getattr(drift, field)
+                ]
+            else:
+                rows += [f"{item}  in {library}" for item in getattr(drift, field)]
+        if not rows:
+            continue
+        printed = True
+        print(f"\n  {heading}:")
+        for row in rows:
+            print(f"    {row}")
+    if not printed:
+        print("  Nothing to report.")
+
+
 def _ask(prompt: str, *, default: str = "") -> str:
     suffix = f" [{default}]" if default else ""
     answer = input(f"{prompt}{suffix}: ").strip()
@@ -173,20 +213,7 @@ def _run_interactive(pipeline: SharePipeline) -> int:
 
     print("\n── 2. Detect ──")
     report = pipeline.check_drift()
-    for d in report.libraries:
-        print(f"  {d.lib_dir.name}:")
-        for dep in d.pyproject_missing:
-            print(f"    ! undeclared import: {dep}")
-        for dep in d.decorator_missing:
-            print(f"    ! undeclared in @library(dependencies): {dep}")
-        for dep in d.unused_declarations:
-            print(f"    · declared, not imported: {dep}")
-        for dist, declared, installed in d.pyproject_version_lag:
-            print(f"    · {dist} floor {declared}, installed {installed}")
-        for dep in d.unresolved:
-            print(f"    ? unresolved import: {dep}")
-    if not report.libraries:
-        print("  Nothing to report.")
+    _print_detect_report(report)
 
     print("\n── 3. Framework requirement ──")
     fw = pipeline.plan_framework()

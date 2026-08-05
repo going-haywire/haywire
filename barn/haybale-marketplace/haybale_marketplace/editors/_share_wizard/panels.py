@@ -101,22 +101,35 @@ def _panel_checked(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
         scan.on_click(lambda: _busy_advance(rerender, scan, wizard.advance_from_checked))
 
 
-def _finding_rows(drift: object, field: str) -> list[str]:
-    """One finding list rendered as display strings."""
+def _finding_rows(drift: object, field: str) -> list[tuple[str, str]]:
+    """One library's entries for one finding, as ``(subject, context)`` pairs.
+
+    *subject* is the thing that needs attention; *context* names the library it
+    belongs to. Kept as a pair rather than a formatted string so the caller can
+    align the two columns.
+    """
+    library = drift.lib_dir.name  # type: ignore[attr-defined]
     if field == "pyproject_version_lag":
         return [
-            f"{dist}: declared {declared}, installed {installed}"
+            (dist, f"in {library} — declares {declared}, {installed} installed")
             for dist, declared, installed in getattr(drift, field)
         ]
-    return list(getattr(drift, field))
+    return [(item, f"in {library}") for item in getattr(drift, field)]
 
 
 def _panel_detect(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     """The read-only report. Writes nothing; every section is informational.
 
-    Severity is carried by colour, not by grouping: only undeclared imports
-    break a consumer's install. The rest are facts about the library, and the
-    screens that follow offer them without implying they are defects.
+    Grouped by FINDING, not by library. The library-first shape put one heading
+    and one explanation above every group, so the same paragraph repeated down
+    the page and the reader had to work out which name was the subject and
+    which was the container. Finding-first states the problem once, then lists
+    every instance under it — and the rows read as sentences ("haybale_studio,
+    in haybale-example") rather than as a notation with a direction to learn.
+
+    Severity is carried by colour, not by order: only undeclared imports break
+    a consumer's install. The rest are facts, and the screens that follow offer
+    them without implying they are defects.
     """
     report = wizard.drift_report
     if report is None or not report.libraries:
@@ -124,17 +137,17 @@ def _panel_detect(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
             "text-xs hw-text-dim"
         )
     else:
-        for drift in report.libraries:
-            hui.section_label(drift.lib_dir.name)
-            with ui.column().classes("gap-1 ml-1"):
-                for field, (title, blurb, token) in DETECT_SECTIONS.items():
-                    rows = _finding_rows(drift, field)
-                    if not rows:
-                        continue
-                    ui.label(title).classes("text-xs font-medium").style(f"color: var({token});")
-                    ui.label(blurb).classes("text-xs hw-text-dim")
-                    for row in rows:
-                        ui.label(row).classes("text-xs font-mono ml-2 hw-text-dim")
+        for field, (title, blurb, token) in DETECT_SECTIONS.items():
+            rows = [row for drift in report.libraries for row in _finding_rows(drift, field)]
+            if not rows:
+                continue
+            hui.section_label(title)
+            with ui.column().classes("gap-1 ml-1 w-full"):
+                ui.label(blurb).classes("text-xs hw-text-dim")
+                for subject, context in rows:
+                    with ui.row().classes("items-baseline gap-2 ml-2"):
+                        ui.label(subject).classes("text-xs font-mono").style(f"color: var({token});")
+                        ui.label(context).classes("text-xs hw-text-dim")
 
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
