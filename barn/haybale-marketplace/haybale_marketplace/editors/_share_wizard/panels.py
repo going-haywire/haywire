@@ -54,6 +54,7 @@ def _panel_preconditions(wizard: ShareWizard, rerender: Callable[[], None]) -> N
 
 def _panel_checked(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     """The pass report for step 1, and the entry point to the drift scan."""
+    _drain_pending_modal(wizard, rerender)
     report = wizard.preconditions_report
 
     with ui.row().classes("w-full items-center gap-2"):
@@ -113,6 +114,7 @@ def _panel_detect(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     a consumer's install. The rest are facts, and the screens that follow offer
     them without implying they are defects.
     """
+    _drain_pending_modal(wizard, rerender)
     report = wizard.drift_report
     if report is None or not report.libraries:
         ui.label("Nothing to report — every import is declared and nothing is stale.").classes(
@@ -145,6 +147,7 @@ def _panel_unused(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     blind spot bites: a dynamic import looks exactly like an unused declaration,
     so removing is opt-in per item.
     """
+    _drain_pending_modal(wizard, rerender)
     report = wizard.drift_report
     rows = [(d.lib_dir, dep) for d in (report.libraries if report else []) for dep in d.unused_declarations]
 
@@ -197,6 +200,7 @@ def _panel_undeclared(wizard: ShareWizard, rerender: Callable[[], None]) -> None
     is the one dependency state that breaks a consumer's install, so choosing
     to publish it anyway sets the acknowledgement flag.
     """
+    _drain_pending_modal(wizard, rerender)
     report = wizard.drift_report
     if report is None or not report.needs_decision:
         ui.label("Every import the source uses is declared.").classes("text-xs hw-text-dim")
@@ -262,6 +266,7 @@ def _panel_floors(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     OLDEST version that works — not the newest available — and nothing here can
     compute that, so the default must be inert.
     """
+    _drain_pending_modal(wizard, rerender)
     report = wizard.drift_report
     rows = [
         (d.lib_dir, dist, declared, installed)
@@ -327,6 +332,7 @@ def _panel_confirm(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     protection against a surprise in ``git diff`` is that the wizard says what
     it did — twice, and unprompted.
     """
+    _drain_pending_modal(wizard, rerender)
     written = wizard.dependency_writes()
     registrations = wizard.decorator_registrations
 
@@ -370,6 +376,7 @@ def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     says Apply rather than Continue. No section label: the stepper already
     titles this screen, and repeating it inside the body says nothing new.
     """
+    _drain_pending_modal(wizard, rerender)
     plan = wizard.framework_plan
     if plan is None:
         return
@@ -411,6 +418,7 @@ def _panel_framework(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_version(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    _drain_pending_modal(wizard, rerender)
     plan = wizard.version_plan
     if plan is None:
         return
@@ -457,6 +465,7 @@ def _panel_version(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_docs(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    _drain_pending_modal(wizard, rerender)
     ui.label(
         "Regenerates OVERVIEW, QUICKREF, and per-component docs for every barn "
         "library, then rebuilds marketstall.toml. Runs in a separate process."
@@ -474,6 +483,7 @@ def _panel_docs(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_commit(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    _drain_pending_modal(wizard, rerender)
     plan = wizard.commit_plan
     if plan is None:
         return
@@ -531,6 +541,7 @@ def _panel_commit(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_push(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    _drain_pending_modal(wizard, rerender)
     result = wizard.commit_result
     if result is not None:
         ui.label(f"Committed {result.sha[:8]}, tagged {result.tag}.").classes("text-xs hw-text-dim")

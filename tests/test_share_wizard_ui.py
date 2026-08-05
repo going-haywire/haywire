@@ -896,6 +896,51 @@ def test_append_host_config_writes_a_hosts_entry(tmp_path: Path, monkeypatch) ->
     assert host_config.load_self_hosted_hosts(cfg) == {"git.example-corp.internal": "gitlab"}
 
 
+@pytest.mark.anyio
+async def test_mid_pipeline_failure_reverts_the_working_tree(project: Path) -> None:
+    """A failure past step 1 leaves no trace: the tree is reverted BEFORE the
+    error is reported, so the modal describes an already-cleaned state."""
+    from haywire_studio.packaging.share.pipeline import DocsGenerationError
+
+    wizard = _wizard(project)
+    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
+        await wizard.advance_from_preconditions()
+        await wizard.advance_from_checked()
+
+    # A write this run made, standing in for whatever a real step would leave.
+    stray = project / "generated_by_a_failed_run.md"
+    stray.write_text("partial output")
+
+    with patch.object(
+        SharePipeline, "apply_docs", new=AsyncMock(side_effect=DocsGenerationError("docs blew up"))
+    ):
+        await wizard.advance_from_docs()
+
+    assert wizard.error is not None
+    assert "docs blew up" in wizard.error
+    assert not stray.exists()
+
+
+@pytest.mark.anyio
+async def test_precondition_failure_does_not_trigger_a_rollback(tmp_path: Path) -> None:
+    """Step 1 never mutates, so it must not pay for a revert — and a stray
+    file there must survive, proving no blanket clean ran."""
+    from haybale_marketplace.editors._share_wizard import ShareWizard
+    from haywire_studio.packaging.share.pipeline import SharePipeline as _SharePipeline
+
+    repo = tmp_path / "broken3"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+    stray = repo / "untouched.txt"
+    stray.write_text("mine")
+
+    wizard = ShareWizard(pipeline=_SharePipeline(repo), popup=None)
+    await wizard.advance_from_preconditions()
+
+    assert wizard.error is not None
+    assert stray.exists()
+
+
 def test_every_pin_choice_is_explained() -> None:
     """The labels can't carry the semantics on their own.
 

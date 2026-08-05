@@ -27,6 +27,11 @@ from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
 _UI_ONLY_STEPS = frozenset({"checked", "confirm", "done"})
 
 # The pipeline's step modules. Order is the order they run in.
+#
+# "rollback" is deliberately absent from _SCREEN_TO_STEP below: it backs no
+# wizard screen of its own. It fires from ShareWizard.fail() on any failure
+# past "preconditions", reverting whatever the failed step wrote — cross-
+# cutting over every writing step rather than belonging to one.
 _EXPECTED_PIPELINE_STEPS = (
     "preconditions",
     "detect",
@@ -36,6 +41,7 @@ _EXPECTED_PIPELINE_STEPS = (
     "docs",
     "commit",
     "push",
+    "rollback",
 )
 
 # Wizard screen → the pipeline step module that backs it.

@@ -38,6 +38,7 @@ from haywire_studio.packaging.share.pipeline.steps import docs as steps_docs
 from haywire_studio.packaging.share.pipeline.steps import framework as steps_framework
 from haywire_studio.packaging.share.pipeline.steps import preconditions as steps_preconditions
 from haywire_studio.packaging.share.pipeline.steps import push as steps_push
+from haywire_studio.packaging.share.pipeline.steps import rollback as steps_rollback
 from haywire_studio.packaging.share.pipeline.steps import version as steps_version
 from haywire_studio.packaging.share.pipeline.steps.preconditions import GIT_INSTALL_HINT  # noqa: F401
 from haywire_studio.packaging.share.pipeline.versions import plan_versions
@@ -91,6 +92,11 @@ class SharePipeline:
         if handler is None:
             raise PipelineStateError(f"Unknown fix_id: {fix_id!r}")
         handler(self, **kwargs)
+
+    def rollback(self) -> None:
+        """Revert every write this run made — safe because step 1 guaranteed
+        a clean tree before anything was written. See steps/rollback.py."""
+        steps_rollback.revert_working_tree(self)
 
     def record(self, paths: list[Path]) -> list[Path]:
         """Append *paths* to the accumulated write set, de-duplicated, and return them.

@@ -7,13 +7,17 @@ without a browser.
 
 The generic machinery (step/error/warnings/log bookkeeping, retry, fail) lives
 in :class:`haywire.ui.components.stepper.StepFlow`; this class adds only the
-share-specific transitions and the structured ``PreconditionFailure`` list
-that the wizard's error banner renders row by row.
+share-specific transitions, the structured ``PreconditionFailure`` the
+remedy modal reads, and the ``pending_modal`` one-shot request.
 
-Failure posture mirrors the pipeline's: a failed step stays put with an inline
-error and is retryable in place. Nothing is rolled back, because nothing was
-mutated past the point of failure — every precondition is checkable without
-mutation.
+Failure posture: a step-1 (preconditions) failure never mutates anything, so
+it stays put with a remedy modal and is retryable in place — no rollback
+needed. Every step past that point (2-6) CAN have written something before
+failing, so :meth:`fail` reverts the whole working tree via
+``pipeline.rollback()`` before queuing the rollback modal — safe because
+step 1's clean-working-tree precondition guarantees nothing else could have
+been sitting there dirty when the run started. See
+``packages/haywire-studio/.../pipeline/steps/rollback.py``.
 """
 
 from __future__ import annotations
@@ -162,15 +166,29 @@ class ShareWizard(StepFlow):
         """Record a failure without advancing. Keeps the user on the step.
 
         ``PreconditionsError`` carries a single structured ``PreconditionFailure``
-        — stashed separately so the wizard can open a remedy modal instead of
-        the shared chrome's generic one-line error banner. ``pending_modal`` is
-        the one-shot request the panel drains on its next render; see
-        :meth:`take_pending_modal`.
+        — stashed so the panel can open a remedy modal (see take_pending_modal).
+
+        For any step past "preconditions", the working tree may hold this
+        run's own writes — reverted here before the error is shown, so the
+        rollback modal always reports a state that has already been cleaned
+        up. The "preconditions" step is exempt: step 1 never mutates, so a
+        revert there would cost a git subprocess for a guaranteed no-op. Note
+        the early return on the precondition branch: a ``PreconditionsError``
+        can also be raised from a *later* step (``verify_push_allowed``), and
+        rolling back on it would be wrong — the remedy modal handles it.
         """
         super().fail(exc)
         self.precondition_failure = exc.failure if isinstance(exc, PreconditionsError) else None
         if self.precondition_failure is not None:
             self.pending_modal = self.precondition_failure
+            return
+        if self.step != "preconditions":
+            try:
+                self.pipeline.rollback()
+            except ShareError as rollback_exc:
+                logger.error("Rollback after step %r failure also failed: %s", self.step, rollback_exc)
+                self.error = f"{self.error}\n\nAdditionally, rollback failed: {rollback_exc}"
+            self.pending_modal = self.error or ""
 
     def take_pending_modal(self) -> PreconditionFailure | str | None:
         """Return the queued modal request, clearing it. One-shot by design.
