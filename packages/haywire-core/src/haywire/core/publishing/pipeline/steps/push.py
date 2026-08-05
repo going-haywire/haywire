@@ -4,19 +4,19 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Callable
 
-from haywire_studio.packaging.share.barn import current_ref
-from haywire_studio.packaging.share.git import git_remote, git_remote_streaming
-from haywire_studio.packaging.share.pipeline.errors import PipelineStateError, PushError
-from haywire_studio.packaging.share.pipeline.results import PushResult
+from haywire.core.publishing.barn import current_ref
+from haywire.core.publishing.git import git_remote, git_remote_streaming
+from haywire.core.publishing.pipeline.errors import PipelineStateError, PushError
+from haywire.core.publishing.pipeline.results import PushResult
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def current_branch(pipeline: "SharePipeline") -> str | None:
     """The current branch name, or ``None`` when HEAD is detached.
 
-    Delegates to :func:`haywire_studio.packaging.share.barn.current_ref`. Unlike the
+    Delegates to :func:`haywire.core.publishing.barn.current_ref`. Unlike the
     method this replaced, it never returns the literal string ``"HEAD"``
     — that was a detached-HEAD sentinel masquerading as a branch name,
     and it silently corrupted push refspecs (``HEAD:HEAD``) downstream.

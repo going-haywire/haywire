@@ -16,7 +16,7 @@ import pytest
 
 from haywire_studio.packaging import deps as deps_cli
 from haywire_studio.packaging.deps import EXIT_DRIFT, EXIT_OK, run_deps_check_cli
-from haywire_studio.packaging.share import DepDrift
+from haywire.core.publishing import DepDrift
 
 pytestmark = pytest.mark.unit
 
@@ -112,5 +112,5 @@ def test_never_imports_or_constructs_share_pipeline() -> None:
             imported_names.update(alias.name for alias in node.names)
         elif isinstance(node, ast.Import):
             imported_modules.update(alias.name for alias in node.names)
-    assert "haywire_studio.packaging.share.pipeline" not in imported_modules
+    assert "haywire.core.publishing.pipeline" not in imported_modules
     assert "SharePipeline" not in imported_names

@@ -17,14 +17,14 @@ from haywire.core.library.dep_detect import (
     detect_deps,
     find_module_dir,
 )
-from haywire_studio.packaging.share.drift.model import DepDrift
-from haywire_studio.packaging.share.drift.versionspec import (
+from haywire.core.publishing.drift.model import DepDrift
+from haywire.core.publishing.drift.versionspec import (
     _parse_floor_spec,
     _strip_specifier,
     version_lags,
 )
-from haywire_studio.packaging.share.manifest.deps import _read_library_dependencies
-from haywire_studio.packaging.share.manifest.reader import read_manifest_lenient
+from haywire.core.publishing.manifest.deps import _read_library_dependencies
+from haywire.core.publishing.manifest.reader import read_manifest_lenient
 
 _norm_dep = norm_dep
 

@@ -11,35 +11,35 @@ calls out as the eventual public API (see the plan's "Deferred / out of
 scope" section — narrowing this to a real curated API is future work). Some
 private (underscore-prefixed) names and the ``barn``/``git`` submodules are
 re-exported because existing consumers and tests still reach for them via
-``haywire_studio.packaging.share`` rather than the concrete submodule; narrowing that
+``haywire.core.publishing`` rather than the concrete submodule; narrowing that
 surface without touching every call site is explicitly out of scope for this
 task.
 """
 
 from __future__ import annotations
 
-from haywire_studio.packaging.share import barn
-from haywire_studio.packaging.share import git
-from haywire_studio.packaging.share.drift.detect import detect_share_drift
-from haywire_studio.packaging.share.drift.model import DepDrift
-from haywire_studio.packaging.share.drift.report import _format_drift_report
-from haywire_studio.packaging.share.manifest.deps import _read_library_dependencies
-from haywire_studio.packaging.share.manifest.errors import InvalidOsDeclarationError, ManifestReadError
-from haywire_studio.packaging.share.manifest.os_field import (
+from haywire.core.publishing import barn
+from haywire.core.publishing import git
+from haywire.core.publishing.drift.detect import detect_share_drift
+from haywire.core.publishing.drift.model import DepDrift
+from haywire.core.publishing.drift.report import _format_drift_report
+from haywire.core.publishing.manifest.deps import _read_library_dependencies
+from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
+from haywire.core.publishing.manifest.os_field import (
     describe_os_fix,
     invalid_os_values,
     strip_undeclarable_os_values,
 )
-from haywire_studio.packaging.share.manifest.reader import read_manifest, read_manifest_lenient
-from haywire_studio.packaging.share.marketstall import (
+from haywire.core.publishing.manifest.reader import read_manifest, read_manifest_lenient
+from haywire.core.publishing.marketstall import (
     MarketstallWriteResult,
     NoBarnError,
     _build_entry_for_library,
     build_marketstall_entries,
     write_marketstall,
 )
-from haywire_studio.packaging.share.readme import _update_readme_markers
-from haywire_studio.packaging.share.url import (
+from haywire.core.publishing.readme import _update_readme_markers
+from haywire.core.publishing.url import (
     ShareSaveResult,
     _derive_url,
     _find_git_root,

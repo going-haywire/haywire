@@ -6,10 +6,10 @@ from unittest.mock import AsyncMock, patch
 
 import pytest
 
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
-from haywire_studio.packaging.share.pipeline.steps import push as steps_push
-from haywire_studio.packaging.share.pipeline.steps import version as steps_version
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline.steps import detect as steps_detect
+from haywire.core.publishing.pipeline.steps import push as steps_push
+from haywire.core.publishing.pipeline.steps import version as steps_version
 
 pytestmark = pytest.mark.unit
 
@@ -48,25 +48,25 @@ def project(tmp_path: Path) -> Path:
 def _wizard(project: Path):
     """A ShareWizard with no popup — the state machine under test."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline
 
     return ShareWizard(pipeline=SharePipeline(project), popup=None)
 
 
 def _no_drift(lib_dir: Path):
-    from haywire_studio.packaging.share import DepDrift
+    from haywire.core.publishing import DepDrift
 
     return DepDrift(lib_dir=lib_dir)
 
 
 def _drifty(lib_dir: Path):
-    from haywire_studio.packaging.share import DepDrift
+    from haywire.core.publishing import DepDrift
 
     return DepDrift(lib_dir=lib_dir, pyproject_missing=["numpy"])
 
 
 def _fake_docs():
-    from haywire_studio.packaging.share.pipeline.results import DocsResult
+    from haywire.core.publishing.pipeline.results import DocsResult
 
     return patch.object(
         SharePipeline,
@@ -117,7 +117,7 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
     can't be shared. A disabled item can't carry a tooltip — the design guide's
     disabled state includes pointer-events: none (design-guide.md:725)."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline
 
     repo = tmp_path / "broken"
     repo.mkdir()
@@ -130,7 +130,7 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
     assert wizard.error is not None
     assert "barn" in wizard.error
     assert wizard.precondition_failure is not None
-    from haywire_studio.packaging.share.pipeline import PreconditionFailure
+    from haywire.core.publishing.pipeline import PreconditionFailure
 
     assert isinstance(wizard.precondition_failure, PreconditionFailure)
 
@@ -145,7 +145,7 @@ async def test_precondition_failure_does_not_auto_queue_a_modal(tmp_path: Path) 
     `test_mid_pipeline_failure_reverts_the_working_tree_and_queues_a_rollback_modal`).
     """
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline
 
     repo = tmp_path / "broken"
     repo.mkdir()
@@ -351,7 +351,7 @@ async def test_version_bump_hot_swaps_live_library_when_manager_present(project:
     update_library_identity()'s metadata-edit path — so a restart is not
     needed for the common case of a plain version bump."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline
 
     registry = _FakeRegistry(
         dist_to_lib_id={"haybale-alpha": "alpha"},
@@ -387,7 +387,7 @@ async def test_version_bump_hot_swap_ors_needs_restart_across_libraries(project:
         needs_restart={"alpha": True},
     )
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline
 
     wizard = ShareWizard(
         pipeline=SharePipeline(project),
@@ -434,7 +434,7 @@ async def test_version_bump_skips_library_not_found_live(project: Path) -> None:
     this manager tracks a different set) is skipped, not an error — the bump
     itself already succeeded on disk and is not rolled back."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline
 
     registry = _FakeRegistry(dist_to_lib_id={}, needs_restart={})
     wizard = ShareWizard(
@@ -527,7 +527,7 @@ async def test_docs_step_advances_and_keeps_coverage(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_docs_failure_stays_on_the_docs_step(project: Path) -> None:
-    from haywire_studio.packaging.share.pipeline import DocsGenerationError
+    from haywire.core.publishing.pipeline import DocsGenerationError
 
     wizard = _wizard(project)
     with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
@@ -567,7 +567,7 @@ async def test_docs_output_is_captured_for_the_log(project: Path) -> None:
     await wizard.advance_from_version("patch")
 
     async def _streamy(self, on_output=None):
-        from haywire_studio.packaging.share.pipeline.results import DocsResult
+        from haywire.core.publishing.pipeline.results import DocsResult
 
         if on_output:
             on_output("loading libraries…")
@@ -607,7 +607,7 @@ async def test_commit_advances_to_push(project: Path) -> None:
 @pytest.mark.anyio
 async def test_commit_step_verifies_push_before_committing(project: Path) -> None:
     """Closes the race window since step 1 — and leaves nothing to undo."""
-    from haywire_studio.packaging.share import git as gitcmd
+    from haywire.core.publishing import git as gitcmd
 
     wizard = _wizard(project)
     with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
@@ -672,7 +672,7 @@ async def test_push_completes_the_wizard(project: Path) -> None:
 
 @pytest.mark.anyio
 async def test_push_failure_is_retryable_in_place(project: Path) -> None:
-    from haywire_studio.packaging.share.pipeline import PushError
+    from haywire.core.publishing.pipeline import PushError
 
     wizard = _wizard(project)
     with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
@@ -904,7 +904,7 @@ def test_failing_fix_raises_preconditions_error(project: Path) -> None:
     "render without crashing" any more, so this test asserts the raise
     directly rather than driving it through the (now-deleted)
     advance_from_preconditions_fix."""
-    from haywire_studio.packaging.share.pipeline import PreconditionsError
+    from haywire.core.publishing.pipeline import PreconditionsError
 
     wizard = _wizard(project)
 
@@ -939,7 +939,7 @@ async def test_mid_pipeline_failure_reverts_the_working_tree_and_queues_a_rollba
     a step-1 failure, this one DOES queue `pending_modal` — the rollback
     modal reports something that already happened (nothing to "solve"), so
     it opens automatically rather than waiting on a click."""
-    from haywire_studio.packaging.share.pipeline import DocsGenerationError
+    from haywire.core.publishing.pipeline import DocsGenerationError
 
     wizard = _wizard(project)
     with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
@@ -967,7 +967,7 @@ async def test_precondition_failure_does_not_trigger_a_rollback(tmp_path: Path) 
     """Step 1 never mutates, so it must not pay for a revert — and a stray
     file there must survive, proving no blanket clean ran."""
     from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline as _SharePipeline
+    from haywire.core.publishing.pipeline import SharePipeline as _SharePipeline
 
     repo = tmp_path / "broken3"
     repo.mkdir()
@@ -1020,7 +1020,7 @@ def test_detect_sections_cover_every_dep_drift_finding() -> None:
     import dataclasses
 
     from haybale_marketplace.editors._share_wizard.copy import DETECT_SECTIONS
-    from haywire_studio.packaging.share import DepDrift
+    from haywire.core.publishing import DepDrift
 
     reportable = {f.name for f in dataclasses.fields(DepDrift)} - {"lib_dir"}
     assert set(DETECT_SECTIONS) == reportable

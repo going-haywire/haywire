@@ -8,12 +8,12 @@ import tempfile
 from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
-from haywire_studio.packaging.share.git import git, run_streaming
-from haywire_studio.packaging.share.pipeline.errors import DocsGenerationError
-from haywire_studio.packaging.share.pipeline.results import DocsResult
+from haywire.core.publishing.git import git, run_streaming
+from haywire.core.publishing.pipeline.errors import DocsGenerationError
+from haywire.core.publishing.pipeline.results import DocsResult
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def command(pipeline: "SharePipeline", json_path: Path | None = None) -> list[str]:

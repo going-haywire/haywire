@@ -593,7 +593,7 @@ def _panel_push(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
 
 
 def _panel_done(wizard: ShareWizard, on_done: Callable[[], None] | None) -> None:
-    from haywire_studio.packaging.share import derive_share_url_only
+    from haywire.core.publishing import derive_share_url_only
 
     result = wizard.push_result
     if result is not None:

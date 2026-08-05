@@ -45,7 +45,7 @@ def register(subparsers: argparse._SubParsersAction) -> None:
 
 
 def _run(args: argparse.Namespace) -> int:
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     return run_share_cli(
         repo_root=Path.cwd(),

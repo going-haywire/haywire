@@ -12,18 +12,18 @@ from typing import TYPE_CHECKING, Callable
 
 import toml
 
-from haywire_studio.packaging.share.git import git
-from haywire_studio.packaging.share.manifest.errors import ManifestReadError
-from haywire_studio.packaging.share.manifest.os_field import strip_undeclarable_os_values
-from haywire_studio.packaging.share.pipeline.errors import (
+from haywire.core.publishing.git import git
+from haywire.core.publishing.manifest.errors import ManifestReadError
+from haywire.core.publishing.manifest.os_field import strip_undeclarable_os_values
+from haywire.core.publishing.pipeline.errors import (
     ManifestError,
     PipelineStateError,
     PreconditionsError,
 )
-from haywire_studio.packaging.share.pipeline.results import PreconditionFailure
+from haywire.core.publishing.pipeline.results import PreconditionFailure
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 # Shared by every step that reads/writes a library manifest (pyproject.toml,
 # and the __init__.py decorator kept in sync with it): a malformed file or an

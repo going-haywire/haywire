@@ -1,6 +1,6 @@
 """Human-readable formatting of a `DepDrift`."""
 
-from haywire_studio.packaging.share.drift.model import DepDrift
+from haywire.core.publishing.drift.model import DepDrift
 
 
 def _format_drift_report(drift: DepDrift) -> str:

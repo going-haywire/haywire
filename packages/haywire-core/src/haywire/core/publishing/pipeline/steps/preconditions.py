@@ -8,14 +8,14 @@ from urllib.parse import urlsplit
 
 
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
-from haywire_studio.packaging.share.git import git, git_remote
-from haywire_studio.packaging.share.manifest.errors import InvalidOsDeclarationError, ManifestReadError
-from haywire_studio.packaging.share.manifest.os_field import describe_os_fix, invalid_os_values
-from haywire_studio.packaging.share.manifest.reader import read_manifest
-from haywire_studio.packaging.share.pipeline.results import PreconditionFailure, PreconditionsReport
+from haywire.core.publishing.git import git, git_remote
+from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
+from haywire.core.publishing.manifest.os_field import describe_os_fix, invalid_os_values
+from haywire.core.publishing.manifest.reader import read_manifest
+from haywire.core.publishing.pipeline.results import PreconditionFailure, PreconditionsReport
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 GIT_INSTALL_HINT = (
     "macOS (Homebrew):  brew install git\n"

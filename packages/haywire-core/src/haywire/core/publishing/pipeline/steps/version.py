@@ -4,17 +4,17 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire_studio.packaging.share.git import git, git_remote
-from haywire_studio.packaging.share.pipeline.errors import TagCollisionError, VersionError
-from haywire_studio.packaging.share.pipeline.results import BumpResult
-from haywire_studio.packaging.share.pipeline.versions import (
+from haywire.core.publishing.git import git, git_remote
+from haywire.core.publishing.pipeline.errors import TagCollisionError, VersionError
+from haywire.core.publishing.pipeline.results import BumpResult
+from haywire.core.publishing.pipeline.versions import (
     next_version,
     refresh_lockfile,
     write_barn_versions,
 )
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def check_tag_available(pipeline: "SharePipeline", version: str) -> None:

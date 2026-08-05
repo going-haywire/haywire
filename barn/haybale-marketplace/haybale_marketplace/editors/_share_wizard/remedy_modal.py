@@ -27,7 +27,7 @@ from typing import Callable
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire_studio.packaging.share.pipeline import PreconditionFailure, ShareError
+from haywire.core.publishing.pipeline import PreconditionFailure, ShareError
 
 from ._state import ShareWizard
 

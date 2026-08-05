@@ -49,8 +49,8 @@ def merge_decorator_list_field(
     """Rewrite a list field in ``init_file``'s ``@library(...)`` decorator, on disk.
 
     Owns the read -> decide new value -> :func:`_set_decorator_list_field` ->
-    write dance that both ``haywire_studio.packaging.share.apply_drift_fix`` and
-    ``haywire_studio.packaging.share.pipeline.pipeline.SharePipeline.apply_drift_replace``
+    write dance that both ``haywire.core.publishing.apply_drift_fix`` and
+    ``haywire.core.publishing.pipeline.pipeline.SharePipeline.apply_drift_replace``
     used to each implement independently.
 
     ``mode="union"``: *values* are the entries to add — normalized via

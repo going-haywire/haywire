@@ -5,14 +5,14 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire_studio.packaging.share.git import git
-from haywire_studio.packaging.share.marketstall import MarketstallWriteResult, NoBarnError, write_marketstall
-from haywire_studio.packaging.share.pipeline.errors import CommitError, MarketstallError, PipelineStateError
-from haywire_studio.packaging.share.pipeline.fixes import _MANIFEST_FAILURE_TYPES
-from haywire_studio.packaging.share.pipeline.results import CommitPlan, CommitResult
+from haywire.core.publishing.git import git
+from haywire.core.publishing.marketstall import MarketstallWriteResult, NoBarnError, write_marketstall
+from haywire.core.publishing.pipeline.errors import CommitError, MarketstallError, PipelineStateError
+from haywire.core.publishing.pipeline.fixes import _MANIFEST_FAILURE_TYPES
+from haywire.core.publishing.pipeline.results import CommitPlan, CommitResult
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def apply_marketstall(pipeline: "SharePipeline") -> MarketstallWriteResult:

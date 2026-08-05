@@ -3,8 +3,11 @@
 A haybale is created by ``haywire init`` (which lives outside this package —
 it makes *projects*, not distributions). From then on, this package owns it:
 
-* :mod:`~haywire_studio.packaging.share` — versions, documents, rebuilds the
-  marketstall, commits, tags and pushes the whole project (``haywire share``).
+* :mod:`~haywire_studio.packaging.share_cli` — the ``haywire share`` runner.
+  The publishing *engine* it drives lives in :mod:`haywire.core.publishing`,
+  not here: it imports nothing from ``haywire_studio``, and core already
+  shells out to ``uv`` for the same class of workspace mutation
+  (``haywire.core.update``).
 * :mod:`~haywire_studio.packaging.docs` — deterministic README/OVERVIEW/
   QUICKREF generation (``haywire docs``).
 * :mod:`~haywire_studio.packaging.rename` — rewrites a local library's

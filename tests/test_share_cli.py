@@ -7,8 +7,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 import toml
 
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline.steps import detect as steps_detect
 
 pytestmark = pytest.mark.unit
 
@@ -43,14 +43,14 @@ def project(tmp_path: Path) -> Path:
 
 
 def _no_drift(lib_dir: Path):
-    from haywire_studio.packaging.share import DepDrift
+    from haywire.core.publishing import DepDrift
 
     return DepDrift(lib_dir=lib_dir)
 
 
 def _fake_docs():
     """Patch apply_docs so no real library system boots in a unit test."""
-    from haywire_studio.packaging.share.pipeline.results import DocsResult
+    from haywire.core.publishing.pipeline.results import DocsResult
 
     return patch.object(
         SharePipeline, "apply_docs", new=AsyncMock(return_value=DocsResult(coverage={}, written=[]))
@@ -61,7 +61,7 @@ def _fake_docs():
 
 
 def test_yes_runs_the_whole_pipeline(project: Path) -> None:
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     with (
         patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
@@ -80,7 +80,7 @@ def test_yes_runs_the_whole_pipeline(project: Path) -> None:
 
 
 def test_yes_uses_the_supplied_message(project: Path) -> None:
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     with (
         patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
@@ -101,7 +101,7 @@ def test_yes_uses_the_supplied_message(project: Path) -> None:
 
 def test_yes_without_bump_fails_fast(project: Path, capsys) -> None:
     """Non-interactive means every answer comes from a flag — guessing a version is not ours to do."""
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     code = run_share_cli(repo_root=project, yes=True, bump=None, message=None)
 
@@ -116,8 +116,8 @@ def test_yes_declares_undeclared_imports_rather_than_refusing(project: Path) -> 
     one removed declarations. Removals are now their own optional step, so the
     only thing left for --yes to do here is the safe, corrective one.
     """
-    from haywire_studio.packaging.share import DepDrift
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire.core.publishing import DepDrift
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     def _drifty(lib_dir: Path):
         return DepDrift(lib_dir=lib_dir, pyproject_missing=["toml"])
@@ -135,8 +135,8 @@ def test_yes_declares_undeclared_imports_rather_than_refusing(project: Path) -> 
 
 def test_yes_never_removes_declarations(project: Path) -> None:
     """Removals are lossy and stay interactive — --yes must not guess."""
-    from haywire_studio.packaging.share import DepDrift
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire.core.publishing import DepDrift
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text(
@@ -157,7 +157,7 @@ def test_yes_never_removes_declarations(project: Path) -> None:
 
 
 def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> None:
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     subprocess.run(["git", "tag", "v0.3.2"], cwd=project, check=True, capture_output=True)
 
@@ -171,7 +171,7 @@ def test_yes_reports_a_tag_collision_without_mutating(project: Path, capsys) -> 
 
 
 def test_yes_prints_the_share_url(project: Path, capsys) -> None:
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     with (
         patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift),
@@ -186,7 +186,7 @@ def test_yes_prints_the_share_url(project: Path, capsys) -> None:
 
 
 def test_precondition_failure_exits_before_any_write(tmp_path: Path) -> None:
-    from haywire_studio.packaging.share.cli import run_share_cli
+    from haywire_studio.packaging.share_cli import run_share_cli
 
     repo = tmp_path / "noremote"
     lib = repo / "barn" / "haybale-alpha"
@@ -211,7 +211,7 @@ def test_detect_report_groups_by_finding_not_by_library(capsys) -> None:
     """
     from types import SimpleNamespace
 
-    from haywire_studio.packaging.share.cli import _print_detect_report
+    from haywire_studio.packaging.share_cli import _print_detect_report
 
     def _drift(name: str, **kwargs):
         fields: dict[str, list] = dict(
@@ -247,7 +247,7 @@ def test_detect_report_groups_by_finding_not_by_library(capsys) -> None:
 def test_detect_report_says_so_when_there_is_nothing(capsys) -> None:
     from types import SimpleNamespace
 
-    from haywire_studio.packaging.share.cli import _print_detect_report
+    from haywire_studio.packaging.share_cli import _print_detect_report
 
     _print_detect_report(SimpleNamespace(libraries=[]))
 

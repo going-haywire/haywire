@@ -480,7 +480,7 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
     from haywire.core.library.dep_detect import find_module_dir
     from haywire.core.marketstall import DuplicateHeapNameError, add_heap_to_project
 
-    from .packaging.share import _read_library_dependencies
+    from haywire.core.publishing import _read_library_dependencies
 
     project_mp = project_dir / ".haywire" / "marketplace.toml"
 

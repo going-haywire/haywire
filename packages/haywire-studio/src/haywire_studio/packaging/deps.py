@@ -11,8 +11,8 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from haywire_studio.packaging.share.barn import barn_library_dirs
-from haywire_studio.packaging.share.drift.detect import detect_share_drift
+from haywire.core.publishing.barn import barn_library_dirs
+from haywire.core.publishing.drift.detect import detect_share_drift
 
 EXIT_OK = 0
 EXIT_DRIFT = 1

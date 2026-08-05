@@ -38,12 +38,12 @@ from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
 from haywire.core.marketstall.requirement import CORE
 
-from haywire_studio.packaging.share.pipeline.errors import ManifestError
-from haywire_studio.packaging.share.pipeline.fixes import _MANIFEST_FAILURE_TYPES
-from haywire_studio.packaging.share.pipeline.steps.framework import parse_specifier
+from haywire.core.publishing.pipeline.errors import ManifestError
+from haywire.core.publishing.pipeline.fixes import _MANIFEST_FAILURE_TYPES
+from haywire.core.publishing.pipeline.steps.framework import parse_specifier
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def apply_framework(pipeline: "SharePipeline", specifier: str) -> list[Path]:

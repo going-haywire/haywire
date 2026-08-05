@@ -12,11 +12,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire_studio.packaging.share.git import git
-from haywire_studio.packaging.share.pipeline.errors import ShareError
+from haywire.core.publishing.git import git
+from haywire.core.publishing.pipeline.errors import ShareError
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 class RollbackError(ShareError):

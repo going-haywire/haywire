@@ -6,8 +6,8 @@ from pathlib import Path
 import pytest
 import toml
 
-from haywire_studio.packaging.share.pipeline import VersionError
-from haywire_studio.packaging.share.pipeline.versions import (
+from haywire.core.publishing.pipeline import VersionError
+from haywire.core.publishing.pipeline.versions import (
     next_version,
     plan_versions,
     read_barn_versions,

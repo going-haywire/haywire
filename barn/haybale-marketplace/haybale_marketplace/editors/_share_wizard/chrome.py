@@ -16,7 +16,7 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 from haywire.ui.components.stepper import Panel, show_step_flow
-from haywire_studio.packaging.share.pipeline import SharePipeline
+from haywire.core.publishing.pipeline import SharePipeline
 
 from ._state import ShareWizard
 from .panels import (

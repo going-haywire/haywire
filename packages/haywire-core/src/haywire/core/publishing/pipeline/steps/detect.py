@@ -17,11 +17,11 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haywire_studio.packaging.share.drift.detect import detect_share_drift
-from haywire_studio.packaging.share.pipeline.results import DriftReport
+from haywire.core.publishing.drift.detect import detect_share_drift
+from haywire.core.publishing.pipeline.results import DriftReport
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def check(pipeline: "SharePipeline") -> DriftReport:

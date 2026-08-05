@@ -31,7 +31,7 @@ from typing import TYPE_CHECKING, Optional
 
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
-from haywire_studio.packaging.share.pipeline import (
+from haywire.core.publishing.pipeline import (
     CommitPlan,
     CommitResult,
     DocsResult,

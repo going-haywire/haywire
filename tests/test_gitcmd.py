@@ -6,7 +6,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.packaging.share.git import (
+from haywire.core.publishing.git import (
     HARDENED_ENV,
     GitResult,
     git,

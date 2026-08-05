@@ -34,11 +34,11 @@ from haywire.core.marketstall.requirement import haywire_core_requirement, requi
 from packaging.specifiers import InvalidSpecifier, SpecifierSet
 from packaging.version import Version
 
-from haywire_studio.packaging.share.pipeline.errors import InvalidSpecifierError
-from haywire_studio.packaging.share.pipeline.results import FrameworkOption, FrameworkPlan
+from haywire.core.publishing.pipeline.errors import InvalidSpecifierError
+from haywire.core.publishing.pipeline.results import FrameworkOption, FrameworkPlan
 
 if TYPE_CHECKING:
-    from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 
 def _installed_core_version() -> str:

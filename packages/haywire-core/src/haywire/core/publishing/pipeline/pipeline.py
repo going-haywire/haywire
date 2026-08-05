@@ -15,11 +15,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import Callable
 
-from haywire_studio.packaging.share.barn import barn_library_dirs
-from haywire_studio.packaging.share.marketstall import MarketstallWriteResult
-from haywire_studio.packaging.share.pipeline.errors import PipelineStateError, PreconditionsError
-from haywire_studio.packaging.share.pipeline.fixes import _PRECONDITION_FIXES
-from haywire_studio.packaging.share.pipeline.results import (
+from haywire.core.publishing.barn import barn_library_dirs
+from haywire.core.publishing.marketstall import MarketstallWriteResult
+from haywire.core.publishing.pipeline.errors import PipelineStateError, PreconditionsError
+from haywire.core.publishing.pipeline.fixes import _PRECONDITION_FIXES
+from haywire.core.publishing.pipeline.results import (
     BumpResult,
     CommitPlan,
     CommitResult,
@@ -30,17 +30,17 @@ from haywire_studio.packaging.share.pipeline.results import (
     PushResult,
     VersionPlan,
 )
-from haywire_studio.packaging.share.pipeline.steps import commit as steps_commit
-from haywire_studio.packaging.share.pipeline.steps import dependencies as steps_dependencies
-from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
-from haywire_studio.packaging.share.pipeline.steps import docs as steps_docs
-from haywire_studio.packaging.share.pipeline.steps import framework as steps_framework
-from haywire_studio.packaging.share.pipeline.steps import preconditions as steps_preconditions
-from haywire_studio.packaging.share.pipeline.steps import push as steps_push
-from haywire_studio.packaging.share.pipeline.steps import rollback as steps_rollback
-from haywire_studio.packaging.share.pipeline.steps import version as steps_version
-from haywire_studio.packaging.share.pipeline.steps.preconditions import GIT_INSTALL_HINT  # noqa: F401
-from haywire_studio.packaging.share.pipeline.versions import plan_versions
+from haywire.core.publishing.pipeline.steps import commit as steps_commit
+from haywire.core.publishing.pipeline.steps import dependencies as steps_dependencies
+from haywire.core.publishing.pipeline.steps import detect as steps_detect
+from haywire.core.publishing.pipeline.steps import docs as steps_docs
+from haywire.core.publishing.pipeline.steps import framework as steps_framework
+from haywire.core.publishing.pipeline.steps import preconditions as steps_preconditions
+from haywire.core.publishing.pipeline.steps import push as steps_push
+from haywire.core.publishing.pipeline.steps import rollback as steps_rollback
+from haywire.core.publishing.pipeline.steps import version as steps_version
+from haywire.core.publishing.pipeline.steps.preconditions import GIT_INSTALL_HINT  # noqa: F401
+from haywire.core.publishing.pipeline.versions import plan_versions
 
 
 class SharePipeline:

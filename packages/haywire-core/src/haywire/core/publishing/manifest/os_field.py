@@ -5,7 +5,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from haywire_studio.packaging.share.manifest.errors import InvalidOsDeclarationError
+from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError
 
 _DECLARABLE_OS_VALUES = frozenset({"macos", "windows", "linux"})
 
@@ -90,7 +90,7 @@ def invalid_os_values(lib_dir: Path) -> list[str]:
     Used to compute a strip_os fix's label without mutating the file. Raises
     ManifestReadError if the file cannot be read or parsed.
     """
-    from haywire_studio.packaging.share.manifest.reader import _read_raw_toml
+    from haywire.core.publishing.manifest.reader import _read_raw_toml
 
     _content, data = _read_raw_toml(lib_dir / "pyproject.toml")
     os_decl = data.get("tool", {}).get("haywire", {}).get("os")
@@ -120,7 +120,7 @@ def strip_undeclarable_os_values(lib_dir: Path) -> list[str]:
 
     Raises ManifestReadError if the file cannot be read or parsed.
     """
-    from haywire_studio.packaging.share.manifest.reader import _read_raw_toml
+    from haywire.core.publishing.manifest.reader import _read_raw_toml
 
     pyproject_path = lib_dir / "pyproject.toml"
     content, data = _read_raw_toml(pyproject_path)

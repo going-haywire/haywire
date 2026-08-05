@@ -6,8 +6,8 @@ from pathlib import Path
 
 import toml
 
-from haywire_studio.packaging.share.manifest.errors import ManifestReadError
-from haywire_studio.packaging.share.manifest.os_field import _read_os_field
+from haywire.core.publishing.manifest.errors import ManifestReadError
+from haywire.core.publishing.manifest.os_field import _read_os_field
 
 
 def _read_raw_toml(pyproject_path: Path) -> tuple[str, dict]:

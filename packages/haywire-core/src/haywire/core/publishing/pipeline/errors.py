@@ -9,7 +9,7 @@ Farmhand wrapper re-raises as ``FarmhandError``.
 
 from __future__ import annotations
 
-from haywire_studio.packaging.share.pipeline.results import PreconditionFailure
+from haywire.core.publishing.pipeline.results import PreconditionFailure
 
 
 class ShareError(RuntimeError):

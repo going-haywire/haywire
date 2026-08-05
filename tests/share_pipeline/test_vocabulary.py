@@ -4,7 +4,7 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.packaging.share.pipeline import (
+from haywire.core.publishing.pipeline import (
     BumpResult,
     CommitError,
     CommitPlan,

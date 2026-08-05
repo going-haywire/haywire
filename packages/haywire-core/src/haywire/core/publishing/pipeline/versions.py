@@ -16,11 +16,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from haywire_studio.packaging.share.barn import barn_library_dirs
-from haywire_studio.packaging.share.git import run as git_run
-from haywire_studio.packaging.share.manifest.reader import read_manifest_lenient
-from haywire_studio.packaging.share.pipeline.errors import VersionError
-from haywire_studio.packaging.share.pipeline.results import BumpResult, LibraryVersion, VersionPlan
+from haywire.core.publishing.barn import barn_library_dirs
+from haywire.core.publishing.git import run as git_run
+from haywire.core.publishing.manifest.reader import read_manifest_lenient
+from haywire.core.publishing.pipeline.errors import VersionError
+from haywire.core.publishing.pipeline.results import BumpResult, LibraryVersion, VersionPlan
 
 BUMP_KEYWORDS = ("patch", "minor", "major")
 

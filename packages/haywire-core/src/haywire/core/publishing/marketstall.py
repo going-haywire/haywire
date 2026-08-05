@@ -14,11 +14,11 @@ from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.host_providers import ssh_to_https
 from haywire.core.marketstall.requirement import haywire_core_requirement
-from haywire_studio.packaging.share.barn import barn_library_dirs
-from haywire_studio.packaging.share.manifest.deps import _read_library_dependencies, _read_library_label
-from haywire_studio.packaging.share.manifest.reader import read_manifest
-from haywire_studio.packaging.share.readme import _update_repo_readmes
-from haywire_studio.packaging.share.url import (
+from haywire.core.publishing.barn import barn_library_dirs
+from haywire.core.publishing.manifest.deps import _read_library_dependencies, _read_library_label
+from haywire.core.publishing.manifest.reader import read_manifest
+from haywire.core.publishing.readme import _update_repo_readmes
+from haywire.core.publishing.url import (
     _derive_url,
     _find_git_root,
     _get_current_ref,

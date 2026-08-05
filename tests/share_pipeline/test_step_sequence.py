@@ -18,8 +18,8 @@ from __future__ import annotations
 import inspect
 import pkgutil
 
-from haywire_studio.packaging.share.pipeline import steps as steps_pkg
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline import steps as steps_pkg
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 # Screens the wizard renders that have no pipeline counterpart: pure UI beats
 # (a progress pause, a summary) or a screen whose only job is to show what an
@@ -98,7 +98,7 @@ def test_every_dependency_screen_has_an_applier() -> None:
 def test_detect_step_writes_nothing() -> None:
     """Detect is pure — it has consumers beyond the wizard (``haywire deps
     check``), and a reporting path that mutates would surprise every one."""
-    from haywire_studio.packaging.share.pipeline.steps import detect
+    from haywire.core.publishing.pipeline.steps import detect
 
     source = inspect.getsource(detect)
     assert "write_text" not in source

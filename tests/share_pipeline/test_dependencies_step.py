@@ -11,9 +11,9 @@ from unittest.mock import patch
 import pytest
 import toml
 
-from haywire_studio.packaging.share import DepDrift
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
+from haywire.core.publishing import DepDrift
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline.steps import detect as steps_detect
 
 pytestmark = pytest.mark.unit
 

@@ -7,8 +7,8 @@ from pathlib import Path
 from urllib.parse import urlsplit
 
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
-from haywire_studio.packaging.share.barn import current_ref
-from haywire_studio.packaging.share.git import git
+from haywire.core.publishing.barn import current_ref
+from haywire.core.publishing.git import git
 
 
 def _find_git_root(start: Path) -> Path | None:
@@ -32,9 +32,9 @@ def _get_remote_url(git_root: Path) -> str | None:
 def _get_current_ref(git_root: Path) -> str | None:
     """Return current branch name, or None if detached HEAD or git failure.
 
-    Thin alias over :func:`haywire_studio.packaging.share.barn.current_ref` — kept as a
+    Thin alias over :func:`haywire.core.publishing.barn.current_ref` — kept as a
     module-level name here (rather than inlining the import at each call
-    site) because tests patch ``haywire_studio.packaging.share.url._get_current_ref``.
+    site) because tests patch ``haywire.core.publishing.url._get_current_ref``.
     """
     return current_ref(git_root)
 

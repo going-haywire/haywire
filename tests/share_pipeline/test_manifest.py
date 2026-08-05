@@ -17,7 +17,7 @@ import pytest
 import toml
 
 from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
-from haywire_studio.packaging.share import (
+from haywire.core.publishing import (
     InvalidOsDeclarationError,
     ManifestReadError,
     read_manifest,
