@@ -73,6 +73,14 @@ def test_preconditions_report_ok_iff_no_failures() -> None:
     )
 
 
+def test_precondition_failure_kind_defaults_to_inform_and_accepts_act() -> None:
+    """``kind`` is what selects the wizard's modal shape, so its default
+    matters: every failure that does not opt in must present as inform-only,
+    never accidentally offering a fix button it has no handler for."""
+    assert PreconditionFailure(message="x").kind == "inform"
+    assert PreconditionFailure(message="x", kind="act", fix_id="add_origin").kind == "act"
+
+
 def test_tag_collision_error_reports_where() -> None:
     exc = TagCollisionError(tag="v1.2.3", local=True, remote=False)
     assert exc.tag == "v1.2.3"

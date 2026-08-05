@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import Any, Literal
 
 
 @dataclass(frozen=True)
@@ -14,20 +14,30 @@ class PreconditionFailure:
     ``message`` states the fault; ``remedy`` states the next action and is
     computed from repo state where that beats a constant (naming the branches
     that contain HEAD, quoting the TOML parser's line number). Presentation
-    belongs to the caller: the CLI indents, the wizard uses separate elements.
+    belongs to the caller: the CLI indents, the wizard renders a remedy modal.
 
-    ``fix_id`` names a repair the pipeline can perform in place. Set for the
-    failures with an in-place repair (`strip_os`, `add_origin`); `None`
-    otherwise. A string rather than a callable so the report stays
-    serializable and repo-mutating closures never cross the engine/UI seam.
+    ``kind`` selects the wizard's remedy-modal shape: ``"inform"`` (default)
+    for a failure the wizard cannot act on — message + remedy text, dismiss
+    only. ``"act"`` for a failure the wizard CAN repair in place — the modal
+    additionally offers a button that performs the fix, then the user
+    restarts the wizard to re-check from the top. Mid-pipeline failures
+    (steps 2-6, after preflight has passed) are a third, distinct modal shape
+    handled outside this class entirely — see ``steps/rollback.py``.
 
-    ``lib_dir`` is the affected barn library's directory, relative to
-    ``repo_root``, for fixes that need to know which library to repair — a
-    plain string (not a Path) for the same serializability reason as ``fix_id``.
+    ``fix_id`` names a repair the pipeline can perform in place. Set only
+    when ``kind == "act"``. A string rather than a callable so the report
+    stays serializable and repo-mutating closures never cross the engine/UI
+    seam.
+
+    ``lib_dir`` is the subject of the fix — a barn library's directory,
+    relative to ``repo_root``, for ``strip_os``; a hostname for
+    ``add_host_config``. A plain string (not a Path) for the same
+    serializability reason as ``fix_id``.
     """
 
     message: str
     remedy: str = ""
+    kind: Literal["inform", "act"] = "inform"
     fix_id: str | None = None
     fix_label: str = ""
     lib_dir: str | None = None
@@ -35,7 +45,15 @@ class PreconditionFailure:
 
 @dataclass(frozen=True)
 class PreconditionsReport:
-    """Outcome of step 1. ``ok`` is True iff nothing failed."""
+    """Outcome of step 1. ``ok`` is True iff nothing failed.
+
+    ``check()`` (steps/preconditions.py) stops at the first failure it finds
+    — an earlier failure can invalidate the relevance of a later probe (a
+    dirty tree makes every later check moot; an unrecognized host makes the
+    reachability probe against it wasted). So ``failures`` never holds more
+    than one entry; ``failure`` is the primary accessor going forward.
+    ``failures`` is kept as a read-only view for callers not yet migrated.
+    """
 
     failures: list[PreconditionFailure]
     remote_url: str | None
@@ -45,6 +63,10 @@ class PreconditionsReport:
     @property
     def ok(self) -> bool:
         return not self.failures
+
+    @property
+    def failure(self) -> PreconditionFailure | None:
+        return self.failures[0] if self.failures else None
 
 
 @dataclass(frozen=True)
