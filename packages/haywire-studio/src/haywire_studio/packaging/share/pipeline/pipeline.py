@@ -20,7 +20,6 @@ from haywire_studio.packaging.share.marketstall import MarketstallWriteResult
 from haywire_studio.packaging.share.pipeline.errors import PipelineStateError, PreconditionsError
 from haywire_studio.packaging.share.pipeline.fixes import _PRECONDITION_FIXES
 from haywire_studio.packaging.share.pipeline.results import (
-    BarnDirtyFile,
     BumpResult,
     CommitPlan,
     CommitResult,
@@ -194,10 +193,6 @@ class SharePipeline:
         """Rebuild ``marketstall.toml`` from every ``barn/*`` library."""
         return steps_commit.apply_marketstall(self)
 
-    def barn_dirty_files(self) -> list[BarnDirtyFile]:
-        """Uncommitted ``barn/`` content the pipeline did not write itself."""
-        return steps_commit.barn_dirty_files(self)
-
     def plan_commit(self, *, message: str | None = None) -> CommitPlan:
         """Preview exactly what would be staged, committed, and tagged."""
         return steps_commit.plan(self, message=message)
@@ -214,14 +209,9 @@ class SharePipeline:
         """``git push --dry-run`` — verify the remote will accept this push."""
         steps_push.verify_allowed(self)
 
-    def apply_commit(
-        self,
-        plan: CommitPlan,
-        *,
-        include_barn: list[Path] | None = None,
-    ) -> CommitResult:
-        """Stage exactly ``plan.files`` plus ``include_barn``, commit, then tag."""
-        return steps_commit.apply(self, plan, include_barn=include_barn)
+    def apply_commit(self, plan: CommitPlan) -> CommitResult:
+        """Stage exactly ``plan.files``, commit, then tag."""
+        return steps_commit.apply(self, plan)
 
     # ── Step 6: push ─────────────────────────────────────────────────────────
 

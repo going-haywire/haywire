@@ -27,7 +27,6 @@ from haywire_studio.packaging.share.pipeline.errors import (
 )
 from haywire_studio.packaging.share.pipeline.pipeline import GIT_INSTALL_HINT, SharePipeline
 from haywire_studio.packaging.share.pipeline.results import (
-    BarnDirtyFile,
     BumpResult,
     CommitPlan,
     CommitResult,
@@ -43,7 +42,6 @@ from haywire_studio.packaging.share.pipeline.results import (
 )
 
 __all__ = [
-    "BarnDirtyFile",
     "BumpResult",
     "CommitError",
     "CommitPlan",

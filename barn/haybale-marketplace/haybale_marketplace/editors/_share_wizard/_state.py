@@ -394,7 +394,7 @@ class ShareWizard(StepFlow):
             return
         self.step = "commit"
 
-    async def advance_from_commit(self, message: str, include_barn: list[Path]) -> None:
+    async def advance_from_commit(self, message: str) -> None:
         self.retry()
         try:
             # Verified BEFORE committing: someone may have pushed since step 1,
@@ -402,7 +402,7 @@ class ShareWizard(StepFlow):
             self.pipeline.verify_push_allowed()
             plan = self.pipeline.plan_commit(message=message)
             self.commit_plan = plan
-            self.commit_result = self.pipeline.apply_commit(plan, include_barn=include_barn)
+            self.commit_result = self.pipeline.apply_commit(plan)
         except ShareError as exc:
             self.fail(exc)
             return

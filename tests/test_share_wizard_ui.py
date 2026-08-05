@@ -558,7 +558,7 @@ async def test_commit_advances_to_push(project: Path) -> None:
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
-    await wizard.advance_from_commit("chore: share v0.3.2", [])
+    await wizard.advance_from_commit("chore: share v0.3.2")
 
     assert wizard.step == "push"
     assert wizard.commit_result is not None
@@ -594,7 +594,7 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
         return gitcmd.GitResult(ok=True, stdout="", stderr="", returncode=0)
 
     with patch.object(steps_push, "git_remote", side_effect=_rejected):
-        await wizard.advance_from_commit("chore: share v0.3.2", [])
+        await wizard.advance_from_commit("chore: share v0.3.2")
 
     assert wizard.step == "commit"
     assert wizard.error is not None
@@ -604,36 +604,6 @@ async def test_commit_step_verifies_push_before_committing(project: Path) -> Non
         ).stdout
         == head_before
     )
-
-
-@pytest.mark.anyio
-async def test_opted_in_barn_files_reach_the_commit(project: Path) -> None:
-    wizard = _wizard(project)
-    with patch.object(steps_detect, "detect_share_drift", side_effect=_no_drift):
-        await wizard.advance_from_preconditions()
-        await wizard.advance_from_checked()
-        await wizard.advance_from_detect()
-        await wizard.advance_from_framework(">=0.0.1")
-        await wizard.advance_from_unused({})
-        await wizard.advance_from_undeclared({})
-        await wizard.advance_from_floors({})
-        await wizard.advance_from_confirm()
-    await wizard.advance_from_version("patch")
-    asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
-    asset.write_bytes(b"\x89PNG")
-    with _fake_docs():
-        await wizard.advance_from_docs()
-
-    await wizard.advance_from_commit("chore: share v0.3.2", [asset])
-
-    committed = subprocess.run(
-        ["git", "show", "--name-only", "--format=", "HEAD"],
-        cwd=project,
-        capture_output=True,
-        text=True,
-        check=True,
-    ).stdout.split()
-    assert "barn/haybale-alpha/haybale_alpha/icon.png" in committed
 
 
 # ── step 6 → done ────────────────────────────────────────────────────────────
@@ -654,7 +624,7 @@ async def test_push_completes_the_wizard(project: Path) -> None:
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
-    await wizard.advance_from_commit("chore: share v0.3.2", [])
+    await wizard.advance_from_commit("chore: share v0.3.2")
     await wizard.advance_from_push()
 
     assert wizard.step == "done"
@@ -678,7 +648,7 @@ async def test_push_failure_is_retryable_in_place(project: Path) -> None:
     await wizard.advance_from_version("patch")
     with _fake_docs():
         await wizard.advance_from_docs()
-    await wizard.advance_from_commit("chore: share v0.3.2", [])
+    await wizard.advance_from_commit("chore: share v0.3.2")
 
     with patch.object(
         SharePipeline,

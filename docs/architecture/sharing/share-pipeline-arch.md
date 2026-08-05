@@ -118,9 +118,9 @@ Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail t
 
 `apply_marketstall()` calls `write_marketstall()` (from `share.marketstall`) to fully rebuild `marketstall.toml` from every barn library, and rewrite the `<!-- marketstall:share-url -->` marker block (via `share.readme`) in the root README and every `barn/*/README.md`. Always a *full* rebuild — the feed's contract is "every haybale this repo currently offers," so a partial rebuild would silently delete the entries of libraries not touched in this run.
 
-`plan_commit()` previews exactly what would be staged, committed, and tagged: the pipeline's accumulated write set (`self.written`, appended-to by every apply step so far) plus a diffstat, requires `self.version` to already be set (raises `PipelineStateError` otherwise — step 3 must run first). `barn_dirty_files()` separately reports uncommitted content under `barn/` that the pipeline itself didn't write — offered as an opt-in "include these too?" in the wizard, because uncommitted barn content is silently *absent* for consumers (who install from a clone), the one working-tree state that corrupts a publish.
+`plan_commit()` previews exactly what would be staged, committed, and tagged: the pipeline's accumulated write set (`self.written`, appended-to by every apply step so far) plus a diffstat, requires `self.version` to already be set (raises `PipelineStateError` otherwise — step 3 must run first). There is no separate "uncommitted barn content" opt-in step any more — step 1's clean-working-tree precondition guarantees nothing outside `self.written` can be dirty by the time this runs, so `plan.files` is already everything there is to stage.
 
-`apply_commit()` stages exactly `plan.files` plus any opted-in `include_barn` paths — never `git add -A`/`-a` — commits, then tags. There is no separate checkpoint commit: the pre-wizard `HEAD` is already the rollback anchor, and the wizard authors exactly one commit. The tag is created only after the commit succeeds, since a tag on the wrong commit is worse than no tag.
+`apply_commit()` stages exactly `plan.files` — never `git add -A`/`-a` — commits, then tags. There is no separate checkpoint commit: the pre-wizard `HEAD` is already the rollback anchor, and the wizard authors exactly one commit. The tag is created only after the commit succeeds, since a tag on the wrong commit is worse than no tag.
 
 ### 2.7 Step 7 — Push
 
@@ -134,13 +134,15 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 
 | Step | Check/plan (read-only) | Apply (mutating) |
 |---|---|---|
-| 1 | `check_preconditions()` / `require_preconditions()` | — (nothing to apply; failures are fixed outside the pipeline) |
+| 1 | `check_preconditions()` / `require_preconditions()` | `apply_precondition_fix()` — the two/three failures with a mechanical repair (missing origin, invalid `os` declaration, unrecognized host); every other failure is fixed outside the pipeline |
 | 2 | `check_drift()` | — (Detect is pure) |
 | 3 | `plan_framework()` | `apply_framework()`, `apply_decorator_registrations()`, `apply_removals()`, `apply_additions()`, `apply_floors()`, `acknowledge_undeclared()` |
 | 4 | `plan_version()`, `check_tag_available()` | `apply_bump()` |
 | 5 | `docs_command()` | `apply_docs()` |
-| 6 | `plan_commit()`, `barn_dirty_files()` | `apply_marketstall()`, `apply_commit()` |
+| 6 | `plan_commit()` | `apply_marketstall()`, `apply_commit()` |
 | 7 | `verify_push_allowed()` | `apply_push()` |
+
+Any apply step past step 1 that raises reverts the whole working tree via `pipeline.rollback()` before the failure is reported — safe because step 1's clean-working-tree precondition guarantees nothing else could have been dirty when the run started. See `steps/rollback.py` and the Share Wizard Preflight Gate design (2026-08-05).
 
 This split is what lets the wizard show a preview before committing to an action (the Detect report before any dependency write, the Confirm screen before the version bump, commit file list before committing, dry-run push before the real push) while the CLI's `--yes` mode drives the exact same methods without ever rendering the intermediate state.
 

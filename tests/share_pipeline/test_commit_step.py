@@ -125,51 +125,6 @@ def test_apply_marketstall_pins_install_spec_to_the_pending_tag(project: Path) -
     assert "@v0.3.2#subdirectory=" in entry["install_spec"]
 
 
-# ── barn_dirty_files ─────────────────────────────────────────────────────────
-
-
-def test_untracked_barn_file_is_surfaced(project: Path) -> None:
-    """Uncommitted barn content is silently ABSENT for consumers — they install
-    from a clone. It's the one working-tree state that corrupts a publish."""
-    asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
-    asset.write_bytes(b"\x89PNG")
-    dirty = _ready(project).barn_dirty_files()
-    assert [d.path.name for d in dirty] == ["icon.png"]
-    assert dirty[0].untracked is True
-
-
-def test_modified_tracked_barn_file_is_surfaced(project: Path) -> None:
-    (project / "barn" / "haybale-alpha" / "README.md").write_text("# alpha edited\n")
-    dirty = _ready(project).barn_dirty_files()
-    assert [d.path.name for d in dirty] == ["README.md"]
-    assert dirty[0].untracked is False
-
-
-def test_pipeline_own_writes_are_not_listed_as_dirty(project: Path) -> None:
-    """The bumped pyproject is already in the write set; listing it twice would
-    ask the user to opt into a file the wizard is committing anyway."""
-    pipeline = _ready(project)
-    assert all(d.path.name != "pyproject.toml" for d in pipeline.barn_dirty_files())
-
-
-def test_dirt_outside_barn_is_never_mentioned(project: Path) -> None:
-    """It has no bearing on what consumers get, and warning about it would
-    train users to ignore the warning that matters."""
-    (project / "notes.txt").write_text("wip\n")
-    (project / "README.md").write_text("# root edited\n")
-    assert _ready(project).barn_dirty_files() == []
-
-
-def test_gitignored_barn_files_are_not_listed(project: Path) -> None:
-    """An ignored file is an expression of intent; `git add` would fail on it."""
-    (project / ".gitignore").write_text("__pycache__/\n")
-    cache = project / "barn" / "haybale-alpha" / "haybale_alpha" / "__pycache__"
-    cache.mkdir()
-    (cache / "x.pyc").write_bytes(b"\x00")
-    dirty = _ready(project).barn_dirty_files()
-    assert all("__pycache__" not in str(d.path) for d in dirty)
-
-
 # ── plan_commit ──────────────────────────────────────────────────────────────
 
 
@@ -280,28 +235,20 @@ def test_apply_commit_creates_the_tag_on_that_commit(project: Path) -> None:
     assert result.tag == "v0.3.2"
 
 
-def test_apply_commit_includes_opted_in_barn_files(project: Path) -> None:
+def test_apply_commit_stages_a_barn_file_the_pipeline_recorded(project: Path) -> None:
+    """A barn asset the pipeline itself wrote (e.g. a docs step) is staged like
+    any other write-set member — no separate opt-in mechanism exists now that
+    the clean-working-tree precondition means nothing else can be dirty."""
     pipeline = _ready(project)
     asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
     asset.write_bytes(b"\x89PNG")
+    pipeline.record([asset])
 
     plan = pipeline.plan_commit()
-    pipeline.apply_commit(plan, include_barn=[asset])
+    pipeline.apply_commit(plan)
 
     committed = _git(project, "show", "--name-only", "--format=", "HEAD").split()
     assert "barn/haybale-alpha/haybale_alpha/icon.png" in committed
-
-
-def test_apply_commit_excludes_barn_files_not_opted_in(project: Path) -> None:
-    pipeline = _ready(project)
-    asset = project / "barn" / "haybale-alpha" / "haybale_alpha" / "icon.png"
-    asset.write_bytes(b"\x89PNG")
-
-    plan = pipeline.plan_commit()
-    pipeline.apply_commit(plan, include_barn=[])
-
-    committed = _git(project, "show", "--name-only", "--format=", "HEAD").split()
-    assert "barn/haybale-alpha/haybale_alpha/icon.png" not in committed
 
 
 def test_apply_commit_stages_deletions(project: Path) -> None:

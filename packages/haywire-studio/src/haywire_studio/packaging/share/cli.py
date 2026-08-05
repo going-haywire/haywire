@@ -341,16 +341,6 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     for path in plan.files:
         print(f"  {path.relative_to(pipeline.repo_root)}")
 
-    include_barn: list[Path] = []
-    if plan.barn_dirty:
-        print("\nUncommitted content under barn/ — consumers install from a clone,")
-        print("so anything left out is silently MISSING for them:")
-        for entry in plan.barn_dirty:
-            marker = "new" if entry.untracked else "modified"
-            print(f"  ({marker}) {entry.path.relative_to(pipeline.repo_root)}")
-        if _confirm("Include these in this commit?"):
-            include_barn = [entry.path for entry in plan.barn_dirty]
-
     message = _ask("Commit message", default=plan.message)
     plan = pipeline.plan_commit(message=message)
 
@@ -361,7 +351,7 @@ def _run_interactive(pipeline: SharePipeline) -> int:
         print("Aborted before committing. Nothing was committed or tagged.")
         return EXIT_FAILED
 
-    result = pipeline.apply_commit(plan, include_barn=include_barn)
+    result = pipeline.apply_commit(plan)
     print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
 
     print("\n── 10. Push ──")

@@ -145,24 +145,18 @@ class DocsResult:
 
 
 @dataclass(frozen=True)
-class BarnDirtyFile:
-    """An uncommitted file under barn/ — invisible to consumers if left out."""
-
-    path: Path
-    untracked: bool
-
-
-@dataclass(frozen=True)
 class CommitPlan:
     """Step 5's preview: exactly what would be staged, committed, and tagged.
 
-    ``files`` is the pipeline's own accumulated write set. ``barn_dirty`` is
-    offered as opt-in extras — uncommitted barn content is silently absent for
-    consumers, which is the one working-tree state that corrupts a publish.
+    ``files`` is the pipeline's own accumulated write set. Nothing outside
+    that write set can be dirty by the time this runs — step 1's clean-
+    working-tree precondition guarantees it — so there is no separate
+    opt-in-extras mechanism here (there used to be one, for barn/ content
+    left uncommitted before the wizard started; that state is now
+    structurally impossible to reach).
     """
 
     files: list[Path]
-    barn_dirty: list[BarnDirtyFile]
     message: str
     tag: str
     diffstat: str = ""

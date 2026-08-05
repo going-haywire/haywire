@@ -9,7 +9,7 @@ from haywire_studio.packaging.share.git import git
 from haywire_studio.packaging.share.marketstall import MarketstallWriteResult, NoBarnError, write_marketstall
 from haywire_studio.packaging.share.pipeline.errors import CommitError, MarketstallError, PipelineStateError
 from haywire_studio.packaging.share.pipeline.fixes import _MANIFEST_FAILURE_TYPES
-from haywire_studio.packaging.share.pipeline.results import BarnDirtyFile, CommitPlan, CommitResult
+from haywire_studio.packaging.share.pipeline.results import CommitPlan, CommitResult
 
 if TYPE_CHECKING:
     from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
@@ -41,47 +41,6 @@ def apply_marketstall(pipeline: "SharePipeline") -> MarketstallWriteResult:
     return result
 
 
-def barn_dirty_files(pipeline: "SharePipeline") -> list[BarnDirtyFile]:
-    """Uncommitted content under ``barn/`` that the pipeline did not write.
-
-    Offered as opt-in extras in step 5. Uncommitted barn content is
-    silently ABSENT for consumers (they install from a clone), which is the
-    one working-tree state that corrupts a publish.
-
-    Dirt outside ``barn/`` is deliberately not reported: it has no bearing
-    on what consumers get, and mentioning it would train users to dismiss
-    the warning that matters. Ignored files never appear —
-    ``git status --porcelain`` excludes them by default, and staging one
-    would fail anyway.
-
-    ``--untracked-files=all``: without it, an untracked directory (e.g. a
-    brand-new component with no tracked sibling inside it yet) collapses
-    to one line naming the directory instead of the file within it, which
-    would surface as ``BarnDirtyFile(path=.../haybale_alpha/)`` rather than
-    the actual new file.
-    """
-    status = git(
-        ["status", "--porcelain", "--untracked-files=all", "--", "barn"],
-        cwd=pipeline.repo_root,
-    )
-    if not status.ok:
-        return []
-
-    own = set(pipeline.written)
-    out: list[BarnDirtyFile] = []
-    for line in status.stdout.splitlines():
-        if len(line) < 4:
-            continue
-        code, path_part = line[:2], line[3:].strip()
-        if " -> " in path_part:
-            path_part = path_part.split(" -> ", 1)[1]
-        path = pipeline.repo_root / path_part.strip('"')
-        if path in own:
-            continue
-        out.append(BarnDirtyFile(path=path, untracked=code == "??"))
-    return sorted(out, key=lambda d: d.path)
-
-
 def plan(pipeline: "SharePipeline", *, message: str | None = None) -> CommitPlan:
     """Preview exactly what would be staged, committed, and tagged.
 
@@ -97,7 +56,6 @@ def plan(pipeline: "SharePipeline", *, message: str | None = None) -> CommitPlan
     files = list(pipeline.written)
     return CommitPlan(
         files=files,
-        barn_dirty=barn_dirty_files(pipeline),
         message=message or f"chore: share v{pipeline.version}",
         tag=f"v{pipeline.version}",
         diffstat=_diffstat(pipeline, files),
@@ -111,9 +69,8 @@ def _diffstat(pipeline: "SharePipeline", files: list[Path]) -> str:
     it says nothing about an untracked path (nothing to diff against) or a
     path that no longer exists on disk (a rename-orphan doc the docs
     generator deleted; see :func:`write_set`). Those two cases are
-    classified per-path via ``git status --porcelain``, using the same
-    two-character index/worktree code convention as
-    :func:`barn_dirty_files`:
+    classified per-path via ``git status --porcelain``'s two-character
+    index/worktree code:
 
     - ``??`` (untracked)                    → "(new file)"
     - index or worktree char is ``D``        → "(deleted)"
@@ -156,23 +113,22 @@ def _diffstat(pipeline: "SharePipeline", files: list[Path]) -> str:
     return "\n".join(lines)
 
 
-def apply(
-    pipeline: "SharePipeline",
-    commit_plan: CommitPlan,
-    *,
-    include_barn: list[Path] | None = None,
-) -> CommitResult:
-    """Stage exactly ``plan.files`` plus ``include_barn``, commit, then tag.
+def apply(pipeline: "SharePipeline", commit_plan: CommitPlan) -> CommitResult:
+    """Stage exactly ``plan.files``, commit, then tag.
 
     Never ``-a``/``-A``. Staging is an explicit path list so a user's
-    unrelated work-in-progress cannot land in a wizard-authored commit.
-    There is no checkpoint commit either: the pre-wizard ``HEAD`` is already
-    the rollback anchor, and the wizard authors exactly one commit.
+    unrelated work-in-progress cannot land in a wizard-authored commit —
+    though that scenario is itself unreachable now: step 1's clean-working-
+    tree precondition guarantees nothing else was dirty when the run
+    started, so ``plan.files`` (the pipeline's own accumulated write set) is
+    already everything there is to stage. There is no checkpoint commit
+    either: the pre-wizard ``HEAD`` is already the rollback anchor, and the
+    wizard authors exactly one commit.
 
     The tag is created only after the commit succeeds — a tag on the wrong
     commit is worse than no tag.
     """
-    to_stage = [*commit_plan.files, *(include_barn or [])]
+    to_stage = list(commit_plan.files)
     if not to_stage:
         raise CommitError("Nothing to commit — no files were written.")
 

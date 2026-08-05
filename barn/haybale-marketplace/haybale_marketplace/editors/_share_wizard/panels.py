@@ -502,20 +502,6 @@ def _panel_commit(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
                 rel = path.relative_to(wizard.pipeline.repo_root)
                 ui.label(str(rel)).classes("text-xs font-mono hw-text-dim")
 
-    checkboxes: list[tuple[ui.checkbox, Path]] = []
-    if plan.barn_dirty:
-        hui.section_label("Uncommitted content under barn/")
-        ui.label(
-            "Consumers install from a clone of this repo, so anything left out here "
-            "is silently missing for them."
-        ).classes("text-xs").style("color: var(--hw-warning);")
-        for entry in plan.barn_dirty:
-            rel = entry.path.relative_to(wizard.pipeline.repo_root)
-            marker = "new" if entry.untracked else "modified"
-            box = ui.checkbox(f"{rel} ({marker})", value=True).props("dense")
-            box.classes("text-xs")
-            checkboxes.append((box, entry.path))
-
     if plan.diffstat:
         # hui.expansion_section, not ui.expansion — header styling is only
         # guaranteed correct through the wrapper (design guide §8.11).
@@ -525,17 +511,12 @@ def _panel_commit(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
     message_input = hui.input_field(value=plan.message, placeholder="Commit message")
     ui.label(f"Tags this commit {plan.tag}.").classes("text-xs hw-text-dim")
 
-    def _included() -> list[Path]:
-        return [path for box, path in checkboxes if box.value]
-
     with ui.row().classes("w-full justify-end gap-2"):
         ui.button(
             "Commit and tag",
             on_click=lambda: _advance(
                 rerender,
-                lambda: wizard.advance_from_commit(
-                    (message_input.value or plan.message).strip(), _included()
-                ),
+                lambda: wizard.advance_from_commit((message_input.value or plan.message).strip()),
             ),
         ).props("flat dense").style("color: var(--hw-positive);")
 

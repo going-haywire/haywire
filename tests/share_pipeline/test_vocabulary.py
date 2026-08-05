@@ -5,7 +5,6 @@ from pathlib import Path
 import pytest
 
 from haywire_studio.packaging.share.pipeline import (
-    BarnDirtyFile,
     BumpResult,
     CommitError,
     CommitPlan,
@@ -137,15 +136,13 @@ def test_drift_report_lists_every_library_with_findings() -> None:
     assert report.libraries == [broken, noted]
 
 
-def test_commit_plan_separates_accumulated_from_dirty_barn() -> None:
+def test_commit_plan_carries_the_accumulated_write_set() -> None:
     plan = CommitPlan(
         files=[Path("barn/a/pyproject.toml")],
-        barn_dirty=[BarnDirtyFile(path=Path("barn/a/asset.png"), untracked=True)],
         message="chore: share v0.2.0",
         tag="v0.2.0",
     )
     assert plan.files == [Path("barn/a/pyproject.toml")]
-    assert plan.barn_dirty[0].untracked is True
     assert plan.tag == "v0.2.0"
 
 
