@@ -1,4 +1,10 @@
-"""Precondition-fix handlers dispatched by ``SharePipeline.apply_precondition_fix``."""
+"""Precondition-fix handlers dispatched by ``SharePipeline.apply_precondition_fix``.
+
+Called directly from the Share Wizard's act-modal button handlers
+(``_share_wizard/remedy_modal.py``) — NOT auto-rechecked afterward. The user
+clicks the modal's own "Restart Wizard" button to re-run
+``check_preconditions()`` from the top; there is no in-place recheck loop.
+"""
 
 from __future__ import annotations
 
