@@ -6,7 +6,7 @@ exposes. Per-step body content lives in the caller's own panel functions.
 
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, TypeVar, Union
+from typing import Callable, Mapping, Optional, TypeVar
 
 from nicegui import ui
 
@@ -24,23 +24,17 @@ FlowT = TypeVar("FlowT", bound=StepFlow)
 #: callback to invoke after a transition.
 Panel = Callable[[FlowT, Callable[[], None]], None]
 
-#: A replacement for the error banner's default "Retry" button: the label to
-#: show and the handler to run on click, instead of `flow.retry()`.
-ErrorButtonOverride = tuple[str, Callable[[], None]]
-
 #: Renders extra detail inside the error banner, above the manual command.
-#: Returns either a bool (True suppresses the default single-line error
-#: label — used when a flow carries structured failures worth one row each)
-#: or an `ErrorButtonOverride`, which replaces the bottom "Retry" button with
-#: the given (label, on_click) pair — used when "Retry" doesn't describe what
-#: the button should do (e.g. the share wizard's preconditions step, where
-#: the action is "open a fix modal", not "clear the error and try again").
+#: Returns True to suppress the default single-line error label — used when a
+#: flow carries structured failures worth one row each.
 #:
-#: The two are independent: returning an override does NOT suppress the error
-#: label. A banner that renders only a button tells the user nothing about
-#: what went wrong, so suppressing the message is opt-in via `True` and never
-#: a side effect of customising the button.
-ErrorDetail = Callable[[FlowT, Callable[[], None]], Union[bool, ErrorButtonOverride]]
+#: This once also accepted an `(label, on_click)` pair that replaced the
+#: banner's Retry button, added for the share wizard's preconditions step,
+#: where the action was "open a fix modal" rather than "try again". That flow
+#: now renders its remedies inline in the panel body, so the banner is only
+#: ever reached by a step that really does just retry — and a hook for
+#: relabelling a button nobody relabels is a hook to delete.
+ErrorDetail = Callable[[FlowT, Callable[[], None]], bool]
 
 
 def show_step_flow(
@@ -146,14 +140,10 @@ def render_error(
     """Inline error banner with a Retry button.
 
     *error_detail* may render structured failure rows in place of the plain
-    message (returning True when it has done so), and/or replace the default
-    Retry button by returning an `(label, on_click)` pair instead of a bool —
-    see `ErrorDetail`'s docstring for when that's the right call. The two are
-    independent: a button override alone still shows the error message.
+    message, returning True when it has done so.
     """
     if flow.error is None:
         return
-    button_override: ErrorButtonOverride | None = None
     with (
         ui.row()
         .classes("w-full items-start gap-2 p-2 rounded")
@@ -161,21 +151,11 @@ def render_error(
     ):
         ui.icon("error", size="16px").classes("hw-text-danger flex-shrink-0 mt-0.5")
         with ui.column().classes("gap-1 flex-1"):
-            result = error_detail(flow, rerender) if error_detail is not None else False
-            if isinstance(result, tuple):
-                button_override = result
-                handled = False
-            else:
-                handled = result
+            handled = error_detail(flow, rerender) if error_detail is not None else False
             if not handled:
                 ui.label(flow.error).classes("text-xs hw-text-danger whitespace-pre-line")
             if flow.manual_command:
                 hui.code_snippet(flow.manual_command)
-
-    if button_override is not None:
-        label, on_click = button_override
-        ui.button(label, on_click=on_click).props("flat dense")
-        return
 
     def _retry() -> None:
         flow.retry()

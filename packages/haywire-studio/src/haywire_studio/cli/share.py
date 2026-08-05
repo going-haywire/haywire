@@ -12,18 +12,28 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         help="Publish this project: bump every barn library, regenerate docs, "
         "rebuild marketstall.toml, commit, tag, and push",
     )
-    parser.add_argument(
-        "--yes",
-        action="store_true",
-        help="Non-interactive full run using flag-supplied answers. Requires --bump.",
-    )
+    # No --yes. The command has exactly one mode — non-interactive — so a flag
+    # meaning "don't prompt me" describes the only behaviour there is. It also
+    # named the wrong thing: the run writes manifests, bumps, commits, tags and
+    # pushes, which is "author a release", not "assume yes".
+    #
+    # The prompt-driven mode it used to switch on is gone with it. Walking a
+    # seven-step git-mutating pipeline through input() duplicated every
+    # judgement the Share editor makes, divergently, and the terminal is not
+    # where anyone wants to answer eleven questions about dependency floors.
     parser.add_argument(
         "--bump",
         type=str,
         default=None,
         metavar="VERSION",
         help="Version to publish: patch|minor|major, or an explicit X.Y.Z. Every "
-        "barn/* library is set to it (lockstep).",
+        "barn/* library is set to it (lockstep). Required unless --dry-run.",
+    )
+    parser.add_argument(
+        "--dry-run",
+        action="store_true",
+        help="Report what a publish would do — preconditions, findings, and the "
+        "version it would cut — and write nothing.",
     )
     parser.add_argument(
         "--message",
@@ -49,8 +59,8 @@ def _run(args: argparse.Namespace) -> int:
 
     return run_share_cli(
         repo_root=Path.cwd(),
-        yes=args.yes,
         bump=args.bump,
         message=args.message,
         requires_haywire=args.requires_haywire,
+        dry_run=args.dry_run,
     )

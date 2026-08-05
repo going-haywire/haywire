@@ -1,12 +1,17 @@
-"""``haywire share`` — a thin runner over :class:`SharePipeline`.
+"""``haywire share`` — a thin non-interactive runner over :class:`SharePipeline`.
 
-Two modes:
+One mode. Every decision arrives as a flag, or takes the inert default; the
+command runs to completion or exits non-zero. The prompt-driven mode this used
+to carry is gone: it re-implemented every judgement the Share editor makes,
+divergently (its own copy of the finding vocabulary, its own registration
+comprehension), and the terminal is a poor place to answer eleven questions
+about dependency floors.
 
-* **interactive** (default) — prompts through the same steps as the wizard.
-* **``--yes``** — non-interactive full run with flag-supplied answers, for
-  tag-triggered release automation and for the test suite (testing a
-  seven-step git-mutating pipeline through a prompt loop is otherwise
-  miserable).
+``--dry-run`` reports what a publish would do and writes nothing. That is what
+the deleted ``--check`` mode was reaching for; ``--check`` failed on every PR
+checkout because it enforced preconditions that a PR checkout cannot satisfy.
+Here the branch state is *reported* rather than enforced, so the command is
+useful exactly where the old one was not.
 
 Returns exit codes; never calls ``sys.exit`` itself, so it stays testable.
 """
@@ -16,10 +21,7 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from haywire.core.publishing.pipeline import (
-    ShareError,
-    SharePipeline,
-)
+from haywire.core.publishing.pipeline import ShareError, SharePipeline
 from haywire.core.publishing.url import derive_share_url_only
 
 EXIT_OK = 0
@@ -29,54 +31,86 @@ EXIT_FAILED = 1
 def run_share_cli(
     *,
     repo_root: Path,
-    yes: bool,
     bump: str | None,
     message: str | None,
     requires_haywire: str | None = None,
+    dry_run: bool = False,
 ) -> int:
-    """Dispatch to one of the two modes and return the process exit code."""
+    """Publish *repo_root*, or report what publishing it would do."""
     pipeline = SharePipeline(repo_root)
     try:
-        if yes:
-            return _run_yes(pipeline, bump=bump, message=message, requires_haywire=requires_haywire)
-        return _run_interactive(pipeline)
+        if dry_run:
+            return _run_dry(pipeline)
+        return _run_publish(pipeline, bump=bump, message=message, requires_haywire=requires_haywire)
     except ShareError as exc:
         print(f"\n✗ {exc}")
         return EXIT_FAILED
 
 
-# ── --yes ────────────────────────────────────────────────────────────────────
+def _print_findings(pipeline: SharePipeline) -> None:
+    """Every library's findings, one line each, naming its library.
 
-
-def _resolve_framework_answer(pipeline: SharePipeline, specifier: str | None) -> str | None:
-    """Apply a supplied framework specifier, or leave the declaration alone.
-
-    No flag means keep the declared floor. That default is INERT — it changes
-    nothing and locks nobody out — which is exactly what --yes is for. Raising
-    a floor, the consumer-excluding direction, always needs the explicit flag.
-
-    Not applying is now genuinely harmless: the marketstall's ``require`` is
-    derived from the pyproject floor at write time, so skipping this leaves the
-    published entry stating the floor that is actually declared rather than
-    stamping an empty one.
+    Deliberately terse and ungrouped: the editor groups by finding kind because
+    it has room and controls to attach; a CLI that reproduced that layout would
+    be a second copy of the vocabulary to keep in sync — which is exactly what
+    the old interactive mode was.
     """
-    if specifier is None:
-        return None
-    pipeline.apply_framework(specifier)
-    return specifier
+    report = pipeline.check_drift()
+    for drift in report.libraries:
+        name = drift.lib_dir.name
+        for dep in drift.pyproject_missing:
+            print(f"  ! {name}: {dep} imported but not declared")
+        for dep in drift.unused_declarations:
+            print(f"  · {name}: {dep} declared but not imported")
+        for dist, declared, installed in drift.pyproject_version_lag:
+            print(f"  · {name}: {dist} declares {declared}, {installed} installed")
+        for dep in drift.unresolved:
+            print(f"  · {name}: {dep} resolved to no distribution")
+    if not report.libraries:
+        print("  Nothing to report.")
 
 
-def _run_yes(
+def _run_dry(pipeline: SharePipeline) -> int:
+    """Report; write nothing. Preconditions are REPORTED, not enforced."""
+    report = pipeline.check_preconditions()
+    if report.ok:
+        print("✓ Preconditions OK")
+    else:
+        for failure in report.failures:
+            print(f"✗ {failure.message}")
+            if failure.remedy:
+                for line in failure.remedy.splitlines():
+                    print(f"    {line}")
+
+    print("\nFindings:")
+    _print_findings(pipeline)
+
+    plan = pipeline.plan_version()
+    print("\nVersions:")
+    for lib in plan.current:
+        print(f"  {lib.name}: {lib.version or '(none)'}")
+    if plan.versions_agree:
+        for keyword, resolved in plan.suggestions.items():
+            print(f"  --bump {keyword} → {resolved}")
+    else:
+        print("  ⚠ Versions disagree — --bump needs an explicit X.Y.Z.")
+
+    print("\nNothing was written.")
+    return EXIT_OK if report.ok else EXIT_FAILED
+
+
+def _run_publish(
     pipeline: SharePipeline,
     *,
     bump: str | None,
     message: str | None,
-    requires_haywire: str | None = None,
+    requires_haywire: str | None,
 ) -> int:
-    """Full non-interactive run. Every decision must arrive as a flag."""
+    """The full run. Every decision arrives as a flag or takes its inert default."""
     if not bump:
-        print("--yes requires --bump (patch|minor|major|X.Y.Z): a non-interactive run")
+        print("share requires --bump (patch|minor|major|X.Y.Z): a non-interactive run")
         print("cannot guess which version you meant to publish.")
+        print("Run `haywire share --dry-run` to see what is available.")
         return EXIT_FAILED
 
     pipeline.require_preconditions()
@@ -94,24 +128,25 @@ def _run_yes(
 
     if report.needs_decision:
         # Declaring an import the source actually uses is unambiguously
-        # correct, so --yes does it rather than refusing. Declared with no
+        # correct, so this does it rather than refusing. Declared with no
         # floor: nothing here can compute the oldest version that works.
         # Removals and floor changes are NOT touched — optional, and one is
         # lossy.
-        pyproject_entries: dict[Path, list[str]] = {
-            d.lib_dir: list(d.pyproject_missing) for d in report.drifted
-        }
-        for lib_dir, entries in pyproject_entries.items():
+        additions: dict[Path, list[str]] = {d.lib_dir: list(d.pyproject_missing) for d in report.drifted}
+        for lib_dir, entries in additions.items():
             for dep in entries:
                 print(f"  + {lib_dir.name}: {dep}")
-        pipeline.apply_additions(pyproject_entries)
+        pipeline.apply_additions(additions)
         print("✓ Declared every detected import")
     else:
         print("✓ Every import is declared")
 
-    answer = _resolve_framework_answer(pipeline, requires_haywire)
-    if answer:
-        print(f"✓ Framework requirement set to {answer}")
+    # No flag means keep the declared floor — INERT, changing nothing and
+    # locking nobody out. Raising a floor is the consumer-excluding direction
+    # and always needs the explicit flag.
+    if requires_haywire is not None:
+        pipeline.apply_framework(requires_haywire)
+        print(f"✓ Framework requirement set to {requires_haywire}")
     else:
         print("✓ Framework requirement unchanged")
 
@@ -121,8 +156,7 @@ def _run_yes(
         print(f"⚠ {bump_result.lock_warning}")
 
     docs = asyncio.run(pipeline.apply_docs(on_output=lambda line: print(f"  {line}")))
-    gaps = docs.total_gaps
-    print(f"✓ Regenerated docs ({gaps} coverage gap(s))")
+    print(f"✓ Regenerated docs ({docs.total_gaps} coverage gap(s))")
 
     stall = pipeline.apply_marketstall()
     print(f"✓ Wrote {stall.out_path}")
@@ -135,215 +169,6 @@ def _run_yes(
     plan = pipeline.plan_commit(message=message)
     result = pipeline.apply_commit(plan)
     print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
-
-    push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
-    print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
-
-    url = derive_share_url_only(pipeline.repo_root)
-    if url.share_url:
-        print(f"\n✓ Share this URL:\n  {url.share_url}")
-    elif url.warning:
-        print(f"\n⚠ {url.warning}")
-    return EXIT_OK
-
-
-# ── interactive ──────────────────────────────────────────────────────────────
-
-
-_DETECT_SECTIONS: tuple[tuple[str, str], ...] = (
-    ("pyproject_missing", "Undeclared imports — pyproject.toml does not declare these"),
-    ("decorator_missing", "Undeclared in @library(dependencies) — hot-reload and enable gating"),
-    ("unused_declarations", "Declared, not imported"),
-    ("pyproject_version_lag", "Version floors below what is installed"),
-    ("unresolved", "Unresolved imports — mapped to no installed distribution"),
-)
-
-
-def _print_detect_report(report: object) -> None:
-    """Print the findings grouped by KIND, each instance naming its library.
-
-    Grouping by library instead repeats the same explanation once per library
-    and forces the reader to work out which name is the subject and which is
-    the container. Mirrors the wizard's Findings screen so both surfaces read
-    the same way — including the closing note, since this step reports and
-    resolves nothing.
-    """
-    libraries = report.libraries  # type: ignore[attr-defined]
-    printed = False
-    for field, heading in _DETECT_SECTIONS:
-        rows: list[str] = []
-        for drift in libraries:
-            library = drift.lib_dir.name
-            if field == "pyproject_version_lag":
-                rows += [
-                    f"{dist}  in {library} — declares {declared}, {installed} installed"
-                    for dist, declared, installed in getattr(drift, field)
-                ]
-            else:
-                rows += [f"{item}  in {library}" for item in getattr(drift, field)]
-        if not rows:
-            continue
-        printed = True
-        print(f"\n  {heading}:")
-        for row in rows:
-            print(f"    {row}")
-    if printed:
-        print("\n  Nothing is changed yet — the next steps handle each of these.")
-    else:
-        print("  Nothing to report.")
-
-
-def _ask(prompt: str, *, default: str = "") -> str:
-    suffix = f" [{default}]" if default else ""
-    answer = input(f"{prompt}{suffix}: ").strip()
-    return answer or default
-
-
-def _confirm(prompt: str) -> bool:
-    return _ask(f"{prompt} (y/N)", default="n").lower().startswith("y")
-
-
-def _run_interactive(pipeline: SharePipeline) -> int:
-    """Prompt through the same screens the wizard walks."""
-    print("── 1. Preconditions ──")
-    pipeline.require_preconditions()
-    print("✓ git, barn/, and origin all OK")
-
-    print("\n── 2. Findings ──")
-    report = pipeline.check_drift()
-    _print_detect_report(report)
-
-    print("\n── 3. Framework requirement ──")
-    fw = pipeline.plan_framework()
-    print(f"  haywire-core, installed: {fw.installed or '(unknown)'}")
-    for index, option in enumerate(fw.options, start=1):
-        mark = "  [recommended]" if option.recommended else ""
-        print(f"  {index}. {option.specifier}   {option.label}{mark}")
-        if option.consequence:
-            print(f"       {option.consequence}")
-    print(f"  {len(fw.options) + 1}. custom …   any valid PEP 440 specifier")
-    choice = _ask("Choose", default="1")
-    if choice.strip() == str(len(fw.options) + 1):
-        specifier = _ask("Specifier (e.g. >=0.0.31)")
-    else:
-        try:
-            specifier = fw.options[int(choice) - 1].specifier
-        except (ValueError, IndexError):
-            print("✗ Not one of the offered options.")
-            return EXIT_FAILED
-    pipeline.apply_framework(specifier)
-    print(f"✓ Framework requirement set to haywire-core{specifier}")
-
-    # Applied without asking, at the first writing step so it lands once:
-    # every entry names a registered haywire library the source imports, so
-    # there is nothing to decide. Reported, not silent — it edits __init__.py.
-    registrations = report.decorator_registrations
-    if registrations:
-        for lib_dir, names in registrations.items():
-            print(f"  + {lib_dir.name}: @library(dependencies) {', '.join(names)}")
-        pipeline.apply_decorator_registrations(registrations)
-        print("✓ Registered imported libraries in @library(dependencies)")
-
-    print("\n── 4. Unused declarations ──")
-    unused = {d.lib_dir: list(d.unused_declarations) for d in report.libraries if d.unused_declarations}
-    if not unused:
-        print("  None.")
-    else:
-        for lib_dir, names in unused.items():
-            print(f"  {lib_dir.name}: {', '.join(names)}")
-        print("  Removing is irreversible here and a dynamic import looks identical")
-        print("  to an unused declaration.")
-        if _confirm("Remove them?"):
-            pipeline.apply_removals(unused)
-            print("✓ Removed")
-        else:
-            print("· Kept")
-
-    print("\n── 5. Undeclared imports ──")
-    if not report.needs_decision:
-        print("  None.")
-    else:
-        pyproject_entries: dict[Path, list[str]] = {
-            d.lib_dir: list(d.pyproject_missing) for d in report.drifted
-        }
-        for lib_dir, entries in pyproject_entries.items():
-            for dep in entries:
-                print(f"  {lib_dir.name}: {dep}")
-        if _confirm("Declare them?"):
-            pipeline.apply_additions(pyproject_entries)
-            print("✓ Declared")
-        else:
-            pipeline.acknowledge_undeclared()
-            print("⚠ Publishing with imports left undeclared — consumers may fail to install")
-
-    print("\n── 6. Version floors ──")
-    lagging = {d.lib_dir: list(d.pyproject_version_lag) for d in report.libraries if d.pyproject_version_lag}
-    if not lagging:
-        print("  Every declared floor is at or above what is installed.")
-    else:
-        for lib_dir, rows in lagging.items():
-            for dist, declared, installed in rows:
-                print(f"  {lib_dir.name}: {dist} declares {declared}, {installed} installed")
-        print("  A floor states the OLDEST version that works, which nothing here can")
-        print("  compute — installed being newer is not evidence the floor is wrong.")
-        if _confirm("Sync these floors to the installed versions?"):
-            floors = {
-                lib_dir: [f"{dist}>={installed}" for dist, _declared, installed in rows]
-                for lib_dir, rows in lagging.items()
-            }
-            pipeline.apply_floors(floors)
-            print("✓ Synced")
-        else:
-            print("· Kept")
-
-    print("\n── 7. Version ──")
-    version_plan = pipeline.plan_version()
-    for lib in version_plan.current:
-        print(f"  {lib.name}: {lib.version or '(none)'}")
-    if version_plan.versions_agree:
-        for keyword, resolved in version_plan.suggestions.items():
-            print(f"  {keyword}: {resolved}")
-        spec = _ask("Bump (patch|minor|major|X.Y.Z)", default="patch")
-    else:
-        print("⚠ Versions disagree — every barn library will be set to the version you name.")
-        spec = _ask("Target version (X.Y.Z)")
-    bump_result = pipeline.apply_bump(spec)
-    print(f"✓ All barn libraries now {bump_result.version}")
-    if bump_result.lock_warning:
-        print(f"⚠ {bump_result.lock_warning}")
-
-    print("\n── 8. Docs ──")
-    docs = asyncio.run(pipeline.apply_docs(on_output=lambda line: print(f"  {line}")))
-    print(f"✓ Docs regenerated ({docs.total_gaps} coverage gap(s))")
-
-    print("\n── 9. Marketstall, commit, tag ──")
-    stall = pipeline.apply_marketstall()
-    print(f"✓ Wrote {stall.out_path}")
-    if stall.warning:
-        print(f"⚠ {stall.warning}")
-
-    plan = pipeline.plan_commit()
-    print("\nFiles to commit:")
-    for path in plan.files:
-        print(f"  {path.relative_to(pipeline.repo_root)}")
-
-    message = _ask("Commit message", default=plan.message)
-    plan = pipeline.plan_commit(message=message)
-
-    pipeline.verify_push_allowed()
-    print("✓ Remote will accept the push")
-
-    if not _confirm(f"Commit and tag {plan.tag}?"):
-        print("Aborted before committing. Nothing was committed or tagged.")
-        return EXIT_FAILED
-
-    result = pipeline.apply_commit(plan)
-    print(f"✓ Committed {result.sha[:8]} and tagged {result.tag}")
-
-    print("\n── 10. Push ──")
-    if not _confirm(f"Push {result.tag} to origin?"):
-        print(f"Not pushed. Run this when ready:\n  git {' '.join(pipeline.push_command())}")
-        return EXIT_OK
 
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")

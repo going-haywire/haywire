@@ -62,9 +62,15 @@ class SharePipeline:
         # Set when the author chose to publish a library WITHOUT declaring
         # something its source imports. Narrow on purpose: an undeclared import
         # is the one dependency state that breaks a consumer's install, so it
-        # is the one that `--yes` refuses to guess at. Unused declarations,
-        # lagging floors and pin choices all have safe defaults and need no
+        # is the one with no defensible default. Unused declarations, lagging
+        # floors and pin choices all have safe defaults and need no
         # acknowledgement.
+        #
+        # Only the Share editor can set this, because only it can offer the
+        # choice ("leave undeclared" on the Review screen). The CLI declares
+        # every detected import instead — unambiguously correct, and it never
+        # reaches the state this flag records. An earlier docstring claimed
+        # `--yes` "refuses" on this; it never did, and there is no --yes now.
         self.undeclared_acknowledged = False
         self.version: str | None = None
 
