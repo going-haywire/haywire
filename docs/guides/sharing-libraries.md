@@ -100,16 +100,26 @@ Prompts through the same six steps as the GUI wizard — check the project,
 resolve dependency drift, choose a version, regenerate docs, review the
 commit, then push.
 
-### 4.2 Non-interactive mode
+### 4.2 The CLI
 
 ```sh
-uv run haywire share --yes --bump patch
+uv run haywire share --bump patch
+uv run haywire share --dry-run      # report only; writes nothing
 ```
 
-Every answer comes from a flag instead of a prompt. Requires `--bump`
-(`patch|minor|major` or an explicit `X.Y.Z`); refuses to run if there is
-unresolved dependency drift — resolve it first (§3) or the run fails with the
-same information the drift step would have reported interactively.
+One mode, non-interactive. Every answer comes from a flag or takes its inert
+default. Requires `--bump` (`patch|minor|major` or an explicit `X.Y.Z`).
+
+It does not refuse over dependency drift. An **undeclared import** is declared
+for you — that one breaks a consumer's install and declaring it is
+unambiguously correct — while **unused declarations** and **version floor lag**
+are left untouched, because removing is lossy and nothing here can compute the
+oldest version that still works. Use the Share editor when you want to decide
+those.
+
+`--dry-run` reports preconditions, findings and the version it would cut, and
+writes nothing. Preconditions are *reported* rather than enforced there, so it
+stays useful on a feature branch or a PR checkout.
 
 ### 4.3 Publishing from the default branch
 
@@ -250,7 +260,7 @@ write code → add import → click Detect Dependencies → Union → Save Chang
                                                     git commit && git push
                                                                     │
                                                                     ▼
-                                            uv run haywire share --yes --bump patch
+                                            uv run haywire share --bump patch
                                           (or: Share Project… in the burger menu)
                                                                     │
                                                                     ▼
@@ -274,8 +284,11 @@ staleness gate, is in
 
 ## 8. Common pitfalls
 
-**You ran `haywire share` and got "unresolved dependency drift."**
-`--yes` refuses to run with drift unresolved. Either drop `--yes` and resolve it interactively, or open the Library Overview Editor for the flagged library and Detect → Union, then re-run `--yes --bump ...`. The error message lists which manifest entries are missing.
+**You want to review dependency findings before publishing.**
+The CLI does not stop for them — it declares undeclared imports and leaves the
+judgement calls alone. Run `haywire share --dry-run` to see every finding
+without writing anything, or open the **Share** editor and use its Review
+screen, which offers each finding with a per-item choice.
 
 **Your marketstall has an entry but consumers don't see the library after subscribing.**
 Three causes worth checking:
