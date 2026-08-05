@@ -75,6 +75,49 @@ def _fix_add_origin(pipeline: "SharePipeline", **kwargs: str) -> None:
     # there is nothing here for step 5's commit to stage.
 
 
+def _fix_commit_dirty_tree(pipeline: "SharePipeline", **kwargs: str) -> None:
+    """Handler for fix_id="commit_dirty_tree". Requires a `message` kwarg.
+
+    `git add -A && git commit -m <message>`, whole repo — deliberately not
+    scoped to `barn/`, matching the precondition probe's own "whole repo,
+    period" scope (steps/preconditions.py). This is the one act-fix that
+    talks about the *entire* working tree rather than one library, because
+    the failure it repairs is itself about the entire working tree.
+
+    A purely local operation, same as the other fix handlers: no `git push`
+    happens here, so no hardened env is needed.
+    """
+    message = kwargs.get("message")
+    if not message:
+        raise PipelineStateError(
+            "apply_precondition_fix('commit_dirty_tree', ...) requires a message kwarg."
+        )
+
+    added = git(["add", "-A"], cwd=pipeline.repo_root, timeout=30.0)
+    if not added.ok:
+        raise PreconditionsError(
+            [
+                PreconditionFailure(
+                    message=f"Could not stage changes: {(added.stderr or added.stdout).strip()}",
+                    remedy="Check the working tree and try again.",
+                )
+            ]
+        )
+
+    committed = git(["commit", "-m", message], cwd=pipeline.repo_root, timeout=30.0)
+    if not committed.ok:
+        raise PreconditionsError(
+            [
+                PreconditionFailure(
+                    message=f"Could not commit: {(committed.stderr or committed.stdout).strip()}",
+                    remedy="Check the commit message and try again.",
+                )
+            ]
+        )
+    # No record(): this commits the repo's pre-existing state, not a file the
+    # pipeline itself wrote — there is nothing here for step 5's commit to stage.
+
+
 def _fix_strip_os(pipeline: "SharePipeline", **kwargs: str) -> None:
     """Handler for fix_id="strip_os". Requires a `lib_dir` kwarg: the barn
     library's directory, relative to `pipeline.repo_root` (e.g.
@@ -100,4 +143,5 @@ def _fix_strip_os(pipeline: "SharePipeline", **kwargs: str) -> None:
 _PRECONDITION_FIXES: dict[str, Callable[..., None]] = {
     "strip_os": _fix_strip_os,
     "add_origin": _fix_add_origin,
+    "commit_dirty_tree": _fix_commit_dirty_tree,
 }

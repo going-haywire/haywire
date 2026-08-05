@@ -1,10 +1,13 @@
 """Popup entry point and step→panel wiring for the Share Project wizard.
 
 The progress bar, error banner and warning rows are the shared stepper
-chrome; what stays here is the share-specific part — just the panel map.
-Remedy modals (for step-1 failures) and the rollback modal (for mid-pipeline
-failures) are opened from the panels themselves, not from this shell — see
-``remedy_modal.py`` and ``panels.py::_drain_pending_modal``.
+chrome; what stays here is the share-specific part — the panel map, plus
+``error_detail=_precondition_error_detail``, which turns the step-1 error
+banner's default "Retry" into "Solve" (opens the remedy modal instead of
+just clearing the error). Remedy modals (for step-1 failures) and the
+rollback modal (for mid-pipeline failures) are opened from the panels
+themselves, not from this shell — see ``remedy_modal.py`` and
+``panels.py::_drain_pending_modal``/``_precondition_error_detail``.
 """
 
 from __future__ import annotations
@@ -30,6 +33,7 @@ from .panels import (
     _panel_preconditions,
     _panel_push,
     _panel_version,
+    _precondition_error_detail,
 )
 
 if TYPE_CHECKING:
@@ -80,5 +84,6 @@ def show_share_wizard(
         title="Share Project",
         width="620px",
         on_done=on_done,
+        error_detail=_precondition_error_detail,
     )
     return wizard

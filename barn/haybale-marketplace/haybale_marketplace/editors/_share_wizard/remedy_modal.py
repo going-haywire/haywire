@@ -113,6 +113,28 @@ def _render_act_body(wizard: ShareWizard, failure: PreconditionFailure, error_la
 
         fix_button.on_click(_apply_strip_os)
 
+    elif fix_id == "commit_dirty_tree":
+        message_input = hui.input_field(placeholder="Commit message").classes("w-full mt-2")
+        fix_button = ui.button("Commit changes").props("flat dense").style("color: var(--hw-positive);")
+        fix_button.set_enabled(False)
+        message_input.on_value_change(
+            lambda: fix_button.set_enabled(bool((message_input.value or "").strip()))
+        )
+
+        def _apply_commit_dirty_tree() -> None:
+            try:
+                wizard.pipeline.apply_precondition_fix(
+                    "commit_dirty_tree", message=(message_input.value or "").strip()
+                )
+            except ShareError as exc:
+                error_label.text = str(exc)
+                return
+            error_label.text = "Committed — click Restart Wizard to re-check."
+            fix_button.set_enabled(False)
+            message_input.set_enabled(False)
+
+        fix_button.on_click(_apply_commit_dirty_tree)
+
     elif fix_id == "add_host_config":
         # Not dispatched through _PRECONDITION_FIXES (fixes.py): this writes
         # ~/.haywire/config.toml, a file outside the repo the pipeline owns —

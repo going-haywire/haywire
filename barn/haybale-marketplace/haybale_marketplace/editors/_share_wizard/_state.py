@@ -11,12 +11,14 @@ share-specific transitions, the structured ``PreconditionFailure`` the
 remedy modal reads, and the ``pending_modal`` one-shot request.
 
 Failure posture: a step-1 (preconditions) failure never mutates anything, so
-it stays put with a remedy modal and is retryable in place — no rollback
-needed. Every step past that point (2-6) CAN have written something before
-failing, so :meth:`fail` reverts the whole working tree via
-``pipeline.rollback()`` before queuing the rollback modal — safe because
-step 1's clean-working-tree precondition guarantees nothing else could have
-been sitting there dirty when the run started. See
+it stays put — the error banner's "Solve" button is the only way to open its
+remedy modal, never automatic (unlike the rollback modal below), and it is
+retryable in place from there. Every step past that point (2-6) CAN have
+written something before failing, so :meth:`fail` reverts the whole working
+tree via ``pipeline.rollback()`` before queuing the rollback modal (that one
+IS automatic — it reports something that already happened, not something to
+act on) — safe because step 1's clean-working-tree precondition guarantees
+nothing else could have been sitting there dirty when the run started. See
 ``packages/haywire-studio/.../pipeline/steps/rollback.py``.
 """
 
@@ -73,15 +75,19 @@ class ShareWizard(StepFlow):
         # studio (e.g. the CLI) — the bump is then file-only, same as before.
         self.manager = manager
         self.precondition_failure: PreconditionFailure | None = None
-        # One-shot: set by fail(), drained by the current panel on its next
-        # render (see _drain_pending_modal in panels.py). Either a
-        # PreconditionFailure (step 1 -> remedy modal) or the plain error
-        # string of a rolled-back mid-pipeline failure (-> rollback modal,
-        # Task 7). Kept separate from `precondition_failure` (which persists
-        # so the open modal can read it) precisely so a redraw does not
-        # reopen the dialog — see
-        # .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
-        self.pending_modal: PreconditionFailure | str | None = None
+        # One-shot, and ONLY for the mid-pipeline (rollback) case: set by
+        # fail() when a step past "preconditions" fails, drained by the
+        # current panel on its next render (see _drain_pending_modal in
+        # panels.py) to auto-open the rollback modal — that modal reports
+        # something that already happened (a revert), so there is nothing to
+        # "solve" and no reason to gate it behind a click. A step-1 failure
+        # does NOT populate this: `precondition_failure` alone drives the
+        # error banner's "Solve" button, and the remedy modal opens only when
+        # that button is clicked — never automatically. Kept separate from
+        # `precondition_failure` (which persists so a later Solve click can
+        # still read it) precisely so a redraw does not reopen the rollback
+        # dialog — see .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
+        self.pending_modal: str | None = None
 
         self.preconditions_report: PreconditionsReport | None = None
         self.drift_report: DriftReport | None = None
@@ -166,7 +172,11 @@ class ShareWizard(StepFlow):
         """Record a failure without advancing. Keeps the user on the step.
 
         ``PreconditionsError`` carries a single structured ``PreconditionFailure``
-        — stashed so the panel can open a remedy modal (see take_pending_modal).
+        — stashed on ``precondition_failure`` for the panel's error banner
+        ("Solve" button) to read. Unlike the mid-pipeline case below, this does
+        NOT queue ``pending_modal``: the remedy modal opens only when the user
+        clicks Solve, never automatically on failure — see
+        ``panels.py::_precondition_error_detail``.
 
         For any step past "preconditions", the working tree may hold this
         run's own writes — reverted here before the error is shown, so the
@@ -180,7 +190,6 @@ class ShareWizard(StepFlow):
         super().fail(exc)
         self.precondition_failure = exc.failure if isinstance(exc, PreconditionsError) else None
         if self.precondition_failure is not None:
-            self.pending_modal = self.precondition_failure
             return
         if self.step != "preconditions":
             try:
@@ -190,8 +199,10 @@ class ShareWizard(StepFlow):
                 self.error = f"{self.error}\n\nAdditionally, rollback failed: {rollback_exc}"
             self.pending_modal = self.error or ""
 
-    def take_pending_modal(self) -> PreconditionFailure | str | None:
-        """Return the queued modal request, clearing it. One-shot by design.
+    def take_pending_modal(self) -> str | None:
+        """Return the queued rollback-modal request (a plain error string),
+        clearing it. One-shot by design. See `pending_modal`'s docstring for
+        why the precondition-failure case never populates this.
 
         Pure state, no NiceGUI: the panel calls this during its own render and
         opens the dialog itself, keeping this class testable without a browser

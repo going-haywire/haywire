@@ -90,6 +90,9 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                         "tree — anything already uncommitted here would be lost along with it, "
                         "so nothing may be dirty before the wizard starts."
                     ),
+                    kind="act",
+                    fix_id="commit_dirty_tree",
+                    fix_label="Commit changes",
                 )
             ],
             remote_url=None,

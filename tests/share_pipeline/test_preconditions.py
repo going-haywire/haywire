@@ -98,6 +98,8 @@ def test_dirty_working_tree_fails_first_and_lists_every_dirty_file(
     assert "working tree" in report.failure.message.lower()
     assert "untracked.txt" in report.failure.message
     assert "pyproject.toml" in report.failure.message
+    assert report.failure.kind == "act"
+    assert report.failure.fix_id == "commit_dirty_tree"
 
 
 def test_missing_barn_directory_fails(tmp_path: Path, bare_remote: Path) -> None:
@@ -857,3 +859,60 @@ def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path,
 
     report2 = pipeline.check_preconditions()
     assert not any("No 'origin' remote is configured" in f.message for f in report2.failures)
+
+
+# ── apply_precondition_fix("commit_dirty_tree") ─────────────────────────────
+
+
+def test_apply_precondition_fix_commit_dirty_tree_requires_a_message(project: Path) -> None:
+    from haywire_studio.packaging.share.pipeline import PipelineStateError
+
+    (project / "untracked.txt").write_text("scratch")
+
+    with pytest.raises(PipelineStateError):
+        SharePipeline(project).apply_precondition_fix("commit_dirty_tree")
+
+
+def test_apply_precondition_fix_commit_dirty_tree_commits_everything(project: Path) -> None:
+    """`git add -A && git commit -m <message>`, whole repo — matching the
+    probe's own "whole repo, period" scope, not scoped to barn/."""
+    (project / "barn" / "haybale-alpha" / "pyproject.toml").write_text('[project]\nname = "x"\n')
+    (project / "untracked.txt").write_text("scratch")
+
+    SharePipeline(project).apply_precondition_fix("commit_dirty_tree", message="wip")
+
+    status = subprocess.run(
+        ["git", "status", "--porcelain"], cwd=project, check=True, capture_output=True, text=True
+    ).stdout
+    assert status.strip() == ""
+
+    log = subprocess.run(
+        ["git", "log", "-1", "--pretty=%s"], cwd=project, check=True, capture_output=True, text=True
+    ).stdout.strip()
+    assert log == "wip"
+
+
+def test_commit_dirty_tree_round_trip_clears_the_dirty_tree_failure(
+    tmp_path: Path, bare_remote: Path
+) -> None:
+    """End-to-end: a dirty repo -> check_preconditions() finds the
+    commit_dirty_tree failure -> apply the fix -> re-run check_preconditions()
+    and confirm the tree now reads as clean (the next probe, origin, still
+    fails here since bare_remote isn't wired up — that's expected: the fix
+    only needed to clear ITS OWN failure)."""
+    repo = tmp_path / "commit_dirty_tree_e2e"
+    _init_repo(repo)
+    _add_lib(repo)
+    _commit(repo)
+    (repo / "untracked.txt").write_text("scratch")
+
+    report = SharePipeline(repo).check_preconditions()
+    assert report.ok is False
+    assert report.failure is not None
+    assert report.failure.fix_id == "commit_dirty_tree"
+
+    pipeline = SharePipeline(repo)
+    pipeline.apply_precondition_fix("commit_dirty_tree", message="commit wip")
+
+    report2 = pipeline.check_preconditions()
+    assert report2.failure is None or report2.failure.fix_id != "commit_dirty_tree"

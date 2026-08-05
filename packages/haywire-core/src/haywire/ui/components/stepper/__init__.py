@@ -12,6 +12,7 @@ then hand both to :func:`show_step_flow`.
 
 from .async_helpers import advance, busy_advance
 from .chrome import (
+    ErrorButtonOverride,
     ErrorDetail,
     FlowT,
     Panel,
@@ -23,6 +24,7 @@ from .chrome import (
 from .flow import StepFlow
 
 __all__ = [
+    "ErrorButtonOverride",
     "ErrorDetail",
     "FlowT",
     "Panel",

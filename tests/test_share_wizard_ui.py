@@ -136,10 +136,14 @@ async def test_failed_preconditions_stay_put_with_an_error(tmp_path: Path) -> No
 
 
 @pytest.mark.anyio
-async def test_precondition_failure_queues_an_inform_modal(tmp_path: Path) -> None:
-    """A failure the wizard cannot repair queues a modal request carrying the
-    failure itself. The panel drains it on next render (rendering is smoke-
-    tested only in this file — see the module docstring)."""
+async def test_precondition_failure_does_not_auto_queue_a_modal(tmp_path: Path) -> None:
+    """A step-1 failure sets `precondition_failure` (what the error banner's
+    "Solve" button reads) but never populates `pending_modal` — that modal
+    opens ONLY when Solve is clicked (`_open_precondition_modal`), never
+    automatically. `pending_modal` is reserved for the mid-pipeline rollback
+    case, which IS automatic (see
+    `test_mid_pipeline_failure_reverts_the_working_tree_and_queues_a_rollback_modal`).
+    """
     from haybale_marketplace.editors._share_wizard import ShareWizard
     from haywire_studio.packaging.share.pipeline import SharePipeline
 
@@ -153,26 +157,61 @@ async def test_precondition_failure_queues_an_inform_modal(tmp_path: Path) -> No
     assert wizard.step == "preconditions"
     assert wizard.precondition_failure is not None
     assert wizard.precondition_failure.kind == "inform"
-    assert wizard.pending_modal is not None
+    assert wizard.pending_modal is None
 
 
 @pytest.mark.anyio
-async def test_draining_the_pending_modal_clears_it(tmp_path: Path) -> None:
-    """One-shot: the panel drains on render, so a redraw cannot reopen the
-    dialog (the failure itself stays on the wizard for the modal to read)."""
-    from haybale_marketplace.editors._share_wizard import ShareWizard
-    from haywire_studio.packaging.share.pipeline import SharePipeline
+async def test_error_detail_offers_solve_instead_of_retry_when_a_failure_is_present(
+    tmp_path: Path,
+) -> None:
+    """The preconditions step's error banner never falls back to the generic
+    Retry button — every failure (inform or act) is resolved through its
+    remedy modal, so _precondition_error_detail always returns a ('Solve',
+    ...) override once a failure exists, and nothing (False) before one does.
+    """
+    from haybale_marketplace.editors._share_wizard.panels import _precondition_error_detail
 
-    repo = tmp_path / "broken2"
+    repo = tmp_path / "broken3"
     repo.mkdir()
     subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
 
-    wizard = ShareWizard(pipeline=SharePipeline(repo), popup=None)
-    await wizard.advance_from_preconditions()
+    wizard = _wizard(repo)
+    assert wizard.precondition_failure is None
+    assert _precondition_error_detail(wizard, lambda: None) is False
 
-    assert wizard.take_pending_modal() is not None
-    assert wizard.take_pending_modal() is None
-    assert wizard.pending_modal is None
+    await wizard.advance_from_preconditions()
+    assert wizard.precondition_failure is not None
+
+    result = _precondition_error_detail(wizard, lambda: None)
+    assert isinstance(result, tuple)
+    label, _on_click = result
+    assert label == "Solve"
+
+
+@pytest.mark.anyio
+async def test_solve_button_stays_available_across_repeated_renders(tmp_path: Path) -> None:
+    """The Solve override survives multiple renders of the same failure
+    (a redraw calling _precondition_error_detail again) — its state
+    (`precondition_failure`) is a plain field, not a one-shot queue, so
+    nothing about calling it once consumes or disables it for the next
+    render. This is also what stops the modal itself from stacking: the
+    modal is opened only from the button's own on_click, never as a side
+    effect of this function being called during render."""
+    from haybale_marketplace.editors._share_wizard.panels import _precondition_error_detail
+
+    repo = tmp_path / "broken4"
+    repo.mkdir()
+    subprocess.run(["git", "init"], cwd=repo, check=True, capture_output=True)
+
+    wizard = _wizard(repo)
+    await wizard.advance_from_preconditions()
+    assert wizard.precondition_failure is not None
+
+    first = _precondition_error_detail(wizard, lambda: None)
+    second = _precondition_error_detail(wizard, lambda: None)
+    assert isinstance(first, tuple)
+    assert isinstance(second, tuple)
+    assert first[0] == second[0] == "Solve"
 
 
 @pytest.mark.anyio
@@ -832,6 +871,31 @@ async def test_fix_success_never_advances_past_checked(os_project: Path) -> None
     assert wizard.drift_report is None
 
 
+@pytest.mark.anyio
+async def test_commit_dirty_tree_fix_then_recheck_reaches_checked(project: Path) -> None:
+    """Same shape as strip_os/add_origin: an 'act' failure, a fix applied
+    straight off the failure's fix_id, then Restart Wizard (retry() +
+    advance_from_preconditions()) lands on 'checked'."""
+    (project / "untracked.txt").write_text("scratch")
+
+    wizard = _wizard(project)
+    await wizard.advance_from_preconditions()
+
+    failure = wizard.precondition_failure
+    assert failure is not None
+    assert failure.fix_id == "commit_dirty_tree"
+    assert failure.kind == "act"
+
+    wizard.pipeline.apply_precondition_fix("commit_dirty_tree", message="wip")
+
+    wizard.retry()
+    await wizard.advance_from_preconditions()
+
+    assert wizard.step == "checked"
+    assert wizard.error is None
+    assert wizard.precondition_failure is None
+
+
 def test_failing_fix_raises_preconditions_error(project: Path) -> None:
     """add_origin against a project that already has an origin raises
     PreconditionsError from a completely different call path than step 1's
@@ -867,9 +931,14 @@ def test_append_host_config_writes_a_hosts_entry(tmp_path: Path, monkeypatch) ->
 
 
 @pytest.mark.anyio
-async def test_mid_pipeline_failure_reverts_the_working_tree(project: Path) -> None:
+async def test_mid_pipeline_failure_reverts_the_working_tree_and_queues_a_rollback_modal(
+    project: Path,
+) -> None:
     """A failure past step 1 leaves no trace: the tree is reverted BEFORE the
-    error is reported, so the modal describes an already-cleaned state."""
+    error is reported, so the modal describes an already-cleaned state. Unlike
+    a step-1 failure, this one DOES queue `pending_modal` — the rollback
+    modal reports something that already happened (nothing to "solve"), so
+    it opens automatically rather than waiting on a click."""
     from haywire_studio.packaging.share.pipeline import DocsGenerationError
 
     wizard = _wizard(project)
@@ -889,6 +958,8 @@ async def test_mid_pipeline_failure_reverts_the_working_tree(project: Path) -> N
     assert wizard.error is not None
     assert "docs blew up" in wizard.error
     assert not stray.exists()
+    assert wizard.pending_modal is not None
+    assert isinstance(wizard.pending_modal, str)
 
 
 @pytest.mark.anyio

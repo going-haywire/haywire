@@ -10,6 +10,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.modals import restart_affordance
 
+from haywire.ui.components.stepper import ErrorButtonOverride
 from haywire.ui.components.stepper import advance as _advance
 from haywire.ui.components.stepper import busy_advance as _busy_advance
 from ._state import ShareWizard
@@ -17,27 +18,76 @@ from .copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
 from .remedy_modal import show_remedy_modal, show_rollback_modal
 
 
-def _drain_pending_modal(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
-    """Open whichever modal the last failure queued, exactly once.
+def _restart_after_modal(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Reopen the wizard popup (Solve closed it to show the modal in its
+    place) and retry the failed state, then rerender into it."""
+    wizard.retry()
+    if wizard.popup is not None:
+        wizard.popup.open()
+    rerender()
 
-    Called first thing by every panel: a step's failure keeps the user on
-    that step, so the panel that re-renders after fail() is the one that owes
-    the modal. take_pending_modal() is one-shot, so redraws don't restack it
-    — see .insights/feedback_nicegui_redraw_deletes_handler_slot.md for why
-    the modal can't just be opened from the shared error banner instead.
+
+def _open_precondition_modal(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Close the wizard popup and open the remedy modal for the current
+    precondition failure — the ONLY entry point for this modal, wired to the
+    error banner's "Solve" button (`_precondition_error_detail`). Never
+    called automatically on failure: a fresh `ui.dialog()` opened outside a
+    click handler is how the modal used to stack on top of itself on every
+    redraw, since dialogs are independent top-level elements the panel's own
+    `body.clear()` does not reach.
+
+    `popup.close()` also fires `Popup`'s `on_close` callback (`show_share_wizard`'s
+    `on_done`) — today that's always `None` for this wizard (its one caller,
+    `library_browser_editor.py`, never passes it), so this is safe. A future
+    caller that DOES pass `on_done` would see it fire here too, mid-flow, not
+    just on a genuine finish/dismiss — `Popup` has no "hide without firing
+    on_close" primitive to route around that with.
+    """
+    failure = wizard.precondition_failure
+    if failure is None:
+        return
+    if wizard.popup is not None:
+        wizard.popup.close()
+    show_remedy_modal(wizard, failure, on_restart=lambda: _restart_after_modal(wizard, rerender))
+
+
+def _drain_pending_modal(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
+    """Auto-open the rollback modal if the last failure queued one.
+
+    Called first thing by every panel. Only the mid-pipeline (rollback) case
+    reaches here — a step-1 failure never populates `pending_modal` (see
+    `_state.py`), since that modal opens only from the "Solve" button
+    (`_precondition_error_detail` / `_open_precondition_modal`), never
+    automatically. take_pending_modal() is one-shot, so redraws don't
+    restack the rollback dialog — see
+    .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
     """
     pending = wizard.take_pending_modal()
     if pending is None:
         return
+    if wizard.popup is not None:
+        wizard.popup.close()
+    show_rollback_modal(pending, on_close=lambda: _restart_after_modal(wizard, rerender))
 
-    def _restart() -> None:
-        wizard.retry()
-        rerender()
 
-    if isinstance(pending, str):
-        show_rollback_modal(pending, on_close=_restart)
-    else:
-        show_remedy_modal(wizard, pending, on_restart=_restart)
+def _precondition_error_detail(
+    wizard: ShareWizard, rerender: Callable[[], None]
+) -> bool | ErrorButtonOverride:
+    """Relabels the preconditions step's banner button "Solve" instead of
+    "Retry" — every precondition failure is resolved through its remedy modal
+    (inform: dismiss only; act: dismiss or fix in place), opened ONLY by
+    clicking this button, never automatically.
+
+    Returns the button override only; the banner keeps rendering the failure
+    message itself. The message must stay on the banner precisely BECAUSE the
+    modal is gated behind a click — suppressing it left the user with an error
+    icon and a Solve button explaining nothing. See the design note on
+    `render_error`'s `ErrorDetail` for the mechanism, and
+    `_open_precondition_modal` for why "only on click" matters.
+    """
+    if wizard.precondition_failure is None:
+        return False
+    return ("Solve", lambda: _open_precondition_modal(wizard, rerender))
 
 
 def _panel_preconditions(wizard: ShareWizard, rerender: Callable[[], None]) -> None:
@@ -49,6 +99,10 @@ def _panel_preconditions(wizard: ShareWizard, rerender: Callable[[], None]) -> N
     ).classes("text-xs hw-text-dim")
     with ui.row().classes("w-full justify-end gap-2"):
         check = ui.button("Check").props("flat dense").style("color: var(--hw-positive);")
+        # Nothing changed since the last check until the user acts on the
+        # failure through its remedy modal — re-running the same check would
+        # just reproduce the same failure. See _precondition_error_detail.
+        check.set_enabled(wizard.precondition_failure is None)
         check.on_click(lambda: _busy_advance(rerender, check, wizard.advance_from_preconditions))
 
 
