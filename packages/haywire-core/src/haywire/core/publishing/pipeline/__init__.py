@@ -12,6 +12,7 @@ from haywire.core.publishing.git import (
     run,
     run_streaming,
 )
+from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.pipeline.errors import (
     CommitError,
     DocsGenerationError,
@@ -37,6 +38,7 @@ from haywire.core.publishing.pipeline.results import (
     LibraryVersion,
     PreconditionFailure,
     PreconditionsReport,
+    ShareDecisions,
     PushResult,
     VersionPlan,
 )
@@ -46,6 +48,7 @@ __all__ = [
     "CommitError",
     "CommitPlan",
     "CommitResult",
+    "DepDrift",
     "DocsGenerationError",
     "DocsResult",
     "DriftReport",
@@ -61,6 +64,7 @@ __all__ = [
     "PreconditionFailure",
     "PreconditionsError",
     "PreconditionsReport",
+    "ShareDecisions",
     "PushError",
     "PushResult",
     "ShareError",

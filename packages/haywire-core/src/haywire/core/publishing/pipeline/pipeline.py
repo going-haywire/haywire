@@ -27,6 +27,7 @@ from haywire.core.publishing.pipeline.results import (
     DriftReport,
     FrameworkPlan,
     PreconditionsReport,
+    ShareDecisions,
     PushResult,
     VersionPlan,
 )
@@ -158,6 +159,41 @@ class SharePipeline:
     def apply_floors(self, floors: dict[Path, list[str]]) -> list[Path]:
         """Rewrite the declared floors the author chose to change."""
         return steps_dependencies.apply_floors(self, floors)
+
+    def apply_all(self, decisions: ShareDecisions) -> list[Path]:
+        """Write every dependency answer in one pass. Returns the write set.
+
+        The collect-then-apply-once entry point: a caller assembles a
+        :class:`ShareDecisions` (free — nothing is written while the author
+        revises), then calls this once. Five writing steps become one, so a
+        flow abandoned before this point leaves the tree untouched and a
+        failure here has a single region to revert.
+
+        The ORDER is load-bearing and matches what the incremental path did:
+        ``framework`` first, because :func:`plan_framework` must read the
+        author's actual prior declaration — when the framework write ran after
+        the other dependency writes, "keep the current declaration" computed
+        from a value another step had already rewritten, and the recommended
+        option silently raised the floor. Registrations follow immediately, at
+        the first writing step, so they land exactly once.
+
+        Each apply is skipped when its mapping is empty, so this makes no
+        subprocess calls and no writes for a decision set that changes nothing.
+        """
+        written: list[Path] = []
+        if decisions.framework is not None:
+            written += self.apply_framework(decisions.framework)
+        if decisions.registrations:
+            written += self.apply_decorator_registrations(decisions.registrations)
+        if decisions.removals:
+            written += self.apply_removals(decisions.removals)
+        if decisions.additions:
+            written += self.apply_additions(decisions.additions)
+        if decisions.floors:
+            written += self.apply_floors(decisions.floors)
+        if decisions.undeclared_acknowledged:
+            self.acknowledge_undeclared()
+        return written
 
     # ── Step 3: version bump (lockstep) ──────────────────────────────────────
 

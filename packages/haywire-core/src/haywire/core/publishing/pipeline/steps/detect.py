@@ -18,6 +18,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haywire.core.publishing.drift.detect import detect_share_drift
+from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.pipeline.results import DriftReport
 
 if TYPE_CHECKING:
@@ -35,8 +36,8 @@ def check(pipeline: "SharePipeline") -> DriftReport:
     Shares ``detect_share_drift`` with ``haywire deps check``, so both commands
     report identically for the same repo state.
     """
-    drifted: list[object] = []
-    findings_only: list[object] = []
+    drifted: list[DepDrift] = []
+    findings_only: list[DepDrift] = []
     for lib_dir in pipeline._barn_library_dirs():
         drift = detect_share_drift(lib_dir)
         if drift.has_drift:

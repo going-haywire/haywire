@@ -2,9 +2,11 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Literal
+
+from haywire.core.publishing.drift.model import DepDrift
 
 
 @dataclass(frozen=True)
@@ -118,17 +120,36 @@ class DriftReport:
     offered, and leaving them alone is a valid answer.
     """
 
-    drifted: list[Any]
-    findings_only: list[Any]
+    drifted: list[DepDrift]
+    findings_only: list[DepDrift]
 
     @property
     def needs_decision(self) -> bool:
         return bool(self.drifted)
 
     @property
-    def libraries(self) -> list[Any]:
+    def libraries(self) -> list[DepDrift]:
         """Every library with anything to show, drifted first."""
         return [*self.drifted, *self.findings_only]
+
+    @property
+    def decorator_registrations(self) -> dict[Path, list[str]]:
+        """Per-library ``@library(dependencies)`` entries to add without asking.
+
+        Lives here rather than in each caller because it is a *pipeline*
+        decision — "which registrations are provably true and need no author
+        input" — that both the share flow and the CLI must answer identically.
+        It was duplicated in both, divergently, before this property existed.
+
+        Read off every library with findings, not just the drifted ones: a
+        missing registration is not drift, so a library whose only gap is this
+        never appears in ``drifted`` at all.
+        """
+        return {
+            drift.lib_dir: list(drift.decorator_missing)
+            for drift in self.libraries
+            if drift.decorator_missing
+        }
 
 
 @dataclass(frozen=True)
@@ -208,3 +229,33 @@ class FrameworkPlan:
     installed: str
     declared: str
     options: list[FrameworkOption]
+
+
+@dataclass(frozen=True)
+class ShareDecisions:
+    """Every dependency answer the author gave, collected before anything is written.
+
+    The whole point is that assembling this is FREE — building it touches no
+    file — so a UI can let the author revise until they commit, and only then
+    call :meth:`SharePipeline.apply_all`. That is what shrinks the rollback
+    surface: one writing region instead of five, and a flow abandoned before
+    Publish leaves the tree exactly as it found it.
+
+    Every field defaults to "change nothing", so an untouched decision set is a
+    provable no-op rather than a branch the caller has to remember to skip. The
+    one exception is ``framework``: ``None`` means "leave the declared floor
+    alone", which is also inert, but an empty string would not be — it would
+    fail specifier parsing.
+
+    ``registrations`` is not a decision (see
+    :attr:`DriftReport.decorator_registrations`); it travels here only so
+    :meth:`apply_all` can write it in the same pass, at the same point in the
+    order the incremental path used.
+    """
+
+    framework: str | None = None
+    registrations: dict[Path, list[str]] = field(default_factory=dict)
+    removals: dict[Path, list[str]] = field(default_factory=dict)
+    additions: dict[Path, list[str]] = field(default_factory=dict)
+    floors: dict[Path, list[str]] = field(default_factory=dict)
+    undeclared_acknowledged: bool = False

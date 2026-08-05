@@ -66,20 +66,6 @@ def _resolve_framework_answer(pipeline: SharePipeline, specifier: str | None) ->
     return specifier
 
 
-def _decorator_registrations(report: object) -> dict[Path, list[str]]:
-    """Per-library ``@library(dependencies)`` entries to add without asking.
-
-    Read off every library with findings, not just the drifted ones: a missing
-    registration is no longer drift, so a library whose only gap is this would
-    not appear in ``report.drifted`` at all.
-    """
-    return {
-        drift.lib_dir: list(drift.decorator_missing)
-        for drift in report.libraries  # type: ignore[attr-defined]
-        if drift.decorator_missing
-    }
-
-
 def _run_yes(
     pipeline: SharePipeline,
     *,
@@ -98,7 +84,7 @@ def _run_yes(
 
     report = pipeline.check_drift()
 
-    registrations = _decorator_registrations(report)
+    registrations = report.decorator_registrations
     if registrations:
         for lib_dir, names in registrations.items():
             for name in names:
@@ -251,7 +237,7 @@ def _run_interactive(pipeline: SharePipeline) -> int:
     # Applied without asking, at the first writing step so it lands once:
     # every entry names a registered haywire library the source imports, so
     # there is nothing to decide. Reported, not silent — it edits __init__.py.
-    registrations = _decorator_registrations(report)
+    registrations = report.decorator_registrations
     if registrations:
         for lib_dir, names in registrations.items():
             print(f"  + {lib_dir.name}: @library(dependencies) {', '.join(names)}")
