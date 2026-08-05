@@ -99,8 +99,12 @@ def test_missing_origin_fails_with_setup_instructions(tmp_path: Path) -> None:
     repo = tmp_path / "noremote"
     _init_repo(repo)
     _add_lib(repo)
+    _commit(repo)
     report = SharePipeline(repo).check_preconditions()
     assert report.ok is False
+    assert report.failure is not None
+    assert report.failure.kind == "act"
+    assert report.failure.fix_id == "add_origin"
     assert any("remote add origin" in f.remedy for f in report.failures)
     assert report.remote_url is None
 
@@ -122,14 +126,17 @@ def test_unreachable_remote_fails(tmp_path: Path) -> None:
     assert any("origin" in f.message or "origin" in f.remedy for f in report.failures)
 
 
-def test_every_failure_is_reported_together(tmp_path: Path) -> None:
-    """No barn AND no remote must both appear — fixing one shouldn't reveal the other."""
+def test_check_stops_at_the_first_failure(tmp_path: Path) -> None:
+    """No barn/ AND no origin are both true here, but only the first-encountered
+    problem (no barn/, which is probed before origin) is reported — an earlier
+    failure can make a later probe's result moot, so check() does not run it."""
     repo = tmp_path / "broken"
     _init_repo(repo)
     report = SharePipeline(repo).check_preconditions()
-    assert len(report.failures) >= 2
-    assert any("barn" in f.message for f in report.failures)
-    assert any("origin" in f.message or "origin" in f.remedy for f in report.failures)
+    assert report.ok is False
+    assert len(report.failures) == 1
+    assert report.failure is not None
+    assert "barn" in report.failure.message
 
 
 def test_missing_git_binary_reports_install_instructions(project: Path, monkeypatch) -> None:
@@ -144,12 +151,12 @@ def test_missing_git_binary_reports_install_instructions(project: Path, monkeypa
     assert any("git-scm.com" in f.remedy for f in report.failures)
 
 
-def test_require_preconditions_raises_with_all_failures(tmp_path: Path) -> None:
+def test_require_preconditions_raises_with_the_first_failure(tmp_path: Path) -> None:
     repo = tmp_path / "broken2"
     _init_repo(repo)
     with pytest.raises(PreconditionsError) as excinfo:
         SharePipeline(repo).require_preconditions()
-    assert len(excinfo.value.failures) >= 2
+    assert len(excinfo.value.failures) == 1
 
 
 def test_require_preconditions_returns_report_when_ok(project: Path) -> None:
@@ -171,8 +178,9 @@ def test_pipeline_starts_with_an_empty_write_set(project: Path) -> None:
 def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path, monkeypatch) -> None:
     """No `PreconditionFailure` returned under any failure scenario has an empty remedy.
 
-    Covers every branch of ``check_preconditions``: missing git, missing barn/,
-    empty barn/, missing origin, unreachable origin, and everything-broken.
+    Covers several branches of ``check_preconditions``: missing git, missing
+    barn/, empty barn/, missing origin, unreachable origin. Since check()
+    stops at the first failure, each scenario below yields exactly one.
     """
     from haywire_studio.packaging.share import git as gitcmd
 
@@ -219,12 +227,14 @@ def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path,
     for repo in scenarios:
         report = SharePipeline(repo).check_preconditions()
         assert report.ok is False
+        assert len(report.failures) == 1
         for failure in report.failures:
             assert failure.remedy, f"{repo.name}: {failure.message!r} has no remedy"
 
     project_repo = tmp_path / "gitless"
     _init_repo(project_repo)
     _add_lib(project_repo)
+    _commit(project_repo)
 
     def _no_git(*_a, **_kw):
         raise FileNotFoundError("git")
@@ -232,6 +242,7 @@ def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path,
     monkeypatch.setattr(gitcmd.subprocess, "run", _no_git)
     report = SharePipeline(project_repo).check_preconditions()
     assert report.ok is False
+    assert len(report.failures) == 1
     for failure in report.failures:
         assert failure.remedy, f"missing-git: {failure.message!r} has no remedy"
 
@@ -271,6 +282,7 @@ def test_invalid_os_declaration_carries_strip_os_fix_id(project: Path) -> None:
     matches = [f for f in report.failures if "pyproject.toml" in f.message]
     assert matches, report.failures
     for f in matches:
+        assert f.kind == "act"
         assert f.fix_id == "strip_os"
         assert f.fix_label == "Remove invalid values"
 
