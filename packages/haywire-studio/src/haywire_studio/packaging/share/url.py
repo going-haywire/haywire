@@ -2,12 +2,11 @@
 
 from __future__ import annotations
 
-import re
 from dataclasses import dataclass
 from pathlib import Path
 from urllib.parse import urlsplit
 
-from haywire.core.marketstall.host_providers import resolve_host
+from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire_studio.packaging.share.barn import current_ref
 from haywire_studio.packaging.share.git import git
 
@@ -51,19 +50,6 @@ def _unknown_host_warning(hostname: str) -> str:
     )
 
 
-def _ssh_to_https(url: str) -> str:
-    """Convert SSH-style git URLs to HTTPS.
-
-    git@github.com:user/repo.git  →  https://github.com/user/repo.git
-    git@gitlab.com:user/repo.git  →  https://gitlab.com/user/repo.git
-    """
-    match = re.match(r"^git@([^:]+):(.+)$", url)
-    if match:
-        host, path = match.groups()
-        return f"https://{host}/{path}"
-    return url
-
-
 @dataclass(frozen=True)
 class ShareSaveResult:
     """Output of _derive_url. share_url is None if URL derivation failed."""
@@ -94,7 +80,7 @@ def _derive_url(
             ),
         )
 
-    https_url = _ssh_to_https(remote_url).removesuffix(".git").rstrip("/")
+    https_url = ssh_to_https(remote_url).removesuffix(".git").rstrip("/")
     parts = urlsplit(https_url)
     hostname = (parts.hostname or "").lower()
 

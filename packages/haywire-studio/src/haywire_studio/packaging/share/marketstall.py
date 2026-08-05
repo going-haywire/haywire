@@ -12,6 +12,7 @@ import toml
 
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.marketstall import Haybale
+from haywire.core.marketstall.host_providers import ssh_to_https
 from haywire.core.marketstall.requirement import haywire_core_requirement
 from haywire_studio.packaging.share.barn import barn_library_dirs
 from haywire_studio.packaging.share.manifest.deps import _read_library_dependencies, _read_library_label
@@ -22,7 +23,6 @@ from haywire_studio.packaging.share.url import (
     _find_git_root,
     _get_current_ref,
     _get_remote_url,
-    _ssh_to_https,
 )
 
 
@@ -76,7 +76,7 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     subdirectory: Path | str
     if remote_url:
         assert git_root is not None
-        https_url = _ssh_to_https(remote_url)
+        https_url = ssh_to_https(remote_url)
         https_url = https_url.removesuffix(".git")
         subdirectory = lib_dir.relative_to(git_root)
         if tag:
