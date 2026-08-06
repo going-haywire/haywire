@@ -97,6 +97,12 @@ class ShareFlow(StepFlow):
         # behind" from "a commit and tag exist locally and were NOT reverted".
         self.committed_unpushed = False
 
+        # The exception itself, kept alongside StepFlow's `error` string.
+        # Panels that lay a failure out field by field need the structured
+        # form — rendering str(exc) as well would restate what they just drew
+        # (PushError's message embeds both the stderr and the retry command).
+        self.last_error: BaseException | None = None
+
         self.hot_swapped_libraries: list[str] = []
         self.hot_swap_needs_restart = False
 
@@ -138,6 +144,7 @@ class ShareFlow(StepFlow):
         """
         super().retry()
         self.precondition_failure = None
+        self.last_error = None
 
     def fail(self, exc: BaseException) -> None:
         """Record a failure without advancing. Keeps the user on the step.
@@ -148,6 +155,7 @@ class ShareFlow(StepFlow):
         revert that reports having undone a commit it cannot reach.
         """
         super().fail(exc)
+        self.last_error = exc
         self.precondition_failure = exc.failure if isinstance(exc, PreconditionsError) else None
         if self.precondition_failure is not None:
             return

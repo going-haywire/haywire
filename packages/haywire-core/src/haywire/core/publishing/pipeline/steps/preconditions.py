@@ -277,12 +277,7 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         # --abbrev-ref HEAD` while `symbolic-ref` still succeeds, so
         # relying on that string would misreport a brand-new project.
         return PreconditionsReport(
-            failures=[
-                PreconditionFailure(
-                    message="HEAD is detached — no branch is currently checked out.",
-                    remedy=_detached_head_remedy(pipeline),
-                )
-            ],
+            failures=[_detached_head_failure(pipeline)],
             remote_url=remote_url,
             barn_libraries=barn_libraries,
             default_branch=default_branch,
@@ -296,30 +291,14 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         current = pipeline.current_branch()
         if current is None:
             return PreconditionsReport(
-                failures=[
-                    PreconditionFailure(
-                        message="HEAD is detached — no branch is currently checked out.",
-                        remedy=_detached_head_remedy(pipeline),
-                    )
-                ],
+                failures=[_detached_head_failure(pipeline)],
                 remote_url=remote_url,
                 barn_libraries=barn_libraries,
                 default_branch=default_branch,
             )
         if current != default_branch:
             return PreconditionsReport(
-                failures=[
-                    PreconditionFailure(
-                        message=(
-                            f"Currently on `{current}`, but the repository's default branch "
-                            f"is `{default_branch}`."
-                        ),
-                        remedy=(
-                            f"Switch to the default branch and publish from there: "
-                            f"`git switch {default_branch}`."
-                        ),
-                    )
-                ],
+                failures=[_wrong_branch_failure(pipeline, current=current, default=default_branch)],
                 remote_url=remote_url,
                 barn_libraries=barn_libraries,
                 default_branch=default_branch,
@@ -334,15 +313,13 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
     )
 
 
-def _detached_head_remedy(pipeline: "SharePipeline") -> str:
-    """Remedy text for a detached HEAD, computed from ``git branch --contains HEAD``.
+def _branches_containing_head(pipeline: "SharePipeline") -> list[str]:
+    """Branch names that already contain the current commit.
 
-    Each line is prefixed ``"* "`` (current) or ``"  "`` (other); a
-    detached HEAD also shows a synthetic ``(HEAD detached at <sha>)`` /
-    ``(HEAD detached from <sha>)`` line, which is not a real branch name
-    and is filtered out. If no real branch remains — a dangling commit no
-    branch was ever built from — the remedy falls back to naming a new
-    one.
+    ``git branch --contains HEAD`` prefixes each line ``"* "`` (current) or
+    ``"  "`` (other); a detached HEAD also emits a synthetic
+    ``(HEAD detached at <sha>)`` line, which is not a branch name and is
+    filtered out.
     """
     result = git(["branch", "--contains", "HEAD"], cwd=pipeline.repo_root, timeout=10.0)
     names = []
@@ -351,11 +328,100 @@ def _detached_head_remedy(pipeline: "SharePipeline") -> str:
         if not name or name.startswith("(HEAD detached"):
             continue
         names.append(name)
+    return names
+
+
+def _detached_head_failure(pipeline: "SharePipeline") -> PreconditionFailure:
+    """The detached-HEAD failure, offering an in-place switch when it is safe.
+
+    Two situations wear the same name and need opposite advice:
+
+    * **Nothing to lose** — HEAD is already contained in a branch (you checked
+      out a tag or a commit and did not commit on top). Switching just moves
+      HEAD, so the fix is offered as a button.
+    * **Work would be orphaned** — commits were made while detached and no
+      branch contains them. ``git switch`` would leave them unreachable, so no
+      button is offered and the remedy says to save the work first.
+
+    Stating WHY publishing is blocked matters as much as stating the command:
+    "HEAD is detached" plus a bare ``git switch`` told the user what to type
+    without telling them what was wrong or what they risked.
+    """
+    names = _branches_containing_head(pipeline)
+    blocked = (
+        "Publishing tags the commit it creates and pushes it to a branch, "
+        "and a detached HEAD is on no branch — so there is nothing to push to."
+    )
 
     if names:
-        quoted = ", ".join(f"`{n}`" for n in names)
-        return f"This commit is on {quoted} — run `git switch {names[0]}`."
-    return (
-        "This commit is not on any branch — run `git switch -c my-branch` to create one, "
-        "then publish from there."
+        target = names[0]
+        others = f" (also on {', '.join(f'`{n}`' for n in names[1:])})" if len(names) > 1 else ""
+        return PreconditionFailure(
+            message="HEAD is detached — no branch is currently checked out.",
+            remedy=(
+                f"{blocked}\n\n"
+                f"This commit is already on `{target}`{others}, so switching to it loses "
+                f"nothing — it only moves HEAD back onto the branch."
+            ),
+            kind="act",
+            fix_id="switch_branch",
+            fix_label=f"Switch to {target}",
+            lib_dir=target,
+        )
+
+    return PreconditionFailure(
+        message="HEAD is detached, and this commit is not on any branch.",
+        remedy=(
+            f"{blocked}\n\n"
+            "Switching away now would leave this commit unreachable. Put it on a "
+            "branch first:\n\n"
+            "  git switch -c my-branch\n\n"
+            "then publish from there."
+        ),
+    )
+
+
+def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: str) -> PreconditionFailure:
+    """On a branch that is not the remote's default. Same shape as detached HEAD.
+
+    Publishing is default-branch-only (see the arch doc's §5), and the safe
+    condition for repairing it is identical: switching is lossless exactly
+    when the current branch's commits are already contained in the default
+    branch — i.e. the branch has nothing unmerged on it.
+
+    A branch with unmerged work is the interesting case, and it must NOT offer
+    a button. Nothing is destroyed by switching (the branch still holds the
+    commits), but the user almost certainly wants to merge or abandon that work
+    deliberately rather than have a publish wizard silently move them off it.
+    """
+    contained = git(["merge-base", "--is-ancestor", "HEAD", default], cwd=pipeline.repo_root, timeout=10.0)
+    blocked = (
+        "Publishing always happens on the default branch, so the tag and the "
+        "marketstall URLs point at a ref that will still exist later — a feature "
+        "branch usually disappears when it merges."
+    )
+
+    if contained.ok:
+        return PreconditionFailure(
+            message=f"Currently on `{current}`, but the repository publishes from `{default}`.",
+            remedy=(
+                f"{blocked}\n\n"
+                f"`{current}` has nothing that `{default}` does not already contain, so "
+                f"switching loses no work."
+            ),
+            kind="act",
+            fix_id="switch_branch",
+            fix_label=f"Switch to {default}",
+            lib_dir=default,
+        )
+
+    return PreconditionFailure(
+        message=f"Currently on `{current}`, but the repository publishes from `{default}`.",
+        remedy=(
+            f"{blocked}\n\n"
+            f"`{current}` has commits that `{default}` does not. Merge them first, or "
+            f"publish after this branch lands:\n\n"
+            f"  git switch {default}\n\n"
+            f"Nothing is lost either way — `{current}` keeps its commits."
+        ),
     )

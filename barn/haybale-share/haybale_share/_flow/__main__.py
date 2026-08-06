@@ -47,6 +47,8 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
     """
     from haywire.ui.components.stepper import render_error, render_progress, render_warnings
 
+    from .panels import suppress_duplicate_error
+
     container.clear()
     flow = build()
 
@@ -65,7 +67,11 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
         ):
             render_progress(flow)
             render_warnings(flow)
-            render_error(flow, _rerender, None)
+            # The same error_detail show_share_flow passes. Rendering the banner
+            # without it is how this harness first showed a duplicate the real
+            # flow does not have — a harness that diverges from production
+            # reports bugs that are its own.
+            render_error(flow, _rerender, suppress_duplicate_error)
             panel(flow, _rerender)
 
 

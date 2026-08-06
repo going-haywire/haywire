@@ -24,17 +24,18 @@ FlowT = TypeVar("FlowT", bound=StepFlow)
 #: callback to invoke after a transition.
 Panel = Callable[[FlowT, Callable[[], None]], None]
 
-#: Renders extra detail inside the error banner, above the manual command.
-#: Returns True to suppress the default single-line error label — used when a
-#: flow carries structured failures worth one row each.
+#: Decides what the error banner shows. Called with the flow and a re-render
+#: callback; the return value selects one of three behaviours:
 #:
-#: This once also accepted an `(label, on_click)` pair that replaced the
-#: banner's Retry button, added for the share wizard's preconditions step,
-#: where the action was "open a fix modal" rather than "try again". That flow
-#: now renders its remedies inline in the panel body, so the banner is only
-#: ever reached by a step that really does just retry — and a hook for
-#: relabelling a button nobody relabels is a hook to delete.
-ErrorDetail = Callable[[FlowT, Callable[[], None]], bool]
+#: * ``False`` — render the banner normally (message + Retry). The default.
+#: * ``True`` — keep the banner but suppress its message label, because the
+#:   hook rendered structured rows in its place.
+#: * ``"skip"`` — render NO banner at all, not even the Retry button. For a
+#:   panel that lays the failure out itself and owns its own actions: the
+#:   banner would otherwise contribute an empty red box and a Retry that means
+#:   something different from the panel's own button (on the share flow's
+#:   post-commit failure, "Retry" would re-enter a step that already committed).
+ErrorDetail = Callable[[FlowT, Callable[[], None]], "bool | str"]
 
 
 def show_step_flow(
@@ -139,20 +140,32 @@ def render_error(
 ) -> None:
     """Inline error banner with a Retry button.
 
-    *error_detail* may render structured failure rows in place of the plain
-    message, returning True when it has done so.
+    *error_detail* selects the banner's behaviour — see :data:`ErrorDetail`.
+    Returning ``"skip"`` suppresses the whole banner, Retry included, for a
+    panel that renders the failure and its actions itself.
     """
     if flow.error is None:
         return
-    with (
+
+    # The hook is called exactly once, inside a throwaway container: a detail
+    # hook that RENDERS (both marketplace flows do) must draw inside the
+    # banner, but "skip" means there should be no banner to draw into. So the
+    # banner is built first and discarded if the answer turns out to be
+    # "skip" — cheaper than calling the hook twice, which would double any
+    # side effect it has.
+    banner = (
         ui.row()
         .classes("w-full items-start gap-2 p-2 rounded")
         .style("border-left: 3px solid var(--hw-danger); background: var(--hw-danger-bg);")
-    ):
+    )
+    with banner:
         ui.icon("error", size="16px").classes("hw-text-danger flex-shrink-0 mt-0.5")
         with ui.column().classes("gap-1 flex-1"):
-            handled = error_detail(flow, rerender) if error_detail is not None else False
-            if not handled:
+            decision = error_detail(flow, rerender) if error_detail is not None else False
+            if decision == "skip":
+                banner.delete()
+                return
+            if not decision:
                 ui.label(flow.error).classes("text-xs hw-text-danger whitespace-pre-line")
             if flow.manual_command:
                 hui.code_snippet(flow.manual_command)

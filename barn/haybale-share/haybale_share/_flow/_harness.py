@@ -1,6 +1,6 @@
 """Panel harness — render every Share screen in every state, without git.
 
-    uv run python -m haybale_share._flow._harness
+    uv run python -m haybale_share._flow      # the runnable entry point (__main__.py)
 
 Then open http://localhost:8091.
 
@@ -145,26 +145,92 @@ def preflight_unknown_host() -> ShareFlow:
     )
 
 
-def preflight_detached_head() -> ShareFlow:
-    """inform-kind: nothing the flow can repair. Check again + Close only.
+_DETACHED_BLOCKED = (
+    "Publishing tags the commit it creates and pushes it to a branch, "
+    "and a detached HEAD is on no branch — so there is nothing to push to."
+)
 
-    The state that made "Restart Wizard" a lie in the predecessor — its only
-    button re-ran a check that reproduced the same failure.
-    """
+_BRANCH_BLOCKED = (
+    "Publishing always happens on the default branch, so the tag and the "
+    "marketstall URLs point at a ref that will still exist later — a feature "
+    "branch usually disappears when it merges."
+)
+
+
+def preflight_detached_safe() -> ShareFlow:
+    """Detached, but the commit is already on a branch — switching loses nothing."""
     return _failed(
         PreconditionFailure(
             message="HEAD is detached — no branch is currently checked out.",
-            remedy="This commit is on `master` — run `git switch master`.",
+            remedy=(
+                f"{_DETACHED_BLOCKED}\n\n"
+                "This commit is already on `master`, so switching to it loses nothing — "
+                "it only moves HEAD back onto the branch."
+            ),
+            kind="act",
+            fix_id="switch_branch",
+            fix_label="Switch to master",
+            lib_dir="master",
         )
     )
 
 
-def preflight_wrong_branch() -> ShareFlow:
-    """inform-kind, the most common unfixable one."""
+def preflight_detached_orphan() -> ShareFlow:
+    """Detached WITH commits no branch contains — no button, on purpose.
+
+    ``git switch`` here would leave the work unreachable (recoverable via
+    reflog, but the user would not know to look). The remedy says to save it
+    first instead of offering a one-click way to lose it.
+    """
     return _failed(
         PreconditionFailure(
-            message="Currently on `feature/share-rework`, but the repository's default branch is `master`.",
-            remedy="Switch to the default branch and publish from there: `git switch master`.",
+            message="HEAD is detached, and this commit is not on any branch.",
+            remedy=(
+                f"{_DETACHED_BLOCKED}\n\n"
+                "Switching away now would leave this commit unreachable. Put it on a "
+                "branch first:\n\n"
+                "  git switch -c my-branch\n\n"
+                "then publish from there."
+            ),
+        )
+    )
+
+
+def preflight_wrong_branch_merged() -> ShareFlow:
+    """On a branch with nothing unmerged — switching is safe, so it is offered."""
+    return _failed(
+        PreconditionFailure(
+            message="Currently on `feature/share-rework`, but the repository publishes from `master`.",
+            remedy=(
+                f"{_BRANCH_BLOCKED}\n\n"
+                "`feature/share-rework` has nothing that `master` does not already "
+                "contain, so switching loses no work."
+            ),
+            kind="act",
+            fix_id="switch_branch",
+            fix_label="Switch to master",
+            lib_dir="master",
+        )
+    )
+
+
+def preflight_wrong_branch_unmerged() -> ShareFlow:
+    """On a branch with unmerged commits — no button.
+
+    Nothing would be destroyed (the branch keeps its commits), but moving a
+    user off unmerged work is a decision they should make deliberately, not
+    one a publish wizard makes for them.
+    """
+    return _failed(
+        PreconditionFailure(
+            message="Currently on `feature/share-rework`, but the repository publishes from `master`.",
+            remedy=(
+                f"{_BRANCH_BLOCKED}\n\n"
+                "`feature/share-rework` has commits that `master` does not. Merge them "
+                "first, or publish after this branch lands:\n\n"
+                "  git switch master\n\n"
+                "Nothing is lost either way — `feature/share-rework` keeps its commits."
+            ),
         )
     )
 
@@ -370,8 +436,10 @@ SCENARIOS: dict[str, list[tuple[str, Callable[[], ShareFlow], Panel]]] = {
         ("No origin — fix takes a URL", preflight_no_origin, panel_preflight),
         ("Invalid os — fix takes nothing", preflight_invalid_os, panel_preflight),
         ("Unknown host — writes outside the repo", preflight_unknown_host, panel_preflight),
-        ("Detached HEAD — unfixable", preflight_detached_head, panel_preflight),
-        ("Wrong branch — unfixable", preflight_wrong_branch, panel_preflight),
+        ("Detached HEAD — safe to switch", preflight_detached_safe, panel_preflight),
+        ("Detached HEAD — would orphan work", preflight_detached_orphan, panel_preflight),
+        ("Wrong branch — nothing unmerged", preflight_wrong_branch_merged, panel_preflight),
+        ("Wrong branch — has unmerged work", preflight_wrong_branch_unmerged, panel_preflight),
         ("Origin unreachable — unfixable", preflight_unreachable, panel_preflight),
     ],
     "2 · Review": [

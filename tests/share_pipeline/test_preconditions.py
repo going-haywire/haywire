@@ -501,10 +501,15 @@ def test_detached_head_fails_with_remedy(tmp_path: Path, bare_remote: Path) -> N
     for f in matches:
         assert f.remedy
         # The commit IS on `branch` (the checkout above only moved HEAD off
-        # of it), so the remedy must name that branch and the concrete
-        # `git switch` command — not just generic prose.
+        # of it), so the remedy must name that branch — and because switching
+        # back is provably lossless here, it is offered as a fix rather than
+        # as prose telling the user what to type.
         assert f"`{branch}`" in f.remedy
-        assert f"git switch {branch}" in f.remedy
+        assert f.kind == "act"
+        assert f.fix_id == "switch_branch"
+        assert f.lib_dir == branch
+        # And it says WHY publishing is blocked, not only what to do.
+        assert "nothing to push to" in f.remedy
 
 
 def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bare_remote: Path) -> None:
@@ -531,10 +536,12 @@ def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bar
     matches = [f for f in report.failures if "detached" in f.message.lower()]
     assert matches, report.failures
     for f in matches:
-        assert f.remedy == (
-            "This commit is not on any branch — run `git switch -c my-branch` to create one, "
-            "then publish from there."
-        )
+        assert "git switch -c my-branch" in f.remedy
+        # No button here, on purpose: `git switch` would leave this commit
+        # unreachable, so the flow must not offer a one-click way to lose it.
+        assert f.kind == "inform"
+        assert f.fix_id is None
+        assert "unreachable" in f.remedy
 
 
 def test_unborn_branch_is_not_mistaken_for_detached_head(project: Path) -> None:
@@ -588,14 +595,18 @@ def test_non_default_branch_fails_with_remedy(tmp_path: Path) -> None:
 
     assert report.default_branch == default_branch
     assert report.ok is False
-    matches = [f for f in report.failures if "default branch" in f.message]
+    matches = [f for f in report.failures if default_branch in f.message]
     assert matches, report.failures
     for f in matches:
         assert f.remedy
         assert "feature-x" in f.message
-        assert f.remedy == (
-            f"Switch to the default branch and publish from there: `git switch {default_branch}`."
-        )
+        # feature-x carries a commit the default branch does not, so no
+        # one-click switch is offered — moving off unmerged work is the
+        # author's decision. The remedy says nothing is lost either way.
+        assert f.kind == "inform"
+        assert f.fix_id is None
+        assert "keeps its commits" in f.remedy
+        assert f"git switch {default_branch}" in f.remedy
 
 
 def test_default_branch_checkout_passes(tmp_path: Path) -> None:

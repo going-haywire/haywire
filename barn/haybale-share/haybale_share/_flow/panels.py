@@ -73,9 +73,11 @@ def panel_preflight(flow: ShareFlow, rerender: Callable[[], None]) -> None:
 
     ui.label(failure.message).classes("text-sm hw-text-danger whitespace-pre-line")
     if failure.remedy:
-        # code_snippet, not a plain label: every remedy is something to run or
-        # paste, and it carries its own copy affordance.
-        hui.code_snippet(failure.remedy)
+        # A plain label, not code_snippet: `remedy` is prose that explains WHY
+        # publishing is blocked, with any command indented on its own line.
+        # Rendering the whole thing as code made the explanation monospace and
+        # offered to copy a paragraph.
+        ui.label(failure.remedy).classes("text-xs hw-text-dim whitespace-pre-line")
 
     note = ui.label("").classes("text-xs")
 
@@ -436,7 +438,13 @@ def _render_committed_unpushed(flow: ShareFlow) -> None:
         ui.label(f"Committed {result.sha[:8]}, tagged {result.tag} — both are still here.").classes(
             "text-xs hw-text-dim"
         )
-    ui.label(flow.error or "").classes("text-xs hw-text-danger whitespace-pre-line")
+
+    # `stderr`, not `str(exc)`: PushError's message already embeds the retry
+    # command and the "Run this yourself" line, both of which this panel lays
+    # out below. Rendering the whole message showed each of them twice.
+    stderr = getattr(flow.last_error, "stderr", "") or ""
+    if stderr:
+        ui.label(stderr.strip()).classes("text-xs hw-text-danger whitespace-pre-line")
 
     command = flow.retry_command
     if command:
@@ -477,3 +485,27 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
 
     done = _footer("Done")
     done.on_click(lambda: flow.popup and flow.popup.close())
+
+
+def suppress_duplicate_error(flow: ShareFlow, _rerender: Callable[[], None]) -> "bool | str":
+    """Stop the shared error banner from restating what a panel already shows.
+
+    `flow.error` is `str(exception)`. For a `PreconditionsError` that string is
+    CLI-shaped — "Cannot share this project:", the message bulleted under it,
+    the remedy indented under that — because it is what a terminal prints. The
+    Preflight panel renders `failure.message` and `failure.remedy` as real UI
+    from the same structured fields, so letting the banner render too showed
+    every line twice, once pre-formatted for a terminal.
+
+    Same for the post-commit push failure: `PushError.__str__` already contains
+    the stderr AND the retry command, both of which the Publish panel lays out
+    itself.
+
+    Returns "skip" rather than True: True would keep the banner shell and its
+    Retry button, leaving an empty red box above the panel. Retry is also wrong
+    for both states — on a post-commit failure it would re-enter a step that
+    already committed. Each of these panels renders its own actions.
+    """
+    if flow.precondition_failure is not None or flow.committed_unpushed:
+        return "skip"
+    return False

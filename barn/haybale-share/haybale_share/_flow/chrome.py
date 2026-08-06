@@ -9,7 +9,13 @@ from haywire.core.publishing.pipeline import SharePipeline
 from haywire.ui.components.stepper import Panel, show_step_flow
 
 from ._state import ShareFlow
-from .panels import panel_done, panel_preflight, panel_publish, panel_review
+from .panels import (
+    panel_done,
+    panel_preflight,
+    panel_publish,
+    panel_review,
+    suppress_duplicate_error,
+)
 
 
 def show_share_flow(
@@ -23,10 +29,13 @@ def show_share_flow(
     writes nothing, and the user already expressed the intent by opening this.
     A "Check" button there would ask them to confirm it twice.
 
-    No ``error_detail`` override. The predecessor relabelled the error banner's
-    button "Solve" and opened a remedy modal from it; preflight now renders its
-    own failures inline, so the banner is only ever reached by a step that has
-    a plain retry.
+    ``error_detail`` suppresses the banner's message for the two states whose
+    panels lay the failure out themselves — a preflight failure and a
+    post-commit push failure. ``flow.error`` is ``str(exception)``, which for
+    both is a CLI-shaped string already containing everything the panel just
+    rendered as real UI, so letting the banner print it too showed every line
+    twice. It does NOT relabel the button the way the predecessor did (that
+    hook is gone from core); those two panels own their own buttons.
     """
     flow = ShareFlow(pipeline=SharePipeline(repo_root))
 
@@ -43,6 +52,7 @@ def show_share_flow(
         title="Share Project",
         width="640px",
         on_done=on_done,
+        error_detail=suppress_duplicate_error,
         auto_start=True,
     )
     return flow

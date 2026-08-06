@@ -136,6 +136,61 @@ def _fix_strip_os(pipeline: "SharePipeline", **kwargs: str) -> None:
     pipeline.record([lib_dir / "pyproject.toml"])
 
 
+def _fix_switch_branch(pipeline: "SharePipeline", **kwargs: str) -> None:
+    """Handler for fix_id="switch_branch". Requires a `branch` kwarg.
+
+    Offered ONLY when the current commit is already contained in *branch* —
+    the caller establishes that with ``git merge-base --is-ancestor`` before
+    setting the fix (see ``steps/preconditions.py``). Re-checked here anyway,
+    because the check and the click are separated by however long the user
+    spent reading, and a commit made in between would be orphaned silently.
+
+    That is the whole risk this fix guards: `git switch` moves HEAD, and any
+    commit made while detached that no branch contains becomes unreachable
+    (recoverable via reflog, but the user would not know to look). When HEAD
+    is an ancestor of the target, there is nothing to lose — switching is
+    purely a re-pointing of HEAD.
+
+    Purely local, like every other fix handler: no remote is contacted.
+    """
+    branch = kwargs.get("branch")
+    if not branch:
+        raise PipelineStateError("apply_precondition_fix('switch_branch', ...) requires a branch kwarg.")
+
+    contained = git(["merge-base", "--is-ancestor", "HEAD", branch], cwd=pipeline.repo_root, timeout=10.0)
+    if not contained.ok:
+        raise PreconditionsError(
+            [
+                PreconditionFailure(
+                    message=(
+                        f"This commit is not contained in `{branch}`, so switching would "
+                        f"leave it unreachable."
+                    ),
+                    remedy=(
+                        f"Keep the work first — `git switch -c my-branch` to put it on a "
+                        f"branch, or `git branch my-branch` to mark it without moving. "
+                        f"Then publish from `{branch}`."
+                    ),
+                )
+            ]
+        )
+
+    switched = git(["switch", branch], cwd=pipeline.repo_root, timeout=30.0)
+    if not switched.ok:
+        raise PreconditionsError(
+            [
+                PreconditionFailure(
+                    message=(
+                        f"Could not switch to `{branch}`: {(switched.stderr or switched.stdout).strip()}"
+                    ),
+                    remedy=f"Switch by hand with `git switch {branch}`, then try again.",
+                )
+            ]
+        )
+    # No record(): switching branches moves HEAD, it does not write a tracked
+    # file — there is nothing here for step 5's commit to stage.
+
+
 # Dispatch table for `SharePipeline.apply_precondition_fix`, keyed by
 # `PreconditionFailure.fix_id`. Each handler takes `(pipeline, **kwargs)` and
 # performs the repair in place. An absent key is an unknown fix, not a silent
@@ -144,4 +199,5 @@ _PRECONDITION_FIXES: dict[str, Callable[..., None]] = {
     "strip_os": _fix_strip_os,
     "add_origin": _fix_add_origin,
     "commit_dirty_tree": _fix_commit_dirty_tree,
+    "switch_branch": _fix_switch_branch,
 }
