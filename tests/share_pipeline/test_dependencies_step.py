@@ -11,9 +11,9 @@ from unittest.mock import patch
 import pytest
 import toml
 
-from haywire_studio.packaging.share import DepDrift
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps import detect as steps_detect
+from haywire.core.publishing import DepDrift
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline.steps import detect as steps_detect
 
 pytestmark = pytest.mark.unit
 
@@ -307,3 +307,95 @@ def test_an_inline_array_is_left_inline(project: Path) -> None:
     SharePipeline(project).apply_additions({lib: ["numpy>=2.0"]})
 
     assert 'dependencies = ["toml", "numpy>=2.0"]' in (lib / "pyproject.toml").read_text()
+
+
+# ── apply_all: collect-then-apply-once ───────────────────────────────────────
+
+
+def test_apply_all_with_an_untouched_decision_set_writes_nothing(project: Path) -> None:
+    """The default ShareDecisions must be a provable no-op.
+
+    This is what makes deferring the writes safe: a flow abandoned before the
+    author confirms leaves the tree exactly as it found it, so there is
+    nothing to roll back.
+    """
+    from haywire.core.publishing.pipeline import ShareDecisions
+
+    pipeline = SharePipeline(project)
+    before = {lib: (lib / "pyproject.toml").read_text() for lib in pipeline._barn_library_dirs()}
+
+    written = pipeline.apply_all(ShareDecisions())
+
+    assert written == []
+    assert pipeline.written == []
+    for lib, text in before.items():
+        assert (lib / "pyproject.toml").read_text() == text
+
+
+def test_apply_all_writes_the_framework_floor_before_the_other_entries(project: Path) -> None:
+    """Order is load-bearing, not cosmetic.
+
+    plan_framework() reads the author's ACTUAL prior declaration. When the
+    framework write ran after the other dependency writes, "keep the current
+    declaration" computed from a value another step had already rewritten and
+    the recommended option silently raised the floor. apply_all must preserve
+    the order the incremental path established.
+    """
+    from haywire.core.publishing.pipeline import ShareDecisions
+
+    pipeline = SharePipeline(project)
+    calls: list[str] = []
+
+    def _record(name):
+        def _inner(*_args, **_kwargs):
+            calls.append(name)
+            return []
+
+        return _inner
+
+    with (
+        patch.object(SharePipeline, "apply_framework", _record("framework")),
+        patch.object(SharePipeline, "apply_decorator_registrations", _record("registrations")),
+        patch.object(SharePipeline, "apply_removals", _record("removals")),
+        patch.object(SharePipeline, "apply_additions", _record("additions")),
+        patch.object(SharePipeline, "apply_floors", _record("floors")),
+    ):
+        pipeline.apply_all(
+            ShareDecisions(
+                framework=">=0.0.31",
+                registrations={Path("a"): ["x"]},
+                removals={Path("a"): ["y"]},
+                additions={Path("a"): ["z"]},
+                floors={Path("a"): ["w>=1"]},
+            )
+        )
+
+    assert calls == ["framework", "registrations", "removals", "additions", "floors"]
+
+
+def test_apply_all_applies_the_real_writes_and_accumulates_them(project: Path) -> None:
+    """End to end over the real appliers: the write set is what step 5 stages."""
+    from haywire.core.publishing.pipeline import ShareDecisions
+
+    pipeline = SharePipeline(project)
+    alpha = project / "barn" / "haybale-alpha"
+
+    written = pipeline.apply_all(ShareDecisions(framework=">=0.0.31", additions={alpha: ["numpy>=1.0"]}))
+
+    assert alpha / "pyproject.toml" in written
+    assert "numpy>=1.0" in _deps(alpha)
+    assert any(d.startswith("haywire-core>=0.0.31") for d in _deps(alpha))
+    # Recorded once, not twice, even though two appliers touched the same file.
+    assert pipeline.written.count(alpha / "pyproject.toml") == 1
+
+
+def test_apply_all_records_the_undeclared_acknowledgement(project: Path) -> None:
+    """The one flag that has no file to write, so it would be easy to drop."""
+    from haywire.core.publishing.pipeline import ShareDecisions
+
+    pipeline = SharePipeline(project)
+    assert pipeline.undeclared_acknowledged is False
+
+    pipeline.apply_all(ShareDecisions(undeclared_acknowledged=True))
+
+    assert pipeline.undeclared_acknowledged is True

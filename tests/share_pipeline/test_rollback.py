@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
-from haywire_studio.packaging.share.pipeline.steps.rollback import revert_working_tree
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline.steps.rollback import revert_working_tree
 
 pytestmark = pytest.mark.unit
 

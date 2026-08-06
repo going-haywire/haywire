@@ -1,7 +1,7 @@
 ---
 status: current
 doc_template: impl-spec
-scope: SharePipeline's step-by-step mechanics, the error taxonomy, the default-branch publishing rule, and the current CI-facing tooling
+scope: SharePipeline's step-by-step mechanics, the collect-then-apply-once contract, the three failure outcomes, the error taxonomy, the default-branch publishing rule, and the current CI-facing tooling
 see-also:
   - ../sharing/sharing-arch.md
   - ../../guides/sharing-libraries.md
@@ -14,15 +14,15 @@ see-also:
 
 ## 1. Mental model
 
-`SharePipeline` (`haywire_studio.packaging.share.pipeline.pipeline`) is a single stateful object that drives one project's publish, one step at a time. It is the one engine behind every caller: the `haywire share` CLI (interactive and `--yes` modes) and the studio's share wizard both construct a `SharePipeline(repo_root)` and call the same methods in the same order.
+`SharePipeline` (`haywire.core.publishing.pipeline.pipeline`) is a single stateful object that drives one project's publish, one step at a time. It is the one engine behind every caller: the `haywire share` CLI and the Share editor's flow (`barn/haybale-share`) both construct a `SharePipeline(repo_root)` and call the same methods in the same order.
 
-It is stateful because later steps consume earlier steps' outputs — dependency resolution precedes docs regeneration, the bumped version feeds both the docs render and the marketstall entry, and the final commit's file list is the union of every step's writes. A stateful object keeps that sequencing in one place instead of re-derived by each caller, and maps directly onto the wizard's linear, resumable stepper UI.
+It is stateful because later steps consume earlier steps' outputs — dependency resolution precedes docs regeneration, the bumped version feeds both the docs render and the marketstall entry, and the final commit's file list is the union of every step's writes. A stateful object keeps that sequencing in one place instead of re-derived by each caller, and maps onto the flow's linear, resumable stepper UI.
 
 Each step that can affect the working tree is split into a **check/plan** call (mutates nothing) and an **apply** call (mutates). This plan/apply split is covered in full in §3.
 
 ## 2. The steps
 
-Eight step modules under `packaging/share/pipeline/steps/` — `preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`. `SharePipeline` delegates to each rather than implementing the logic inline.
+Eight step modules under `publishing/pipeline/steps/` — `preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`. `SharePipeline` delegates to each rather than implementing the logic inline.
 
 ```text
 1. Preconditions          check_preconditions() / require_preconditions()
@@ -34,22 +34,21 @@ Eight step modules under `packaging/share/pipeline/steps/` — `preconditions.py
 7. Push                   verify_push_allowed() → apply_push()   [async]
 ```
 
-### 2.0 Steps are not 1:1 with wizard screens
+### 2.0 Steps are not 1:1 with UI screens
 
-The wizard renders **six** screens over the two dependency modules, because the author makes six decisions about one file:
+The Share flow renders **three** screens over eight step modules, because the user asks three questions — can I publish, what am I publishing, ship it:
 
-| Wizard screen | Backed by |
+| Screen | Backed by |
 |---|---|
-| Detect | `detect.py` |
-| Framework requirement | `dependencies.apply_framework()` + `apply_decorator_registrations()` |
-| Unused declarations | `dependencies.apply_removals()` |
-| Undeclared imports | `dependencies.apply_additions()` |
-| Version floors | `dependencies.apply_floors()` |
-| Confirm | — (renders what the applies produced) |
+| Preflight | `preconditions.py`, then `detect.py` + `framework.plan()` + `version.plan()` to prepare the next screen |
+| Review | `SharePipeline.apply_all()` over every `dependencies.py` applier, then `version.apply_bump()` |
+| Publish | `docs.py` → `commit.apply_marketstall()` → `push.verify_allowed()` → `commit.apply()` → `push.apply()` |
 
-Splitting one file's mutations across six modules would spread one concern thin, so `dependencies.py` owns every write to `[project] dependencies`. `tests/share_pipeline/test_step_sequence.py` enforces the mapping — its invariant is "every screen that writes has an applier", not "one screen per module".
+The engine keeps its finer-grained modules because each has its own reason to exist: `detect.py` is pure and shared with `haywire deps check`; `dependencies.py` owns every write to `[project] dependencies` (splitting one file's mutations across modules would spread one concern thin); `framework.py` only **plans**, because `plan_framework()` must read the author's actual prior declaration — when the framework write lived alongside the other dependency writes, "keep the current declaration" computed from a value another step had already rewritten.
 
-`framework.py` is separate from `dependencies.py` because it only **plans**: `plan_framework()` must read the author's actual prior declaration, and when the framework write lived alongside the other dependency writes, "keep the current declaration" computed from a value another step had already rewritten.
+Those are the ENGINE's units of work. The screens are the USER's units of decision, and the two do not have to agree. An earlier wizard made them agree — thirteen screens, one per pipeline concern — and a clean repo then walked six consecutive screens of good news requiring six clicks and offering no decisions.
+
+`tests/share_pipeline/test_step_sequence.py` enforces what actually matters: every decision the UI can express has an applier behind it, and `apply_all()` reads every `ShareDecisions` field. A field it forgot would be collected from the author and then silently dropped — invisible in a collect-then-apply-once design, since nothing writes until the single apply.
 
 ### 2.1 Step 1 — Preconditions
 
@@ -65,7 +64,9 @@ It checks, in order:
 - HEAD is not detached (`git symbolic-ref -q HEAD`, not `git rev-parse --abbrev-ref HEAD` — see §5 for why).
 - The current branch matches the remote's default branch (see §5).
 
-Reporting rather than raising also matters for the wizard's first panel: the menu item that launches sharing is always enabled (a disabled button cannot carry a tooltip explaining why — design-guide.md's disabled state includes `pointer-events: none`), so the wizard needs a populated failure list to render rather than a raised exception it has to catch before the UI ever appears.
+Reporting rather than raising also matters for the Preflight screen. It runs automatically when the flow opens (`show_step_flow(auto_start=True)`) — a first step that only checks, writes nothing, and asks the user to confirm an intent they already expressed by opening it does not deserve a button. On failure the screen renders the message and its remedy **inline**, offering the in-place fix where one exists (`fix_id`) and "Check again" always. So it needs a populated failure to render, not an exception to catch before the UI exists.
+
+Inline, specifically, rather than in a modal: a `ui.dialog()` is a top-level element that a panel's own container clear cannot reach, so an earlier wizard had to close the whole popup to show one, and opening it outside a click handler stacked it on every redraw.
 
 ### 2.2 Step 2 — Detect
 
@@ -94,7 +95,7 @@ An empty mapping writes nothing, so "keep them" is a real answer on every screen
 
 This replaced a whole-list overwrite that caused two bugs. It rewrote the `haywire-core` floor as a side effect of resolving unrelated drift — masked only by step ordering, which meant the framework step's "keep the current declaration" option computed from an already-clobbered value. And it regenerated entries from detection, silently dropping extras (`visiongraph[onnx,openvino,mediapipe]`), environment markers, and direct references.
 
-`acknowledge_undeclared()` records that the author is publishing a knowingly-undeclared import — the one dependency state with no defensible default — without touching disk. `--yes` refuses only on that, and only when it was not explicitly skipped.
+`acknowledge_undeclared()` records that the author is publishing a knowingly-undeclared import — the one dependency state with no defensible default — without touching disk. Only the Share flow can set it, because only it offers the choice; the CLI declares every detected import instead and never reaches that state.
 
 ### 2.4 Step 4 — Version bump (lockstep)
 
@@ -112,7 +113,7 @@ The actual generation happens in a subprocess (`haywire docs --all --json <tmp-p
 
 Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail the step. Only a non-zero subprocess exit — an actual crash — raises `DocsGenerationError`.
 
-`docs_write_set()` (called by `apply_docs()` to populate the accumulated write set) reads `git status --porcelain -- barn` rather than predicting which files changed, because the generator's output is data-dependent: it writes OVERVIEW/QUICKREF/README plus one file per component, and *deletes* orphaned per-component docs when a component was renamed. Scoped to `barn/` only — nothing outside barn reaches consumers, and sweeping up unrelated working-tree dirt is what would make a wizard-authored commit untrustworthy.
+`docs_write_set()` (called by `apply_docs()` to populate the accumulated write set) reads `git status --porcelain -- barn` rather than predicting which files changed, because the generator's output is data-dependent: it writes OVERVIEW/QUICKREF/README plus one file per component, and *deletes* orphaned per-component docs when a component was renamed. Scoped to `barn/` only — nothing outside barn reaches consumers, and sweeping up unrelated working-tree dirt is what would make a flow-authored commit untrustworthy.
 
 ### 2.6 Step 6 — Marketstall, commit, tag
 
@@ -120,7 +121,7 @@ Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail t
 
 `plan_commit()` previews exactly what would be staged, committed, and tagged: the pipeline's accumulated write set (`self.written`, appended-to by every apply step so far) plus a diffstat, requires `self.version` to already be set (raises `PipelineStateError` otherwise — step 3 must run first). There is no separate "uncommitted barn content" opt-in step any more — step 1's clean-working-tree precondition guarantees nothing outside `self.written` can be dirty by the time this runs, so `plan.files` is already everything there is to stage.
 
-`apply_commit()` stages exactly `plan.files` — never `git add -A`/`-a` — commits, then tags. There is no separate checkpoint commit: the pre-wizard `HEAD` is already the rollback anchor, and the wizard authors exactly one commit. The tag is created only after the commit succeeds, since a tag on the wrong commit is worse than no tag.
+`apply_commit()` stages exactly `plan.files` — never `git add -A`/`-a` — commits, then tags. There is no separate checkpoint commit: the pre-flow `HEAD` is already the rollback anchor, and the flow authors exactly one commit. The tag is created only after the commit succeeds, since a tag on the wrong commit is worse than no tag.
 
 ### 2.7 Step 7 — Push
 
@@ -142,19 +143,33 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 | 6 | `plan_commit()` | `apply_marketstall()`, `apply_commit()` |
 | 7 | `verify_push_allowed()` | `apply_push()` |
 
-Any apply step past step 1 that raises reverts the whole working tree via `pipeline.rollback()` before the failure is reported — safe because step 1's clean-working-tree precondition guarantees nothing else could have been dirty when the run started. See `steps/rollback.py` and the Share Wizard Preflight Gate design (2026-08-05).
+A failure past step 1 has **three** possible outcomes, and conflating them is how the UI once told users something false:
 
-This split is what lets the wizard show a preview before committing to an action (the Detect report before any dependency write, the Confirm screen before the version bump, commit file list before committing, dry-run push before the real push) while the CLI's `--yes` mode drives the exact same methods without ever rendering the intermediate state.
+1. **Preflight failed.** Nothing was written, so nothing is reverted. The screen shows the remedy in place.
+2. **A writing step failed, before the commit.** `pipeline.rollback()` reverts the whole working tree — safe because step 1's clean-working-tree precondition guarantees nothing else could have been dirty when the run started, so anything dirty now is provably this run's own writes. Reporting "everything was reverted" here is true.
+3. **The commit already landed** — a failed tag, or a failed push. The commit and tag are real and are **not** reverted: `revert_working_tree()` is working-tree only by design (`git checkout -- .` + `git clean -fd`), and `tests/share_pipeline/test_rollback.py` asserts committed history survives it. Running the revert here would be a no-op that reports success.
 
-Step 3's applies take **mappings of what the author chose**, not a mode flag. An empty mapping writes nothing, which is what makes "keep them" a real answer on every screen rather than a branch the caller has to remember to skip. `apply_decorator_registrations()` is the exception that proves it: nothing about it is chosen, so it has no screen — it runs alongside `apply_framework()` and is reported afterwards.
+The distinction is load-bearing. An earlier wizard ran the same revert for every failure past step 1 and reported "every change this run made has been reverted — nothing was left behind", which after a failed push was false in exactly the case where the user most needed the truth: they were holding an unpushed release and had just been told the slate was clean. `ShareFlow.fail()` checks `commit_result` **first** for this reason, and the Publish screen then shows the exact command to finish by hand (`PushError.manual_command`, never recomputed — `push_command()` raises on a detached HEAD, which is precisely the kind of state that can coincide with a push failure).
+
+See `steps/rollback.py`.
+
+This split is what lets the Share flow show every finding and its consequence before anything is written, and `haywire share --dry-run` report the same material without writing, while the plain CLI drives the exact same methods and renders none of it.
+
+Step 3's applies take **mappings of what the author chose**, not a mode flag. An empty mapping writes nothing, which is what makes "keep them" a real answer rather than a branch the caller has to remember to skip. `apply_decorator_registrations()` is the exception that proves it: nothing about it is chosen, so it is never offered — it runs alongside `apply_framework()` and is reported afterwards.
+
+### 3.1 Collect-then-apply-once
+
+`apply_all(ShareDecisions)` writes every dependency answer in one pass over those same appliers, in the same order. Assembling a `ShareDecisions` touches no file, so a UI can let the author revise freely and commit once.
+
+That is not a convenience. It collapses five writing steps into one, which means a flow abandoned before Publish leaves the tree exactly as it found it, and a failure has a single region to revert. The per-applier methods remain — the CLI still calls them directly, and the order guarantee (framework first, so `plan_framework()` reads the author's real prior declaration) is now covered by a test rather than by convention.
 
 **A prior, now-removed layer once sat on top of this split**: a standalone read-only `plan()` method returning a `SharePlan`, backing a `haywire share --check` CLI mode that reported staleness without publishing. That layer was deleted by the CLI Surface Simplification plan — `--check`'s own preconditions (no detached HEAD, must be on the default branch) made it fail on every PR checkout by construction, since a PR checkout is always one or the other. It has no replacement inside `SharePipeline`; CI-facing drift detection now lives entirely in the separate `haywire deps check` command (§6), which never touches `SharePipeline` at all. The per-step plan/apply split described in the table above is unaffected by that removal — it was never what `plan()`/`--check` was built from.
 
 ## 4. The error taxonomy
 
-Every expected pipeline failure raises; successes return frozen dataclasses (`packaging/share/pipeline/results.py`). This matches the existing idiom in `share.marketstall` (`NoBarnError`) and `share.manifest.errors` (`InvalidOsDeclarationError`) rather than introducing a Result-type wrapper.
+Every expected pipeline failure raises; successes return frozen dataclasses (`publishing/pipeline/results.py`). This matches the existing idiom in `share.marketstall` (`NoBarnError`) and `share.manifest.errors` (`InvalidOsDeclarationError`) rather than introducing a Result-type wrapper.
 
-All pipeline-level exceptions subclass `ShareError` (`packaging/share/pipeline/errors.py`):
+All pipeline-level exceptions subclass `ShareError` (`publishing/pipeline/errors.py`):
 
 | Exception | Raised when |
 |---|---|
@@ -168,7 +183,7 @@ All pipeline-level exceptions subclass `ShareError` (`packaging/share/pipeline/e
 | `PushError` | The push failed; carries `manual_command`, the exact command to retry by hand. |
 | `PipelineStateError` | A step was called out of order — its inputs hadn't been produced yet (e.g. `plan_commit()` before `apply_bump()`). |
 
-Each caller translates a caught `ShareError` in its own way: the CLI (`run_share_cli`) prints `str(exc)` and exits non-zero; the wizard renders inline error state per step. There is no Farmhand-specific translation yet — the errors docstring notes this as a plausible future consumer, not a current one.
+Each caller translates a caught `ShareError` in its own way: the CLI (`run_share_cli`) prints `str(exc)` and exits non-zero; the flow renders inline error state per step. There is no Farmhand-specific translation yet — the errors docstring notes this as a plausible future consumer, not a current one.
 
 ### 4.1 The boundary translation
 
@@ -198,7 +213,7 @@ except (NoBarnError, *_MANIFEST_FAILURE_TYPES) as exc:
     raise MarketstallError(str(exc)) from exc
 ```
 
-The effect: nothing downstream of `pipeline.py` — a wizard step handler's `except ShareError`, or the CLI's single top-level `except ShareError` — ever sees a raw domain-module exception type. Each `share.*` domain module stays independently importable with its own small exception vocabulary; `share.pipeline` is the only consumer that has to know both vocabularies exist.
+The effect: nothing downstream of `pipeline.py` — a flow step handler's `except ShareError`, or the CLI's single top-level `except ShareError` — ever sees a raw domain-module exception type. Each `share.*` domain module stays independently importable with its own small exception vocabulary; `share.pipeline` is the only consumer that has to know both vocabularies exist.
 
 ## 5. The default-branch publishing rule
 
@@ -243,7 +258,7 @@ There is no single CI gate for sharing. Two independent, purpose-built commands 
 
 Implemented in `haywire_studio/packaging/deps.py`, dispatched from `haywire deps check` in `app.py`. Its own module docstring states the design intent plainly: "Deliberately independent of SharePipeline: no git, no preconditions, no versioning, no marketstall." It is **not part of "the pipeline"** in any sense — it never constructs a `SharePipeline`, and its only dependency inside `haywire_studio` is `share.drift.detect`'s free function `detect_share_drift()`.
 
-It walks every `barn/*` directory with a `pyproject.toml`, runs `detect_share_drift()` on each (the same function step 2 of the pipeline uses — see §2.2 — so both tools always agree), and prints what it finds. It never writes to disk. Exit code is `EXIT_DRIFT` (1) if any library has an undeclared import; unused declarations, version floor lag and unresolved imports are printed for information but never fail the run, matching the wizard's own treatment of them. Otherwise it exits `EXIT_OK` (0).
+It walks every `barn/*` directory with a `pyproject.toml`, runs `detect_share_drift()` on each (the same function step 2 of the pipeline uses — see §2.2 — so both tools always agree), and prints what it finds. It never writes to disk. Exit code is `EXIT_DRIFT` (1) if any library has an undeclared import; unused declarations, version floor lag and unresolved imports are printed for information but never fail the run, matching the Share flow's own treatment of them. Otherwise it exits `EXIT_OK` (0).
 
 The [sharing guide](../../guides/sharing-libraries.md#7-the-full-author-cycle) recommends running it as a PR gate to catch manifest drift before merging — but that recommendation describes intended usage of a CI-shaped tool, not an existing workflow wired up in this repo's `.github/workflows/`. As of this document, no workflow file invokes it.
 
@@ -257,14 +272,15 @@ As with `deps check`, this describes what the command does and how it's meant to
 
 ## Key files
 
-- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/pipeline.py` — `SharePipeline`, all six steps.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/steps/` — one module per step (`preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`) that `SharePipeline` delegates to.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/errors.py` — `ShareError` and its subclasses.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/pipeline/results.py` — the frozen result dataclasses each step returns.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/manifest/reader.py` — manifest reading (`read_manifest`); `packaging/share/manifest/errors.py` — `ManifestReadError`/`InvalidOsDeclarationError`.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/drift/detect.py` — `detect_share_drift()`; `packages/haywire-core/src/haywire/core/library/dep_edit.py` — the entry-level write operations.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/marketstall.py` — `write_marketstall()`, `NoBarnError`.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/git.py` — hardened git subprocess helpers; leaf module.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/barn.py` — `barn/` shape queries; leaf module.
+- `packages/haywire-core/src/haywire/core/publishing/pipeline/pipeline.py` — `SharePipeline`, every step plus `apply_all()`.
+- `packages/haywire-core/src/haywire/core/publishing/pipeline/steps/` — one module per step (`preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`) that `SharePipeline` delegates to.
+- `packages/haywire-core/src/haywire/core/publishing/pipeline/errors.py` — `ShareError` and its subclasses.
+- `packages/haywire-core/src/haywire/core/publishing/pipeline/results.py` — the frozen result dataclasses each step returns.
+- `packages/haywire-core/src/haywire/core/publishing/manifest/reader.py` — manifest reading (`read_manifest`); `publishing/manifest/errors.py` — `ManifestReadError`/`InvalidOsDeclarationError`.
+- `packages/haywire-core/src/haywire/core/publishing/drift/detect.py` — `detect_share_drift()`; `packages/haywire-core/src/haywire/core/library/dep_edit.py` — the entry-level write operations.
+- `packages/haywire-core/src/haywire/core/publishing/marketstall.py` — `write_marketstall()`, `NoBarnError`.
+- `packages/haywire-core/src/haywire/core/publishing/git.py` — hardened git subprocess helpers; leaf module.
+- `packages/haywire-core/src/haywire/core/publishing/barn.py` — `barn/` shape queries; leaf module.
 - `packages/haywire-studio/src/haywire_studio/packaging/deps.py` — `haywire deps check`, decoupled from `SharePipeline`.
-- `packages/haywire-studio/src/haywire_studio/packaging/share/cli.py` — `haywire share`'s interactive and `--yes` modes, both thin runners over `SharePipeline`.
+- `packages/haywire-studio/src/haywire_studio/packaging/share_cli.py` — `haywire share`'s single non-interactive mode plus `--dry-run`, a thin runner over `SharePipeline`. Lives in haywire-studio, not core: argument parsing and exit codes belong to the app package.
+- `barn/haybale-share/haybale_share/` — the Share editor (`editors/share_editor.py`, ACTION slot, status-only) and its three-screen flow (`_flow/`). Depends on `haywire-core` only: the post-bump hot-swap reads a `LibraryRegistry` from core's DI rather than a `LibraryManager`, so this library never reaches into haybale-marketplace.

@@ -42,7 +42,7 @@ def repo_with_two_barn_libs(tmp_path: Path) -> Path:
 
 
 def test_share_save_writes_marketstall_at_repo_root(repo_with_two_barn_libs: Path) -> None:
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import write_marketstall
 
     result = write_marketstall(repo_with_two_barn_libs)
 
@@ -51,7 +51,7 @@ def test_share_save_writes_marketstall_at_repo_root(repo_with_two_barn_libs: Pat
 
 
 def test_share_save_aggregates_all_barn_libraries(repo_with_two_barn_libs: Path) -> None:
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import write_marketstall
 
     write_marketstall(repo_with_two_barn_libs)
 
@@ -61,7 +61,7 @@ def test_share_save_aggregates_all_barn_libraries(repo_with_two_barn_libs: Path)
 
 
 def test_share_save_each_entry_is_source_git(repo_with_two_barn_libs: Path) -> None:
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import write_marketstall
 
     write_marketstall(repo_with_two_barn_libs)
 
@@ -72,7 +72,7 @@ def test_share_save_each_entry_is_source_git(repo_with_two_barn_libs: Path) -> N
 
 def test_share_save_skips_dirs_without_pyproject(tmp_path: Path) -> None:
     """A directory under barn/ that has no pyproject.toml must be silently skipped."""
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import write_marketstall
 
     repo = tmp_path / "sparse-repo"
     (repo / ".git").mkdir(parents=True)
@@ -90,7 +90,7 @@ def test_share_save_skips_dirs_without_pyproject(tmp_path: Path) -> None:
 
 
 def test_share_save_raises_when_no_barn(tmp_path: Path) -> None:
-    from haywire_studio.packaging.share import write_marketstall, NoBarnError
+    from haywire.core.publishing import write_marketstall, NoBarnError
 
     repo = tmp_path / "no-barn-repo"
     repo.mkdir()
@@ -102,7 +102,7 @@ def test_share_save_raises_when_no_barn(tmp_path: Path) -> None:
 
 def test_share_save_emits_haybales_section_not_packages(repo_with_two_barn_libs: Path) -> None:
     """Per spec §1: marketstall.toml uses [[haybales]] not [[packages]]."""
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import write_marketstall
 
     write_marketstall(repo_with_two_barn_libs)
 

@@ -1,16 +1,17 @@
-"""The wizard's screens and the pipeline's step modules must stay in step.
+"""The Share flow's screens and the pipeline's step modules must stay in step.
 
-Adding a step means touching the pipeline, the wizard's STEPS tuple, its
-titles, its render dispatch, and the CLI. Nothing enforces that; this file
-does.
+Adding a step means touching the pipeline, the flow's STEPS tuple, its titles,
+its render dispatch, and the CLI. Nothing enforces that; this file does.
 
-The wizard is deliberately NOT 1:1 with the pipeline. Six dependency screens
-run over two modules — ``detect`` (pure) and ``dependencies`` (every write to
-``[project] dependencies``) — because the author makes six decisions about one
-file, and splitting one file's mutations across six modules would spread one
-concern thin. So the invariant is not "one screen per module" but the thing
-that was really being protected: **every screen that writes has a pipeline
-applier behind it.**
+The flow is deliberately NOT 1:1 with the pipeline, and by a wider margin than
+its predecessor: ``review`` collects every dependency decision and the version
+on one screen, ``publish`` runs docs → marketstall → commit → tag → push as one
+authorized action. Those are the USER's units of decision. The pipeline keeps
+its finer-grained modules because they have separate reasons to exist (detect
+is pure and shared with ``haywire deps check``; dependencies owns every write
+to one file). So the invariant is not "one screen per module" but the thing
+really being protected: **every decision the UI can express has a pipeline
+applier behind it, and apply_all reads every one of them.**
 """
 
 from __future__ import annotations
@@ -18,20 +19,18 @@ from __future__ import annotations
 import inspect
 import pkgutil
 
-from haywire_studio.packaging.share.pipeline import steps as steps_pkg
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline import steps as steps_pkg
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
-# Screens the wizard renders that have no pipeline counterpart: pure UI beats
-# (a progress pause, a summary) or a screen whose only job is to show what an
-# earlier apply already did.
-_UI_ONLY_STEPS = frozenset({"checked", "confirm", "done"})
+# Screens with no pipeline counterpart: the terminal summary.
+_UI_ONLY_STEPS = frozenset({"done"})
 
 # The pipeline's step modules. Order is the order they run in.
 #
 # "rollback" is deliberately absent from _SCREEN_TO_STEP below: it backs no
-# wizard screen of its own. It fires from ShareWizard.fail() on any failure
-# past "preconditions", reverting whatever the failed step wrote — cross-
-# cutting over every writing step rather than belonging to one.
+# screen of its own. It fires from ShareFlow.fail() when a step past preflight
+# has written something and no commit exists yet — cross-cutting over the
+# writing steps rather than belonging to one.
 _EXPECTED_PIPELINE_STEPS = (
     "preconditions",
     "detect",
@@ -44,18 +43,12 @@ _EXPECTED_PIPELINE_STEPS = (
     "rollback",
 )
 
-# Wizard screen → the pipeline step module that backs it.
+# Flow screen → the pipeline step module that backs it. Screens that drive
+# several modules name the one they are principally about.
 _SCREEN_TO_STEP = {
-    "preconditions": "preconditions",
-    "detect": "detect",
-    "framework": "dependencies",
-    "unused": "dependencies",
-    "undeclared": "dependencies",
-    "floors": "dependencies",
-    "version": "version",
-    "docs": "docs",
-    "commit": "commit",
-    "push": "push",
+    "preflight": "preconditions",
+    "review": "dependencies",
+    "publish": "commit",
 }
 
 
@@ -67,38 +60,40 @@ def test_pipeline_has_exactly_the_expected_step_modules() -> None:
     assert _pipeline_step_modules() == set(_EXPECTED_PIPELINE_STEPS)
 
 
-def test_every_wizard_screen_is_ui_only_or_backed_by_a_step() -> None:
-    from haybale_marketplace.editors._share_wizard import STEPS
-
-    unaccounted = set(STEPS) - set(_SCREEN_TO_STEP) - _UI_ONLY_STEPS
-    assert unaccounted == set(), (
-        f"the wizard has screens nothing backs: {unaccounted}. Map each to a "
-        "pipeline step in _SCREEN_TO_STEP, or list it in _UI_ONLY_STEPS if it "
-        "renders without writing."
-    )
-
-
 def test_every_screen_maps_to_a_real_step_module() -> None:
     modules = _pipeline_step_modules()
     dangling = {screen: step for screen, step in _SCREEN_TO_STEP.items() if step not in modules}
     assert dangling == {}, f"screens pointing at step modules that do not exist: {dangling}"
 
 
-def test_every_dependency_screen_has_an_applier() -> None:
-    """The real guarantee: a screen that writes must have somewhere to write.
-
-    All four dependency screens go through ``steps/dependencies.py``, so each
-    needs its own apply method on the pipeline — a screen wired to a missing
-    applier would fail only when a user reached it.
-    """
+def test_every_dependency_decision_has_an_applier() -> None:
+    """The real guarantee: a decision the UI can express must have somewhere to
+    write. A ShareDecisions field wired to a missing applier would fail only
+    when a user actually made that choice."""
     for method in ("apply_framework", "apply_removals", "apply_additions", "apply_floors"):
         assert callable(getattr(SharePipeline, method, None)), f"SharePipeline.{method} is missing"
+
+
+def test_apply_all_covers_every_share_decisions_field() -> None:
+    """Adding a decision field without teaching apply_all to write it would
+    silently drop the author's answer — the collect-then-apply-once shape makes
+    that failure invisible, since nothing writes until the single apply."""
+    import dataclasses
+
+    from haywire.core.publishing.pipeline import ShareDecisions
+
+    source = inspect.getsource(SharePipeline.apply_all)
+    for field in dataclasses.fields(ShareDecisions):
+        assert f"decisions.{field.name}" in source, (
+            f"ShareDecisions.{field.name} is never read by apply_all(); the "
+            "author's answer would be collected and then dropped."
+        )
 
 
 def test_detect_step_writes_nothing() -> None:
     """Detect is pure — it has consumers beyond the wizard (``haywire deps
     check``), and a reporting path that mutates would surprise every one."""
-    from haywire_studio.packaging.share.pipeline.steps import detect
+    from haywire.core.publishing.pipeline.steps import detect
 
     source = inspect.getsource(detect)
     assert "write_text" not in source
@@ -107,16 +102,28 @@ def test_detect_step_writes_nothing() -> None:
         assert name not in source
 
 
-def test_framework_screen_precedes_the_other_dependency_screens() -> None:
-    """The framework floor is authored BEFORE anything else touches the file.
+def test_share_flow_screens_are_backed_or_ui_only() -> None:
+    """Every screen either drives a pipeline step or admits it renders only.
 
-    Not for commit atomicity — for carrier ownership. When this ran last,
-    ``plan_framework()`` read a value another step had already rewritten, so
-    "keep the current declaration" silently raised the floor.
+    The flow is deliberately NOT 1:1 with the step modules: `review` collects
+    every dependency decision plus the version on one screen, and `publish`
+    runs docs → marketstall → commit → push as one authorized action. Both
+    exist because the user makes ONE decision there, not because the pipeline
+    has one step.
     """
-    from haybale_marketplace.editors._share_wizard.copy import STEPS
+    from haybale_share._flow.copy import STEPS
 
-    assert STEPS.index("detect") < STEPS.index("framework")
-    for later in ("unused", "undeclared", "floors"):
-        assert STEPS.index("framework") < STEPS.index(later)
-    assert STEPS.index("floors") < STEPS.index("version")
+    unaccounted = set(STEPS) - set(_SCREEN_TO_STEP) - _UI_ONLY_STEPS
+    assert unaccounted == set(), (
+        f"the flow has screens nothing backs: {unaccounted}. Map each to a "
+        "pipeline step in _SCREEN_TO_STEP, or list it in _UI_ONLY_STEPS if it "
+        "renders without writing."
+    )
+
+
+def test_preflight_precedes_every_writing_screen() -> None:
+    """Preflight's clean-tree check is what makes the mid-pipeline revert safe:
+    anything dirty after it is provably this run's own writes."""
+    from haybale_share._flow.copy import STEPS
+
+    assert STEPS.index("preflight") < STEPS.index("review") < STEPS.index("publish")

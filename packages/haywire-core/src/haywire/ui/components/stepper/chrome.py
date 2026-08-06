@@ -6,7 +6,7 @@ exposes. Per-step body content lives in the caller's own panel functions.
 
 from __future__ import annotations
 
-from typing import Callable, Mapping, Optional, TypeVar, Union
+from typing import Callable, Mapping, Optional, TypeVar
 
 from nicegui import ui
 
@@ -24,23 +24,18 @@ FlowT = TypeVar("FlowT", bound=StepFlow)
 #: callback to invoke after a transition.
 Panel = Callable[[FlowT, Callable[[], None]], None]
 
-#: A replacement for the error banner's default "Retry" button: the label to
-#: show and the handler to run on click, instead of `flow.retry()`.
-ErrorButtonOverride = tuple[str, Callable[[], None]]
-
-#: Renders extra detail inside the error banner, above the manual command.
-#: Returns either a bool (True suppresses the default single-line error
-#: label — used when a flow carries structured failures worth one row each)
-#: or an `ErrorButtonOverride`, which replaces the bottom "Retry" button with
-#: the given (label, on_click) pair — used when "Retry" doesn't describe what
-#: the button should do (e.g. the share wizard's preconditions step, where
-#: the action is "open a fix modal", not "clear the error and try again").
+#: Decides what the error banner shows. Called with the flow and a re-render
+#: callback; the return value selects one of three behaviours:
 #:
-#: The two are independent: returning an override does NOT suppress the error
-#: label. A banner that renders only a button tells the user nothing about
-#: what went wrong, so suppressing the message is opt-in via `True` and never
-#: a side effect of customising the button.
-ErrorDetail = Callable[[FlowT, Callable[[], None]], Union[bool, ErrorButtonOverride]]
+#: * ``False`` — render the banner normally (message + Retry). The default.
+#: * ``True`` — keep the banner but suppress its message label, because the
+#:   hook rendered structured rows in its place.
+#: * ``"skip"`` — render NO banner at all, not even the Retry button. For a
+#:   panel that lays the failure out itself and owns its own actions: the
+#:   banner would otherwise contribute an empty red box and a Retry that means
+#:   something different from the panel's own button (on the share flow's
+#:   post-commit failure, "Retry" would re-enter a step that already committed).
+ErrorDetail = Callable[[FlowT, Callable[[], None]], "bool | str"]
 
 
 def show_step_flow(
@@ -51,6 +46,7 @@ def show_step_flow(
     width: str = "620px",
     on_done: Callable[[], None] | None = None,
     error_detail: ErrorDetail[FlowT] | None = None,
+    auto_start: bool = False,
 ) -> Popup:
     """Open *flow* in a popup and return it.
 
@@ -61,6 +57,18 @@ def show_step_flow(
     The popup stays closable throughout: a flow mutates nothing that needs
     undoing until its final step, so abandoning it early is always safe. The
     step buttons are the intended path, not the only one.
+
+    *auto_start* runs the first step's ``advance_from_<step>`` as soon as the
+    popup opens, instead of waiting for a click. For a first step that only
+    CHECKS — no decision to make, nothing written — that click asks the user to
+    confirm an intent they already expressed by opening the flow. Opt-in
+    because it is wrong for a first step that presents a choice, and because a
+    flow whose first step mutates must never run unprompted.
+
+    The advance is scheduled with ``ui.timer(..., once=True)`` rather than
+    awaited here: ``show_step_flow`` is sync (it returns the Popup its caller
+    keeps), and the first render must reach the browser before a step that
+    takes seconds begins, or the popup appears already-stalled.
     """
     missing = [s for s in flow.STEPS if s not in panels]
     if missing:
@@ -90,6 +98,14 @@ def show_step_flow(
     if on_done is not None:
         popup.on_close(on_done)
     popup.open()
+    if auto_start:
+
+        async def _start() -> None:
+            await flow.advance()
+            _render()
+
+        # once=True fires on the next tick, after this render has been flushed.
+        ui.timer(0.05, _start, once=True)
     return popup
 
 
@@ -124,37 +140,35 @@ def render_error(
 ) -> None:
     """Inline error banner with a Retry button.
 
-    *error_detail* may render structured failure rows in place of the plain
-    message (returning True when it has done so), and/or replace the default
-    Retry button by returning an `(label, on_click)` pair instead of a bool —
-    see `ErrorDetail`'s docstring for when that's the right call. The two are
-    independent: a button override alone still shows the error message.
+    *error_detail* selects the banner's behaviour — see :data:`ErrorDetail`.
+    Returning ``"skip"`` suppresses the whole banner, Retry included, for a
+    panel that renders the failure and its actions itself.
     """
     if flow.error is None:
         return
-    button_override: ErrorButtonOverride | None = None
-    with (
+
+    # The hook is called exactly once, inside a throwaway container: a detail
+    # hook that RENDERS (both marketplace flows do) must draw inside the
+    # banner, but "skip" means there should be no banner to draw into. So the
+    # banner is built first and discarded if the answer turns out to be
+    # "skip" — cheaper than calling the hook twice, which would double any
+    # side effect it has.
+    banner = (
         ui.row()
         .classes("w-full items-start gap-2 p-2 rounded")
         .style("border-left: 3px solid var(--hw-danger); background: var(--hw-danger-bg);")
-    ):
+    )
+    with banner:
         ui.icon("error", size="16px").classes("hw-text-danger flex-shrink-0 mt-0.5")
         with ui.column().classes("gap-1 flex-1"):
-            result = error_detail(flow, rerender) if error_detail is not None else False
-            if isinstance(result, tuple):
-                button_override = result
-                handled = False
-            else:
-                handled = result
-            if not handled:
+            decision = error_detail(flow, rerender) if error_detail is not None else False
+            if decision == "skip":
+                banner.delete()
+                return
+            if not decision:
                 ui.label(flow.error).classes("text-xs hw-text-danger whitespace-pre-line")
             if flow.manual_command:
                 hui.code_snippet(flow.manual_command)
-
-    if button_override is not None:
-        label, on_click = button_override
-        ui.button(label, on_click=on_click).props("flat dense")
-        return
 
     def _retry() -> None:
         flow.retry()

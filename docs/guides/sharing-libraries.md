@@ -83,33 +83,51 @@ for why the unit of sharing is the project, not one library.
 The same pipeline is available two ways: the CLI (this section) and the
 **Share Project…** item on `LibraryBrowserEditor`'s burger menu, which walks
 the same steps as a popup wizard. For the two precondition failures with an
-unambiguous, no-input repair — a missing `origin` remote, and an invalid
-`[tool.haywire].os` declaration — the wizard's first step offers an inline
-fix button instead of just a remedy: the repair runs in place, the project
-is re-checked automatically, and the panel updates without the user leaving
-the wizard. Every other failure still gets remedy text only (§8 lists them),
-since the repair either needs a judgment call or isn't haywire's to make.
+safe, unambiguous repair — a dirty tree, a missing `origin` remote, an
+invalid `[tool.haywire].os` declaration, an unrecognized host, and a
+detached or non-default branch whose commits are already contained
+elsewhere — Preflight offers an inline fix button instead of just a remedy.
+The repair runs in place and you click **Check again** to re-verify. Every
+other failure gets remedy text only (§8 lists them), because the repair
+needs a judgment call, would risk losing work, or isn't haywire's to make.
 
-### 4.1 Interactive mode (default)
+### 4.1 The Share editor
+
+Open **Share** from the studio's left toolbar. It shows the project's
+publishing status — the barn libraries, their lockstep version — and a
+**Share…** button that opens the flow.
+
+Three screens:
+
+1. **Preflight** runs the moment it opens and reports the earliest problem
+   it finds, with the repair inline where one is safe (see §4.4).
+2. **Review** carries every dependency decision and the version on one
+   screen. Findings with nothing to report collapse to a single ✓ line, so a
+   clean project is one screen and one click. Nothing is written until you
+   confirm here.
+3. **Publish** regenerates docs, rebuilds the marketstall, then commits, tags
+   and pushes — one authorized action, with the subprocess output streamed.
+
+### 4.2 The CLI
 
 ```sh
-uv run haywire share
+uv run haywire share --bump patch
+uv run haywire share --dry-run      # report only; writes nothing
 ```
 
-Prompts through the same six steps as the GUI wizard — check the project,
-resolve dependency drift, choose a version, regenerate docs, review the
-commit, then push.
+One mode, non-interactive. Every answer comes from a flag or takes its inert
+default. Requires `--bump` (`patch|minor|major` or an explicit `X.Y.Z`).
 
-### 4.2 Non-interactive mode
+It does not refuse over dependency drift. An **undeclared import** is declared
+for you — that one breaks a consumer's install and declaring it is
+unambiguously correct — while **unused declarations** and **version floor lag**
+are left untouched, because removing is lossy and nothing here can compute the
+oldest version that still works. Use the Share editor when you want to decide
+those.
 
-```sh
-uv run haywire share --yes --bump patch
-```
-
-Every answer comes from a flag instead of a prompt. Requires `--bump`
-(`patch|minor|major` or an explicit `X.Y.Z`); refuses to run if there is
-unresolved dependency drift — resolve it first (§3) or the run fails with the
-same information the drift step would have reported interactively.
+`--dry-run` reports preconditions, findings and the version it would cut, and
+writes nothing. Preconditions are *reported* rather than enforced there, so it
+stays useful on a feature branch or a PR checkout.
 
 ### 4.3 Publishing from the default branch
 
@@ -136,11 +154,13 @@ runs — there's no flag to skip it.
 Any precondition failure stops `haywire share` and reports the single
 earliest problem it found — checks run in order below, and an earlier
 failure makes a later one moot, so fixing one and re-running can surface the
-next. In the GUI wizard, this is a **remedy modal**: message and remedy
-text, plus (for the three failures below with an unambiguous, no-input
-repair) a button that performs the fix right there, with your permission.
-Either way the modal ends with **Restart Wizard**, which re-runs every check
-from the top — cheap enough that it costs nothing.
+next. In the Share editor this renders on the **Preflight screen** itself:
+message and remedy text, plus — for the failures with a safe, unambiguous
+repair — a button that performs the fix right there, with your permission.
+Every one of them ends with **Check again**, which re-runs every check from
+the top; that is cheap enough to cost nothing, and it is honest about what
+the button does, since a repair fixes one fault rather than the whole
+report.
 
 `haywire share` needs four things from your git setup before it will publish anything, checked in this order:
 
@@ -151,10 +171,10 @@ from the top — cheap enough that it costs nothing.
    by resetting the whole working tree, and that revert is only safe
    because nothing else could have been sitting there dirty when the run
    started. Commit or stash first. This applies to `haywire share` on the
-   command line exactly as it does in the GUI wizard — both run the same
+   command line exactly as it does in the Share editor — both run the same
    checks. (A step-1 failure itself never mutates anything and never
    triggers a revert — there's nothing yet to revert.)
-2. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The GUI wizard's remedy modal offers this as an **Add origin remote** fix (§8).
+2. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The Share editor's Preflight screen offers this as an **Add origin remote** fix (§8).
 3. **The remote's host is recognized.** GitHub and GitLab (`github.com`, `gitlab.com`) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in `~/.haywire/config.toml`:
 
    ```toml
@@ -164,11 +184,11 @@ from the top — cheap enough that it costs nothing.
    ```
 
    This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 4. A remote pointing at a local filesystem path (a sibling clone, a shared network drive) skips this check entirely — it isn't an unrecognized host, since there's no hostname to recognize or fail to recognize.
-4. **The push will be accepted.** `haywire share`'s commit step runs a `git push --dry-run` before it commits or tags anything, so a credential problem surfaces before anything is written. Because the wizard and `--yes` both push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:
+4. **The push will be accepted.** `haywire share`'s commit step runs a `git push --dry-run` before it commits or tags anything, so a credential problem surfaces before anything is written. Because both the Share editor and the CLI push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:
    - An **HTTPS** remote (`https://gitlab.example.com/...`) needs a credential cached ahead of time — a personal access token stored via a credential helper (`git config --global credential.helper osxkeychain` on macOS, then push once by hand to seed it) is the common approach.
    - An **SSH** remote (`git@gitlab.example.com:...`) needs a key registered with the host and `ssh-agent` running, so no passphrase prompt blocks the push either.
 
-   Setting up either is entirely between you and your git host — see your host's own documentation: [GitHub's guide to authenticating with the CLI/HTTPS](https://docs.github.com/en/authentication) or [GitLab's guide to credentials](https://docs.gitlab.com/topics/git/how_to_install_git/) cover both paths and the most common failures. This guide only covers what haywire itself checks, not general git credential troubleshooting.
+   Setting up either is entirely between you and your git host — see your host's own documentation: [GitHub's guide to authenticating with the CLI/HTTPS](https://docs.github.com/en/authentication) or [GitLab's guide to credentials](https://docs.gitlab.com/auth/) cover both paths and the most common failures. This guide only covers what haywire itself checks, not general git credential troubleshooting.
 
 ### 4.5 What an entry looks like
 
@@ -250,7 +270,7 @@ write code → add import → click Detect Dependencies → Union → Save Chang
                                                     git commit && git push
                                                                     │
                                                                     ▼
-                                            uv run haywire share --yes --bump patch
+                                            uv run haywire share --bump patch
                                           (or: Share Project… in the burger menu)
                                                                     │
                                                                     ▼
@@ -274,8 +294,11 @@ staleness gate, is in
 
 ## 8. Common pitfalls
 
-**You ran `haywire share` and got "unresolved dependency drift."**
-`--yes` refuses to run with drift unresolved. Either drop `--yes` and resolve it interactively, or open the Library Overview Editor for the flagged library and Detect → Union, then re-run `--yes --bump ...`. The error message lists which manifest entries are missing.
+**You want to review dependency findings before publishing.**
+The CLI does not stop for them — it declares undeclared imports and leaves the
+judgement calls alone. Run `haywire share --dry-run` to see every finding
+without writing anything, or open the **Share** editor and use its Review
+screen, which offers each finding with a per-item choice.
 
 **Your marketstall has an entry but consumers don't see the library after subscribing.**
 Three causes worth checking:
@@ -291,19 +314,19 @@ The scan is static AST analysis, so dynamic imports (`importlib.import_module(na
 You have uncommitted changes somewhere in the repo — not just under `barn/`. The publish pipeline reverts everything it writes if a later step fails partway through, by resetting the whole working tree, and that's only safe when nothing else was dirty to begin with. Commit or stash your changes, then retry.
 
 **`haywire share` produces a URL with `<REPO_URL>` placeholder.**
-The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`. In the GUI wizard, this failure's remedy modal offers an **Add origin remote** fix — type the URL and click through it, then Restart Wizard.
+The library has no git remote (`git remote -v` returns nothing). Add a remote: `git remote add origin <url>`. In the Share editor, Preflight offers an **Add origin remote** fix — type the URL, click it, then **Check again**.
 
 **`haywire share` fails with "Host '\<hostname\>' is not recognized.".**
-Your `origin` remote points at a host haywire doesn't ship built-in support for — anything other than `github.com`/`gitlab.com`, typically a self-hosted GitLab or GitHub Enterprise instance. In the GUI wizard, this failure's remedy modal offers to write the needed `~/.haywire/config.toml` entry for you — click through it, then Restart Wizard. From the CLI, add it by hand per [§4.4](#44-git-remote-requirements) and retry. This is unrelated to push access — see the next entry if the push itself also fails.
+Your `origin` remote points at a host haywire doesn't ship built-in support for — anything other than `github.com`/`gitlab.com`, typically a self-hosted GitLab or GitHub Enterprise instance. In the Share editor, the Preflight screen offers to write the needed `~/.haywire/config.toml` entry for you — click the fix, then Check again. From the CLI, add it by hand per [§4.4](#44-git-remote-requirements) and retry. This is unrelated to push access — see the next entry if the push itself also fails.
 
 **`haywire share` fails with "Push failed: ... terminal prompts disabled".**
-git tried to prompt for a username/password and couldn't — the wizard and `--yes` both push non-interactively, so there's no terminal to prompt on. You need a credential cached *before* running share: either switch the remote to SSH (`git remote set-url origin git@<host>:<owner>/<repo>.git`) with a key registered on the host and `ssh-agent` running, or keep HTTPS and cache a personal access token via a git credential helper. See [§4.4](#44-git-remote-requirements) for both paths and links to your host's own credential docs — this is a general git-auth problem, not something haywire's pipeline can resolve for you.
+git tried to prompt for a username/password and couldn't — both the Share editor and the CLI push non-interactively, so there's no terminal to prompt on. Preflight catches this before anything is written, and links your host's own authentication docs directly (SSH keys or tokens, whichever your remote uses). You need a credential cached *before* running share: either switch the remote to SSH (`git remote set-url origin git@<host>:<owner>/<repo>.git`) with a key registered on the host and `ssh-agent` running, or keep HTTPS and cache a personal access token via a git credential helper. See [§4.4](#44-git-remote-requirements) for both paths and links to your host's own credential docs — this is a general git-auth problem, not something haywire's pipeline can resolve for you.
 
 **`haywire share` fails with "Could not read `barn/<lib>/pyproject.toml`: ...".**
 That library's `pyproject.toml` doesn't parse as TOML. Fix the TOML in `barn/<lib>/pyproject.toml` so it parses, then try again.
 
 **`haywire share` fails with "Invalid manifest at `barn/<lib>/pyproject.toml`: ...".**
-The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list. In the GUI wizard, this failure's remedy modal offers a fix button (**Remove invalid values**, or **Correct to macos**/**Correct to windows** when every bad value maps unambiguously) that rewrites the field for you — click through it, then Restart Wizard.
+The library's `[tool.haywire]` `os` list declares something other than `macos`, `windows`, or `linux`. `other` is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the `os` list. In the Share editor, Preflight offers a fix button (**Remove invalid values**, or **Correct to macos**/**Correct to windows** when every bad value maps unambiguously) that rewrites the field for you — click it, then **Check again**.
 
 **`haywire share` fails with "HEAD is detached — no branch is currently checked out.".**
 You're not on a branch. If the remedy names one or more branches (e.g. `` This commit is on `main`, `feature-x` — run `git switch main`. ``), switch to the first one it lists. If it instead says the commit isn't on any branch, create one and publish from there: `git switch -c my-branch`.

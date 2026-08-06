@@ -9,6 +9,7 @@ already declared.
 from __future__ import annotations
 
 import textwrap
+from types import SimpleNamespace
 from pathlib import Path
 
 from typing import cast
@@ -16,7 +17,7 @@ from typing import cast
 import pytest
 import toml
 
-from haywire_studio.packaging.share.pipeline import SharePipeline
+from haywire.core.publishing.pipeline import SharePipeline
 
 
 def _apply_recorder(applied: list, spec) -> list:
@@ -48,7 +49,7 @@ def _project(tmp_path: Path, *, floor: str = ">=0.0.31") -> Path:
 
 def test_plan_offers_keep_raise_and_compatible(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        "haywire_studio.packaging.share.pipeline.steps.framework._installed_core_version",
+        "haywire.core.publishing.pipeline.steps.framework._installed_core_version",
         lambda: "0.0.34",
     )
     plan = SharePipeline(_project(tmp_path)).plan_framework()
@@ -60,7 +61,7 @@ def test_plan_offers_keep_raise_and_compatible(tmp_path, monkeypatch):
 
 def test_keeping_the_declared_floor_is_the_recommended_option(tmp_path, monkeypatch):
     monkeypatch.setattr(
-        "haywire_studio.packaging.share.pipeline.steps.framework._installed_core_version",
+        "haywire.core.publishing.pipeline.steps.framework._installed_core_version",
         lambda: "0.0.34",
     )
     plan = SharePipeline(_project(tmp_path)).plan_framework()
@@ -74,7 +75,7 @@ def test_raise_option_counts_the_consumers_it_locks_out(tmp_path, monkeypatch):
     """Consequence-annotated, following the deps-drift precedent: the option
     that excludes consumers must say so concretely."""
     monkeypatch.setattr(
-        "haywire_studio.packaging.share.pipeline.steps.framework._installed_core_version",
+        "haywire.core.publishing.pipeline.steps.framework._installed_core_version",
         lambda: "0.0.34",
     )
     plan = SharePipeline(_project(tmp_path)).plan_framework()
@@ -88,7 +89,7 @@ def test_no_ceiling_in_any_default_option(tmp_path, monkeypatch):
     """A <0.1.0 stamped today becomes a lie the moment 0.1.0 ships. Authors who
     want a ceiling type one; ~= is offered but never recommended."""
     monkeypatch.setattr(
-        "haywire_studio.packaging.share.pipeline.steps.framework._installed_core_version",
+        "haywire.core.publishing.pipeline.steps.framework._installed_core_version",
         lambda: "0.0.34",
     )
     plan = SharePipeline(_project(tmp_path)).plan_framework()
@@ -130,7 +131,7 @@ def test_apply_adds_the_dependency_when_undeclared(tmp_path):
 
 
 def test_apply_rejects_an_invalid_specifier(tmp_path):
-    from haywire_studio.packaging.share.pipeline import InvalidSpecifierError
+    from haywire.core.publishing.pipeline import InvalidSpecifierError
 
     with pytest.raises(InvalidSpecifierError):
         SharePipeline(_project(tmp_path)).apply_framework("not a specifier")
@@ -139,7 +140,7 @@ def test_apply_rejects_an_invalid_specifier(tmp_path):
 def test_apply_rejects_a_bare_version(tmp_path):
     """requires_haywire is a specifier, never a bare version — "0.0.34" alone
     is not a valid SpecifierSet."""
-    from haywire_studio.packaging.share.pipeline import InvalidSpecifierError
+    from haywire.core.publishing.pipeline import InvalidSpecifierError
 
     with pytest.raises(InvalidSpecifierError):
         SharePipeline(_project(tmp_path)).apply_framework("0.0.34")
@@ -148,7 +149,7 @@ def test_apply_rejects_a_bare_version(tmp_path):
 def test_reordered_equivalent_specifiers_are_not_drift(tmp_path):
     """packaging reorders on str(): ">=0.0.31,<1.0.0" round-trips as
     "<1.0.0,>=0.0.31". Comparing raw strings would report false drift."""
-    from haywire_studio.packaging.share.pipeline.steps.framework import specifiers_equal
+    from haywire.core.publishing.pipeline.steps.framework import specifiers_equal
 
     assert specifiers_equal(">=0.0.31,<1.0.0", "<1.0.0,>=0.0.31")
     assert not specifiers_equal(">=0.0.31", ">=0.0.34")
@@ -161,7 +162,7 @@ def test_marketstall_entry_is_derived_from_the_pyproject_floor(tmp_path, monkeyp
     pyproject at write time, so the two cannot disagree and a publish cannot
     stamp a stale or empty requirement.
     """
-    from haywire_studio.packaging.share.marketstall import _build_entry_for_library
+    from haywire.core.publishing.marketstall import _build_entry_for_library
 
     root = _project(tmp_path)
     SharePipeline(root).apply_framework(">=0.0.34")
@@ -177,7 +178,7 @@ def test_marketstall_entry_is_derived_from_the_pyproject_floor(tmp_path, monkeyp
 
 def test_entry_emits_a_bare_token_when_the_floor_is_absent(tmp_path):
     """Declared-with-no-floor is a real answer and must survive to the entry."""
-    from haywire_studio.packaging.share.marketstall import _build_entry_for_library
+    from haywire.core.publishing.marketstall import _build_entry_for_library
 
     root = _project(tmp_path)
     lib = root / "barn" / "haybale-alpha"
@@ -196,7 +197,7 @@ def test_entry_omits_require_when_core_is_undeclared(tmp_path):
     Distinct from the bare-token case above: absent is "nobody answered",
     which the gate reads as "do not block".
     """
-    from haywire_studio.packaging.share.marketstall import _build_entry_for_library
+    from haywire.core.publishing.marketstall import _build_entry_for_library
 
     root = _project(tmp_path)
     lib = root / "barn" / "haybale-alpha"
@@ -209,27 +210,87 @@ def test_entry_omits_require_when_core_is_undeclared(tmp_path):
     assert entry.get("require", "") == ""
 
 
-def test_yes_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):
-    """--yes with no --requires-haywire changes nothing and locks nobody out.
+def test_cli_without_the_flag_keeps_the_declared_floor(tmp_path, monkeypatch):
+    """No --requires-haywire changes nothing and locks nobody out.
+
     Unlike the drift precedent (where BOTH options mutate and one is lossy),
-    doing nothing here is safe, so a refusal would be pointless friction."""
-    from haywire_studio.packaging.share import cli as share_cli
+    doing nothing here is safe, so a refusal would be pointless friction.
+    """
+    from haywire_studio.packaging import share_cli
 
     applied: list[str] = []
     monkeypatch.setattr(SharePipeline, "apply_framework", lambda self, spec: _apply_recorder(applied, spec))
+    _stub_publish_tail(monkeypatch)
 
-    assert share_cli._resolve_framework_answer(SharePipeline(_project(tmp_path)), None) is None
+    share_cli._run_publish(
+        SharePipeline(_project(tmp_path)), bump="patch", message=None, requires_haywire=None
+    )
+
     assert applied == []
 
 
-def test_yes_with_the_flag_raises_the_floor(tmp_path, monkeypatch):
+def test_cli_with_the_flag_raises_the_floor(tmp_path, monkeypatch):
     """Raising a floor — the consumer-excluding direction — always requires the
     explicit flag."""
-    from haywire_studio.packaging.share import cli as share_cli
+    from haywire_studio.packaging import share_cli
 
     applied: list[str] = []
     monkeypatch.setattr(SharePipeline, "apply_framework", lambda self, spec: _apply_recorder(applied, spec))
+    _stub_publish_tail(monkeypatch)
 
-    pipeline = SharePipeline(_project(tmp_path))
-    assert share_cli._resolve_framework_answer(pipeline, ">=0.0.34") == ">=0.0.34"
+    share_cli._run_publish(
+        SharePipeline(_project(tmp_path)), bump="patch", message=None, requires_haywire=">=0.0.34"
+    )
+
     assert applied == [">=0.0.34"]
+
+
+def _stub_publish_tail(monkeypatch) -> None:
+    """Neutralize everything after the framework decision.
+
+    These two tests are about ONE branch — whether the framework floor is
+    written — so the git-mutating remainder of the run is stubbed rather than
+    performed. tests/test_share_cli.py covers the full sequence.
+    """
+    from unittest.mock import AsyncMock
+
+    from haywire.core.publishing.pipeline import (
+        BumpResult,
+        CommitPlan,
+        CommitResult,
+        DocsResult,
+        PushResult,
+    )
+
+    monkeypatch.setattr(SharePipeline, "require_preconditions", lambda self: None)
+    monkeypatch.setattr(
+        SharePipeline,
+        "apply_bump",
+        lambda self, spec: BumpResult(version="0.1.1", written=[], lock_refreshed=True),
+    )
+    monkeypatch.setattr(
+        SharePipeline, "apply_docs", AsyncMock(return_value=DocsResult(coverage={}, written=[]))
+    )
+    monkeypatch.setattr(
+        SharePipeline,
+        "apply_marketstall",
+        lambda self: SimpleNamespace(out_path=Path("marketstall.toml"), warning=None),
+    )
+    monkeypatch.setattr(SharePipeline, "verify_push_allowed", lambda self: None)
+    # apply_bump is stubbed above, so pipeline.version was never set and the
+    # real plan_commit would (correctly) refuse.
+    monkeypatch.setattr(
+        SharePipeline,
+        "plan_commit",
+        lambda self, message=None: CommitPlan(files=[], message=message or "", tag="v0.1.1"),
+    )
+    monkeypatch.setattr(
+        SharePipeline,
+        "apply_commit",
+        lambda self, plan: CommitResult(sha="abc1234", tag="v0.1.1", files=[]),
+    )
+    monkeypatch.setattr(
+        SharePipeline,
+        "apply_push",
+        AsyncMock(return_value=PushResult(remote="origin", branch="main", tag="v0.1.1")),
+    )

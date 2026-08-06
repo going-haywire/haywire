@@ -23,7 +23,24 @@ class ParsedRef:
 class HostProvider(Protocol):
     """One git host's URL conventions."""
 
-    name: str  # "github", "gitlab", etc.
+    name: str  # "github", "gitlab", etc. — the config/wire identifier.
+
+    #: Human-facing brand, for prose. Distinct from ``name`` because
+    #: ``"github".title()`` is ``"Github"``, which is not how the brand is
+    #: written, and a UI that gets a brand's own capitalization wrong reads as
+    #: careless.
+    label: str
+
+    #: Where this host documents authenticating a push, keyed by transport —
+    #: an SSH remote fails over keys, an HTTPS one over tokens or a credential
+    #: helper, and the two docs pages are different. Empty when the host has
+    #: no page worth linking; callers must treat a missing key as "no link"
+    #: rather than assume both are present.
+    #:
+    #: A plain mapping, not a method: this is a constant per host, and the
+    #: rest of this Protocol is about parsing and building URLs. A provider
+    #: that never adds one still satisfies the Protocol.
+    auth_docs: dict[str, str]
 
     def matches(self, hostname: str) -> bool:
         """True if this provider handles URLs with this hostname."""

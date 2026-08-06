@@ -49,8 +49,8 @@ def _make_repo(tmp_path: Path) -> Path:
 
 @pytest.mark.unit
 def test_share_save_returns_share_url_for_github_remote(tmp_path: Path) -> None:
-    from haywire_studio.packaging.share import url as share_url
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch.object(share_url, "_get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
@@ -64,8 +64,8 @@ def test_share_save_returns_share_url_for_github_remote(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_save_returns_share_url_for_gitlab_remote(tmp_path: Path) -> None:
-    from haywire_studio.packaging.share import url as share_url
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch.object(share_url, "_get_remote_url", return_value="https://gitlab.com/alice/cool-libs.git"):
@@ -77,8 +77,8 @@ def test_share_save_returns_share_url_for_gitlab_remote(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_save_no_remote_warns(tmp_path: Path) -> None:
-    from haywire_studio.packaging.share import url as share_url
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch.object(share_url, "_get_remote_url", return_value=None):
@@ -91,8 +91,8 @@ def test_share_save_no_remote_warns(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_save_unknown_host_warns_with_config_snippet(tmp_path: Path) -> None:
-    from haywire_studio.packaging.share import url as share_url
-    from haywire_studio.packaging.share import write_marketstall
+    from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
 
     repo = _make_repo(tmp_path)
     with patch.object(share_url, "_get_remote_url", return_value="https://gitlab.zhdk.ch/alice/libs.git"):
@@ -109,8 +109,8 @@ def test_share_save_unknown_host_warns_with_config_snippet(tmp_path: Path) -> No
 @pytest.mark.unit
 def test_derive_share_url_no_args(tmp_path: Path) -> None:
     """`haywire share` (no args) derives the URL without writing files."""
-    from haywire_studio.packaging.share import ShareSaveResult, derive_share_url_only
-    from haywire_studio.packaging.share import url as share_url
+    from haywire.core.publishing import ShareSaveResult, derive_share_url_only
+    from haywire.core.publishing import url as share_url
 
     repo = _make_repo(tmp_path)
     (repo / "marketstall.toml").write_text("# placeholder\n")
@@ -125,8 +125,8 @@ def test_derive_share_url_no_args(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
     """If marketstall.toml doesn't exist, surface a helpful message."""
-    from haywire_studio.packaging.share import derive_share_url_only
-    from haywire_studio.packaging.share import url as share_url
+    from haywire.core.publishing import derive_share_url_only
+    from haywire.core.publishing import url as share_url
 
     repo = _make_repo(tmp_path)
     # No marketstall.toml created.
@@ -142,7 +142,7 @@ def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_get_remote_url_timeout_returns_none(tmp_path: Path) -> None:
     """_get_remote_url returns None on subprocess timeout."""
-    from haywire_studio.packaging.share import _get_remote_url
+    from haywire.core.publishing import _get_remote_url
     import subprocess
 
     repo = _make_repo(tmp_path)
@@ -155,7 +155,7 @@ def test_get_remote_url_timeout_returns_none(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_get_current_ref_timeout_returns_none(tmp_path: Path) -> None:
     """_get_current_ref returns None on subprocess timeout."""
-    from haywire_studio.packaging.share import _get_current_ref
+    from haywire.core.publishing import _get_current_ref
     import subprocess
 
     repo = _make_repo(tmp_path)

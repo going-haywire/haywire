@@ -47,7 +47,7 @@ def ssh_to_https(url: str) -> str:
     git@gitlab.com:user/repo.git  ->  https://gitlab.com/user/repo.git
 
     Shared by the share pipeline's precondition check (host recognition) and
-    ``haywire_studio.packaging.share.url`` (share-URL derivation) — both need
+    ``haywire.core.publishing.url`` (share-URL derivation) — both need
     to parse a hostname out of whatever ``git remote get-url origin`` returns,
     which may be either form.
     """

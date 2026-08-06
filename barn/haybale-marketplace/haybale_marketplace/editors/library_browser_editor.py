@@ -159,10 +159,6 @@ class LibraryBrowserEditor(BaseEditor):
                             "Add Source…",
                             on_click=lambda c=context: self._on_add_source_click(c),
                         )
-                        ui.menu_item(
-                            "Share Project…",
-                            on_click=lambda c=context: self._on_share_project_click(c),
-                        )
                         ui.separator()
                         ui.menu_item(
                             "Edit File…",
@@ -302,30 +298,11 @@ class LibraryBrowserEditor(BaseEditor):
 
         show_add_source_flow(target, on_done=lambda: self._after_refresh_flow(context))
 
-    def _on_share_project_click(self, context: "SessionContext") -> None:
-        """Open the Share Project wizard for the current workspace.
-
-        Project-scoped, not library-scoped: a `haywire init` project is a uv
-        workspace root with one marketstall.toml feed and one git remote, so the
-        artifact being published is repo-shaped and every barn/* library versions
-        in lockstep. See docs/adr/0023-project-scoped-lockstep-sharing.md.
-        """
-        from haybale_marketplace.state.library_manager_state import LibraryManagerState
-
-        from ._share_wizard import show_share_wizard
-
-        workspace_root = getattr(context.app, "workspace_root", None)
-        if not workspace_root:
-            ui.notify(
-                "No project open — Share works on a haywire project directory.",
-                type="warning",
-            )
-            return
-
-        app_data = getattr(context, "app_data", None)
-        manager_state = app_data.get(LibraryManagerState) if app_data else None
-        manager = manager_state.manager if manager_state is not None else None
-        show_share_wizard(Path(workspace_root), manager=manager)
+    # Publishing lives in haybale-share's ShareEditor, not here. This editor
+    # CONSUMES feeds; producing one is a different concern, and the
+    # marketplace's own architecture doc has always said so. Project-scoped
+    # publishing (ADR 0023) also has nothing to do with the per-library view
+    # this browser presents.
 
     def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
         """Refresh the marketplace in one shot and re-render.

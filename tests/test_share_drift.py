@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 from haywire.core.library.dep_detect import EntryPointLibrarySource
-from haywire_studio.packaging.share import (
+from haywire.core.publishing import (
     DepDrift,
     _format_drift_report,
     detect_share_drift,

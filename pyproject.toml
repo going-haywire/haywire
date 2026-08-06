@@ -29,6 +29,7 @@ haybale-TEST_A = { workspace = true }
 haybale-haystack = { workspace = true }
 haybale-graph-editor = { workspace = true }
 haybale-marketplace = { workspace = true }
+haybale-share = { workspace = true }
 
 [dependency-groups]
 dev = [
@@ -55,6 +56,7 @@ dev = [
     "haybale-haystack",
     "haybale-graph-editor",
     "haybale-marketplace",
+    "haybale-share",
     "mkdocs-material>=9.7.6",
     "deptry>=0.25.1",
 ]
@@ -66,6 +68,7 @@ mypy_path = [
     "packages/haywire-studio/src",
     "barn/haybale-core",
     "barn/haybale-studio",
+    "barn/haybale-share",
     "barn/haybale-testing",
     "barn/haybale-example",
     "barn/haybale-TEST_A",
@@ -140,6 +143,7 @@ pip_publish_order = [
     "haybale-core",
     "haybale-studio",
     "haybale-marketplace",
+    "haybale-share",
     "haybale-graph-editor",
     "haybale-haystack",
 ]
@@ -186,6 +190,7 @@ marketplace = [
     "haybale-core",
     "haybale-studio",
     "haybale-marketplace",
+    "haybale-share",
     "haybale-graph-editor",
     "haybale-haystack",
 ]

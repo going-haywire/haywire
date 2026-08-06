@@ -5,8 +5,8 @@ from pathlib import Path
 
 import pytest
 
-from haywire_studio.packaging.share.pipeline import PreconditionsError
-from haywire_studio.packaging.share.pipeline.pipeline import SharePipeline
+from haywire.core.publishing.pipeline import PreconditionsError
+from haywire.core.publishing.pipeline.pipeline import SharePipeline
 
 pytestmark = pytest.mark.unit
 
@@ -222,7 +222,7 @@ def test_recognized_host_passes_through_to_the_reachability_probe(tmp_path: Path
     is the control flow after recognition succeeds, and the origin is a
     nonexistent local path so the next probe fails fast and offline.
     """
-    from haywire_studio.packaging.share.pipeline.steps import preconditions as precond_module
+    from haywire.core.publishing.pipeline.steps import preconditions as precond_module
 
     monkeypatch.setattr(precond_module, "resolve_host", lambda hostname: object())
 
@@ -250,7 +250,7 @@ def test_check_stops_at_the_first_failure(tmp_path: Path) -> None:
 
 
 def test_missing_git_binary_reports_install_instructions(project: Path, monkeypatch) -> None:
-    from haywire_studio.packaging.share import git as gitcmd
+    from haywire.core.publishing import git as gitcmd
 
     def _no_git(*_a, **_kw):
         raise FileNotFoundError("git")
@@ -292,7 +292,7 @@ def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path,
     barn/, empty barn/, missing origin, unreachable origin. Since check()
     stops at the first failure, each scenario below yields exactly one.
     """
-    from haywire_studio.packaging.share import git as gitcmd
+    from haywire.core.publishing import git as gitcmd
 
     scenarios: list[Path] = []
 
@@ -465,7 +465,7 @@ def test_malformed_manifest_is_two_faces_of_one_condition(project: Path) -> None
     the wizard's first panel explains why sharing is blocked), while apply_marketstall()
     — a later step that assumes preconditions already passed — raises MarketstallError.
     """
-    from haywire_studio.packaging.share.pipeline import MarketstallError
+    from haywire.core.publishing.pipeline import MarketstallError
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -501,10 +501,15 @@ def test_detached_head_fails_with_remedy(tmp_path: Path, bare_remote: Path) -> N
     for f in matches:
         assert f.remedy
         # The commit IS on `branch` (the checkout above only moved HEAD off
-        # of it), so the remedy must name that branch and the concrete
-        # `git switch` command — not just generic prose.
+        # of it), so the remedy must name that branch — and because switching
+        # back is provably lossless here, it is offered as a fix rather than
+        # as prose telling the user what to type.
         assert f"`{branch}`" in f.remedy
-        assert f"git switch {branch}" in f.remedy
+        assert f.kind == "act"
+        assert f.fix_id == "switch_branch"
+        assert f.lib_dir == branch
+        # And it says WHY publishing is blocked, not only what to do.
+        assert "nothing to push to" in f.remedy
 
 
 def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bare_remote: Path) -> None:
@@ -531,10 +536,12 @@ def test_detached_head_with_no_branch_suggests_switch_dash_c(tmp_path: Path, bar
     matches = [f for f in report.failures if "detached" in f.message.lower()]
     assert matches, report.failures
     for f in matches:
-        assert f.remedy == (
-            "This commit is not on any branch — run `git switch -c my-branch` to create one, "
-            "then publish from there."
-        )
+        assert "git switch -c my-branch" in f.remedy
+        # No button here, on purpose: `git switch` would leave this commit
+        # unreachable, so the flow must not offer a one-click way to lose it.
+        assert f.kind == "inform"
+        assert f.fix_id is None
+        assert "unreachable" in f.remedy
 
 
 def test_unborn_branch_is_not_mistaken_for_detached_head(project: Path) -> None:
@@ -588,14 +595,18 @@ def test_non_default_branch_fails_with_remedy(tmp_path: Path) -> None:
 
     assert report.default_branch == default_branch
     assert report.ok is False
-    matches = [f for f in report.failures if "default branch" in f.message]
+    matches = [f for f in report.failures if default_branch in f.message]
     assert matches, report.failures
     for f in matches:
         assert f.remedy
         assert "feature-x" in f.message
-        assert f.remedy == (
-            f"Switch to the default branch and publish from there: `git switch {default_branch}`."
-        )
+        # feature-x carries a commit the default branch does not, so no
+        # one-click switch is offered — moving off unmerged work is the
+        # author's decision. The remedy says nothing is lost either way.
+        assert f.kind == "inform"
+        assert f.fix_id is None
+        assert "keeps its commits" in f.remedy
+        assert f"git switch {default_branch}" in f.remedy
 
 
 def test_default_branch_checkout_passes(tmp_path: Path) -> None:
@@ -643,7 +654,7 @@ def test_apply_precondition_fix_raises_for_unknown_fix_id(project: Path) -> None
     module-level dispatch dict elsewhere; this dict starts empty here, so any
     fix_id is currently "unknown".
     """
-    from haywire_studio.packaging.share.pipeline import PipelineStateError
+    from haywire.core.publishing.pipeline import PipelineStateError
 
     with pytest.raises(PipelineStateError):
         SharePipeline(project).apply_precondition_fix("nonexistent_fix_id")
@@ -729,7 +740,7 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
 def test_apply_precondition_fix_strip_os_translates_manifest_failures(project: Path) -> None:
     """A pyproject that no longer parses at fix-time surfaces as ManifestError,
     the same translation convention apply_drift_union follows."""
-    from haywire_studio.packaging.share.pipeline import ManifestError
+    from haywire.core.publishing.pipeline import ManifestError
 
     lib = project / "barn" / "haybale-alpha"
     (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
@@ -798,7 +809,7 @@ def test_apply_precondition_fix_add_origin_raises_when_origin_already_exists(
 ) -> None:
     """A pre-existing origin (a race, or a stale report) must fail cleanly with
     a typed exception, not a raw GitResult/subprocess failure leaking through."""
-    from haywire_studio.packaging.share.pipeline import PreconditionsError
+    from haywire.core.publishing.pipeline import PreconditionsError
 
     repo = tmp_path / "add_origin_exists"
     _init_repo(repo)
@@ -865,7 +876,7 @@ def test_add_origin_round_trip_clears_the_missing_origin_failure(tmp_path: Path,
 
 
 def test_apply_precondition_fix_commit_dirty_tree_requires_a_message(project: Path) -> None:
-    from haywire_studio.packaging.share.pipeline import PipelineStateError
+    from haywire.core.publishing.pipeline import PipelineStateError
 
     (project / "untracked.txt").write_text("scratch")
 
