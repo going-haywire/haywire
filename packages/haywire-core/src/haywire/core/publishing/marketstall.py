@@ -177,13 +177,15 @@ class MarketstallWriteResult:
 
     ``readmes`` lists only the READMEs actually rewritten (they had the marker
     pair AND the URL changed), so a caller staging ``written`` never stages a
-    file it didn't touch.
+    file it didn't touch. ``tagged_url`` mirrors ``share_url`` pinned to the
+    ``tag`` passed in (None when no tag was given or derivation failed).
     """
 
     out_path: Path
     share_url: str | None
     warning: str | None
     readmes: list[Path]
+    tagged_url: str | None = None
 
     @property
     def written(self) -> list[Path]:
@@ -251,14 +253,15 @@ def write_marketstall(
     out_path = repo_root / "marketstall.toml"
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))
 
-    url_result = _derive_url(repo_root, out_path)
+    url_result = _derive_url(repo_root, out_path, tag=tag)
     readmes: list[Path] = []
     if url_result.share_url is not None and update_readme:
-        readmes = _update_repo_readmes(repo_root, url_result.share_url)
+        readmes = _update_repo_readmes(repo_root, url_result.share_url, tagged_url=url_result.tagged_url)
 
     return MarketstallWriteResult(
         out_path=out_path,
         share_url=url_result.share_url,
         warning=url_result.warning,
         readmes=readmes,
+        tagged_url=url_result.tagged_url,
     )

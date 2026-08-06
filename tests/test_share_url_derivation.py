@@ -123,6 +123,35 @@ def test_derive_share_url_no_args(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
+def test_write_marketstall_with_tag_also_derives_tagged_url(tmp_path: Path) -> None:
+    """A tag passed to write_marketstall pins a second, version-frozen URL."""
+    from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
+
+    repo = _make_repo(tmp_path)
+    with patch.object(share_url, "_get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
+        with patch.object(share_url, "_get_current_ref", return_value="main"):
+            result = write_marketstall(repo, tag="v1.2.0")
+
+    assert result.share_url == "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    assert result.tagged_url == "https://github.com/alice/cool-libs/blob/v1.2.0/marketstall.toml"
+
+
+@pytest.mark.unit
+def test_write_marketstall_without_tag_leaves_tagged_url_none(tmp_path: Path) -> None:
+    """No tag given (standalone call) — tagged_url stays None, share_url unaffected."""
+    from haywire.core.publishing import url as share_url
+    from haywire.core.publishing import write_marketstall
+
+    repo = _make_repo(tmp_path)
+    with patch.object(share_url, "_get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
+        with patch.object(share_url, "_get_current_ref", return_value="main"):
+            result = write_marketstall(repo)
+
+    assert result.tagged_url is None
+
+
+@pytest.mark.unit
 def test_derive_share_url_only_no_file_warns(tmp_path: Path) -> None:
     """If marketstall.toml doesn't exist, surface a helpful message."""
     from haywire.core.publishing import derive_share_url_only

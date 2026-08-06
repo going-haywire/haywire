@@ -299,12 +299,13 @@ class ShareFlow(StepFlow):
             return
         self.step = "done"
 
-    def share_url(self) -> tuple[str | None, str | None]:
-        """``(url, warning)`` for the terminal screen."""
+    def share_url(self) -> tuple[str | None, str | None, str | None]:
+        """``(url, tagged_url, warning)`` for the terminal screen."""
         from haywire.core.publishing.url import derive_share_url_only
 
-        derived = derive_share_url_only(self.pipeline.repo_root)
-        return derived.share_url, derived.warning
+        tag = f"v{self.pipeline.version}" if self.pipeline.version else None
+        derived = derive_share_url_only(self.pipeline.repo_root, tag=tag)
+        return derived.share_url, derived.tagged_url, derived.warning
 
     @staticmethod
     def project_status(repo_root: Path) -> ProjectStatus:

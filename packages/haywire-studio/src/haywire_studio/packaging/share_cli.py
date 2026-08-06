@@ -175,9 +175,12 @@ def _run_publish(
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
 
-    url = derive_share_url_only(pipeline.repo_root)
+    tag = f"v{pipeline.version}" if pipeline.version else None
+    url = derive_share_url_only(pipeline.repo_root, tag=tag)
     if url.share_url:
         print(f"\n✓ Share this URL:\n  {url.share_url}")
+        if url.tagged_url:
+            print(f"\n  Frozen to this version:\n  {url.tagged_url}")
     elif url.warning:
         print(f"\n⚠ {url.warning}")
     return EXIT_OK
