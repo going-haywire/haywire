@@ -26,7 +26,7 @@ from haywire.core.session.signals import (
     Reveal,
 )
 
-from haybale_marketplace.editors._overview_edit_dialog import is_project_library
+from haybale_marketplace.library_origin import is_project_library
 
 if TYPE_CHECKING:
     from nicegui.element import Element

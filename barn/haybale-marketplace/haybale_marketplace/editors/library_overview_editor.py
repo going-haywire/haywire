@@ -63,10 +63,8 @@ from haybale_marketplace.editors._overview_actions import (
     disable_library,
     enable_library,
 )
-from haybale_marketplace.editors._overview_edit_dialog import (
-    build_edit_dialog,
-    is_project_library,
-)
+from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
+from haybale_marketplace.library_origin import is_project_library
 from haybale_marketplace.editors._overview_install_flow import (
     install_package,
     install_with_safety_check,
