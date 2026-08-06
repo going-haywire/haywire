@@ -15,21 +15,34 @@ _README_MARKER_END = "<!-- marketstall:share-url:end -->"
 _README_NAMES = ("README.md", "Readme.md", "readme.md")  # case-insensitive search
 
 
-def _update_readme_markers(content: str, share_url: str, *, tagged_url: str | None = None) -> str:
+def _update_readme_markers(
+    content: str,
+    share_url: str,
+    *,
+    tagged_url: str | None = None,
+    pypi_url: str | None = None,
+) -> str:
     """Rewrite every <!-- marketstall:share-url:start --> ... :end --> block.
 
-    The new block content is an inline-code snippet containing ``share_url``
-    (branch-live — always the current state of the repo). When ``tagged_url``
-    is given, a second line follows it: the same file pinned to the version
-    it was published at, so a reader who copies that link instead freezes
-    their subscription to that release rather than tracking the branch.
+    The block lists up to three subscription URLs, most-recommended first:
+
+    1. ``pypi_url`` — the project's deployed feed of released PyPI packages.
+       Listed on top when present because installing a released package is the
+       primary way to consume a library; the git URLs below it clone source.
+    2. ``share_url`` — branch-live, always the current state of the repo.
+    3. ``tagged_url`` — the same file pinned to the version it was published
+       at, so a reader who copies it freezes to that release.
+
     Files without the marker pair are returned unchanged.
     """
     pattern = re.compile(
         re.escape(_README_MARKER_START) + r"\n.*?\n" + re.escape(_README_MARKER_END),
         re.DOTALL,
     )
-    lines = ["# Always the latest (tracks the current branch):", share_url]
+    lines: list[str] = []
+    if pypi_url is not None:
+        lines += ["# Released packages (recommended):", pypi_url, ""]
+    lines += ["# Always the latest (tracks the current branch):", share_url]
     if tagged_url is not None:
         lines += ["", "# Frozen to this version:", tagged_url]
     replacement = f"{_README_MARKER_START}\n```sh\n" + "\n".join(lines) + f"\n```\n{_README_MARKER_END}"
@@ -48,7 +61,13 @@ def _find_readme(directory: Path) -> Path | None:
     return None
 
 
-def _update_repo_readmes(repo_root: Path, share_url: str, *, tagged_url: str | None = None) -> list[Path]:
+def _update_repo_readmes(
+    repo_root: Path,
+    share_url: str,
+    *,
+    tagged_url: str | None = None,
+    pypi_url: str | None = None,
+) -> list[Path]:
     """Update marker blocks in the root README and each barn/*/README.md.
 
     Returns the list of README paths that were updated (had markers AND were rewritten).
@@ -71,7 +90,7 @@ def _update_repo_readmes(repo_root: Path, share_url: str, *, tagged_url: str | N
 
     for readme in candidates:
         old = readme.read_text(encoding="utf-8")
-        new = _update_readme_markers(old, share_url, tagged_url=tagged_url)
+        new = _update_readme_markers(old, share_url, tagged_url=tagged_url, pypi_url=pypi_url)
         if new != old:
             readme.write_text(new, encoding="utf-8")
             updated.append(readme)

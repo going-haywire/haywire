@@ -115,6 +115,7 @@ nav:
       - Ports: guides/ports.md
       - Signals: guides/signals.md
       - Sharing libraries: guides/sharing-libraries.md
+      - Publishing to PyPI: guides/publish-to-pypi.md
       - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
 
   - Architecture:

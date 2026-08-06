@@ -214,7 +214,7 @@ docs_url         = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/hayba
 
 A few points worth knowing as an author (every field is defined in [the `Haybale` schema](../haybale/marketplace/haybale-marketplace-arch.md#23-the-haybale-schema)):
 
-- `source = "git"` and the `install_spec` with `#subdirectory=` are how `haywire share` packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI.
+- `source = "git"` and the `install_spec` with `#subdirectory=` are how `haywire share` packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI. If you want to — releasing a wheel instead of shipping a clone — see [publish-to-pypi](./publish-to-pypi.md).
 - `dependencies` lists pip distribution names of the haybale libraries you depend on — *not* the underscore form used inside the `@library` decorator.
 - `version` is the version this entry advertises — what you published. It is not
   a floor and nothing resolves against it; its only job is the update comparison.

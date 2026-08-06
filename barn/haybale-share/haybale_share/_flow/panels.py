@@ -538,7 +538,10 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
             _POSITIVE
         )
 
-    url, tagged_url, warning = flow.share_url()
+    pypi_url, url, tagged_url, warning = flow.share_url()
+    if pypi_url:
+        ui.label("Released packages (recommended):").classes("text-xs hw-text-dim")
+        hui.code_snippet(pypi_url)
     if url:
         ui.label("Share this URL so others can subscribe to your feed:").classes("text-xs hw-text-dim")
         hui.code_snippet(url)

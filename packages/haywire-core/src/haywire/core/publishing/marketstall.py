@@ -179,6 +179,8 @@ class MarketstallWriteResult:
     pair AND the URL changed), so a caller staging ``written`` never stages a
     file it didn't touch. ``tagged_url`` mirrors ``share_url`` pinned to the
     ``tag`` passed in (None when no tag was given or derivation failed).
+    ``pypi_url`` is the project's deployed PyPI feed, read from
+    ``[tool.haywire.marketstall].pypi_marketplace_url`` (None when unset).
     """
 
     out_path: Path
@@ -186,6 +188,7 @@ class MarketstallWriteResult:
     warning: str | None
     readmes: list[Path]
     tagged_url: str | None = None
+    pypi_url: str | None = None
 
     @property
     def written(self) -> list[Path]:
@@ -226,6 +229,34 @@ _MARKETSTALL_HEADER = (
 )
 
 
+def read_pypi_marketplace_url(repo_root: Path) -> str | None:
+    """Read ``[tool.haywire.marketstall].pypi_marketplace_url`` from the repo pyproject.
+
+    The deployed feed of a project that also publishes to PyPI — typically a
+    GitHub Pages URL written by a release workflow. Project-scoped rather than
+    per-run: the value is the same on every publish, so it is authored once in
+    ``pyproject.toml`` instead of retyped as a flag (an omitted flag would
+    silently drop the link from the README, which is rewritten wholesale).
+
+    Lenient by the same reasoning as :func:`read_manifest_lenient` — this is a
+    read-to-report caller. A missing file, malformed TOML, an absent block, or
+    a non-string value all mean "no PyPI feed to advertise", which is the
+    correct answer for every project that does not publish one. It must never
+    fail a publish over an optional link.
+    """
+    try:
+        data = toml.loads((repo_root / "pyproject.toml").read_text())
+    except (OSError, toml.TomlDecodeError):
+        return None
+    block = data.get("tool", {}).get("haywire", {}).get("marketstall", {})
+    if not isinstance(block, dict):
+        return None
+    value = block.get("pypi_marketplace_url")
+    if not isinstance(value, str) or not value.strip():
+        return None
+    return value.strip()
+
+
 def write_marketstall(
     repo_root: Path,
     *,
@@ -254,9 +285,15 @@ def write_marketstall(
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))
 
     url_result = _derive_url(repo_root, out_path, tag=tag)
+    pypi_url = read_pypi_marketplace_url(repo_root)
     readmes: list[Path] = []
     if url_result.share_url is not None and update_readme:
-        readmes = _update_repo_readmes(repo_root, url_result.share_url, tagged_url=url_result.tagged_url)
+        readmes = _update_repo_readmes(
+            repo_root,
+            url_result.share_url,
+            tagged_url=url_result.tagged_url,
+            pypi_url=pypi_url,
+        )
 
     return MarketstallWriteResult(
         out_path=out_path,
@@ -264,4 +301,5 @@ def write_marketstall(
         warning=url_result.warning,
         readmes=readmes,
         tagged_url=url_result.tagged_url,
+        pypi_url=pypi_url,
     )
