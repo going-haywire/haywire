@@ -386,18 +386,28 @@ class LibraryOverviewEditor(BaseEditor):
                                     "FOLDER": "teal",
                                 }.get(installed_lib.install_type.name, "grey")
                                 hui.tag(installed_lib.install_type.name.lower(), color=inst_color)
-                            if marketplace_pkg:
-                                src_color = "blue" if marketplace_pkg.source == "pypi" else "purple"
-                                hui.tag(marketplace_pkg.source, color=src_color)
+                                # Origin badge — always shown, no suppression even for the
+                                # single FOLDER+framework row (no special-casing anywhere,
+                                # per the settled design). Computed once here; the action
+                                # buttons below reuse this same `_origin` value rather than
+                                # recomputing it.
+                                _origin = compute_library_origin(
+                                    installed_lib, marketplace_path, catalog_entry=marketplace_pkg
+                                )
+                                origin_color = {
+                                    LibraryOrigin.FRAMEWORK: "teal",
+                                    LibraryOrigin.PROJECT_LOCAL: "purple",
+                                    LibraryOrigin.PYPI: "blue",
+                                    LibraryOrigin.GIT: "orange",
+                                    LibraryOrigin.UNKNOWN: "grey",
+                                }[_origin]
+                                hui.tag(_origin.value, color=origin_color)
                             if update_available and marketplace_pkg:
                                 hui.tag(f"v{marketplace_pkg.version} available", color="orange")
 
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
                         if installed_lib and manager:
-                            _origin = compute_library_origin(
-                                installed_lib, marketplace_path, catalog_entry=marketplace_pkg
-                            )
                             _lib_id = installed_lib.identity.id
                             _lib_label = installed_lib.identity.label
 
