@@ -238,15 +238,18 @@ def _section(title: str, blurb: str = "") -> ui.column:
     the eye has to infer where one finding ends and the next begins, and the
     section heading — which is what says whether you are looking at imports to
     declare or floors to raise — reads as belonging to whatever preceded it.
+
+    The heading lives inside the box (not above it) so that boundary actually
+    contains the thing it names.
     """
-    hui.section_label(title)
     box = (
         ui.column()
         .classes("w-full gap-2 p-2 rounded")
         .style("border: 1px solid var(--hw-border); background: var(--hw-bg-surface);")
     )
-    if blurb:
-        with box:
+    with box:
+        hui.section_label(title)
+        if blurb:
             ui.label(blurb).classes("text-xs hw-text-dim")
     return box
 
@@ -316,10 +319,11 @@ def _render_floor_row(lib_dir: Path, row: tuple[str, str, str], controls: dict, 
 
 
 def _render_clean_lines(libraries, registrations: dict) -> None:
-    """One ✓ line per finding kind that found nothing.
+    """One ✓ line per finding kind that found nothing, plus the auto-applied
+    library-dependency registrations, if any.
 
-    The predecessor gave each of these a full screen with its own Continue
-    button — six screens of good news for a clean repo.
+    The predecessor gave each of the finding kinds a full screen with its own
+    Continue button — six screens of good news for a clean repo.
     """
     for field, (title, _blurb, _token) in DETECT_SECTIONS.items():
         if any(getattr(d, field) for d in libraries):
@@ -331,10 +335,18 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
     if registrations:
         # Never a choice — every entry is provably true and constrains nothing
         # — but it edits a hand-authored __init__.py, so it is always named.
-        names = ", ".join(n for entries in registrations.values() for n in entries)
-        with ui.row().classes("items-center gap-2"):
-            ui.icon("edit", size="14px").style("color: var(--hw-warning);")
-            ui.label(f"@library(dependencies): adding {names}").classes("text-xs hw-text-dim")
+        with _section(
+            "Library dependencies",
+            "Adding a detected haywire library dependency to the library's __init__.py file.",
+        ):
+            for lib_dir, names in registrations.items():
+                for name in names:
+                    with ui.row().classes("items-baseline gap-2"):
+                        with ui.row().classes("items-baseline gap-0"):
+                            ui.label("@library(dependencies=[..., ").classes("text-xs font-mono hw-text-dim")
+                            ui.label(name).classes("text-xs font-mono hw-text-warning")
+                            ui.label("])").classes("text-xs font-mono hw-text-dim")
+                        ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
 
 
 def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
