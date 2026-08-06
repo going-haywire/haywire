@@ -64,7 +64,7 @@ from haybale_marketplace.editors._overview_actions import (
     enable_library,
 )
 from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
-from haybale_marketplace.library_origin import is_project_library
+from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
 from haybale_marketplace.editors._overview_install_flow import (
     install_package,
     install_with_safety_check,
@@ -395,7 +395,9 @@ class LibraryOverviewEditor(BaseEditor):
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
                         if installed_lib and manager:
-                            _is_project = is_project_library(installed_lib, marketplace_path)
+                            _origin = compute_library_origin(
+                                installed_lib, marketplace_path, catalog_entry=marketplace_pkg
+                            )
                             _lib_id = installed_lib.identity.id
                             _lib_label = installed_lib.identity.label
 
@@ -450,8 +452,15 @@ class LibraryOverviewEditor(BaseEditor):
                                     color="green",
                                 )
 
-                            # Edit (project library) or Uninstall dropdown
-                            if _is_project:
+                            # Edit (project library) or Uninstall dropdown. Edit is
+                            # scoped to PROJECT_LOCAL specifically, not the broader
+                            # is_protected (which also covers FOLDER/framework, e.g.
+                            # builtin — that has no on-disk pyproject.toml in the
+                            # shape build_edit_dialog expects, and showed neither
+                            # button before this origin-axis change; it must not
+                            # gain an Edit button as an accidental side effect of
+                            # broadening the protection check below).
+                            if _origin is LibraryOrigin.PROJECT_LOCAL:
                                 ui.button(
                                     "Edit",
                                     icon=hui.icon.edit,
@@ -474,7 +483,7 @@ class LibraryOverviewEditor(BaseEditor):
                                         ).open()
                                     ),
                                 ).props("size=sm color=blue flat")
-                            elif installed_lib.install_type.name in ("REGULAR", "EDITABLE"):
+                            elif not _origin.is_protected:
                                 _names = ", ".join(f'"{d.identity.label}"' for d in _block_uninstall)
                                 _uninstall_msg = (
                                     f'"{_lib_label}" cannot be uninstalled — {_names} depend on it.'
