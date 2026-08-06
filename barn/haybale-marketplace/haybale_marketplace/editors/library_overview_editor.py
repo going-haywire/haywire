@@ -379,13 +379,21 @@ class LibraryOverviewEditor(BaseEditor):
                             )
                             if _dist_name:
                                 ui.label(_dist_name).classes("text-xs hw-text-muted font-mono")
-                            if installed_lib:
-                                inst_color = {
-                                    "EDITABLE": "purple",
-                                    "REGULAR": "blue",
-                                    "FOLDER": "teal",
-                                }.get(installed_lib.install_type.name, "grey")
-                                hui.tag(installed_lib.install_type.name.lower(), color=inst_color)
+                            if update_available and marketplace_pkg:
+                                hui.tag(f"v{marketplace_pkg.version} available", color="orange")
+
+                        # Mechanism/origin badges on their own row — kept off the
+                        # version/dist-name line above so short vs. long names (e.g.
+                        # builtin's empty distribution_name vs. "haybale-example")
+                        # don't make badges wrap unpredictably from row to row.
+                        # One flat color per AXIS, not per value: every mechanism
+                        # badge is blue-grey, every origin badge is purple —
+                        # regardless of which of the axis's values it shows —
+                        # so the two facts read as visually distinct categories
+                        # instead of a 5-way palette nobody will learn to decode.
+                        if installed_lib:
+                            with ui.row().classes("items-center gap-2 flex-wrap"):
+                                hui.tag(installed_lib.install_type.name.lower(), color="blue-grey")
                                 # Origin badge — always shown, no suppression even for the
                                 # single FOLDER+framework row (no special-casing anywhere,
                                 # per the settled design). Computed once here; the action
@@ -394,16 +402,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 _origin = compute_library_origin(
                                     installed_lib, marketplace_path, catalog_entry=marketplace_pkg
                                 )
-                                origin_color = {
-                                    LibraryOrigin.FRAMEWORK: "teal",
-                                    LibraryOrigin.PROJECT_LOCAL: "purple",
-                                    LibraryOrigin.PYPI: "blue",
-                                    LibraryOrigin.GIT: "orange",
-                                    LibraryOrigin.UNKNOWN: "grey",
-                                }[_origin]
-                                hui.tag(_origin.value, color=origin_color)
-                            if update_available and marketplace_pkg:
-                                hui.tag(f"v{marketplace_pkg.version} available", color="orange")
+                                hui.tag(_origin.value, color="purple")
 
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
@@ -429,13 +428,25 @@ class LibraryOverviewEditor(BaseEditor):
 
                             # Enable / Disable toggle
                             if installed_lib.enabled:
-                                _names = ", ".join(f'"{d.identity.label}"' for d in _block_disable)
-                                _disable_msg = (
-                                    f'"{_lib_label}" cannot be disabled — {_names} depend on it.'
-                                    " Disable all dependents first."
-                                    if _block_disable
-                                    else None
-                                )
+                                if _origin.is_protected:
+                                    # Framework-owned or this workspace's own
+                                    # project-local library — disabling has no
+                                    # legitimate use here (mirrors is_required()'s
+                                    # reasoning in the Library Browser). Takes
+                                    # priority over the dependents message since
+                                    # it's true regardless of dependents.
+                                    _disable_msg = (
+                                        f'"{_lib_label}" cannot be disabled — it is '
+                                        f"{_origin.value.replace('_', ' ')}."
+                                    )
+                                else:
+                                    _names = ", ".join(f'"{d.identity.label}"' for d in _block_disable)
+                                    _disable_msg = (
+                                        f'"{_lib_label}" cannot be disabled — {_names} depend on it.'
+                                        " Disable all dependents first."
+                                        if _block_disable
+                                        else None
+                                    )
                                 self._action_button(
                                     "Disable",
                                     hui.icon.pause,

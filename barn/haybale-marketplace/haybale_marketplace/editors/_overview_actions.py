@@ -49,8 +49,16 @@ def enable_library(library_id: str, manager: "LibraryManager", context: "Session
 
 
 def disable_library(library_id: str, manager: "LibraryManager", context: "SessionContext") -> None:
-    manager.registry.disable_library(library_id)
-    ui.notify(f"Disabled: {library_id}", type="warning")
+    ok = manager.registry.disable_library(library_id)
+    if ok:
+        ui.notify(f"Disabled: {library_id}", type="warning")
+    else:
+        # The registry refuses FOLDER-mechanism libraries on its own (see
+        # LibraryRegistry.disable_library) regardless of what the UI's own
+        # block_reason gate decided — this branch is the defense-in-depth
+        # backstop, not the primary gate (that's _origin.is_protected on the
+        # Disable button itself).
+        ui.notify(f"Cannot disable: {library_id}", type="negative")
     context.active_library = reload_installed(library_id, manager)
     notify_library_changed(context)
 
