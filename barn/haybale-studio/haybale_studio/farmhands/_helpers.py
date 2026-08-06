@@ -34,7 +34,7 @@ def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
     return cls
 
 
-def project_local_libraries(ctx: FarmhandContext) -> list[str]:
+def project_writable_libraries(ctx: FarmhandContext) -> list[str]:
     """Libraries Farmhand may author into: the EDITABLE (pip ``-e``) installs.
 
     Uses ``InstallType.is_editable()`` — the SAME authority the source editor's
@@ -44,6 +44,14 @@ def project_local_libraries(ctx: FarmhandContext) -> list[str]:
     framework hot-reloads it; Farmhand may write it regardless of whether its path
     sits under the current workspace root. REGULAR (site-packages, immutable) and
     FOLDER (framework-owned builtin) are excluded.
+
+    Deliberately broader than LibraryOrigin.PROJECT_LOCAL (haybale_marketplace's
+    "is this literally under this workspace's barn/" classification): any
+    editable install anywhere satisfies Farmhand's actual need
+    ("can I write this source"), including a symlinked-in editable install of
+    someone else's library. Renamed from project_local_libraries, which implied
+    the narrower origin-axis meaning it never actually had — see
+    internals/handoff/library-origin-and-required-classification.md.
     """
     registry = ctx.registry(LibraryRegistry)
     result = []
@@ -55,7 +63,7 @@ def project_local_libraries(ctx: FarmhandContext) -> list[str]:
 
 
 def resolve_target_library(ctx: FarmhandContext, library: str | None) -> str:
-    locals_ = project_local_libraries(ctx)
+    locals_ = project_writable_libraries(ctx)
     if library is not None:
         if library not in locals_:
             raise FarmhandError(

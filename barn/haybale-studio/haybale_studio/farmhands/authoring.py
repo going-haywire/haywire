@@ -25,7 +25,7 @@ from haywire.core.farmhand import (
 from ._helpers import (
     KIND_FOLDERS,
     library_folder,
-    project_local_libraries,
+    project_writable_libraries,
     resolve_component_class,
     resolve_target_library,
 )
@@ -135,7 +135,7 @@ class StudioWriteComponentSourceTool(Farmhand):
             cls = resolve_component_class(ctx, registry_key)
             path = Path(inspect.getfile(cls))
             lib_id = registry_key.split(":")[0]
-            if lib_id not in project_local_libraries(ctx):
+            if lib_id not in project_writable_libraries(ctx):
                 raise FarmhandError(
                     "not_project_library",
                     f"'{lib_id}' is not project-local; Farmhand only writes project-local sources.",

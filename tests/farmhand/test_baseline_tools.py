@@ -184,7 +184,7 @@ def test_read_component_source_is_line_numbered():
     assert result["path"].endswith(".py")
 
 
-# The write gate is `project_local_libraries` / `resolve_target_library`. Test the
+# The write gate is `project_writable_libraries` / `resolve_target_library`. Test the
 # gate DECISION directly rather than driving the full write tool: a real write lands
 # in the target library's actual on-disk folder (library_folder resolves to the real
 # barn path — there is no test isolation for it), which would litter a shared barn
@@ -197,9 +197,9 @@ def test_editable_library_is_a_writable_target():
     The barn/haybale-* libraries are editable installs, so the gate must accept
     them regardless of the workspace root.
     """
-    from haybale_studio.farmhands._helpers import project_local_libraries, resolve_target_library
+    from haybale_studio.farmhands._helpers import project_writable_libraries, resolve_target_library
 
-    locals_ = project_local_libraries(FarmhandContext())
+    locals_ = project_writable_libraries(FarmhandContext())
     assert "testing" in locals_, f"editable library 'testing' should be writable, got {locals_}"
     # resolve_target_library returns it without raising the gate error.
     assert resolve_target_library(FarmhandContext(), "testing") == "testing"
