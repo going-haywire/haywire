@@ -538,10 +538,13 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
             _POSITIVE
         )
 
-    url, warning = flow.share_url()
+    url, tagged_url, warning = flow.share_url()
     if url:
         ui.label("Share this URL so others can subscribe to your feed:").classes("text-xs hw-text-dim")
         hui.code_snippet(url)
+        if tagged_url:
+            ui.label("Frozen to this version:").classes("text-xs hw-text-dim")
+            hui.code_snippet(tagged_url)
     elif warning:
         ui.label(warning).classes("text-xs hw-text-muted")
 

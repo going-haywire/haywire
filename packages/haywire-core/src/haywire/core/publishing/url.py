@@ -52,22 +52,37 @@ def _unknown_host_warning(hostname: str) -> str:
 
 @dataclass(frozen=True)
 class ShareSaveResult:
-    """Output of _derive_url. share_url is None if URL derivation failed."""
+    """Output of _derive_url. share_url is None if URL derivation failed.
+
+    ``tagged_url`` is the same file at a pinned ref instead of the branch —
+    present only when a ``tag`` was given to :func:`_derive_url` and the rest
+    of derivation succeeded. Consumers that add it to a link (README, one is
+    "always latest", follows the branch; the other freezes to the version it
+    was published at.
+    """
 
     out_path: Path
     share_url: str | None
     warning: str | None  # User-facing warning when share_url is None
+    tagged_url: str | None = None
 
 
 def _derive_url(
     repo_root: Path,
     out_path: Path,
+    *,
+    tag: str | None = None,
 ) -> ShareSaveResult:
     """Derive the canonical blob URL for an existing marketstall.toml.
 
     Used by write_marketstall (after writing the file) and
     derive_share_url_only (no file write). Returns a ShareSaveResult
     with share_url=None and a user-facing warning when derivation fails.
+
+    ``tag``, when given, also derives ``tagged_url`` — the same blob pinned to
+    that ref instead of the current branch. Best-effort: a missing ``tag``
+    just leaves ``tagged_url`` as None, it never turns a working branch-URL
+    derivation into a failure.
     """
     remote_url = _get_remote_url(repo_root)
     if remote_url is None:
@@ -112,14 +127,17 @@ def _derive_url(
         )
 
     share_url = provider.blob_url(owner, repo, ref_value, "marketstall.toml")
-    return ShareSaveResult(out_path=out_path, share_url=share_url, warning=None)
+    tagged_url = provider.blob_url(owner, repo, tag, "marketstall.toml") if tag else None
+    return ShareSaveResult(out_path=out_path, share_url=share_url, warning=None, tagged_url=tagged_url)
 
 
-def derive_share_url_only(repo_root: Path) -> ShareSaveResult:
+def derive_share_url_only(repo_root: Path, *, tag: str | None = None) -> ShareSaveResult:
     """Re-derive the share URL for an existing marketstall.toml.
 
     Does NOT write any file. Returns a ShareSaveResult with the URL derivation
     outcome; callers can format it consistently across different entry points.
+
+    ``tag``, when given, also derives ``tagged_url`` — see :func:`_derive_url`.
     """
     out_path = repo_root / "marketstall.toml"
     if not out_path.is_file():
@@ -130,4 +148,4 @@ def derive_share_url_only(repo_root: Path) -> ShareSaveResult:
                 f"No marketstall.toml found at {out_path}. Run `haywire share --save` first to produce it."
             ),
         )
-    return _derive_url(repo_root, out_path)
+    return _derive_url(repo_root, out_path, tag=tag)
