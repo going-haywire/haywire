@@ -249,9 +249,21 @@ class LibraryRegistry:
         return True
 
     def disable_library(self, library_registry_id: str) -> bool:
-        """Disable a specific library. Adds it to the persisted-disabled set."""
+        """Disable a specific library. Adds it to the persisted-disabled set.
+
+        Refuses (returns False) for InstallType.FOLDER libraries — today
+        this is only the framework-owned `builtin` library, for which
+        disabling has no legitimate use. This is the one protection guard
+        core can compute on its own (a pure filesystem-mechanism fact); it
+        does NOT cover project-local libraries, which require workspace
+        context core deliberately doesn't have — that protection remains
+        enforced at the marketplace UI layer only. See
+        internals/handoff/library-origin-and-required-classification.md.
+        """
         library = self._libraries.get(library_registry_id)
         if not library:
+            return False
+        if self._library_install_types.get(library_registry_id) is InstallType.FOLDER:
             return False
         self._user_disabled.add(library_registry_id)
         self._persist_disabled_set()

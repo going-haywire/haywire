@@ -63,10 +63,8 @@ from haybale_marketplace.editors._overview_actions import (
     disable_library,
     enable_library,
 )
-from haybale_marketplace.editors._overview_edit_dialog import (
-    build_edit_dialog,
-    is_project_library,
-)
+from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
+from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
 from haybale_marketplace.editors._overview_install_flow import (
     install_package,
     install_with_safety_check,
@@ -388,16 +386,28 @@ class LibraryOverviewEditor(BaseEditor):
                                     "FOLDER": "teal",
                                 }.get(installed_lib.install_type.name, "grey")
                                 hui.tag(installed_lib.install_type.name.lower(), color=inst_color)
-                            if marketplace_pkg:
-                                src_color = "blue" if marketplace_pkg.source == "pypi" else "purple"
-                                hui.tag(marketplace_pkg.source, color=src_color)
+                                # Origin badge — always shown, no suppression even for the
+                                # single FOLDER+framework row (no special-casing anywhere,
+                                # per the settled design). Computed once here; the action
+                                # buttons below reuse this same `_origin` value rather than
+                                # recomputing it.
+                                _origin = compute_library_origin(
+                                    installed_lib, marketplace_path, catalog_entry=marketplace_pkg
+                                )
+                                origin_color = {
+                                    LibraryOrigin.FRAMEWORK: "teal",
+                                    LibraryOrigin.PROJECT_LOCAL: "purple",
+                                    LibraryOrigin.PYPI: "blue",
+                                    LibraryOrigin.GIT: "orange",
+                                    LibraryOrigin.UNKNOWN: "grey",
+                                }[_origin]
+                                hui.tag(_origin.value, color=origin_color)
                             if update_available and marketplace_pkg:
                                 hui.tag(f"v{marketplace_pkg.version} available", color="orange")
 
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
                         if installed_lib and manager:
-                            _is_project = is_project_library(installed_lib, marketplace_path)
                             _lib_id = installed_lib.identity.id
                             _lib_label = installed_lib.identity.label
 
@@ -452,8 +462,15 @@ class LibraryOverviewEditor(BaseEditor):
                                     color="green",
                                 )
 
-                            # Edit (project library) or Uninstall dropdown
-                            if _is_project:
+                            # Edit (project library) or Uninstall dropdown. Edit is
+                            # scoped to PROJECT_LOCAL specifically, not the broader
+                            # is_protected (which also covers FOLDER/framework, e.g.
+                            # builtin — that has no on-disk pyproject.toml in the
+                            # shape build_edit_dialog expects, and showed neither
+                            # button before this origin-axis change; it must not
+                            # gain an Edit button as an accidental side effect of
+                            # broadening the protection check below).
+                            if _origin is LibraryOrigin.PROJECT_LOCAL:
                                 ui.button(
                                     "Edit",
                                     icon=hui.icon.edit,
@@ -476,7 +493,7 @@ class LibraryOverviewEditor(BaseEditor):
                                         ).open()
                                     ),
                                 ).props("size=sm color=blue flat")
-                            elif installed_lib.install_type.name in ("REGULAR", "EDITABLE"):
+                            elif not _origin.is_protected:
                                 _names = ", ".join(f'"{d.identity.label}"' for d in _block_uninstall)
                                 _uninstall_msg = (
                                     f'"{_lib_label}" cannot be uninstalled — {_names} depend on it.'

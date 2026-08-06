@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from nicegui import ui
 
-from haywire.core.library.install_type import InstallType
+from haywire.core.marketstall import Haybale
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -26,7 +26,7 @@ from haywire.core.session.signals import (
     Reveal,
 )
 
-from haybale_marketplace.editors._overview_edit_dialog import is_project_library
+from haybale_marketplace.library_origin import compute_library_origin
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -470,8 +470,8 @@ class LibraryBrowserEditor(BaseEditor):
 
         q = self._search_query.lower().strip()
 
-        # Needed by is_required() below (is_project_library) as well as the
-        # available/updates_available block further down.
+        # Needed by is_required() below (compute_library_origin) as well as
+        # the available/updates_available block further down.
         workspace_root = getattr(context.app, "workspace_root", None)
         marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
 
@@ -491,23 +491,39 @@ class LibraryBrowserEditor(BaseEditor):
                 or any(q in t.lower() for t in v.tags)
             )
 
+        # Built once per render, reused by is_required() below — matches the
+        # Haybale rows already parsed for the Available/updates_available
+        # block further down, just indexed by distribution_name for lookup.
+        _catalog_by_dist_name: dict[str, Haybale] = {}
+        if marketplace_path and marketplace_path.exists():
+            try:
+                from haywire.core.marketstall import parse_project_marketplace as _parse_pm
+
+                for entry in _parse_pm(marketplace_path).caches:
+                    if entry.name:
+                        _catalog_by_dist_name[entry.name] = entry
+            except Exception:
+                pass
+
+        def _catalog_entry_for(lib):
+            dist_name = getattr(lib, "distribution_name", "") or ""
+            return _catalog_by_dist_name.get(dist_name)
+
         def is_required(lib) -> bool:
-            # Required if any of:
-            #  - some other installed library declares this one in its
-            #    @library(dependencies=[...]) decorator (same signal the overview
-            #    editor uses to gate the Disable / Uninstall buttons, so the
-            #    purple badge and the disabled button always agree);
-            #  - it's framework-owned (InstallType.FOLDER, e.g. "builtin") —
-            #    disabling it has no legitimate use and nothing else protects
-            #    disable_library() from being called on it;
-            #  - it's this workspace's own project-local library — it has no
-            #    Uninstall path in this UI (see is_project_library), so
-            #    disabling it doesn't make sense either.
+            # Required if origin.is_protected (framework-owned or this
+            # workspace's own project-local library) OR some other installed
+            # library declares this one in its @library(dependencies=[...])
+            # decorator. These are independent reasons for the same badge —
+            # see LibraryOrigin.is_protected's docstring and the glossary
+            # entry "required" vs "dependent".
             if not hasattr(lib, "identity"):
                 return False
-            if lib.install_type is InstallType.FOLDER:
-                return True
-            if is_project_library(lib, str(marketplace_path) if marketplace_path else None):
+            origin = compute_library_origin(
+                lib,
+                str(marketplace_path) if marketplace_path else None,
+                catalog_entry=_catalog_entry_for(lib),
+            )
+            if origin.is_protected:
                 return True
             return bool(manager.get_installed_dependents(lib.identity.id))
 
@@ -540,7 +556,7 @@ class LibraryBrowserEditor(BaseEditor):
         if marketplace_path and marketplace_path.exists():
             try:
                 from packaging.version import Version
-                from haywire.core.marketstall import Haybale, parse_project_marketplace
+                from haywire.core.marketstall import parse_project_marketplace
 
                 pm = parse_project_marketplace(marketplace_path)
 

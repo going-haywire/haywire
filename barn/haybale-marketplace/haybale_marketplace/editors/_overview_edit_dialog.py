@@ -21,19 +21,13 @@ from haywire.core.library.info import LibraryInfo
 from haywire.ui import elements as hui
 from haywire.ui.modals import info_modal
 
+from haybale_marketplace.library_origin import is_project_library
+
 if TYPE_CHECKING:
     from haybale_marketplace.library_manager import LibraryManager
     from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
-
-
-def is_project_library(lib: LibraryInfo, marketplace_path: str | None) -> bool:
-    """Return True if lib is the local project library (lives under workspace/barn/)."""
-    if not marketplace_path or not lib.identity.folder_path:
-        return False
-    workspace_root = Path(marketplace_path).parent.parent
-    return Path(lib.identity.folder_path).is_relative_to(workspace_root / "barn")
 
 
 def read_os_from_pyproject(lib: LibraryInfo, marketplace_path: str | None) -> list[str]:
