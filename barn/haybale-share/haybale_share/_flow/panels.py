@@ -78,6 +78,13 @@ def panel_preflight(flow: ShareFlow, rerender: Callable[[], None]) -> None:
         # Rendering the whole thing as code made the explanation monospace and
         # offered to copy a paragraph.
         ui.label(failure.remedy).classes("text-xs hw-text-dim whitespace-pre-line")
+    if failure.doc_url:
+        # A real anchor. The URL arrives on its own field precisely so it can
+        # be one — inside `remedy` it would render as dead text in that
+        # pre-wrapped label, leaving the user to select and copy it.
+        ui.link(failure.doc_label or failure.doc_url, failure.doc_url, new_tab=True).classes(
+            "text-xs hw-text-accent"
+        )
 
     note = ui.label("").classes("text-xs")
 

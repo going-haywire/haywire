@@ -81,6 +81,8 @@ def _run_dry(pipeline: SharePipeline) -> int:
             if failure.remedy:
                 for line in failure.remedy.splitlines():
                     print(f"    {line}")
+            if failure.doc_url:
+                print(f"    {failure.doc_label or 'Docs'}: {failure.doc_url}")
 
     print("\nFindings:")
     _print_findings(pipeline)

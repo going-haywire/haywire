@@ -33,6 +33,10 @@ class PreconditionsError(ShareError):
             if failure.remedy:
                 for remedy_line in failure.remedy.splitlines():
                     lines.append(f"      {remedy_line}")
+            # A terminal cannot render an anchor, so the URL is printed. The
+            # UI renders the same field as a link instead.
+            if failure.doc_url:
+                lines.append(f"      {failure.doc_label or 'Docs'}: {failure.doc_url}")
         super().__init__("\n".join(lines))
 
     @property

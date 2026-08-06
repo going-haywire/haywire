@@ -35,6 +35,13 @@ class PreconditionFailure:
     relative to ``repo_root``, for ``strip_os``; a hostname for
     ``add_host_config``. A plain string (not a Path) for the same
     serializability reason as ``fix_id``.
+
+    ``doc_url``/``doc_label`` carry a link the caller should render as a
+    LINK — the host's own auth docs for an unreachable origin, the sharing
+    guide otherwise. Separate fields rather than a URL inside ``remedy``
+    because a URL embedded in prose renders as dead text in the UI (the
+    remedy is one pre-wrapped label) and the user would have to select and
+    copy it. The CLI still just prints it.
     """
 
     message: str
@@ -43,6 +50,8 @@ class PreconditionFailure:
     fix_id: str | None = None
     fix_label: str = ""
     lib_dir: str | None = None
+    doc_url: str = ""
+    doc_label: str = ""
 
 
 @dataclass(frozen=True)

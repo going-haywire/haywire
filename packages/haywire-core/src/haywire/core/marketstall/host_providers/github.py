@@ -25,6 +25,11 @@ class GitHubProvider:
     """Built-in provider for github.com (and matched self-hosted aliases via config)."""
 
     name = "github"
+    label = "GitHub"
+    auth_docs = {
+        "ssh": "https://docs.github.com/authentication/connecting-to-github-with-ssh",
+        "https": "https://docs.github.com/authentication/keeping-your-account-and-data-secure/managing-your-personal-access-tokens",
+    }
 
     def matches(self, hostname: str) -> bool:
         return hostname == "github.com"

@@ -235,14 +235,42 @@ def preflight_wrong_branch_unmerged() -> ShareFlow:
     )
 
 
-def preflight_unreachable() -> ShareFlow:
-    return _failed(
-        PreconditionFailure(
-            message=(
-                "Cannot reach origin (git@github.com:someone/haywire.git): Permission denied (publickey)."
-            ),
-            remedy="Check the URL and your credentials, then try again.",
-        )
+def _unreachable(remote: str, hostname: str, detail: str) -> ShareFlow:
+    """Built through the real failure builder, not a hand-written fixture.
+
+    The whole point of these three scenarios is which docs link comes out, so
+    faking it would show nothing.
+    """
+    from haywire.core.publishing.pipeline.steps.preconditions import _unreachable_failure
+
+    return _failed(_unreachable_failure(remote, hostname, detail))
+
+
+def preflight_unreachable_ssh() -> ShareFlow:
+    """SSH transport on a known host — links the key docs."""
+    return _unreachable(
+        "git@github.com:someone/haywire.git",
+        "github.com",
+        "Permission denied (publickey).",
+    )
+
+
+def preflight_unreachable_https() -> ShareFlow:
+    """HTTPS on the same host — a different failure and a different page."""
+    return _unreachable(
+        "https://gitlab.com/someone/haywire.git",
+        "gitlab.com",
+        "fatal: Authentication failed",
+    )
+
+
+def preflight_unreachable_unknown_host() -> ShareFlow:
+    """No provider for this host, so the remedy falls back to the guide rather
+    than inventing a docs URL from the hostname."""
+    return _unreachable(
+        "git@git.example.org:someone/haywire.git",
+        "git.example.org",
+        "Could not resolve hostname git.example.org",
     )
 
 
@@ -440,7 +468,9 @@ SCENARIOS: dict[str, list[tuple[str, Callable[[], ShareFlow], Panel]]] = {
         ("Detached HEAD — would orphan work", preflight_detached_orphan, panel_preflight),
         ("Wrong branch — nothing unmerged", preflight_wrong_branch_merged, panel_preflight),
         ("Wrong branch — has unmerged work", preflight_wrong_branch_unmerged, panel_preflight),
-        ("Origin unreachable — unfixable", preflight_unreachable, panel_preflight),
+        ("Unreachable — SSH, known host", preflight_unreachable_ssh, panel_preflight),
+        ("Unreachable — HTTPS, known host", preflight_unreachable_https, panel_preflight),
+        ("Unreachable — unknown host", preflight_unreachable_unknown_host, panel_preflight),
     ],
     "2 · Review": [
         ("Clean repo — all ✓ lines", review_clean, panel_review),

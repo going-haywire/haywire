@@ -247,12 +247,7 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         detail = (reachable.stderr or reachable.stdout).strip().splitlines()
         first = detail[0] if detail else f"exit {reachable.returncode}"
         return PreconditionsReport(
-            failures=[
-                PreconditionFailure(
-                    message=f"Cannot reach origin ({remote_url}): {first}",
-                    remedy="Check the URL and your credentials, then try again.",
-                )
-            ],
+            failures=[_unreachable_failure(remote_url, hostname, first)],
             remote_url=remote_url,
             barn_libraries=barn_libraries,
         )
@@ -424,4 +419,64 @@ def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: s
             f"  git switch {default}\n\n"
             f"Nothing is lost either way — `{current}` keeps its commits."
         ),
+    )
+
+
+#: Where the sharing guide explains git remote requirements — the fallback for
+#: a host with no auth docs of its own (a self-hosted Gitea, a filesystem
+#: remote). The published site, not a repo path, so it is useful from an
+#: installed copy that has no docs/ directory.
+SHARING_GUIDE_URL = "https://maybites.github.io/haywire/guides/sharing-libraries/#44-git-remote-requirements"
+
+
+def _unreachable_failure(remote_url: str, hostname: str, detail: str) -> PreconditionFailure:
+    """The unreachable-origin failure, pointed at the RIGHT docs page.
+
+    Two things are knowable here, and each narrows the advice:
+
+    * **The transport.** ``git@host:owner/repo`` authenticates with an SSH
+      key; ``https://host/owner/repo`` with a token or a credential helper.
+      They fail differently and their docs pages are different, so naming the
+      wrong one sends the reader somewhere that cannot help.
+    * **The host.** ``resolve_host()`` already ran above and honours
+      ``[[hosts]]`` config, so a self-hosted GitLab resolves to the GitLab
+      provider and gets GitLab's docs rather than a generic shrug.
+
+    Falls back to the sharing guide when the host is unrecognized or ships no
+    auth docs. Never guesses a URL from the hostname: a wrong link is worse
+    than no link, because it looks authoritative.
+
+    The URL travels on ``doc_url``, not inside ``remedy`` — see
+    :class:`PreconditionFailure`, where a URL buried in prose renders as dead
+    text the user has to select and copy.
+    """
+    ssh = remote_url.startswith("git@") or remote_url.startswith("ssh://")
+    transport = "ssh" if ssh else "https"
+    how = (
+        "This is an SSH remote, so it authenticates with an SSH key — check that "
+        "the key is registered with the host and that ssh-agent is running."
+        if ssh
+        else "This is an HTTPS remote, so it authenticates with a token or a git "
+        "credential helper — check that a credential is cached for this host."
+    )
+
+    provider = resolve_host(hostname) if hostname else None
+    docs = getattr(provider, "auth_docs", {}).get(transport) if provider is not None else None
+
+    if docs and provider is not None:
+        # `label`, not name.title(): "github".title() is "Github", which is not
+        # how the brand is written.
+        brand = getattr(provider, "label", provider.name)
+        doc_url, doc_label = docs, f"{brand}'s authentication guide"
+    else:
+        doc_url, doc_label = SHARING_GUIDE_URL, "Setting up a git remote"
+
+    return PreconditionFailure(
+        message=f"Cannot reach origin ({remote_url}): {detail}",
+        remedy=(
+            "The check exercises the same credential path a publish uses, so "
+            f"this is what publishing would hit.\n\n{how}"
+        ),
+        doc_url=doc_url,
+        doc_label=doc_label,
     )

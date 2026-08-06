@@ -26,6 +26,11 @@ class GitLabProvider:
     """Built-in provider for gitlab.com."""
 
     name = "gitlab"
+    label = "GitLab"
+    auth_docs = {
+        "ssh": "https://docs.gitlab.com/user/ssh/",
+        "https": "https://docs.gitlab.com/user/profile/personal_access_tokens/",
+    }
 
     def matches(self, hostname: str) -> bool:
         return hostname == "gitlab.com"
