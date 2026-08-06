@@ -426,7 +426,14 @@ def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: s
 #: a host with no auth docs of its own (a self-hosted Gitea, a filesystem
 #: remote). The published site, not a repo path, so it is useful from an
 #: installed copy that has no docs/ directory.
-SHARING_GUIDE_URL = "https://maybites.github.io/haywire/guides/sharing-libraries/#44-git-remote-requirements"
+#:
+#: The origin is ``site_url`` in mkdocs.yml. Restated here rather than read
+#: from it because this runs in an INSTALLED venv, where that file does not
+#: exist — ``tests/share_pipeline/test_unreachable_remedy.py`` fails if the
+#: two ever diverge, the same guard LOCKSTEP_DISTS uses for the release config.
+SHARING_GUIDE_URL = (
+    "https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/#44-git-remote-requirements"
+)
 
 
 def _unreachable_failure(remote_url: str, hostname: str, detail: str) -> PreconditionFailure:

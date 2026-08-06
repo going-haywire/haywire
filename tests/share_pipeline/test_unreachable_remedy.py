@@ -108,3 +108,49 @@ def test_the_url_travels_as_data_not_inside_the_remedy_prose() -> None:
 
     assert failure.doc_url.startswith("https://")
     assert "http" not in failure.remedy
+
+
+def test_sharing_guide_url_matches_the_published_site() -> None:
+    """The fallback link must actually resolve.
+
+    SHARING_GUIDE_URL is restated in source because this code runs in an
+    installed venv where mkdocs.yml does not exist. This test is what keeps
+    the copy honest — the first version of this constant was invented rather
+    than read, and pointed at a domain that does not serve the docs.
+    """
+    import re
+    from pathlib import Path as _Path
+
+    repo_root = _Path(__file__).resolve().parents[2]
+    mkdocs = repo_root / "mkdocs.yml"
+    if not mkdocs.is_file():
+        pytest.skip("mkdocs.yml is absent (installed copy, not a checkout)")
+
+    match = re.search(r"^site_url:\s*(\S+)", mkdocs.read_text(), re.MULTILINE)
+    assert match, "mkdocs.yml has no site_url"
+    site_url = match.group(1).rstrip("/")
+
+    assert SHARING_GUIDE_URL.startswith(f"{site_url}/"), (
+        f"SHARING_GUIDE_URL ({SHARING_GUIDE_URL}) is not under the published "
+        f"site ({site_url}/) — one of the two moved."
+    )
+
+
+def test_sharing_guide_url_names_a_real_anchor_in_the_guide() -> None:
+    """The #44-git-remote-requirements fragment must match a real heading."""
+    from pathlib import Path as _Path
+
+    repo_root = _Path(__file__).resolve().parents[2]
+    guide = repo_root / "docs" / "guides" / "sharing-libraries.md"
+    if not guide.is_file():
+        pytest.skip("docs/ is absent (installed copy, not a checkout)")
+
+    fragment = SHARING_GUIDE_URL.rsplit("#", 1)[1]
+    # mkdocs slugifies "### 4.4 Git remote requirements" to
+    # "44-git-remote-requirements": lowercase, dots dropped, spaces to dashes.
+    headings = {
+        "".join(c for c in line.lstrip("#").strip().lower() if c.isalnum() or c == " ").replace(" ", "-")
+        for line in guide.read_text().splitlines()
+        if line.startswith("#")
+    }
+    assert fragment in headings, f"{fragment!r} matches no heading in the guide"
