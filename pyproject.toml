@@ -68,6 +68,7 @@ mypy_path = [
     "packages/haywire-studio/src",
     "barn/haybale-core",
     "barn/haybale-studio",
+    "barn/haybale-share",
     "barn/haybale-testing",
     "barn/haybale-example",
     "barn/haybale-TEST_A",
