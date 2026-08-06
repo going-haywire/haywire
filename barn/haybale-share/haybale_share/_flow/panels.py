@@ -211,29 +211,71 @@ def _render_findings(flow: ShareFlow, libraries) -> dict:
         rows = [(d.lib_dir, item) for d in libraries for item in getattr(d, field)]
         if not rows:
             continue
-        hui.section_label(title)
-        ui.label(blurb).classes("text-xs hw-text-dim ml-1")
-
-        for lib_dir, item in rows:
-            if field == "pyproject_missing":
-                _render_addition_row(flow, lib_dir, item, controls, token)
-            elif field == "unused_declarations":
-                _render_removal_row(lib_dir, item, controls, token)
-            elif field == "pyproject_version_lag":
-                _render_floor_row(lib_dir, item, controls, token)
-            else:
-                with ui.row().classes("items-baseline gap-2 ml-2"):
-                    ui.label(str(item)).classes("text-xs font-mono").style(f"color: var({token});")
-                    ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+        with _section(title, blurb):
+            for lib_dir, item in rows:
+                if field == "pyproject_missing":
+                    _render_addition_row(flow, lib_dir, item, controls, token)
+                elif field == "unused_declarations":
+                    _render_removal_row(lib_dir, item, controls, token)
+                elif field == "pyproject_version_lag":
+                    _render_floor_row(lib_dir, item, controls, token)
+                else:
+                    with ui.row().classes("items-baseline gap-2"):
+                        ui.label(str(item)).classes("text-xs font-mono").style(f"color: var({token});")
+                        ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
     return controls
+
+
+def _section(title: str, blurb: str = "") -> ui.column:
+    """One finding kind, boxed. Returns the column its rows go into.
+
+    A border rather than a raised background: the popup card is already
+    `--hw-bg-elevated` (Layer 2), and the design guide's elevation rule says a
+    container sits exactly one step above its parent — there is no Layer 3 for
+    panel chrome, and `box-shadow` is reserved for canvas nodes (§2.1).
+
+    Boxing matters because the screen stacks four of these. Without a boundary
+    the eye has to infer where one finding ends and the next begins, and the
+    section heading — which is what says whether you are looking at imports to
+    declare or floors to raise — reads as belonging to whatever preceded it.
+    """
+    hui.section_label(title)
+    box = (
+        ui.column()
+        .classes("w-full gap-2 p-2 rounded")
+        .style("border: 1px solid var(--hw-border); background: var(--hw-bg-surface);")
+    )
+    if blurb:
+        with box:
+            ui.label(blurb).classes("text-xs hw-text-dim")
+    return box
+
+
+def _decision(subject: str, context: str, token: str) -> ui.column:
+    """One decision, boxed with its subject. Returns the column its control goes into.
+
+    The proximity fix. These used to be `gap-1` columns in a `gap-2` parent,
+    so the distance from a subject line UP to the previous control was smaller
+    than the distance DOWN to its own — the eye grouped each label with the
+    wrong widget, and reading the screen meant re-deriving which name each
+    dropdown belonged to. Now the subject and its control share a bordered
+    box, and only boxes are separated.
+    """
+    box = (
+        ui.column()
+        .classes("w-full gap-1 p-2 rounded")
+        .style("border: 1px solid var(--hw-border); background: var(--hw-bg-elevated);")
+    )
+    with box:
+        with ui.row().classes("items-baseline gap-2"):
+            ui.label(subject).classes("text-xs font-mono").style(f"color: var({token});")
+            ui.label(context).classes("text-xs hw-text-dim")
+    return box
 
 
 def _render_addition_row(flow: ShareFlow, lib_dir: Path, dep: str, controls: dict, token: str) -> None:
     installed = flow.installed_version(dep)
-    with ui.column().classes("gap-1 ml-2 w-full"):
-        with ui.row().classes("items-baseline gap-2"):
-            ui.label(dep).classes("text-xs font-mono").style(f"color: var({token});")
-            ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+    with _decision(dep, f"in {lib_dir.name}", token):
         pin = hui.select_field(options=PIN_OPTIONS, value="none", label="Declare as", in_popup=True).classes(
             "w-full"
         )
@@ -244,8 +286,13 @@ def _render_addition_row(flow: ShareFlow, lib_dir: Path, dep: str, controls: dic
 
 def _render_removal_row(lib_dir: Path, dep: str, controls: dict, token: str) -> None:
     """Nothing pre-selected: a dynamic import is indistinguishable from an
-    unused declaration, and removing cannot be undone from here."""
-    with ui.row().classes("items-baseline gap-2 ml-2"):
+    unused declaration, and removing cannot be undone from here.
+
+    Not boxed like the others: the checkbox carries its own label, so subject
+    and control are already one element — a box would separate it from
+    siblings it reads fine beside.
+    """
+    with ui.row().classes("items-baseline gap-2"):
         box = ui.checkbox(dep, value=False).props("dense").classes("text-xs")
         ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
     controls["removals"].append((lib_dir, dep, box))
@@ -255,12 +302,7 @@ def _render_floor_row(lib_dir: Path, row: tuple[str, str, str], controls: dict, 
     """Every control starts on keep, which writes nothing — a floor states the
     OLDEST version that works and nothing here can compute that."""
     dist, declared, installed = row
-    with ui.column().classes("gap-1 ml-2 w-full"):
-        with ui.row().classes("items-baseline gap-2"):
-            ui.label(f"{dist} — declared {declared}, installed {installed}").classes(
-                "text-xs font-mono"
-            ).style(f"color: var({token});")
-            ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
+    with _decision(f"{dist} — declared {declared}, installed {installed}", f"in {lib_dir.name}", token):
         mode = hui.select_field(options=FLOOR_OPTIONS, value="keep", label="Floor", in_popup=True).classes(
             "w-full"
         )
@@ -298,20 +340,24 @@ def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
     if plan is None or not plan.options:
         return lambda: None
 
-    hui.section_label("Framework requirement")
     options = {opt.specifier: f"{opt.specifier} — {opt.label}" for opt in plan.options}
     options["custom"] = "custom…"
     default = next((o.specifier for o in plan.options if o.recommended), next(iter(options)))
 
-    choice = hui.select_field(options=options, value=default, label="Requires", in_popup=True).classes(
-        "w-full"
-    )
-    custom = hui.input_field(placeholder=">=0.0.31")
-    custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
+    with _section(
+        "Framework requirement",
+        f"haywire-core, installed: {plan.installed or 'unknown'}. Written into every "
+        "barn library's pyproject.toml.",
+    ):
+        choice = hui.select_field(options=options, value=default, label="Requires", in_popup=True).classes(
+            "w-full"
+        )
+        custom = hui.input_field(placeholder=">=0.0.31")
+        custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
 
-    consequences = {opt.specifier: opt.consequence for opt in plan.options}
-    note = ui.label(consequences.get(default, "")).classes("text-xs hw-text-dim")
-    choice.on_value_change(lambda: setattr(note, "text", consequences.get(str(choice.value), "")))
+        consequences = {opt.specifier: opt.consequence for opt in plan.options}
+        note = ui.label(consequences.get(default, "")).classes("text-xs hw-text-dim")
+        choice.on_value_change(lambda: setattr(note, "text", consequences.get(str(choice.value), "")))
 
     def _spec() -> str | None:
         if choice.value == "custom":
@@ -324,28 +370,32 @@ def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
 def _render_version(flow: ShareFlow) -> Callable[[], str]:
     """Lockstep: every barn library publishes at the same version."""
     plan = flow.version_plan
-    hui.section_label("Version")
-
     if plan is None:
         return lambda: "patch"
 
-    with ui.column().classes("gap-0.5 ml-1"):
-        for lib in plan.current:
-            ui.label(f"{lib.name}: {lib.version or '(none)'}").classes("text-xs font-mono")
+    with _section(
+        "Version",
+        "Every barn library publishes at the same version (lockstep), and the repo is tagged with it.",
+    ):
+        with ui.column().classes("gap-0.5"):
+            for lib in plan.current:
+                ui.label(f"{lib.name}: {lib.version or '(none)'}").classes("text-xs font-mono")
 
-    if not plan.versions_agree:
-        ui.label(
-            "These versions disagree. Name the version every library should be set to — "
-            "picking one automatically would downgrade the others."
-        ).classes("text-xs").style("color: var(--hw-warning);")
-        explicit = hui.input_field(placeholder="X.Y.Z")
-        return lambda: (explicit.value or "").strip()
+        if not plan.versions_agree:
+            ui.label(
+                "These versions disagree. Name the version every library should be set to — "
+                "picking one automatically would downgrade the others."
+            ).classes("text-xs").style("color: var(--hw-warning);")
+            explicit = hui.input_field(placeholder="X.Y.Z").classes("w-full")
+            return lambda: (explicit.value or "").strip()
 
-    options = {kw: f"{kw} → {resolved}" for kw, resolved in plan.suggestions.items()}
-    options["custom"] = "custom…"
-    choice = hui.select_field(options=options, value="patch", label="Bump", in_popup=True).classes("w-full")
-    custom = hui.input_field(placeholder="X.Y.Z")
-    custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
+        options = {kw: f"{kw} → {resolved}" for kw, resolved in plan.suggestions.items()}
+        options["custom"] = "custom…"
+        choice = hui.select_field(options=options, value="patch", label="Bump", in_popup=True).classes(
+            "w-full"
+        )
+        custom = hui.input_field(placeholder="X.Y.Z")
+        custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
 
     def _spec() -> str:
         return (custom.value or "").strip() if choice.value == "custom" else str(choice.value)
