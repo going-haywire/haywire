@@ -54,6 +54,318 @@ if TYPE_CHECKING:
     from haywire.core.session.session import Session
 
 
+"""Static, theme-independent CSS for every haywire surface.
+
+Module-level so surfaces that are NOT the shell can reuse it verbatim —
+the panel harness in barn/haybale-share is one. Duplicating it there
+meant the harness rendered Quasar dropdowns with browser defaults
+(white menu, white text) and unstyled fields, i.e. it misreported the
+very thing it exists to show.
+"""
+STATIC_CSS = (
+    # Z-index layers for the Quasar-overlay tier. NOT theme tokens:
+    # stacking order is structural, not a user-swappable colour.
+    # Quasar's own dialogs and QMenus both default to 6000, which is
+    # why the haywire Popup card sits above them at 7001 and menus
+    # opened from inside a popup need 7100 to clear it.
+    " :root { --hw-z-popup: 7001; --hw-z-popup-menu: 7100; }"
+    # Page background
+    " body, .q-page, .q-tab-panels { background: var(--hw-bg-page) !important; }"
+    # Layout
+    " .nicegui-content { padding: 0 !important; max-width: none !important;"
+    " height: 100vh !important; overflow: hidden !important; }"
+    " .q-tab-panels > .q-panel-parent > .q-panel.scroll"
+    " { overflow: hidden !important; }"
+    # Tab-style slot bar (main and bottom slots)
+    " .hw-slot-bar-tabs .q-tab { color: var(--hw-text-muted) !important; }"
+    " .hw-slot-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
+    " .hw-slot-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
+    " .hw-slot-bar-tabs .q-tab__label { font-size: 12px; }"
+    # Generic toolbar buttons (hui.toolbar_button helper).
+    " .hw-shell-toolbar-btn {"
+    "   color: var(--hw-text-muted) !important;"
+    "   border-radius: 10px;"
+    "   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;"
+    " }"
+    " .hw-shell-toolbar-btn:hover {"
+    "   background: var(--hw-bg-elevated) !important;"
+    "   color: var(--hw-text-body) !important;"
+    " }"
+    " .hw-shell-toolbar-btn .q-icon { color: inherit !important; }"
+    " .hw-shell-toolbar-btn-active {"
+    "   background: var(--hw-bg-elevated) !important;"
+    "   color: var(--hw-accent) !important;"
+    "   box-shadow: inset 0 0 0 1px var(--hw-accent);"
+    " }"
+    # Vertical icon-bar tabs (IconSlot) — Quasar q-tabs in vertical
+    # orientation. Uses the same muted/body/accent palette as the
+    # horizontal tab bar (.hw-slot-bar-tabs above). The indicator
+    # side (left vs right edge of the active tab) is controlled by
+    # the q-tabs `indicator-color` and `align` props plus a class
+    # variant on the bar itself.
+    # Force vertical layout: NiceGUI's q-tabs in vertical mode
+    # leaves q-tabs__content with `row no-wrap` flex classes, so
+    # the tabs render horizontally clipped inside a narrow bar.
+    # We override to a column and center each tab horizontally.
+    " .hw-icon-bar-tabs.q-tabs--vertical {"
+    "   flex-direction: column !important;"
+    "   align-items: stretch !important;"
+    " }"
+    " .hw-icon-bar-tabs.q-tabs--vertical .q-tabs__content {"
+    "   flex-direction: column !important;"
+    "   align-items: stretch !important;"
+    "   width: 100%;"
+    " }"
+    " .hw-icon-bar-tabs .q-tab { color: var(--hw-text-muted) !important;"
+    "   min-height: 40px; padding: 0;"
+    "   width: 100%;"
+    " }"
+    " .hw-icon-bar-tabs .q-tab__content {"
+    "   justify-content: center !important;"
+    "   width: 100%;"
+    " }"
+    # An empty q-tab__label still occupies layout space inside the
+    # `row no-wrap` content, shifting the icon left of true centre.
+    # Remove it from the flow when we render icon-only tabs.
+    " .hw-icon-bar-tabs .q-tab__label { display: none !important; }"
+    " .hw-icon-bar-tabs .q-tab:hover { color: var(--hw-text-body) !important; }"
+    " .hw-icon-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
+    " .hw-icon-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
+    # Size both Quasar's own tab icon (the `icon=` arg path) and a
+    # child `.q-icon` an editor draws via `draw_tab` — the latter
+    # lacks the `q-tab__icon` class, so without this it would fall
+    # back to the default (smaller) ui.icon size.
+    " .hw-icon-bar-tabs .q-tab__icon,"
+    " .hw-icon-bar-tabs .q-tab__content .q-icon { font-size: 22px; }"
+    # All editor area containers and their child text.
+    # .hw-cm-isolate wrappers (CodeMirror editors) are excluded so that
+    # the CodeMirror theme controls all token colours uncontested.
+    " .hw-panel, .hw-panel *:not(.hw-cm-isolate):not(.hw-cm-isolate *)"
+    " { color: var(--hw-text-body); }"
+    # Make CodeMirror fill its flex container so height is flexible.
+    " .hw-cm-isolate .cm-editor { height: 100%; }"
+    # Expansion items inside area editors (PropertiesEditor, etc.)
+    " .hw-panel .q-expansion-item {"
+    "   background: var(--hw-panel-header-0-bg, transparent);"
+    " }"
+    " .hw-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }"
+    " .compact-fields .q-expansion-item {"
+    "   background: var(--hw-panel-header-1-bg, transparent);"
+    " }"
+    " .hw-panel .q-expansion-item__content {"
+    "   padding: 0.25rem 0.5rem !important;"
+    "   gap: 0 !important;"
+    " }"
+    # NiceGUI 3.x wraps expansion content in .nicegui-expansion-content which
+    # sits INSIDE q-expansion-item__content and independently gets padding:1rem
+    # from nicegui.css. Override it across all hw-panel expansions so the inner
+    # wrapper doesn't add its own indent on top of the Quasar container's padding.
+    " .hw-panel .nicegui-expansion-content {"
+    "   padding: 0 !important;"
+    "   gap: 0 !important;"
+    " }"
+    # In compact-fields contexts, also zero the Quasar container so indentation
+    # does not compound across nested expansion levels.
+    " .compact-fields .q-expansion-item__content {"
+    "   padding: 0 !important;"
+    "   gap: 0 !important;"
+    " }"
+    " .hw-panel .q-expansion-item__content::before,"
+    " .hw-panel .q-expansion-item__content::after {"
+    "   display: none !important;"
+    " }"
+    # hw-use-props-color opts a q-icon out of the dim rule so Quasar color= prop works freely
+    " .hw-panel .q-icon:not(.connection-pin):not(.hw-use-props-color)"
+    " { color: var(--hw-text-dim) !important; }"
+    # Semantic text helpers — use these instead of fixed Tailwind grays in UI chrome
+    " .hw-text-body  { color: var(--hw-text-body) !important; }"
+    " .hw-text-muted { color: var(--hw-text-muted) !important; }"
+    " .hw-text-dim   { color: var(--hw-text-dim) !important; }"
+    # Drag-resize handles between areas
+    " .hw-area-divider { background: transparent; transition: background-color 0.15s; }"
+    " .hw-area-divider:hover { background-color: var(--hw-accent) !important; }"
+    " .hw-area-vdivider { background: transparent; transition: background-color 0.15s; }"
+    " .hw-area-vdivider:hover { background-color: var(--hw-accent) !important; }"
+    # Outlined select borders — Quasar uses a pseudo-element, not color inheritance
+    " .hw-panel .q-field--outlined .q-field__control:before"
+    " { border-color: var(--hw-border) !important; }"
+    " .hw-panel .q-field--outlined:hover .q-field__control:before"
+    " { border-color: var(--hw-border-strong) !important; }"
+    " .hw-panel .q-field__control { background: var(--hw-bg-input) !important; }"
+    # Selection chips (use-chips selects) — Quasar's default grey chip is
+    # too low-contrast on the elevated field background. Paint the whole
+    # chip with the accent colour and on-accent text so it reads as a
+    # clear 'selected' token. Target the chip, its content wrapper, and
+    # the remove icon; Quasar colours each separately.
+    " .hw-panel .q-field .q-chip,"
+    " .hw-panel .q-field .q-chip .q-chip__content {"
+    "   background: var(--hw-accent) !important;"
+    "   color: var(--hw-text-on-accent) !important;"
+    " }"
+    " .hw-panel .q-field .q-chip .q-chip__icon,"
+    " .hw-panel .q-field .q-chip .q-icon {"
+    "   color: var(--hw-text-on-accent) !important;"
+    " }"
+    # Field label — dim it so an empty field's label doesn't read like an
+    # entered value (both inherit body colour otherwise). Brighten to the
+    # accent when the field is focused, matching the focus underline.
+    " .hw-panel .q-field__label { color: var(--hw-text-muted) !important; }"
+    " .hw-panel .q-field--highlighted .q-field__label"
+    " { color: var(--hw-accent) !important; }"
+    # Standard (non-outlined) field underline — override currentColor to use border token
+    " .hw-panel .q-field--standard .q-field__control:before"
+    " { border-bottom-color: var(--hw-border) !important; }"
+    " .hw-panel .q-field--standard:hover .q-field__control:before"
+    " { border-bottom-color: var(--hw-border-strong) !important; }"
+    # Focus: accent underline animation + elevated background (matches NumberDrag)
+    " .hw-panel .q-field--standard.q-field--highlighted .q-field__control:after"
+    " { background: var(--hw-accent) !important; }"
+    " .hw-panel .q-field--standard.q-field--highlighted .q-field__control"
+    " { background: var(--hw-bg-elevated) !important; }"
+    # Dropdown menus — portal outside their parent, so must be targeted globally
+    " .q-menu { background: var(--hw-bg-elevated) !important;"
+    " border: 1px solid var(--hw-border-strong) !important; }"
+    " .q-menu .q-item { color: var(--hw-text-body) !important; }"
+    " .q-menu .q-item--active { color: var(--hw-accent) !important; }"
+    " .q-menu .q-item:hover { background: var(--hw-bg-surface) !important; }"
+    # ── compact-fields utility class ──
+    # Apply to any container (panel, node widget area) that needs tight
+    # Quasar field rendering.  CSS custom properties allow themes to
+    # adjust the values without overriding selectors.
+    " :root {"
+    "   --hw-compact-gap: 0.25rem;"
+    "   --hw-compact-field-h: 26px;"
+    "   --hw-compact-row-min-h: 28px;"
+    " }"
+    " .compact-fields { --nicegui-default-gap: var(--hw-compact-gap); }"
+    " .compact-fields .nicegui-row {"
+    "   min-height: var(--hw-compact-row-min-h) !important;"
+    "   padding-top: 0 !important; padding-bottom: 0 !important;"
+    " }"
+    " .compact-fields .q-field {"
+    "   padding: 0 !important; margin: 0 !important;"
+    "   align-items: center !important;"
+    " }"
+    " .compact-fields .q-field__inner { align-self: center !important; }"
+    " .compact-fields .q-field__control {"
+    "   height: var(--hw-compact-field-h) !important;"
+    "   min-height: var(--hw-compact-field-h) !important;"
+    " }"
+    " .compact-fields .q-field__control::before,"
+    " .compact-fields .q-field__control::after { border: none !important; }"
+    " .compact-fields .q-field:not(.q-field--outlined) .q-field__control {"
+    "   border: 1px solid var(--hw-border, rgba(255,255,255,0.10)) !important;"
+    "   border-radius: 4px !important;"
+    " }"
+    " .compact-fields .q-field:not(.q-field--outlined) .q-field__control:hover {"
+    "   border-color: var(--hw-border-strong, rgba(255,255,255,0.25)) !important;"
+    " }"
+    " .compact-fields .q-field__marginal {"
+    "   height: var(--hw-compact-field-h) !important;"
+    " }"
+    " .compact-fields .q-field__native {"
+    "   padding: 0 4px !important;"
+    "   min-height: var(--hw-compact-field-h) !important;"
+    "   height: var(--hw-compact-field-h) !important;"
+    " }"
+    " .compact-fields .q-field__bottom { display: none !important; }"
+    " .compact-fields .q-toggle {"
+    "   margin: 0 !important; padding: 0 !important;"
+    " }"
+    " .compact-fields .q-expansion-item__content {"
+    "   padding: 0 0 0 0.5rem !important;"
+    " }"
+    # ── settings-field row spacing ──
+    # One explicit, uniform vertical gap between field rows, applied at the
+    # list container so every field (scalar or multi-row vector) is spaced
+    # identically by construction — independent of each control's intrinsic
+    # height or the .nicegui-row min-height. Field rows must NOT add their
+    # own margins, or the gaps compound unevenly.
+    " :root { --hw-field-gap: 0.15rem; }"
+    " .sf-field-list { display: flex !important; flex-direction: column;"
+    "   gap: var(--hw-field-gap, 0.15rem) !important; }"
+    " .sf-field-list > .nicegui-row { min-height: 0 !important; }"
+    # ── settings-field responsive layout ──
+    # .sf-label / .sf-widget respond to their @container settings-panel.
+    # Below 280px: 50/50 split.  Above: label is fixed 8rem, widget grows.
+    " .sf-label  { width: 50%; flex: none; }"
+    " .sf-widget { width: 50%; }"
+    " @container settings-panel (min-width: 320px) {"
+    "   .sf-label  { width: 9rem; flex: none; }"
+    "   .sf-widget { width: auto; flex: 1; }"
+    " }"
+    # ── hui list-item hover + semantic text utilities ──
+    " .hw-list-item-hover { transition: background-color 0.15s ease; }"
+    " .hw-list-item-hover:hover { background-color: var(--hw-bg-surface) !important; }"
+    " .hw-list-item-active { background-color: var(--hw-bg-active) !important; }"
+    " .hw-text-danger  { color: var(--hw-danger) !important; }"
+    " .hw-text-warning { color: var(--hw-warning) !important; }"
+    " .hw-text-warning-dim { color: var(--hw-warning-dim) !important; }"
+    " .hw-text-success { color: var(--hw-success) !important; }"
+    " .hw-text-info    { color: var(--hw-info) !important; }"
+    " .hw-text-accent  { color: var(--hw-accent) !important; }"
+    # ── hw-tree: quiet, theme-aware Quasar q-tree ──
+    # Opt-in via .classes("... hw-tree") on any ui.tree. Quasar draws
+    # the connector lines (elbow + vertical guides) as pseudo-element
+    # borders using `currentColor` (the bright text colour); recolour
+    # them to the faint theme border token so they read as quiet guides
+    # instead of stark white lines. Also tightens row density.
+    " .hw-tree .q-tree__node-header {"
+    "   padding-top: 2px; padding-bottom: 3px;"
+    " }"
+    " .hw-tree .q-tree__node-collapsible,"
+    " .hw-tree .q-tree__node-header {"
+    "   border-color: var(--hw-border);"
+    " }"
+    " .hw-tree .q-tree__node:after,"
+    " .hw-tree .q-tree__node-header:before,"
+    " .hw-tree .q-tree__node--parent"
+    "   > .q-tree__node-collapsible > .q-tree__node-body:after {"
+    "   border-color: var(--hw-border);"
+    " }"
+    # CodeMirror completion/hover doc panel — portals to body, so target
+    # globally (like .q-menu above). Content is markdown2-rendered HTML.
+    " .hw-cm-doc {"
+    "   max-width: 480px;"
+    "   max-height: 320px;"
+    "   overflow: auto;"
+    "   padding: 8px 12px;"
+    "   font-size: 12px;"
+    "   line-height: 1.45;"
+    "   color: var(--hw-text-body);"
+    " }"
+    # Tighten markdown block spacing inside the panel.
+    " .hw-cm-doc > :first-child { margin-top: 0; }"
+    " .hw-cm-doc > :last-child { margin-bottom: 0; }"
+    " .hw-cm-doc p { margin: 0.4em 0; }"
+    " .hw-cm-doc h1, .hw-cm-doc h2, .hw-cm-doc h3, .hw-cm-doc h4 {"
+    "   margin: 0.6em 0 0.3em; font-size: 12px; font-weight: 600;"
+    "   color: var(--hw-text-body);"
+    " }"
+    # Inline + fenced code: monospace, subtle surface, theme tokens.
+    " .hw-cm-doc code {"
+    "   font-family: var(--hw-font-mono, monospace);"
+    "   font-size: 11.5px;"
+    " }"
+    " .hw-cm-doc pre {"
+    "   margin: 0.4em 0;"
+    "   padding: 6px 8px;"
+    "   background: var(--hw-bg-input);"
+    "   border: 1px solid var(--hw-border);"
+    "   border-radius: 4px;"
+    "   overflow-x: auto;"
+    "   white-space: pre;"
+    " }"
+    " .hw-cm-doc :not(pre) > code {"
+    "   padding: 1px 4px;"
+    "   background: var(--hw-bg-input);"
+    "   border-radius: 3px;"
+    " }"
+    # The doc panel's own padding replaces the tooltip wrapper's.
+    " .cm-tooltip.cm-completionInfo { padding: 0; }"
+)
+
+
 class AppShell:
     """
     Renders the workspace layout for a single browser session.
@@ -164,309 +476,7 @@ class AppShell:
         # Remove NiceGUI's default content padding so the shell fills the viewport.
         # Area-level tab panels must not scroll — editors own their scroll behaviour.
         # CSS vars are injected from the active WorkbenchTheme (no body.body--dark block).
-        _static_css = (
-            # Z-index layers for the Quasar-overlay tier. NOT theme tokens:
-            # stacking order is structural, not a user-swappable colour.
-            # Quasar's own dialogs and QMenus both default to 6000, which is
-            # why the haywire Popup card sits above them at 7001 and menus
-            # opened from inside a popup need 7100 to clear it.
-            " :root { --hw-z-popup: 7001; --hw-z-popup-menu: 7100; }"
-            # Page background
-            " body, .q-page, .q-tab-panels { background: var(--hw-bg-page) !important; }"
-            # Layout
-            " .nicegui-content { padding: 0 !important; max-width: none !important;"
-            " height: 100vh !important; overflow: hidden !important; }"
-            " .q-tab-panels > .q-panel-parent > .q-panel.scroll"
-            " { overflow: hidden !important; }"
-            # Tab-style slot bar (main and bottom slots)
-            " .hw-slot-bar-tabs .q-tab { color: var(--hw-text-muted) !important; }"
-            " .hw-slot-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
-            " .hw-slot-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
-            " .hw-slot-bar-tabs .q-tab__label { font-size: 12px; }"
-            # Generic toolbar buttons (hui.toolbar_button helper).
-            " .hw-shell-toolbar-btn {"
-            "   color: var(--hw-text-muted) !important;"
-            "   border-radius: 10px;"
-            "   transition: background-color 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;"
-            " }"
-            " .hw-shell-toolbar-btn:hover {"
-            "   background: var(--hw-bg-elevated) !important;"
-            "   color: var(--hw-text-body) !important;"
-            " }"
-            " .hw-shell-toolbar-btn .q-icon { color: inherit !important; }"
-            " .hw-shell-toolbar-btn-active {"
-            "   background: var(--hw-bg-elevated) !important;"
-            "   color: var(--hw-accent) !important;"
-            "   box-shadow: inset 0 0 0 1px var(--hw-accent);"
-            " }"
-            # Vertical icon-bar tabs (IconSlot) — Quasar q-tabs in vertical
-            # orientation. Uses the same muted/body/accent palette as the
-            # horizontal tab bar (.hw-slot-bar-tabs above). The indicator
-            # side (left vs right edge of the active tab) is controlled by
-            # the q-tabs `indicator-color` and `align` props plus a class
-            # variant on the bar itself.
-            # Force vertical layout: NiceGUI's q-tabs in vertical mode
-            # leaves q-tabs__content with `row no-wrap` flex classes, so
-            # the tabs render horizontally clipped inside a narrow bar.
-            # We override to a column and center each tab horizontally.
-            " .hw-icon-bar-tabs.q-tabs--vertical {"
-            "   flex-direction: column !important;"
-            "   align-items: stretch !important;"
-            " }"
-            " .hw-icon-bar-tabs.q-tabs--vertical .q-tabs__content {"
-            "   flex-direction: column !important;"
-            "   align-items: stretch !important;"
-            "   width: 100%;"
-            " }"
-            " .hw-icon-bar-tabs .q-tab { color: var(--hw-text-muted) !important;"
-            "   min-height: 40px; padding: 0;"
-            "   width: 100%;"
-            " }"
-            " .hw-icon-bar-tabs .q-tab__content {"
-            "   justify-content: center !important;"
-            "   width: 100%;"
-            " }"
-            # An empty q-tab__label still occupies layout space inside the
-            # `row no-wrap` content, shifting the icon left of true centre.
-            # Remove it from the flow when we render icon-only tabs.
-            " .hw-icon-bar-tabs .q-tab__label { display: none !important; }"
-            " .hw-icon-bar-tabs .q-tab:hover { color: var(--hw-text-body) !important; }"
-            " .hw-icon-bar-tabs .q-tab--active { color: var(--hw-text-body) !important; }"
-            " .hw-icon-bar-tabs .q-tab__indicator { background: var(--hw-accent) !important; }"
-            # Size both Quasar's own tab icon (the `icon=` arg path) and a
-            # child `.q-icon` an editor draws via `draw_tab` — the latter
-            # lacks the `q-tab__icon` class, so without this it would fall
-            # back to the default (smaller) ui.icon size.
-            " .hw-icon-bar-tabs .q-tab__icon,"
-            " .hw-icon-bar-tabs .q-tab__content .q-icon { font-size: 22px; }"
-            # All editor area containers and their child text.
-            # .hw-cm-isolate wrappers (CodeMirror editors) are excluded so that
-            # the CodeMirror theme controls all token colours uncontested.
-            " .hw-panel, .hw-panel *:not(.hw-cm-isolate):not(.hw-cm-isolate *)"
-            " { color: var(--hw-text-body); }"
-            # Make CodeMirror fill its flex container so height is flexible.
-            " .hw-cm-isolate .cm-editor { height: 100%; }"
-            # Expansion items inside area editors (PropertiesEditor, etc.)
-            " .hw-panel .q-expansion-item {"
-            "   background: var(--hw-panel-header-0-bg, transparent);"
-            " }"
-            " .hw-panel .q-expansion-item__header { color: var(--hw-text-expansion) !important; }"
-            " .compact-fields .q-expansion-item {"
-            "   background: var(--hw-panel-header-1-bg, transparent);"
-            " }"
-            " .hw-panel .q-expansion-item__content {"
-            "   padding: 0.25rem 0.5rem !important;"
-            "   gap: 0 !important;"
-            " }"
-            # NiceGUI 3.x wraps expansion content in .nicegui-expansion-content which
-            # sits INSIDE q-expansion-item__content and independently gets padding:1rem
-            # from nicegui.css. Override it across all hw-panel expansions so the inner
-            # wrapper doesn't add its own indent on top of the Quasar container's padding.
-            " .hw-panel .nicegui-expansion-content {"
-            "   padding: 0 !important;"
-            "   gap: 0 !important;"
-            " }"
-            # In compact-fields contexts, also zero the Quasar container so indentation
-            # does not compound across nested expansion levels.
-            " .compact-fields .q-expansion-item__content {"
-            "   padding: 0 !important;"
-            "   gap: 0 !important;"
-            " }"
-            " .hw-panel .q-expansion-item__content::before,"
-            " .hw-panel .q-expansion-item__content::after {"
-            "   display: none !important;"
-            " }"
-            # hw-use-props-color opts a q-icon out of the dim rule so Quasar color= prop works freely
-            " .hw-panel .q-icon:not(.connection-pin):not(.hw-use-props-color)"
-            " { color: var(--hw-text-dim) !important; }"
-            # Semantic text helpers — use these instead of fixed Tailwind grays in UI chrome
-            " .hw-text-body  { color: var(--hw-text-body) !important; }"
-            " .hw-text-muted { color: var(--hw-text-muted) !important; }"
-            " .hw-text-dim   { color: var(--hw-text-dim) !important; }"
-            # Drag-resize handles between areas
-            " .hw-area-divider { background: transparent; transition: background-color 0.15s; }"
-            " .hw-area-divider:hover { background-color: var(--hw-accent) !important; }"
-            " .hw-area-vdivider { background: transparent; transition: background-color 0.15s; }"
-            " .hw-area-vdivider:hover { background-color: var(--hw-accent) !important; }"
-            # Outlined select borders — Quasar uses a pseudo-element, not color inheritance
-            " .hw-panel .q-field--outlined .q-field__control:before"
-            " { border-color: var(--hw-border) !important; }"
-            " .hw-panel .q-field--outlined:hover .q-field__control:before"
-            " { border-color: var(--hw-border-strong) !important; }"
-            " .hw-panel .q-field__control { background: var(--hw-bg-input) !important; }"
-            # Selection chips (use-chips selects) — Quasar's default grey chip is
-            # too low-contrast on the elevated field background. Paint the whole
-            # chip with the accent colour and on-accent text so it reads as a
-            # clear 'selected' token. Target the chip, its content wrapper, and
-            # the remove icon; Quasar colours each separately.
-            " .hw-panel .q-field .q-chip,"
-            " .hw-panel .q-field .q-chip .q-chip__content {"
-            "   background: var(--hw-accent) !important;"
-            "   color: var(--hw-text-on-accent) !important;"
-            " }"
-            " .hw-panel .q-field .q-chip .q-chip__icon,"
-            " .hw-panel .q-field .q-chip .q-icon {"
-            "   color: var(--hw-text-on-accent) !important;"
-            " }"
-            # Field label — dim it so an empty field's label doesn't read like an
-            # entered value (both inherit body colour otherwise). Brighten to the
-            # accent when the field is focused, matching the focus underline.
-            " .hw-panel .q-field__label { color: var(--hw-text-muted) !important; }"
-            " .hw-panel .q-field--highlighted .q-field__label"
-            " { color: var(--hw-accent) !important; }"
-            # Standard (non-outlined) field underline — override currentColor to use border token
-            " .hw-panel .q-field--standard .q-field__control:before"
-            " { border-bottom-color: var(--hw-border) !important; }"
-            " .hw-panel .q-field--standard:hover .q-field__control:before"
-            " { border-bottom-color: var(--hw-border-strong) !important; }"
-            # Focus: accent underline animation + elevated background (matches NumberDrag)
-            " .hw-panel .q-field--standard.q-field--highlighted .q-field__control:after"
-            " { background: var(--hw-accent) !important; }"
-            " .hw-panel .q-field--standard.q-field--highlighted .q-field__control"
-            " { background: var(--hw-bg-elevated) !important; }"
-            # Dropdown menus — portal outside their parent, so must be targeted globally
-            " .q-menu { background: var(--hw-bg-elevated) !important;"
-            " border: 1px solid var(--hw-border-strong) !important; }"
-            " .q-menu .q-item { color: var(--hw-text-body) !important; }"
-            " .q-menu .q-item--active { color: var(--hw-accent) !important; }"
-            " .q-menu .q-item:hover { background: var(--hw-bg-surface) !important; }"
-            # ── compact-fields utility class ──
-            # Apply to any container (panel, node widget area) that needs tight
-            # Quasar field rendering.  CSS custom properties allow themes to
-            # adjust the values without overriding selectors.
-            " :root {"
-            "   --hw-compact-gap: 0.25rem;"
-            "   --hw-compact-field-h: 26px;"
-            "   --hw-compact-row-min-h: 28px;"
-            " }"
-            " .compact-fields { --nicegui-default-gap: var(--hw-compact-gap); }"
-            " .compact-fields .nicegui-row {"
-            "   min-height: var(--hw-compact-row-min-h) !important;"
-            "   padding-top: 0 !important; padding-bottom: 0 !important;"
-            " }"
-            " .compact-fields .q-field {"
-            "   padding: 0 !important; margin: 0 !important;"
-            "   align-items: center !important;"
-            " }"
-            " .compact-fields .q-field__inner { align-self: center !important; }"
-            " .compact-fields .q-field__control {"
-            "   height: var(--hw-compact-field-h) !important;"
-            "   min-height: var(--hw-compact-field-h) !important;"
-            " }"
-            " .compact-fields .q-field__control::before,"
-            " .compact-fields .q-field__control::after { border: none !important; }"
-            " .compact-fields .q-field:not(.q-field--outlined) .q-field__control {"
-            "   border: 1px solid var(--hw-border, rgba(255,255,255,0.10)) !important;"
-            "   border-radius: 4px !important;"
-            " }"
-            " .compact-fields .q-field:not(.q-field--outlined) .q-field__control:hover {"
-            "   border-color: var(--hw-border-strong, rgba(255,255,255,0.25)) !important;"
-            " }"
-            " .compact-fields .q-field__marginal {"
-            "   height: var(--hw-compact-field-h) !important;"
-            " }"
-            " .compact-fields .q-field__native {"
-            "   padding: 0 4px !important;"
-            "   min-height: var(--hw-compact-field-h) !important;"
-            "   height: var(--hw-compact-field-h) !important;"
-            " }"
-            " .compact-fields .q-field__bottom { display: none !important; }"
-            " .compact-fields .q-toggle {"
-            "   margin: 0 !important; padding: 0 !important;"
-            " }"
-            " .compact-fields .q-expansion-item__content {"
-            "   padding: 0 0 0 0.5rem !important;"
-            " }"
-            # ── settings-field row spacing ──
-            # One explicit, uniform vertical gap between field rows, applied at the
-            # list container so every field (scalar or multi-row vector) is spaced
-            # identically by construction — independent of each control's intrinsic
-            # height or the .nicegui-row min-height. Field rows must NOT add their
-            # own margins, or the gaps compound unevenly.
-            " :root { --hw-field-gap: 0.15rem; }"
-            " .sf-field-list { display: flex !important; flex-direction: column;"
-            "   gap: var(--hw-field-gap, 0.15rem) !important; }"
-            " .sf-field-list > .nicegui-row { min-height: 0 !important; }"
-            # ── settings-field responsive layout ──
-            # .sf-label / .sf-widget respond to their @container settings-panel.
-            # Below 280px: 50/50 split.  Above: label is fixed 8rem, widget grows.
-            " .sf-label  { width: 50%; flex: none; }"
-            " .sf-widget { width: 50%; }"
-            " @container settings-panel (min-width: 320px) {"
-            "   .sf-label  { width: 9rem; flex: none; }"
-            "   .sf-widget { width: auto; flex: 1; }"
-            " }"
-            # ── hui list-item hover + semantic text utilities ──
-            " .hw-list-item-hover { transition: background-color 0.15s ease; }"
-            " .hw-list-item-hover:hover { background-color: var(--hw-bg-surface) !important; }"
-            " .hw-list-item-active { background-color: var(--hw-bg-active) !important; }"
-            " .hw-text-danger  { color: var(--hw-danger) !important; }"
-            " .hw-text-warning { color: var(--hw-warning) !important; }"
-            " .hw-text-warning-dim { color: var(--hw-warning-dim) !important; }"
-            " .hw-text-success { color: var(--hw-success) !important; }"
-            " .hw-text-info    { color: var(--hw-info) !important; }"
-            " .hw-text-accent  { color: var(--hw-accent) !important; }"
-            # ── hw-tree: quiet, theme-aware Quasar q-tree ──
-            # Opt-in via .classes("... hw-tree") on any ui.tree. Quasar draws
-            # the connector lines (elbow + vertical guides) as pseudo-element
-            # borders using `currentColor` (the bright text colour); recolour
-            # them to the faint theme border token so they read as quiet guides
-            # instead of stark white lines. Also tightens row density.
-            " .hw-tree .q-tree__node-header {"
-            "   padding-top: 2px; padding-bottom: 3px;"
-            " }"
-            " .hw-tree .q-tree__node-collapsible,"
-            " .hw-tree .q-tree__node-header {"
-            "   border-color: var(--hw-border);"
-            " }"
-            " .hw-tree .q-tree__node:after,"
-            " .hw-tree .q-tree__node-header:before,"
-            " .hw-tree .q-tree__node--parent"
-            "   > .q-tree__node-collapsible > .q-tree__node-body:after {"
-            "   border-color: var(--hw-border);"
-            " }"
-            # CodeMirror completion/hover doc panel — portals to body, so target
-            # globally (like .q-menu above). Content is markdown2-rendered HTML.
-            " .hw-cm-doc {"
-            "   max-width: 480px;"
-            "   max-height: 320px;"
-            "   overflow: auto;"
-            "   padding: 8px 12px;"
-            "   font-size: 12px;"
-            "   line-height: 1.45;"
-            "   color: var(--hw-text-body);"
-            " }"
-            # Tighten markdown block spacing inside the panel.
-            " .hw-cm-doc > :first-child { margin-top: 0; }"
-            " .hw-cm-doc > :last-child { margin-bottom: 0; }"
-            " .hw-cm-doc p { margin: 0.4em 0; }"
-            " .hw-cm-doc h1, .hw-cm-doc h2, .hw-cm-doc h3, .hw-cm-doc h4 {"
-            "   margin: 0.6em 0 0.3em; font-size: 12px; font-weight: 600;"
-            "   color: var(--hw-text-body);"
-            " }"
-            # Inline + fenced code: monospace, subtle surface, theme tokens.
-            " .hw-cm-doc code {"
-            "   font-family: var(--hw-font-mono, monospace);"
-            "   font-size: 11.5px;"
-            " }"
-            " .hw-cm-doc pre {"
-            "   margin: 0.4em 0;"
-            "   padding: 6px 8px;"
-            "   background: var(--hw-bg-input);"
-            "   border: 1px solid var(--hw-border);"
-            "   border-radius: 4px;"
-            "   overflow-x: auto;"
-            "   white-space: pre;"
-            " }"
-            " .hw-cm-doc :not(pre) > code {"
-            "   padding: 1px 4px;"
-            "   background: var(--hw-bg-input);"
-            "   border-radius: 3px;"
-            " }"
-            # The doc panel's own padding replaces the tooltip wrapper's.
-            " .cm-tooltip.cm-completionInfo { padding: 0; }"
-        )
-        ui.add_css(self._build_initial_theme_css() + _static_css + _pygments_doc_css())
+        ui.add_css(self._build_initial_theme_css() + STATIC_CSS + _pygments_doc_css())
 
         # React to workbench.theme setting changes (e.g. from the settings panel).
         # Exact-key subscription — the shell only cares about this one key.

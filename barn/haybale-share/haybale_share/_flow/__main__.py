@@ -60,9 +60,15 @@ def _render_scenario(container: ui.element, label: str, build, panel) -> None:
         ui.label(f"step = {flow.step!r}").classes("text-xs font-mono hw-text-muted")
 
         # 640px: the width show_share_flow() opens the real popup at.
+        #
+        # `hw-panel` is not decoration — nearly every Quasar field rule in
+        # STATIC_CSS is scoped to it (the field label colour, the underline
+        # colours, the focus background). Popup applies it to its own content
+        # column, so a harness that omits it renders every select and input
+        # with browser defaults and misreports what the panel looks like.
         with (
             ui.column()
-            .classes("gap-2 p-3 rounded")
+            .classes("gap-2 p-3 rounded hw-panel")
             .style("width: 640px; border: 1px solid var(--hw-border); background: var(--hw-bg-elevated);")
         ):
             render_progress(flow)
@@ -86,6 +92,7 @@ def _inject_theme() -> None:
     boundaries this screen relies on.
     """
     from haywire.core.di.config import get_library_system
+    from haywire.ui.app.shell import STATIC_CSS
 
     try:
         registry = get_library_system().get_theme_registry()
@@ -99,6 +106,11 @@ def _inject_theme() -> None:
         # judgement this harness exists to support.
         body_css = "body { background: var(--hw-bg-page); color: var(--hw-text-body); }"
         ui.add_head_html(f"<style>:root {{ {css} }} {body_css}</style>")
+        # The shell's own static CSS, verbatim — it is what styles Quasar
+        # fields and (globally, since they portal to <body>) the .q-menu
+        # dropdowns. Without it a select opens as a white menu with white
+        # text, which is a harness artefact and not something the panel does.
+        ui.add_css(STATIC_CSS)
     except Exception as exc:  # noqa: BLE001 — a themeless harness still renders
         print(f"harness: could not inject a workbench theme ({exc})")
 

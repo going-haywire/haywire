@@ -291,8 +291,12 @@ def _render_removal_row(lib_dir: Path, dep: str, controls: dict, token: str) -> 
     Not boxed like the others: the checkbox carries its own label, so subject
     and control are already one element — a box would separate it from
     siblings it reads fine beside.
+
+    `items-center`, not `items-baseline`: a checkbox has no text baseline, so
+    Quasar's 24px control box got aligned against the label's baseline and
+    both the tick and the trailing "in <library>" sat visibly low.
     """
-    with ui.row().classes("items-baseline gap-2"):
+    with ui.row().classes("items-center gap-2"):
         box = ui.checkbox(dep, value=False).props("dense").classes("text-xs")
         ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
     controls["removals"].append((lib_dir, dep, box))
