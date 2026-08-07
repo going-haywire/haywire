@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring Farmhand MCP tools — @farmhand decorator, Farmhand base class, FarmhandContext facade, FarmhandError contract, input schema derivation, resource vs tool distinction
+scope: Authoring Farmhand MCP tools — @farmhand decorator, Farmhand base class, FarmhandContext facade, FarmhandError contract, input schema derivation, resource vs tool distinction, agent-facing output conventions (row shape, truncation, next-step hints)
 see-also:
   - ../../architecture/studio/studio-arch.md
   - ../../reference/glossary.md
@@ -126,29 +126,35 @@ raise FarmhandError(
 )
 ```
 
-**Pagination convention.** Any tool returning a list should accept `limit`/`offset` and call the shared helpers so every list tool paginates identically:
+**Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `state/`, etc:
 
 ```python
-from haywire.core.farmhand import truncation_note
-from ._helpers import page  # barn/haybale-studio's local pagination slice helper
+from haywire.core.farmhand import FarmhandRegistry
 
-rows, total = page(rows, limit, offset)
-return {
-    "summary": f"{total} match.{truncation_note(len(rows), total, offset)}",
-    "items": rows,
-    "total": total,
-}
+def register_components(self):
+    base = Path(__file__).parent
+    self.add_folder_to_registry(
+        folder_path=str(base / "farmhands"),
+        registry_cls=FarmhandRegistry,
+    )
 ```
 
-`truncation_note` returns `''` when the page already covers the whole collection, and a suffix like `' (showing 1-50 of 200 — pass limit/offset for more)'` otherwise — append it to `summary` so a client that only reads the summary string still learns the result was truncated.
+**The `'studio'` library-id prefix is reserved.** `barn/haybale-studio`'s baseline tools (`studio_status`, `studio_list_components`, ...) own the `studio` library id; the reservation is enforced by library-id uniqueness at discovery, not by `FarmhandRegistry` itself. Don't register a second library under the `studio` id.
 
-**Large single payloads truncate too.** Pagination covers lists; a tool returning one *big* value (a source file, a README) needs the same guarantee, because an uncapped read silently dominates the caller's context. Cap by default, report the full size, and offer the escape hatch:
+## 4. Agent-facing output
 
-- Return the natural unit — lines for source (`studio_read_component_source`, `total_lines`, absolute line numbers preserved so a windowed read stays quotable), characters for prose (`marketplace_get_library_docs`, `total_chars`).
-- Say it was truncated in `summary`, and add a `help` key naming the exact follow-up call (`offset=<end>` for the next window, or `full=true`).
-- Accept `full=true` to bypass the cap. Never omit a large field entirely — a preview plus the total beats forcing a second blind call.
+Everything above is about making a tool *work*. This section is about making it *usable by an agent* — a different discipline, with its own failure modes, and the one most easily skipped because a tool that ignores all of it still passes its tests.
 
-**Every result should carry a `summary` string.** The host injects a fallback (`f"{name}: ok"`) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.
+Two costs drive every rule here:
+
+- **Every field costs tokens multiplied by row count.** A field nobody reads is not free; it is paid on every call, by every agent, forever.
+- **Every missing hint costs a round trip.** The expensive failure is rarely a slightly longer response — it is the extra call the agent makes because your response did not tell it what to do next.
+
+An agent has no peripheral vision. It cannot skim, scroll back, or notice that a list looked short. Whatever your response does not say, it does not know.
+
+### 4.1 Return the least that lets the agent act
+
+**Default to the smallest useful row; put the rest behind `detail=true`.** Return the 3-4 fields a caller needs to *decide what to do next* — an identifier, a label, a status — and gate prose, URLs, and provenance behind `detail`. Never `asdict()` a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row `marketplace_list_available`, `asdict()` emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on *every* row; trimming to four cut the payload 77% ([reproducible script](measurements/2026-08-07-farmhand-axi-measure_payload.py)). When `detail=true` does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.
 
 **Make the caller drill down: separate WHICH from HOW MUCH.** A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. `graph_editor_inspect_node` is the reference implementation, with three orthogonal parameters:
 
@@ -174,31 +180,76 @@ The payoff is concrete: on a real 29-field, 5-bag node, an unfiltered `info` dum
 
 Prefer these axes over a pile of `include_*` booleans: booleans multiply combinatorially and each one has to be discovered separately, whereas one enum per axis is self-describing in the derived schema.
 
-**Resist inventing causality the framework does not record.** A tempting addition here was a `disabled_reason` explaining *why* a field is `DISABLED`. `effective_ui_state` composes a severity-max over three independent sources and discards which one won, so any such field would be a guess — and a plausible-but-wrong reason is worse for an agent than no reason at all. Report the state; leave the cause to whoever declared it.
+### 4.2 Never hide that something was withheld
 
-**Serializing values that cross the wire.** The host JSON-encodes results with `json.dumps(result, default=str)`, so a non-serializable value does not crash — it silently degrades to an object repr (`"<MeshData object at 0x...>"`), which is useless to an agent and unbounded in size. When a tool returns *values* rather than metadata:
+A truncated response that does not announce itself is the worst output a tool can produce: the agent proceeds confidently on partial data. Truncating is fine. Truncating silently is not.
+
+**Pagination convention.** Any tool returning a list should accept `limit`/`offset` and call the shared helpers so every list tool paginates identically:
+
+```python
+from haywire.core.farmhand import truncation_note
+from ._helpers import page  # barn/haybale-studio's local pagination slice helper
+
+rows, total = page(rows, limit, offset)
+return {
+    "summary": f"{total} match.{truncation_note(len(rows), total, offset)}",
+    "items": rows,
+    "total": total,
+}
+```
+
+`truncation_note` returns `''` when the page already covers the whole collection, and a suffix like `' (showing 1-50 of 200 — pass limit/offset for more)'` otherwise — append it to `summary` so a client that only reads the summary string still learns the result was truncated.
+
+**Large single payloads truncate too.** Pagination covers lists; a tool returning one *big* value (a source file, a README) needs the same guarantee, because an uncapped read silently dominates the caller's context. Cap by default, report the full size, and offer the escape hatch:
+
+- Return the natural unit — lines for source (`studio_read_component_source`, `total_lines`, absolute line numbers preserved so a windowed read stays quotable), characters for prose (`marketplace_get_library_docs`, `total_chars`).
+- Say it was truncated in `summary`, and add a `help` key naming the exact follow-up call (`offset=<end>` for the next window, or `full=true`).
+- Accept `full=true` to bypass the cap. Never omit a large field entirely — a preview plus the total beats forcing a second blind call.
+
+**Every result should carry a `summary` string.** The host injects a fallback (`f"{name}: ok"`) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.
+
+### 4.3 Say what to do next
+
+**Put a `help` key on list and mutation results, not just on errors.** `FarmhandError(help=)` covers the failure path; the success path needs the same courtesy — the asymmetry is the bug. After a list, name the drill-down (`studio_describe_component registry_key=<key>`); after a mutation, name what makes the change useful (`haystack_create_graph` → add a node, then save — it is unsaved until you do). Carry forward ids you already hold so the hint is a runnable command rather than a template, and prefer a concrete value over a placeholder when you know it: `studio_list_components count_only=true` names its own biggest bucket. Omit `help` on detail views — they are self-contained, and a hint there is noise. Omit it on an empty page too, except to say how to create the first item.
+
+The error-path half of this rule lives with the `FarmhandError` contract in §3 — same principle, applied where the agent needs it most.
+
+### 4.4 Be honest about what you know
+
+**Resist inventing causality the framework does not record.** A tempting addition to `inspect_node` was a `disabled_reason` explaining *why* a field is `DISABLED`. `effective_ui_state` composes a severity-max over three independent sources and discards which one won, so any such field would be a guess — and a plausible-but-wrong reason is worse for an agent than no reason at all. Report the state; leave the cause to whoever declared it.
+
+The general form: an agent cannot tell a confident guess from a fact. When the framework does not record something, say nothing rather than infer it. This is why `unmatched` reports only real filter misses (a phantom typo report is worse than none), why a `HIDDEN` field is collapsed rather than omitted (absence would read as "does not exist"), and why a dropped value gets an explicit `value_omitted` marker instead of a repr that looks like data.
+
+**Serializing values that cross the wire.** The host emits every result *twice*: as a JSON text block (for text-only clients) and as MCP `structuredContent` (a real JSON object, so a structure-aware client skips the string parse). Both halves come from the same `json.dumps(result, default=str)` pass, so they can never disagree — and `default=str` means a non-serializable value does not crash, it silently degrades to an object repr (`"<MeshData object at 0x...>"`), which is useless to an agent and unbounded in size. When a tool returns *values* rather than metadata:
 
 - Check serializability instead of trusting the fallback. `haywire.core.types.utils.is_cattrs_serializable(value)` is the codebase's existing predicate for exactly this.
 - Emit an explicit marker for what you dropped (`inspect_node` uses `value_omitted: "<type>"`) so the agent learns the value exists but is not retrievable, rather than reading a repr as if it were data.
 - Most Haywire value types are already JSON-native: `Vec2i`/`Vec3f`/… are `list` subclasses and `Color`/`Icon` are `str`, so settings values round-trip losslessly with no conversion layer. Arbitrary port `BaseType`s (mesh, frame) do not.
 - A `widget_config` may hold a **live zero-arg callable** at `properties["options"]` (the documented dynamic-dropdown mechanism — see [setting-canon](../settings/setting-canon.md)). Resolve it the way the widget does (`options()`), inside a `try/except` so one failing probe can't fail the whole call, and never pass it through unresolved.
 
-**Folder convention and registration.** Farmhand tools go in the library's `farmhands/` folder; register it with `FarmhandRegistry` in `register_components()`, alongside the same-shaped calls for `nodes/`, `panels/`, `state/`, etc:
+### 4.5 Where these rules come from
 
-```python
-from haywire.core.farmhand import FarmhandRegistry
+This section adapts [AXI](https://axi.md) (Agent eXperience Interface), a set of ergonomic standards written for **CLI tools** that agents drive through shell execution. The reasoning transfers; several of the mechanics do not, because MCP is a typed protocol with its own conventions rather than a byte stream on stdout.
 
-def register_components(self):
-    base = Path(__file__).parent
-    self.add_folder_to_registry(
-        folder_path=str(base / "farmhands"),
-        registry_cls=FarmhandRegistry,
-    )
-```
+What we took, and what changed in translation:
 
-**The `'studio'` library-id prefix is reserved.** `barn/haybale-studio`'s baseline tools (`studio_status`, `studio_list_components`, ...) own the `studio` library id; the reservation is enforced by library-id uniqueness at discovery, not by `FarmhandRegistry` itself. Don't register a second library under the `studio` id.
+| AXI | Here |
+|---|---|
+| §2 minimal default schemas, `--fields` to widen | §4.1, as `detail=true` — same idea, named for the schema convention the derived `inputSchema` already exposes |
+| §3 truncate long content, show total, offer `--full` | §4.2, as `full=true` + `total_lines`/`total_chars` |
+| §4 pre-computed aggregates, definitive totals | §4.2, as `total` + `truncation_note()` |
+| §9 contextual disclosure — suggest next steps | §4.3, as the `help` key |
+| §6 structured errors with an actionable suggestion | §3 `FarmhandError(code, message, ids, help)` |
+| §1 emit TOON on stdout | **Not adopted.** MCP negotiates its own typing: the client owns the parse, and the protocol already carries a real object in `structuredContent`. Emitting TOON inside `content[].text` would hand every client a format it has no contract for. Measured on a real payload, TOON saved ~40% on uniform tabular rows but was *larger* than JSON on nested count maps, and has no representation for the multi-line source strings some tools return. Schema trimming (§4.1) delivered ~12× more on the same payload with no new dependency — do that first, and revisit the format question only against an already-trimmed baseline. |
+| §6 exit codes 0/1/2, errors to stdout | **N/A.** MCP has `isError`; there is no exit code and no stdout. |
+| §7 session hooks, §10 `--help` and bin path | **N/A.** `list_tools` and the `description=` field do this job — which is why `description=` is worth writing carefully (§3). |
+| §8 no-args shows live content | Closest equivalent is `studio_status`, not a per-tool behaviour. |
 
-## 4. Live examples from the codebase
+The numbers cited above are reproducible: [`measurements/2026-08-07-farmhand-axi-measure_payload.py`](measurements/2026-08-07-farmhand-axi-measure_payload.py) carries the captured payload and prints every figure, including the two-lever comparison behind the TOON decision. Re-run it before revisiting that call.
+
+If you are extending a *different* agent-facing surface — a CLI, for instance — read AXI directly; more of it applies there than here.
+
+## 5. Live examples from the codebase
 
 **Minimal read-only tool** — no arguments beyond a single required string, `read_only_hint` annotation:
 
@@ -247,6 +298,8 @@ For the MCP wire protocol, session tracking, and how resources (`farmhand://docs
 
 ### Authoring checklist
 
+Mechanics (§3):
+
 - [ ] `@farmhand(label=, description=, registry_id=, annotations=)` decorator
 - [ ] Inherit from `Farmhand`
 - [ ] Implement `async def run(self, ctx: FarmhandContext, ...) -> dict` — must be `async`
@@ -254,11 +307,17 @@ For the MCP wire protocol, session tracking, and how resources (`farmhand://docs
 - [ ] Set `input_schema_override` if you need an `enum` or other schema constraint the derived schema can't express
 - [ ] Raise `FarmhandError(code, message, ids=)` for expected failures, not bare exceptions
 - [ ] Pass `help=` on any failure whose fix is knowable at the throw site
-- [ ] For list results: `limit`/`offset` params + `page()` + `truncation_note()` in `summary`
-- [ ] For one large payload (source, docs): cap by default, report the total, accept `full=true`
-- [ ] Every returned dict should include an explicit `summary` string
 - [ ] For mutations open editors should reflect: `ctx.broadcast(signal)` after the mutation
 - [ ] Place file in `farmhands/` folder; register via `FarmhandRegistry` in `register_components`
+
+Agent-facing output (§4) — a tool passes its tests without any of these:
+
+- [ ] Default rows to 3-4 fields; gate prose/URLs/provenance behind `detail=true` (§4.1)
+- [ ] For list results: `limit`/`offset` params + `page()` + `truncation_note()` in `summary` (§4.2)
+- [ ] For one large payload (source, docs): cap by default, report the total, accept `full=true` (§4.2)
+- [ ] Every returned dict should include an explicit `summary` string (§4.2)
+- [ ] Add a `help` key to list and mutation results naming the natural next call (§4.3)
+- [ ] Report only what the framework actually records — no inferred causes (§4.4)
 
 ### Imports
 
@@ -292,6 +351,8 @@ from haywire.core.farmhand import (
 | Slicing a list by hand instead of `page()` + `truncation_note()` | Silently drops the rest with no signal — `marketplace_list_available` and `studio_get_errors` both shipped this way, reporting a bare `total` a caller had no way to act on |
 | Returning a whole file or document uncapped | One call can swamp the caller's context, and nothing tells it whether it got a preview or everything — cap, report `total_lines`/`total_chars`, offer `full=true` |
 | Putting the recovery hint in `message` prose instead of `help=` | The agent has to regex it out of the sentence; `help=` is a separate line it can act on directly |
+| `asdict()`-ing a domain dataclass into a list row | Ships every field the class happens to hold — `marketplace_list_available` emitted 21 fields/row with 41% of values empty and 8 fields empty on *every* row. Pick fields explicitly; gate the rest behind `detail=true` |
+| A successful list or mutation with no `help` | The error path tells the agent what to do next but the success path leaves it guessing — the asymmetry is the bug |
 | Mutating state without `ctx.broadcast(...)` | Open studio editors silently go stale until their next unrelated refresh |
 | Writing a tool when a static resource would do | Resources (`farmhand://...`) are cheaper for the client and don't need argument handling — reserve tools for actions |
 | Returning a value without checking it serializes | `json.dumps(..., default=str)` turns a mesh/frame into an unbounded object repr instead of failing — check with `is_cattrs_serializable` and emit an explicit omission marker |

@@ -49,22 +49,51 @@ def _progress_cb(ctx: FarmhandContext):
     return on_output
 
 
+_HAYBALE_BASE_FIELDS = ("name", "version", "label", "install_spec")
+"""Default row: enough to decide what to install, nothing more. `asdict()` on a
+Haybale emits 21 fields of which most are empty on a typical catalog — those
+paid full token cost per row for no information. The rest is one `detail=true`
+away."""
+
+_HAYBALE_RUNTIME_ONLY = ("source_label", "source_file", "source_origin")
+"""Routing metadata the cache uses internally (types.py marks it "runtime-only,
+not persisted"). Never useful to an agent, so it is dropped even in detail
+mode."""
+
+
+def _haybale_row(haybale, detail: bool) -> dict:
+    if not detail:
+        return {f: getattr(haybale, f) for f in _HAYBALE_BASE_FIELDS}
+    # Detail: everything meaningful, minus runtime-only routing, minus fields
+    # that are empty for this row (an absent value says nothing worth a token).
+    return {k: v for k, v in asdict(haybale).items() if k not in _HAYBALE_RUNTIME_ONLY and (v or v is False)}
+
+
 @farmhand(
     label="List available",
-    description="Merged AVAILABLE catalog (not-installed libraries) from the marketplace cache.",
+    description="Merged AVAILABLE catalog (not-installed libraries) from the marketplace cache. "
+    "Returns name/version/label/install_spec per row; pass detail=true for the full record "
+    "(description, author, tags, dependencies, source_url, docs_url, ...).",
     registry_id="list_available",
     annotations=ToolAnnotations(read_only_hint=True),
 )
 class MarketplaceListAvailableTool(Farmhand):
-    async def run(self, ctx: FarmhandContext, limit: int = 50, offset: int = 0) -> dict:
-        haybales = [asdict(h) for h in _marketplace_state(ctx).get_project_haybales()]
+    async def run(
+        self, ctx: FarmhandContext, limit: int = 50, offset: int = 0, detail: bool = False
+    ) -> dict:
+        haybales = _marketplace_state(ctx).get_project_haybales()
         total = len(haybales)
-        rows = haybales[offset : offset + limit]
-        return {
-            "summary": f"{total} haybales available.{truncation_note(len(rows), total, offset)}",
-            "haybales": rows,
-            "total": total,
-        }
+        rows = [_haybale_row(h, detail) for h in haybales[offset : offset + limit]]
+        summary = f"{total} haybales available.{truncation_note(len(rows), total, offset)}"
+        result = {"summary": summary, "haybales": rows, "total": total}
+        if rows:
+            result["help"] = (
+                "Run marketplace_get_library_docs library=<name> to read a haybale's docs, "
+                "marketplace_dry_run_install install_spec=<install_spec> to preview an install"
+                + ("" if detail else ", or re-run with detail=true for full records")
+                + "."
+            )
+        return result
 
 
 @farmhand(

@@ -161,7 +161,7 @@ class FarmhandHost:
             ]
 
         @self._server.call_tool()
-        async def call_tool(name: str, arguments: dict) -> list[types.TextContent]:
+        async def call_tool(name: str, arguments: dict) -> tuple[list[types.TextContent], dict[str, Any]]:
             self._track_session()
             cls = self._tools.get(name)
             if cls is None:
@@ -191,7 +191,19 @@ class FarmhandHost:
                 raise Exception(_format_tool_error(exc)) from None
             if isinstance(result, dict) and "summary" not in result:
                 result = {"summary": f"{name}: ok", **result}
-            return [types.TextContent(type="text", text=json.dumps(result, default=str))]
+            # Return BOTH halves (the SDK's CombinationContent form): the text
+            # block keeps text-only clients working, while structuredContent
+            # hands structure-aware ones the object without a string parse.
+            #
+            # We serialize the text ourselves rather than letting the SDK's
+            # dict-only branch do it, because that branch calls plain
+            # json.dumps() — a non-serializable value (a mesh, a frame) would
+            # raise there. `default=str` degrades it to a repr instead, which is
+            # the documented contract tools are written against (canon §168).
+            text = json.dumps(result, default=str)
+            # structuredContent must be JSON-safe too; round-trip through the
+            # text we just built so both halves carry identical values.
+            return [types.TextContent(type="text", text=text)], json.loads(text)
 
         @self._server.list_resources()
         async def list_resources() -> list[types.Resource]:

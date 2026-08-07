@@ -520,7 +520,7 @@ class GraphEditorQueryGraphTool(Farmhand):
         edges = [_edge_row(e, detail) for e in editor.list_edges()]
         total = len(nodes)
         page = nodes[offset : offset + limit]
-        return {
+        result = {
             "summary": (
                 f"{total} nodes, {len(edges)} edges in {binding_id}."
                 f"{truncation_note(len(page), total, offset)}"
@@ -529,6 +529,18 @@ class GraphEditorQueryGraphTool(Farmhand):
             "edges": edges,
             "total": total,
         }
+        if page:
+            result["help"] = (
+                f"Run graph_editor_inspect_node binding_id={binding_id!r} node_id=<id> "
+                f"get=['summary'] to survey one node's bags before pulling them"
+                + ("." if detail else ", or re-run with detail=true for full port/edge health.")
+            )
+        else:
+            result["help"] = (
+                f"Graph is empty — run graph_editor_add_node binding_id={binding_id!r} "
+                f"registry_key=<key> (find keys with studio_list_components kind=node)."
+            )
+        return result
 
 
 _SECTIONS = ("summary", "node_id", "ports", "settings", "props", "state")
@@ -763,7 +775,15 @@ class GraphEditorAddNodeTool(Farmhand):
                 help="Run studio_list_components with kind=node to confirm the registry_key exists.",
             )
         ctx.broadcast(GraphDataMutated())
-        return {"summary": f"Added {wrapper.node_id}.", "node_id": wrapper.node_id}
+        return {
+            "summary": f"Added {wrapper.node_id}.",
+            "node_id": wrapper.node_id,
+            "help": (
+                f"Run graph_editor_inspect_node binding_id={binding_id!r} "
+                f"node_id={wrapper.node_id!r} get=['ports','settings'] to see what to wire or set, "
+                f"then graph_editor_connect."
+            ),
+        }
 
 
 @farmhand(

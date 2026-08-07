@@ -31,6 +31,20 @@ def test_tool_round_trip_structured_json(farmhand_call):
     assert "summary" in payload
 
 
+def test_tool_result_carries_structured_content_alongside_text(farmhand_call):
+    """Both halves of the MCP result are populated: text for text-only clients,
+    structuredContent so a structure-aware one skips the string parse."""
+
+    async def scenario(session, init):
+        return await session.call_tool("testing_echo", {"text": "hi"})
+
+    result = farmhand_call(scenario)
+    assert result.structuredContent is not None
+    assert result.structuredContent["echo"] == "hi"
+    # The two halves must not disagree.
+    assert result.structuredContent == call_tool_json(result)
+
+
 def test_error_contract_stable_code_no_traceback(farmhand_call):
     async def scenario(session, init):
         return await session.call_tool("testing_fail", {})

@@ -56,8 +56,12 @@ def test_list_components_filters_by_library_and_kind():
     result = run_tool(StudioListComponentsTool, library="testing", kind="node")
     assert result["total"] >= 1
     rows = result["components"]
-    assert all(set(row) == {"registry_key", "label", "description"} for row in rows)
+    # Default row is identity only — description is the bulk of a large listing.
+    assert all(set(row) == {"registry_key", "label"} for row in rows)
     assert all(row["registry_key"].startswith("testing:node:") for row in rows)
+
+    detailed = run_tool(StudioListComponentsTool, library="testing", kind="node", detail=True)
+    assert all(set(row) == {"registry_key", "label", "description"} for row in detailed["components"])
 
 
 def test_list_components_search_matches_label_or_description():
@@ -126,15 +130,16 @@ def test_list_components_count_only_groups_by_library_and_kind():
 
 
 def test_list_components_truncated_result_gets_scoping_tip():
-    """An unfiltered/wide call that overflows `limit` gets a tip appended to its
-    summary — the trigger is truncation (total > limit), not "no filters passed",
+    """An unfiltered/wide call that overflows `limit` gets a scoping hint in
+    `help` — the trigger is truncation (total > limit), not "no filters passed",
     so a legitimately small unfiltered query isn't nagged (see the sibling test).
     """
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
     result = run_tool(StudioListComponentsTool, limit=1)
     assert result["total"] > 1
-    assert "Tip:" in result["summary"]
+    assert "narrow this" in result["help"]
+    assert "count_only=true" in result["help"]
 
 
 def test_list_components_untruncated_result_has_no_tip():
@@ -142,7 +147,8 @@ def test_list_components_untruncated_result_has_no_tip():
 
     result = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=10_000)
     assert result["total"] <= 10_000
-    assert "Tip:" not in result["summary"]
+    # A complete result still gets a drill-down hint, but never the scoping nag.
+    assert "narrow this" not in result.get("help", "")
 
 
 def test_list_libraries_excludes_system_library_by_default():

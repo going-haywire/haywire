@@ -66,7 +66,7 @@ class HaystackListGraphsTool(Farmhand):
         )
         total = len(on_disk)
         files = on_disk[offset : offset + limit]
-        return {
+        result = {
             "summary": (
                 f"{len(open_rows)} graphs open, {total} .haywire files on disk."
                 f"{truncation_note(len(files), total, offset)}"
@@ -75,6 +75,16 @@ class HaystackListGraphsTool(Farmhand):
             "files": files,
             "total": total,
         }
+        if open_rows:
+            result["help"] = (
+                "Run graph_editor_query_graph binding_id=<id> to inspect an open graph, or "
+                "haystack_open_graph path=<path> to open one of the files on disk."
+            )
+        elif files:
+            result["help"] = "Run haystack_open_graph path=<path> to open one, or haystack_create_graph."
+        else:
+            result["help"] = "Run haystack_create_graph to start a new graph."
+        return result
 
 
 @farmhand(
@@ -86,7 +96,15 @@ class HaystackListGraphsTool(Farmhand):
 class HaystackCreateGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:
         entry = _state(ctx).create_new()  # broadcasts GraphDataMutated itself
-        return {"summary": f"Created {entry.binding_id}.", **_entry_row(entry)}
+        return {
+            "summary": f"Created {entry.binding_id}.",
+            **_entry_row(entry),
+            "help": (
+                f"Run graph_editor_add_node binding_id={entry.binding_id!r} registry_key=<key> to "
+                f"populate it, then haystack_save_graph binding_id={entry.binding_id!r} path=<path> "
+                f"(it is unsaved until you do)."
+            ),
+        }
 
 
 @farmhand(

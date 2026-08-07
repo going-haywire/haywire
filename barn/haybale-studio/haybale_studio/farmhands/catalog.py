@@ -29,9 +29,9 @@ def _is_synthetic_library(lib_id: str) -> bool:
 # --8<-- [start:list_libraries_tool]
 @farmhand(
     label="List libraries",
-    description="Installed libraries: id, label, version, description, tags, enabled. "
-    "Synthetic libraries (dunder ids like '__system__') are excluded unless "
-    "include_system=true.",
+    description="Installed libraries: id, label, version, enabled. Pass detail=true to add "
+    "description and tags. Synthetic libraries (dunder ids like '__system__') are excluded "
+    "unless include_system=true.",
     registry_id="list_libraries",
     annotations=_READ_ONLY,
 )
@@ -42,6 +42,7 @@ class StudioListLibrariesTool(Farmhand):
         include_system: bool = False,
         limit: int = 50,
         offset: int = 0,
+        detail: bool = False,
     ) -> dict:
         registry = ctx.registry(LibraryRegistry)
         rows = []
@@ -49,22 +50,32 @@ class StudioListLibrariesTool(Farmhand):
             if not include_system and _is_synthetic_library(lib_id):
                 continue
             identity = registry.get_library_identity(lib_id)
-            rows.append(
-                {
-                    "id": lib_id,
-                    "label": identity.label,
-                    "version": identity.version,
-                    "description": identity.description,
-                    "tags": list(identity.tags or []),
-                    "enabled": registry.is_library_enabled(lib_id),
-                }
-            )
+            row = {
+                "id": lib_id,
+                "label": identity.label,
+                "version": identity.version,
+                "enabled": registry.is_library_enabled(lib_id),
+            }
+            if detail:
+                # Prose and tags are the bulk of a row; an agent picking a library
+                # to inspect needs the id first and the blurb only sometimes.
+                row["description"] = identity.description
+                row["tags"] = list(identity.tags or [])
+            rows.append(row)
         rows, total = page(rows, limit, offset)
-        return {
+        result = {
             "summary": f"{total} libraries installed.{truncation_note(len(rows), total, offset)}",
             "libraries": rows,
             "total": total,
         }
+        if rows:
+            result["help"] = (
+                "Run studio_list_components library=<id> to see what a library provides, or "
+                "marketplace_get_library_docs library=<id> for its docs"
+                + ("" if detail else "; re-run with detail=true for descriptions and tags")
+                + "."
+            )
+        return result
 
 
 # --8<-- [end:list_libraries_tool]
@@ -81,6 +92,7 @@ _LIST_COMPONENTS_SCHEMA = {
         "include_hidden": {"type": "boolean", "default": False},
         "include_system": {"type": "boolean", "default": False},
         "count_only": {"type": "boolean", "default": False},
+        "detail": {"type": "boolean", "default": False},
         "limit": {"type": "integer", "default": 100},
         "offset": {"type": "integer", "default": 0},
     },
@@ -111,6 +123,8 @@ def _matches_search(identity: Any, query_lower: str) -> bool:
     "search: substring match against label/description/search_tags (same algorithm as the "
     "node-menu search)\n"
     "count_only: return counts grouped by library/kind instead of rows\n"
+    "detail: add each component's one-line description to the row (registry_key/label only "
+    "by default — descriptions dominate a large listing)\n"
     "include_hidden: include internal components (e.g. reroute/error nodes), excluded by default\n"
     "include_system: include synthetic libraries (dunder ids like '__system__'), excluded by "
     "default",
@@ -129,6 +143,7 @@ class StudioListComponentsTool(Farmhand):
         include_hidden: bool = False,
         include_system: bool = False,
         count_only: bool = False,
+        detail: bool = False,
         limit: int = 100,
         offset: int = 0,
     ) -> dict:
@@ -161,31 +176,52 @@ class StudioListComponentsTool(Farmhand):
             grouped: dict[str, dict[str, int]] = {}
             for (lib_id, seg), n in sorted(counts.items()):
                 grouped.setdefault(lib_id, {})[seg] = n
-            return {
+            result: dict[str, Any] = {
                 "summary": f"{len(matches)} components match, across {len(grouped)} libraries.",
                 "counts": grouped,
                 "total": len(matches),
             }
+            if grouped:
+                # The counts answer "how much is there"; the natural follow-up is
+                # to list one slice. Name the biggest bucket so the hint is
+                # concrete rather than a template the caller has to fill in.
+                top_lib, per_kind = max(grouped.items(), key=lambda kv: sum(kv[1].values()))
+                top_kind = max(per_kind.items(), key=lambda kv: kv[1])[0]
+                result["help"] = (
+                    f"Run studio_list_components library={top_lib!r} kind={top_kind!r} to list "
+                    f"that slice ({per_kind[top_kind]} components)."
+                )
+            return result
 
         rows = [
-            {"registry_key": key, "label": identity.label, "description": identity.description}
+            {"registry_key": key, "label": identity.label}
+            | ({"description": identity.description} if detail else {})
             for key, identity in matches
         ]
         rows, total = page(rows, limit, offset)
         summary = f"{total} components match.{truncation_note(len(rows), total, offset)}"
+        result = {
+            "summary": summary,
+            "components": rows,
+            "total": total,
+        }
+        hints = []
         if total > limit:
             # This call was truncated — the caller is either scanning everything
             # unfiltered or has a wide search; either way a scoping tip pays for
             # itself. Skipped when the page already covers the whole result (a
             # legitimately small unfiltered query shouldn't be nagged).
-            summary += (
-                " Tip: pass kind=/library=/search= to narrow this, or count_only=true to see totals first."
+            hints.append(
+                "Pass kind=/library=/search= to narrow this, or count_only=true to see totals first."
             )
-        return {
-            "summary": summary,
-            "components": rows,
-            "total": total,
-        }
+        if rows:
+            hints.append(
+                "Run studio_describe_component registry_key=<key> for ports, settings, and docs"
+                + ("." if detail else ", or re-run with detail=true for one-line descriptions.")
+            )
+        if hints:
+            result["help"] = " ".join(hints)
+        return result
 
 
 @farmhand(
