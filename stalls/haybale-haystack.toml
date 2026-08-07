@@ -6,8 +6,8 @@
 [[haybales]]
 name = "haybale-haystack"
 label = "Haystack"
-version = "0.0.38"
-requires_haywire = ">=0.0.38"
+version = "0.0.39"
+require = "haywire-core>=0.0.39"
 description = "File-centric multi-graph manager"
 author = "Haywire Team"
 source = "pypi"

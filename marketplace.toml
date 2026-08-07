@@ -28,6 +28,12 @@ doubles = []
 blocked = []
 
 [[stalls]]
+url = "https://going-haywire.github.io/haywire/stalls/haybale-share.toml"
+ignores = []
+doubles = []
+blocked = []
+
+[[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-graph-editor.toml"
 ignores = []
 doubles = []

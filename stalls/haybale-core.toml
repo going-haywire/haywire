@@ -6,8 +6,8 @@
 [[haybales]]
 name = "haybale-core"
 label = "Core"
-version = "0.0.38"
-requires_haywire = ">=0.0.38"
+version = "0.0.39"
+require = "haywire-core>=0.0.39"
 description = "Fundamental components for hayire graphs"
 author = "maybites"
 source = "pypi"
