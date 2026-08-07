@@ -22,6 +22,7 @@ def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
             f"Registry keys look like '{{lib_id}}:{{kind}}:{{name}}' with kind one of "
             f"{sorted(kind_registry_map())}; got '{registry_key}'.",
             ids={"registry_key": registry_key},
+            help="Run studio_list_components with kind=/library=/search= to find a valid registry_key.",
         )
     registry: Any = ctx.registry(kind_registry_map()[parts[1]])
     cls = registry.get(registry_key)
@@ -30,6 +31,7 @@ def resolve_component_class(ctx: FarmhandContext, registry_key: str) -> Any:
             "component_not_found",
             f"No component registered under '{registry_key}'.",
             ids={"registry_key": registry_key},
+            help=f"Run studio_list_components with kind={parts[1]} to see registered components.",
         )
     return cls
 
@@ -71,17 +73,24 @@ def resolve_target_library(ctx: FarmhandContext, library: str | None) -> str:
                 f"'{library}' is not a project-local library (project-local: {locals_ or 'none'}). "
                 f"Farmhand writes source only into project-local libraries.",
                 ids={"library": library},
+                help=(
+                    f"Pass library={locals_[0]!r}."
+                    if locals_
+                    else "Create a project-local library with 'haywire init' first."
+                ),
             )
         return library
     if not locals_:
         raise FarmhandError(
             "no_project_library",
             "No project-local library exists in this workspace — create one with 'haywire init'.",
+            help="Run 'haywire init' to create a project-local library, then retry.",
         )
     if len(locals_) > 1:
         raise FarmhandError(
             "ambiguous_project_library",
             f"Several project-local libraries exist; pass library= explicitly: {locals_}.",
+            help=f"Retry with library={locals_[0]!r} (or another of {locals_}).",
         )
     return locals_[0]
 

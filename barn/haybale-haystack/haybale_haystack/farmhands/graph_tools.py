@@ -26,7 +26,10 @@ def _entry(ctx: FarmhandContext, binding_id: str):
     entry = _state(ctx).get_by_id(binding_id)
     if entry is None:
         raise FarmhandError(
-            "graph_not_found", f"No open graph '{binding_id}'.", ids={"binding_id": binding_id}
+            "graph_not_found",
+            f"No open graph '{binding_id}'.",
+            ids={"binding_id": binding_id},
+            help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
         )
     return entry
 
@@ -96,7 +99,12 @@ class HaystackOpenGraphTool(Farmhand):
     async def run(self, ctx: FarmhandContext, path: str) -> dict:
         target = (ctx.workspace_root() / path).resolve()
         if not target.exists():
-            raise FarmhandError("file_not_found", f"No file at {target}.", ids={"path": path})
+            raise FarmhandError(
+                "file_not_found",
+                f"No file at {target}.",
+                ids={"path": path},
+                help="Run haystack_list_graphs to see graph files in the haystack.",
+            )
         entry = _state(ctx).open_graph(target)
         return {"summary": f"Opened {entry.binding_id}.", **_entry_row(entry)}
 

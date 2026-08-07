@@ -62,7 +62,10 @@ def _format_tool_error(exc: Exception) -> str:
     if isinstance(exc, FarmhandError):
         ids = ", ".join(f"{k}={v}" for k, v in exc.ids.items())
         suffix = f" ({ids})" if ids else ""
-        return f"[{exc.code}] {exc.message}{suffix}"
+        # The recovery hint goes on its own line so an agent reading the error
+        # gets the fixing command without parsing the message prose.
+        hint = f"\nhelp: {exc.help}" if exc.help else ""
+        return f"[{exc.code}] {exc.message}{suffix}{hint}"
     # HaywireException maps directly (spec §5 conventions): category is the stable code.
     category = getattr(exc, "category", None)
     message = getattr(exc, "message", None)
@@ -164,7 +167,13 @@ class FarmhandHost:
             if cls is None:
                 raise Exception(
                     _format_tool_error(
-                        FarmhandError("unknown_tool", f"No tool named '{name}'", ids={"tool": name})
+                        FarmhandError(
+                            "unknown_tool",
+                            f"No tool named '{name}'",
+                            ids={"tool": name},
+                            help="Re-list the server's tools; the tool set changes as libraries are "
+                            "enabled, disabled, or hot-reloaded.",
+                        )
                     )
                 )
             session = self._server.request_context.session

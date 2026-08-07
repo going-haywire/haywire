@@ -36,7 +36,10 @@ def _editor(ctx: FarmhandContext, binding_id: str):
     container = ctx.state(GraphAppState).get(binding_id)
     if container is None:
         raise FarmhandError(
-            "graph_not_found", f"No open graph '{binding_id}'.", ids={"binding_id": binding_id}
+            "graph_not_found",
+            f"No open graph '{binding_id}'.",
+            ids={"binding_id": binding_id},
+            help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
         )
     return container.editor
 
@@ -44,7 +47,12 @@ def _editor(ctx: FarmhandContext, binding_id: str):
 def _node(editor, node_id):
     wrapper = editor.get_node_wrapper(node_id)
     if wrapper is None:
-        raise FarmhandError("node_not_found", f"No node '{node_id}'.", ids={"node_id": node_id})
+        raise FarmhandError(
+            "node_not_found",
+            f"No node '{node_id}'.",
+            ids={"node_id": node_id},
+            help="Run graph_editor_query_graph to list the node ids in this graph.",
+        )
     return wrapper
 
 
@@ -752,6 +760,7 @@ class GraphEditorAddNodeTool(Farmhand):
                 "add_node_failed",
                 f"Could not add node '{registry_key}'.",
                 ids={"registry_key": registry_key},
+                help="Run studio_list_components with kind=node to confirm the registry_key exists.",
             )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Added {wrapper.node_id}.", "node_id": wrapper.node_id}
@@ -788,6 +797,10 @@ class GraphEditorConnectTool(Farmhand):
                 "connect_failed",
                 f"Could not connect {source_node_id}:{outlet} -> {sink_node_id}:{inlet} "
                 f"(check the pin ids and type compatibility).",
+                help=(
+                    f"Run graph_editor_inspect_node node_id={source_node_id!r} get=['ports'] "
+                    f"(and for {sink_node_id!r}) to see valid pin ids and their types."
+                ),
                 ids={
                     "source_node_id": source_node_id,
                     "outlet": outlet,
@@ -885,6 +898,10 @@ class GraphEditorSetPropertyTool(Farmhand):
                 "set_property_failed",
                 f"Could not set '{name}' on node '{node_id}' (unknown node or property).",
                 ids={"node_id": node_id, "name": name},
+                help=(
+                    f"Run graph_editor_inspect_node node_id={node_id!r} get=['ports','settings'] "
+                    f"to see the writable property names."
+                ),
             )
         # Post-condition check: is the field now what was asked for? Writing a
         # value the field already held is a legitimate no-op and still passes,
@@ -895,9 +912,12 @@ class GraphEditorSetPropertyTool(Farmhand):
                 "set_rejected",
                 f"Write to '{name}' on '{node_id}' did not take: requested {value!r}, "
                 f"value is still {actual!r}. The field's validator rejected it (the framework "
-                f"drops such writes silently) — call graph_editor_inspect_node with "
-                f"get=['settings'] to see its type and constraints.",
+                f"drops such writes silently).",
                 ids={"node_id": node_id, "name": name},
+                help=(
+                    f"Run graph_editor_inspect_node node_id={node_id!r} get=['settings'] "
+                    f"to see the field's type and constraints."
+                ),
             )
         ctx.broadcast(GraphDataMutated())
         return {"summary": f"Set '{name}' on {node_id} to {actual!r}."}

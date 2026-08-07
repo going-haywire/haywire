@@ -3,7 +3,14 @@
 from __future__ import annotations
 
 from haywire.core.errors.ledger import get_error_ledger
-from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, ToolAnnotations, farmhand
+from haywire.core.farmhand import (
+    Farmhand,
+    FarmhandContext,
+    FarmhandError,
+    ToolAnnotations,
+    farmhand,
+    truncation_note,
+)
 from haywire.core.session.signals import ErrorLedgerChanged
 
 
@@ -32,8 +39,9 @@ class StudioGetErrorsTool(Farmhand):
             limit=limit,
             offset=offset,
         )
+        note = truncation_note(len(result.entries), result.total, offset)
         return {
-            "summary": f"{result.total} ledger entries match (cursor {result.cursor}).",
+            "summary": f"{result.total} ledger entries match (cursor {result.cursor}).{note}",
             # The ledger holds live HaywireException objects; serialize each to a
             # JSON-friendly dict at this MCP boundary.
             "errors": [e.to_dict() for e in result.entries],
@@ -66,10 +74,17 @@ class StudioDismissErrorsTool(Farmhand):
         # (or neither) is ambiguous — reject rather than guess.
         if all and seq is not None:
             raise FarmhandError(
-                "invalid_args", "Pass either seq=<n> or all=true, not both.", {"seq": str(seq)}
+                "invalid_args",
+                "Pass either seq=<n> or all=true, not both.",
+                {"seq": str(seq)},
+                help=f"Retry with seq={seq} alone, or all=true alone.",
             )
         if not all and seq is None:
-            raise FarmhandError("invalid_args", "Pass seq=<n> to dismiss one entry, or all=true.")
+            raise FarmhandError(
+                "invalid_args",
+                "Pass seq=<n> to dismiss one entry, or all=true.",
+                help="Run studio_get_errors to find the seq of the entry to dismiss.",
+            )
 
         ledger = get_error_ledger()
         if all:

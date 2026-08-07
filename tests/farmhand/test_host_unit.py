@@ -53,6 +53,26 @@ def test_format_tool_error_stable_code_no_traceback():
     assert "Traceback" not in text
 
 
+def test_format_tool_error_appends_help_line_when_present():
+    err = FarmhandError(
+        "graph_not_found",
+        "No open graph 'x'",
+        ids={"binding_id": "x"},
+        help="Run haystack_list_graphs to see open graphs.",
+    )
+    text = _format_tool_error(err)
+    # The [code] prefix is unchanged, so clients matching on it keep working.
+    assert "[graph_not_found]" in text
+    # The hint lands on its own line, greppable without parsing the prose.
+    assert "\nhelp: Run haystack_list_graphs to see open graphs." in text
+
+
+def test_format_tool_error_omits_help_line_when_absent():
+    err = FarmhandError("save_failed", "Saving failed")
+    text = _format_tool_error(err)
+    assert "help:" not in text
+
+
 def test_format_tool_error_wraps_unexpected_exceptions():
     text = _format_tool_error(ValueError("boom"))
     assert "[internal]" in text

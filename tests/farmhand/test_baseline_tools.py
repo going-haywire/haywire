@@ -184,6 +184,39 @@ def test_read_component_source_is_line_numbered():
     assert result["path"].endswith(".py")
 
 
+def _a_component_key():
+    from haybale_studio.farmhands.catalog import StudioListComponentsTool
+
+    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    return listing["components"][0]["registry_key"]
+
+
+def test_read_component_source_truncates_and_offers_the_full_escape_hatch():
+    from haybale_studio.farmhands.authoring import StudioReadComponentSourceTool
+
+    key = _a_component_key()
+    # limit=2 forces truncation on any real component file.
+    page = run_tool(StudioReadComponentSourceTool, registry_key=key, limit=2)
+    assert len(page["source"].splitlines()) == 2
+    # The caller learns the true size and how to get the rest.
+    assert page["total_lines"] > 2
+    assert "showing 1-2 of" in page["summary"]
+    assert "full=true" in page["help"]
+
+    full = run_tool(StudioReadComponentSourceTool, registry_key=key, full=True)
+    assert len(full["source"].splitlines()) == full["total_lines"]
+    assert "help" not in full  # nothing hidden -> no hint
+
+
+def test_read_component_source_offset_window_keeps_absolute_line_numbers():
+    from haybale_studio.farmhands.authoring import StudioReadComponentSourceTool
+
+    key = _a_component_key()
+    window = run_tool(StudioReadComponentSourceTool, registry_key=key, offset=2, limit=2)
+    # Line 3 of the file must still be labelled 3, so the window stays quotable.
+    assert window["source"].splitlines()[0].startswith("3\t")
+
+
 # The write gate is `project_writable_libraries` / `resolve_target_library`. Test the
 # gate DECISION directly rather than driving the full write tool: a real write lands
 # in the target library's actual on-disk folder (library_folder resolves to the real

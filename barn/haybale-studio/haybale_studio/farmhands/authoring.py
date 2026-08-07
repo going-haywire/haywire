@@ -20,6 +20,7 @@ from haywire.core.farmhand import (
     FarmhandError,
     ToolAnnotations,
     farmhand,
+    truncation_note,
 )
 
 from ._helpers import (
@@ -83,7 +84,15 @@ class StudioScaffoldComponentTool(Farmhand):
         folder.mkdir(parents=True, exist_ok=True)
         path = folder / f"{name}.py"
         if path.exists():
-            raise FarmhandError("file_exists", f"{path} already exists.", ids={"path": str(path)})
+            raise FarmhandError(
+                "file_exists",
+                f"{path} already exists.",
+                ids={"path": str(path)},
+                help=(
+                    f"Pick another name=, or edit the existing file with "
+                    f"studio_write_component_source registry_key={lib_id}:{kind}:{name}."
+                ),
+            )
         path.write_text(_template(kind, name), encoding="utf-8")
         expected_key = f"{lib_id}:{kind}:{name}"
         return {
@@ -94,24 +103,55 @@ class StudioScaffoldComponentTool(Farmhand):
         }
 
 
+_SOURCE_LINE_CAP = 400
+"""Lines returned by default. Most component files fit well under this; the cap
+exists so one call on a large module cannot blow the caller's context. Line
+numbering stays absolute, so a windowed read can be cited and edited directly."""
+
+
 @farmhand(
     label="Read component source",
-    description="Line-numbered source of any installed component.",
+    description="Line-numbered source of any installed component. Returns the first "
+    f"{_SOURCE_LINE_CAP} lines by default; pass offset= to window further in, or full=true "
+    "for the entire file. Truncated results say so in the summary and report total_lines.",
     registry_id="read_component_source",
     annotations=ToolAnnotations(read_only_hint=True),
 )
 class StudioReadComponentSourceTool(Farmhand):
-    async def run(self, ctx: FarmhandContext, registry_key: str) -> dict:
+    async def run(
+        self,
+        ctx: FarmhandContext,
+        registry_key: str,
+        offset: int = 0,
+        limit: int = _SOURCE_LINE_CAP,
+        full: bool = False,
+    ) -> dict:
         cls = resolve_component_class(ctx, registry_key)
         path = Path(inspect.getfile(cls))
         lines = path.read_text(encoding="utf-8").splitlines()
-        numbered = "\n".join(f"{i + 1}\t{line}" for i, line in enumerate(lines))
-        return {
-            "summary": f"{registry_key}: {len(lines)} lines at {path}.",
+        total = len(lines)
+
+        window = lines[offset:] if full else lines[offset : offset + limit]
+        # Absolute line numbers: a windowed read stays quotable against the file.
+        numbered = "\n".join(f"{offset + i + 1}\t{line}" for i, line in enumerate(window))
+
+        summary = f"{registry_key}: {total} lines at {path}."
+        result: dict = {
+            "summary": summary,
             "registry_key": registry_key,
             "path": str(path),
+            "total_lines": total,
             "source": numbered,
         }
+        note = truncation_note(len(window), total, offset)
+        if note:
+            end = offset + len(window)
+            result["summary"] = f"{summary}{note}"
+            result["help"] = (
+                f"Run studio_read_component_source registry_key={registry_key!r} offset={end} "
+                f"for the next lines, or full=true for the whole file."
+            )
+        return result
 
 
 @farmhand(
@@ -140,6 +180,10 @@ class StudioWriteComponentSourceTool(Farmhand):
                     "not_project_library",
                     f"'{lib_id}' is not project-local; Farmhand only writes project-local sources.",
                     ids={"registry_key": registry_key},
+                    help=(
+                        "Run studio_list_libraries to see which libraries are writable, "
+                        "or copy this component into a project-local library first."
+                    ),
                 )
         else:
             if kind not in KIND_FOLDERS or not filename:

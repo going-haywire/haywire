@@ -12,6 +12,7 @@ from haywire.core.farmhand import (
     FarmhandError,
     ToolAnnotations,
     farmhand,
+    truncation_note,
 )
 from haywire.core.library.registry import LibraryRegistry
 
@@ -30,7 +31,11 @@ def _library_manager(ctx: FarmhandContext):
     state = ctx.state(LibraryManagerState)
     manager = state.manager
     if manager is None:
-        raise FarmhandError("marketplace_unavailable", "LibraryManager is not initialized on this studio.")
+        raise FarmhandError(
+            "marketplace_unavailable",
+            "LibraryManager is not initialized on this studio.",
+            help="Run studio_status to check the studio's state; the marketplace may still be starting.",
+        )
     return manager
 
 
@@ -54,9 +59,10 @@ class MarketplaceListAvailableTool(Farmhand):
     async def run(self, ctx: FarmhandContext, limit: int = 50, offset: int = 0) -> dict:
         haybales = [asdict(h) for h in _marketplace_state(ctx).get_project_haybales()]
         total = len(haybales)
+        rows = haybales[offset : offset + limit]
         return {
-            "summary": f"{total} haybales available.",
-            "haybales": haybales[offset : offset + limit],
+            "summary": f"{total} haybales available.{truncation_note(len(rows), total, offset)}",
+            "haybales": rows,
             "total": total,
         }
 
@@ -77,16 +83,39 @@ class MarketplaceRefreshTool(Farmhand):
         }
 
 
+_DOC_CHAR_CAP = 12000
+"""Characters of doc text returned by default. OVERVIEW/QUICKREF files are
+usually well under this; a long README would otherwise dominate the caller's
+context with no signal that it did."""
+
+
+def _doc_result(summary: str, text: str, full: bool, **extra: object) -> dict:
+    """Shared shape for every docs return: truncate unless full=, and when
+    truncated say by how much and how to get the rest."""
+    total = len(text)
+    if full or total <= _DOC_CHAR_CAP:
+        return {"summary": summary, "text": text, "total_chars": total, **extra}
+    return {
+        "summary": f"{summary} (showing first {_DOC_CHAR_CAP} of {total} chars)",
+        "text": text[:_DOC_CHAR_CAP],
+        "total_chars": total,
+        "truncated": True,
+        "help": "Re-run with full=true for the complete document.",
+        **extra,
+    }
+
+
 @farmhand(
     label="Get library docs",
     description="Docs for an installed library (OVERVIEW/QUICKREF/README from its folder) or an "
     "available one (network fetch of its docs_url). Pass component=<registry_key> to fetch one "
-    "component's deep doc (installed: wheel; available: docs_url).",
+    "component's deep doc (installed: wheel; available: docs_url). Long documents are truncated "
+    f"at {_DOC_CHAR_CAP} chars with total_chars reported; pass full=true for everything.",
     registry_id="get_library_docs",
     annotations=ToolAnnotations(read_only_hint=True, open_world_hint=True),
 )
 class MarketplaceGetLibraryDocsTool(Farmhand):
-    async def run(self, ctx: FarmhandContext, library: str, component: str = "") -> dict:
+    async def run(self, ctx: FarmhandContext, library: str, component: str = "", full: bool = False) -> dict:
         from haywire.core.library.kinds import doc_filename
 
         registry = ctx.registry(LibraryRegistry)
@@ -98,16 +127,21 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
                 folder = Path(registry.get_library_identity(library).folder_path)
                 path = folder / rel
                 if path.exists():
-                    return {
-                        "summary": f"{component}: component doc ({path.stat().st_size} bytes).",
-                        "source": "installed",
-                        "registry_key": component,
-                        "text": path.read_text(encoding="utf-8"),
-                    }
+                    return _doc_result(
+                        f"{component}: component doc ({path.stat().st_size} bytes).",
+                        path.read_text(encoding="utf-8"),
+                        full,
+                        source="installed",
+                        registry_key=component,
+                    )
                 raise FarmhandError(
                     "docs_not_found",
                     f"No generated doc for '{component}' in installed '{library}'.",
                     ids={"library": library, "component": component},
+                    help=(
+                        f"Run studio_describe_component registry_key={component!r} for its "
+                        f"identity and docstring, or omit component= for the library's docs."
+                    ),
                 )
             from haywire.core.marketstall.cache import fetch_doc
 
@@ -116,12 +150,13 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
                     url = pkg.docs_url.rstrip("/") + "/" + rel
                     text = await asyncio.to_thread(fetch_doc, url, pkg.name)
                     if text:
-                        return {
-                            "summary": f"{component}: remote component doc.",
-                            "source": "available",
-                            "registry_key": component,
-                            "text": text,
-                        }
+                        return _doc_result(
+                            f"{component}: remote component doc.",
+                            text,
+                            full,
+                            source="available",
+                            registry_key=component,
+                        )
             raise FarmhandError(
                 "docs_not_found",
                 f"No remote doc for '{component}' under '{library}'.",
@@ -133,16 +168,21 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
             for name in _DOC_FILES:
                 path = folder / name
                 if path.exists():
-                    return {
-                        "summary": f"{library}: {name} ({path.stat().st_size} bytes).",
-                        "source": "installed",
-                        "file": name,
-                        "text": path.read_text(encoding="utf-8"),
-                    }
+                    return _doc_result(
+                        f"{library}: {name} ({path.stat().st_size} bytes).",
+                        path.read_text(encoding="utf-8"),
+                        full,
+                        source="installed",
+                        file=name,
+                    )
             raise FarmhandError(
                 "docs_not_found",
                 f"'{library}' ships no OVERVIEW/QUICKREF/README.",
                 ids={"library": library},
+                help=(
+                    f"Run studio_list_components library={library!r} to survey what it provides, "
+                    f"then studio_describe_component for a specific one."
+                ),
             )
         for pkg in _marketplace_state(ctx).get_project_haybales():
             if pkg.name == library:
@@ -153,9 +193,13 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
                         f"No remote docs found for '{library}'.",
                         ids={"library": library},
                     )
-                return {"summary": f"{library}: remote docs.", "source": "available", "text": text}
+                return _doc_result(f"{library}: remote docs.", text, full, source="available")
         raise FarmhandError(
             "library_not_found",
             f"'{library}' is neither installed nor in the catalog.",
             ids={"library": library},
+            help=(
+                "Run studio_list_libraries for installed libraries, marketplace_list_available "
+                "for the catalog, or marketplace_refresh if the catalog looks stale."
+            ),
         )

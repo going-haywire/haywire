@@ -113,11 +113,16 @@ class MyFilterTool(Farmhand):
 | `ctx.fence(editor)` | Open the undo fence for this tool call, so the whole call collapses into one undo gesture in the studio UI. Use for any tool that mutates a graph through an editor. |
 | `ctx.workspace_root()` | The studio's workspace root `Path`. |
 
-**The `FarmhandError` contract.** Raise `FarmhandError(code, message, ids=None)` for any *expected* failure — bad arguments, not-found lookups, gate rejections. The host renders it as a structured MCP tool error (`[code] message (id=..., ...)`), never a raw stack trace. Reserve uncaught Python exceptions for genuine bugs; an agent can branch on `code` but not on exception-message text, so pick a stable, greppable code per failure class and reuse it everywhere that failure can occur.
+**The `FarmhandError` contract.** Raise `FarmhandError(code, message, ids=None, help=None)` for any *expected* failure — bad arguments, not-found lookups, gate rejections. The host renders it as a structured MCP tool error (`[code] message (id=..., ...)`, plus a `help: ...` line when a hint is supplied), never a raw stack trace. Reserve uncaught Python exceptions for genuine bugs; an agent can branch on `code` but not on exception-message text, so pick a stable, greppable code per failure class and reuse it everywhere that failure can occur.
+
+**Supply `help=` whenever the fix is knowable at the throw site.** It is the one command that resolves the failure. An agent that gets a hint self-corrects in one turn; without one it guesses at the tool surface. Name a concrete tool call and carry forward the ids you already hold — a not-found lookup almost always knows which list tool would have shown the valid values. Put the hint in `help=`, not trailing prose in `message`, so it stays machine-separable. Omit it when there is no honest next step: a genuine operation failure (`save_failed`) should not invent one.
 
 ```python
 raise FarmhandError(
-    "graph_not_found", f"No open graph '{binding_id}'.", ids={"binding_id": binding_id}
+    "graph_not_found",
+    f"No open graph '{binding_id}'.",
+    ids={"binding_id": binding_id},
+    help="Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.",
 )
 ```
 
@@ -136,6 +141,12 @@ return {
 ```
 
 `truncation_note` returns `''` when the page already covers the whole collection, and a suffix like `' (showing 1-50 of 200 — pass limit/offset for more)'` otherwise — append it to `summary` so a client that only reads the summary string still learns the result was truncated.
+
+**Large single payloads truncate too.** Pagination covers lists; a tool returning one *big* value (a source file, a README) needs the same guarantee, because an uncapped read silently dominates the caller's context. Cap by default, report the full size, and offer the escape hatch:
+
+- Return the natural unit — lines for source (`studio_read_component_source`, `total_lines`, absolute line numbers preserved so a windowed read stays quotable), characters for prose (`marketplace_get_library_docs`, `total_chars`).
+- Say it was truncated in `summary`, and add a `help` key naming the exact follow-up call (`offset=<end>` for the next window, or `full=true`).
+- Accept `full=true` to bypass the cap. Never omit a large field entirely — a preview plus the total beats forcing a second blind call.
 
 **Every result should carry a `summary` string.** The host injects a fallback (`f"{name}: ok"`) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.
 
@@ -242,7 +253,9 @@ For the MCP wire protocol, session tracking, and how resources (`farmhand://docs
 - [ ] Write `description=` to teach valid arguments — it's the only text the agent sees before calling
 - [ ] Set `input_schema_override` if you need an `enum` or other schema constraint the derived schema can't express
 - [ ] Raise `FarmhandError(code, message, ids=)` for expected failures, not bare exceptions
+- [ ] Pass `help=` on any failure whose fix is knowable at the throw site
 - [ ] For list results: `limit`/`offset` params + `page()` + `truncation_note()` in `summary`
+- [ ] For one large payload (source, docs): cap by default, report the total, accept `full=true`
 - [ ] Every returned dict should include an explicit `summary` string
 - [ ] For mutations open editors should reflect: `ctx.broadcast(signal)` after the mutation
 - [ ] Place file in `farmhands/` folder; register via `FarmhandRegistry` in `register_components`
@@ -276,6 +289,9 @@ from haywire.core.farmhand import (
 | Assuming type hints alone can express an `enum` | Derived schemas only map primitive types; use `input_schema_override` |
 | Raising a bare `ValueError`/`KeyError` for an expected failure | Agent sees an unstructured error instead of a stable `code` it can branch on |
 | Returning a list without `limit`/`offset` | No way for a caller to scope a large result — the exact problem `studio_list_components` had before it grew filters |
+| Slicing a list by hand instead of `page()` + `truncation_note()` | Silently drops the rest with no signal — `marketplace_list_available` and `studio_get_errors` both shipped this way, reporting a bare `total` a caller had no way to act on |
+| Returning a whole file or document uncapped | One call can swamp the caller's context, and nothing tells it whether it got a preview or everything — cap, report `total_lines`/`total_chars`, offer `full=true` |
+| Putting the recovery hint in `message` prose instead of `help=` | The agent has to regex it out of the sentence; `help=` is a separate line it can act on directly |
 | Mutating state without `ctx.broadcast(...)` | Open studio editors silently go stale until their next unrelated refresh |
 | Writing a tool when a static resource would do | Resources (`farmhand://...`) are cheaper for the client and don't need argument handling — reserve tools for actions |
 | Returning a value without checking it serializes | `json.dumps(..., default=str)` turns a mesh/frame into an unbounded object repr instead of failing — check with `is_cattrs_serializable` and emit an explicit omission marker |

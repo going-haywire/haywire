@@ -41,3 +41,33 @@ def test_get_library_docs_unknown_library_is_stable_error(farmhand_call):
     result = _call(farmhand_call, "marketplace_get_library_docs", {"library": "does_not_exist"})
     assert result.isError is True
     assert "[library_not_found]" in result.content[0].text
+    # The error carries the command that resolves it, not just the failure.
+    assert "help:" in result.content[0].text
+
+
+@pytest.mark.unit
+def test_doc_result_truncates_long_text_and_reports_the_real_size():
+    from haybale_marketplace.farmhands.catalog_tools import _DOC_CHAR_CAP, _doc_result
+
+    long_text = "x" * (_DOC_CHAR_CAP + 500)
+    payload = _doc_result("lib: README.", long_text, full=False)
+    assert len(payload["text"]) == _DOC_CHAR_CAP
+    assert payload["total_chars"] == _DOC_CHAR_CAP + 500
+    assert payload["truncated"] is True
+    assert "full=true" in payload["help"]
+
+    whole = _doc_result("lib: README.", long_text, full=True)
+    assert whole["text"] == long_text
+    assert "truncated" not in whole
+
+
+@pytest.mark.unit
+def test_doc_result_leaves_short_text_untouched():
+    from haybale_marketplace.farmhands.catalog_tools import _doc_result
+
+    payload = _doc_result("lib: README.", "short", full=False)
+    assert payload["text"] == "short"
+    assert payload["total_chars"] == 5
+    # Nothing hidden -> no truncation markers to mislead the caller.
+    assert "truncated" not in payload
+    assert "help" not in payload
