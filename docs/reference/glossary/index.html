@@ -1133,13 +1133,6 @@
   </span>
   
   
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1167,13 +1160,6 @@
     
   </span>
   
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
   
 
       </a>
@@ -1232,6 +1218,8 @@
   
     
     
+      
+        
       
         
       
@@ -1410,6 +1398,41 @@
     
   
     Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/publish-to-pypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing to PyPI
   
 
     
@@ -3517,7 +3540,7 @@
 <tr>
 <td>3</td>
 <td><strong><code>Haybale</code></strong> (dataclass)</td>
-<td>The runtime dataclass representing one entry from a <code>[[haybales]]</code> section. Renamed from <code>MarketplaceEntry</code>. Fields: <code>name</code>, <code>version</code>, <code>requires_haywire</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>source</code>, <code>install_spec</code>, <code>tags</code>, <code>os</code>, <code>dependencies</code>, <code>source_url</code>, <code>docs_url</code>, plus cache-only fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>).</td>
+<td>The runtime dataclass representing one entry from a <code>[[haybales]]</code> section. Renamed from <code>MarketplaceEntry</code>. Fields: <code>name</code>, <code>version</code>, <code>require</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>source</code>, <code>install_spec</code>, <code>tags</code>, <code>os</code>, <code>dependencies</code>, <code>source_url</code>, <code>docs_url</code>, plus cache-only fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>).</td>
 </tr>
 </tbody>
 </table>
@@ -4006,6 +4029,26 @@
 <td>An advisory record on <code>NodeWrapperState.warnings</code> (distinct from errors; does not affect <code>is_valid()</code>). First writer is the Compatibility Warning feature (<code>kind="compatibility"</code>).</td>
 <td>node error (errors invalidate; warnings advise)</td>
 </tr>
+<tr>
+<td><strong>InstallType</strong></td>
+<td>The <strong>mechanism</strong> axis of how a library reached this Python environment: <code>REGULAR</code> (site-packages), <code>EDITABLE</code> (pip <code>-e</code>, source stays on disk and hot-reloads), or <code>FOLDER</code> (never pip-installed — discovered by scanning a folder path; today only <code>builtin</code>). Detected purely from a filesystem path, with no workspace context — <code>LibraryDiscovery._detect_install_type()</code> classifies REGULAR vs EDITABLE by whether the path sits inside site-packages; FOLDER libraries are discovered through a separate folder-scan path entirely. Distinct from <strong>Library Origin</strong>, the orthogonal "where did the code come from" axis. <em>(new)</em></td>
+<td>install type (as a stand-in for provenance — mechanism and origin are different questions)</td>
+</tr>
+<tr>
+<td><strong>Library Origin</strong></td>
+<td>The <strong>origin</strong> axis of a library, orthogonal to <code>InstallType</code>: <code>framework</code> (this library IS the framework — currently only <code>builtin</code>, implied directly by <code>InstallType.FOLDER</code>), <code>project_local</code> (lives under this workspace's own <code>barn/</code>, per <code>is_project_library()</code>), <code>pypi</code> / <code>git</code> (came from a marketplace install with a catalog <code>Haybale.source</code> of that value), or <code>unknown</code> (an <code>EDITABLE</code> install with no catalog entry at all, e.g. a bare <code>pip install -e ../some-other-repo</code> outside the marketplace flow — origin is honestly unresolvable here, never guessed). Computed at the marketplace/studio layer (<code>haybale_marketplace/library_origin.py</code>), not in <code>haywire-core</code>, because only that layer knows the workspace root; <code>LibraryRegistry</code>/<code>LibraryDiscovery</code> stay workspace-agnostic and never compute it. <code>origin.is_protected</code> is <code>True</code> for <code>framework</code> and <code>project_local</code> — the single predicate the Library Browser's Required badge, the Uninstall-button gate, and the Disable button's block message all consult, replacing what used to be separately re-derived per call site. <em>(new)</em></td>
+<td>origin (unqualified — always say Library Origin), source (collides with <code>Haybale.source</code>, the narrower catalog-only field this reads as one input)</td>
+</tr>
+<tr>
+<td><strong>is_project_library()</strong></td>
+<td>The low-level path-check primitive (<code>is_relative_to(workspace_root / "barn")</code>) that both <strong>Library Origin</strong> computation and unrelated dialog logic (<code>read_os_from_pyproject</code>'s heap-vs-installed-wheel branching) depend on. Lives in <code>haybale_marketplace/library_origin.py</code>. Answers one narrow question — "is this under this workspace's <code>barn/</code>" — and is not itself the origin predicate; <code>Library Origin</code> calls it as one input alongside <code>InstallType</code> and <code>Haybale.source</code>. <em>(new)</em></td>
+<td>project-local (as if it were the whole origin answer — it's one input to it)</td>
+</tr>
+<tr>
+<td><strong>project_writable_libraries()</strong></td>
+<td>Farmhand's write-target resolver (<code>haybale_studio/farmhands/_helpers.py</code>): every <code>EDITABLE</code>-mechanism install, regardless of whether its path sits under this workspace's <code>barn/</code> at all. Deliberately broader than <strong>Library Origin</strong>'s <code>project_local</code> — Farmhand's real need is "can I write this source," which any <code>-e</code> install satisfies, not "is this literally this workspace's own library." Renamed from <code>project_local_libraries()</code>, which implied the narrower, origin-axis meaning it never actually had.</td>
+<td>project_local_libraries (old name — collided in meaning with Library Origin's <code>project_local</code>, though the two diverge for a symlinked-in editable install of someone else's library)</td>
+</tr>
 </tbody>
 </table>
 <hr />
@@ -4136,7 +4179,7 @@
 </tr>
 <tr>
 <td><strong>Haybale (dataclass)</strong></td>
-<td>The canonical dataclass for one entry available to install. Fields: <code>name</code>, <code>version</code>, <code>requires_haywire</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>source</code> (<code>"pypi"</code> / <code>"git"</code> / <code>"local"</code>), <code>install_spec</code>, <code>tags</code>, <code>os</code>, <code>dependencies</code>, <code>source_url</code>, <code>docs_url</code>, plus cache-shape fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>) and source-tagging fields. Code: <code>haywire.core.marketstall.types</code>. Renamed from <code>MarketplaceEntry</code>.</td>
+<td>The canonical dataclass for one entry available to install. Fields: <code>name</code>, <code>version</code>, <code>require</code>, <code>label</code>, <code>description</code>, <code>author</code>, <code>source</code> (<code>"pypi"</code> / <code>"git"</code> / <code>"local"</code>), <code>install_spec</code>, <code>tags</code>, <code>os</code>, <code>dependencies</code>, <code>source_url</code>, <code>docs_url</code>, plus cache-shape fields (<code>via</code>, <code>last_seen</code>, <code>stale</code>) and source-tagging fields. Code: <code>haywire.core.marketstall.types</code>. Renamed from <code>MarketplaceEntry</code>.</td>
 <td><code>MarketplaceEntry</code> (legacy name)</td>
 </tr>
 <tr>
@@ -4145,9 +4188,9 @@
 <td><code>min_version</code> (legacy name)</td>
 </tr>
 <tr>
-<td><strong><code>requires_haywire</code></strong> (Haybale field)</td>
-<td>A full PEP 440 specifier naming the framework versions a library needs (<code>&gt;=0.0.31</code>, <code>~=0.0.31</code>, <code>&gt;=0.0.31,&lt;1.0.0</code>) — the author picks the operator, so never a bare version. Authored once per project at share time and written to two disjoint carriers: the wheel's <code>Requires-Dist</code> floor (the only guard on the bare <code>uv add</code> path) and the marketstall entry (the marketplace's pre-emptive gate). Optional; empty means undeclared.</td>
-<td>framework requirement</td>
+<td><strong>Framework requirement</strong></td>
+<td>The PEP 440 specifier naming the framework versions a library needs. Authored ONCE, in the <code>haywire-core</code> entry of the library's own pyproject — the only guard on the bare <code>uv add</code> path. The marketstall's <strong><code>require</code></strong> field is a <em>projection</em> of it, derived at write time so the two cannot disagree. Keep it as low as the library actually allows: a floor restricts consumers, not the author.</td>
+<td>requires_haywire (the old second carrier)</td>
 </tr>
 <tr>
 <td><strong>Subscription (dataclass)</strong></td>
@@ -4225,14 +4268,14 @@
 <td>first-install modal (legacy term)</td>
 </tr>
 <tr>
-<td><strong>Drift gate</strong></td>
-<td>The <code>check_drift()</code> step in <code>SharePipeline</code> (<code>haywire_studio.packaging.share.pipeline</code>), run early in every <code>haywire share</code> mode. Three checks per library: <code>pyproject_missing</code> (imports not declared in <code>pyproject.toml</code>), <code>decorator_missing</code> (imports not declared in <code>@library(dependencies=[...])</code>), <code>pyproject_version_lag</code> (declared haybale floors lagging the installed version). Interactive mode surfaces it as a step to resolve; <code>--yes</code> refuses to run while any drift is unresolved. <code>haywire deps check</code> (<code>haywire_studio.packaging.deps</code>) runs the same per-library <code>detect_share_drift()</code> check CI-side, decoupled from <code>SharePipeline</code> — no git, no preconditions, no versioning; read-only, exits 1 on drift and 0 otherwise. Spec §12.</td>
-<td>—</td>
+<td><strong>Detect step</strong></td>
+<td>The <code>check_drift()</code> step in <code>SharePipeline</code> (<code>steps/detect.py</code>), run early in every publish. Pure — it writes nothing, and has consumers beyond the Share flow. Reports five things per library: <code>pyproject_missing</code> (the only state that BREAKS a consumer's install, and the only one counted by <code>has_drift</code>), <code>decorator_missing</code> (repaired automatically — see <strong>Decorator registration</strong>), plus <code>unused_declarations</code>, <code>pyproject_version_lag</code> and <code>unresolved</code> as facts the author may act on or leave. The CLI declares undeclared imports for you and leaves the judgement calls alone; the Share flow offers each with a per-item choice. <code>haywire deps check</code> runs the same <code>detect_share_drift()</code> CI-side, read-only.</td>
+<td>Drift gate (retired — it gated on findings that are not defects)</td>
 </tr>
 <tr>
 <td><strong><code>pyproject_version_lag</code></strong></td>
-<td>Field on <code>DepDrift</code> carrying <code>(dist_name, declared_floor, installed_version)</code> tuples for declared haybale-* deps whose <code>~=</code>/<code>&gt;=</code>/<code>&gt;</code> floor is below the installed version. Haybale-only by design — third-party deps are not lag-checked because the installed-version-as-truth assumption breaks outside the lockstep haybale ecosystem (spec §12.1).</td>
-<td>—</td>
+<td>Field on <code>DepDrift</code> carrying <code>(dist_name, declared_floor, installed_version)</code> tuples for declared haybale-<em> deps whose <code>~=</code>/<code>&gt;=</code>/<code>&gt;</code> floor is below the installed version. A </em><em>fact, not a defect</em>*: a floor states the OLDEST version that works, which requires resolving and testing candidates — static scanning cannot reach it, so "installed is newer" only means time passed. Never raised automatically, and excluded from <code>has_drift</code>. Scoped by entry point (<code>haywire.libraries</code>), which includes third-party haybales the publishing author does not control — another reason raising it would narrow consumer compatibility from the author's dev-machine state.</td>
+<td>version drift (implies a defect)</td>
 </tr>
 <tr>
 <td><strong><code>updates_available</code></strong></td>
@@ -4304,18 +4347,13 @@
 <td>—</td>
 </tr>
 <tr>
-<td><strong>Detect Dependencies button</strong></td>
-<td>The magnifying-glass button next to the Dependencies field in the Library Overview Editor's Edit dialog. Runs <code>detect_deps</code>, opens a diff modal showing what would change, offers Union or Replace as the apply mode.</td>
-<td>Scan deps button</td>
-</tr>
-<tr>
 <td><strong>DepDrift</strong></td>
-<td>Dataclass from <code>haywire_studio.packaging.share.drift.model</code> recording one library's missing entries. Fields: <code>lib_dir</code>, <code>pyproject_missing</code>, <code>decorator_missing</code>, <code>pyproject_version_lag</code>, <code>unresolved</code>. <code>has_drift</code> is True iff either missing-list is non-empty. The gate flags missing entries only; extra (declared but unused) deps are not flagged. Wrapped per-library into the pipeline's <code>DriftReport</code> (see <strong>Drift gate</strong> above).</td>
+<td>Dataclass from <code>haywire.core.publishing.drift.model</code> recording one library's dependency findings. Fields: <code>lib_dir</code>, <code>pyproject_missing</code>, <code>decorator_missing</code>, <code>unused_declarations</code>, <code>pyproject_version_lag</code>, <code>unresolved</code>. <code>has_drift</code> is True iff <code>pyproject_missing</code> is non-empty — the rest are either reported facts or repaired automatically, and you cannot refuse to publish over something the tool always fixes. <code>has_findings</code> is True iff anything at all is set. Wrapped per-library into the pipeline's <code>DriftReport</code> (<code>drifted</code> / <code>findings_only</code>).</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong>ShareError</strong></td>
-<td>Base exception for every <code>haywire share</code> failure (<code>haywire_studio.packaging.share.pipeline.errors</code>), including refusing <code>--yes</code> with unresolved drift. Subclasses cover each pipeline step (<code>PreconditionsError</code>, <code>ManifestError</code>, <code>VersionError</code>, <code>TagCollisionError</code>, <code>DocsGenerationError</code>, <code>MarketstallError</code>, <code>CommitError</code>, <code>PushError</code>). Caught once at the CLI boundary in <code>run_share_cli</code> and per-step in the wizard; never lets a raw traceback reach the user.</td>
+<td>Base exception for every <code>haywire share</code> failure (<code>haywire.core.publishing.pipeline.errors</code>). Subclasses cover each pipeline step (<code>PreconditionsError</code>, <code>ManifestError</code>, <code>VersionError</code>, <code>TagCollisionError</code>, <code>DocsGenerationError</code>, <code>MarketstallError</code>, <code>CommitError</code>, <code>PushError</code>). Caught once at the CLI boundary in <code>run_share_cli</code> and per-step in the Share flow; never lets a raw traceback reach the user.</td>
 <td>DriftError (old, single-purpose exception; superseded — do not revive)</td>
 </tr>
 <tr>
@@ -4325,7 +4363,7 @@
 </tr>
 <tr>
 <td><strong>PreconditionFailure</strong></td>
-<td>One reason a project cannot be published, as reported by step 1. Carries <code>message</code> (what is wrong), <code>remedy</code> (what to do about it — computed from repo state where that helps, e.g. naming the branches that contain the current commit), and an optional <code>fix_id</code> naming a repair the pipeline can perform in place. Replaces the bare failure string, whose embedded newlines and indentation rendered correctly in a terminal and collapsed to one line in the wizard.</td>
+<td>One reason a project cannot be published, as reported by step 1. Carries <code>message</code> (what is wrong), <code>remedy</code> (what to do about it — computed from repo state where that helps, e.g. naming the branches that contain the current commit), and an optional <code>fix_id</code> naming a repair the pipeline can perform in place. Replaces the bare failure string, whose embedded newlines and indentation rendered correctly in a terminal and collapsed to one line in the UI.</td>
 <td>failure string, error message</td>
 </tr>
 <tr>
@@ -4335,23 +4373,38 @@
 </tr>
 <tr>
 <td><strong>Diff modal</strong></td>
-<td>The <code>haywire.ui.modals.diff_modal</code> Popup that previews proposed changes and offers up to two action buttons + Cancel. Used by Detect Dependencies (Union / Replace). Generic — any "preview changes, choose how to apply" surface can reuse it.</td>
+<td>The <code>haywire.ui.modals.diff_modal</code> Popup that previews proposed changes and offers up to two action buttons + Cancel. Generic — any "preview changes, choose how to apply" surface can reuse it. Its former caller, the Edit dialog's Detect Dependencies button, is gone: dependency authoring belongs to the Share flow, whose appliers each own disjoint entries.</td>
 <td>—</td>
+</tr>
+<tr>
+<td><strong>Undeclared import</strong></td>
+<td>A distribution the source imports that the <strong>library pyproject</strong> does not declare. The one dependency state that BREAKS a consumer's install, so it is the only one <code>has_drift</code> counts and the only one whose "leave it" answer is recorded (<code>undeclared_acknowledged</code>). Scoped to the pyproject only — a gap in <code>@library(dependencies)</code> is a <strong>Decorator registration</strong>, not an import failure.</td>
+<td>missing dep (ambiguous — missing from which manifest?)</td>
+</tr>
+<tr>
+<td><strong>Decorator registration</strong></td>
+<td>A registered haywire library the source imports that <code>@library(dependencies=[...])</code> does not list (<code>decorator_missing</code>). Applied AUTOMATICALLY and reported on the Review screen — never offered as a choice, because there is nothing to decide: <code>detect_deps</code> emits a name here only when the source imports it AND it resolves to an installed registered library, so the entry is provably true, carries no version specifier, and narrows nothing for consumers. Reported rather than silent because it edits a hand-authored <code>__init__.py</code>.</td>
+<td>undeclared import (wrong — it is not an import failure)</td>
+</tr>
+<tr>
+<td><strong>Unused declaration</strong></td>
+<td>A declared dependency the source never imports. Inert for consumers, and indistinguishable from a dynamic import <code>detect_deps</code> cannot see, so removal is offered per item and never pre-selected.</td>
+<td>extra dep, obsolete dep</td>
+</tr>
+<tr>
+<td><strong>Version floor lag</strong></td>
+<td>A declared <code>~=</code>/<code>&gt;=</code>/<code>&gt;</code> floor sitting below the version installed on the author's machine. A fact, not a defect — see <strong><code>pyproject_version_lag</code></strong>. The Share flow defaults every floor control to <strong>keep</strong>, so an untouched screen writes nothing.</td>
+<td>stale floor, outdated pin (both imply a defect)</td>
+</tr>
+<tr>
+<td><strong><code>require</code></strong></td>
+<td>The marketstall entry's framework requirement, as a full PEP 508 token identical in shape to the library's own pyproject entry: <code>haywire-core&gt;=0.0.38</code>, or the bare <code>haywire-core</code> when the author deliberately declared no floor. Absent means undeclared — a state distinct from the bare name, which is why the field carries the package name rather than a bare specifier. <strong>Derived</strong> from the library's own floor at write time by <code>haywire_core_requirement()</code>, never authored beside it, so the two cannot drift. Read by <code>check_require()</code> as an advisory pre-install gate.</td>
+<td>requires_haywire (the old bare-specifier field; removed, no fallback)</td>
 </tr>
 <tr>
 <td><strong>DiffSection</strong></td>
 <td>One labelled block inside a diff modal: title + additions (green <code>+</code>) + removals (red <code>−</code>) + unchanged (dim) + optional note.</td>
 <td>—</td>
-</tr>
-<tr>
-<td><strong>Union (apply mode)</strong></td>
-<td>The additive apply: current ∪ detected for each manifest. Never removes; safe against false positives from dynamic imports.</td>
-<td>merge</td>
-</tr>
-<tr>
-<td><strong>Replace (apply mode)</strong></td>
-<td>The destructive apply: detected only. Drops anything not detected. Useful for cleaning up obsolete declarations; risky against dynamic imports.</td>
-<td>overwrite</td>
 </tr>
 </tbody>
 </table>
@@ -4974,7 +5027,7 @@
 <li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds the project's own <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes only the project marketplace. <em>(new)</em></li>
 <li><strong>Refresh</strong> reads the <strong>Global marketplace</strong>, fetches every <strong>Subscription</strong> (one-level-deep), and writes the resolved candidates to the <strong>Project marketplace</strong>'s <code>[[caches]]</code>. <strong>Conflict resolution</strong> applies <code>blocked</code>, then <code>ignores</code>, then heaps shadow, then first-come-first-served. <em>(new)</em></li>
 <li>The Library Browser's <strong>REQUIRED</strong> filter and the Library Overview Editor's Disable/Uninstall gating both use <code>LibraryManager.get_installed_dependents()</code> — the <code>@library(dependencies=...)</code> graph. The two surfaces always agree. <em>(new)</em></li>
-<li>A library's published manifest survives <code>haywire share</code> only if the <strong>Three manifest layers</strong> agree. The <strong>Drift gate</strong> detects divergence; <strong>detect_deps</strong> + the Detect Dependencies button reconcile it inside the Edit dialog. <em>(new)</em></li>
+<li>A library's published manifest survives <code>haywire share</code> only if the <strong>Three manifest layers</strong> agree. The <strong>Detect step</strong> reports divergence; the Share flow's Review screen reconciles it. The Library Overview Editor is read-only for dependencies — one authoring path, not two.</li>
 </ul>
 <hr />
 <h2 id="example-dialogues">Example dialogues<a class="headerlink" href="#example-dialogues" title="Permanent link">&para;</a></h2>
@@ -5038,9 +5091,9 @@
 <p><strong>Dev:</strong> "I added a new import to my library. What do I need to update before <code>haywire share</code>?"
 <strong>Domain expert:</strong> "Two manifests: the <code>@library(dependencies=...)</code> decorator in your <code>__init__.py</code> (haywire DI runtime), and the <code>[project] dependencies</code> in the <strong>library pyproject</strong> (pip / consumer install). Source imports are the third layer — these are the <strong>Three manifest layers</strong> that have to agree."
 <strong>Dev:</strong> "I keep forgetting one of them. Anything that helps?"
-<strong>Domain expert:</strong> "Open the <strong>Library Overview Editor</strong> for your library, hit Edit, then the magnifying-glass <strong>Detect Dependencies</strong> button next to the dependencies field. It runs <strong>detect_deps</strong> and shows a <strong>diff modal</strong> with Union or Replace — Union is safe, never removes; Replace drops anything not detected."
+<strong>Domain expert:</strong> "You don't — the editor shows dependencies read-only. Run <code>haywire share</code>: its <strong>Detect step</strong> reports what is out of sync, then separate screens let you declare an <strong>Undeclared import</strong>, remove an <strong>Unused declaration</strong>, or leave a <strong>Version floor lag</strong> alone. Each screen writes only its own entries, which is why the framework floor can no longer be clobbered by a dependency fix."
 <strong>Dev:</strong> "And at publish time?"
-<strong>Domain expert:</strong> "Every <code>haywire share</code> mode runs the <strong>Drift gate</strong> early. <code>--yes</code> refuses to proceed if any of your barn libraries are missing manifest entries the source actually imports; interactive mode stops on the same step and lets you resolve it (Detect → Union) before continuing. In CI, <code>haywire deps check</code> runs the same gate read-only, independent of <code>SharePipeline</code> — it exits 1 on drift and 0 otherwise, and never writes."
+<strong>Domain expert:</strong> "Every <code>haywire share</code> mode runs the <strong>Detect step</strong> early, which only reports. The CLI then declares any <strong>Undeclared import</strong> for you — that one is unambiguously broken for consumers — but never removes an <strong>Unused declaration</strong> or raises a <strong>Version floor lag</strong>, because both of those are judgement calls. The Share editor offers the same findings with a per-item choice on one Review screen. In CI, <code>haywire deps check</code> runs the same detection read-only and never writes."
 <strong>Dev:</strong> "What's the difference between <code>detect_deps</code> finding something for <code>library_decorator</code> versus <code>pyproject</code>?"
 <strong>Domain expert:</strong> "<code>library_decorator</code> is registered haywire libraries only — what the authoritative <code>HaywireLibrarySource</code> (the registry, or <code>EntryPointLibrarySource</code> in CLI flows) confirms is a haywire library. <code>pyproject</code> is wider: framework (<code>haywire-core</code>, <code>haywire-studio</code>), registered libraries, AND third-party (numpy, requests, etc.). Naming convention <code>haybale-*</code> is a hint, not a contract."</p>
 </blockquote>
@@ -5073,8 +5126,9 @@
 <li><strong>"marketplace" overloaded</strong> <em>(new)</em>: refers to three distinct things — the runtime concept (the <strong>Marketplace</strong> catalog visible in the Library Manager's AVAILABLE section), the file (<strong>Global marketplace</strong> <code>~/.haywire/db/haybale_marketplace/marketplace.toml</code> or <strong>Project marketplace</strong> <code>&lt;project&gt;/.haywire/marketplace.toml</code>), and the TOML section type (<strong><code>[[markets]]</code></strong> subscriptions to remote marketplace feeds). Always qualify which sense — file vs section vs catalog.</li>
 <li><strong>"marketplace" vs "marketstall"</strong> <em>(new)</em>: a <strong>Marketstall</strong> is a single-author publish file listing <code>[[haybales]]</code> (produced by <code>haywire share</code>). A <strong>Marketplace</strong> in the file-shape sense (<code>marketplace.toml</code>) aggregates <code>[[markets]]</code> subscriptions, <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>, and (project-only) <code>[[heaps]]</code> + <code>[[caches]]</code>. A <code>[[markets]]</code> URL points at another <code>marketplace.toml</code>; a <code>[[stalls]]</code> URL points at a <code>marketstall.toml</code>. Different schemas, different recursion rules.</li>
 <li><strong>"heaps" location</strong> <em>(new)</em>: <code>haywire init</code> writes <code>[[heaps]]</code> to the <strong>Project marketplace</strong>, NOT the Global marketplace. The Global marketplace has no <code>[[heaps]]</code> section in the new schema (the legacy <code>[[locals]]</code> cross-project case is unsupported; users with that need declare each project's heaps in its own project marketplace).</li>
-<li><strong>"dependencies" — three meanings</strong> <em>(new)</em>: (1) project pyproject <code>dependencies</code> (what uv resolves in dev), (2) library pyproject <code>dependencies</code> (what pip ships with the published package), (3) <code>@library(dependencies=[...])</code> (the haywire runtime DI graph). The <strong>Three manifest layers</strong> must agree at publish time; <strong>detect_deps</strong> and the <strong>Drift gate</strong> keep them honest. Never use bare "dependencies" without qualifying which manifest you mean.</li>
-<li><strong>"required" vs "dependent"</strong> <em>(new)</em>: a library is <strong>required</strong> if some installed haywire library lists it in <code>@library(dependencies=[...])</code>. The reverse-direction term is <strong>dependent</strong> — the library that <em>has</em> that declaration. Computed via <code>LibraryManager.get_installed_dependents(lib_id)</code>. Note: this is the <strong><code>@library</code></strong> graph, NOT pip's <code>Requires-Dist</code>. The pip-walk path (<code>is_required_by_another_package</code>) was removed in commit <code>f09c8558</code>.</li>
+<li><strong>"dependencies" — three meanings</strong> <em>(new)</em>: (1) project pyproject <code>dependencies</code> (what uv resolves in dev), (2) library pyproject <code>dependencies</code> (what pip ships with the published package), (3) <code>@library(dependencies=[...])</code> (the haywire runtime DI graph). The <strong>Three manifest layers</strong> must agree at publish time; <strong>detect_deps</strong> and the <strong>Detect step</strong> keep them honest. Never use bare "dependencies" without qualifying which manifest you mean.</li>
+<li><strong>"required" vs "dependent"</strong> <em>(new)</em>: a library is <strong>required</strong> if some installed haywire library lists it in <code>@library(dependencies=[...])</code>. The reverse-direction term is <strong>dependent</strong> — the library that <em>has</em> that declaration. Computed via <code>LibraryManager.get_installed_dependents(lib_id)</code>. Note: this is the <strong><code>@library</code></strong> graph, NOT pip's <code>Requires-Dist</code>. The pip-walk path (<code>is_required_by_another_package</code>) was removed in commit <code>f09c8558</code>. The Library Browser's Required badge is broader than this alone: it also fires for <code>origin.is_protected</code> (see <strong>Library Origin</strong>) — a library can be Required because something depends on it, OR because it's framework/project-local, OR both. Don't conflate "required" (has dependents) with "protected" (origin says don't touch it); they're independent reasons for the same badge.</li>
+<li><strong>"mechanism" vs "origin"</strong> <em>(new)</em>: <strong>InstallType</strong> answers "how did this library reach this Python environment" (REGULAR/EDITABLE/FOLDER) — a pure filesystem fact, workspace-agnostic. <strong>Library Origin</strong> answers "where did the code come from / who owns it" (framework/project_local/pypi/git/unknown) — requires workspace context, computed at the marketplace layer only. The two are orthogonal axes on the same library; a badge or a gating check may need one, the other, or both. Never use "install type" loosely to mean provenance/origin, and never assume <code>EDITABLE</code> implies <code>project_local</code> (an editable install of someone else's repo is <code>EDITABLE</code> + <code>git</code>/<code>unknown</code>, not <code>project_local</code>).</li>
 <li><strong>"refresh" vs "scan"</strong> <em>(new)</em>: <strong>Refresh</strong> is the orchestration pipeline that fetches subscriptions, applies conflict resolution, and writes the project <code>[[caches]]</code>. "Scan" usually means file-watcher reload or library-registry rescan — different subsystem. Use <strong>Refresh</strong> for the marketplace pipeline.</li>
 <li><strong>"stale"</strong> <em>(new)</em>: in the marketplace runtime, <strong>stale</strong> means a project-marketplace <code>[[caches]]</code> entry that a subsequent <strong>Refresh</strong> did not re-resolve from any source. It does NOT mean "out of date" in the version sense. Stale + installed entries are locked from removal; stale + uninstalled entries are trash-icon removable.</li>
 <li><strong>"component" overloaded</strong> <em>(new)</em>: the canonical meaning is a <strong>Component</strong> — a hot-reload-registry-managed library contribution (node, type, adapter, skin, widget, editor, panel, settings, theme); this is the meaning in <code>register_components()</code>, <code>lookup_component_class()</code>, <code>active_component</code>, <code>ComponentSourceEditor</code>, and the <code>docs/components/</code> tree. A <strong>second, internal-only meaning</strong> lives in the code path <code>haywire.ui.components.*</code> (e.g. <code>graph</code>, <code>minimap</code>, <code>number</code>/NumberDrag, <code>popup</code>), where "component" carries the generic Vue/NiceGUI sense of "a reusable <code>ui.element</code> subclass." These are deliberately kept distinct: the registry meaning is public API and author-facing vocabulary and cannot move; the <code>ui.components</code> path is a private package name retained to avoid churn. When writing prose, prefer <strong>Component</strong> (capitalized) for the registry meaning and qualify the other as "a <code>ui.components</code> element" or "reusable UI element." Never use bare "component" to mean a reusable UI element in author-facing docs. Note the sibling package <code>haywire.ui.extends.*</code> (e.g. <code>extends/codemirror</code>) is deliberately NOT under <code>ui.components</code>: those modules attach behavior to an existing element they do not own (helpers like <code>attach_code_intelligence</code>, no <code>.vue</code>, no render surface), whereas every <code>ui.components</code> entry is a self-contained Vue-backed <code>ui.element</code> subclass.</li>

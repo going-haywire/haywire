@@ -1136,13 +1136,6 @@
   </span>
   
   
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1170,13 +1163,6 @@
     
   </span>
   
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
   
 
       </a>
@@ -1605,6 +1591,8 @@
       
         
       
+        
+      
     
     
     
@@ -1772,6 +1760,41 @@
     
   
     Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/publish-to-pypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing to PyPI
   
 
     
@@ -3509,10 +3532,10 @@
 <td>The version this entry advertises — what the author published. Not a floor; nothing resolves against it. Its only job is the update comparison.</td>
 </tr>
 <tr>
-<td><code>requires_haywire</code></td>
+<td><code>require</code></td>
 <td>string</td>
 <td>no</td>
-<td>Full PEP 440 specifier for the framework this library needs (<code>&gt;=0.0.31</code>). Absent means undeclared.</td>
+<td>The framework requirement as a full PEP 508 token (<code>haywire-core&gt;=0.0.31</code>), or the bare <code>haywire-core</code> when declared with no floor. Absent means undeclared. Derived from the library's own pyproject floor at write time, never authored separately.</td>
 </tr>
 <tr>
 <td><code>label</code></td>
@@ -3873,12 +3896,6 @@
 <td>no</td>
 </tr>
 <tr>
-<td>Detect Dependencies button</td>
-<td>yes</td>
-<td>no</td>
-<td>no</td>
-</tr>
-<tr>
 <td>Save source code</td>
 <td>yes</td>
 <td>no</td>
@@ -4021,7 +4038,7 @@ is exactly what a marketplace install is for.</p>
 </span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">name</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-lib&quot;</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">label</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Lib&quot;</span>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">version</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">requires_haywire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=0.0.31&quot;</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">require</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haywire-core&gt;=0.0.31&quot;</span>
 </span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="n">description</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;...&quot;</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="n">author</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Your Name&quot;</span>
 </span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="n">source</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>

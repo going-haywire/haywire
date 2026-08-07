@@ -1127,13 +1127,6 @@
   </span>
   
   
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1161,13 +1154,6 @@
     
   </span>
   
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
   
 
       </a>
@@ -1226,6 +1212,8 @@
   
     
     
+      
+        
       
         
       
@@ -1404,6 +1392,41 @@
     
   
     Sharing libraries
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/publish-to-pypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing to PyPI
   
 
     
@@ -2757,10 +2780,82 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-live-examples-from-the-codebase" class="md-nav__link">
+  <a href="#4-agent-facing-output" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Live examples from the codebase
+        4. Agent-facing output
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="4. Agent-facing output">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#41-return-the-least-that-lets-the-agent-act" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.1 Return the least that lets the agent act
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-never-hide-that-something-was-withheld" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 Never hide that something was withheld
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-say-what-to-do-next" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 Say what to do next
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-be-honest-about-what-you-know" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 Be honest about what you know
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-where-these-rules-come-from" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Where these rules come from
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-live-examples-from-the-codebase" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. Live examples from the codebase
       
     </span>
   </a>
@@ -3009,24 +3104,36 @@
 </tr>
 </tbody>
 </table>
-<p><strong>The <code>FarmhandError</code> contract.</strong> Raise <code>FarmhandError(code, message, ids=None)</code> for any <em>expected</em> failure — bad arguments, not-found lookups, gate rejections. The host renders it as a structured MCP tool error (<code>[code] message (id=..., ...)</code>), never a raw stack trace. Reserve uncaught Python exceptions for genuine bugs; an agent can branch on <code>code</code> but not on exception-message text, so pick a stable, greppable code per failure class and reuse it everywhere that failure can occur.</p>
+<p><strong>The <code>FarmhandError</code> contract.</strong> Raise <code>FarmhandError(code, message, ids=None, help=None)</code> for any <em>expected</em> failure — bad arguments, not-found lookups, gate rejections. The host renders it as a structured MCP tool error (<code>[code] message (id=..., ...)</code>, plus a <code>help: ...</code> line when a hint is supplied), never a raw stack trace. Reserve uncaught Python exceptions for genuine bugs; an agent can branch on <code>code</code> but not on exception-message text, so pick a stable, greppable code per failure class and reuse it everywhere that failure can occur.</p>
+<p><strong>Supply <code>help=</code> whenever the fix is knowable at the throw site.</strong> It is the one command that resolves the failure. An agent that gets a hint self-corrects in one turn; without one it guesses at the tool surface. Name a concrete tool call and carry forward the ids you already hold — a not-found lookup almost always knows which list tool would have shown the valid values. Put the hint in <code>help=</code>, not trailing prose in <code>message</code>, so it stays machine-separable. Omit it when there is no honest next step: a genuine operation failure (<code>save_failed</code>) should not invent one.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">raise</span> <span class="n">FarmhandError</span><span class="p">(</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">&quot;graph_not_found&quot;</span><span class="p">,</span> <span class="sa">f</span><span class="s2">&quot;No open graph &#39;</span><span class="si">{</span><span class="n">binding_id</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;binding_id&quot;</span><span class="p">:</span> <span class="n">binding_id</span><span class="p">}</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="p">)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="s2">&quot;graph_not_found&quot;</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="sa">f</span><span class="s2">&quot;No open graph &#39;</span><span class="si">{</span><span class="n">binding_id</span><span class="si">}</span><span class="s2">&#39;.&quot;</span><span class="p">,</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">ids</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;binding_id&quot;</span><span class="p">:</span> <span class="n">binding_id</span><span class="p">},</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run haystack_list_graphs to see open graphs, or haystack_open_graph to open one.&quot;</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="p">)</span>
 </span></code></pre></div>
-<p><strong>Pagination convention.</strong> Any tool returning a list should accept <code>limit</code>/<code>offset</code> and call the shared helpers so every list tool paginates identically:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.farmhand</span><span class="w"> </span><span class="kn">import</span> <span class="n">truncation_note</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">._helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">page</span>  <span class="c1"># barn/haybale-studio&#39;s local pagination slice helper</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="n">rows</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a><span class="k">return</span> <span class="p">{</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> match.</span><span class="si">{</span><span class="n">truncation_note</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>    <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="p">}</span>
+<p><strong>Folder convention and registration.</strong> Farmhand tools go in the library's <code>farmhands/</code> folder; register it with <code>FarmhandRegistry</code> in <code>register_components()</code>, alongside the same-shaped calls for <code>nodes/</code>, <code>panels/</code>, <code>state/</code>, etc:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.farmhand</span><span class="w"> </span><span class="kn">import</span> <span class="n">FarmhandRegistry</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>        <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base</span> <span class="o">/</span> <span class="s2">&quot;farmhands&quot;</span><span class="p">),</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">registry_cls</span><span class="o">=</span><span class="n">FarmhandRegistry</span><span class="p">,</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">)</span>
 </span></code></pre></div>
-<p><code>truncation_note</code> returns <code>''</code> when the page already covers the whole collection, and a suffix like <code>' (showing 1-50 of 200 — pass limit/offset for more)'</code> otherwise — append it to <code>summary</code> so a client that only reads the summary string still learns the result was truncated.</p>
-<p><strong>Every result should carry a <code>summary</code> string.</strong> The host injects a fallback (<code>f"{name}: ok"</code>) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.</p>
+<p><strong>The <code>'studio'</code> library-id prefix is reserved.</strong> <code>barn/haybale-studio</code>'s baseline tools (<code>studio_status</code>, <code>studio_list_components</code>, ...) own the <code>studio</code> library id; the reservation is enforced by library-id uniqueness at discovery, not by <code>FarmhandRegistry</code> itself. Don't register a second library under the <code>studio</code> id.</p>
+<h2 id="4-agent-facing-output">4. Agent-facing output<a class="headerlink" href="#4-agent-facing-output" title="Permanent link">&para;</a></h2>
+<p>Everything above is about making a tool <em>work</em>. This section is about making it <em>usable by an agent</em> — a different discipline, with its own failure modes, and the one most easily skipped because a tool that ignores all of it still passes its tests.</p>
+<p>Two costs drive every rule here:</p>
+<ul>
+<li><strong>Every field costs tokens multiplied by row count.</strong> A field nobody reads is not free; it is paid on every call, by every agent, forever.</li>
+<li><strong>Every missing hint costs a round trip.</strong> The expensive failure is rarely a slightly longer response — it is the extra call the agent makes because your response did not tell it what to do next.</li>
+</ul>
+<p>An agent has no peripheral vision. It cannot skim, scroll back, or notice that a list looked short. Whatever your response does not say, it does not know.</p>
+<h3 id="41-return-the-least-that-lets-the-agent-act">4.1 Return the least that lets the agent act<a class="headerlink" href="#41-return-the-least-that-lets-the-agent-act" title="Permanent link">&para;</a></h3>
+<p><strong>Default to the smallest useful row; put the rest behind <code>detail=true</code>.</strong> Return the 3-4 fields a caller needs to <em>decide what to do next</em> — an identifier, a label, a status — and gate prose, URLs, and provenance behind <code>detail</code>. Never <code>asdict()</code> a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row <code>marketplace_list_available</code>, <code>asdict()</code> emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on <em>every</em> row; trimming to four cut the payload 77% (<a href="measurements/2026-08-07-farmhand-axi-measure_payload.py">reproducible script</a>). When <code>detail=true</code> does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.</p>
 <p><strong>Make the caller drill down: separate WHICH from HOW MUCH.</strong> A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. <code>graph_editor_inspect_node</code> is the reference implementation, with three orthogonal parameters:</p>
 <table>
 <thead>
@@ -3069,26 +3176,92 @@
 <li><code>summary</code> is emitted <strong>unconditionally</strong> (the canon rule above) <em>and</em> is selectable, so <code>get=["summary"]</code> is a legitimate cheap survey — the same ergonomic as <code>count_only=true</code> on <code>studio_list_components</code>.</li>
 </ul>
 <p>Prefer these axes over a pile of <code>include_*</code> booleans: booleans multiply combinatorially and each one has to be discovered separately, whereas one enum per axis is self-describing in the derived schema.</p>
-<p><strong>Resist inventing causality the framework does not record.</strong> A tempting addition here was a <code>disabled_reason</code> explaining <em>why</em> a field is <code>DISABLED</code>. <code>effective_ui_state</code> composes a severity-max over three independent sources and discards which one won, so any such field would be a guess — and a plausible-but-wrong reason is worse for an agent than no reason at all. Report the state; leave the cause to whoever declared it.</p>
-<p><strong>Serializing values that cross the wire.</strong> The host JSON-encodes results with <code>json.dumps(result, default=str)</code>, so a non-serializable value does not crash — it silently degrades to an object repr (<code>"&lt;MeshData object at 0x...&gt;"</code>), which is useless to an agent and unbounded in size. When a tool returns <em>values</em> rather than metadata:</p>
+<h3 id="42-never-hide-that-something-was-withheld">4.2 Never hide that something was withheld<a class="headerlink" href="#42-never-hide-that-something-was-withheld" title="Permanent link">&para;</a></h3>
+<p>A truncated response that does not announce itself is the worst output a tool can produce: the agent proceeds confidently on partial data. Truncating is fine. Truncating silently is not.</p>
+<p><strong>Pagination convention.</strong> Any tool returning a list should accept <code>limit</code>/<code>offset</code> and call the shared helpers so every list tool paginates identically:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.farmhand</span><span class="w"> </span><span class="kn">import</span> <span class="n">truncation_note</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">._helpers</span><span class="w"> </span><span class="kn">import</span> <span class="n">page</span>  <span class="c1"># barn/haybale-studio&#39;s local pagination slice helper</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="n">rows</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">return</span> <span class="p">{</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> match.</span><span class="si">{</span><span class="n">truncation_note</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="s2">&quot;items&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="p">}</span>
+</span></code></pre></div>
+<p><code>truncation_note</code> returns <code>''</code> when the page already covers the whole collection, and a suffix like <code>' (showing 1-50 of 200 — pass limit/offset for more)'</code> otherwise — append it to <code>summary</code> so a client that only reads the summary string still learns the result was truncated.</p>
+<p><strong>Large single payloads truncate too.</strong> Pagination covers lists; a tool returning one <em>big</em> value (a source file, a README) needs the same guarantee, because an uncapped read silently dominates the caller's context. Cap by default, report the full size, and offer the escape hatch:</p>
+<ul>
+<li>Return the natural unit — lines for source (<code>studio_read_component_source</code>, <code>total_lines</code>, absolute line numbers preserved so a windowed read stays quotable), characters for prose (<code>marketplace_get_library_docs</code>, <code>total_chars</code>).</li>
+<li>Say it was truncated in <code>summary</code>, and add a <code>help</code> key naming the exact follow-up call (<code>offset=&lt;end&gt;</code> for the next window, or <code>full=true</code>).</li>
+<li>Accept <code>full=true</code> to bypass the cap. Never omit a large field entirely — a preview plus the total beats forcing a second blind call.</li>
+</ul>
+<p><strong>Every result should carry a <code>summary</code> string.</strong> The host injects a fallback (<code>f"{name}: ok"</code>) if a returned dict omits one, but an explicit, information-dense summary is the first (and sometimes only) thing a token-conscious agent reads — write one deliberately rather than relying on the fallback.</p>
+<h3 id="43-say-what-to-do-next">4.3 Say what to do next<a class="headerlink" href="#43-say-what-to-do-next" title="Permanent link">&para;</a></h3>
+<p><strong>Put a <code>help</code> key on list and mutation results, not just on errors.</strong> <code>FarmhandError(help=)</code> covers the failure path; the success path needs the same courtesy — the asymmetry is the bug. After a list, name the drill-down (<code>studio_describe_component registry_key=&lt;key&gt;</code>); after a mutation, name what makes the change useful (<code>haystack_create_graph</code> → add a node, then save — it is unsaved until you do). Carry forward ids you already hold so the hint is a runnable command rather than a template, and prefer a concrete value over a placeholder when you know it: <code>studio_list_components count_only=true</code> names its own biggest bucket. Omit <code>help</code> on detail views — they are self-contained, and a hint there is noise. Omit it on an empty page too, except to say how to create the first item.</p>
+<p>The error-path half of this rule lives with the <code>FarmhandError</code> contract in §3 — same principle, applied where the agent needs it most.</p>
+<h3 id="44-be-honest-about-what-you-know">4.4 Be honest about what you know<a class="headerlink" href="#44-be-honest-about-what-you-know" title="Permanent link">&para;</a></h3>
+<p><strong>Resist inventing causality the framework does not record.</strong> A tempting addition to <code>inspect_node</code> was a <code>disabled_reason</code> explaining <em>why</em> a field is <code>DISABLED</code>. <code>effective_ui_state</code> composes a severity-max over three independent sources and discards which one won, so any such field would be a guess — and a plausible-but-wrong reason is worse for an agent than no reason at all. Report the state; leave the cause to whoever declared it.</p>
+<p>The general form: an agent cannot tell a confident guess from a fact. When the framework does not record something, say nothing rather than infer it. This is why <code>unmatched</code> reports only real filter misses (a phantom typo report is worse than none), why a <code>HIDDEN</code> field is collapsed rather than omitted (absence would read as "does not exist"), and why a dropped value gets an explicit <code>value_omitted</code> marker instead of a repr that looks like data.</p>
+<p><strong>Serializing values that cross the wire.</strong> The host emits every result <em>twice</em>: as a JSON text block (for text-only clients) and as MCP <code>structuredContent</code> (a real JSON object, so a structure-aware client skips the string parse). Both halves come from the same <code>json.dumps(result, default=str)</code> pass, so they can never disagree — and <code>default=str</code> means a non-serializable value does not crash, it silently degrades to an object repr (<code>"&lt;MeshData object at 0x...&gt;"</code>), which is useless to an agent and unbounded in size. When a tool returns <em>values</em> rather than metadata:</p>
 <ul>
 <li>Check serializability instead of trusting the fallback. <code>haywire.core.types.utils.is_cattrs_serializable(value)</code> is the codebase's existing predicate for exactly this.</li>
 <li>Emit an explicit marker for what you dropped (<code>inspect_node</code> uses <code>value_omitted: "&lt;type&gt;"</code>) so the agent learns the value exists but is not retrievable, rather than reading a repr as if it were data.</li>
 <li>Most Haywire value types are already JSON-native: <code>Vec2i</code>/<code>Vec3f</code>/… are <code>list</code> subclasses and <code>Color</code>/<code>Icon</code> are <code>str</code>, so settings values round-trip losslessly with no conversion layer. Arbitrary port <code>BaseType</code>s (mesh, frame) do not.</li>
 <li>A <code>widget_config</code> may hold a <strong>live zero-arg callable</strong> at <code>properties["options"]</code> (the documented dynamic-dropdown mechanism — see <a href="../../settings/setting-canon/">setting-canon</a>). Resolve it the way the widget does (<code>options()</code>), inside a <code>try/except</code> so one failing probe can't fail the whole call, and never pass it through unresolved.</li>
 </ul>
-<p><strong>Folder convention and registration.</strong> Farmhand tools go in the library's <code>farmhands/</code> folder; register it with <code>FarmhandRegistry</code> in <code>register_components()</code>, alongside the same-shaped calls for <code>nodes/</code>, <code>panels/</code>, <code>state/</code>, etc:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.farmhand</span><span class="w"> </span><span class="kn">import</span> <span class="n">FarmhandRegistry</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="k">def</span><span class="w"> </span><span class="nf">register_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">base</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base</span> <span class="o">/</span> <span class="s2">&quot;farmhands&quot;</span><span class="p">),</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>        <span class="n">registry_cls</span><span class="o">=</span><span class="n">FarmhandRegistry</span><span class="p">,</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="p">)</span>
-</span></code></pre></div>
-<p><strong>The <code>'studio'</code> library-id prefix is reserved.</strong> <code>barn/haybale-studio</code>'s baseline tools (<code>studio_status</code>, <code>studio_list_components</code>, ...) own the <code>studio</code> library id; the reservation is enforced by library-id uniqueness at discovery, not by <code>FarmhandRegistry</code> itself. Don't register a second library under the <code>studio</code> id.</p>
-<h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
+<h3 id="45-where-these-rules-come-from">4.5 Where these rules come from<a class="headerlink" href="#45-where-these-rules-come-from" title="Permanent link">&para;</a></h3>
+<p>This section adapts <a href="https://axi.md">AXI</a> (Agent eXperience Interface), a set of ergonomic standards written for <strong>CLI tools</strong> that agents drive through shell execution. The reasoning transfers; several of the mechanics do not, because MCP is a typed protocol with its own conventions rather than a byte stream on stdout.</p>
+<p>What we took, and what changed in translation:</p>
+<table>
+<thead>
+<tr>
+<th>AXI</th>
+<th>Here</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>§2 minimal default schemas, <code>--fields</code> to widen</td>
+<td>§4.1, as <code>detail=true</code> — same idea, named for the schema convention the derived <code>inputSchema</code> already exposes</td>
+</tr>
+<tr>
+<td>§3 truncate long content, show total, offer <code>--full</code></td>
+<td>§4.2, as <code>full=true</code> + <code>total_lines</code>/<code>total_chars</code></td>
+</tr>
+<tr>
+<td>§4 pre-computed aggregates, definitive totals</td>
+<td>§4.2, as <code>total</code> + <code>truncation_note()</code></td>
+</tr>
+<tr>
+<td>§9 contextual disclosure — suggest next steps</td>
+<td>§4.3, as the <code>help</code> key</td>
+</tr>
+<tr>
+<td>§6 structured errors with an actionable suggestion</td>
+<td>§3 <code>FarmhandError(code, message, ids, help)</code></td>
+</tr>
+<tr>
+<td>§1 emit TOON on stdout</td>
+<td><strong>Not adopted.</strong> MCP negotiates its own typing: the client owns the parse, and the protocol already carries a real object in <code>structuredContent</code>. Emitting TOON inside <code>content[].text</code> would hand every client a format it has no contract for. Measured on a real payload, TOON saved ~40% on uniform tabular rows but was <em>larger</em> than JSON on nested count maps, and has no representation for the multi-line source strings some tools return. Schema trimming (§4.1) delivered ~12× more on the same payload with no new dependency — do that first, and revisit the format question only against an already-trimmed baseline.</td>
+</tr>
+<tr>
+<td>§6 exit codes 0/1/2, errors to stdout</td>
+<td><strong>N/A.</strong> MCP has <code>isError</code>; there is no exit code and no stdout.</td>
+</tr>
+<tr>
+<td>§7 session hooks, §10 <code>--help</code> and bin path</td>
+<td><strong>N/A.</strong> <code>list_tools</code> and the <code>description=</code> field do this job — which is why <code>description=</code> is worth writing carefully (§3).</td>
+</tr>
+<tr>
+<td>§8 no-args shows live content</td>
+<td>Closest equivalent is <code>studio_status</code>, not a per-tool behaviour.</td>
+</tr>
+</tbody>
+</table>
+<p>The numbers cited above are reproducible: <a href="measurements/2026-08-07-farmhand-axi-measure_payload.py"><code>measurements/2026-08-07-farmhand-axi-measure_payload.py</code></a> carries the captured payload and prints every figure, including the two-lever comparison behind the TOON decision. Re-run it before revisiting that call.</p>
+<p>If you are extending a <em>different</em> agent-facing surface — a CLI, for instance — read AXI directly; more of it applies there than here.</p>
+<h2 id="5-live-examples-from-the-codebase">5. Live examples from the codebase<a class="headerlink" href="#5-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p><strong>Minimal read-only tool</strong> — no arguments beyond a single required string, <code>read_only_hint</code> annotation:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@farmhand</span><span class="p">(</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Echo&quot;</span><span class="p">,</span>
@@ -3109,9 +3282,9 @@
 <p><strong>Pagination + filtering</strong> — <code>ctx.registry()</code>, the <code>page()</code>/<code>truncation_note()</code> convention, and an <code>include_*</code> opt-out pattern for rows excluded by default:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@farmhand</span><span class="p">(</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;List libraries&quot;</span><span class="p">,</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Installed libraries: id, label, version, description, tags, enabled. &quot;</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="s2">&quot;Synthetic libraries (dunder ids like &#39;__system__&#39;) are excluded unless &quot;</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="s2">&quot;include_system=true.&quot;</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Installed libraries: id, label, version, enabled. Pass detail=true to add &quot;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="s2">&quot;description and tags. Synthetic libraries (dunder ids like &#39;__system__&#39;) are excluded &quot;</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="s2">&quot;unless include_system=true.&quot;</span><span class="p">,</span>
 </span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">registry_id</span><span class="o">=</span><span class="s2">&quot;list_libraries&quot;</span><span class="p">,</span>
 </span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">annotations</span><span class="o">=</span><span class="n">_READ_ONLY</span><span class="p">,</span>
 </span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="p">)</span>
@@ -3122,29 +3295,40 @@
 </span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        <span class="n">include_system</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
 </span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="n">limit</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">50</span><span class="p">,</span>
 </span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="n">offset</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
-</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="n">registry</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">registry</span><span class="p">(</span><span class="n">LibraryRegistry</span><span class="p">)</span>
-</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
-</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="k">for</span> <span class="n">lib_id</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">registry</span><span class="o">.</span><span class="n">list_names</span><span class="p">()):</span>
-</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">include_system</span> <span class="ow">and</span> <span class="n">_is_synthetic_library</span><span class="p">(</span><span class="n">lib_id</span><span class="p">):</span>
-</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>                <span class="k">continue</span>
-</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>            <span class="n">identity</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get_library_identity</span><span class="p">(</span><span class="n">lib_id</span><span class="p">)</span>
-</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span>
-</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>                <span class="p">{</span>
-</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>                    <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">lib_id</span><span class="p">,</span>
-</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                    <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">identity</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
-</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>                    <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="n">identity</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
-</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>                    <span class="s2">&quot;description&quot;</span><span class="p">:</span> <span class="n">identity</span><span class="o">.</span><span class="n">description</span><span class="p">,</span>
-</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>                    <span class="s2">&quot;tags&quot;</span><span class="p">:</span> <span class="nb">list</span><span class="p">(</span><span class="n">identity</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="p">[]),</span>
-</span><span id="__span-9-30"><a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>                    <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="n">registry</span><span class="o">.</span><span class="n">is_library_enabled</span><span class="p">(</span><span class="n">lib_id</span><span class="p">),</span>
-</span><span id="__span-9-31"><a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>                <span class="p">}</span>
-</span><span id="__span-9-32"><a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>            <span class="p">)</span>
-</span><span id="__span-9-33"><a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>        <span class="n">rows</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
-</span><span id="__span-9-34"><a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>        <span class="k">return</span> <span class="p">{</span>
-</span><span id="__span-9-35"><a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>            <span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> libraries installed.</span><span class="si">{</span><span class="n">truncation_note</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
-</span><span id="__span-9-36"><a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a>            <span class="s2">&quot;libraries&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
-</span><span id="__span-9-37"><a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a>            <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
-</span><span id="__span-9-38"><a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a>        <span class="p">}</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="n">detail</span><span class="p">:</span> <span class="nb">bool</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="n">registry</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">registry</span><span class="p">(</span><span class="n">LibraryRegistry</span><span class="p">)</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="n">rows</span> <span class="o">=</span> <span class="p">[]</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="k">for</span> <span class="n">lib_id</span> <span class="ow">in</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">registry</span><span class="o">.</span><span class="n">list_names</span><span class="p">()):</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>            <span class="k">if</span> <span class="ow">not</span> <span class="n">include_system</span> <span class="ow">and</span> <span class="n">_is_synthetic_library</span><span class="p">(</span><span class="n">lib_id</span><span class="p">):</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>                <span class="k">continue</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>            <span class="n">identity</span> <span class="o">=</span> <span class="n">registry</span><span class="o">.</span><span class="n">get_library_identity</span><span class="p">(</span><span class="n">lib_id</span><span class="p">)</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>            <span class="n">row</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>                <span class="s2">&quot;id&quot;</span><span class="p">:</span> <span class="n">lib_id</span><span class="p">,</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                <span class="s2">&quot;label&quot;</span><span class="p">:</span> <span class="n">identity</span><span class="o">.</span><span class="n">label</span><span class="p">,</span>
+</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>                <span class="s2">&quot;version&quot;</span><span class="p">:</span> <span class="n">identity</span><span class="o">.</span><span class="n">version</span><span class="p">,</span>
+</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>                <span class="s2">&quot;enabled&quot;</span><span class="p">:</span> <span class="n">registry</span><span class="o">.</span><span class="n">is_library_enabled</span><span class="p">(</span><span class="n">lib_id</span><span class="p">),</span>
+</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>            <span class="p">}</span>
+</span><span id="__span-9-30"><a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>            <span class="k">if</span> <span class="n">detail</span><span class="p">:</span>
+</span><span id="__span-9-31"><a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>                <span class="c1"># Prose and tags are the bulk of a row; an agent picking a library</span>
+</span><span id="__span-9-32"><a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>                <span class="c1"># to inspect needs the id first and the blurb only sometimes.</span>
+</span><span id="__span-9-33"><a id="__codelineno-9-33" name="__codelineno-9-33" href="#__codelineno-9-33"></a>                <span class="n">row</span><span class="p">[</span><span class="s2">&quot;description&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="n">identity</span><span class="o">.</span><span class="n">description</span>
+</span><span id="__span-9-34"><a id="__codelineno-9-34" name="__codelineno-9-34" href="#__codelineno-9-34"></a>                <span class="n">row</span><span class="p">[</span><span class="s2">&quot;tags&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="n">identity</span><span class="o">.</span><span class="n">tags</span> <span class="ow">or</span> <span class="p">[])</span>
+</span><span id="__span-9-35"><a id="__codelineno-9-35" name="__codelineno-9-35" href="#__codelineno-9-35"></a>            <span class="n">rows</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">row</span><span class="p">)</span>
+</span><span id="__span-9-36"><a id="__codelineno-9-36" name="__codelineno-9-36" href="#__codelineno-9-36"></a>        <span class="n">rows</span><span class="p">,</span> <span class="n">total</span> <span class="o">=</span> <span class="n">page</span><span class="p">(</span><span class="n">rows</span><span class="p">,</span> <span class="n">limit</span><span class="p">,</span> <span class="n">offset</span><span class="p">)</span>
+</span><span id="__span-9-37"><a id="__codelineno-9-37" name="__codelineno-9-37" href="#__codelineno-9-37"></a>        <span class="n">result</span> <span class="o">=</span> <span class="p">{</span>
+</span><span id="__span-9-38"><a id="__codelineno-9-38" name="__codelineno-9-38" href="#__codelineno-9-38"></a>            <span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="sa">f</span><span class="s2">&quot;</span><span class="si">{</span><span class="n">total</span><span class="si">}</span><span class="s2"> libraries installed.</span><span class="si">{</span><span class="n">truncation_note</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">rows</span><span class="p">),</span><span class="w"> </span><span class="n">total</span><span class="p">,</span><span class="w"> </span><span class="n">offset</span><span class="p">)</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">,</span>
+</span><span id="__span-9-39"><a id="__codelineno-9-39" name="__codelineno-9-39" href="#__codelineno-9-39"></a>            <span class="s2">&quot;libraries&quot;</span><span class="p">:</span> <span class="n">rows</span><span class="p">,</span>
+</span><span id="__span-9-40"><a id="__codelineno-9-40" name="__codelineno-9-40" href="#__codelineno-9-40"></a>            <span class="s2">&quot;total&quot;</span><span class="p">:</span> <span class="n">total</span><span class="p">,</span>
+</span><span id="__span-9-41"><a id="__codelineno-9-41" name="__codelineno-9-41" href="#__codelineno-9-41"></a>        <span class="p">}</span>
+</span><span id="__span-9-42"><a id="__codelineno-9-42" name="__codelineno-9-42" href="#__codelineno-9-42"></a>        <span class="k">if</span> <span class="n">rows</span><span class="p">:</span>
+</span><span id="__span-9-43"><a id="__codelineno-9-43" name="__codelineno-9-43" href="#__codelineno-9-43"></a>            <span class="n">result</span><span class="p">[</span><span class="s2">&quot;help&quot;</span><span class="p">]</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-9-44"><a id="__codelineno-9-44" name="__codelineno-9-44" href="#__codelineno-9-44"></a>                <span class="s2">&quot;Run studio_list_components library=&lt;id&gt; to see what a library provides, or &quot;</span>
+</span><span id="__span-9-45"><a id="__codelineno-9-45" name="__codelineno-9-45" href="#__codelineno-9-45"></a>                <span class="s2">&quot;marketplace_get_library_docs library=&lt;id&gt; for its docs&quot;</span>
+</span><span id="__span-9-46"><a id="__codelineno-9-46" name="__codelineno-9-46" href="#__codelineno-9-46"></a>                <span class="o">+</span> <span class="p">(</span><span class="s2">&quot;&quot;</span> <span class="k">if</span> <span class="n">detail</span> <span class="k">else</span> <span class="s2">&quot;; re-run with detail=true for descriptions and tags&quot;</span><span class="p">)</span>
+</span><span id="__span-9-47"><a id="__codelineno-9-47" name="__codelineno-9-47" href="#__codelineno-9-47"></a>                <span class="o">+</span> <span class="s2">&quot;.&quot;</span>
+</span><span id="__span-9-48"><a id="__codelineno-9-48" name="__codelineno-9-48" href="#__codelineno-9-48"></a>            <span class="p">)</span>
+</span><span id="__span-9-49"><a id="__codelineno-9-49" name="__codelineno-9-49" href="#__codelineno-9-49"></a>        <span class="k">return</span> <span class="n">result</span>
 </span></code></pre></div>
 <p><strong>Mutually-exclusive arguments, idempotent delete, and <code>ctx.broadcast</code></strong> — validates exactly one of two optional arguments is set before doing anything, and notifies open studio UIs after a mutation:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@farmhand</span><span class="p">(</span>
@@ -3167,28 +3351,35 @@
 </span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>        <span class="c1"># (or neither) is ambiguous — reject rather than guess.</span>
 </span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>        <span class="k">if</span> <span class="nb">all</span> <span class="ow">and</span> <span class="n">seq</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>            <span class="k">raise</span> <span class="n">FarmhandError</span><span class="p">(</span>
-</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>                <span class="s2">&quot;invalid_args&quot;</span><span class="p">,</span> <span class="s2">&quot;Pass either seq=&lt;n&gt; or all=true, not both.&quot;</span><span class="p">,</span> <span class="p">{</span><span class="s2">&quot;seq&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq</span><span class="p">)}</span>
-</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>            <span class="p">)</span>
-</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span> <span class="ow">and</span> <span class="n">seq</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>            <span class="k">raise</span> <span class="n">FarmhandError</span><span class="p">(</span><span class="s2">&quot;invalid_args&quot;</span><span class="p">,</span> <span class="s2">&quot;Pass seq=&lt;n&gt; to dismiss one entry, or all=true.&quot;</span><span class="p">)</span>
-</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>
-</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>        <span class="n">ledger</span> <span class="o">=</span> <span class="n">get_error_ledger</span><span class="p">()</span>
-</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">:</span>
-</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>            <span class="n">before</span> <span class="o">=</span> <span class="n">ledger</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">total</span>
-</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>            <span class="n">ledger</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
-</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>            <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Cleared </span><span class="si">{</span><span class="n">before</span><span class="si">}</span><span class="s2"> ledger entries.&quot;</span>
-</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>        <span class="k">else</span><span class="p">:</span>
-</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>            <span class="c1"># delete() is a no-op if the seq is absent (already dismissed or</span>
-</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>            <span class="c1"># evicted) — mirror that in the summary rather than erroring.</span>
-</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>            <span class="n">present</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">ledger_seq</span> <span class="o">==</span> <span class="n">seq</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ledger</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="n">ledger</span><span class="o">.</span><span class="n">current_seq</span><span class="p">)</span><span class="o">.</span><span class="n">entries</span><span class="p">)</span>
-</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>            <span class="n">ledger</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]  # seq is not None on this branch</span>
-</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>            <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Dismissed entry </span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2">.&quot;</span> <span class="k">if</span> <span class="n">present</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;No entry </span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2"> to dismiss.&quot;</span>
-</span><span id="__span-10-37"><a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a>
-</span><span id="__span-10-38"><a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a>        <span class="c1"># Caller-owned cross-session refresh: ErrorLedgerChanged carries no</span>
-</span><span id="__span-10-39"><a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a>        <span class="c1"># payload — every session&#39;s Errors editor re-reads the ledger. Matches</span>
-</span><span id="__span-10-40"><a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a>        <span class="c1"># the editor&#39;s own mutate-then-broadcast triage contract.</span>
-</span><span id="__span-10-41"><a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a>        <span class="n">ctx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">ErrorLedgerChanged</span><span class="p">())</span>
-</span><span id="__span-10-42"><a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="n">summary</span><span class="p">,</span> <span class="s2">&quot;cursor&quot;</span><span class="p">:</span> <span class="n">ledger</span><span class="o">.</span><span class="n">current_seq</span><span class="p">}</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>                <span class="s2">&quot;invalid_args&quot;</span><span class="p">,</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>                <span class="s2">&quot;Pass either seq=&lt;n&gt; or all=true, not both.&quot;</span><span class="p">,</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>                <span class="p">{</span><span class="s2">&quot;seq&quot;</span><span class="p">:</span> <span class="nb">str</span><span class="p">(</span><span class="n">seq</span><span class="p">)},</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>                <span class="n">help</span><span class="o">=</span><span class="sa">f</span><span class="s2">&quot;Retry with seq=</span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2"> alone, or all=true alone.&quot;</span><span class="p">,</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>            <span class="p">)</span>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>        <span class="k">if</span> <span class="ow">not</span> <span class="nb">all</span> <span class="ow">and</span> <span class="n">seq</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>            <span class="k">raise</span> <span class="n">FarmhandError</span><span class="p">(</span>
+</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>                <span class="s2">&quot;invalid_args&quot;</span><span class="p">,</span>
+</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>                <span class="s2">&quot;Pass seq=&lt;n&gt; to dismiss one entry, or all=true.&quot;</span><span class="p">,</span>
+</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>                <span class="n">help</span><span class="o">=</span><span class="s2">&quot;Run studio_get_errors to find the seq of the entry to dismiss.&quot;</span><span class="p">,</span>
+</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>            <span class="p">)</span>
+</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>
+</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>        <span class="n">ledger</span> <span class="o">=</span> <span class="n">get_error_ledger</span><span class="p">()</span>
+</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>        <span class="k">if</span> <span class="nb">all</span><span class="p">:</span>
+</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>            <span class="n">before</span> <span class="o">=</span> <span class="n">ledger</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span><span class="o">.</span><span class="n">total</span>
+</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>            <span class="n">ledger</span><span class="o">.</span><span class="n">clear</span><span class="p">()</span>
+</span><span id="__span-10-37"><a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a>            <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Cleared </span><span class="si">{</span><span class="n">before</span><span class="si">}</span><span class="s2"> ledger entries.&quot;</span>
+</span><span id="__span-10-38"><a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a>        <span class="k">else</span><span class="p">:</span>
+</span><span id="__span-10-39"><a id="__codelineno-10-39" name="__codelineno-10-39" href="#__codelineno-10-39"></a>            <span class="c1"># delete() is a no-op if the seq is absent (already dismissed or</span>
+</span><span id="__span-10-40"><a id="__codelineno-10-40" name="__codelineno-10-40" href="#__codelineno-10-40"></a>            <span class="c1"># evicted) — mirror that in the summary rather than erroring.</span>
+</span><span id="__span-10-41"><a id="__codelineno-10-41" name="__codelineno-10-41" href="#__codelineno-10-41"></a>            <span class="n">present</span> <span class="o">=</span> <span class="nb">any</span><span class="p">(</span><span class="n">e</span><span class="o">.</span><span class="n">ledger_seq</span> <span class="o">==</span> <span class="n">seq</span> <span class="k">for</span> <span class="n">e</span> <span class="ow">in</span> <span class="n">ledger</span><span class="o">.</span><span class="n">query</span><span class="p">(</span><span class="n">limit</span><span class="o">=</span><span class="n">ledger</span><span class="o">.</span><span class="n">current_seq</span><span class="p">)</span><span class="o">.</span><span class="n">entries</span><span class="p">)</span>
+</span><span id="__span-10-42"><a id="__codelineno-10-42" name="__codelineno-10-42" href="#__codelineno-10-42"></a>            <span class="n">ledger</span><span class="o">.</span><span class="n">delete</span><span class="p">(</span><span class="n">seq</span><span class="p">)</span>  <span class="c1"># type: ignore[arg-type]  # seq is not None on this branch</span>
+</span><span id="__span-10-43"><a id="__codelineno-10-43" name="__codelineno-10-43" href="#__codelineno-10-43"></a>            <span class="n">summary</span> <span class="o">=</span> <span class="sa">f</span><span class="s2">&quot;Dismissed entry </span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2">.&quot;</span> <span class="k">if</span> <span class="n">present</span> <span class="k">else</span> <span class="sa">f</span><span class="s2">&quot;No entry </span><span class="si">{</span><span class="n">seq</span><span class="si">}</span><span class="s2"> to dismiss.&quot;</span>
+</span><span id="__span-10-44"><a id="__codelineno-10-44" name="__codelineno-10-44" href="#__codelineno-10-44"></a>
+</span><span id="__span-10-45"><a id="__codelineno-10-45" name="__codelineno-10-45" href="#__codelineno-10-45"></a>        <span class="c1"># Caller-owned cross-session refresh: ErrorLedgerChanged carries no</span>
+</span><span id="__span-10-46"><a id="__codelineno-10-46" name="__codelineno-10-46" href="#__codelineno-10-46"></a>        <span class="c1"># payload — every session&#39;s Errors editor re-reads the ledger. Matches</span>
+</span><span id="__span-10-47"><a id="__codelineno-10-47" name="__codelineno-10-47" href="#__codelineno-10-47"></a>        <span class="c1"># the editor&#39;s own mutate-then-broadcast triage contract.</span>
+</span><span id="__span-10-48"><a id="__codelineno-10-48" name="__codelineno-10-48" href="#__codelineno-10-48"></a>        <span class="n">ctx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">ErrorLedgerChanged</span><span class="p">())</span>
+</span><span id="__span-10-49"><a id="__codelineno-10-49" name="__codelineno-10-49" href="#__codelineno-10-49"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="n">summary</span><span class="p">,</span> <span class="s2">&quot;cursor&quot;</span><span class="p">:</span> <span class="n">ledger</span><span class="o">.</span><span class="n">current_seq</span><span class="p">}</span>
 </span></code></pre></div>
 <p>What these examples exercise:</p>
 <table>
@@ -3245,6 +3436,7 @@
 <hr />
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
 <h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
+<p>Mechanics (§3):</p>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@farmhand(label=, description=, registry_id=, annotations=)</code> decorator</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Inherit from <code>Farmhand</code></li>
@@ -3252,10 +3444,18 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Write <code>description=</code> to teach valid arguments — it's the only text the agent sees before calling</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Set <code>input_schema_override</code> if you need an <code>enum</code> or other schema constraint the derived schema can't express</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Raise <code>FarmhandError(code, message, ids=)</code> for expected failures, not bare exceptions</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For list results: <code>limit</code>/<code>offset</code> params + <code>page()</code> + <code>truncation_note()</code> in <code>summary</code></li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Every returned dict should include an explicit <code>summary</code> string</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Pass <code>help=</code> on any failure whose fix is knowable at the throw site</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For mutations open editors should reflect: <code>ctx.broadcast(signal)</code> after the mutation</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Place file in <code>farmhands/</code> folder; register via <code>FarmhandRegistry</code> in <code>register_components</code></li>
+</ul>
+<p>Agent-facing output (§4) — a tool passes its tests without any of these:</p>
+<ul class="task-list">
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Default rows to 3-4 fields; gate prose/URLs/provenance behind <code>detail=true</code> (§4.1)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For list results: <code>limit</code>/<code>offset</code> params + <code>page()</code> + <code>truncation_note()</code> in <code>summary</code> (§4.2)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For one large payload (source, docs): cap by default, report the total, accept <code>full=true</code> (§4.2)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Every returned dict should include an explicit <code>summary</code> string (§4.2)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Add a <code>help</code> key to list and mutation results naming the natural next call (§4.3)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Report only what the framework actually records — no inferred causes (§4.4)</li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.farmhand</span><span class="w"> </span><span class="kn">import</span> <span class="p">(</span>
@@ -3326,6 +3526,26 @@
 <tr>
 <td>Returning a list without <code>limit</code>/<code>offset</code></td>
 <td>No way for a caller to scope a large result — the exact problem <code>studio_list_components</code> had before it grew filters</td>
+</tr>
+<tr>
+<td>Slicing a list by hand instead of <code>page()</code> + <code>truncation_note()</code></td>
+<td>Silently drops the rest with no signal — <code>marketplace_list_available</code> and <code>studio_get_errors</code> both shipped this way, reporting a bare <code>total</code> a caller had no way to act on</td>
+</tr>
+<tr>
+<td>Returning a whole file or document uncapped</td>
+<td>One call can swamp the caller's context, and nothing tells it whether it got a preview or everything — cap, report <code>total_lines</code>/<code>total_chars</code>, offer <code>full=true</code></td>
+</tr>
+<tr>
+<td>Putting the recovery hint in <code>message</code> prose instead of <code>help=</code></td>
+<td>The agent has to regex it out of the sentence; <code>help=</code> is a separate line it can act on directly</td>
+</tr>
+<tr>
+<td><code>asdict()</code>-ing a domain dataclass into a list row</td>
+<td>Ships every field the class happens to hold — <code>marketplace_list_available</code> emitted 21 fields/row with 41% of values empty and 8 fields empty on <em>every</em> row. Pick fields explicitly; gate the rest behind <code>detail=true</code></td>
+</tr>
+<tr>
+<td>A successful list or mutation with no <code>help</code></td>
+<td>The error path tells the agent what to do next but the success path leaves it guessing — the asymmetry is the bug</td>
 </tr>
 <tr>
 <td>Mutating state without <code>ctx.broadcast(...)</code></td>

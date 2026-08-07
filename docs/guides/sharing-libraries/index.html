@@ -16,7 +16,7 @@
         <link rel="prev" href="../signals/">
       
       
-        <link rel="next" href="../subscribing-to-marketplaces/">
+        <link rel="next" href="../publish-to-pypi/">
       
       
         
@@ -1133,13 +1133,6 @@
   </span>
   
   
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
 
       </a>
     </li>
@@ -1167,13 +1160,6 @@
     
   </span>
   
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
   
 
       </a>
@@ -1234,6 +1220,8 @@
   
     
     
+      
+        
       
         
       
@@ -1524,10 +1512,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#41-interactive-mode-default" class="md-nav__link">
+  <a href="#41-the-share-editor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.1 Interactive mode (default)
+        4.1 The Share editor
       
     </span>
   </a>
@@ -1535,10 +1523,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#42-non-interactive-mode" class="md-nav__link">
+  <a href="#42-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.2 Non-interactive mode
+        4.2 The CLI
       
     </span>
   </a>
@@ -1557,10 +1545,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#44-what-an-entry-looks-like" class="md-nav__link">
+  <a href="#44-git-remote-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.4 What an entry looks like
+        4.4 Git remote requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-what-an-entry-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 What an entry looks like
       
     </span>
   </a>
@@ -1631,6 +1630,41 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../publish-to-pypi/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Publishing to PyPI
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
     </li>
   
 
@@ -2981,10 +3015,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#41-interactive-mode-default" class="md-nav__link">
+  <a href="#41-the-share-editor" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.1 Interactive mode (default)
+        4.1 The Share editor
       
     </span>
   </a>
@@ -2992,10 +3026,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#42-non-interactive-mode" class="md-nav__link">
+  <a href="#42-the-cli" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.2 Non-interactive mode
+        4.2 The CLI
       
     </span>
   </a>
@@ -3014,10 +3048,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#44-what-an-entry-looks-like" class="md-nav__link">
+  <a href="#44-git-remote-requirements" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.4 What an entry looks like
+        4.4 Git remote requirements
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-what-an-entry-looks-like" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 What an entry looks like
       
     </span>
   </a>
@@ -3172,25 +3217,43 @@ for why the unit of sharing is the project, not one library.</p>
 <p>The same pipeline is available two ways: the CLI (this section) and the
 <strong>Share Project…</strong> item on <code>LibraryBrowserEditor</code>'s burger menu, which walks
 the same steps as a popup wizard. For the two precondition failures with an
-unambiguous, no-input repair — a missing <code>origin</code> remote, and an invalid
-<code>[tool.haywire].os</code> declaration — the wizard's first step offers an inline
-fix button instead of just a remedy: the repair runs in place, the project
-is re-checked automatically, and the panel updates without the user leaving
-the wizard. Every other failure still gets remedy text only (§8 lists them),
-since the repair either needs a judgment call or isn't haywire's to make.</p>
-<h3 id="41-interactive-mode-default">4.1 Interactive mode (default)<a class="headerlink" href="#41-interactive-mode-default" title="Permanent link">&para;</a></h3>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share
+safe, unambiguous repair — a dirty tree, a missing <code>origin</code> remote, an
+invalid <code>[tool.haywire].os</code> declaration, an unrecognized host, and a
+detached or non-default branch whose commits are already contained
+elsewhere — Preflight offers an inline fix button instead of just a remedy.
+The repair runs in place and you click <strong>Check again</strong> to re-verify. Every
+other failure gets remedy text only (§8 lists them), because the repair
+needs a judgment call, would risk losing work, or isn't haywire's to make.</p>
+<h3 id="41-the-share-editor">4.1 The Share editor<a class="headerlink" href="#41-the-share-editor" title="Permanent link">&para;</a></h3>
+<p>Open <strong>Share</strong> from the studio's left toolbar. It shows the project's
+publishing status — the barn libraries, their lockstep version — and a
+<strong>Share…</strong> button that opens the flow.</p>
+<p>Three screens:</p>
+<ol>
+<li><strong>Preflight</strong> runs the moment it opens and reports the earliest problem
+   it finds, with the repair inline where one is safe (see §4.4).</li>
+<li><strong>Review</strong> carries every dependency decision and the version on one
+   screen. Findings with nothing to report collapse to a single ✓ line, so a
+   clean project is one screen and one click. Nothing is written until you
+   confirm here.</li>
+<li><strong>Publish</strong> regenerates docs, rebuilds the marketstall, then commits, tags
+   and pushes — one authorized action, with the subprocess output streamed.</li>
+</ol>
+<h3 id="42-the-cli">4.2 The CLI<a class="headerlink" href="#42-the-cli" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--dry-run<span class="w">      </span><span class="c1"># report only; writes nothing</span>
 </span></code></pre></div>
-<p>Prompts through the same six steps as the GUI wizard — check the project,
-resolve dependency drift, choose a version, regenerate docs, review the
-commit, then push.</p>
-<h3 id="42-non-interactive-mode">4.2 Non-interactive mode<a class="headerlink" href="#42-non-interactive-mode" title="Permanent link">&para;</a></h3>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--yes<span class="w"> </span>--bump<span class="w"> </span>patch
-</span></code></pre></div>
-<p>Every answer comes from a flag instead of a prompt. Requires <code>--bump</code>
-(<code>patch|minor|major</code> or an explicit <code>X.Y.Z</code>); refuses to run if there is
-unresolved dependency drift — resolve it first (§3) or the run fails with the
-same information the drift step would have reported interactively.</p>
+<p>One mode, non-interactive. Every answer comes from a flag or takes its inert
+default. Requires <code>--bump</code> (<code>patch|minor|major</code> or an explicit <code>X.Y.Z</code>).</p>
+<p>It does not refuse over dependency drift. An <strong>undeclared import</strong> is declared
+for you — that one breaks a consumer's install and declaring it is
+unambiguously correct — while <strong>unused declarations</strong> and <strong>version floor lag</strong>
+are left untouched, because removing is lossy and nothing here can compute the
+oldest version that still works. Use the Share editor when you want to decide
+those.</p>
+<p><code>--dry-run</code> reports preconditions, findings and the version it would cut, and
+writes nothing. Preconditions are <em>reported</em> rather than enforced there, so it
+stays useful on a feature branch or a PR checkout.</p>
 <h3 id="43-publishing-from-the-default-branch">4.3 Publishing from the default branch<a class="headerlink" href="#43-publishing-from-the-default-branch" title="Permanent link">&para;</a></h3>
 <p><code>haywire share</code> refuses to publish from anything but the repository's default
 branch. There is no escape hatch — the rule is unconditional. It guarantees
@@ -3199,19 +3262,54 @@ receiving fixes after the run. For the full rationale, and why tag-pinning
 did not relax the rule, see
 <a href="../../architecture/sharing/share-pipeline-arch/#5-the-default-branch-publishing-rule">share-pipeline-arch §5</a>.</p>
 <p>If <code>haywire share</code> reports that you're on the wrong branch, e.g.:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>Currently on `feature-x`, but the repository&#39;s default branch is `main`.
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Currently on `feature-x`, but the repository&#39;s default branch is `main`.
 </span></code></pre></div>
 <p>switch to the default branch and publish from there: <code>git switch main</code>.</p>
 <p>This check, along with a companion check that HEAD isn't detached, always
 runs — there's no flag to skip it.</p>
-<h3 id="44-what-an-entry-looks-like">4.4 What an entry looks like<a class="headerlink" href="#44-what-an-entry-looks-like" title="Permanent link">&para;</a></h3>
+<h3 id="44-git-remote-requirements">4.4 Git remote requirements<a class="headerlink" href="#44-git-remote-requirements" title="Permanent link">&para;</a></h3>
+<p>Any precondition failure stops <code>haywire share</code> and reports the single
+earliest problem it found — checks run in order below, and an earlier
+failure makes a later one moot, so fixing one and re-running can surface the
+next. In the Share editor this renders on the <strong>Preflight screen</strong> itself:
+message and remedy text, plus — for the failures with a safe, unambiguous
+repair — a button that performs the fix right there, with your permission.
+Every one of them ends with <strong>Check again</strong>, which re-runs every check from
+the top; that is cheap enough to cost nothing, and it is honest about what
+the button does, since a repair fixes one fault rather than the whole
+report.</p>
+<p><code>haywire share</code> needs four things from your git setup before it will publish anything, checked in this order:</p>
+<ol>
+<li><strong>The working tree is clean.</strong> <code>git status --porcelain</code> must be empty —
+   no staged, unstaged, or untracked changes anywhere in the repo, not just
+   under <code>barn/</code>. This is deliberately strict: if a later step fails
+   partway through, the publish pipeline reverts everything it has written
+   by resetting the whole working tree, and that revert is only safe
+   because nothing else could have been sitting there dirty when the run
+   started. Commit or stash first. This applies to <code>haywire share</code> on the
+   command line exactly as it does in the Share editor — both run the same
+   checks. (A step-1 failure itself never mutates anything and never
+   triggers a revert — there's nothing yet to revert.)</li>
+<li><strong>An <code>origin</code> remote is configured.</strong> <code>git remote add origin &lt;url&gt;</code> if it isn't. The Share editor's Preflight screen offers this as an <strong>Add origin remote</strong> fix (§8).</li>
+<li><strong>The remote's host is recognized.</strong> GitHub and GitLab (<code>github.com</code>, <code>gitlab.com</code>) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in <code>~/.haywire/config.toml</code>:</li>
+</ol>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[[hosts]]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">hostname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab.example.com&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab&quot;</span><span class="w">   </span><span class="c1"># or &quot;github&quot;</span>
+</span></code></pre></div>
+<p>This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 4. A remote pointing at a local filesystem path (a sibling clone, a shared network drive) skips this check entirely — it isn't an unrecognized host, since there's no hostname to recognize or fail to recognize.
+4. <strong>The push will be accepted.</strong> <code>haywire share</code>'s commit step runs a <code>git push --dry-run</code> before it commits or tags anything, so a credential problem surfaces before anything is written. Because both the Share editor and the CLI push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:
+   - An <strong>HTTPS</strong> remote (<code>https://gitlab.example.com/...</code>) needs a credential cached ahead of time — a personal access token stored via a credential helper (<code>git config --global credential.helper osxkeychain</code> on macOS, then push once by hand to seed it) is the common approach.
+   - An <strong>SSH</strong> remote (<code>git@gitlab.example.com:...</code>) needs a key registered with the host and <code>ssh-agent</code> running, so no passphrase prompt blocks the push either.</p>
+<p>Setting up either is entirely between you and your git host — see your host's own documentation: <a href="https://docs.github.com/en/authentication">GitHub's guide to authenticating with the CLI/HTTPS</a> or <a href="https://docs.gitlab.com/auth/">GitLab's guide to credentials</a> cover both paths and the most common failures. This guide only covers what haywire itself checks, not general git credential troubleshooting.</p>
+<h3 id="45-what-an-entry-looks-like">4.5 What an entry looks like<a class="headerlink" href="#45-what-an-entry-looks-like" title="Permanent link">&para;</a></h3>
 <p>Each <code>barn/*</code> library becomes one <code>[[haybales]]</code> entry in the generated
 <code>marketstall.toml</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[[haybales]]</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">name</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-lib&quot;</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">label</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;My Lib&quot;</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">version</span><span class="w">          </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">requires_haywire</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;&gt;=0.0.31&quot;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="n">require</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haywire-core&gt;=0.0.31&quot;</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="n">description</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;One-line summary of what the library does.&quot;</span>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="n">author</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Your Name&quot;</span>
 </span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="n">source</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
@@ -3224,14 +3322,16 @@ runs — there's no flag to skip it.</p>
 </span></code></pre></div>
 <p>A few points worth knowing as an author (every field is defined in <a href="../../haybale/marketplace/haybale-marketplace-arch/#23-the-haybale-schema">the <code>Haybale</code> schema</a>):</p>
 <ul>
-<li><code>source = "git"</code> and the <code>install_spec</code> with <code>#subdirectory=</code> are how <code>haywire share</code> packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI.</li>
+<li><code>source = "git"</code> and the <code>install_spec</code> with <code>#subdirectory=</code> are how <code>haywire share</code> packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI. If you want to — releasing a wheel instead of shipping a clone — see <a href="../publish-to-pypi/">publish-to-pypi</a>.</li>
 <li><code>dependencies</code> lists pip distribution names of the haybale libraries you depend on — <em>not</em> the underscore form used inside the <code>@library</code> decorator.</li>
 <li><code>version</code> is the version this entry advertises — what you published. It is not
   a floor and nothing resolves against it; its only job is the update comparison.</li>
-<li><code>requires_haywire</code> declares which framework versions your library needs, as a
-  full PEP 440 specifier. Keep it as low as your library actually allows: a floor
-  restricts <em>consumers</em>, and raising it forces every one of them to update their
-  project before they can install you.</li>
+<li><code>require</code> declares which framework versions your library needs, as a full PEP
+  508 token (<code>haywire-core&gt;=0.0.31</code>). It is derived from the <code>haywire-core</code> entry
+  in your library's own <code>pyproject.toml</code>, so you set it once, in one place. Keep
+  it as low as your library actually allows: a floor restricts <em>consumers</em>, and
+  raising it forces every one of them to update their project before they can
+  install you.</li>
 <li>The four ref-bearing URLs (<code>install_spec</code>, <code>docs_url</code>, <code>examples_url</code>, <code>tests_url</code>) all pin to the release tag <code>v&lt;version&gt;</code> created by this run — not the branch you published from — so they stay correct even after your branch is deleted.</li>
 </ul>
 <p><code>haywire share</code> derives all this from each library's <code>pyproject.toml</code>, its <code>__init__.py</code>, and your git remote. SSH URLs are converted to HTTPS automatically.</p>
@@ -3293,7 +3393,7 @@ runs — there's no flag to skip it.</p>
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>                                                    git commit &amp;&amp; git push
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>                                                                    │
 </span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>                                                                    ▼
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>                                            uv run haywire share --yes --bump patch
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>                                            uv run haywire share --bump patch
 </span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>                                          (or: Share Project… in the burger menu)
 </span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>                                                                    │
 </span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>                                                                    ▼
@@ -3314,8 +3414,11 @@ committing whatever it produces. What each one exits with, and why neither is a
 staleness gate, is in
 <a href="../../architecture/sharing/share-pipeline-arch/#6-the-current-ci-story">share-pipeline-arch §6</a>.</p>
 <h2 id="8-common-pitfalls">8. Common pitfalls<a class="headerlink" href="#8-common-pitfalls" title="Permanent link">&para;</a></h2>
-<p><strong>You ran <code>haywire share</code> and got "unresolved dependency drift."</strong>
-<code>--yes</code> refuses to run with drift unresolved. Either drop <code>--yes</code> and resolve it interactively, or open the Library Overview Editor for the flagged library and Detect → Union, then re-run <code>--yes --bump ...</code>. The error message lists which manifest entries are missing.</p>
+<p><strong>You want to review dependency findings before publishing.</strong>
+The CLI does not stop for them — it declares undeclared imports and leaves the
+judgement calls alone. Run <code>haywire share --dry-run</code> to see every finding
+without writing anything, or open the <strong>Share</strong> editor and use its Review
+screen, which offers each finding with a per-item choice.</p>
 <p><strong>Your marketstall has an entry but consumers don't see the library after subscribing.</strong>
 Three causes worth checking:</p>
 <ol>
@@ -3325,12 +3428,18 @@ Three causes worth checking:</p>
 </ol>
 <p><strong>Detect Dependencies didn't pick up an import.</strong>
 The scan is static AST analysis, so dynamic imports (<code>importlib.import_module(name)</code>, <code>__import__(...)</code>) are invisible to it. Declare those manually in both manifests — and prefer Union over Replace in that library, since Replace would drop them again.</p>
+<p><strong><code>haywire share</code> fails with "Working tree is not clean.".</strong>
+You have uncommitted changes somewhere in the repo — not just under <code>barn/</code>. The publish pipeline reverts everything it writes if a later step fails partway through, by resetting the whole working tree, and that's only safe when nothing else was dirty to begin with. Commit or stash your changes, then retry.</p>
 <p><strong><code>haywire share</code> produces a URL with <code>&lt;REPO_URL&gt;</code> placeholder.</strong>
-The library has no git remote (<code>git remote -v</code> returns nothing). Add a remote: <code>git remote add origin &lt;url&gt;</code>. In the GUI wizard, the "Check the project" step offers this as an inline <strong>Add origin remote</strong> fix — type the URL and it runs the command for you, then re-checks in place.</p>
+The library has no git remote (<code>git remote -v</code> returns nothing). Add a remote: <code>git remote add origin &lt;url&gt;</code>. In the Share editor, Preflight offers an <strong>Add origin remote</strong> fix — type the URL, click it, then <strong>Check again</strong>.</p>
+<p><strong><code>haywire share</code> fails with "Host '\&lt;hostname&gt;' is not recognized.".</strong>
+Your <code>origin</code> remote points at a host haywire doesn't ship built-in support for — anything other than <code>github.com</code>/<code>gitlab.com</code>, typically a self-hosted GitLab or GitHub Enterprise instance. In the Share editor, the Preflight screen offers to write the needed <code>~/.haywire/config.toml</code> entry for you — click the fix, then Check again. From the CLI, add it by hand per <a href="#44-git-remote-requirements">§4.4</a> and retry. This is unrelated to push access — see the next entry if the push itself also fails.</p>
+<p><strong><code>haywire share</code> fails with "Push failed: ... terminal prompts disabled".</strong>
+git tried to prompt for a username/password and couldn't — both the Share editor and the CLI push non-interactively, so there's no terminal to prompt on. Preflight catches this before anything is written, and links your host's own authentication docs directly (SSH keys or tokens, whichever your remote uses). You need a credential cached <em>before</em> running share: either switch the remote to SSH (<code>git remote set-url origin git@&lt;host&gt;:&lt;owner&gt;/&lt;repo&gt;.git</code>) with a key registered on the host and <code>ssh-agent</code> running, or keep HTTPS and cache a personal access token via a git credential helper. See <a href="#44-git-remote-requirements">§4.4</a> for both paths and links to your host's own credential docs — this is a general git-auth problem, not something haywire's pipeline can resolve for you.</p>
 <p><strong><code>haywire share</code> fails with "Could not read <code>barn/&lt;lib&gt;/pyproject.toml</code>: ...".</strong>
 That library's <code>pyproject.toml</code> doesn't parse as TOML. Fix the TOML in <code>barn/&lt;lib&gt;/pyproject.toml</code> so it parses, then try again.</p>
 <p><strong><code>haywire share</code> fails with "Invalid manifest at <code>barn/&lt;lib&gt;/pyproject.toml</code>: ...".</strong>
-The library's <code>[tool.haywire]</code> <code>os</code> list declares something other than <code>macos</code>, <code>windows</code>, or <code>linux</code>. <code>other</code> is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the <code>os</code> list. In the GUI wizard, this failure offers an inline fix button (<strong>Remove invalid values</strong>, or <strong>Correct to macos</strong>/<strong>Correct to windows</strong> when every bad value maps unambiguously) that rewrites the field for you, then re-checks in place.</p>
+The library's <code>[tool.haywire]</code> <code>os</code> list declares something other than <code>macos</code>, <code>windows</code>, or <code>linux</code>. <code>other</code> is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the <code>os</code> list. In the Share editor, Preflight offers a fix button (<strong>Remove invalid values</strong>, or <strong>Correct to macos</strong>/<strong>Correct to windows</strong> when every bad value maps unambiguously) that rewrites the field for you — click it, then <strong>Check again</strong>.</p>
 <p><strong><code>haywire share</code> fails with "HEAD is detached — no branch is currently checked out.".</strong>
 You're not on a branch. If the remedy names one or more branches (e.g. <code>This commit is on `main`, `feature-x` — run `git switch main`.</code>), switch to the first one it lists. If it instead says the commit isn't on any branch, create one and publish from there: <code>git switch -c my-branch</code>.</p>
 <p><strong><code>haywire share</code> fails with "Currently on <code>&lt;branch&gt;</code>, but the repository's default branch is <code>&lt;default&gt;</code>.".</strong>
