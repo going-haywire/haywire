@@ -1,4 +1,4 @@
-"""Per-step body content for the Share flow — three screens.
+"""Per-step body content for the Share flow — four acting screens.
 
 Each panel returns nothing and renders into the current slot; the flow's
 chrome clears and re-renders around them.
@@ -6,12 +6,17 @@ chrome clears and re-renders around them.
 The predecessor rendered thirteen screens, one per pipeline concern. That is
 the ENGINE's decomposition, not the user's: a clean repo walked six
 consecutive screens of good news requiring six clicks, none of which offered a
-decision. Here the user's three questions each get one screen — can I publish,
-what am I publishing, ship it.
+decision. Here the user's questions each get one screen — can I publish, what
+am I publishing it as, what am I publishing, ship it.
+
+`edit` is separate from `review` because the two ask different things: review
+authorizes proposals the pipeline computed, while edit is free-text authoring
+with nothing to approve.
 """
 
 from __future__ import annotations
 
+from dataclasses import replace
 from pathlib import Path
 from typing import Callable
 
@@ -168,7 +173,81 @@ def _write_host_config(hostname: str, provider: str = "gitlab") -> str:
     return f"Written to {path} — click Check again."
 
 
-# ── 2. Review ────────────────────────────────────────────────────────────────
+# ── 2. Edit ──────────────────────────────────────────────────────────────────
+
+
+def panel_edit(flow: ShareFlow, rerender: Callable[[], None]) -> None:
+    """Per-library metadata form. Collects only; `publish` writes.
+
+    Only decorator-authored fields appear. version/description/authors/keywords
+    come from pyproject.toml through the installed distribution, so editing them
+    here would write a copy the next sync overwrites — they are shown read-only
+    on the library detail view instead.
+    """
+    if not flow.metadata_edits:
+        ui.label("No libraries to edit.").classes("text-sm hw-text-dim")
+
+    for index, edit in enumerate(flow.metadata_edits):
+        _render_metadata_row(flow, index, edit)
+
+    for problem in flow.metadata_problems:
+        ui.label(problem).classes("text-xs hw-text-danger")
+
+    continue_button = _footer("Continue")
+    # RETURN the coroutine — scheduling it breaks the stepper's advance
+    # contract (.insights/project_stepper_flows.md).
+    continue_button.on_click(lambda: _busy_advance(rerender, continue_button, flow.advance_from_edit))
+
+
+def _render_metadata_row(flow: ShareFlow, index: int, edit) -> None:
+    """One library's fields, boxed with its name.
+
+    Every handler binds ``i=index`` rather than closing over the loop variable:
+    a late-bound closure would write every field of every library onto the last
+    one in the list.
+    """
+
+    def _update(i: int, **changes) -> None:
+        flow.metadata_edits[i] = replace(flow.metadata_edits[i], **changes)
+
+    with _decision(edit.name, "decorator-authored fields", "--hw-text-dim"):
+        hui.input_field(
+            label="Label",
+            value=edit.label,
+            on_change=lambda e, i=index: _update(i, label=e.value),
+        )
+        hui.select_field(
+            options={
+                LibraryReloadAction.NONE.value: "No special action — hot-reloadable",
+                LibraryReloadAction.REFRESH.value: "Reload the page — Vue or JS resources",
+                LibraryReloadAction.RESTART.value: "Restart the Studio — C extensions",
+            },
+            value=edit.on_reload,
+            label="On reload",
+            in_popup=True,
+            on_change=lambda e, i=index: _update(i, on_reload=e.value),
+        ).classes("w-full")
+        hui.select_field(
+            options={"macos": "macOS", "windows": "Windows", "linux": "Linux"},
+            value=list(edit.os),
+            label="Supported OS (empty = all platforms)",
+            multiple=True,
+            in_popup=True,
+            on_change=lambda e, i=index: _update(i, os=list(e.value or [])),
+        ).classes("w-full").props("use-chips")
+        hui.input_field(
+            label="Examples path (relative to the library)",
+            value=edit.examples_path,
+            on_change=lambda e, i=index: _update(i, examples_path=e.value),
+        )
+        hui.input_field(
+            label="Tests path",
+            value=edit.tests_path,
+            on_change=lambda e, i=index: _update(i, tests_path=e.value),
+        )
+
+
+# ── 3. Review ────────────────────────────────────────────────────────────────
 
 
 def panel_review(flow: ShareFlow, rerender: Callable[[], None]) -> None:
@@ -459,7 +538,7 @@ def _collect(controls: dict, framework: str | None) -> ShareDecisions:
     )
 
 
-# ── 3. Publish ───────────────────────────────────────────────────────────────
+# ── 4. Publish ───────────────────────────────────────────────────────────────
 
 
 def panel_publish(flow: ShareFlow, rerender: Callable[[], None]) -> None:
@@ -529,7 +608,7 @@ def _render_committed_unpushed(flow: ShareFlow) -> None:
         ui.button("Close", on_click=lambda: flow.popup and flow.popup.close()).props("flat dense")
 
 
-# ── 4. Done ──────────────────────────────────────────────────────────────────
+# ── 5. Done ──────────────────────────────────────────────────────────────────
 
 
 def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:

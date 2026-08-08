@@ -1,6 +1,6 @@
 """The Share flow's state machine, free of NiceGUI calls.
 
-Three screens over :class:`SharePipeline`; the render functions in
+Four acting screens over :class:`SharePipeline`; the render functions in
 ``chrome.py``/``panels.py`` read the state this class exposes. That split is
 what makes the flow testable without a browser.
 
@@ -36,6 +36,8 @@ from haywire.core.publishing.pipeline import (
     DocsResult,
     DriftReport,
     FrameworkPlan,
+    LibraryEdit,
+    MetadataPlan,
     PreconditionFailure,
     PreconditionsError,
     PreconditionsReport,
@@ -82,6 +84,13 @@ class ShareFlow(StepFlow):
         # Preflight
         self.preconditions_report: PreconditionsReport | None = None
         self.precondition_failure: PreconditionFailure | None = None
+
+        # Edit — the metadata form's source and its working copy
+        self.metadata_plan: MetadataPlan | None = None
+        #: The working copy the edit form binds to. Written in `publish`,
+        #: never here — an abandoned flow must leave the tree untouched.
+        self.metadata_edits: list[LibraryEdit] = []
+        self.metadata_problems: list[str] = []
 
         # Review — read by the panel to build its controls
         self.drift_report: DriftReport | None = None
@@ -167,7 +176,10 @@ class ShareFlow(StepFlow):
             self.committed_unpushed = True
             return
 
-        if self.step != "preflight":
+        # `edit` joins `preflight` here: it only reads and collects, so there is
+        # nothing of ours to revert and calling rollback would reach past this
+        # flow into whatever the working tree already held.
+        if self.step not in ("preflight", "edit"):
             try:
                 self.pipeline.rollback()
             except ShareError as rollback_exc:
@@ -175,17 +187,46 @@ class ShareFlow(StepFlow):
                 self.error = f"{self.error}\n\nAdditionally, rollback failed: {rollback_exc}"
 
     async def advance_from_preflight(self) -> None:
-        """Check the project, then scan for drift and plan the writable steps.
+        """Check the project, then read the metadata the Edit screen shows.
 
-        Both halves run here so the Review screen has everything it needs the
-        moment it renders. `git ls-remote` is a real network round-trip (~2s)
-        and the drift scan costs ~0.5s per library, so both go to a thread —
-        on the event loop they starve NiceGUI's heartbeat and the browser
-        shows "connection lost".
+        Both run here so the Edit screen is populated the moment it renders
+        rather than on first click. `git ls-remote` is a real network
+        round-trip (~2s), so it goes to a thread — on the event loop it
+        starves NiceGUI's heartbeat and the browser shows "connection lost".
+
+        Drift and the version plan are NOT read here: they are computed in
+        :meth:`advance_from_edit`, once the edits are known, so Review never
+        shows a decision derived from a tree the user has since changed.
         """
         self.retry()
         try:
             self.preconditions_report = await asyncio.to_thread(self.pipeline.require_preconditions)
+            self.metadata_plan = await asyncio.to_thread(self.pipeline.plan_metadata)
+        except ShareError as exc:
+            self.fail(exc)
+            return
+        self.metadata_edits = list(self.metadata_plan.edits)
+        self.step = "edit"
+
+    async def advance_from_edit(self) -> None:
+        """Validate the edits, then plan everything `review` decides.
+
+        Writes nothing: the edits are applied in `publish` alongside the bump,
+        per the stepper's rule that only the last step may write. Planning moves
+        here from preflight so drift and the version plan see the edited state —
+        a linked_libraries change after review would invalidate a decision the
+        user had just authorized.
+
+        Validation problems keep the user on this screen rather than raising:
+        they are per-field authoring mistakes with the offending field still on
+        screen, not pipeline failures, so `fail()`'s rollback machinery would be
+        the wrong response.
+        """
+        self.retry()
+        self.metadata_problems = self.pipeline.validate_metadata(self.metadata_edits)
+        if self.metadata_problems:
+            return
+        try:
             self.drift_report = await asyncio.to_thread(self.pipeline.check_drift)
             self.framework_plan = await asyncio.to_thread(self.pipeline.plan_framework)
             self.version_plan = await asyncio.to_thread(self.pipeline.plan_version)
@@ -216,6 +257,8 @@ class ShareFlow(StepFlow):
         """
         self.retry()
         try:
+            if self.metadata_edits:
+                await asyncio.to_thread(self.pipeline.apply_metadata, self.metadata_edits)
             await asyncio.to_thread(self.pipeline.apply_all, decisions)
             result = await asyncio.to_thread(self.pipeline.apply_bump, version_spec)
         except ShareError as exc:

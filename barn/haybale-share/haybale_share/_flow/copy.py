@@ -9,11 +9,18 @@ and nothing caught a caller that forgot.
 
 from __future__ import annotations
 
-#: Three screens, then a terminal one.
+#: Four acting screens, then a terminal one.
 #:
 #: `preflight` auto-runs on open and renders its own failures inline — there is
 #: no decision on it, so a "Check" button would ask the user to confirm an
 #: intent they already expressed by opening the flow.
+#:
+#: `edit` sits between them because `review` authorizes decisions the pipeline
+#: *computed* — drift, framework floor, version — while `edit` is free-text
+#: authoring with no computed proposal. Mixing "approve this bump" with "type a
+#: new description" would muddy what the confirm button means. Placing it first
+#: also means drift detection and the marketstall generator see the edited
+#: state; editing afterwards could invalidate a decision just authorized.
 #:
 #: `review` carries EVERY dependency decision plus the version on one screen.
 #: The predecessor spread these over six, of which up to five were routinely
@@ -22,10 +29,11 @@ from __future__ import annotations
 #: `publish` executes what `review` decided: docs, marketstall, commit, tag,
 #: push. No decisions, so no intermediate screens — splitting it served the
 #: pipeline's checkpoints, not the user's.
-STEPS = ("preflight", "review", "publish", "done")
+STEPS = ("preflight", "edit", "review", "publish", "done")
 
 STEP_TITLES = {
     "preflight": "Check the project",
+    "edit": "Edit library details",
     "review": "Review and decide",
     "publish": "Publish",
     "done": "Published",

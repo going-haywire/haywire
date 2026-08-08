@@ -11,6 +11,7 @@ from haywire.ui.components.stepper import Panel, show_step_flow
 from ._state import ShareFlow
 from .panels import (
     panel_done,
+    panel_edit,
     panel_preflight,
     panel_publish,
     panel_review,
@@ -41,6 +42,7 @@ def show_share_flow(
 
     panels: dict[str, Panel[ShareFlow]] = {
         "preflight": panel_preflight,
+        "edit": panel_edit,
         "review": panel_review,
         "publish": panel_publish,
         "done": panel_done,
