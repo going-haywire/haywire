@@ -10,13 +10,14 @@ import enum
 from dataclasses import dataclass, field
 from typing import ClassVar
 
+from haywire.core.library.metadata import LibraryMetadata
+
 
 @dataclass
-class Haybale:
-    """One entry from a [[haybales]] section."""
+class Haybale(LibraryMetadata):
+    """One entry from a [[haybales]] section — a library as offered by a feed."""
 
-    name: str
-    version: str
+    name: str = ""
     # The framework requirement as a full PEP 508 token, identical in shape to
     # the library's own pyproject entry: "haywire-core>=0.0.31",
     # "haywire-core~=0.0.31,<1.0.0", or the bare "haywire-core" when the author
@@ -25,19 +26,14 @@ class Haybale:
     # just the specifier. Derived from the library's pyproject at write time,
     # never authored independently. See haywire.core.marketstall.requirement.
     require: str = ""
-    label: str = ""
-    description: str = ""
-    author: str = ""
     source: str = "pypi"
     install_spec: str = ""
-    tags: list[str] = field(default_factory=list)
-    os: list[str] = field(default_factory=list)
-    dependencies: list[str] = field(default_factory=list)
-    source_url: str = ""
-    docs_url: str = ""
-    examples_url: str = ""
-    tests_url: str = ""
-    # Runtime-only routing metadata (not persisted).
+    origin: str = ""
+    """The repository this library is published from. Base that other locations
+    resolve against; renamed from ``source_url``."""
+    # Runtime-only routing metadata (not persisted). `source_origin` is
+    # unrelated to `origin` above — it records whether this row arrived from a
+    # market or a stall.
     source_label: str = ""
     source_file: str = ""
     source_origin: str = ""
@@ -52,16 +48,21 @@ class Haybale:
         "version",
         "require",
         "description",
-        "author",
+        "authors",
         "source",
         "install_spec",
         "tags",
         "os",
-        "dependencies",
-        "source_url",
-        "docs_url",
-        "examples_url",
-        "tests_url",
+        "on_reload",
+        "linked_libraries",
+        "origin",
+        "docs_path",
+        "examples_path",
+        "tests_path",
+        "homepage_url",
+        "documentation_url",
+        "author_url",
+        "issues_url",
         "via",
         "last_seen",
         "stale",

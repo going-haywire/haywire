@@ -556,7 +556,7 @@ class LibrarySystemService:
             print(f"      ID:             {lib_id}")
             print(f"      Version:        {identity.version}")
             print(f"      Enabled:        {enabled}")
-            print(f"      Dependencies:   {identity.dependencies}")
+            print(f"      Dependencies:   {identity.linked_libraries}")
             print(f"      Source:         {source}")
             print(f"      Install Method: {install_method}")
             print()

@@ -588,7 +588,7 @@ class LibraryBrowserEditor(BaseEditor):
                                 description=raw.get("description", ""),
                                 source="local",
                                 install_spec=str(raw.get("path", "")),
-                                dependencies=list(raw.get("dependencies", [])),
+                                linked_libraries=list(raw.get("dependencies", [])),
                             )
                         )
                     available = [e for e in candidates if e.name not in installed_names and matches(e)]

@@ -796,7 +796,7 @@ class LibraryManager:
         result = []
         for installed in self.list_installed():
             identity = self.registry.get_library_identity(installed.identity.id)
-            for dep in identity.dependencies or []:
+            for dep in identity.linked_libraries or []:
                 if self._norm(dep.split(".")[0]) == target_norm:
                     result.append(installed)
                     break
@@ -821,7 +821,7 @@ class LibraryManager:
             if self.registry.is_library_enabled(lid):
                 enabled.add(norm)
         check = enabled if require_enabled else installed
-        return [d for d in (pkg.dependencies or []) if self._norm(d.split(".")[0]) not in check]
+        return [d for d in (pkg.linked_libraries or []) if self._norm(d.split(".")[0]) not in check]
 
     def get_missing_dependencies(self, lib_id: str, require_enabled: bool) -> list[str]:
         """Return dependency names from @library that are not satisfied.
@@ -839,7 +839,9 @@ class LibraryManager:
                 enabled_norms.add(norm)
         check_set = enabled_norms if require_enabled else installed_norms
         return [
-            dep for dep in (identity.dependencies or []) if self._norm(dep.split(".")[0]) not in check_set
+            dep
+            for dep in (identity.linked_libraries or [])
+            if self._norm(dep.split(".")[0]) not in check_set
         ]
 
     async def fetch_versions(self, pkg: "Haybale") -> list[str]:

@@ -199,16 +199,17 @@ class MarketplaceState(AppState):
         """Fetch OVERVIEW.md (or README fallback) for a marketplace-only package.
 
         Priority:
-        1. ``docs_url`` field — explicit raw URL to OVERVIEW.md or to the
-           directory that contains it (e.g. a GitHub raw content URL).
-           If the URL ends with a filename it is fetched directly; otherwise
-           OVERVIEW.md and QUICKREF.md are appended and tried in order.
-        2. Heuristic GitHub lookup — derived from ``source_url`` or
-           ``install_spec``, for both pypi and git sources. The module name
-           is inferred from the package name (``-`` → ``_``) and the optional
-           ``#subdirectory=`` fragment of ``install_spec`` is respected.
-        3. PyPI long_description fallback — only when no GitHub URL is found
+        1. ``docs_path`` — a path from the repo's git root, resolved against
+           ``origin`` at ``install_spec``'s ref. A local path is read from
+           disk; otherwise the raw URL is fetched, appending OVERVIEW.md and
+           QUICKREF.md in order when the path names a directory.
+        2. PyPI long_description fallback — only when step 1 yielded nothing
            and ``source == 'pypi'``.
+
+        There is no branch-guessing heuristic any more. The previous one tried
+        ``main`` then ``master`` against a URL derived from ``source_url``,
+        which meant a repo using neither silently produced 404s; the ref now
+        comes from ``install_spec``, or resolution returns None.
 
         All remote fetches go through the shared ``fetch_doc`` cache, keyed by
         ``pkg.name``, so a doc body survives a later offline lookup.
@@ -218,6 +219,7 @@ class MarketplaceState(AppState):
         from pathlib import Path
 
         from haywire.core.marketstall.cache import fetch_doc
+        from haywire.core.marketstall.locate import resolve_row_path
 
         def _first_reachable(urls: list) -> "str | None":
             for url in urls:
@@ -226,63 +228,28 @@ class MarketplaceState(AppState):
                     return body
             return None
 
-        # ── 1. Explicit docs_url ──────────────────────────────────────────────
-        if pkg.docs_url:
-            p = Path(pkg.docs_url)
-            if p.is_dir():
-                for candidate in (p / "OVERVIEW.md", p / "QUICKREF.md"):
+        # ── 1. Resolve docs_path against the row's origin + ref ──────────────
+        if pkg.docs_path:
+            local = Path(pkg.docs_path)
+            if local.is_dir():
+                for candidate in (local / "OVERVIEW.md", local / "QUICKREF.md"):
                     if candidate.exists():
                         return candidate.read_text()
-            elif p.is_file():
-                return p.read_text()
-            elif pkg.docs_url.startswith("http"):
-                url = pkg.docs_url.rstrip("/")
-                if url.endswith(".md"):
-                    candidates = [url]
-                else:
-                    candidates = [f"{url}/OVERVIEW.md", f"{url}/QUICKREF.md"]
-                content = await asyncio.to_thread(_first_reachable, candidates)
-                if content:
-                    return content
+            elif local.is_file():
+                return local.read_text()
+            else:
+                base = resolve_row_path(pkg, pkg.docs_path, form="raw")
+                if base:
+                    if base.endswith(".md"):
+                        candidates = [base]
+                    else:
+                        stem = base.rstrip("/")
+                        candidates = [f"{stem}/OVERVIEW.md", f"{stem}/QUICKREF.md"]
+                    content = await asyncio.to_thread(_first_reachable, candidates)
+                    if content:
+                        return content
 
-        # ── 2. Heuristic: derive raw GitHub URL ──────────────────────────────
-        module_name = pkg.name.replace("-", "_")
-
-        subdir = ""
-        if pkg.install_spec and "#subdirectory=" in pkg.install_spec:
-            subdir = pkg.install_spec.split("#subdirectory=")[-1].strip("/")
-
-        def _github_raw_base(url: str) -> "str | None":
-            url = url.rstrip("/").removesuffix(".git")
-            if "github.com" not in url:
-                return None
-            return url.replace("https://github.com/", "https://raw.githubusercontent.com/")
-
-        raw_base = None
-        if pkg.source_url and "github.com" in pkg.source_url:
-            raw_base = _github_raw_base(pkg.source_url)
-        elif pkg.source == "git" and pkg.install_spec:
-            git_url = pkg.install_spec.removeprefix("git+").split("@")[0].split("#")[0].rstrip("/")
-            raw_base = _github_raw_base(git_url)
-
-        if raw_base:
-            candidates = []
-            for branch in ("main", "master"):
-                prefix = f"{raw_base}/{branch}"
-                pkg_prefix = f"{prefix}/{subdir}/{module_name}" if subdir else f"{prefix}/{module_name}"
-                candidates.append(f"{pkg_prefix}/OVERVIEW.md")
-                candidates.append(f"{pkg_prefix}/QUICKREF.md")
-            for branch in ("main", "master"):
-                prefix = f"{raw_base}/{branch}"
-                if subdir:
-                    candidates.append(f"{prefix}/{subdir}/OVERVIEW.md")
-                candidates.append(f"{prefix}/OVERVIEW.md")
-
-            content = await asyncio.to_thread(_first_reachable, candidates)
-            if content:
-                return content
-
-        # ── 3. PyPI long_description fallback ────────────────────────────────
+        # ── 2. PyPI long_description fallback ────────────────────────────────
         if pkg.source == "pypi":
             url = f"https://pypi.org/pypi/{pkg.name}/json"
             body = await asyncio.to_thread(fetch_doc, url, pkg.name, cache_dir=cache_dir)

@@ -43,6 +43,17 @@ def _get_decorator_list_field(content: str, field: str) -> list[str]:
     return [v.replace("_", "-") for v in raw]
 
 
+def _get_decorator_str_field(content: str, field: str) -> str:
+    """Read a quoted string field from the decorator source. '' if absent.
+
+    Mirrors :func:`_set_decorator_str_field` so reads and writes agree on where
+    the field lives, and is quote-agnostic for the same reason: barn libraries
+    are ``ruff format``ted to double quotes.
+    """
+    match = re.search(rf"[ \t]+{re.escape(field)}=['\"]([^'\"]*)['\"]", content)
+    return match.group(1) if match else ""
+
+
 def merge_decorator_list_field(
     init_file: Path, field: str, values: list[str], *, mode: Literal["union", "replace"]
 ) -> None:

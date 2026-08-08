@@ -879,8 +879,8 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         scopes.append(library_identity.module_name + ".")
 
         # Add declared library dependencies
-        if library_identity.dependencies:
-            for dep_lib_id in library_identity.dependencies:
+        if library_identity.linked_libraries:
+            for dep_lib_id in library_identity.linked_libraries:
                 # Dependencies are library IDs (e.g., 'haywire.widgets')
                 # Convert to module prefix by adding dot
                 scopes.append(dep_lib_id + ".")

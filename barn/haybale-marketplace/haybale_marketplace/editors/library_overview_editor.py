@@ -54,6 +54,7 @@ from haywire.core.session.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
 from haywire.core.marketstall import Haybale
+from haywire.core.marketstall.locate import link_form, resolve_row_path
 from haywire.ui.modals import info_modal
 
 from haywire.ui.widget.registry import WidgetRegistry
@@ -116,32 +117,23 @@ def should_block_install_for_os(haybale) -> str | None:
     return f"Not available on this OS; this library targets: {targets}."
 
 
-def _clickable_doc_url(url: str) -> str:
-    """A browser-fetchable file URL for a generated docs_url/examples_url prefix.
-
-    docs_url is a DIRECTORY prefix meant for programmatic fetching — the same
-    resolution MarketplaceState.fetch_overview applies (append OVERVIEW.md when
-    the URL doesn't already name a file). A raw-content host like
-    raw.githubusercontent.com serves no directory index, so handing the bare
-    prefix to a browser link 404s even when the file inside it exists.
-    """
-    stripped = url.rstrip("/")
-    return stripped if stripped.endswith(".md") else f"{stripped}/OVERVIEW.md"
-
-
 def collect_overview_links(pkg) -> list[tuple[str, str]]:
     """The (label, href) links shown in the library overview header.
 
-    Examples are surfaced for humans; tests_url is deliberately NOT surfaced
+    Examples are surfaced for humans; tests_path is deliberately NOT surfaced
     (framework-maintainer metadata only).
     """
+    if pkg is None:
+        return []
     links: list[tuple[str, str]] = []
-    if pkg and pkg.source_url:
-        links.append(("Source", pkg.source_url))
-    if pkg and pkg.docs_url and pkg.docs_url.startswith("http"):
-        links.append(("Docs", _clickable_doc_url(pkg.docs_url)))
-    if pkg and getattr(pkg, "examples_url", "") and pkg.examples_url.startswith("http"):
-        links.append(("Examples", pkg.examples_url))
+    if pkg.origin:
+        links.append(("Source", pkg.origin))
+    for label, path in (("Docs", pkg.docs_path), ("Examples", pkg.examples_path)):
+        if not path:
+            continue
+        href = resolve_row_path(pkg, path, form=link_form(path))
+        if href:
+            links.append((label, href))
     return links
 
 
@@ -330,7 +322,7 @@ class LibraryOverviewEditor(BaseEditor):
             name = marketplace_pkg.label or marketplace_pkg.name
             version = marketplace_pkg.version
             description = marketplace_pkg.description
-            author = marketplace_pkg.author
+            author = ", ".join(marketplace_pkg.authors)
             tags = marketplace_pkg.tags or []
 
         # Check for available update
@@ -873,10 +865,10 @@ class LibraryOverviewEditor(BaseEditor):
                     ui.label("No overview available for this package.").classes(
                         "hw-text-muted text-sm italic"
                     )
-                    if pkg.source_url:
+                    if pkg.origin:
                         ui.link(
                             "View source repository →",
-                            pkg.source_url,
+                            pkg.origin,
                             new_tab=True,
                         ).classes("text-xs hw-text-accent mt-1")
         except Exception:

@@ -91,7 +91,8 @@ def build_edit_dialog(
         )
         # Dependencies are authored by `haywire share`, not here.
         ui.label(
-            f"Dependencies: {', '.join(lib.identity.dependencies or []) or '(none)'} (set via Share/publish)"
+            f"Dependencies: {', '.join(lib.identity.linked_libraries or []) or '(none)'} "
+            "(set via Share/publish)"
         ).classes("text-xs hw-text-dim")
 
         desc_input = hui.input_field(label="Description", value=lib.identity.description)
@@ -184,7 +185,7 @@ def build_edit_dialog(
                 # Passed through untouched: this dialog no longer authors
                 # dependencies, but the identity dict is written wholesale, so
                 # omitting the key would erase the declaration.
-                "dependencies": list(lib.identity.dependencies or []),
+                "dependencies": list(lib.identity.linked_libraries or []),
                 "on_reload": on_reload_select.value or LibraryReloadAction.NONE.value,
             }
             # Include `os` only if the multi-select was rendered (heap libraries).

@@ -37,7 +37,7 @@ def test_container_stamps_session_weakref_on_session_state():
             author_url="",
             folder_path="",
             module_name="test_lib",
-            dependencies=[],
+            linked_libraries=[],
             tags=[],
         )
 

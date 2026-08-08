@@ -83,16 +83,16 @@ def test_build_entry_uses_decorator_values_over_pyproject() -> None:
     assert entry["version"] == "0.0.3"
     # Decorator overrides pyproject for description:
     assert entry["description"] == "Alpha library — overridden in pyproject? Decorator wins."
-    assert entry["author"] == "Alpha Author"
+    assert entry["authors"] == ["Alpha Author"]
     assert entry["source"] == "pypi"
     assert entry["install_spec"] == "haybale-alpha"
     assert entry["tags"] == ["alpha", "demo"]
     # Only haybale-* siblings; haywire-core and external-lib are filtered out:
-    assert entry["dependencies"] == ["haybale-beta"]
-    assert entry["source_url"] == "https://github.com/example/fake-workspace"
-    assert entry["docs_url"] == (
-        "https://raw.githubusercontent.com/example/fake-workspace/main/subdir-a/haybale-alpha/haybale_alpha/"
-    )
+    assert entry["linked_libraries"] == ["haybale-beta"]
+    assert entry["origin"] == "https://github.com/example/fake-workspace"
+    # A path from the git root, not a URL — the consumer resolves it against
+    # `origin` at `install_spec`'s ref. Trailing slash marks a directory.
+    assert entry["docs_path"] == "subdir-a/haybale-alpha/haybale_alpha/"
 
 
 @pytest.mark.unit
@@ -156,9 +156,9 @@ def test_build_entry_falls_back_to_pyproject_description_when_decorator_absent(t
 
     assert entry["label"] == "haybale-bare"  # falls back to name
     assert entry["description"] == "Bare-bones package without an @library decorator."
-    assert entry["author"] == "Fake Team"  # config default
+    assert entry["authors"] == ["Fake Team"]  # config default
     assert entry["tags"] == ["default-tag"]  # config default
-    assert entry["dependencies"] == []
+    assert entry["linked_libraries"] == []
 
 
 @pytest.mark.unit
@@ -168,13 +168,13 @@ def test_emit_stall_toml_round_trips_via_tomllib() -> None:
         "label": "Alpha",
         "version": "0.0.3",
         "description": "alpha desc",
-        "author": "Alpha Author",
+        "authors": ["Alpha Author"],
         "source": "pypi",
         "install_spec": "haybale-alpha",
         "tags": ["a", "b"],
-        "dependencies": ["haybale-beta"],
-        "source_url": "https://github.com/example/fake-workspace",
-        "docs_url": "https://raw.githubusercontent.com/example/fake-workspace/main/x/y/",
+        "linked_libraries": ["haybale-beta"],
+        "origin": "https://github.com/example/fake-workspace",
+        "docs_path": "x/y/",
     }
 
     out_text = generate_marketstall.emit_stall_toml(cast(dict, entry))
@@ -187,7 +187,7 @@ def test_emit_stall_toml_round_trips_via_tomllib() -> None:
     assert "packages" not in parsed
     assert len(parsed["haybales"]) == 1
     assert parsed["haybales"][0]["name"] == "haybale-alpha"
-    assert parsed["haybales"][0]["dependencies"] == ["haybale-beta"]
+    assert parsed["haybales"][0]["linked_libraries"] == ["haybale-beta"]
 
 
 @pytest.mark.unit
@@ -199,13 +199,13 @@ def test_emit_stall_toml_includes_name_in_header() -> None:
         "version": "0.0.1",
         "label": "X",
         "description": "d",
-        "author": "a",
+        "authors": ["a"],
         "source": "pypi",
         "install_spec": "haybale-x",
         "tags": [],
-        "dependencies": [],
-        "source_url": "u",
-        "docs_url": "d2",
+        "linked_libraries": [],
+        "origin": "u",
+        "docs_path": "d2",
     }
     out = generate_marketstall.emit_stall_toml(cast(dict, entry))
     assert out.startswith("# Marketstall for haybale-x")
@@ -246,13 +246,13 @@ def test_emit_stall_toml_escapes_quotes_in_strings() -> None:
         "label": 'X with "quotes"',
         "version": "0.0.1",
         "description": "desc",
-        "author": "Author",
+        "authors": ["Author"],
         "source": "pypi",
         "install_spec": "haybale-x",
         "tags": [],
-        "dependencies": [],
-        "source_url": "u",
-        "docs_url": "d",
+        "linked_libraries": [],
+        "origin": "u",
+        "docs_path": "d",
     }
     out = generate_marketstall.emit_stall_toml(cast(dict, entry))
     import tomllib
@@ -269,13 +269,13 @@ def test_emit_stall_toml_escapes_control_characters() -> None:
         "label": "Multi",
         "version": "0.0.1",
         "description": "Line one.\nLine two with a tab\there.",
-        "author": "Author",
+        "authors": ["Author"],
         "source": "pypi",
         "install_spec": "haybale-multi",
         "tags": [],
-        "dependencies": [],
-        "source_url": "u",
-        "docs_url": "d",
+        "linked_libraries": [],
+        "origin": "u",
+        "docs_path": "d",
     }
     out = generate_marketstall.emit_stall_toml(cast(dict, entry))
     import tomllib
@@ -328,7 +328,7 @@ def test_generate_walks_publish_order_and_returns_toml(tmp_path: Path) -> None:
     alpha_parsed = tomllib.loads(result.stalls[0][1])
     assert alpha_parsed["haybales"][0]["name"] == "haybale-alpha"
     assert alpha_parsed["haybales"][0]["version"] == "0.0.3"
-    assert alpha_parsed["haybales"][0]["docs_url"].endswith("/subdir-a/haybale-alpha/haybale_alpha/")
+    assert alpha_parsed["haybales"][0]["docs_path"] == "subdir-a/haybale-alpha/haybale_alpha/"
 
     # Aggregator: one [[stalls]] per dist, URLs composed under feed_base_url.
     mp_parsed = tomllib.loads(result.marketplace_toml)
@@ -367,7 +367,7 @@ def test_generate_resolves_module_path_from_entry_points(tmp_path: Path) -> None
 
     result = generate_marketstall.generate(root, feed_base_url="https://feed.example/x")
     stall_parsed = tomllib.loads(result.stalls[0][1])
-    assert stall_parsed["haybales"][0]["docs_url"].endswith("/pkgs/haybale-foo/haybale_foo_renamed/")
+    assert stall_parsed["haybales"][0]["docs_path"] == "pkgs/haybale-foo/haybale_foo_renamed/"
 
 
 @pytest.mark.unit
@@ -441,7 +441,7 @@ def test_generate_tolerates_missing_init_py(tmp_path: Path) -> None:
     entry = stall_parsed["haybales"][0]
     assert entry["name"] == "haybale-ghost"
     assert entry["description"] == "no init"  # pyproject fallback
-    assert entry["author"] == "Default Author"  # config default
+    assert entry["authors"] == ["Default Author"]  # config default
     assert entry["tags"] == ["default-tag"]  # config default
     assert entry["label"] == "haybale-ghost"  # name fallback
 

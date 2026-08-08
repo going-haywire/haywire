@@ -50,7 +50,7 @@ class TestLibraryStateIntegration:
             url="",
             author="",
             author_url="",
-            dependencies=[],
+            linked_libraries=[],
             tags=[],
             module_name="testlib",
             folder_path="",

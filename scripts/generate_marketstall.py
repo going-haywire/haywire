@@ -157,28 +157,29 @@ def build_entry(
     # for the libraries it publishes, so both producers agree by construction
     # rather than by convention.
     require = haywire_core_requirement(pyproject_deps)
-    docs_url = (
-        f"https://raw.githubusercontent.com/{_strip_github_prefix(config.source_url)}/"
-        f"{config.docs_branch}/{subdirectory}/{module_name}/"
-    )
+    # A path from the git root, not a URL: the consumer resolves it against
+    # `origin` at `install_spec`'s ref — see haywire.core.marketstall.locate.
+    # Trailing slash marks a directory.
+    docs_path = f"{subdirectory}/{module_name}/"
 
     if source == "git":
         install_spec = f"{name} @ git+{config.source_url}.git#subdirectory={subdirectory}"
     else:
         install_spec = name
 
+    author = meta.author or config.default_author
     entry: dict[str, object] = {
         "name": name,
         "label": meta.label or name,
         "version": version,
         "description": meta.description or pyproject_description,
-        "author": meta.author or config.default_author,
+        "authors": [author] if author else [],
         "source": source,
         "install_spec": install_spec,
         "tags": meta.tags if meta.tags is not None else list(config.default_tags),
-        "dependencies": sibling_haybale,
-        "source_url": config.source_url,
-        "docs_url": docs_url,
+        "linked_libraries": sibling_haybale,
+        "origin": config.source_url,
+        "docs_path": docs_path,
     }
     # Omitted rather than emitted empty when undeclared — an absent field means
     # "no requirement", which is exactly how the parser and the gate read it.
@@ -206,11 +207,6 @@ def _filter_haybale_siblings(deps: list[str]) -> list[str]:
     return out
 
 
-def _strip_github_prefix(url: str) -> str:
-    """Turn 'https://github.com/user/repo' into 'user/repo'. Used to build raw URLs."""
-    return url.rstrip("/").removeprefix("https://github.com/")
-
-
 # Order of fields in every [[haybales]] entry. Matches the new spec vocabulary
 # (Haybale._TOML_FIELDS) used by the runtime parsers.
 _ENTRY_FIELD_ORDER: tuple[str, ...] = (
@@ -219,13 +215,13 @@ _ENTRY_FIELD_ORDER: tuple[str, ...] = (
     "version",
     "require",
     "description",
-    "author",
+    "authors",
     "source",
     "install_spec",
     "tags",
-    "dependencies",
-    "source_url",
-    "docs_url",
+    "linked_libraries",
+    "origin",
+    "docs_path",
 )
 
 _MARKETPLACE_HEADER = """\

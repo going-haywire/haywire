@@ -23,6 +23,7 @@ Conflict-resolution order:
 from __future__ import annotations
 
 import datetime as _dt
+from dataclasses import replace
 from pathlib import Path
 
 from haywire.core.marketstall.cache import (
@@ -162,32 +163,11 @@ def mark_stale_against_previous(
         if prev.stale:
             out.append(prev)
             continue
-        # Newly stale: copy, set stale + last_seen.
-        out.append(
-            Haybale(
-                name=prev.name,
-                version=prev.version,
-                require=prev.require,
-                label=prev.label,
-                description=prev.description,
-                author=prev.author,
-                source=prev.source,
-                install_spec=prev.install_spec,
-                tags=list(prev.tags),
-                os=list(prev.os),
-                dependencies=list(prev.dependencies),
-                source_url=prev.source_url,
-                docs_url=prev.docs_url,
-                examples_url=prev.examples_url,
-                tests_url=prev.tests_url,
-                source_label=prev.source_label,
-                source_file=prev.source_file,
-                source_origin=prev.source_origin,
-                via=prev.via,
-                last_seen=now,
-                stale=True,
-            )
-        )
+        # Newly stale: copy, set stale + last_seen. `replace` rather than a
+        # field-by-field rebuild so a field added to Haybale (or to the shared
+        # LibraryMetadata base) is carried across a refresh automatically —
+        # the enumerated form silently dropped anything it had not been taught.
+        out.append(replace(prev, last_seen=now, stale=True))
     return out
 
 

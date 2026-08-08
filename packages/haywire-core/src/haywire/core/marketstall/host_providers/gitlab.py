@@ -20,6 +20,9 @@ _BLOB_PATTERN = re.compile(
 _RAW_PATTERN = re.compile(
     r"^https://gitlab\.com/(?P<owner>.+)/(?P<repo>[^/]+)/-/raw/(?P<ref>[^/]+)/(?P<path>.+)$"
 )
+# A bare repository URL — no ref, no path. Owner is greedy for the same reason
+# as above: subgroups nest, and the repo is the last segment.
+_ORIGIN_PATTERN = re.compile(r"^https://gitlab\.com/(?P<owner>.+)/(?P<repo>[^/]+?)(?:\.git)?/?$")
 
 
 class GitLabProvider:
@@ -62,3 +65,10 @@ class GitLabProvider:
 
     def blob_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         return f"https://gitlab.com/{owner}/{repo}/-/blob/{ref}/{path}"
+
+    def tree_url(self, owner: str, repo: str, ref: str, path: str) -> str:
+        return f"https://gitlab.com/{owner}/{repo}/-/tree/{ref}/{path}"
+
+    def parse_origin(self, url: str) -> tuple[str, str] | None:
+        m = _ORIGIN_PATTERN.match(url.strip())
+        return (m.group("owner"), m.group("repo")) if m else None

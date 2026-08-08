@@ -711,7 +711,7 @@ class LibraryRegistry:
 
             logger.info(
                 f"  ✓ Registered library: '{library_instance.identity.label}' "
-                f"(deps: {library_instance.identity.dependencies})"
+                f"(deps: {library_instance.identity.linked_libraries})"
             )
 
         except Exception as e:

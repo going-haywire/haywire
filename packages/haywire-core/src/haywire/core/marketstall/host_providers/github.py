@@ -19,6 +19,8 @@ _BLOB_PATTERN = re.compile(
 _RAW_PATTERN = re.compile(
     r"^https://raw\.githubusercontent\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+)/(?P<ref>[^/]+)/(?P<path>.+)$"
 )
+# A bare repository URL — no ref, no path. Optional trailing ".git"/"/".
+_ORIGIN_PATTERN = re.compile(r"^https://github\.com/(?P<owner>[^/]+)/(?P<repo>[^/]+?)(?:\.git)?/?$")
 
 
 class GitHubProvider:
@@ -61,3 +63,10 @@ class GitHubProvider:
 
     def blob_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         return f"https://github.com/{owner}/{repo}/blob/{ref}/{path}"
+
+    def tree_url(self, owner: str, repo: str, ref: str, path: str) -> str:
+        return f"https://github.com/{owner}/{repo}/tree/{ref}/{path}"
+
+    def parse_origin(self, url: str) -> tuple[str, str] | None:
+        m = _ORIGIN_PATTERN.match(url.strip())
+        return (m.group("owner"), m.group("repo")) if m else None

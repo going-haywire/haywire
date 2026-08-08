@@ -105,6 +105,13 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         kwargs["folder_path"] = str(Path(class_file).parent)
         kwargs["module_name"] = inner_cls.__module__
 
+        # The authored keyword is still `dependencies=`; the field it lands on is
+        # `linked_libraries`, the name the shared LibraryMetadata base uses so it
+        # cannot be confused with pyproject's `[project] dependencies`. Migration
+        # step 7 renames the keyword too, at which point this line goes away.
+        if "dependencies" in kwargs:
+            kwargs["linked_libraries"] = kwargs.pop("dependencies")
+
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls
 
