@@ -30,11 +30,15 @@ def _get_decorator_list_field(content: str, field: str) -> list[str]:
 
     Mirrors :func:`_set_decorator_list_field`'s pattern-matching so reads and
     writes agree on where the field lives. Returns ``[]`` if the field is
-    absent. Values are converted from module form (underscores) to pip
-    package form (hyphens) — matching the historical
-    ``_read_library_dependencies`` reader this generalizes, since decorator
-    ``dependencies=[...]`` entries are module names but are compared and
-    reported as pip package names elsewhere in the share pipeline.
+    absent. Values are converted from module form (underscores) to pip package
+    form (hyphens), which the writers here depend on for de-duplication.
+
+    NOT the reader for the share pipeline or the feed generator — that is
+    :func:`haywire.core.publishing.manifest.decorator_ast.read_decorator`,
+    which is AST-based and leaves values as authored. This one exists for the
+    regex *writers* below, which rewrite source text in place; it stays regex
+    because an AST round-trip would reformat the file. Its `_` -> `-`
+    conversion mangles any value that is not a dependency name.
     """
     match = re.search(rf"{re.escape(field)}\s*=\s*\[([^\]]*)\]", content, re.DOTALL)
     if not match:

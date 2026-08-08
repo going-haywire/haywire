@@ -23,7 +23,6 @@ from haywire.core.publishing import git
 from haywire.core.publishing.drift.detect import detect_share_drift
 from haywire.core.publishing.drift.model import DepDrift
 from haywire.core.publishing.drift.report import _format_drift_report
-from haywire.core.publishing.manifest.deps import _read_library_dependencies
 from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire.core.publishing.manifest.os_field import (
     describe_os_fix,
@@ -61,7 +60,6 @@ __all__ = [
     "_format_drift_report",
     "_get_current_ref",
     "_get_remote_url",
-    "_read_library_dependencies",
     "_update_readme_markers",
     "barn",
     "build_marketstall_entries",

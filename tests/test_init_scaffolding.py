@@ -457,15 +457,21 @@ class TestDevModeProjectRegistration:
         """A dev heap records its @library(dependencies=...) so the install gate can check.
 
         haybale-haystack's @library decorator declares haybale_studio +
-        haybale_graph_editor; both must be written (pip-package form) into its
-        [[heaps]] entry's `dependencies` field.
+        haybale_graph_editor; both must be written into its [[heaps]] entry's
+        `dependencies` field.
+
+        Recorded in the authored module form (underscores). The regex reader
+        this replaced converted `_` to `-` — a conversion written for pip names
+        that mangled every other value — so the form here changed with migration
+        step 9. Asserted as a fact about what is written, not as a contract with
+        a consumer: nothing in core reads this field back today.
         """
         data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
         haystack = next(e for e in data["heaps"] if e["name"] == "haybale-haystack")
         deps = set(haystack.get("dependencies", []))
-        assert {"haybale-studio", "haybale-graph-editor"} <= deps
+        assert {"haybale_studio", "haybale_graph_editor"} <= deps
         # The decorator only declares haybale libraries — no framework/PyPI deps.
-        assert all(d.startswith("haybale-") for d in deps)
+        assert all(d.startswith("haybale_") for d in deps)
 
 
 def test_scaffold_pin_has_no_ceiling():

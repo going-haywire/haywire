@@ -23,7 +23,7 @@ from haywire.core.publishing.drift.versionspec import (
     _strip_specifier,
     version_lags,
 )
-from haywire.core.publishing.manifest.deps import _read_library_dependencies
+from haywire.core.publishing.manifest.decorator_ast import read_decorator
 from haywire.core.publishing.manifest.reader import read_manifest_lenient
 
 _norm_dep = norm_dep
@@ -65,7 +65,7 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     module_dir = find_module_dir(lib_dir)
     declared_decorator: list[str] = []
     if module_dir:
-        declared_decorator = _read_library_dependencies(module_dir)
+        declared_decorator = read_decorator(module_dir / "__init__.py").linked_libraries
 
     # Convert declared_pyproject specs ("haywire-core~=0.0.1") to bare dist names
     # so we can compare against detected entries by name.
@@ -78,9 +78,8 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     # declaration, so acting on this without asking would break the library.
     unused_declarations = sorted(decl_py_names - detected_py_names)
 
-    # Decorator deps round-trip as bare module names in detect_deps output;
-    # _read_library_dependencies already converts to pip-package form. Re-
-    # normalize both sides so "haybale_core" and "haybale-core" compare equal.
+    # Both sides are normalized before comparing, so decorator module names
+    # ("haybale_core") and detected pip names ("haybale-core") compare equal.
     decl_dec_norm = {_norm_dep(d) for d in declared_decorator}
     detected_dec_norm = {_norm_dep(d) for d in detected.library_decorator}
     decorator_missing = sorted(detected_dec_norm - decl_dec_norm)

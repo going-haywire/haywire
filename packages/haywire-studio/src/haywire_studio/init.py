@@ -479,7 +479,7 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
     from haywire.core.library.dep_detect import find_module_dir
     from haywire.core.marketstall import DuplicateHeapNameError, add_heap_to_project
 
-    from haywire.core.publishing import _read_library_dependencies
+    from haywire.core.publishing.manifest.decorator_ast import read_decorator
 
     project_mp = project_dir / ".haywire" / "marketplace.toml"
 
@@ -496,12 +496,12 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
         lib_name = project.get("name", lib_dir.name)
         label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
         description = project.get("description", "")
-        # The @library(dependencies=[...]) decorator is the definitive source for
-        # the marketplace install gate — a version-less subset of the pyproject
-        # deps (share.py keeps the two in sync). _read_library_dependencies
-        # returns pip-package form (hyphens), which the gate normalizes.
+        # The @library(linked_libraries=[...]) decorator is the definitive source
+        # for the marketplace install gate — a version-less subset of the
+        # pyproject deps (share.py keeps the two in sync). read_decorator returns
+        # the authored module form (underscores), which the gate normalizes.
         module_dir = find_module_dir(lib_dir)
-        dependencies = _read_library_dependencies(module_dir) if module_dir else []
+        dependencies = read_decorator(module_dir / "__init__.py").linked_libraries if module_dir else []
 
         try:
             add_heap_to_project(

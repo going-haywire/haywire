@@ -11,13 +11,12 @@ from pathlib import Path
 import toml
 
 from haywire.core.library.dep_detect import find_module_dir
-from haywire.core.library.decorator_io import _get_decorator_list_field, _get_decorator_str_field
 from haywire.core.publishing.manifest.os_field import _DECLARABLE_OS_VALUES
 from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.host_providers import ssh_to_https
 from haywire.core.marketstall.requirement import haywire_core_requirement
 from haywire.core.publishing.barn import barn_library_dirs
-from haywire.core.publishing.manifest.deps import _read_library_dependencies, _read_library_label
+from haywire.core.publishing.manifest.decorator_ast import DecoratorFields, read_decorator
 from haywire.core.publishing.manifest.reader import read_manifest
 from haywire.core.publishing.readme import _update_repo_readmes
 from haywire.core.publishing.url import (
@@ -93,8 +92,14 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
 
     module_dir = find_module_dir(lib_dir)
     label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
-    label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
-    dependencies = _read_library_dependencies(module_dir) if module_dir else []
+
+    # One read of the decorator source, for every field the row takes from it.
+    # Source rather than an imported class: `haywire share` runs against a
+    # checkout, where nothing is installed, so cls.class_identity is unreachable.
+    decorator = read_decorator(module_dir / "__init__.py") if module_dir else DecoratorFields()
+
+    label = decorator.label or label_fallback
+    dependencies = decorator.linked_libraries
 
     # No ref is read here any more. It used to be needed because this function
     # baked raw-content URLs, and getting the branch wrong ("main" against a
@@ -107,16 +112,9 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     # migrates the barn libraries; read_manifest() above already validated that
     # branch via _read_os_field, so it needs no re-checking here.
     #
-    # The decorator branch is filtered against the three declarable values
-    # because _get_decorator_list_field converts `_` to `-` on every value — it
-    # was written for dependency names, where module and pip form differ. None
-    # of macos/windows/linux contains an underscore, so the filter both drops
-    # typos and makes the conversion unable to smuggle a mangled value through.
-    init_file = module_dir / "__init__.py" if module_dir else None
-    init_source = init_file.read_text() if init_file and init_file.exists() else ""
-    os_decl: list[str] = [
-        v for v in _get_decorator_list_field(init_source, "os") if v in _DECLARABLE_OS_VALUES
-    ]
+    # Validation, not workaround: an unknown platform string is dropped rather
+    # than published. (The regex reader this replaced also mangled underscores.)
+    os_decl: list[str] = [v for v in decorator.os if v in _DECLARABLE_OS_VALUES]
     if not os_decl:
         os_decl = data.get("tool", {}).get("haywire", {}).get("os") or []
 
@@ -135,14 +133,6 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         rel = lib_dir.relative_to(git_root)
         return f"{rel}/{declared.lstrip('/')}"
 
-    # Read from the decorator source rather than an imported class: `haywire
-    # share` runs against a checkout, where nothing is imported, so
-    # cls.class_identity is not reachable. Migration step 9 replaces this regex
-    # with the AST reader promoted out of scripts/generate_marketstall.py — it
-    # is the one reader, and it cannot be defeated by quoting.
-    decorator_examples_path = _get_decorator_str_field(init_source, "examples_path")
-    decorator_tests_path = _get_decorator_str_field(init_source, "tests_path")
-
     return Haybale(
         name=name,
         label=label,
@@ -157,8 +147,8 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         linked_libraries=dependencies,
         origin=https_url if remote_url else "",
         docs_path=docs_path,
-        examples_path=_declared_path(decorator_examples_path),
-        tests_path=_declared_path(decorator_tests_path),
+        examples_path=_declared_path(decorator.examples_path),
+        tests_path=_declared_path(decorator.tests_path),
     ).to_dict()
 
 

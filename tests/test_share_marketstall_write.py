@@ -140,9 +140,13 @@ def test_decorator_os_wins_over_pyproject(repo: Path) -> None:
 
 
 def test_unknown_decorator_os_value_is_dropped(repo: Path) -> None:
-    """_get_decorator_list_field converts `_` to `-`; the filter stops the mangled
-    value reaching a feed row, where it would gate installation on a platform
-    name nothing matches."""
+    """An unknown platform string never reaches a feed row, where it would gate
+    installation on a name nothing matches.
+
+    Plain validation since migration step 9: the AST reader hands `mac_os` over
+    as authored, and the filter drops it for not being one of the three
+    declarable values. (The regex reader it replaced also mangled it to
+    `mac-os` first, so the filter was doing double duty.)"""
     _add_lib(
         repo,
         "haybale-typo",
