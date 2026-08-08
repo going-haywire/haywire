@@ -126,7 +126,7 @@ installing anything.
   - `_parse_authors(md) -> list[str]`, `_parse_urls(md) -> dict[str, str]`,
     `_parse_keywords(md) -> list[str]` — used directly by Task 1's tests.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/core/test_library/test_distmeta.py`:
 
@@ -234,13 +234,13 @@ def test_placeholder_summary_is_not_a_description(value):
     assert _clean(value) == ""
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `uv run pytest tests/core/test_library/test_distmeta.py -v`
 
 Expected: FAIL — `ModuleNotFoundError: No module named 'haywire.core.library.distmeta'`.
 
-- [ ] **Step 3: Write the module**
+- [x] **Step 3: Write the module**
 
 Create `packages/haywire-core/src/haywire/core/library/distmeta.py`:
 
@@ -341,13 +341,13 @@ def distribution_fields(dist_name: str) -> dict[str, object]:
     return fields
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest tests/core/test_library/test_distmeta.py -v`
 
 Expected: all PASS.
 
-- [ ] **Step 5: Add a test against a really-installed distribution**
+- [x] **Step 5: Add a test against a really-installed distribution**
 
 Append to `tests/core/test_library/test_distmeta.py`:
 
@@ -366,13 +366,13 @@ def test_absent_distribution_yields_empty_dict():
 
 with `distribution_fields` added to the imports at the top of the file.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 Run: `uv run pytest tests/core/test_library/test_distmeta.py -v`
 
 Expected: all PASS.
 
-- [ ] **Step 7: Lint, format, type-check**
+- [x] **Step 7: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/haywire-core/src/haywire/core/library/ tests/core/test_library/
@@ -382,7 +382,7 @@ uv run mypy packages/haywire-core/src/
 
 Expected: clean.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/core/library/distmeta.py \
@@ -415,7 +415,7 @@ ADR 0024."
   ignoring `version`, `description`, `author`, `author_url`, `url`, `tags`;
   and taking `linked_libraries=` directly.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/core/test_library/test_decorator_distmeta.py`:
 
@@ -519,7 +519,7 @@ def test_uninstalled_module_leaves_pep621_fields_empty(monkeypatch):
     assert identity.label == "Core"  # decorator-authored fields unaffected
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `uv run pytest tests/core/test_library/test_decorator_distmeta.py -v`
 
@@ -527,7 +527,7 @@ Expected: FAIL — `AttributeError: module 'haywire.core.library.decorator' has 
 attribute '_dist_for_module'`, and `test_id_is_required` fails because `id` still
 defaults to `label`.
 
-- [ ] **Step 3: Rewrite the decorator body**
+- [x] **Step 3: Rewrite the decorator body**
 
 In `packages/haywire-core/src/haywire/core/library/decorator.py`, replace the
 inner `decorator` function body:
@@ -595,7 +595,7 @@ from haywire.core.library.distmeta import distribution_fields
 
 and delete the two `kwargs.setdefault(...)` lines for `version` and `id`.
 
-- [ ] **Step 4: Rewrite the decorator docstring**
+- [x] **Step 4: Rewrite the decorator docstring**
 
 Replace the `Args:` block so it documents only what an author still passes:
 
@@ -660,7 +660,7 @@ Replace the `Args:` block so it documents only what an author still passes:
     """
 ```
 
-- [ ] **Step 5: Drop "publish-time only" from three base docstrings**
+- [x] **Step 5: Drop "publish-time only" from three base docstrings**
 
 In `packages/haywire-core/src/haywire/core/library/metadata.py`, `os`,
 `examples_path` and `tests_path` are now decorator kwargs, so they are populated
@@ -668,7 +668,7 @@ at runtime too. Remove any sentence claiming they are empty on a
 runtime-constructed identity. `docs_path` keeps its note — it is still derived at
 publish time from the git root and has no runtime meaning.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 ```bash
 uv run pytest tests/core/test_library/ -v
@@ -676,7 +676,7 @@ uv run pytest tests/core/test_library/ -v
 
 Expected: all PASS.
 
-- [ ] **Step 7: Run the full gate**
+- [x] **Step 7: Run the full gate**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/step7.log 2>&1; echo "exit=$?"
@@ -688,7 +688,7 @@ Expected failures, and only these: tests asserting a decorator-authored
 without `id`. Fix each by moving the assertion to the distribution or adding
 `id=`. **Any other failure is a real regression.**
 
-- [ ] **Step 8: Lint, format, type-check**
+- [x] **Step 8: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/ barn/ tests/
@@ -698,7 +698,7 @@ uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale
 
 Expected: clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -744,7 +744,7 @@ from the distribution, so the consumers move and the fields go.
 - Produces: `LibraryIdentity` carrying only `id`, `folder_path`, `module_name`,
   `file_watcher` beyond the base.
 
-- [ ] **Step 1: Find every reader**
+- [x] **Step 1: Find every reader**
 
 ```bash
 grep -rn "identity\.author\b\|identity\.url\b" --include="*.py" packages/ barn/ tests/
@@ -753,7 +753,7 @@ grep -rn "identity\.author\b\|identity\.url\b" --include="*.py" packages/ barn/ 
 Record the list. Each is either a display site (becomes `.authors` /
 `.homepage_url`) or a form field (same, plus list handling for authors).
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Append to `tests/core/test_library/test_decorator_distmeta.py`:
 
@@ -775,18 +775,18 @@ def test_transitional_fields_are_gone():
     assert {"homepage_url", "authors"} <= names
 ```
 
-- [ ] **Step 3: Run it to verify it fails**
+- [x] **Step 3: Run it to verify it fails**
 
 Run: `uv run pytest tests/core/test_library/test_decorator_distmeta.py::test_transitional_fields_are_gone -v`
 
 Expected: FAIL — both fields still present.
 
-- [ ] **Step 4: Delete the fields**
+- [x] **Step 4: Delete the fields**
 
 In `packages/haywire-core/src/haywire/core/library/identity.py`, delete the `url`
 and `author` declarations and their docstrings (lines ~36-43).
 
-- [ ] **Step 5: Move the consumers**
+- [x] **Step 5: Move the consumers**
 
 `library_overview_editor.py` around line 316:
 
@@ -835,7 +835,7 @@ fields.
 `docs/extract.py:154-155` needs no change — `version` and `description` are still
 identity attributes, now sourced differently.
 
-- [ ] **Step 6: Run the tests**
+- [x] **Step 6: Run the tests**
 
 ```bash
 uv run pytest tests/core/test_library/ tests/marketplace/ tests/studio/ -q
@@ -843,7 +843,7 @@ uv run pytest tests/core/test_library/ tests/marketplace/ tests/studio/ -q
 
 Expected: all pass.
 
-- [ ] **Step 7: Run the full gate**
+- [x] **Step 7: Run the full gate**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/task3.log 2>&1; echo "exit=$?"
@@ -852,7 +852,7 @@ grep -E "^FAILED|^ERROR" /tmp/task3.log | head -20
 
 Expected: `exit=0`, no FAILED lines.
 
-- [ ] **Step 8: Lint, format, type-check**
+- [x] **Step 8: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/ barn/ tests/
@@ -862,7 +862,7 @@ uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale
 
 Expected: clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -897,7 +897,7 @@ yet kwargs. They are now, so the regex goes.
 - Consumes: `LibraryIdentity.examples_path`, `.tests_path`, `.os` from Task 2.
 - Produces: no new API; removes the `_get_decorator_str_field` calls.
 
-- [ ] **Step 1: Check whether the producer can reach an identity**
+- [x] **Step 1: Check whether the producer can reach an identity**
 
 ```bash
 grep -n "_get_decorator_str_field\|examples_path\|tests_path\|os_decl" packages/haywire-core/src/haywire/core/publishing/marketstall.py
@@ -922,7 +922,7 @@ only change is a comment correcting the note left by the foundation plan:
     # defeated by quoting.
 ```
 
-- [ ] **Step 2: Verify `os` is still read from the right place**
+- [x] **Step 2: Verify `os` is still read from the right place**
 
 ```bash
 grep -n "tool.*haywire.*os\|os_decl" packages/haywire-core/src/haywire/core/publishing/marketstall.py
@@ -965,7 +965,7 @@ libraries:
         os_decl = data.get("tool", {}).get("haywire", {}).get("os") or []
 ```
 
-- [ ] **Step 3: Write the test**
+- [x] **Step 3: Write the test**
 
 Append to `tests/test_share_marketstall_write.py`:
 
@@ -1006,7 +1006,7 @@ def test_os_falls_back_to_tool_haywire(tmp_path):
     assert entry["os"] == ["windows"]
 ```
 
-- [ ] **Step 4: Run the tests**
+- [x] **Step 4: Run the tests**
 
 Run: `uv run pytest tests/test_share_marketstall_write.py -v`
 
@@ -1014,7 +1014,7 @@ Expected: all PASS. If `_build_entry_for_library` returns `None` because the
 fixture lacks a git root, add `tag=None` and assert on the fields that do not
 require a remote, or mark the git-dependent assertions `xfail` with a reason.
 
-- [ ] **Step 5: Run the full gate**
+- [x] **Step 5: Run the full gate**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/task4.log 2>&1; echo "exit=$?"
@@ -1023,7 +1023,7 @@ grep -E "^FAILED|^ERROR" /tmp/task4.log | head -20
 
 Expected: `exit=0`, no FAILED lines.
 
-- [ ] **Step 6: Lint, format, type-check**
+- [x] **Step 6: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/ tests/
@@ -1033,7 +1033,7 @@ uv run mypy packages/haywire-core/src/ tests/
 
 Expected: clean.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add -A
@@ -1097,12 +1097,39 @@ tests, so it must stay a module-level function.
 
 ---
 
-## Execution Handoff
+## Execution log — **landed** 2026-08-08
 
-Plan complete and saved to `docs/superpowers/plans/2026-08-08-library-metadata-distribution.md`. Two execution options:
+Commits `bc10776b`, `87c51975`, `0645d337`, `ffba4b89`. Final gate: 3189 passed,
+2 xfailed, ruff + mypy clean.
 
-**1. Subagent-Driven (recommended)** — I dispatch a fresh subagent per task, review between tasks, fast iteration
+Deviations from the plan as written, all verified on disk:
 
-**2. Inline Execution** — Execute tasks in this session using executing-plans, batch execution with checkpoints
+- **Task 1.** `_parse_*` are typed against a `_Headers` Protocol, not
+  `email.message.Message`. `importlib.metadata` declares `.metadata` as
+  `PackageMetadata`, so the concrete class would have made the real caller a
+  mypy error while the tests (which pass a `Message`) still passed.
+- **Task 2.** `_dist_for_module` reduces the dotted module to its top-level
+  segment — `packages_distributions()` is keyed on top-level names, so
+  `haybale_core.library` would otherwise miss the mapping and fall through to
+  the slower `find_spec` walk-up. The superseded kwargs are dropped with a
+  `logger.debug` naming them (risk 2 of the self-review).
+- **Task 3, wider than planned.** Dropping the four form fields from the edit
+  dialog's `_save` was not sufficient: `update_library_identity` writes the
+  identity dict *wholesale* into the decorator source, so omitted keys would
+  have blanked `description`/`url`/`author`/`author_url`/`tags` in the file.
+  The writer's `_set_decorator_*` calls for those five were removed too, its
+  docstring corrected, and the `marketplace.toml` row write reduced to `label`
+  (its `description` mirrored a form field that no longer exists). Covered by a
+  new test asserting the pyproject-owned fields are left untouched.
+  Also swept: `FRAMEWORK_IDENTITY`, `_FRAMEWORK_THEME_IDENTITY` and the
+  `__system__` fallback identity passed `url=`/`author=`, plus 31 test fixtures.
+- **Task 4.** Written against the public `build_marketstall_entries` and the
+  existing `repo` fixture rather than calling `_build_entry_for_library`
+  directly — the private function needs a git root the plan's fixture lacked.
+  The underscore-conversion trap is handled by filtering against the existing
+  `_DECLARABLE_OS_VALUES` rather than adding `convert=False`; two extra tests
+  cover decorator-wins-over-pyproject and the mangled-value drop. All three
+  behavioural tests were confirmed to fail against the pre-change producer.
 
-Which approach?
+Task 4 was **not** the no-op the plan predicted: `os` genuinely moved, and the
+`examples_path`/`tests_path` regexes stayed for step 9 as reasoned.
