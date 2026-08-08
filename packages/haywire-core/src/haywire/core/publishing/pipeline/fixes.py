@@ -12,6 +12,8 @@ from typing import TYPE_CHECKING, Callable
 
 import toml
 
+from haywire.core.library.dep_detect import find_module_dir
+from haywire.core.library.decorator_io import _remove_decorator_field
 from haywire.core.publishing.git import git
 from haywire.core.publishing.manifest.errors import ManifestReadError
 from haywire.core.publishing.manifest.os_field import strip_undeclarable_os_values
@@ -136,6 +138,45 @@ def _fix_strip_os(pipeline: "SharePipeline", **kwargs: str) -> None:
     pipeline.record([lib_dir / "pyproject.toml"])
 
 
+def _fix_clear_declared_path(pipeline: "SharePipeline", field: str, **kwargs: str) -> None:
+    """Remove *field* from a library's ``@library(...)`` call.
+
+    Requires a `lib_dir` kwarg relative to `pipeline.repo_root` — a repo can
+    have several barn libraries, each with its own independent path fault, same
+    reasoning as :func:`_fix_strip_os`.
+
+    Clearing rather than correcting: preflight knows the declared path is wrong
+    but not what the author meant instead. Repointing it is an edit, and the
+    wizard's `edit` screen already offers that with inline validation.
+    """
+    lib_dir_rel = kwargs.get("lib_dir")
+    if not lib_dir_rel:
+        raise PipelineStateError(f"apply_precondition_fix('clear_{field}', ...) requires a lib_dir kwarg.")
+    lib_dir = pipeline.repo_root / lib_dir_rel
+    module_dir = find_module_dir(lib_dir)
+    if module_dir is None:
+        raise PipelineStateError(f"No module directory found under {lib_dir_rel}.")
+    init_py = module_dir / "__init__.py"
+    if not init_py.is_file():
+        raise PipelineStateError(f"No __init__.py found under {lib_dir_rel}.")
+
+    try:
+        init_py.write_text(_remove_decorator_field(init_py.read_text(), field))
+    except OSError as exc:
+        raise ManifestError(str(exc)) from exc
+    pipeline.record([init_py])
+
+
+def _fix_clear_examples_path(pipeline: "SharePipeline", **kwargs: str) -> None:
+    """Handler for fix_id="clear_examples_path"."""
+    _fix_clear_declared_path(pipeline, "examples_path", **kwargs)
+
+
+def _fix_clear_tests_path(pipeline: "SharePipeline", **kwargs: str) -> None:
+    """Handler for fix_id="clear_tests_path"."""
+    _fix_clear_declared_path(pipeline, "tests_path", **kwargs)
+
+
 def _fix_switch_branch(pipeline: "SharePipeline", **kwargs: str) -> None:
     """Handler for fix_id="switch_branch". Requires a `branch` kwarg.
 
@@ -200,4 +241,6 @@ _PRECONDITION_FIXES: dict[str, Callable[..., None]] = {
     "add_origin": _fix_add_origin,
     "commit_dirty_tree": _fix_commit_dirty_tree,
     "switch_branch": _fix_switch_branch,
+    "clear_examples_path": _fix_clear_examples_path,
+    "clear_tests_path": _fix_clear_tests_path,
 }

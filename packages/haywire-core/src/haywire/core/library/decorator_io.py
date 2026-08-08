@@ -115,6 +115,23 @@ def _set_decorator_str_field(content: str, field: str, value: str) -> str:
     return re.sub(r"(\n\)\nclass )", replacement, content, count=1)
 
 
+def _remove_decorator_field(content: str, field: str) -> str:
+    """Delete a whole kwarg line from the ``@library(...)`` call.
+
+    Distinct from setting it empty: an absent kwarg means "not declared", which
+    is what a cleared path must say. ``examples_path=""`` would still read as a
+    declaration to anyone scanning the source, and would round-trip back through
+    the AST reader as an empty string rather than as absent.
+
+    Line-oriented, like the setters above: a kwarg broken across several lines
+    is not matched, so it is left alone rather than half-deleted.
+
+    A no-op when the field is not present, so a repair offered twice is safe.
+    """
+    pattern = rf"^[ \t]*{re.escape(field)}=(?:['\"][^'\"]*['\"]|\[[^\]]*\]),?[ \t]*\r?\n"
+    return re.sub(pattern, "", content, count=1, flags=re.MULTILINE)
+
+
 def _set_decorator_list_field(content: str, field: str, values: list[str]) -> str:
     """Replace or insert a list field inside the @library(...) decorator.
 
