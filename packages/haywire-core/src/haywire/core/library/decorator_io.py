@@ -81,14 +81,16 @@ def merge_decorator_list_field(
     init_file.write_text(content)
 
 
-def _set_decorator_bool_field(content: str, field: str, value: bool) -> str:
-    """Replace or insert a bool field inside the @library(...) decorator.
+def _set_decorator_str_field(content: str, field: str, value: str) -> str:
+    """Replace or insert a quoted string field inside the @library(...) decorator.
 
-    Mirrors :func:`_set_decorator_list_field` for ``True``/``False`` literal
-    fields (``needs_refresh``, ``needs_restart``) rather than list fields.
+    Mirrors :func:`_set_decorator_list_field` for string-literal fields
+    (``on_reload``) rather than list fields. The value is written as a plain
+    quoted literal — never an enum reference — so the rewritten file needs no
+    import added to it.
     """
-    value_repr = "True" if value else "False"
-    pattern = rf"([ \t]+{re.escape(field)}=)(True|False),?"
+    value_repr = f'"{value}"'
+    pattern = rf"([ \t]+{re.escape(field)}=)['\"][^'\"]*['\"],?"
     if re.search(pattern, content):
         return re.sub(pattern, rf"\g<1>{value_repr},", content)
     insert_line = f"    {field}={value_repr},\n"

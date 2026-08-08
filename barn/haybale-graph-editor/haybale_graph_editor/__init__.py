@@ -35,8 +35,8 @@ __all__ = ["GraphContainer", "GraphAppState", "Library"]
     author_url="",
     dependencies=[],
     tags=["graph-editor"],
+    on_reload="refresh",
     file_watcher=True,
-    needs_refresh=True,
 )
 class Library(BaseLibrary):
     """Graph Editor library."""

@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine
 import toml
 from nicegui import ui
 
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
 from haywire.ui import elements as hui
 from haywire.ui.modals import info_modal
@@ -99,19 +100,20 @@ def build_edit_dialog(
 
         hui.separator()
 
-        hui.section_label("Post-install requirements")
-        ui.label(
-            "Declares what a browser tab or the Studio process must do after this "
-            "library is installed, updated, or uninstalled."
-        ).classes("text-xs hw-text-dim")
-        needs_refresh_input = ui.checkbox(
-            "Needs page reload (registers new Vue components or JS resources)",
-            value=lib.identity.needs_refresh,
-        ).props("dense")
-        needs_restart_input = ui.checkbox(
-            "Needs Studio restart (C-extension modules, import-time global mutation)",
-            value=lib.identity.needs_restart,
-        ).props("dense")
+        hui.section_label("Reload requirement")
+        ui.label("Declare behavior for install, update, and uninstall alike.").classes("text-xs hw-text-dim")
+        on_reload_select = hui.select_field(
+            options={
+                LibraryReloadAction.NONE.value: "No special action — library is hot-reloadable",
+                LibraryReloadAction.REFRESH.value: (
+                    "Reload the page — registers Vue components or JS resources"
+                ),
+                LibraryReloadAction.RESTART.value: (
+                    "Restart the Studio — C-extension modules, import-time global mutation"
+                ),
+            },
+            value=lib.identity.on_reload.value,
+        ).classes("w-full")
 
         # OS multi-select. Visible only for heaps (writable pyproject.toml).
         _is_heap = is_project_library(lib, marketplace_path)
@@ -176,8 +178,7 @@ def build_edit_dialog(
                 # dependencies, but the identity dict is written wholesale, so
                 # omitting the key would erase the declaration.
                 "dependencies": list(lib.identity.dependencies or []),
-                "needs_refresh": bool(needs_refresh_input.value),
-                "needs_restart": bool(needs_restart_input.value),
+                "on_reload": on_reload_select.value or LibraryReloadAction.NONE.value,
             }
             # Include `os` only if the multi-select was rendered (heap libraries).
             if os_select is not None:

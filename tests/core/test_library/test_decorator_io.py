@@ -6,8 +6,8 @@ import pytest
 
 from haywire.core.library.decorator_io import (
     _get_decorator_list_field,
-    _set_decorator_bool_field,
     _set_decorator_list_field,
+    _set_decorator_str_field,
     merge_decorator_list_field,
     norm_dep,
 )
@@ -129,24 +129,41 @@ def test_set_decorator_list_field_still_works_directly():
 
 
 @pytest.mark.unit
-def test_set_decorator_bool_field_replaces_existing_value():
+def test_set_decorator_str_field_replaces_existing_value():
     content = (
         "@library(\n"
         "    id='x',\n"
-        "    needs_restart=False,\n"
+        '    on_reload="none",\n'
         "    file_watcher=True,\n"
         ")\n"
         "class Library:\n"
         "    pass\n"
     )
-    rewritten = _set_decorator_bool_field(content, "needs_restart", True)
-    assert "needs_restart=True," in rewritten
-    assert "needs_restart=False," not in rewritten
+    rewritten = _set_decorator_str_field(content, "on_reload", "restart")
+    assert 'on_reload="restart",' in rewritten
+    assert '"none"' not in rewritten
 
 
 @pytest.mark.unit
-def test_set_decorator_bool_field_inserts_before_file_watcher_when_absent():
+def test_set_decorator_str_field_replaces_single_quoted_value():
+    """Authors may write either quote style; both must be matched."""
+    content = "@library(\n    id='x',\n    on_reload='restart',\n    file_watcher=True,\n)\nclass Library:\n"
+    rewritten = _set_decorator_str_field(content, "on_reload", "refresh")
+    assert 'on_reload="refresh",' in rewritten
+    assert "'restart'" not in rewritten
+
+
+@pytest.mark.unit
+def test_set_decorator_str_field_inserts_before_file_watcher_when_absent():
     content = _INIT_TEMPLATE.format(deps="'a'")
-    rewritten = _set_decorator_bool_field(content, "needs_refresh", True)
-    assert "needs_refresh=True," in rewritten
-    assert rewritten.index("needs_refresh=True") < rewritten.index("file_watcher=True")
+    rewritten = _set_decorator_str_field(content, "on_reload", "refresh")
+    assert 'on_reload="refresh",' in rewritten
+    assert rewritten.index("on_reload=") < rewritten.index("file_watcher=True")
+
+
+@pytest.mark.unit
+def test_set_decorator_str_field_writes_no_enum_reference():
+    """The rewritten file must stay importable without adding an import for it."""
+    content = _INIT_TEMPLATE.format(deps="'a'")
+    rewritten = _set_decorator_str_field(content, "on_reload", "restart")
+    assert "LibraryReloadAction" not in rewritten

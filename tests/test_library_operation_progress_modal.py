@@ -15,6 +15,7 @@ from nicegui import ui
 from nicegui.testing import User
 from nicegui.testing.user_simulation import user_simulation
 
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.modals.install_progress_modal import (
     LibraryOperationProgressModal,
     PostInstallHints,
@@ -37,8 +38,8 @@ async def user() -> AsyncGenerator[User, None]:
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_finish_no_flags_shows_done_button(user: User) -> None:
-    """No flags → button label 'Done', no notice, no reload callback."""
+async def test_finish_none_shows_done_button(user: User) -> None:
+    """NONE → button label 'Done', no notice, no reload callback."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
@@ -62,14 +63,14 @@ async def test_finish_no_flags_shows_done_button(user: User) -> None:
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_finish_needs_refresh_shows_reload_button(user: User) -> None:
-    """needs_refresh=True → button 'Reload the page' and the reload notice is visible."""
+async def test_finish_refresh_shows_reload_button(user: User) -> None:
+    """REFRESH → button 'Reload the page' and the reload notice is visible."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
     def page() -> None:
         modal = library_operation_progress_modal(title="Installing test…")
-        modal.finish(hints=PostInstallHints(needs_refresh=True))
+        modal.finish(hints=PostInstallHints(LibraryReloadAction.REFRESH))
         captured["modal"] = modal
 
     await user.open("/")
@@ -82,14 +83,14 @@ async def test_finish_needs_refresh_shows_reload_button(user: User) -> None:
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_finish_needs_restart_shows_restart_affordance(user: User) -> None:
-    """needs_restart=True → the restart affordance is revealed; terminal button closes."""
+async def test_finish_restart_shows_restart_affordance(user: User) -> None:
+    """RESTART → the restart affordance is revealed; terminal button closes."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
     def page() -> None:
         modal = library_operation_progress_modal(title="Installing test…")
-        modal.finish(hints=PostInstallHints(needs_restart=True))
+        modal.finish(hints=PostInstallHints(LibraryReloadAction.RESTART))
         captured["modal"] = modal
 
     await user.open("/")
@@ -99,37 +100,13 @@ async def test_finish_needs_restart_shows_restart_affordance(user: User) -> None
     # stays a plain dismiss — quitting is never the only way out.
     assert modal._restart_slot.visible is True
     assert modal._done_row[1].text == "Close"
-    # Refresh notice is hidden — restart subsumes refresh.
     assert modal._reload_notice.visible is False
 
 
 @pytest.mark.unit
 @pytest.mark.anyio
-async def test_finish_caller_needs_restart_without_declared_hint(user: User) -> None:
-    """A caller-observed restart requirement stands alone.
-
-    The eviction case: the operation invalidated the registry even though no
-    library author declared ``needs_restart``.
-    """
-    captured: dict[str, LibraryOperationProgressModal] = {}
-
-    @ui.page("/")
-    def page() -> None:
-        modal = library_operation_progress_modal(title="Installing test…")
-        modal.finish(hints=PostInstallHints(), needs_restart=True)
-        captured["modal"] = modal
-
-    await user.open("/")
-    modal = captured["modal"]
-
-    assert modal._restart_slot.visible is True
-    assert modal._done_row[1].text == "Close"
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_finish_no_restart_leaves_slot_hidden(user: User) -> None:
-    """Neither flag set → the affordance slot stays hidden and empty."""
+async def test_finish_none_leaves_slot_hidden(user: User) -> None:
+    """NONE → the affordance slot stays hidden and empty."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
@@ -143,25 +120,6 @@ async def test_finish_no_restart_leaves_slot_hidden(user: User) -> None:
 
     assert modal._restart_slot.visible is False
     assert not modal._restart_slot.default_slot.children
-
-
-@pytest.mark.unit
-@pytest.mark.anyio
-async def test_finish_restart_subsumes_refresh(user: User) -> None:
-    """Both flags True → restart UX wins; refresh notice stays hidden."""
-    captured: dict[str, LibraryOperationProgressModal] = {}
-
-    @ui.page("/")
-    def page() -> None:
-        modal = library_operation_progress_modal(title="Installing test…")
-        modal.finish(hints=PostInstallHints(needs_refresh=True, needs_restart=True))
-        captured["modal"] = modal
-
-    await user.open("/")
-    modal = captured["modal"]
-
-    assert modal._restart_slot.visible is True
-    assert modal._reload_notice.visible is False
 
 
 @pytest.mark.unit
@@ -187,7 +145,7 @@ async def test_finish_with_error_shows_close_and_keeps_banner(user: User) -> Non
 @pytest.mark.unit
 @pytest.mark.anyio
 async def test_finish_with_error_and_restart_shows_both(user: User) -> None:
-    """error + needs_restart → banner visible AND restart button (per Q12.A)."""
+    """error + RESTART → banner visible AND restart button (per Q12.A)."""
     captured: dict[str, LibraryOperationProgressModal] = {}
 
     @ui.page("/")
@@ -195,7 +153,7 @@ async def test_finish_with_error_and_restart_shows_both(user: User) -> None:
         modal = library_operation_progress_modal(title="Installing test…")
         modal.finish(
             error="Install failed: pip exit 1",
-            hints=PostInstallHints(needs_restart=True),
+            hints=PostInstallHints(LibraryReloadAction.RESTART),
         )
         captured["modal"] = modal
 
@@ -232,7 +190,7 @@ async def test_finish_restart_registers_exactly_one_click_handler(user: User) ->
     @ui.page("/")
     def page() -> None:
         modal = library_operation_progress_modal(title="Installing test…")
-        modal.finish(hints=PostInstallHints(needs_restart=True))
+        modal.finish(hints=PostInstallHints(LibraryReloadAction.RESTART))
         captured["modal"] = modal
 
     await user.open("/")
@@ -281,9 +239,9 @@ async def test_finish_is_idempotent(user: User) -> None:
     @ui.page("/")
     def page() -> None:
         modal = library_operation_progress_modal(title="Installing test…")
-        modal.finish(hints=PostInstallHints(needs_restart=True))
+        modal.finish(hints=PostInstallHints(LibraryReloadAction.RESTART))
         # Second call with a different state — must be a no-op.
-        modal.finish(hints=PostInstallHints(needs_refresh=True))
+        modal.finish(hints=PostInstallHints(LibraryReloadAction.REFRESH))
         captured["modal"] = modal
 
     await user.open("/")

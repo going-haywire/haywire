@@ -19,7 +19,8 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire.core.tomlio import edit_toml
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.library.decorator_io import _set_decorator_bool_field, _set_decorator_list_field
+from haywire.core.library.decorator_io import _set_decorator_list_field, _set_decorator_str_field
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.marketstall import Haybale
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
@@ -334,7 +335,7 @@ class LibraryManager:
         return names
 
     def _hints_for_library(self, library_id: str) -> PostInstallHints:
-        """Read the post-install flags off a library's identity.
+        """Read the declared post-change action off a library's identity.
 
         Returns an empty PostInstallHints if the library is no longer registered
         (e.g. we're querying after it's been evicted).
@@ -343,10 +344,7 @@ class LibraryManager:
             identity = self.registry.get_library_identity(library_id)
         except KeyError:
             return PostInstallHints()
-        return PostInstallHints(
-            needs_refresh=identity.needs_refresh,
-            needs_restart=identity.needs_restart,
-        )
+        return PostInstallHints(identity.on_reload)
 
     FRAMEWORK_CONFLICT_MESSAGE = (
         "This library needs a different version of the Haywire framework than the "
@@ -520,16 +518,14 @@ class LibraryManager:
         """Install a package with live output streaming.
 
         Returns ``(success, message, hints)`` where ``hints`` is a
-        :class:`PostInstallHints` unioned across newly-imported libraries
-        (success path) and any evicted libraries (success OR failure path,
-        for ``needs_restart`` only).
+        :class:`PostInstallHints` combining the declarations of every
+        newly-imported library (success path) and every evicted one (success
+        OR failure path). One install can touch several libraries because the
+        named package pulls in its haybale dependencies, and an upgrade can
+        evict several at once.
 
-        Evicting a live library sets ``needs_restart`` regardless of what its
-        author declared. An upgrade removes a library from the registry but
-        cannot remove the module objects that mounted nodes, registered types,
-        and DI singletons still hold, so post-eviction the two versions'
-        classes coexist. That is a property of the operation, not of the
-        library, so it is not the author's flag to withhold.
+        Eviction itself demands nothing: hot-reload ejects the old modules and
+        rebinds, so only a library that declared ``on_reload`` escalates.
 
         ``known_removals`` lets a caller that has *already* run :meth:`dry_run`
         hand over its result instead of paying for a second resolver round —
@@ -553,25 +549,21 @@ class LibraryManager:
                 # Resolver failure — the actual install will also fail and report it.
                 to_remove = []
 
-        evicted_restart_hint = PostInstallHints()
+        evicted_hints = PostInstallHints()
         evicted: list[str] = []
         for dist_name in to_remove:
             lib_id = self.registry.find_library_by_distribution_name(dist_name)
             if lib_id and self.registry.get_library_install_type(lib_id) == InstallType.REGULAR:
-                # Capture needs_restart only (per Q5/B: refresh is install-only,
-                # and Q12.A: a failed install with an evicted restart-lib should
-                # still surface the restart hint).
-                lib_hints = self._hints_for_library(lib_id)
-                evicted_restart_hint = evicted_restart_hint.merge(
-                    PostInstallHints(needs_restart=lib_hints.needs_restart)
-                )
+                # The evicted library's own declaration, in full — what cannot be
+                # hot-swapped in cannot be hot-swapped out either. Captured here
+                # because remove_library() drops the identity, and kept on the
+                # failure path too (per Q12.A).
+                evicted_hints = evicted_hints.merge(self._hints_for_library(lib_id))
                 self.registry.remove_library(lib_id)
                 evicted.append(dist_name)
 
         if evicted:
             on_output(f"Preparing upgrade: removing {', '.join(evicted)} from registry…")
-            # Stale live objects survive the eviction — see the docstring.
-            evicted_restart_hint = evicted_restart_hint.merge(PostInstallHints(needs_restart=True))
 
         # Capture post-eviction registered library_ids so we can compute the
         # newly-imported set after the scan. Evicted libs are absent from this
@@ -581,8 +573,9 @@ class LibraryManager:
 
         success, stderr = await self._run_uv_streaming(args, on_output)
         if not success:
-            # Failure path: needs_refresh always False; needs_restart from evictions only.
-            return False, f"Install failed: {stderr}", evicted_restart_hint
+            # Failure path: nothing new was imported, so only the evicted
+            # libraries' declarations apply.
+            return False, f"Install failed: {stderr}", evicted_hints
 
         on_output("Invalidating caches...")
         self._invalidate_caches()
@@ -600,10 +593,10 @@ class LibraryManager:
         if source_pkg is not None:
             self._sync_install_to_pyproject(source_pkg, on_output)
 
-        # Success path: union evicted-restart with the freshly-imported set.
+        # Success path: combine the evicted set with the freshly-imported one.
         post_install_ids = set(self.registry.list_names())
         new_ids = post_install_ids - pre_install_ids
-        hints = evicted_restart_hint
+        hints = evicted_hints
         for lid in new_ids:
             hints = hints.merge(self._hints_for_library(lid))
 
@@ -625,18 +618,21 @@ class LibraryManager:
     ) -> tuple[bool, str, PostInstallHints]:
         """Uninstall a library with live output streaming.
 
-        Returns ``(success, message, hints)`` where ``hints.needs_refresh`` is
-        always False (per Q5/B) and ``hints.needs_restart`` reflects the
-        removed library's declared flag, captured before disable.
+        Returns ``(success, message, hints)`` carrying the removed library's
+        declared ``on_reload`` as-is: the declaration is symmetric, so a
+        library whose assets a live tab could not pick up on install is equally
+        stuck there once it is gone.
+
+        Exactly one library is ever involved — ``uv pip uninstall`` removes the
+        named distribution only and never cascades to its dependencies, so
+        orphaned haybale dependencies stay installed and loaded.
         """
         dist_name = self.registry.get_library_distribution_name(library_id)
         if not dist_name:
             return False, f"Cannot find pip package name for library '{library_id}'", PostInstallHints()
 
         # Capture the library's hints before disabling — registry may drop the identity.
-        lib_hints = self._hints_for_library(library_id)
-        # Per Q5/B: refresh is install-only for uninstall.
-        hints = PostInstallHints(needs_restart=lib_hints.needs_restart)
+        hints = self._hints_for_library(library_id)
 
         # disable_library() first: fires _fire_library_disabled (LibraryStateContainer
         # relies on it to drop this library from its instance-filter set) and persists
@@ -944,7 +940,7 @@ class LibraryManager:
 
         Lightweight alternative to rename — only rewrites metadata fields
         (label, description, url, author, author_url, tags, dependencies,
-        needs_refresh, needs_restart). Never touches version — that's set by
+        on_reload). Never touches version — that's set by
         Share/publish (lockstep bump). No directory rename, no pyproject.toml
         changes, no uv sync required.
 
@@ -973,8 +969,11 @@ class LibraryManager:
         author_url_val = identity.get("author_url", "")
         tags_list: list[str] = identity.get("tags") or []
         deps_list: list[str] = identity.get("dependencies") or []
-        needs_refresh_val = bool(identity.get("needs_refresh", False))
-        needs_restart_val = bool(identity.get("needs_restart", False))
+        # Validated through the enum so a bad value fails here rather than at the
+        # next library import, when the rewritten file is already on disk.
+        on_reload_val = LibraryReloadAction(
+            str(identity.get("on_reload", LibraryReloadAction.NONE)).strip().lower()
+        ).value
 
         # Update __init__.py decorator fields. version is deliberately excluded —
         # it's set by Share/publish (lockstep bump), which overwrites it on the
@@ -991,8 +990,7 @@ class LibraryManager:
             content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
             content = _set_decorator_list_field(content, "tags", tags_list)
             content = _set_decorator_list_field(content, "dependencies", deps_list)
-            content = _set_decorator_bool_field(content, "needs_refresh", needs_refresh_val)
-            content = _set_decorator_bool_field(content, "needs_restart", needs_restart_val)
+            content = _set_decorator_str_field(content, "on_reload", on_reload_val)
             init_file.write_text(content)
         except OSError as e:
             return False, f"Failed to update __init__.py: {e}"

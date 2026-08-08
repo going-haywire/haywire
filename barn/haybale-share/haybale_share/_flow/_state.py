@@ -45,6 +45,7 @@ from haywire.core.publishing.pipeline import (
     SharePipeline,
     VersionPlan,
 )
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
@@ -104,7 +105,7 @@ class ShareFlow(StepFlow):
         self.last_error: BaseException | None = None
 
         self.hot_swapped_libraries: list[str] = []
-        self.hot_swap_needs_restart = False
+        self.hot_swap_on_reload = LibraryReloadAction.NONE
 
     # ── read-only helpers for the panels ─────────────────────────────────────
 
@@ -253,13 +254,13 @@ class ShareFlow(StepFlow):
             return
 
         swapped: list[str] = []
-        needs_restart = False
+        on_reload = LibraryReloadAction.NONE
         for lib in plan.current:
             lib_id = registry.find_library_by_distribution_name(lib.name)
             if lib_id is None:
                 continue
             identity = registry.get_library_identity(lib_id)
-            needs_restart = needs_restart or identity.needs_restart
+            on_reload = max(on_reload, identity.on_reload)
             registry.remove_library(lib_id)
             swapped.append(lib_id)
 
@@ -269,7 +270,7 @@ class ShareFlow(StepFlow):
         await asyncio.to_thread(registry.scan_for_libraries)
         registry.enable_all_libraries()
         self.hot_swapped_libraries = swapped
-        self.hot_swap_needs_restart = needs_restart
+        self.hot_swap_on_reload = on_reload
 
     async def advance_from_publish(self, message: str | None = None) -> None:
         """Docs, marketstall, commit, tag, push — one authorized run.

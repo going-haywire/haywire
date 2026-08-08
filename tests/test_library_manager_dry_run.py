@@ -20,11 +20,27 @@ def anyio_backend():
 
 def _make_manager():
     from haybale_marketplace.library_manager import LibraryManager
+    from haywire.core.library.identity import LibraryIdentity
 
     registry = MagicMock()
     registry._library_distribution_names = {}
     registry._library_install_types = {}
     registry._library_sources = {}
+    # A real identity, not a MagicMock attribute: the manager reads the typed
+    # `on_reload` off it and orders it against other libraries' declarations,
+    # which a Mock cannot participate in.
+    registry.get_library_identity.side_effect = lambda lid: LibraryIdentity(
+        label=lid,
+        version="0.0.1",
+        description="",
+        url="",
+        help_url="",
+        author="",
+        author_url="",
+        folder_path=f"/tmp/{lid}",
+        module_name=lid,
+        id=lid,
+    )
     return LibraryManager(library_registry=registry)
 
 

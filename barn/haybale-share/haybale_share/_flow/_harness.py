@@ -41,6 +41,8 @@ from haywire.core.publishing.pipeline import (
     VersionPlan,
 )
 
+from haywire.core.library.identity import LibraryReloadAction
+
 from ._state import ShareFlow
 from .panels import panel_done, panel_preflight, panel_publish, panel_review
 
@@ -441,15 +443,23 @@ def done_hot_swapped() -> ShareFlow:
     """Registry refreshed in place — no restart affordance."""
     flow = _published()
     flow.hot_swapped_libraries = ["alpha", "beta"]
-    flow.hot_swap_needs_restart = False
+    flow.hot_swap_on_reload = LibraryReloadAction.NONE
+    return flow
+
+
+def done_needs_refresh() -> ShareFlow:
+    """A swapped library declared on_reload="refresh" — reloaded, tab still stale."""
+    flow = _published()
+    flow.hot_swapped_libraries = ["alpha", "beta"]
+    flow.hot_swap_on_reload = LibraryReloadAction.REFRESH
     return flow
 
 
 def done_needs_restart() -> ShareFlow:
-    """A library declared needs_restart, or no live registry was reachable."""
+    """A library declared on_reload="restart", or no live registry was reachable."""
     flow = _published()
     flow.hot_swapped_libraries = ["alpha"]
-    flow.hot_swap_needs_restart = True
+    flow.hot_swap_on_reload = LibraryReloadAction.RESTART
     return flow
 
 
@@ -486,6 +496,7 @@ SCENARIOS: dict[str, list[tuple[str, Callable[[], ShareFlow], Panel]]] = {
     ],
     "4 · Done": [
         ("Hot-swapped, no restart", done_hot_swapped, panel_done),
+        ("Page reload needed", done_needs_refresh, panel_done),
         ("Restart needed", done_needs_restart, panel_done),
     ],
 }

@@ -6,7 +6,7 @@ from unittest.mock import AsyncMock, MagicMock, patch
 
 import pytest
 
-from haywire.core.library.identity import LibraryIdentity
+from haywire.core.library.identity import LibraryIdentity, LibraryReloadAction
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
 pytestmark = pytest.mark.anyio
@@ -17,7 +17,7 @@ def anyio_backend():
     return "asyncio"
 
 
-def _identity(lib_id: str, *, needs_refresh: bool = False, needs_restart: bool = False) -> LibraryIdentity:
+def _identity(lib_id: str, *, on_reload: LibraryReloadAction = LibraryReloadAction.NONE) -> LibraryIdentity:
     return LibraryIdentity(
         label=lib_id,
         version="0.0.1",
@@ -29,8 +29,7 @@ def _identity(lib_id: str, *, needs_refresh: bool = False, needs_restart: bool =
         folder_path=f"/tmp/{lib_id}",
         module_name=lib_id,
         id=lib_id,
-        needs_refresh=needs_refresh,
-        needs_restart=needs_restart,
+        on_reload=on_reload,
     )
 
 
@@ -91,9 +90,9 @@ async def test_install_success_no_flags_returns_empty_hints():
 
 
 @pytest.mark.unit
-async def test_install_success_new_lib_needs_refresh_propagates():
-    """A fresh install of a library declaring needs_refresh=True → hints.needs_refresh=True."""
-    new_lib = _identity("graph_editor", needs_refresh=True)
+async def test_install_success_new_lib_refresh_propagates():
+    """A fresh install of a library declaring REFRESH → hints carry REFRESH."""
+    new_lib = _identity("graph_editor", on_reload=LibraryReloadAction.REFRESH)
     mgr, _ = _make_manager(libraries_before={}, libraries_after={"graph_editor": new_lib})
 
     with (
@@ -104,15 +103,14 @@ async def test_install_success_new_lib_needs_refresh_propagates():
         success, _msg, hints = await mgr.install("haybale-graph-editor", on_output=lambda _l: None)
 
     assert success is True
-    assert hints.needs_refresh is True
-    assert hints.needs_restart is False
+    assert hints.action is LibraryReloadAction.REFRESH
 
 
 @pytest.mark.unit
 async def test_install_failure_with_evicted_restart_lib_returns_restart_hint():
-    """Per Q12.A: if eviction removed a needs_restart library and then pip failed,
-    hints.needs_restart must be True."""
-    evicted = _identity("haybale_ext", needs_restart=True)
+    """Per Q12.A: if eviction removed a RESTART library and then pip failed, the
+    restart is still owed — the library is gone from the registry either way."""
+    evicted = _identity("haybale_ext", on_reload=LibraryReloadAction.RESTART)
     mgr, _ = _make_manager(
         libraries_before={"haybale_ext": evicted}, libraries_after={"haybale_ext": evicted}
     )
@@ -124,16 +122,15 @@ async def test_install_failure_with_evicted_restart_lib_returns_restart_hint():
         success, _msg, hints = await mgr.install("haybale-ext==2.0", on_output=lambda _l: None)
 
     assert success is False
-    assert hints.needs_refresh is False  # failure never sets refresh
-    assert hints.needs_restart is True
+    assert hints.action is LibraryReloadAction.RESTART
 
 
 @pytest.mark.unit
-async def test_install_upgrade_unions_new_and_evicted_flags():
-    """Per Q6.A: install hints = OR over (newly-imported + evicted) for restart;
-    OR over (newly-imported only) for refresh."""
-    old_v = _identity("haybale_x", needs_restart=True, needs_refresh=False)
-    new_v = _identity("haybale_x", needs_restart=False, needs_refresh=True)
+async def test_install_upgrade_takes_the_heavier_of_new_and_evicted():
+    """An upgrade combines the outgoing and incoming declarations; the heavier
+    wins, because the old version's code is what is currently loaded."""
+    old_v = _identity("haybale_x", on_reload=LibraryReloadAction.RESTART)
+    new_v = _identity("haybale_x", on_reload=LibraryReloadAction.REFRESH)
     mgr, _ = _make_manager(libraries_before={"haybale_x": old_v}, libraries_after={"haybale_x": new_v})
 
     with (
@@ -144,24 +141,19 @@ async def test_install_upgrade_unions_new_and_evicted_flags():
         success, _msg, hints = await mgr.install("haybale-x==2.0", on_output=lambda _l: None)
 
     assert success is True
-    # refresh: True (new version declares it)
-    assert hints.needs_refresh is True
-    # restart: True (old version declared it; OR'd in from evicted set)
-    assert hints.needs_restart is True
+    assert hints.action is LibraryReloadAction.RESTART
 
 
 @pytest.mark.unit
-async def test_eviction_forces_restart_even_when_no_library_declares_it():
-    """An upgrade that evicts a live library sets needs_restart regardless of
-    what the authors declared.
+async def test_eviction_alone_demands_nothing():
+    """Hot-reload ejects the old modules and rebinds, so an upgrade that evicts a
+    live library asks nothing of the user unless a library declared it.
 
-    Eviction removes the library from the registry but cannot remove the module
-    objects that mounted nodes and registered types still hold, so both
-    versions' classes coexist. That is a property of the operation, not of the
-    library, so no author flag can withhold it.
+    Inverts the former rule, which forced a restart on every eviction and so
+    fired the affordance on routine upgrades.
     """
-    old_v = _identity("haybale_y", needs_restart=False, needs_refresh=False)
-    new_v = _identity("haybale_y", needs_restart=False, needs_refresh=False)
+    old_v = _identity("haybale_y")
+    new_v = _identity("haybale_y")
     mgr, _ = _make_manager(libraries_before={"haybale_y": old_v}, libraries_after={"haybale_y": new_v})
 
     with (
@@ -172,19 +164,35 @@ async def test_eviction_forces_restart_even_when_no_library_declares_it():
         success, _msg, hints = await mgr.install("haybale-y==2.0", on_output=lambda _l: None)
 
     assert success is True
-    assert hints.needs_restart is True
-    # Refresh stays author-driven — eviction says nothing about it.
-    assert hints.needs_refresh is False
+    assert hints.action is LibraryReloadAction.NONE
 
 
 @pytest.mark.unit
-async def test_fresh_install_without_eviction_does_not_force_restart():
-    """The install-vs-update discriminator: no eviction, no forced restart.
+async def test_install_unions_across_transitively_imported_libraries():
+    """One install can import several libraries — the named package plus the
+    haybale dependencies it pulls in. Any of them may escalate."""
+    named = _identity("haybale_named")
+    pulled = _identity("haybale_dep", on_reload=LibraryReloadAction.RESTART)
+    mgr, _ = _make_manager(
+        libraries_before={},
+        libraries_after={"haybale_named": named, "haybale_dep": pulled},
+    )
 
-    Guards the affordance against firing on every plain install, which is the
-    one path that genuinely does not need one.
-    """
-    new_lib = _identity("brand_new", needs_restart=False)
+    with (
+        patch.object(mgr, "dry_run", new=AsyncMock(return_value=[])),
+        patch.object(mgr, "_run_uv_streaming", new=AsyncMock(return_value=(True, ""))),
+        patch("asyncio.to_thread", new=AsyncMock(side_effect=lambda fn: fn())),
+    ):
+        success, _msg, hints = await mgr.install("haybale-named", on_output=lambda _l: None)
+
+    assert success is True
+    assert hints.action is LibraryReloadAction.RESTART
+
+
+@pytest.mark.unit
+async def test_fresh_install_of_a_plain_library_demands_nothing():
+    """Guards the affordance against firing on a routine install."""
+    new_lib = _identity("brand_new")
     mgr, _ = _make_manager(libraries_before={}, libraries_after={"brand_new": new_lib})
 
     with (
@@ -195,14 +203,18 @@ async def test_fresh_install_without_eviction_does_not_force_restart():
         success, _msg, hints = await mgr.install("brand-new", on_output=lambda _l: None)
 
     assert success is True
-    assert hints.needs_restart is False
+    assert hints.action is LibraryReloadAction.NONE
 
 
 @pytest.mark.unit
-async def test_uninstall_propagates_needs_restart_only():
-    """Per Q5/B: uninstall hints.needs_refresh is always False; needs_restart
-    comes from the removed library."""
-    target = _identity("haybale_ext", needs_restart=True, needs_refresh=True)
+@pytest.mark.parametrize("action", [LibraryReloadAction.REFRESH, LibraryReloadAction.RESTART])
+async def test_uninstall_propagates_the_declaration_symmetrically(action: LibraryReloadAction):
+    """The declaration is symmetric: what could not be hot-swapped in cannot be
+    hot-swapped out either, so uninstall carries REFRESH as well as RESTART.
+
+    Inverts the former rule, which dropped refresh on uninstall.
+    """
+    target = _identity("haybale_ext", on_reload=action)
     mgr, _ = _make_manager(libraries_before={"haybale_ext": target}, libraries_after={})
 
     with (
@@ -212,13 +224,12 @@ async def test_uninstall_propagates_needs_restart_only():
         success, _msg, hints = await mgr.uninstall_streaming("haybale_ext", on_output=lambda _l: None)
 
     assert success is True
-    assert hints.needs_refresh is False  # uninstall never sets refresh
-    assert hints.needs_restart is True
+    assert hints.action is action
 
 
 @pytest.mark.unit
-async def test_uninstall_with_no_restart_flag_returns_empty_hints():
-    """Uninstalling a library that didn't declare needs_restart → empty hints."""
+async def test_uninstall_with_no_declaration_returns_empty_hints():
+    """Uninstalling a library that declared nothing → empty hints."""
     target = _identity("haybale_plain")
     mgr, _ = _make_manager(libraries_before={"haybale_plain": target}, libraries_after={})
 

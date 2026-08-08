@@ -6,6 +6,7 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui import elements as hui
 from haywire.ui.components.stepper import busy_advance
 from haywire.ui.modals import restart_affordance
@@ -130,13 +131,16 @@ def _panel_done(flow: InstallFlow, on_done: Callable[[], None] | None) -> None:
             for line in flow.log_lines:
                 log.push(line)
 
-    hints = flow.hints
-    needs_restart = bool(getattr(hints, "needs_restart", False))
-    if needs_restart or flow.removals:
+    action = getattr(flow.hints, "action", LibraryReloadAction.NONE)
+    if action is LibraryReloadAction.RESTART:
         restart_affordance(
-            reason=(f"Installing {flow.name} replaced libraries the running registry had already loaded."),
+            reason=f"{flow.name} cannot be loaded into the running Studio process.",
             compact=True,
         )
+    elif action is LibraryReloadAction.REFRESH:
+        with ui.row().classes("w-full items-center gap-2"):
+            ui.icon("refresh", size="16px").classes("hw-text-muted")
+            ui.label("Reload the page to use the new library.").classes("text-xs hw-text-muted")
 
     def _close() -> None:
         if flow.popup is not None:

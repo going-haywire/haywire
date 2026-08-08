@@ -48,8 +48,7 @@ class MarketplaceInstallLibraryTool(Farmhand):
         ctx.broadcast(LibraryCatalogChanged())  # caller-owned signal, gap 5
         return {
             "summary": f"Installed '{install_spec}'. {message}",
-            "needs_refresh": hints.needs_refresh,
-            "needs_restart": hints.needs_restart,
+            "on_reload": hints.action.value,
         }
 
 
@@ -68,5 +67,5 @@ class MarketplaceUninstallLibraryTool(Farmhand):
         ctx.broadcast(LibraryCatalogChanged())
         return {
             "summary": f"Uninstalled '{library_id}'. {message}",
-            "needs_restart": hints.needs_restart,
+            "on_reload": hints.action.value,
         }

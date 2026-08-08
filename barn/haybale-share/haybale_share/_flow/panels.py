@@ -17,6 +17,7 @@ from typing import Callable
 
 from nicegui import ui
 
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.publishing.pipeline import ShareDecisions
 from haywire.ui import elements as hui
 from haywire.ui.components.stepper import busy_advance as _busy_advance
@@ -551,11 +552,15 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
     elif warning:
         ui.label(warning).classes("text-xs hw-text-muted")
 
-    if flow.hot_swapped_libraries and not flow.hot_swap_needs_restart:
+    if flow.hot_swapped_libraries and flow.hot_swap_on_reload is not LibraryReloadAction.RESTART:
         count = len(flow.hot_swapped_libraries)
         ui.label(
             f"Reloaded {count} bumped librar{'y' if count == 1 else 'ies'} — no restart needed."
         ).classes("text-xs hw-text-dim")
+        if flow.hot_swap_on_reload is LibraryReloadAction.REFRESH:
+            ui.label("Reload the page to pick up their new front-end resources.").classes(
+                "text-xs hw-text-muted"
+            )
     else:
         restart_affordance(
             reason="Publishing bumped every barn library's version, so the loaded registry is now stale.",

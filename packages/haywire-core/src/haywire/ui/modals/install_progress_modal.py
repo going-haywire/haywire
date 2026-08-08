@@ -5,18 +5,18 @@ state transitions via the returned :class:`LibraryOperationProgressModal` handle
 
   modal = library_operation_progress_modal(title="Installing haybale-foo")
   modal.push("Resolving dependencies…")
-  modal.finish(hints=PostInstallHints(needs_refresh=True))
-  modal.finish(error="Install failed: …", hints=PostInstallHints(needs_restart=True))
+  modal.finish(hints=PostInstallHints(LibraryReloadAction.REFRESH))
+  modal.finish(error="Install failed: …", hints=PostInstallHints(LibraryReloadAction.RESTART))
 
 The terminal state is driven by ``hints`` (and optionally ``error``):
-  * No flags, no error → "Done" button, closes popup.
-  * ``needs_refresh=True``, no error → "Reload the page" button that calls
+  * ``NONE``, no error → "Done" button, closes popup.
+  * ``REFRESH``, no error → "Reload the page" button that calls
     ``ui.navigate.reload()``.
-  * ``needs_restart=True`` → the shared restart affordance (stale-registry
-    notice + "Restart Studio" button that quits gracefully); restart subsumes
-    refresh. The quit is never forced — the popup's own button still closes it.
+  * ``RESTART`` → the shared restart affordance (stale-registry notice +
+    "Restart Studio" button that quits gracefully). The quit is never forced —
+    the popup's own button still closes it.
   * ``error=…`` → red banner stays visible; button label becomes "Close" unless
-    ``needs_restart`` is also set, in which case the restart button takes over.
+    the action is ``RESTART``, in which case the restart button takes over.
 """
 
 from __future__ import annotations
@@ -26,29 +26,33 @@ from typing import Optional
 
 from nicegui import ui
 
+from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals.restart_affordance import restart_affordance
 
 
 @dataclass(frozen=True)
 class PostInstallHints:
-    """Post-install user-action requirements computed by ``LibraryManager``.
+    """The post-change user action computed by ``LibraryManager``.
 
-    Author-declared on ``LibraryIdentity`` via ``@library(needs_refresh=True,
-    needs_restart=True)``. Unioned across newly-imported and evicted libraries
-    by the install/uninstall flow and consumed by
-    :meth:`LibraryOperationProgressModal.finish` to render the terminal state.
+    Author-declared on ``LibraryIdentity`` via ``@library(on_reload="restart")``.
+    An install can bring several libraries into the registry at once (the named
+    package plus any haybale dependencies it pulls in), so the flow combines
+    their declarations with :meth:`merge` before handing the result to
+    :meth:`LibraryOperationProgressModal.finish`. Uninstall touches exactly one
+    library — ``uv pip uninstall`` never cascades to dependencies — so nothing
+    is combined there.
     """
 
-    needs_refresh: bool = False
-    needs_restart: bool = False
+    action: LibraryReloadAction = LibraryReloadAction.NONE
 
     def merge(self, other: "PostInstallHints") -> "PostInstallHints":
-        """Return a new hints with each flag OR'd between self and other."""
-        return PostInstallHints(
-            needs_refresh=self.needs_refresh or other.needs_refresh,
-            needs_restart=self.needs_restart or other.needs_restart,
-        )
+        """Return the more demanding of the two actions.
+
+        ``RESTART`` outranks ``REFRESH`` outranks ``NONE``: if any library in
+        one operation needs the heavier action, the user is told to take it.
+        """
+        return PostInstallHints(max(self.action, other.action))
 
 
 class LibraryOperationProgressModal:
@@ -89,7 +93,6 @@ class LibraryOperationProgressModal:
         *,
         error: Optional[str] = None,
         hints: Optional[PostInstallHints] = None,
-        needs_restart: bool = False,
         restart_reason: Optional[str] = None,
     ) -> None:
         """Transition to the terminal state.
@@ -98,17 +101,12 @@ class LibraryOperationProgressModal:
             error: When supplied, shows the error banner. Combines with ``hints``:
                 if restart is required, the restart affordance still appears
                 alongside the error banner (per Q12.A).
-                When ``error`` and ``hints.needs_refresh`` are both set without
-                a restart requirement, the refresh state takes precedence (the
-                user still needs to reload to see the partial result, and the
-                banner stays visible to explain what failed).
-            hints: Post-install requirements that drive button label + extra
+                When ``error`` and a ``REFRESH`` action are both present, the
+                refresh state takes precedence (the user still needs to reload
+                to see the partial result, and the banner stays visible to
+                explain what failed).
+            hints: The post-change action that drives button label + extra
                 notice / instructions. When None, treated as ``PostInstallHints()``.
-            needs_restart: Caller-observed restart requirement, OR'd with the
-                author-declared ``hints.needs_restart``. Lets a flow that
-                *knows* it invalidated the registry (an install that evicted a
-                live library, say) demand a restart without every library
-                author having to declare ``@library(needs_restart=True)``.
             restart_reason: Overrides the affordance's leading sentence, so the
                 caller can name what actually went stale.
         """
@@ -128,11 +126,9 @@ class LibraryOperationProgressModal:
 
         button = self._done_row[1]
 
-        # Author-declared and caller-observed requirements are equally binding.
-        restart_required = hints.needs_restart or needs_restart
+        action = hints.action
 
-        # Restart subsumes refresh: check restart first.
-        if restart_required:
+        if action is LibraryReloadAction.RESTART:
             # The affordance carries its own "Restart Studio" button, so the
             # terminal button stays a plain dismiss — the quit is never the
             # only way out of the popup.
@@ -141,7 +137,7 @@ class LibraryOperationProgressModal:
             self._restart_slot.set_visibility(True)
             button.set_text("Close")
             button.on("click", self._popup.close)
-        elif hints.needs_refresh:
+        elif action is LibraryReloadAction.REFRESH:
             button.set_text("Reload the page")
             self._reload_notice.set_visibility(True)
             button.on("click", lambda: ui.navigate.reload())
@@ -214,7 +210,7 @@ def library_operation_progress_modal(
                 .style("height: 200px; font-family: monospace;")
             )
 
-            # Refresh-required notice — hidden unless needs_refresh fires
+            # Refresh-required notice — hidden unless the REFRESH action fires
             reload_notice = ui.label("Reload the page to use the new library.").classes(
                 "text-xs hw-text-muted"
             )

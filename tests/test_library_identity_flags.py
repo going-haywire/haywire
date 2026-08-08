@@ -1,4 +1,4 @@
-"""Tests for the post-install requirement flags on LibraryIdentity."""
+"""Tests for the post-change reload declaration on LibraryIdentity."""
 
 from __future__ import annotations
 
@@ -6,7 +6,7 @@ from typing import Any, cast
 
 import pytest
 
-from haywire.core.library.identity import LibraryIdentity
+from haywire.core.library.identity import LibraryIdentity, LibraryReloadAction
 
 
 def _make_identity(**overrides) -> LibraryIdentity:
@@ -28,36 +28,54 @@ def _make_identity(**overrides) -> LibraryIdentity:
 
 
 @pytest.mark.unit
-def test_needs_refresh_defaults_to_false():
-    """LibraryIdentity.needs_refresh must default to False when not specified."""
-    identity = _make_identity()
-    assert identity.needs_refresh is False
+def test_on_reload_defaults_to_none():
+    """A library that declares nothing asks nothing of the user."""
+    assert _make_identity().on_reload is LibraryReloadAction.NONE
 
 
 @pytest.mark.unit
-def test_needs_restart_defaults_to_false():
-    """LibraryIdentity.needs_restart must default to False when not specified."""
-    identity = _make_identity()
-    assert identity.needs_restart is False
+@pytest.mark.parametrize(
+    "action",
+    [LibraryReloadAction.NONE, LibraryReloadAction.REFRESH, LibraryReloadAction.RESTART],
+)
+def test_on_reload_enum_member_round_trips(action: LibraryReloadAction):
+    assert _make_identity(on_reload=action).on_reload is action
 
 
 @pytest.mark.unit
-def test_needs_refresh_explicit_true_preserved():
-    """An explicit needs_refresh=True must round-trip through the dataclass."""
-    identity = _make_identity(needs_refresh=True)
-    assert identity.needs_refresh is True
+@pytest.mark.parametrize(
+    ("raw", "expected"),
+    [
+        ("none", LibraryReloadAction.NONE),
+        ("refresh", LibraryReloadAction.REFRESH),
+        ("restart", LibraryReloadAction.RESTART),
+        ("RESTART", LibraryReloadAction.RESTART),
+        ("  refresh  ", LibraryReloadAction.REFRESH),
+    ],
+)
+def test_on_reload_coerces_the_on_disk_string_form(raw: str, expected: LibraryReloadAction):
+    """Authors write on_reload="restart" so the decorator source needs no import."""
+    identity = _make_identity(on_reload=raw)
+    assert identity.on_reload is expected
 
 
 @pytest.mark.unit
-def test_needs_restart_explicit_true_preserved():
-    """An explicit needs_restart=True must round-trip through the dataclass."""
-    identity = _make_identity(needs_restart=True)
-    assert identity.needs_restart is True
+def test_on_reload_rejects_an_unknown_value():
+    """A typo must fail at import, not degrade silently to NONE."""
+    with pytest.raises(ValueError, match="reboot"):
+        _make_identity(on_reload="reboot")
 
 
 @pytest.mark.unit
-def test_both_flags_can_be_set_together():
-    """Both flags can be True simultaneously."""
-    identity = _make_identity(needs_refresh=True, needs_restart=True)
-    assert identity.needs_refresh is True
-    assert identity.needs_restart is True
+def test_reload_actions_are_ordered_by_escalating_scope():
+    """merge()/max() across libraries relies on this ordering."""
+    assert LibraryReloadAction.NONE < LibraryReloadAction.REFRESH < LibraryReloadAction.RESTART
+    assert max(LibraryReloadAction.REFRESH, LibraryReloadAction.RESTART) is LibraryReloadAction.RESTART
+    assert max(LibraryReloadAction.NONE, LibraryReloadAction.REFRESH) is LibraryReloadAction.REFRESH
+
+
+@pytest.mark.unit
+def test_reload_action_serializes_as_its_bare_string():
+    """Farmhand JSON and the edit dialog's identity dict carry the plain value."""
+    assert LibraryReloadAction.RESTART.value == "restart"
+    assert f"{LibraryReloadAction.REFRESH}" == "refresh"
