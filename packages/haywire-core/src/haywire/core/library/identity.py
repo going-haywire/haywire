@@ -83,10 +83,8 @@ class LibraryIdentity:
     file_watcher: bool = False  # Whether to watch for file changes
     on_reload: LibraryReloadAction = LibraryReloadAction.NONE
     """What the user must do after this library is installed, updated, or
-        uninstalled — see :class:`LibraryReloadAction`. Symmetric: the same
-        declaration applies in every direction, because what cannot be
-        hot-swapped in also cannot be hot-swapped out. Accepts the bare string
-        (``on_reload="restart"``), which is the on-disk form."""
+        uninstalled. Symmetric: the same declaration applies in every direction. 
+        Accepts the bare string (``on_reload="restart"``), which is the on-disk form."""
 
     def __post_init__(self):
         if self.dependencies is None:
