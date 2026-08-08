@@ -157,12 +157,19 @@ def _generate_library_pyproject(name: str, module_name: str, dev_repo: str | Non
 haywire-core = {{ path = "{dev_repo}/packages/haywire-core", editable = true }}
 '''
 
+    # version/description/keywords/authors live here and nowhere else: the
+    # identity reads them back out of the installed distribution's metadata,
+    # so a second copy in @library() is what let the two drift.
     return f'''[project]
 name = "{lib_name}"
 version = "0.0.1"
 description = "Local library for {name} project"
 requires-python = ">=3.12"
 license = {{text = "MIT"}}
+authors = [
+    {{name = "Your Name"}}
+]
+keywords = ["experimental", "project-local"]
 
 dependencies = ["haywire-core{pin}"]
 
@@ -354,7 +361,6 @@ Add your custom components in the corresponding folders:
 - editors/    — custom UI editors
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -375,13 +381,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 @library(
     label='{label}',
     id='{lib_base}',
-    version=_pkg_version('haybale-{lib_base}'),
-    description='Local library for {name} project',
-    url='',
-    author='',
-    author_url='',
-    dependencies=[],
-    tags=['experimental', 'project-local'],
+    linked_libraries=[],
     file_watcher=True,
 )
 class Library(BaseLibrary):

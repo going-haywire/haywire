@@ -214,6 +214,34 @@ class TestLibraryInit:
         assert "id='test-project'" in init_content
         assert "file_watcher=True" in init_content
 
+    def test_scaffolded_library_uses_the_current_decorator_surface(self, scaffold_project):
+        """A new project must not start pre-migration."""
+        from haywire.core.publishing.manifest.decorator_ast import read_decorator
+
+        init_py = scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
+        source = init_py.read_text()
+
+        for gone in ("version=", "description=", "url=", "author=", "author_url=", "tags="):
+            assert gone not in source, gone
+        assert "dependencies=" not in source
+        assert "linked_libraries=" in source
+        assert "_pkg_version" not in source
+
+        got = read_decorator(init_py)
+        assert got.id == "test-project"
+        assert got.label
+
+    def test_scaffolded_pyproject_carries_the_pep621_fields(self, scaffold_project):
+        """What the decorator stopped declaring must be declared in [project],
+        or the scaffolded library's identity reads empty."""
+        data = toml.loads(
+            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
+        )
+        assert data["project"]["description"]
+        assert data["project"]["version"]
+        assert data["project"]["keywords"]
+        assert data["project"]["authors"]
+
 
 class TestProjectMarketplace:
     """The project's <project>/.haywire/marketplace.toml contains [[heaps]] only."""

@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
-from haywire.core.library.decorator_io import _set_decorator_list_field
+from haywire.core.library.decorator_io import _set_decorator_str_field
 from haywire.core.tomlio import edit_toml
 
 
@@ -100,15 +100,12 @@ def rename_library(
     new_pkg_dir_tmp = old_lib_dir / new_module  # inside old lib dir before lib rename
     new_label = new_name.replace("-", " ").replace("_", " ").title()
 
-    # Resolve all identity values (defaults only; no new_identity override in CLI)
+    # Resolve all identity values (defaults only; no new_identity override in CLI).
+    # version/description/url/author/tags are no longer decorator fields — the
+    # identity reads them from the distribution's metadata, so `description` is
+    # written to pyproject.toml below and the rest are not this function's to set.
     label_val = new_label
-    version_val = "0.1.0"
     desc_val = f"Local library for {new_name} project"
-    url_val = ""
-    author_val = ""
-    author_url_val = ""
-    tags_list: list[str] = []
-    deps_list: list[str] = []
 
     # --- 3. (Studio: disable old library — skipped in CLI) ---
     sink(f"Renaming {dist_name} → {new_lib_name}...")
@@ -125,15 +122,13 @@ def rename_library(
     try:
         init_file = new_pkg_dir_tmp / "__init__.py"
         content = init_file.read_text()
-        content = re.sub(r"(    id=')[^']*(')", rf"\g<1>{new_name}\2", content)
-        content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
-        content = re.sub(r"(    version=')[^']*(')", rf"\g<1>{version_val}\2", content)
-        content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
-        content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
-        content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
-        content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
-        content = _set_decorator_list_field(content, "tags", tags_list)
-        content = _set_decorator_list_field(content, "dependencies", deps_list)
+        # Quote-agnostic. The regexes these replace matched single quotes only,
+        # so they no-opped against any library ruff had formatted — and `id`
+        # not being rewritten is the damaging one: patch_graph_references
+        # rewrites every graph's registry keys to the new id, which then
+        # resolves against nothing.
+        content = _set_decorator_str_field(content, "id", new_name)
+        content = _set_decorator_str_field(content, "label", label_val)
         content = re.sub(
             r"(Local haybale library for the )[^\n]*(\.)",
             rf"\g<1>{new_name} project\2",
