@@ -1,8 +1,8 @@
 """The public import surface of the share package.
 
 A characterization test: it encodes what external consumers (the share
-wizard, _overview_edit_dialog, deps_cli, app.py) import today, so the
-restructure cannot silently drop a name. It is not a design statement —
+wizard, deps_cli, app.py) import today, so the restructure cannot silently
+drop a name. It is not a design statement —
 narrowing this surface is a deliberate follow-up, not something to do by
 accident.
 """
@@ -17,6 +17,8 @@ _WIZARD_IMPORTS = (
     "DriftReport",
     "FrameworkOption",
     "FrameworkPlan",
+    "LibraryEdit",
+    "MetadataPlan",
     "PreconditionFailure",
     "PreconditionsError",
     "PreconditionsReport",

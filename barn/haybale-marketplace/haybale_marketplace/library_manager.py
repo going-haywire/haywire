@@ -19,8 +19,6 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire.core.tomlio import edit_toml
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.library.decorator_io import _set_decorator_list_field, _set_decorator_str_field
-from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.marketstall import Haybale
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
@@ -32,8 +30,6 @@ def _sanitize_name(name: str) -> str:
         sanitized = "_" + sanitized
     return sanitized
 
-
-_DECLARABLE_OS_VALUES = ("macos", "windows", "linux")
 
 # Packages the marketplace must never move. Pinned to their installed exact
 # versions on every install, so a haybale whose tree wants a different
@@ -173,37 +169,6 @@ def _dep_name(dep_entry: str) -> str:
     head = head.split(" @ ", 1)[0]
     head = re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0]
     return head.strip()
-
-
-def _apply_os_to_pyproject(pyproject_path: Path, os_values: list[str]) -> None:
-    """Write or remove [tool.haywire].os in the library's pyproject.toml.
-
-    Rules:
-      - Filter to allowed values (macos, windows, linux); silently drop others.
-      - Empty list after filtering OR all three present → remove [tool.haywire].os
-        entirely (absent = "all platforms").
-      - Non-empty subset → write the filtered list in canonical order.
-      - Preserves other [tool.*] sections (hatch, etc.) verbatim — including
-        their comments, which a toml.loads/dumps round trip would delete.
-    """
-    # Filter to allowed values, then canonicalize order to (macos, windows, linux).
-    filtered = [v for v in _DECLARABLE_OS_VALUES if v in os_values]
-
-    with edit_toml(pyproject_path) as data:
-        tool = data.setdefault("tool", {})
-
-        if not filtered or len(filtered) == len(_DECLARABLE_OS_VALUES):
-            # Remove the section entirely.
-            haywire = tool.get("haywire")
-            if haywire is not None:
-                haywire.pop("os", None)
-                if not haywire:
-                    tool.pop("haywire", None)
-            if not tool:
-                data.pop("tool", None)
-        else:
-            haywire = tool.setdefault("haywire", {})
-            haywire["os"] = filtered
 
 
 class LibraryManager:
@@ -931,94 +896,3 @@ class LibraryManager:
             fragment = f"#{spec.split('#')[1]}" if "#" in spec else ""
             return f"git+{base}@{version}{fragment}"
         return pkg.install_spec
-
-    def update_library_identity(
-        self,
-        library_id: str,
-        workspace_root: str,
-        identity: dict[str, Any],
-    ) -> tuple[bool, str]:
-        """Update identity metadata in __init__.py and marketplace.toml.
-
-        Lightweight alternative to rename — only rewrites the decorator-authored
-        fields (label, dependencies, on_reload) plus ``[tool.haywire].os``. No
-        directory rename, no uv sync required.
-
-        Description, authors, URLs, tags and version are **not** writable here:
-        they live in ``pyproject.toml`` and reach the identity through the
-        distribution's metadata, so a decorator write would be a second copy
-        that the next import ignores.
-
-        After writing the files the library is disabled and its module is
-        ejected from sys.modules so the caller can rescan to pick up the
-        fresh decorator values.
-        """
-        workspace = Path(workspace_root)
-
-        dist_name = self.registry.get_library_distribution_name(library_id) or ""
-        if not dist_name:
-            return False, f"Cannot find distribution name for library {library_id!r}"
-
-        # Derive the package directory the same way rename does (most reliable)
-        name_part = dist_name.removeprefix("haybale-") if dist_name.startswith("haybale-") else library_id
-        module_name = f"haybale_{_sanitize_name(name_part)}"
-        pkg_dir = workspace / "barn" / dist_name / module_name
-
-        if not pkg_dir.exists():
-            return False, f"Library package directory not found: {pkg_dir}"
-
-        label_val = identity.get("label", "")
-        deps_list: list[str] = identity.get("dependencies") or []
-        # Validated through the enum so a bad value fails here rather than at the
-        # next library import, when the rewritten file is already on disk.
-        on_reload_val = LibraryReloadAction(
-            str(identity.get("on_reload", LibraryReloadAction.NONE)).strip().lower()
-        ).value
-
-        # Update __init__.py decorator fields. version is deliberately excluded —
-        # it's set by Share/publish (lockstep bump), which overwrites it on the
-        # next publish regardless of what a caller passes here.
-        try:
-            init_file = pkg_dir / "__init__.py"
-            if not init_file.exists():
-                return False, f"__init__.py not found at {init_file}"
-            content = init_file.read_text()
-            content = _set_decorator_str_field(content, "label", label_val)
-            content = _set_decorator_list_field(content, "dependencies", deps_list)
-            content = _set_decorator_str_field(content, "on_reload", on_reload_val)
-            init_file.write_text(content)
-        except OSError as e:
-            return False, f"Failed to update __init__.py: {e}"
-
-        # Write [tool.haywire].os to the heap's pyproject.toml. This is editable
-        # only on heaps (project libraries), which is where update_library_identity
-        # operates.
-        os_list = identity.get("os")
-        if os_list is not None:  # caller opted in
-            try:
-                _apply_os_to_pyproject(pkg_dir.parent / "pyproject.toml", os_list)
-            except OSError as e:
-                return False, f"Failed to update [tool.haywire].os: {e}"
-
-        # Update matching entry in marketplace.toml
-        marketplace_path = workspace / ".haywire" / "marketplace.toml"
-        try:
-            if marketplace_path.exists():
-                # Comment-preserving: the marketplace file is hand-editable
-                # (the browser offers an Edit File button for it), so a
-                # rebuild-from-dicts write would delete the user's notes.
-                with edit_toml(marketplace_path) as data:
-                    for heap in data.get("heaps", []):
-                        if heap.get("name", "").lower() == dist_name.lower():
-                            # Only label — the row's description mirrors
-                            # pyproject.toml, which this method cannot write.
-                            heap["label"] = label_val
-                            break
-        except (OSError, KeyError) as e:
-            return False, f"Failed to update marketplace.toml: {e}"
-
-        # Fully remove the library from the registry (disable + unregister + tracking
-        # dicts cleared, sys.modules ejected) so scan_for_libraries() reimports fresh.
-        self.registry.remove_library(library_id)
-
-        return True, f"Updated identity for {dist_name}"

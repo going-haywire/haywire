@@ -13,7 +13,6 @@ SessionContext.active_component on the bus) so that the right-panel
 ComponentDetailEditor can react.
 """
 
-import asyncio
 import dataclasses
 import logging
 from functools import partial
@@ -64,7 +63,6 @@ from haybale_marketplace.editors._overview_actions import (
     disable_library,
     enable_library,
 )
-from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
 from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
 from haybale_marketplace.editors._overview_install_flow import (
     install_package,
@@ -465,37 +463,16 @@ class LibraryOverviewEditor(BaseEditor):
                                     color="green",
                                 )
 
-                            # Edit (project library) or Uninstall dropdown. Edit is
-                            # scoped to PROJECT_LOCAL specifically, not the broader
-                            # is_protected (which also covers FOLDER/framework, e.g.
-                            # builtin — that has no on-disk pyproject.toml in the
-                            # shape build_edit_dialog expects, and showed neither
-                            # button before this origin-axis change; it must not
-                            # gain an Edit button as an accidental side effect of
-                            # broadening the protection check below).
+                            # A project library offers no button here. Metadata is
+                            # edited on the Share wizard's Edit screen, where the
+                            # sync-and-reload that makes an edit visible already
+                            # exists; this view is read-only for metadata, which
+                            # fits its role. The branch stays explicit rather than
+                            # falling through to Uninstall below — a PROJECT_LOCAL
+                            # library lives in the user's own barn/ and is removed
+                            # by deleting it, not by uninstalling a package.
                             if _origin is LibraryOrigin.PROJECT_LOCAL:
-                                ui.button(
-                                    "Edit",
-                                    icon=hui.icon.edit,
-                                    on_click=lambda ilib=installed_lib,
-                                    mp=marketplace_path,
-                                    m=manager,
-                                    ctx=context: (
-                                        build_edit_dialog(
-                                            ilib,
-                                            mp,
-                                            m,
-                                            ctx,
-                                            on_save=partial(
-                                                self._do_update_identity,
-                                                ilib,
-                                                marketplace_path=mp,
-                                                manager=m,
-                                                context=ctx,
-                                            ),
-                                        ).open()
-                                    ),
-                                ).props("size=sm color=blue flat")
+                                pass
                             elif not _origin.is_protected:
                                 _names = ", ".join(f'"{d.identity.label}"' for d in _block_uninstall)
                                 _uninstall_msg = (
@@ -763,82 +740,6 @@ class LibraryOverviewEditor(BaseEditor):
     ):
         """Set context.active_component (synthetic emit)"""
         context.active_component = registry_key
-
-    async def _do_update_identity(
-        self,
-        lib: LibraryInfo,
-        identity: dict,
-        marketplace_path: str | None,
-        manager,
-        context: "SessionContext",
-    ):
-        """Save identity fields, then rescan so the in-memory identity is refreshed."""
-        if not marketplace_path:
-            ui.notify("No project workspace set.", type="negative")
-            return
-        workspace_root = str(Path(marketplace_path).parent.parent)
-
-        success, message = await asyncio.to_thread(
-            manager.update_library_identity,
-            lib.identity.id,
-            workspace_root,
-            identity,
-        )
-        if not success:
-            ui.notify(message, type="negative")
-            return
-
-        # Rescan. This re-executes the decorator so the panel shows the new
-        # metadata, but it does NOT refresh objects already built from the
-        # ejected module — mounted nodes and registered types still point at
-        # the old classes. Hence the restart offer below rather than a plain
-        # success notification.
-        manager._invalidate_caches()
-        await asyncio.to_thread(manager.registry.scan_for_libraries)
-        manager.registry.enable_all_libraries()
-
-        ui.notify(
-            f"Saved: {identity.get('label', lib.identity.label)} — restart to fully apply",
-            type="positive",
-        )
-
-        # Reload the freshly-saved library into context and re-render
-        try:
-            libs = manager.list_installed()
-            context.active_library = next(
-                (entry for entry in libs if entry.identity.id == lib.identity.id), None
-            )
-        except Exception:
-            pass
-        # _do_update_identity is wired from a button drawn during draw(),
-        # so _container has been set by then.
-        assert self._container is not None
-        self._container.clear()
-        self._rebuild(context)
-        self._offer_restart(lib.identity.label)
-
-    def _offer_restart(self, label: str) -> None:
-        """Offer a restart after an identity edit, in a popup of its own.
-
-        Not rendered inline: ``_do_update_identity`` clears and rebuilds the
-        editor container immediately before this runs, which would delete any
-        element added to it.
-        """
-        from haywire.ui.components.popup import Popup
-        from haywire.ui.modals import restart_affordance
-
-        popup = Popup(title="Restart to apply", width="420px", closable=True)
-        with popup:
-            with ui.column().classes("w-full gap-2"):
-                restart_affordance(
-                    reason=(
-                        f"“{label}” was edited on disk. The panel shows the new details, "
-                        "but components already loaded from it are unchanged."
-                    )
-                )
-                with ui.row().classes("w-full justify-end"):
-                    ui.button("Later", on_click=popup.close).props("flat dense")
-        popup.open()
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)
