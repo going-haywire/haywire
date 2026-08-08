@@ -1,6 +1,6 @@
 # Example
 
-Example library for demonstrating multi-library support
+Example library for Haywire node system demonstrating custom types, nodes, widgets, and renderers
 
 ## Nodes
 ### Examples

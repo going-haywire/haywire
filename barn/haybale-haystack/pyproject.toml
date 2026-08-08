@@ -4,6 +4,10 @@ version = "0.0.39"
 description = "Haystack — file-centric multi-graph manager for Haywire"
 requires-python = ">=3.12"
 license = {text = "MIT"}
+authors = [
+    {name = "Haywire Team"}
+]
+keywords = ["graph-management"]
 
 dependencies = [
     "haywire-core>=0.0.39",

@@ -1,10 +1,7 @@
-# Test A
+# Share
 
 <!-- marketstall:share-url:start -->
 *Subscribe URL not yet published — run `haywire share --save`.*
 <!-- marketstall:share-url:end -->
 
-Test library for Haywire node system
-
-## Types
-- **Test Data** — Simple test data structure for cross-library testing
+Project publishing editor for Haywire

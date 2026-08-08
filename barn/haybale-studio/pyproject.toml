@@ -4,6 +4,10 @@ version = "0.0.39"
 description = "haywire studio library for basic functionality"
 requires-python = ">=3.12"
 license = {text = "MIT"}
+authors = [
+    {name = "Haywire Team"}
+]
+keywords = ["experimental", "project-local"]
 
 dependencies = [
     "haywire-core>=0.0.39",

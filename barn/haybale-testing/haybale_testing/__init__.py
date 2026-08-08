@@ -5,7 +5,6 @@ Minimal test library to demonstrate multi-library support and for testing purpos
 Contains folders for nodes, widgets, adapters, renderers, and custom types.
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 from haywire.core.library.base import BaseLibrary
 from haywire.core.library.decorator import library
@@ -26,13 +25,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 @library(
     label="Testing",
     id="testing",
-    version=_pkg_version("haybale-testing"),
-    description="Test library for test support",
-    url="https://github.com/going-haywire/haywire",
-    author="Haywire Team",
-    author_url="https://github.com/going-haywire/haywire",
-    dependencies=["haybale_core", "haybale_graph_editor"],
-    tags=["testing", "development", "debug"],
+    linked_libraries=["haybale_core", "haybale_graph_editor"],
     file_watcher=True,
 )
 class Library(BaseLibrary):

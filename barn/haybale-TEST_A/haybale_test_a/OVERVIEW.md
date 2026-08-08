@@ -1,6 +1,6 @@
 # Test A
 
-Test library A for demonstrating multi-library support
+Test library for Haywire node system
 
 ## Types
 - **Test Data** — Simple test data structure for cross-library testing

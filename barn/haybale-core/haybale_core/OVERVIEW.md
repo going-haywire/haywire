@@ -1,6 +1,6 @@
 # Core
 
-Fundamental components for hayire graphs
+Haywire's core library with types, nodes, widgets, and renderers
 
 ## Nodes
 ### Core

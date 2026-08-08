@@ -4,6 +4,10 @@ version = "0.0.39"
 description = "Project publishing editor for Haywire"
 requires-python = ">=3.12"
 license = {text = "MIT"}
+authors = [
+    {name = "Haywire Team"}
+]
+keywords = ["publishing"]
 
 # Deliberately NOT dependent on haybale-marketplace. The publish flow needs a
 # LibraryRegistry to hot-swap bumped libraries, which comes from core's DI

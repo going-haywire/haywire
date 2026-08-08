@@ -8,10 +8,11 @@ kind: one of adapter, editor, farmhand, node, panel, setting, skin, state, theme
 library: exact library id (see studio_list_libraries)
 search: substring match against label/description/search_tags (same algorithm as the node-menu search)
 count_only: return counts grouped by library/kind instead of rows
+detail: add each component's one-line description to the row (registry_key/label only by default — descriptions dominate a large listing)
 include_hidden: include internal components (e.g. reroute/error nodes), excluded by default
 include_system: include synthetic libraries (dunder ids like '__system__'), excluded by default
 
 ## Details
 
-- **input_schema**: `{'type': 'object', 'properties': {'library': {'type': 'string'}, 'kind': {'type': 'string', 'enum': ['adapter', 'editor', 'farmhand', 'node', 'panel', 'setting', 'skin', 'state', 'theme', 'type', 'widget']}, 'search': {'type': 'string'}, 'include_hidden': {'type': 'boolean', 'default': False}, 'include_system': {'type': 'boolean', 'default': False}, 'count_only': {'type': 'boolean', 'default': False}, 'limit': {'type': 'integer', 'default': 100}, 'offset': {'type': 'integer', 'default': 0}}, 'required': []}`
+- **input_schema**: `{'type': 'object', 'properties': {'library': {'type': 'string'}, 'kind': {'type': 'string', 'enum': ['adapter', 'editor', 'farmhand', 'node', 'panel', 'setting', 'skin', 'state', 'theme', 'type', 'widget']}, 'search': {'type': 'string'}, 'include_hidden': {'type': 'boolean', 'default': False}, 'include_system': {'type': 'boolean', 'default': False}, 'count_only': {'type': 'boolean', 'default': False}, 'detail': {'type': 'boolean', 'default': False}, 'limit': {'type': 'integer', 'default': 100}, 'offset': {'type': 'integer', 'default': 0}}, 'required': []}`
 - **annotations**: `{'read_only_hint': True, 'destructive_hint': False, 'idempotent_hint': False, 'open_world_hint': False}`

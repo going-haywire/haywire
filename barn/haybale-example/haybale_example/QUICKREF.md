@@ -1,4 +1,4 @@
-# example — component index (v0.0.30)
+# example — component index (v0.0.39)
 
 ## node
 - `example:node:CustomCallbackNode` — Custom Callback — Listens for custom callbacks from other flows  _tags: callback, listen, event, custom_

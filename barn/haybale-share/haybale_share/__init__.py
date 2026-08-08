@@ -9,7 +9,6 @@ library rather than an editor inside haybale-marketplace, whose job is
 The engine lives in :mod:`haywire.core.publishing`; everything here is UI.
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -20,13 +19,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 @library(
     label="Share",
     id="share",
-    version=_pkg_version("haybale-share"),
-    description="Publish this project: dependencies, version, docs, commit, tag, push",
-    url="",
-    author="",
-    author_url="",
-    dependencies=[],
-    tags=["publishing"],
+    linked_libraries=[],
     file_watcher=True,
 )
 class Library(BaseLibrary):

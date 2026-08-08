@@ -4,7 +4,7 @@
 *Subscribe URL not yet published — run `haywire share --save`.*
 <!-- marketstall:share-url:end -->
 
-Test library for test support
+Testing library for Haywire node system
 
 ## Nodes
 ### Testing

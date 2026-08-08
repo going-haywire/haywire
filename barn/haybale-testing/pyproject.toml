@@ -8,9 +8,12 @@ license = {text = "MIT"}
 authors = [
     {name = "Haywire Team"}
 ]
-keywords = ["haywire", "node-editor", "visual-programming", "test"]
+keywords = ["haywire", "node-editor", "visual-programming", "test", "testing", "development", "debug"]
 
 dependencies = ["haybale-core>=0.0.39", "haybale-graph-editor>=0.0.39", "haywire-core>=0.0.39", "nicegui>=3.12.1", "typing_extensions"]
+
+[project.urls]
+Homepage = "https://github.com/going-haywire/haywire"
 
 # Entry point for Haywire library discovery
 [project.entry-points."haywire.libraries"]

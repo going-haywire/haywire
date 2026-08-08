@@ -4,7 +4,7 @@
 *Subscribe URL not yet published — run `haywire share --save`.*
 <!-- marketstall:share-url:end -->
 
-Library for haywire studio
+haywire studio library for basic functionality
 
 ## Settings
 - **Node Skin** — 
@@ -21,11 +21,12 @@ kind: one of adapter, editor, farmhand, node, panel, setting, skin, state, theme
 library: exact library id (see studio_list_libraries)
 search: substring match against label/description/search_tags (same algorithm as the node-menu search)
 count_only: return counts grouped by library/kind instead of rows
+detail: add each component's one-line description to the row (registry_key/label only by default — descriptions dominate a large listing)
 include_hidden: include internal components (e.g. reroute/error nodes), excluded by default
 include_system: include synthetic libraries (dunder ids like '__system__'), excluded by default
-- **List libraries** — Installed libraries: id, label, version, description, tags, enabled. Synthetic libraries (dunder ids like '__system__') are excluded unless include_system=true.
-- **Read component source** — Line-numbered source of any installed component.
+- **List libraries** — Installed libraries: id, label, version, enabled. Pass detail=true to add description and tags. Synthetic libraries (dunder ids like '__system__') are excluded unless include_system=true.
+- **Read component source** — Line-numbered source of any installed component. Returns the first 400 lines by default; pass offset= to window further in, or full=true for the entire file. Truncated results say so in the summary and report total_lines.
 - **Scaffold component** — Write a canon-conformant skeleton for any component kind into a project-local library; returns the path and expected registry key. Read the kind's canon first — find it via the farmhand://docs/_manifest index (e.g. components/nodes/node-canon.md).
-- **Studio status** — Versions, workspace root, enabled-library and open-graph counts, docs manifest URI. Call this first when connecting — the summary points at how to find documentation.
+- **Studio status** — Versions, workspace root, enabled-library counts, docs manifest URI. Call this first when connecting — the summary points at how to find documentation.
 - **Verify component** — Staged verification: registered -> (nodes) trial instantiation -> on_testrun(); error-ledger entries from the failing stage are attached.
 - **Write component source** — Full-source write into a project-local library only. Existing components are hot-reloaded by the file watcher; follow with studio_verify_component.

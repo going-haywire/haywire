@@ -1,6 +1,6 @@
 # Graph Editor
 
-Visual graph editor library — host-agnostic
+Graph editor library for Haywire — host-agnostic visual graph editing
 
 ## Farmhands
 - **Add node** — Add a node by registry key. Call studio_describe_component first to learn its ports.

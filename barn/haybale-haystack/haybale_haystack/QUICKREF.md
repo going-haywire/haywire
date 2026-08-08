@@ -1,4 +1,4 @@
-# haystack — component index (v0.0.30)
+# haystack — component index (v0.0.39)
 
 ## setting
 - `haystack:setting:HaystackSettings` — Haystack — 

@@ -5,7 +5,6 @@ GraphEditor surface. Decoupled from any specific graph source — source
 libraries register their containers, this library renders them.
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -27,13 +26,7 @@ __all__ = ["GraphContainer", "GraphAppState", "Library"]
 @library(
     label="Graph Editor",
     id="graph_editor",
-    version=_pkg_version("haybale-graph-editor"),
-    description="Visual graph editor library — host-agnostic",
-    url="",
-    author="",
-    author_url="",
-    dependencies=[],
-    tags=["graph-editor"],
+    linked_libraries=[],
     on_reload="refresh",
     file_watcher=True,
 )

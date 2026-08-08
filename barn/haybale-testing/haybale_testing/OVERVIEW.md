@@ -1,6 +1,6 @@
 # Testing
 
-Test library for test support
+Testing library for Haywire node system
 
 ## Nodes
 ### Testing

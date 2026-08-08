@@ -1,4 +1,4 @@
-# studio — component index (v0.0.30)
+# studio — component index (v0.0.39)
 
 ## setting
 - `studio:setting:NodeSkinSettings` — Node Skin — 
@@ -15,12 +15,13 @@ kind: one of adapter, editor, farmhand, node, panel, setting, skin, state, theme
 library: exact library id (see studio_list_libraries)
 search: substring match against label/description/search_tags (same algorithm as the node-menu search)
 count_only: return counts grouped by library/kind instead of rows
+detail: add each component's one-line description to the row (registry_key/label only by default — descriptions dominate a large listing)
 include_hidden: include internal components (e.g. reroute/error nodes), excluded by default
 include_system: include synthetic libraries (dunder ids like '__system__'), excluded by default
-- `studio:farmhand:list_libraries` — List libraries — Installed libraries: id, label, version, description, tags, enabled. Synthetic libraries (dunder ids like '__system__') are excluded unless include_system=true.
-- `studio:farmhand:read_component_source` — Read component source — Line-numbered source of any installed component.
+- `studio:farmhand:list_libraries` — List libraries — Installed libraries: id, label, version, enabled. Pass detail=true to add description and tags. Synthetic libraries (dunder ids like '__system__') are excluded unless include_system=true.
+- `studio:farmhand:read_component_source` — Read component source — Line-numbered source of any installed component. Returns the first 400 lines by default; pass offset= to window further in, or full=true for the entire file. Truncated results say so in the summary and report total_lines.
 - `studio:farmhand:scaffold_component` — Scaffold component — Write a canon-conformant skeleton for any component kind into a project-local library; returns the path and expected registry key. Read the kind's canon first — find it via the farmhand://docs/_manifest index (e.g. components/nodes/node-canon.md).
-- `studio:farmhand:status` — Studio status — Versions, workspace root, enabled-library and open-graph counts, docs manifest URI. Call this first when connecting — the summary points at how to find documentation.
+- `studio:farmhand:status` — Studio status — Versions, workspace root, enabled-library counts, docs manifest URI. Call this first when connecting — the summary points at how to find documentation.
 - `studio:farmhand:verify_component` — Verify component — Staged verification: registered -> (nodes) trial instantiation -> on_testrun(); error-ledger entries from the failing stage are attached.
 - `studio:farmhand:write_component_source` — Write component source — Full-source write into a project-local library only. Existing components are hot-reloaded by the file watcher; follow with studio_verify_component.
 

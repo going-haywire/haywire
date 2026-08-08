@@ -1,4 +1,3 @@
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.farmhand import FarmhandRegistry
@@ -12,13 +11,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 @library(
     label="Marketplace",
     id="marketplace",
-    version=_pkg_version("haybale-marketplace"),
-    description="Library installer + browser editors",
-    url="",
-    author="",
-    author_url="",
-    dependencies=[],
-    tags=["marketplace"],
+    linked_libraries=[],
     file_watcher=True,
 )
 class Library(BaseLibrary):

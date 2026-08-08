@@ -4,7 +4,7 @@
 *Subscribe URL not yet published — run `haywire share --save`.*
 <!-- marketstall:share-url:end -->
 
-File-centric multi-graph manager
+Haystack — file-centric multi-graph manager for Haywire
 
 ## Settings
 - **Haystack** — 

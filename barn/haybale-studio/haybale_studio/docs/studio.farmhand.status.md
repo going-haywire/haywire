@@ -2,7 +2,7 @@
 
 `studio:farmhand:status` · kind: farmhand
 
-Versions, workspace root, enabled-library and open-graph counts, docs manifest URI. Call this first when connecting — the summary points at how to find documentation.
+Versions, workspace root, enabled-library counts, docs manifest URI. Call this first when connecting — the summary points at how to find documentation.
 
 ## Details
 

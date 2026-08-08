@@ -1,6 +1,6 @@
 # Haystack
 
-File-centric multi-graph manager
+Haystack — file-centric multi-graph manager for Haywire
 
 ## Settings
 - **Haystack** — 
