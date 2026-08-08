@@ -40,22 +40,18 @@ def test_description_and_tags_come_from_the_distribution(monkeypatch):
     assert isinstance(identity.tags, list)
 
 
-def test_removed_kwargs_are_ignored_not_fatal(monkeypatch):
-    """Barn libraries still pass these until the author-facing migration."""
+@pytest.mark.parametrize(
+    "kwarg",
+    ["version", "description", "author", "author_url", "url", "tags"],
+)
+def test_superseded_kwargs_now_raise(monkeypatch, kwarg):
+    """Accepted-and-ignored was a migration affordance. With every library
+    migrated, silently dropping a kwarg would hide a real authoring mistake."""
     import haywire.core.library.decorator as dec
 
     monkeypatch.setattr(dec, "_dist_for_module", lambda _m: "haybale-core")
-    identity = _make(
-        version="9.9.9",
-        description="stale decorator copy",
-        author="Stale",
-        author_url="https://stale",
-        url="https://stale",
-        tags=["stale"],
-    ).class_identity
-    assert identity.version != "9.9.9"
-    assert identity.description != "stale decorator copy"
-    assert "stale" not in identity.tags
+    with pytest.raises(TypeError):
+        _make(**{kwarg: ["stale"] if kwarg == "tags" else "stale"})
 
 
 def test_haywire_specific_kwargs_are_carried():
@@ -73,10 +69,15 @@ def test_haywire_specific_kwargs_are_carried():
     assert identity.on_reload == "restart"
 
 
-def test_dependencies_keyword_still_maps_to_linked_libraries():
-    """The shim stays until the author-facing migration rewrites the libraries."""
-    identity = _make(dependencies=["haybale_core"]).class_identity
-    assert identity.linked_libraries == ["haybale_core"]
+def test_dependencies_kwarg_now_raises(monkeypatch):
+    """`dependencies=` was the pre-migration spelling of `linked_libraries=`.
+    It also collides with [project] dependencies, which means something else
+    entirely — so accepting it silently is worse than rejecting it."""
+    import haywire.core.library.decorator as dec
+
+    monkeypatch.setattr(dec, "_dist_for_module", lambda _m: "haybale-core")
+    with pytest.raises(TypeError):
+        _make(dependencies=["haybale_core"])
 
 
 def test_id_is_required():

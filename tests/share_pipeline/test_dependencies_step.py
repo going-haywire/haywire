@@ -30,7 +30,7 @@ def project(tmp_path: Path) -> Path:
             f'[project]\nname = "{name}"\nversion = "0.1.0"\ndependencies = {deps}\n'
         )
         (module / "__init__.py").write_text(
-            '@library(label="X", id="x", dependencies=["haybale_core"])\nclass Library: pass\n'
+            '@library(label="X", id="x", linked_libraries=["haybale_core"])\nclass Library: pass\n'
         )
     return repo
 

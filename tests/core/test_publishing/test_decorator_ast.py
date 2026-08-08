@@ -115,7 +115,9 @@ def test_decorated_class_found_below_other_statements(tmp_path):
     assert read_decorator(_write(tmp_path, source)).id == "deep"
 
 
-def test_legacy_dependencies_keyword_is_read(tmp_path):
-    """Unmigrated libraries still write `dependencies=`; step 10 rewrites them."""
+def test_legacy_dependencies_keyword_is_not_read(tmp_path):
+    """`dependencies=` is no longer a decorator field. The reader must not
+    resurrect it: a library still writing it will not load at all, so reporting
+    its value as a linked library would describe a library that cannot exist."""
     source = '@library(id="x", label="X", dependencies=["haybale_core"])\nclass Library: pass\n'
-    assert read_decorator(_write(tmp_path, source)).linked_libraries == ["haybale_core"]
+    assert read_decorator(_write(tmp_path, source)).linked_libraries == []

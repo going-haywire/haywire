@@ -110,14 +110,10 @@ def read_decorator(init_py: Path) -> DecoratorFields:
 
     file_watcher = _as_bool(kwargs.get("file_watcher"))
 
-    # Libraries not yet migrated still write `dependencies=`; the decorator
-    # carries the same shim. Both go in migration step 10.
-    linked = _list("linked_libraries") or _list("dependencies")
-
     return DecoratorFields(
         id=_str("id", defaults.id),
         label=_str("label", defaults.label),
-        linked_libraries=linked,
+        linked_libraries=_list("linked_libraries"),
         on_reload=_str("on_reload", defaults.on_reload),
         os=_list("os"),
         examples_path=_str("examples_path", defaults.examples_path),

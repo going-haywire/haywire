@@ -117,15 +117,21 @@ def test_os_read_from_the_decorator(repo: Path) -> None:
     assert sorted(_entry(repo, "haybale-demo")["os"]) == ["linux", "macos"]
 
 
-def test_os_falls_back_to_tool_haywire(repo: Path) -> None:
-    """Libraries not yet migrated still declare it in pyproject."""
+def test_os_does_not_fall_back_to_tool_haywire(repo: Path) -> None:
+    """The producer reads the decorator and nothing else.
+
+    [tool.haywire].os was the pre-migration carrier; publishing from it would
+    put a gate in the feed that the library's own source does not declare.
+    The repair path still reads the key — see strip_os — so a library that
+    declares it is fixed, not silently published from.
+    """
     _add_lib(
         repo,
         "haybale-old",
         decorator=_decorator("old"),
         pyproject_extra='\n[tool.haywire]\nos = ["windows"]\n',
     )
-    assert _entry(repo, "haybale-old")["os"] == ["windows"]
+    assert "os" not in _entry(repo, "haybale-old")  # to_dict() omits empty lists
 
 
 def test_decorator_os_wins_over_pyproject(repo: Path) -> None:

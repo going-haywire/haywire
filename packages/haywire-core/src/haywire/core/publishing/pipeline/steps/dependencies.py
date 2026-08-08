@@ -99,7 +99,7 @@ def apply_additions(
     Distributions already declared are skipped by ``add_dependencies``: an
     addition never restates an existing floor.
 
-    The ``@library(dependencies=[...])`` list is NOT written here — see
+    The ``@library(linked_libraries=[...])`` list is NOT written here — see
     :func:`apply_decorator_registrations`, which needs no author input.
     """
     written: list[Path] = []
@@ -118,7 +118,7 @@ def apply_additions(
 def apply_decorator_registrations(
     pipeline: "SharePipeline", registrations: dict[Path, list[str]]
 ) -> list[Path]:
-    """Add imported haywire libraries to ``@library(dependencies=[...])``.
+    """Add imported haywire libraries to ``@library(linked_libraries=[...])``.
 
     Applied automatically — the author is told, never asked. There is nothing
     to decide: ``detect_deps`` emits a name here only when the source imports
@@ -145,7 +145,7 @@ def apply_decorator_registrations(
         if not init_file.is_file():
             continue
         try:
-            merge_decorator_list_field(init_file, "dependencies", names, mode="union")
+            merge_decorator_list_field(init_file, "linked_libraries", names, mode="union")
         except _MANIFEST_FAILURE_TYPES as exc:
             raise ManifestError(str(exc)) from exc
         written.append(init_file)

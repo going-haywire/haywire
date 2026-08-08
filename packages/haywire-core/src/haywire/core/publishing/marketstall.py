@@ -107,16 +107,14 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     # carry repo-relative paths, and the ref lives in install_spec alone — so
     # the two can no longer disagree, and there is nothing left to guess.
 
-    # `os` became a decorator kwarg in migration step 7, so the decorator source
-    # is the primary read. [tool.haywire].os stays as a fallback until step 10
-    # migrates the barn libraries; read_manifest() above already validated that
-    # branch via _read_os_field, so it needs no re-checking here.
+    # `os` is a decorator kwarg; the decorator source is the only read. The
+    # [tool.haywire].os fallback went with the migration — but strip_os and its
+    # precondition still read that key, because they REPAIR a library that
+    # declares it, and third-party libraries have not migrated.
     #
     # Validation, not workaround: an unknown platform string is dropped rather
     # than published. (The regex reader this replaced also mangled underscores.)
     os_decl: list[str] = [v for v in decorator.os if v in _DECLARABLE_OS_VALUES]
-    if not os_decl:
-        os_decl = data.get("tool", {}).get("haywire", {}).get("os") or []
 
     # Paths are relative to the git root and resolved by the consumer against
     # `origin` at `install_spec`'s ref — see haywire.core.marketstall.locate.

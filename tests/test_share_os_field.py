@@ -1,4 +1,9 @@
-"""haywire share reads and validates [tool.haywire].os per spec §2.1."""
+"""haywire share reads os from the decorator and validates it per spec §2.1.
+
+[tool.haywire].os is no longer a carrier the producer reads, but it is still
+read by strip_undeclarable_os_values — the repair path for a library that
+declares it — so the strip tests below still write that key.
+"""
 
 from __future__ import annotations
 
@@ -21,20 +26,28 @@ build-backend = "hatchling.build"
 """
 
 
-def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
-    """Scaffold a minimal barn library with optional [tool.haywire].os declaration."""
+def _make_lib(
+    tmp_path: Path, *, os_decl: list[str] | None = None, decorator_os: list[str] | None = None
+) -> Path:
+    """Scaffold a minimal barn library.
+
+    *decorator_os* is the authored carrier the producer reads; *os_decl* writes
+    the superseded ``[tool.haywire].os`` key, which only the strip_os repair
+    path still reads.
+    """
     lib_dir = tmp_path / "barn" / "haybale-foo"
     lib_dir.mkdir(parents=True)
     pkg = lib_dir / "haybale_foo"
     pkg.mkdir()
+    os_kwarg = f"         os={decorator_os!r},\n" if decorator_os is not None else ""
     (pkg / "__init__.py").write_text(
         '"""Foo."""\n'
         "from haywire.core.library.base import BaseLibrary\n"
         "from haywire.core.library.decorator import library\n"
         "\n"
-        '@library(label="Foo", id="foo", version="0.1.0", description="x",\n'
-        '         url="", author="", author_url="",\n'
-        "         dependencies=[], tags=[], file_watcher=False)\n"
+        '@library(label="Foo", id="foo",\n'
+        f"{os_kwarg}"
+        "         linked_libraries=[], file_watcher=False)\n"
         "class Library(BaseLibrary):\n"
         "    def register_components(self): pass\n"
         "    def validate(self) -> bool: return True\n"
@@ -50,10 +63,10 @@ def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
 
 @pytest.mark.unit
 def test_share_reads_os_field(tmp_path: Path) -> None:
-    """Declared [tool.haywire].os is copied into the haybale entry."""
+    """The decorator's declared os is copied into the haybale entry."""
     from haywire.core.publishing.marketstall import _build_entry_for_library
 
-    lib_dir = _make_lib(tmp_path, os_decl=["macos", "linux"])
+    lib_dir = _make_lib(tmp_path, decorator_os=["macos", "linux"])
     entry = _build_entry_for_library(lib_dir)
     assert entry is not None
     assert entry["os"] == ["macos", "linux"]
@@ -61,7 +74,7 @@ def test_share_reads_os_field(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_omits_os_when_absent(tmp_path: Path) -> None:
-    """Absent [tool.haywire].os means absent from the haybale entry (= all platforms)."""
+    """An undeclared os means absent from the haybale entry (= all platforms)."""
     from haywire.core.publishing.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=None)
@@ -98,7 +111,7 @@ def test_share_rejects_unknown_value(tmp_path: Path) -> None:
 def test_share_accepts_all_three_declarable_values(tmp_path: Path) -> None:
     from haywire.core.publishing.marketstall import _build_entry_for_library
 
-    lib_dir = _make_lib(tmp_path, os_decl=["macos", "windows", "linux"])
+    lib_dir = _make_lib(tmp_path, decorator_os=["macos", "windows", "linux"])
     entry = _build_entry_for_library(lib_dir)
     assert entry is not None
     assert entry["os"] == ["macos", "windows", "linux"]

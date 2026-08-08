@@ -16,10 +16,12 @@ T = TypeVar("T")
 
 logger = logging.getLogger(__name__)
 
-#: Kwargs an author used to pass that now come from pyproject.toml. Accepted
-#: and ignored so a library still loads during the author-facing migration;
-#: removed once every barn library has been rewritten (migration step 10).
-_SUPERSEDED_KWARGS = frozenset({"version", "description", "author", "author_url", "url", "tags"})
+#: Kwargs an author used to pass that now come from pyproject.toml, plus the
+#: pre-migration spelling of ``linked_libraries``. Rejected rather than ignored:
+#: silently dropping one hides a real authoring mistake.
+_SUPERSEDED_KWARGS = frozenset(
+    {"version", "description", "author", "author_url", "url", "tags", "dependencies"}
+)
 
 
 def _dist_for_module(module: str) -> str | None:
@@ -66,8 +68,9 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     ``author_url``, ``url`` and ``tags`` are read from the installed
     distribution's metadata, which the build backend copies from
     ``pyproject.toml``. Authoring them here as well is what let the two drift,
-    so they are accepted and ignored until the barn libraries are migrated.
-    Declare them in ``[project]`` and ``[project.urls]``::
+    so passing any of them — or ``dependencies``, the old spelling of
+    ``linked_libraries`` — raises ``TypeError``. Declare them in ``[project]``
+    and ``[project.urls]``::
 
         [project]
         version = "0.0.40"
@@ -104,24 +107,21 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         if "id" not in kwargs:
             raise ValueError("@library decorator requires 'id' argument")
 
-        # The authored keyword is still `dependencies=` in libraries that have
-        # not been migrated; the field is `linked_libraries`. Migration step 10
-        # rewrites the libraries, at which point this goes away.
-        if "dependencies" in kwargs:
-            kwargs["linked_libraries"] = kwargs.pop("dependencies")
-
-        # Dropped silently rather than raising: barn libraries still pass them
-        # until step 10, and a hard failure would make the migration a flag day.
-        # Logged so an author who edits one and sees no effect has a trail.
+        # Rejected explicitly rather than left to LibraryIdentity's own
+        # TypeError: four of the six ARE identity fields (the distribution read
+        # below fills them), so passing one would be accepted and then silently
+        # overwritten — exactly the drift this consolidation removed. `author`
+        # and `url` are not fields at all, and `dependencies` is the old
+        # spelling of `linked_libraries` that also collides with [project]
+        # dependencies, which means something entirely different.
         superseded = _SUPERSEDED_KWARGS & kwargs.keys()
-        for key in superseded:
-            kwargs.pop(key)
         if superseded:
-            logger.debug(
-                "@library(%s): ignoring %s — read from the distribution's metadata, "
-                "declare them in pyproject.toml",
-                kwargs["id"],
-                ", ".join(sorted(superseded)),
+            raise TypeError(
+                f"@library({kwargs['id']!r}): {', '.join(sorted(superseded))} "
+                f"{'is' if len(superseded) == 1 else 'are'} not decorator "
+                "argument(s). version, description, author, author_url, url and tags are "
+                "read from the installed distribution's metadata — declare them in "
+                "[project] and [project.urls]. dependencies= is now linked_libraries=."
             )
 
         # Auto-detect folder_path - use the directory where inner_cls is defined
