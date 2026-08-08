@@ -7,8 +7,10 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 
+from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire.core.publishing.git import git, git_remote
+from haywire.core.publishing.manifest.decorator_ast import read_decorator
 from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire.core.publishing.manifest.os_field import describe_os_fix, invalid_os_values
 from haywire.core.publishing.manifest.reader import read_manifest
@@ -181,6 +183,23 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 barn_libraries=barn_libraries,
             )
 
+        # After the manifest read, so a library with unparseable TOML is
+        # reported as that rather than as a path fault.
+        module_dir = find_module_dir(lib_dir)
+        init_py = (module_dir / "__init__.py") if module_dir else None
+        if init_py is not None and init_py.is_file():
+            decorator = read_decorator(init_py)
+            for field, declared in (
+                ("examples_path", decorator.examples_path),
+                ("tests_path", decorator.tests_path),
+            ):
+                if declared and not (lib_dir / declared).exists():
+                    return PreconditionsReport(
+                        failures=[_declared_path_failure(field, declared, rel_lib_dir)],
+                        remote_url=None,
+                        barn_libraries=barn_libraries,
+                    )
+
     # No framework-consistency check: the marketstall's `require` is derived
     # from each library's pyproject floor at write time, so the two carriers
     # cannot disagree. The invariant is asserted by a unit test over
@@ -305,6 +324,34 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
         remote_url=remote_url,
         barn_libraries=barn_libraries,
         default_branch=default_branch,
+    )
+
+
+def _declared_path_failure(field: str, declared: str, rel_lib_dir: Path | str) -> PreconditionFailure:
+    """A library declares a path that is not there.
+
+    Publishing would emit a tag-pinned row pointing at nothing, and a pinned row
+    cannot be corrected without cutting another release — so this blocks rather
+    than warns. An *absent* declaration is not a fault: it means "no examples",
+    which is a complete answer.
+
+    Only clearing is offered as a button. Repointing needs a target preflight
+    cannot guess, and the wizard's `edit` screen already offers exactly that
+    with inline validation — so the remedy names both routes.
+    """
+    return PreconditionFailure(
+        message=f"{rel_lib_dir} declares {field}={declared!r}, which does not exist.",
+        remedy=(
+            f"Publishing would point consumers at {declared!r} inside this library, "
+            "and the row is pinned to the release tag — so a wrong path cannot be "
+            "corrected without publishing again.\n\n"
+            f"Either clear the declaration with the button below, or set {field} to "
+            "the right path on the wizard's edit screen."
+        ),
+        kind="act",
+        fix_id=f"clear_{field}",
+        fix_label=f"Clear {field}",
+        lib_dir=str(rel_lib_dir),
     )
 
 

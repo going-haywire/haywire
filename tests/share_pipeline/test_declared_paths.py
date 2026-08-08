@@ -131,3 +131,80 @@ def test_clearing_an_absent_kwarg_is_a_no_op(repo: Path) -> None:
     before = (repo / "barn" / "haybale-demo" / "haybale_demo" / "__init__.py").read_text()
     _PRECONDITION_FIXES["clear_examples_path"](pipeline, lib_dir="barn/haybale-demo")
     assert (repo / "barn" / "haybale-demo" / "haybale_demo" / "__init__.py").read_text() == before
+
+
+def _report(repo: Path):
+    """Run preconditions against a real SharePipeline over *repo*.
+
+    *repo* is a plain tmp directory, not a git repo — `git status` fails there
+    rather than reporting dirt, so the run falls through to the per-library
+    loop, which is what these tests are about. Assertions therefore filter for
+    the path failure among whatever comes back rather than expecting `ok`.
+    """
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
+
+    return SharePipeline(repo).check_preconditions()
+
+
+def test_an_existing_path_passes(repo: Path) -> None:
+    lib = repo / "barn" / "haybale-demo"
+    (lib / "examples").mkdir()
+    (lib / "examples" / "OVERVIEW.md").write_text("# Examples\n")
+    (lib / "tests").mkdir()
+
+    assert [f for f in _report(repo).failures if "does not exist" in f.message] == []
+
+
+def test_a_missing_examples_path_fails_with_a_repairable_fault(repo: Path) -> None:
+    lib = repo / "barn" / "haybale-demo"
+    (lib / "tests").mkdir()  # only tests/ exists
+
+    failure = next(f for f in _report(repo).failures if "examples_path" in f.message)
+    assert failure.kind == "act"
+    assert failure.fix_id == "clear_examples_path"
+    assert failure.lib_dir == "barn/haybale-demo"
+    assert "examples/OVERVIEW.md" in failure.message
+
+
+def test_a_missing_tests_path_fails(repo: Path) -> None:
+    lib = repo / "barn" / "haybale-demo"
+    (lib / "examples").mkdir()
+    (lib / "examples" / "OVERVIEW.md").write_text("# Examples\n")
+
+    failure = next(f for f in _report(repo).failures if "tests_path" in f.message)
+    assert failure.fix_id == "clear_tests_path"
+    assert failure.fix_label == "Clear tests_path"
+
+
+def test_an_undeclared_path_is_not_checked(tmp_path: Path) -> None:
+    """Absent means 'no examples' — a complete answer needing no check."""
+    lib = tmp_path / "barn" / "haybale-bare"
+    (lib / "haybale_bare").mkdir(parents=True)
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-bare"\nversion = "0.1.0"\n')
+    (lib / "haybale_bare" / "__init__.py").write_text(
+        '@library(id="bare", label="Bare")\nclass Library: pass\n'
+    )
+
+    assert [f for f in _report(tmp_path).failures if "does not exist" in f.message] == []
+
+
+def test_the_remedy_names_both_ways_out(repo: Path) -> None:
+    """The user can clear the declaration or repoint it on the edit screen."""
+    failure = next(f for f in _report(repo).failures if "examples_path" in f.message)
+    assert "edit" in failure.remedy.lower()
+
+
+def test_the_fix_makes_preflight_pass(repo: Path) -> None:
+    """End-to-end: the offered repair actually clears the fault."""
+    from haywire.core.publishing.pipeline.pipeline import SharePipeline
+
+    (repo / "barn" / "haybale-demo" / "tests").mkdir()
+    pipeline = SharePipeline(repo)
+    failure = next(f for f in pipeline.check_preconditions().failures if "examples_path" in f.message)
+
+    assert failure.fix_id is not None
+    assert failure.lib_dir is not None
+    pipeline.apply_precondition_fix(failure.fix_id, lib_dir=failure.lib_dir)
+
+    remaining = pipeline.check_preconditions().failures
+    assert [f for f in remaining if "examples_path" in f.message] == []
