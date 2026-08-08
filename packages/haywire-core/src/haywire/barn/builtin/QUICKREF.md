@@ -1,4 +1,4 @@
-# builtin — component index (v0.0.0)
+# builtin — component index (v0.0.39)
 
 ## node
 - `builtin:node:ErrorNode` — Core Error Node — Placeholder for node that could not be loaded  _tags: error, system, placeholder_

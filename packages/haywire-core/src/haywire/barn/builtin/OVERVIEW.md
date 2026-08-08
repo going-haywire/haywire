@@ -1,6 +1,6 @@
 # Builtin
 
-Framework-owned primitive types and adapters
+Haywire Node System Framework
 
 ## Nodes
 ### Core

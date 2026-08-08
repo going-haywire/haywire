@@ -32,6 +32,10 @@ dependencies = [
     "fastapi",
 ]
 
+[project.urls]
+Homepage = "https://github.com/going-haywire/haywire"
+Author = "https://maybites.ch"
+
 [tool.hatch.build.targets.wheel]
 packages = ["src/haywire"]
 
