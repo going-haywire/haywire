@@ -956,3 +956,60 @@ Plan complete and saved to `docs/superpowers/plans/2026-08-08-library-metadata-o
 **2. Inline Execution** — Execute tasks in this session using executing-plans, batch execution with checkpoints
 
 Which approach?
+
+---
+
+## Execution log — **landed** 2026-08-08
+
+Commits `839fa8f6`, `77871784`, `97bff108`. Final gate: 3204 passed, 2 xfailed,
+ruff check + format clean, mypy clean (911 source files).
+
+Deviations from the plan as written, all verified on disk:
+
+- **Task 1, blocked on `.gitignore`.** The new module could not be added:
+  `.gitignore:27`'s bare `MANIFEST` (for setuptools' root file) is unanchored,
+  and on macOS's case-insensitive filesystem it matches the
+  `publishing/manifest/` **source package**. The existing files there predate
+  the rule, which is why nothing surfaced until now. Added a scoped negation
+  (`!packages/**/publishing/manifest/`); root `MANIFEST` is still ignored,
+  verified both ways. Same family as the traps in
+  `.insights/project_git_url_publishing_traps.md`.
+- **Task 1, step 5 folded into step 3.** The legacy `dependencies=` shim was
+  written with the reader rather than appended after, since the barn fixtures
+  the later tasks read are all still unmigrated.
+- **Task 3, `_ENTRY_FIELD_ORDER` had to change.** The plan did not mention it,
+  but it is a hand-restated field list, so `os`/`on_reload`/`examples_path`/
+  `tests_path` would have been built into the `Haybale` and then dropped on the
+  way out by `emit_stall_toml`. It now derives from `Haybale._TOML_FIELDS`.
+  (First attempt spliced `require` in by hand and duplicated it — `_TOML_FIELDS`
+  already carries it — which surfaced as a `TOMLDecodeError`, not a quiet
+  wrong answer.)
+- **Task 3, `default_author` removed rather than kept.** The plan left this
+  conditional on other readers; there are none, so the field, its
+  `read_marketstall_config` line, and the root `pyproject.toml` key are gone.
+  The test fixture keeps its key deliberately — it now pins that a leftover in a
+  deployed pyproject is ignored rather than rejected.
+- **Task 3, step 6 ran as written, no `xfail` needed.** The self-review's risk 3
+  did not materialise: `_build_entry_for_library` tolerates a `.git` directory
+  with no remote (it empties `origin`/`install_spec` and carries on), so the
+  fixture needed no `git init`. Confirmed the comparison is not vacuous —
+  every one of the nine shared fields carries a real value on both sides.
+  `origin` joined `source`/`install_spec` as documented-different, since the
+  share pipeline derives it from the git remote.
+- **Two stale comments fixed beyond the named files.** `decorator_io.
+  _get_decorator_list_field`'s docstring cited the deleted
+  `_read_library_dependencies` as the reason for its `_` → `-` conversion; it
+  now points at the AST reader and states that it serves the writers only.
+  `tests/test_share_marketstall_write.py`'s unknown-os test explained itself in
+  terms of the same mangling, which no longer happens.
+- **One test expectation updated, as the plan anticipated.**
+  `test_dev_heaps_carry_decorator_dependencies` asserted pip form. Note the
+  docstring claim that "the install gate normalizes both sides" could NOT be
+  verified — nothing in core reads that heap field back today — so the test now
+  asserts only what is written, and says so.
+
+Left standing per the plan's self-review: the regex *writers* in `decorator_io`,
+and `_get_decorator_list_field` which `merge_decorator_list_field` still calls
+internally. `_get_decorator_str_field` now has no caller at all outside its own
+module's tests — a deletion candidate for step 8, which removes its last
+would-be user.
