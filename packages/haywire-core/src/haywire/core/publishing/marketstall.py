@@ -11,7 +11,8 @@ from pathlib import Path
 import toml
 
 from haywire.core.library.dep_detect import find_module_dir
-from haywire.core.library.decorator_io import _get_decorator_str_field
+from haywire.core.library.decorator_io import _get_decorator_list_field, _get_decorator_str_field
+from haywire.core.publishing.manifest.os_field import _DECLARABLE_OS_VALUES
 from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.host_providers import ssh_to_https
 from haywire.core.marketstall.requirement import haywire_core_requirement
@@ -101,10 +102,23 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     # carry repo-relative paths, and the ref lives in install_spec alone — so
     # the two can no longer disagree, and there is nothing left to guess.
 
-    # read_manifest() above already validated [tool.haywire].os via
-    # _read_os_field; re-running it here would just re-validate the same
-    # already-checked value. Read it directly off the validated `data`.
-    os_decl: list[str] = data.get("tool", {}).get("haywire", {}).get("os") or []
+    # `os` became a decorator kwarg in migration step 7, so the decorator source
+    # is the primary read. [tool.haywire].os stays as a fallback until step 10
+    # migrates the barn libraries; read_manifest() above already validated that
+    # branch via _read_os_field, so it needs no re-checking here.
+    #
+    # The decorator branch is filtered against the three declarable values
+    # because _get_decorator_list_field converts `_` to `-` on every value — it
+    # was written for dependency names, where module and pip form differ. None
+    # of macos/windows/linux contains an underscore, so the filter both drops
+    # typos and makes the conversion unable to smuggle a mangled value through.
+    init_file = module_dir / "__init__.py" if module_dir else None
+    init_source = init_file.read_text() if init_file and init_file.exists() else ""
+    os_decl: list[str] = [
+        v for v in _get_decorator_list_field(init_source, "os") if v in _DECLARABLE_OS_VALUES
+    ]
+    if not os_decl:
+        os_decl = data.get("tool", {}).get("haywire", {}).get("os") or []
 
     # Paths are relative to the git root and resolved by the consumer against
     # `origin` at `install_spec`'s ref — see haywire.core.marketstall.locate.
@@ -121,10 +135,11 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         rel = lib_dir.relative_to(git_root)
         return f"{rel}/{declared.lstrip('/')}"
 
-    # Until the AST reader lands (migration step 9) these come off the decorator
-    # source with the quote-agnostic regex helper.
-    init_file = module_dir / "__init__.py" if module_dir else None
-    init_source = init_file.read_text() if init_file and init_file.exists() else ""
+    # Read from the decorator source rather than an imported class: `haywire
+    # share` runs against a checkout, where nothing is imported, so
+    # cls.class_identity is not reachable. Migration step 9 replaces this regex
+    # with the AST reader promoted out of scripts/generate_marketstall.py — it
+    # is the one reader, and it cannot be defeated by quoting.
     decorator_examples_path = _get_decorator_str_field(init_source, "examples_path")
     decorator_tests_path = _get_decorator_str_field(init_source, "tests_path")
 

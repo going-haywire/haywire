@@ -84,3 +84,68 @@ def test_write_marketstall_skips_readmes_when_asked(repo: Path) -> None:
 def test_written_property_puts_the_feed_first(repo: Path) -> None:
     result = write_marketstall(repo, update_readme=False)
     assert result.written[0] == result.out_path
+
+
+def _add_lib(repo: Path, name: str, *, decorator: str, pyproject_extra: str = "") -> None:
+    """Add a barn library whose __init__.py carries a given decorator block."""
+    lib = repo / "barn" / name
+    module = lib / name.replace("-", "_")
+    module.mkdir(parents=True)
+    (lib / "pyproject.toml").write_text(
+        f'[project]\nname = "{name}"\nversion = "0.1.0"\ndescription = "d"\n{pyproject_extra}'
+    )
+    (module / "__init__.py").write_text(decorator)
+
+
+def _entry(repo: Path, name: str) -> dict:
+    return next(e for e in build_marketstall_entries(repo) if e["name"] == name)
+
+
+def _decorator(lib_id: str, os_values: list[str] | None = None) -> str:
+    """A decorator block as ruff format writes it — double-quoted, one kwarg per line."""
+    os_line = f"    os={os_values!r},\n".replace("'", '"') if os_values is not None else ""
+    return f'@library(\n    id="{lib_id}",\n    label="{lib_id.title()}",\n{os_line})\nclass Library: ...\n'
+
+
+def test_os_read_from_the_decorator(repo: Path) -> None:
+    """os moved from [tool.haywire] to the decorator in migration step 7."""
+    _add_lib(
+        repo,
+        "haybale-demo",
+        decorator=_decorator("demo", ["macos", "linux"]),
+    )
+    assert sorted(_entry(repo, "haybale-demo")["os"]) == ["linux", "macos"]
+
+
+def test_os_falls_back_to_tool_haywire(repo: Path) -> None:
+    """Libraries not yet migrated still declare it in pyproject."""
+    _add_lib(
+        repo,
+        "haybale-old",
+        decorator=_decorator("old"),
+        pyproject_extra='\n[tool.haywire]\nos = ["windows"]\n',
+    )
+    assert _entry(repo, "haybale-old")["os"] == ["windows"]
+
+
+def test_decorator_os_wins_over_pyproject(repo: Path) -> None:
+    """A migrated library that still carries the old key must not read the stale one."""
+    _add_lib(
+        repo,
+        "haybale-both",
+        decorator=_decorator("both", ["linux"]),
+        pyproject_extra='\n[tool.haywire]\nos = ["windows"]\n',
+    )
+    assert _entry(repo, "haybale-both")["os"] == ["linux"]
+
+
+def test_unknown_decorator_os_value_is_dropped(repo: Path) -> None:
+    """_get_decorator_list_field converts `_` to `-`; the filter stops the mangled
+    value reaching a feed row, where it would gate installation on a platform
+    name nothing matches."""
+    _add_lib(
+        repo,
+        "haybale-typo",
+        decorator=_decorator("typo", ["mac_os", "linux"]),
+    )
+    assert _entry(repo, "haybale-typo")["os"] == ["linux"]
