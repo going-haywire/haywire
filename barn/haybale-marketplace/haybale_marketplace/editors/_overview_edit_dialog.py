@@ -20,6 +20,7 @@ from nicegui import ui
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
 from haywire.ui import elements as hui
+from haywire.ui.components.popup import Popup
 from haywire.ui.modals import info_modal
 
 from haybale_marketplace.library_origin import is_project_library
@@ -56,7 +57,7 @@ def build_edit_dialog(
     manager: "LibraryManager",
     context: "SessionContext",
     on_save: Callable[[dict], Coroutine[Any, Any, None]],
-) -> "ui.dialog":
+) -> Popup:
     """Build the Edit dialog — all identity fields immediately editable.
 
     The package name is read-only. To rename a library use the CLI:
@@ -64,16 +65,23 @@ def build_edit_dialog(
 
     ``on_save`` is an async callable that receives the identity dict and
     performs the actual save + rebuild (stays in the editor class).
+
+    Built on ``Popup`` rather than ``ui.dialog()`` — the identity form has
+    grown past what a fixed-height Quasar dialog can show without squishing
+    content unreadably; ``Popup``'s card caps at ``90vh`` and scrolls.
     """
     old_name_part = (
         lib.distribution_name.removeprefix("haybale-") if lib.distribution_name else lib.identity.id
     )
 
-    with ui.dialog() as edit_dialog, hui.dialog_card("w-[480px]"):
-        ui.label("Edit Library").classes("text-base font-medium hw-text-body")
-        ui.label(f"haybale-{old_name_part}").classes("text-xs hw-text-muted font-mono")
-        hui.separator()
-
+    edit_popup = Popup(
+        title=f"Edit Library — haybale-{old_name_part}",
+        width="480px",
+        closable=True,
+        backdrop_click_close=False,
+        escape_close=True,
+    )
+    with edit_popup:
         hui.section_label("Identity")
         label_input = hui.input_field(label="Label", value=lib.identity.label)
         # Version is not editable here — it's set by Share/publish (lockstep bump),
@@ -81,6 +89,11 @@ def build_edit_dialog(
         ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
             "text-xs hw-text-dim"
         )
+        # Dependencies are authored by `haywire share`, not here. 
+        ui.label(
+            f"Dependencies: {', '.join(lib.identity.dependencies or []) or '(none)'} (set via Share/publish)"
+        ).classes("text-xs hw-text-dim")
+
         desc_input = hui.input_field(label="Description", value=lib.identity.description)
         author_input = hui.input_field(label="Author", value=lib.identity.author)
         author_url_input = hui.input_field(label="Author URL", value=lib.identity.author_url)
@@ -89,14 +102,29 @@ def build_edit_dialog(
             label="Tags (comma-separated)",
             value=", ".join(lib.identity.tags or []),
         )
-        # Dependencies are authored by `haywire share`, not here. Three steps of
-        # the publish flow write this list — the framework floor, removals, and
-        # additions — each owning disjoint entries so none can clobber another's.
-        # A second writer with no such discipline is how the framework floor got
-        # silently rewritten in the first place.
-        ui.label(
-            f"Dependencies: {', '.join(lib.identity.dependencies or []) or '(none)'} (set via Share/publish)"
-        ).classes("text-xs hw-text-dim")
+
+        # OS multi-select. Visible only for heaps (writable pyproject.toml).
+        _is_heap = is_project_library(lib, marketplace_path)
+        current_os = read_os_from_pyproject(lib, marketplace_path) if _is_heap else []
+        os_select = None
+        if _is_heap:
+            os_select = (
+                hui.select_field(
+                    options={"macos": "macOS", "windows": "Windows", "linux": "Linux"},
+                    value=current_os,
+                    multiple=True,
+                    label="Supported OS (leave empty = all platforms)",
+                    in_popup=True,
+                )
+                .classes("w-full")
+                .props("use-chips")
+            )
+        else:
+            # Installed wheels: read-only display of any os declaration.
+            marketplace_pkg = getattr(context, "active_marketplace_pkg", None)
+            wheel_os = list(getattr(marketplace_pkg, "os", []) or []) if marketplace_pkg else []
+            if wheel_os:
+                ui.label(f"Supported OS (read-only): {', '.join(wheel_os)}").classes("text-xs hw-text-dim")
 
         hui.separator()
 
@@ -113,29 +141,8 @@ def build_edit_dialog(
                 ),
             },
             value=lib.identity.on_reload.value,
+            in_popup=True,
         ).classes("w-full")
-
-        # OS multi-select. Visible only for heaps (writable pyproject.toml).
-        _is_heap = is_project_library(lib, marketplace_path)
-        current_os = read_os_from_pyproject(lib, marketplace_path) if _is_heap else []
-        os_select = None
-        if _is_heap:
-            os_select = (
-                hui.select_field(
-                    options={"macos": "macOS", "windows": "Windows", "linux": "Linux"},
-                    value=current_os,
-                    multiple=True,
-                    label="Supported OS (leave empty = all platforms)",
-                )
-                .classes("w-full")
-                .props("use-chips")
-            )
-        else:
-            # Installed wheels: read-only display of any os declaration.
-            marketplace_pkg = getattr(context, "active_marketplace_pkg", None)
-            wheel_os = list(getattr(marketplace_pkg, "os", []) or []) if marketplace_pkg else []
-            if wheel_os:
-                ui.label(f"Supported OS (read-only): {', '.join(wheel_os)}").classes("text-xs hw-text-dim")
 
         hui.separator()
 
@@ -183,13 +190,13 @@ def build_edit_dialog(
             # Include `os` only if the multi-select was rendered (heap libraries).
             if os_select is not None:
                 identity["os"] = list(os_select.value or [])
-            edit_dialog.close()
+            edit_popup.close()
             await on_save(identity)
 
         hui.dialog_actions(
             on_confirm=_save,
-            on_cancel=edit_dialog.close,
+            on_cancel=edit_popup.close,
             confirm_label="Save Changes",
         )
 
-    return edit_dialog
+    return edit_popup
