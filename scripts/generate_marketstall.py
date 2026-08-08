@@ -23,76 +23,14 @@ Used by:
 from __future__ import annotations
 
 import argparse
-import ast
 import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
 from haywire.core.marketstall.requirement import haywire_core_requirement
-
-
-@dataclass(frozen=True)
-class LibraryMetadata:
-    """Subset of @library(...) decorator fields we use in the marketstall.
-
-    None means "not authored on the decorator" — caller should fall back
-    to pyproject description or [tool.haywire.marketstall] defaults.
-    """
-
-    label: str | None
-    description: str | None
-    author: str | None
-    tags: list[str] | None
-
-
-def extract_library_metadata(init_py: Path) -> LibraryMetadata:
-    """Parse an __init__.py for an @library(...) decorator and lift label/description/author/tags.
-
-    Returns all-None if the file doesn't exist or has no @library decorator.
-    Framework packages without a Library class (e.g., haywire-core, haywire-studio)
-    have no decorator and are expected to fall through to pyproject + config defaults.
-    """
-    if not init_py.is_file():
-        return LibraryMetadata(label=None, description=None, author=None, tags=None)
-    tree = ast.parse(init_py.read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.ClassDef):
-            continue
-        for dec in node.decorator_list:
-            if not isinstance(dec, ast.Call):
-                continue
-            func = dec.func
-            if not (isinstance(func, ast.Name) and func.id == "library"):
-                continue
-            kwargs = {kw.arg: kw.value for kw in dec.keywords if kw.arg is not None}
-            return LibraryMetadata(
-                label=_as_str(kwargs.get("label")),
-                description=_as_str(kwargs.get("description")),
-                author=_as_str(kwargs.get("author")),
-                tags=_as_str_list(kwargs.get("tags")),
-            )
-    return LibraryMetadata(label=None, description=None, author=None, tags=None)
-
-
-def _as_str(node: ast.expr | None) -> str | None:
-    """Return the string literal value of an AST node, or None for any non-string."""
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
-    return None
-
-
-def _as_str_list(node: ast.expr | None) -> list[str] | None:
-    """Return a list of string literals from an AST list, or None for any non-list-of-strings."""
-    if not isinstance(node, ast.List):
-        return None
-    out: list[str] = []
-    for elt in node.elts:
-        s = _as_str(elt)
-        if s is None:
-            return None
-        out.append(s)
-    return out
+from haywire.core.marketstall.types import Haybale
+from haywire.core.publishing.manifest.decorator_ast import read_decorator
 
 
 @dataclass(frozen=True)
@@ -104,11 +42,15 @@ class MarketstallConfig:
     ``marketplace`` is the explicit allowlist of package names that appear in
     the official feed. Source (pypi vs git) is derived by lookup against the
     release config's pip_publish_order / git_publish_order.
+
+    ``default_author`` is deliberately absent: authors now come from PEP 621
+    ``[project] authors``, and a repo-wide default would attribute every
+    library to the same name. An unauthored field is reported absent instead.
+    A leftover key in a deployed pyproject is ignored, not an error.
     """
 
     source_url: str
     docs_branch: str
-    default_author: str
     default_tags: list[str]
     feed_base_url: str
     marketplace: list[str]
@@ -120,7 +62,6 @@ def read_marketstall_config(root_pyproject: Path) -> MarketstallConfig:
     return MarketstallConfig(
         source_url=block["source_url"],
         docs_branch=block.get("docs_branch", "main"),
-        default_author=block.get("default_author", ""),
         default_tags=list(block.get("default_tags", [])),
         feed_base_url=block.get("feed_base_url", "").rstrip("/"),
         marketplace=list(block.get("marketplace", [])),
@@ -148,10 +89,14 @@ def build_entry(
     version = project["version"]
     pyproject_description = project.get("description", "")
     pyproject_deps: list[str] = list(project.get("dependencies", []))
+    pyproject_authors = [a.get("name", "") for a in project.get("authors", []) if a.get("name")]
+    pyproject_keywords = list(project.get("keywords", []))
 
-    meta = extract_library_metadata(init_py)
+    # The same reader the share pipeline uses. Both producers now run
+    # pyproject + decorator -> LibraryMetadata -> Haybale -> TOML, so a field
+    # cannot come from one source here and another there.
+    decorator = read_decorator(init_py)
 
-    sibling_haybale = _filter_haybale_siblings(pyproject_deps)
     # Derived from the library's own floor, never authored beside it — see
     # haywire.core.marketstall.requirement. The wizard emits this same token
     # for the libraries it publishes, so both producers agree by construction
@@ -162,25 +107,38 @@ def build_entry(
     # Trailing slash marks a directory.
     docs_path = f"{subdirectory}/{module_name}/"
 
+    def _declared(path: str) -> str:
+        """Prefix an author-declared, library-relative path with the package's
+        own path from the repo root. Empty when undeclared."""
+        return f"{subdirectory}/{path.lstrip('/')}" if path else ""
+
     if source == "git":
         install_spec = f"{name} @ git+{config.source_url}.git#subdirectory={subdirectory}"
     else:
         install_spec = name
 
-    author = meta.author or config.default_author
-    entry: dict[str, object] = {
-        "name": name,
-        "label": meta.label or name,
-        "version": version,
-        "description": meta.description or pyproject_description,
-        "authors": [author] if author else [],
-        "source": source,
-        "install_spec": install_spec,
-        "tags": meta.tags if meta.tags is not None else list(config.default_tags),
-        "linked_libraries": sibling_haybale,
-        "origin": config.source_url,
-        "docs_path": docs_path,
-    }
+    # PEP 621 metadata is the source for description/authors/tags. The decorator
+    # stopped accepting those kwargs when the distribution plan landed, so the
+    # old `decorator or pyproject` preference was both dead for migrated
+    # libraries and backwards from the ADR's precedence for unmigrated ones.
+    row = Haybale(
+        name=name,
+        label=decorator.label or name,
+        version=version,
+        description=pyproject_description,
+        authors=pyproject_authors,
+        tags=pyproject_keywords or list(config.default_tags),
+        linked_libraries=decorator.linked_libraries,
+        on_reload=decorator.on_reload,
+        os=decorator.os,
+        source=source,
+        install_spec=install_spec,
+        origin=config.source_url,
+        docs_path=docs_path,
+        examples_path=_declared(decorator.examples_path),
+        tests_path=_declared(decorator.tests_path),
+    )
+    entry: dict[str, object] = row.to_dict()
     # Omitted rather than emitted empty when undeclared — an absent field means
     # "no requirement", which is exactly how the parser and the gate read it.
     # A bare "haywire-core" is NOT that case: it means the author declared the
@@ -190,39 +148,12 @@ def build_entry(
     return entry
 
 
-def _filter_haybale_siblings(deps: list[str]) -> list[str]:
-    """Return the bare haybale-* distribution names from a list of PEP 508 dep strings.
-
-    Marketstall `dependencies` is sibling haybale-* only (per spec §7) — framework
-    haywire-* packages and external deps are excluded.
-    """
-    out: list[str] = []
-    for dep in deps:
-        # Strip any version/marker suffix: "haybale-foo~=0.0.1" → "haybale-foo".
-        name = (
-            dep.split("~")[0].split(">")[0].split("<")[0].split("=")[0].split(";")[0].split("[")[0].strip()
-        )
-        if name.startswith("haybale-"):
-            out.append(name)
-    return out
-
-
-# Order of fields in every [[haybales]] entry. Matches the new spec vocabulary
-# (Haybale._TOML_FIELDS) used by the runtime parsers.
-_ENTRY_FIELD_ORDER: tuple[str, ...] = (
-    "name",
-    "label",
-    "version",
-    "require",
-    "description",
-    "authors",
-    "source",
-    "install_spec",
-    "tags",
-    "linked_libraries",
-    "origin",
-    "docs_path",
-)
+# Order of fields in every [[haybales]] entry. Taken from the runtime parsers'
+# own definition rather than restated, so a field added to Haybale cannot be
+# silently dropped from the emitted feed. Entries only ever carry the subset
+# build_entry fills; emit_stall_toml skips the rest, including the cache-only
+# tail (via/last_seen/stale) that a generated feed never contains.
+_ENTRY_FIELD_ORDER: tuple[str, ...] = Haybale._TOML_FIELDS
 
 _MARKETPLACE_HEADER = """\
 # Official haywire marketplace — aggregator (spec §11)

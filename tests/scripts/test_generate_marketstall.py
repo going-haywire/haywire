@@ -15,29 +15,20 @@ FIXTURE_DIR = Path(__file__).parent / "fixtures"
 
 
 @pytest.mark.unit
-def test_extract_library_metadata_reads_decorator_fields() -> None:
-    init_py = FIXTURE_DIR / "sample_marketstall_package_init.py"
+def test_generator_reads_the_decorator_through_the_shared_reader() -> None:
+    """The local extract_library_metadata is gone; read_decorator replaces it.
 
-    meta = generate_marketstall.extract_library_metadata(init_py)
+    Its own behaviour is covered in tests/core/test_publishing/
+    test_decorator_ast.py — this only pins that the generator uses it.
+    """
+    from haywire.core.publishing.manifest.decorator_ast import read_decorator
 
-    assert meta.label == "Alpha"
-    assert meta.author == "Alpha Author"
-    assert meta.tags == ["alpha", "demo"]
-    assert meta.description == "Alpha library — overridden in pyproject? Decorator wins."
+    fields = read_decorator(FIXTURE_DIR / "sample_marketstall_package_init.py")
 
-
-@pytest.mark.unit
-def test_extract_library_metadata_returns_none_fields_when_decorator_missing(tmp_path: Path) -> None:
-    # Plain module with no @library call.
-    plain = tmp_path / "plain_init.py"
-    plain.write_text('"""no decorator here."""\n')
-
-    meta = generate_marketstall.extract_library_metadata(plain)
-
-    assert meta.label is None
-    assert meta.author is None
-    assert meta.tags is None
-    assert meta.description is None
+    assert fields.label == "Alpha"
+    # The fixture is an unmigrated library: `dependencies=` reaches
+    # linked_libraries through the shim, as authored (no `_` -> `-`).
+    assert fields.linked_libraries == ["haybale_beta"]
 
 
 @pytest.mark.unit
@@ -49,7 +40,9 @@ def test_marketstall_config_reads_defaults_from_root_pyproject(tmp_path: Path) -
 
     assert config.source_url == "https://github.com/example/fake-workspace"
     assert config.docs_branch == "main"
-    assert config.default_author == "Fake Team"
+    # No default_author: authors come from PEP 621 [project] authors, and the
+    # fixture's leftover key is ignored rather than rejected.
+    assert not hasattr(config, "default_author")
     assert config.default_tags == []
     # feed_base_url is optional in the fixture (defaults to empty); see the
     # generate-with-base-url test for the value-set path.
@@ -58,13 +51,12 @@ def test_marketstall_config_reads_defaults_from_root_pyproject(tmp_path: Path) -
 
 
 @pytest.mark.unit
-def test_build_entry_uses_decorator_values_over_pyproject() -> None:
+def test_build_entry_takes_pep621_fields_from_pyproject() -> None:
     pkg_pyproject = FIXTURE_DIR / "sample_marketstall_package_pyproject.toml"
     init_py = FIXTURE_DIR / "sample_marketstall_package_init.py"
     config = generate_marketstall.MarketstallConfig(
         source_url="https://github.com/example/fake-workspace",
         docs_branch="main",
-        default_author="Fake Team",
         default_tags=[],
         feed_base_url="https://example.github.io/fake",
         marketplace=[],
@@ -79,16 +71,22 @@ def test_build_entry_uses_decorator_values_over_pyproject() -> None:
     )
 
     assert entry["name"] == "haybale-alpha"
+    # label is the one row field still authored on the decorator.
     assert entry["label"] == "Alpha"
     assert entry["version"] == "0.0.3"
-    # Decorator overrides pyproject for description:
-    assert entry["description"] == "Alpha library — overridden in pyproject? Decorator wins."
-    assert entry["authors"] == ["Alpha Author"]
+    # pyproject wins for description: the decorator stopped accepting the kwarg
+    # when the distribution plan landed. The fixture still authors one (it is an
+    # unmigrated library) and it is correctly ignored.
+    assert entry["description"] == "Alpha library — does alpha things"
     assert entry["source"] == "pypi"
     assert entry["install_spec"] == "haybale-alpha"
-    assert entry["tags"] == ["alpha", "demo"]
-    # Only haybale-* siblings; haywire-core and external-lib are filtered out:
-    assert entry["linked_libraries"] == ["haybale-beta"]
+    # keywords/authors are absent from this fixture's pyproject, and to_dict()
+    # omits empty values rather than emitting them.
+    assert "tags" not in entry
+    assert "authors" not in entry
+    # From the decorator, as authored — NOT from pyproject's haybale-* deps,
+    # which is where this field used to come from.
+    assert entry["linked_libraries"] == ["haybale_beta"]
     assert entry["origin"] == "https://github.com/example/fake-workspace"
     # A path from the git root, not a URL — the consumer resolves it against
     # `origin` at `install_spec`'s ref. Trailing slash marks a directory.
@@ -102,7 +100,6 @@ def test_build_entry_emits_git_source_with_subdirectory_install_spec() -> None:
     config = generate_marketstall.MarketstallConfig(
         source_url="https://github.com/example/fake-workspace",
         docs_branch="main",
-        default_author="Fake Team",
         default_tags=[],
         feed_base_url="https://example.github.io/fake",
         marketplace=[],
@@ -140,7 +137,6 @@ def test_build_entry_falls_back_to_pyproject_description_when_decorator_absent(t
     config = generate_marketstall.MarketstallConfig(
         source_url="https://github.com/example/fake-workspace",
         docs_branch="main",
-        default_author="Fake Team",
         default_tags=["default-tag"],
         feed_base_url="https://example.github.io/fake",
         marketplace=[],
@@ -156,9 +152,12 @@ def test_build_entry_falls_back_to_pyproject_description_when_decorator_absent(t
 
     assert entry["label"] == "haybale-bare"  # falls back to name
     assert entry["description"] == "Bare-bones package without an @library decorator."
-    assert entry["authors"] == ["Fake Team"]  # config default
+    # No [project] authors and no keywords: authors is omitted entirely (the
+    # config default_author is no longer substituted — an unauthored field is
+    # reported absent), while default_tags still backfills tags.
+    assert "authors" not in entry
     assert entry["tags"] == ["default-tag"]  # config default
-    assert entry["linked_libraries"] == []
+    assert "linked_libraries" not in entry
 
 
 @pytest.mark.unit
@@ -350,7 +349,6 @@ def test_generate_resolves_module_path_from_entry_points(tmp_path: Path) -> None
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/fake-workspace"\n'
         'docs_branch = "main"\n'
-        'default_author = ""\n'
         "default_tags = []\n"
         'marketplace = ["haybale-foo"]\n'
     )
@@ -382,7 +380,6 @@ def test_generate_resolves_src_layout_via_hatch_packages(tmp_path: Path) -> None
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
-        'default_author = "Team"\n'
         "default_tags = []\n"
         "marketplace = []\n"
     )
@@ -413,8 +410,9 @@ def test_generate_resolves_src_layout_via_hatch_packages(tmp_path: Path) -> None
 @pytest.mark.unit
 def test_generate_tolerates_missing_init_py(tmp_path: Path) -> None:
     """A package whose pyproject describes a module that doesn't have an __init__.py
-    at the expected path should still generate an entry (with all-None decorator fields,
-    falling back to pyproject description + config defaults)."""
+    at the expected path should still generate an entry — read_decorator returns
+    all-defaults for a missing file, so the row is built from pyproject plus
+    config defaults."""
     root = tmp_path / "pyproject.toml"
     root.write_text(
         '[tool.uv.workspace]\nmembers = ["pkgs/*"]\n'
@@ -423,7 +421,6 @@ def test_generate_tolerates_missing_init_py(tmp_path: Path) -> None:
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
-        'default_author = "Default Author"\n'
         'default_tags = ["default-tag"]\n'
         'marketplace = ["haybale-ghost"]\n'
     )
@@ -441,7 +438,7 @@ def test_generate_tolerates_missing_init_py(tmp_path: Path) -> None:
     entry = stall_parsed["haybales"][0]
     assert entry["name"] == "haybale-ghost"
     assert entry["description"] == "no init"  # pyproject fallback
-    assert entry["authors"] == ["Default Author"]  # config default
+    assert "authors" not in entry  # no [project] authors, and no repo-wide default
     assert entry["tags"] == ["default-tag"]  # config default
     assert entry["label"] == "haybale-ghost"  # name fallback
 
@@ -458,7 +455,6 @@ def test_generate_requires_feed_base_url(tmp_path: Path) -> None:
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
-        'default_author = ""\n'
         "default_tags = []\n"
         "marketplace = []\n"
         # NOTE: no feed_base_url set
@@ -542,7 +538,6 @@ def test_generate_errors_when_marketplace_entry_not_in_any_publish_list(tmp_path
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
-        'default_author = ""\n'
         "default_tags = []\n"
         'marketplace = ["haybale-alpha", "haybale-unknown"]\n'
     )
@@ -570,7 +565,6 @@ def test_generate_errors_when_package_in_both_publish_lists(tmp_path: Path) -> N
         "[tool.haywire.marketstall]\n"
         'source_url = "https://github.com/example/repo"\n'
         'docs_branch = "main"\n'
-        'default_author = ""\n'
         "default_tags = []\n"
         'marketplace = ["haybale-alpha"]\n'
     )
@@ -584,3 +578,166 @@ def test_generate_errors_when_package_in_both_publish_lists(tmp_path: Path) -> N
 
     with pytest.raises(ValueError, match="haybale-alpha"):
         generate_marketstall.generate(root, feed_base_url="https://feed.example/x")
+
+
+def _config(**overrides) -> generate_marketstall.MarketstallConfig:
+    """A MarketstallConfig with the fields these tests don't care about filled in."""
+    base = dict(
+        source_url="https://github.com/o/r",
+        docs_branch="main",
+        default_tags=[],
+        feed_base_url="https://example.github.io/fake",
+        marketplace=[],
+    )
+    base.update(overrides)
+    return generate_marketstall.MarketstallConfig(**base)  # type: ignore[arg-type]
+
+
+def _demo_library(tmp_path: Path, *, pyproject: str, decorator: str) -> tuple[Path, Path]:
+    """Write a one-library fixture; return (pyproject_path, init_py)."""
+    lib = tmp_path / "barn" / "haybale-demo"
+    (lib / "haybale_demo").mkdir(parents=True)
+    (lib / "pyproject.toml").write_text(pyproject)
+    (lib / "haybale_demo" / "__init__.py").write_text(decorator)
+    return lib / "pyproject.toml", lib / "haybale_demo" / "__init__.py"
+
+
+@pytest.mark.unit
+def test_linked_libraries_come_from_the_decorator_not_pyproject(tmp_path: Path) -> None:
+    """The CI generator used to fill this from pyproject's haybale-* deps.
+
+    The share pipeline reads the decorator. Same field, two inputs — a
+    divergence that only showed up when comparing published feeds.
+    """
+    pyproject_path, init_py = _demo_library(
+        tmp_path,
+        pyproject=(
+            '[project]\nname = "haybale-demo"\nversion = "0.1.0"\n'
+            'description = "From pyproject"\n'
+            'dependencies = ["haybale-other>=1.0", "haywire-core>=0.0.40"]\n'
+        ),
+        decorator=(
+            '@library(\n    id="demo",\n    label="Demo",\n'
+            '    linked_libraries=["haybale_studio"],\n)\nclass Library: ...\n'
+        ),
+    )
+
+    entry = generate_marketstall.build_entry(
+        pyproject_path=pyproject_path,
+        init_py=init_py,
+        config=_config(),
+        subdirectory="barn/haybale-demo",
+        module_name="haybale_demo",
+    )
+
+    assert entry["linked_libraries"] == ["haybale_studio"]
+    assert "haybale-other" not in cast(list, entry.get("linked_libraries", []))
+
+
+@pytest.mark.unit
+def test_description_and_tags_come_from_pyproject(tmp_path: Path) -> None:
+    """Precedence is pyproject, not the decorator — the decorator no longer
+    accepts description= at all since the distribution plan landed."""
+    pyproject_path, init_py = _demo_library(
+        tmp_path,
+        pyproject=(
+            '[project]\nname = "haybale-demo"\nversion = "0.1.0"\n'
+            'description = "From pyproject"\nkeywords = ["a", "b"]\n'
+            'authors = [{name = "Author One"}]\n'
+        ),
+        decorator='@library(id="demo", label="Demo")\nclass Library: ...\n',
+    )
+
+    entry = generate_marketstall.build_entry(
+        pyproject_path=pyproject_path,
+        init_py=init_py,
+        config=_config(),
+        subdirectory="barn/haybale-demo",
+        module_name="haybale_demo",
+    )
+
+    assert entry["description"] == "From pyproject"
+    assert entry["tags"] == ["a", "b"]
+    assert entry["authors"] == ["Author One"]
+
+
+@pytest.mark.unit
+def test_os_and_paths_reach_the_row(tmp_path: Path) -> None:
+    """Fields the hand-assembled dict dropped entirely before this plan."""
+    pyproject_path, init_py = _demo_library(
+        tmp_path,
+        pyproject='[project]\nname = "haybale-demo"\nversion = "0.1.0"\n',
+        decorator=(
+            '@library(\n    id="demo",\n    label="Demo",\n'
+            '    os=["macos"],\n    on_reload="restart",\n'
+            '    examples_path="examples/OVERVIEW.md",\n)\nclass Library: ...\n'
+        ),
+    )
+
+    entry = generate_marketstall.build_entry(
+        pyproject_path=pyproject_path,
+        init_py=init_py,
+        config=_config(),
+        subdirectory="barn/haybale-demo",
+        module_name="haybale_demo",
+    )
+
+    assert entry["os"] == ["macos"]
+    assert entry["on_reload"] == "restart"
+    assert entry["examples_path"] == "barn/haybale-demo/examples/OVERVIEW.md"
+
+
+@pytest.mark.unit
+def test_both_producers_emit_the_same_row_for_one_library(tmp_path: Path) -> None:
+    """The share pipeline and the CI generator differ only in documented ways.
+
+    They disagreed on two fields before this plan: linked_libraries came from
+    pyproject in one and the decorator in the other, and description/tags
+    preferred the decorator in one and pyproject in the other. Nothing but a
+    test stops them drifting apart again — the two live in different packages
+    and neither imports the other's row builder.
+    """
+    from haywire.core.publishing.marketstall import _build_entry_for_library
+
+    repo = tmp_path / "repo"
+    (repo / ".git").mkdir(parents=True)
+    lib = repo / "barn" / "haybale-demo"
+    (lib / "haybale_demo").mkdir(parents=True)
+    (lib / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-demo"\nversion = "0.1.0"\n'
+        'description = "Shared"\nkeywords = ["k"]\n'
+        'authors = [{name = "A"}]\n'
+    )
+    (lib / "haybale_demo" / "__init__.py").write_text(
+        '@library(\n    id="demo",\n    label="Demo",\n'
+        '    linked_libraries=["haybale_studio"],\n    os=["macos"],\n'
+        '    examples_path="examples/OVERVIEW.md",\n)\n'
+        "class Library: ...\n"
+    )
+
+    ci = generate_marketstall.build_entry(
+        pyproject_path=lib / "pyproject.toml",
+        init_py=lib / "haybale_demo" / "__init__.py",
+        config=_config(),
+        subdirectory="barn/haybale-demo",
+        module_name="haybale_demo",
+    )
+    share = _build_entry_for_library(lib)
+    assert share is not None
+
+    # source and install_spec differ by design: PyPI vs git, and the CI
+    # generator resolves refs against a branch because it has no tag context.
+    # origin differs too — the share pipeline reads it from the git remote.
+    shared = {
+        "label",
+        "version",
+        "description",
+        "tags",
+        "authors",
+        "linked_libraries",
+        "os",
+        "docs_path",
+        "examples_path",
+    }
+    for key in shared:
+        assert ci.get(key) == share.get(key), key

@@ -171,9 +171,10 @@ source_url = "https://github.com/going-haywire/haywire"
 # Default branch used in the raw-githubusercontent docs_url.
 docs_branch = "master"
 
-# Default author and tags applied when a package's @library decorator
-# doesn't set them. Per-package values from the decorator always win.
-default_author = "Haywire Team"
+# Tags applied when a package's pyproject declares no [project] keywords.
+# There is no default_author counterpart: authors come from PEP 621
+# [project] authors, and a repo-wide default would attribute every library
+# to the same name.
 default_tags = []
 
 # Base URL where the deployed feed lives. The generator composes the per-stall
