@@ -44,7 +44,11 @@ class LibraryMetadata:
     :attr:`reload_action` to compare or combine."""
 
     os: list[str] = field(default_factory=list)
-    """Platforms this library supports. Empty means all. Gates installation."""
+    """Platforms this library supports. Empty means all. Gates installation.
+
+    A decorator kwarg: it has no PEP 621 equivalent and ``[tool.haywire]`` does
+    not survive into a wheel, so code is the only place it can live and still be
+    readable at runtime."""
 
     docs_path: str = ""
     """Where the library's docs live, as a path from the **git root** of the
@@ -61,10 +65,12 @@ class LibraryMetadata:
     is empty on a runtime-constructed identity."""
 
     examples_path: str = ""
-    """Path from the git root to the library's examples. See :attr:`docs_path`."""
+    """Path to the library's examples. Same trailing-slash and resolution rules
+    as :attr:`docs_path`, but unlike it this is a decorator kwarg, so it is
+    populated on a runtime-constructed identity too."""
 
     tests_path: str = ""
-    """Path from the git root to the library's tests. See :attr:`docs_path`."""
+    """Path to the library's tests. See :attr:`examples_path`."""
 
     homepage_url: str = ""
     documentation_url: str = ""
