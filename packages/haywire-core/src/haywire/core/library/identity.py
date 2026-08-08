@@ -80,19 +80,24 @@ class LibraryIdentity:
         leaves the subscriber holding a stale class reference"""
     tags: list[str] | None = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
-    on_reload: LibraryReloadAction = LibraryReloadAction.NONE
+    on_reload: str = LibraryReloadAction.NONE.value
     """What the user must do after this library is installed, updated, or
-        uninstalled. Symmetric: the same declaration applies in every direction. 
-        Accepts the bare string (``on_reload="restart"``), which is the on-disk form."""
+        uninstalled. Stored in the wire form (``"none"``/``"refresh"``/``"restart"``)
+        so it is identical on ``Haybale``, in TOML, and in farmhand JSON. Use
+        :attr:`reload_action` to compare or combine declarations."""
 
     def __post_init__(self):
         if self.dependencies is None:
             self.dependencies = []
         if self.tags is None:
             self.tags = []
-        # Coerce the on-disk/string form. Authors write on_reload="restart" so
-        # the decorator source needs no import of this enum; the marketplace
-        # edit dialog and farmhand payloads pass plain strings for the same
-        # reason.
-        if not isinstance(self.on_reload, LibraryReloadAction):
-            self.on_reload = LibraryReloadAction(str(self.on_reload).strip().lower())
+        # Validate and normalise to the wire form. Accepts the enum or any
+        # case/whitespace variant of its value; an unknown value raises here
+        # rather than at the next library import.
+        self.on_reload = LibraryReloadAction(str(self.on_reload).strip().lower()).value
+
+    @property
+    def reload_action(self) -> LibraryReloadAction:
+        """The ordered enum form. Use for comparison and ``max()``; the stored
+        field is a plain string so both metadata shapes agree."""
+        return LibraryReloadAction(self.on_reload)

@@ -29,7 +29,6 @@ from haywire.ui.widget.registry import WidgetRegistry
     version=_pkg_version("haybale-testing"),
     description="Test library for test support",
     url="https://github.com/going-haywire/haywire",
-    help_url="https://github.com/going-haywire/haywire",
     author="Haywire Team",
     author_url="https://github.com/going-haywire/haywire",
     dependencies=["haybale_core", "haybale_graph_editor"],

@@ -344,7 +344,7 @@ class LibraryManager:
             identity = self.registry.get_library_identity(library_id)
         except KeyError:
             return PostInstallHints()
-        return PostInstallHints(identity.on_reload)
+        return PostInstallHints(identity.reload_action)
 
     FRAMEWORK_CONFLICT_MESSAGE = (
         "This library needs a different version of the Haywire framework than the "

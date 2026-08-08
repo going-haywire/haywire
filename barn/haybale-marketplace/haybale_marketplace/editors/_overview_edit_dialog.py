@@ -89,7 +89,7 @@ def build_edit_dialog(
         ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
             "text-xs hw-text-dim"
         )
-        # Dependencies are authored by `haywire share`, not here. 
+        # Dependencies are authored by `haywire share`, not here.
         ui.label(
             f"Dependencies: {', '.join(lib.identity.dependencies or []) or '(none)'} (set via Share/publish)"
         ).classes("text-xs hw-text-dim")
@@ -140,7 +140,7 @@ def build_edit_dialog(
                     "Restart the Studio — C-extension modules, import-time global mutation"
                 ),
             },
-            value=lib.identity.on_reload.value,
+            value=lib.identity.on_reload,
             in_popup=True,
         ).classes("w-full")
 

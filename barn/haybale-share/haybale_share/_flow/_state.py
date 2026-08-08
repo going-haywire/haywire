@@ -270,7 +270,7 @@ class ShareFlow(StepFlow):
             if lib_id is None:
                 continue
             identity = registry.get_library_identity(lib_id)
-            on_reload = max(on_reload, identity.on_reload)
+            on_reload = max(on_reload, identity.reload_action)
             registry.remove_library(lib_id)
             swapped.append(lib_id)
 
