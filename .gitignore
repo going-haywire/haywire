@@ -25,6 +25,10 @@ share/python-wheels/
 .installed.cfg
 *.egg
 MANIFEST
+# setuptools' MANIFEST is a root file, but the pattern is unanchored AND macOS
+# matches it case-insensitively — so it swallowed the publishing/manifest/
+# source package, silently leaving new modules there untracked.
+!packages/**/publishing/manifest/
 
 # PyInstaller
 #  Usually these files are written by a python script from a template
