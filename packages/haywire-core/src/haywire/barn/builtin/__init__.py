@@ -17,7 +17,6 @@ from haywire.core.library.decorator import library
     version=_pkg_version("haywire-core"),
     description="Framework-owned primitive types and adapters",
     url="https://github.com/going-haywire/haywire",
-    help_url="https://github.com/going-haywire/haywire",
     author="maybites",
     author_url="https://maybites.ch",
     dependencies=[],

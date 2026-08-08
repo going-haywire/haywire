@@ -74,7 +74,6 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
         author="Haywire Team",
         author_url="auto-generated",
         url="auto-generated",
-        help_url="auto-generated",
         dependencies=[],
         folder_path="auto-generated",
         module_name="haywire",

@@ -33,7 +33,6 @@ def test_container_stamps_session_weakref_on_session_state():
             version="0",
             description="",
             url="",
-            help_url="",
             author="",
             author_url="",
             folder_path="",

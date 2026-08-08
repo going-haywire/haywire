@@ -29,7 +29,6 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         description (str, optional): Human-readable description of the library.
             Defaults to empty string.
         url (str, optional): Library's main URL. Defaults to empty string.
-        help_url (str, optional): URL to documentation. Defaults to empty string.
         author (str, optional): Author name. Defaults to empty string.
         author_url (str, optional): Author's URL. Defaults to empty string.
         id (str, optional): Unique identifier for the library.
@@ -72,7 +71,6 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
                 version=_pkg_version("haybale-advanced.library"),
                 description="Advanced library with many features",
                 url="https://github.com/user/advanced-library",
-                help_url="https://advanced-library.readthedocs.io",
                 author="John Doe",
                 author_url="https://johndoe.com",
                 id="advanced_lib",

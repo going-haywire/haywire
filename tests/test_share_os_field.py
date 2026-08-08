@@ -33,7 +33,7 @@ def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
         "from haywire.core.library.decorator import library\n"
         "\n"
         '@library(label="Foo", id="foo", version="0.1.0", description="x",\n'
-        '         url="", help_url="", author="", author_url="",\n'
+        '         url="", author="", author_url="",\n'
         "         dependencies=[], tags=[], file_watcher=False)\n"
         "class Library(BaseLibrary):\n"
         "    def register_components(self): pass\n"

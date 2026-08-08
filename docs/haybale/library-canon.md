@@ -60,7 +60,6 @@ Optional: `@library(file_watcher=True)` enables hot-reload — the framework sta
 | `file_watcher` | no | `False` | Enable hot-reload via filesystem observer |
 | `dependencies` | no | `[]` | List of required library IDs (currently informational only — load order is by discovery priority, not dependency graph) |
 | `url` | no | `''` | Library website |
-| `help_url` | no | `''` | Documentation URL |
 | `author` | no | `''` | Author name |
 | `author_url` | no | `''` | Author homepage |
 

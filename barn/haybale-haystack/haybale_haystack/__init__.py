@@ -32,7 +32,6 @@ from haywire.ui.panel.registry import PanelRegistry
     version=_pkg_version("haybale-haystack"),
     description="File-centric multi-graph manager",
     url="",
-    help_url="",
     author="",
     author_url="",
     dependencies=["haybale_studio", "haybale_graph_editor"],

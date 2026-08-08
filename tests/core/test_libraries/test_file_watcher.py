@@ -43,7 +43,6 @@ def _make_identity(label: str = "TestLib", folder: str = "/tmp/fake") -> Library
         version="0.1",
         description="test",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path=folder,

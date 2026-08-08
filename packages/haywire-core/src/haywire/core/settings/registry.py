@@ -40,7 +40,6 @@ FRAMEWORK_IDENTITY = LibraryIdentity(
     version="0.0.0",
     description="Haywire framework built-in settings",
     url="",
-    help_url="",
     author="Haywire",
     author_url="",
     id="haywire-core",

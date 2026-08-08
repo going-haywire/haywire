@@ -15,7 +15,6 @@ def _lib_identity(lib_id: str) -> LibraryIdentity:
         version="0.1",
         description="",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path="/tmp/fake",

@@ -30,7 +30,6 @@ __all__ = ["GraphContainer", "GraphAppState", "Library"]
     version=_pkg_version("haybale-graph-editor"),
     description="Visual graph editor library — host-agnostic",
     url="",
-    help_url="",
     author="",
     author_url="",
     dependencies=[],

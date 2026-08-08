@@ -68,7 +68,6 @@ class LibraryIdentity:
     version: str
     description: str
     url: str
-    help_url: str
     author: str
     author_url: str
     folder_path: str  # Path to the library folder

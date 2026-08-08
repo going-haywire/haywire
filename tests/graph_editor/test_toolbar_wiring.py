@@ -92,7 +92,6 @@ def test_toolbar_panels_registered_in_panel_registry(tmp_path):
         version="0.0.1",
         description="test",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path=str(tmp_path),

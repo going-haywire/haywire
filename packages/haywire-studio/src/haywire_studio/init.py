@@ -378,7 +378,6 @@ from haywire.ui.widget.registry import WidgetRegistry
     version=_pkg_version('haybale-{lib_base}'),
     description='Local library for {name} project',
     url='',
-    help_url='',
     author='',
     author_url='',
     dependencies=[],

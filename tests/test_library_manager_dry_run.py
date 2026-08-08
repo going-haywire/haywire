@@ -34,7 +34,6 @@ def _make_manager():
         version="0.0.1",
         description="",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path=f"/tmp/{lid}",

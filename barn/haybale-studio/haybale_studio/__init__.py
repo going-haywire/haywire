@@ -39,7 +39,6 @@ from haywire.ui.widget.registry import WidgetRegistry
     version=_pkg_version("haybale-studio"),
     description="Library for haywire studio",
     url="",
-    help_url="",
     author="",
     author_url="",
     dependencies=[],

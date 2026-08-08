@@ -24,7 +24,6 @@ from haywire.ui.widget.registry import WidgetRegistry
     version=_pkg_version("haybale-example"),
     description="Example library for demonstrating multi-library support",
     url="https://github.com/author/haywire_library",
-    help_url="https://docs.github.io/haywire_library",
     author="Example Author",
     author_url="https://author_url",
     dependencies=["haybale_core"],

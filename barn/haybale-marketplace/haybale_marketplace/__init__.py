@@ -15,7 +15,6 @@ from haywire.ui.editor.registry import EditorTypeRegistry
     version=_pkg_version("haybale-marketplace"),
     description="Library installer + browser editors",
     url="",
-    help_url="",
     author="",
     author_url="",
     dependencies=[],

@@ -28,7 +28,6 @@ from haywire.ui.skin.registry import SkinRegistry
     version=_pkg_version("haybale-core"),
     description="Fundamental components for hayire graphs",
     url="https://github.com/going-haywire/haywire",
-    help_url="https://github.com/going-haywire/haywire",
     author="maybites",
     author_url="https://maybites.ch",
     dependencies=[],
