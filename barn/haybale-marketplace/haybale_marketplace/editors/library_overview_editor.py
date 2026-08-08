@@ -315,7 +315,7 @@ class LibraryOverviewEditor(BaseEditor):
             name = installed_lib.identity.label
             version = installed_lib.identity.version
             description = installed_lib.identity.description
-            author = installed_lib.identity.author
+            author = ", ".join(installed_lib.identity.authors)
             tags = installed_lib.identity.tags or (marketplace_pkg.tags if marketplace_pkg else []) or []
         else:
             assert marketplace_pkg is not None
@@ -355,7 +355,7 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Header ────────────────────────────────────────────────────
                 with ui.row().classes("w-full items-start justify-between mb-2"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
-                        _title_url = (installed_lib.identity.url if installed_lib else "") or ""
+                        _title_url = (installed_lib.identity.homepage_url if installed_lib else "") or ""
                         if _title_url.startswith("http"):
                             with ui.row().classes("items-center gap-1"):
                                 ui.label(name).classes("text-2xl font-bold")

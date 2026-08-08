@@ -33,15 +33,6 @@ class LibraryIdentity(LibraryMetadata):
     file_watcher: bool = False
     """Watch this library's files and hot-reload on change. Development only."""
 
-    url: str = ""
-    """The library's own website. Authored on the decorator today; migration
-    step 7 replaces it with :attr:`~LibraryMetadata.homepage_url` read from
-    distribution metadata."""
-
-    author: str = ""
-    """Author name as authored on the decorator. Migration step 7 replaces it
-    with :attr:`~LibraryMetadata.authors` read from distribution metadata."""
-
     def __post_init__(self):
         # Validate and normalise to the wire form. Accepts the enum or any
         # case/whitespace variant of its value; an unknown value raises here

@@ -95,13 +95,25 @@ def build_edit_dialog(
             "(set via Share/publish)"
         ).classes("text-xs hw-text-dim")
 
-        desc_input = hui.input_field(label="Description", value=lib.identity.description)
-        author_input = hui.input_field(label="Author", value=lib.identity.author)
-        author_url_input = hui.input_field(label="Author URL", value=lib.identity.author_url)
-        url_input = hui.input_field(label="URL", value=lib.identity.url)
-        tags_input = hui.input_field(
-            label="Tags (comma-separated)",
-            value=", ".join(lib.identity.tags or []),
+        # Description, authors, URLs and tags come from the distribution's
+        # metadata, which the build backend copies from pyproject.toml. Editing
+        # them here would write a second copy that the next import overwrites,
+        # so they are shown read-only; the edit path itself moves into the Share
+        # flow in migration step 8.
+        ui.label(f"Description: {lib.identity.description or '(none)'} (from pyproject.toml)").classes(
+            "text-xs hw-text-dim"
+        )
+        ui.label(f"Authors: {', '.join(lib.identity.authors) or '(none)'} (from pyproject.toml)").classes(
+            "text-xs hw-text-dim"
+        )
+        ui.label(f"URL: {lib.identity.homepage_url or '(none)'} (from pyproject.toml)").classes(
+            "text-xs hw-text-dim"
+        )
+        ui.label(f"Author URL: {lib.identity.author_url or '(none)'} (from pyproject.toml)").classes(
+            "text-xs hw-text-dim"
+        )
+        ui.label(f"Tags: {', '.join(lib.identity.tags) or '(none)'} (from pyproject.toml)").classes(
+            "text-xs hw-text-dim"
         )
 
         # OS multi-select. Visible only for heaps (writable pyproject.toml).
@@ -177,11 +189,6 @@ def build_edit_dialog(
         async def _save():
             identity = {
                 "label": label_input.value.strip(),
-                "description": desc_input.value.strip(),
-                "url": url_input.value.strip(),
-                "author": author_input.value.strip(),
-                "author_url": author_url_input.value.strip(),
-                "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
                 # Passed through untouched: this dialog no longer authors
                 # dependencies, but the identity dict is written wholesale, so
                 # omitting the key would erase the declaration.

@@ -203,8 +203,6 @@ def _make_identity(lib_id: str, folder_path: Path) -> LibraryIdentity:
         label=lib_id,
         version="1.0.0",
         description="",
-        url="",
-        author="",
         author_url="",
         folder_path=str(folder_path),
         module_name=lib_id,

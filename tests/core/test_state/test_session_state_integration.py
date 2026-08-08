@@ -51,8 +51,6 @@ class TestSessionStateIntegration:
             label="Test Library",
             version="0.0.1",
             description="",
-            url="",
-            author="",
             author_url="",
             linked_libraries=[],
             tags=[],

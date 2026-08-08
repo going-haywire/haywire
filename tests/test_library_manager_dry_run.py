@@ -33,8 +33,6 @@ def _make_manager():
         label=lid,
         version="0.0.1",
         description="",
-        url="",
-        author="",
         author_url="",
         folder_path=f"/tmp/{lid}",
         module_name=lid,

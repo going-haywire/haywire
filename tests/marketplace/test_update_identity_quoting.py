@@ -75,11 +75,6 @@ def test_update_library_identity_writes_double_quoted_decorator(tmp_path):
         str(tmp_path),
         {
             "label": "Fresh Label",
-            "description": "Fresh description",
-            "url": "https://fresh.example",
-            "author": "Fresh Author",
-            "author_url": "https://fresh-author.example",
-            "tags": ["alpha"],
             "dependencies": [],
             "on_reload": "none",
         },
@@ -88,7 +83,38 @@ def test_update_library_identity_writes_double_quoted_decorator(tmp_path):
     assert ok, message
     written = (pkg_dir / "__init__.py").read_text()
     assert 'label="Fresh Label"' in written
-    assert 'description="Fresh description"' in written
-    assert 'author="Fresh Author"' in written
-    assert 'author_url="https://fresh-author.example"' in written
+    assert 'on_reload="none"' in written
     assert "Old Label" not in written
+
+
+def test_update_library_identity_leaves_pyproject_owned_fields_alone(tmp_path):
+    """description/author/url/tags come from pyproject.toml, so the writer skips them.
+
+    Writing them here would produce a second copy the next import ignores —
+    which is the drift this migration exists to end.
+    """
+    from unittest.mock import MagicMock
+
+    from haybale_marketplace.library_manager import LibraryManager
+
+    pkg_dir = tmp_path / "barn" / "haybale-demo" / "haybale_demo"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "__init__.py").write_text(DOUBLE_QUOTED)
+    (pkg_dir.parent / "pyproject.toml").write_text('[project]\nname = "haybale-demo"\nversion = "0.1.0"\n')
+
+    registry = MagicMock()
+    registry.get_library_distribution_name.return_value = "haybale-demo"
+    manager = LibraryManager.__new__(LibraryManager)
+    manager.registry = registry
+
+    ok, message = manager.update_library_identity(
+        "demo",
+        str(tmp_path),
+        {"label": "Fresh Label", "dependencies": [], "on_reload": "none"},
+    )
+
+    assert ok, message
+    written = (pkg_dir / "__init__.py").read_text()
+    assert 'description="Old description"' in written
+    assert 'author="Old Author"' in written
+    assert 'url="https://old.example"' in written

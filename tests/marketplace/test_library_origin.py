@@ -19,8 +19,6 @@ def _identity(folder_path: str) -> LibraryIdentity:
         label="Test Lib",
         version="0.1.0",
         description="",
-        url="",
-        author="",
         author_url="",
         folder_path=folder_path,
         module_name="testlib",

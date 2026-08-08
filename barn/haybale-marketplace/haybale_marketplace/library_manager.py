@@ -940,11 +940,14 @@ class LibraryManager:
     ) -> tuple[bool, str]:
         """Update identity metadata in __init__.py and marketplace.toml.
 
-        Lightweight alternative to rename — only rewrites metadata fields
-        (label, description, url, author, author_url, tags, dependencies,
-        on_reload). Never touches version — that's set by
-        Share/publish (lockstep bump). No directory rename, no pyproject.toml
-        changes, no uv sync required.
+        Lightweight alternative to rename — only rewrites the decorator-authored
+        fields (label, dependencies, on_reload) plus ``[tool.haywire].os``. No
+        directory rename, no uv sync required.
+
+        Description, authors, URLs, tags and version are **not** writable here:
+        they live in ``pyproject.toml`` and reach the identity through the
+        distribution's metadata, so a decorator write would be a second copy
+        that the next import ignores.
 
         After writing the files the library is disabled and its module is
         ejected from sys.modules so the caller can rescan to pick up the
@@ -965,11 +968,6 @@ class LibraryManager:
             return False, f"Library package directory not found: {pkg_dir}"
 
         label_val = identity.get("label", "")
-        desc_val = identity.get("description", "")
-        url_val = identity.get("url", "")
-        author_val = identity.get("author", "")
-        author_url_val = identity.get("author_url", "")
-        tags_list: list[str] = identity.get("tags") or []
         deps_list: list[str] = identity.get("dependencies") or []
         # Validated through the enum so a bad value fails here rather than at the
         # next library import, when the rewritten file is already on disk.
@@ -986,11 +984,6 @@ class LibraryManager:
                 return False, f"__init__.py not found at {init_file}"
             content = init_file.read_text()
             content = _set_decorator_str_field(content, "label", label_val)
-            content = _set_decorator_str_field(content, "description", desc_val)
-            content = _set_decorator_str_field(content, "url", url_val)
-            content = _set_decorator_str_field(content, "author", author_val)
-            content = _set_decorator_str_field(content, "author_url", author_url_val)
-            content = _set_decorator_list_field(content, "tags", tags_list)
             content = _set_decorator_list_field(content, "dependencies", deps_list)
             content = _set_decorator_str_field(content, "on_reload", on_reload_val)
             init_file.write_text(content)
@@ -1017,8 +1010,9 @@ class LibraryManager:
                 with edit_toml(marketplace_path) as data:
                     for heap in data.get("heaps", []):
                         if heap.get("name", "").lower() == dist_name.lower():
+                            # Only label — the row's description mirrors
+                            # pyproject.toml, which this method cannot write.
                             heap["label"] = label_val
-                            heap["description"] = desc_val
                             break
         except (OSError, KeyError) as e:
             return False, f"Failed to update marketplace.toml: {e}"

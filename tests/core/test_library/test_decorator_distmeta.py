@@ -95,3 +95,20 @@ def test_uninstalled_module_leaves_pep621_fields_empty(monkeypatch):
     identity = _make().class_identity
     assert identity.version == ""
     assert identity.label == "Core"  # decorator-authored fields unaffected
+
+
+def test_transitional_fields_are_gone():
+    """url and author were placeholders for homepage_url and authors.
+
+    Not an absence check for its own sake: while both spellings existed a
+    consumer could read the decorator-authored one and silently get a value
+    pyproject.toml never sanctioned.
+    """
+    from dataclasses import fields
+
+    from haywire.core.library.identity import LibraryIdentity
+
+    names = {f.name for f in fields(LibraryIdentity)}
+    assert "url" not in names
+    assert "author" not in names
+    assert {"homepage_url", "authors"} <= names

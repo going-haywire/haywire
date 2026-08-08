@@ -18,8 +18,6 @@ def make_lib_identity() -> LibraryIdentity:
         label="Midi",
         version="0.0.1",
         description="",
-        url="",
-        author="",
         author_url="",
         linked_libraries=[],
         tags=[],
