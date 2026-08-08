@@ -983,11 +983,11 @@ class LibraryManager:
             if not init_file.exists():
                 return False, f"__init__.py not found at {init_file}"
             content = init_file.read_text()
-            content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
-            content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
-            content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
-            content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
-            content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
+            content = _set_decorator_str_field(content, "label", label_val)
+            content = _set_decorator_str_field(content, "description", desc_val)
+            content = _set_decorator_str_field(content, "url", url_val)
+            content = _set_decorator_str_field(content, "author", author_val)
+            content = _set_decorator_str_field(content, "author_url", author_url_val)
             content = _set_decorator_list_field(content, "tags", tags_list)
             content = _set_decorator_list_field(content, "dependencies", deps_list)
             content = _set_decorator_str_field(content, "on_reload", on_reload_val)
