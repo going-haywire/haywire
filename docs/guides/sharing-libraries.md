@@ -21,7 +21,7 @@ A **haybale library** is a Python package containing one `BaseLibrary` subclass 
 
 Three things have to be true for a shared library to land cleanly in someone else's project:
 
-1. The library's manifests (`@library(dependencies=...)` decorator and the library's own `pyproject.toml`) accurately describe what the source actually imports.
+1. The library's manifests (`@library(linked_libraries=...)` decorator and the library's own `pyproject.toml`) accurately describe what the source actually imports.
 2. The marketstall file contains a valid entry pointing at the library's git location.
 3. The marketstall is hosted somewhere a consumer can reach by URL.
 
@@ -43,7 +43,7 @@ The two manifests answer different questions:
 | Manifest | Audience | Answers |
 |---|---|---|
 | `pyproject.toml` `[project] dependencies` | pip / PyPI / `uv pip install` | "What Python distributions does this library need installed?" |
-| `@library(dependencies=[...])` in `__init__.py` | haywire's runtime (LibraryManager) | "Which *other haywire libraries* must be enabled for this one to enable?" |
+| `@library(linked_libraries=[...])` in `__init__.py` | haywire's runtime (LibraryManager) | "Which *other haywire libraries* must be enabled for this one to enable?" |
 
 The library's source imports are a third, implicit layer. The three have to agree at publish time — if your source `from haybale_core import types` but neither manifest declares `haybale-core`, the published library will fail to install or to enable for consumers.
 

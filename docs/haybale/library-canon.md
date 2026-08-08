@@ -51,17 +51,50 @@ Optional: `@library(file_watcher=True)` enables hot-reload — the framework sta
 
 **The `@library` decorator.** Sets `class_identity` (a `LibraryIdentity`), records the metadata, and registers the file watcher when `file_watcher=True`. **The bare `@library` form (no parens) is not supported** — always invoke with parentheses, even when only `label=` is given.
 
+**Where each field is authored.** The rule is **standard packaging → `[project]`, everything Haywire → the decorator**. The PEP 621 half is read back out of the *installed distribution's* metadata, which the build backend copies from `pyproject.toml` — so authoring it in both places is what let the two drift. Passing any of them to `@library()` raises `TypeError`.
+
+```toml
+[project]
+name = "haybale-mylib"
+version = "0.1.0"
+description = "What this library does"
+keywords = ["mylib"]
+authors = [{ name = "Your Name" }]
+
+[project.urls]
+Homepage = "https://github.com/you/yourrepo"
+Documentation = "https://you.github.io/yourrepo/"
+Author = "https://your.site"
+Issues = "https://github.com/you/yourrepo/issues"
+```
+
+```python
+@library(
+    id="mylib",
+    label="My Library",
+    linked_libraries=["haybale_core"],
+    on_reload="none",
+    os=["macos", "linux"],
+    examples_path="examples/OVERVIEW.md",
+    file_watcher=True,
+)
+class Library(BaseLibrary): ...
+```
+
+The decorator's parameters:
+
 | Parameter | Required | Default | Purpose |
 |---|---|---|---|
 | `label` | yes | — | Human-readable display name |
-| `id` | no | derived from `label` | Unique identifier (becomes part of every component's `registry_key`) |
-| `version` | no | `'1.0.0'` | Semantic version — see SemVer guidance below |
-| `description` | no | `''` | Description for the library manager UI |
-| `file_watcher` | no | `False` | Enable hot-reload via filesystem observer |
-| `dependencies` | no | `[]` | List of required library IDs (currently informational only — load order is by discovery priority, not dependency graph) |
-| `url` | no | `''` | Library website |
-| `author` | no | `''` | Author name |
-| `author_url` | no | `''` | Author homepage |
+| `id` | yes | — | Unique identifier (becomes part of every component's `registry_key`) |
+| `linked_libraries` | no | `[]` | Sibling haybale **module** names (`"haybale_core"`) whose classes this library subscribes to. Required for hot-reload: without it a subscriber holds a stale class reference after a reload. Not `[project] dependencies`. |
+| `on_reload` | no | `'none'` | `'none'`, `'refresh'` or `'restart'` — what the user must do after install/update/uninstall |
+| `os` | no | `[]` | Platforms this library supports (`'macos'`, `'windows'`, `'linux'`); empty means all. Gates installation. |
+| `examples_path` | no | `''` | Path to examples, relative to the library directory. Trailing slash means a directory. |
+| `tests_path` | no | `''` | Likewise for tests |
+| `file_watcher` | no | `False` | Enable hot-reload via filesystem observer. Development only. |
+
+Read from `[project]`, never from the decorator: `version`, `description`, `keywords` (surfaced as the identity's `tags`), `authors`, and the four `[project.urls]` entries (`Homepage`, `Documentation`, `Author`, `Issues`).
 
 **SemVer for the `version` field.** Follow [Semantic Versioning](https://semver.org/) when publishing updates:
 
@@ -71,7 +104,7 @@ Optional: `@library(file_watcher=True)` enables hot-reload — the framework sta
 | **MINOR** (1.0.0 → 1.1.0) | New features, backward-compatible — added nodes, optional fields |
 | **PATCH** (1.0.0 → 1.0.1) | Bug fixes only, no API changes |
 
-Keep `version=` in the `@library(...)` decorator in sync with the `version` field in `pyproject.toml` — they are independent strings; mismatching them confuses the library manager UI.
+There is one version to keep in sync with nothing: `[project] version` in `pyproject.toml` is the only place it is written.
 
 **Naming conventions.** Each of the four names in a haybale project has its own casing rule:
 
@@ -241,7 +274,7 @@ What this example exercises:
 
 | Concept | Where |
 |---|---|
-| `@library(label=..., id=..., version=..., file_watcher=True)` | decoration |
+| `@library(label=..., id=..., linked_libraries=[...], file_watcher=True)` | decoration |
 | Stable `id=` — becomes prefix of every component's `registry_key` | `id='testing'` |
 | Required parens on every component decorator | `@library(...)` |
 | `BaseLibrary` subclass with the two required hooks | `Library(BaseLibrary)` |
