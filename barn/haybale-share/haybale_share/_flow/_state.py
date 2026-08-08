@@ -223,16 +223,26 @@ class ShareFlow(StepFlow):
             return
         if result.lock_warning:
             self.warnings.append(result.lock_warning)
-        await self._hot_swap_bumped_libraries()
         self.step = "publish"
 
     async def _hot_swap_bumped_libraries(self) -> None:
         """Re-import every bumped barn library still live in this process.
 
-        apply_bump() rewrote each library's @library(version=…) on disk — the
-        same file-level edit a metadata-only change makes — so this evicts the
+        Runs AFTER the push, as the flow's last act. Two reasons it cannot sit
+        next to the bump that motivates it: the bump is inside the rollback
+        window, so a later failure would revert the manifests and leave the
+        registry holding versions no longer on disk; and evicting libraries
+        mid-flow strands the studio without them across the docs subprocess and
+        the commit, for no benefit — nothing between here and the push reads the
+        registry.
+
+        The bump rewrote each library's version on disk, so this evicts the
         stale module (registry.remove_library()) and rescans, and the running
         registry picks up the new version without a restart in the common case.
+        ``apply_sync()`` must already have run: a library declaring
+        ``version=_pkg_version(...)`` reads installed ``.dist-info`` metadata,
+        which the bump does not touch, so rescanning first would re-read the
+        pre-bump version.
 
         The registry comes from core's DI rather than from a LibraryManager:
         the manager was only ever carrying it, and reaching for it would make
@@ -273,13 +283,19 @@ class ShareFlow(StepFlow):
         self.hot_swap_on_reload = on_reload
 
     async def advance_from_publish(self, message: str | None = None) -> None:
-        """Docs, marketstall, commit, tag, push — one authorized run.
+        """Docs, marketstall, commit, tag, push, then refresh this process.
 
         The user decided on Review; there is no decision between these, so
         splitting them into screens would ask for three clicks to authorize one
         intent. verify_push_allowed() runs BEFORE the commit: someone may have
         pushed since preflight, and discovering that after a commit and tag
         exist leaves cleanup.
+
+        The sync + reload tail runs outside the try/except, after everything is
+        public: neither can fail the share, and both are reported by the Done
+        panel rather than gated behind a button — a stale registry is a worse
+        default than a brief pause, and a user who closes the popup instead of
+        clicking would be left with libraries that disagree with disk.
         """
         self.retry()
         try:
@@ -298,6 +314,17 @@ class ShareFlow(StepFlow):
         except ShareError as exc:
             self.fail(exc)
             return
+
+        # Past the point of no return: the commit, tag and push have all landed,
+        # so neither of these can invalidate the publish and a failure in either
+        # is a warning, never a failed share. Order matters — the sync refreshes
+        # the installed metadata that the reload's re-import reads back.
+        _synced, sync_warning = await asyncio.to_thread(self.pipeline.apply_sync)
+        if sync_warning:
+            self.warnings.append(sync_warning)
+
+        await self._hot_swap_bumped_libraries()
+
         self.step = "done"
 
     def share_url(self) -> tuple[str | None, str | None, str | None, str | None]:
