@@ -41,6 +41,13 @@ from haywire.core.publishing.pipeline.steps import push as steps_push
 from haywire.core.publishing.pipeline.steps import refresh as steps_refresh
 from haywire.core.publishing.pipeline.steps import rollback as steps_rollback
 from haywire.core.publishing.pipeline.steps import version as steps_version
+from haywire.core.publishing.pipeline.steps.metadata import (
+    LibraryEdit,
+    MetadataPlan,
+    apply_metadata,
+    plan_metadata,
+    validate_edit,
+)
 from haywire.core.publishing.pipeline.steps.preconditions import GIT_INSTALL_HINT  # noqa: F401
 from haywire.core.publishing.pipeline.versions import plan_versions
 
@@ -133,6 +140,27 @@ class SharePipeline:
     def _barn_library_dirs(self) -> list[Path]:
         """Every ``barn/*`` directory holding a pyproject.toml, sorted."""
         return barn_library_dirs(self.repo_root)
+
+    # ── Step 2a: metadata editing ────────────────────────────────────────────
+    #
+    # Plan and validate are read-only; the write runs in the wizard's `publish`
+    # step alongside the version bump, per the stepper's rule that only the last
+    # step may write. See steps/metadata.py for why the batch is all-or-nothing.
+
+    def plan_metadata(self) -> MetadataPlan:
+        """Current editable metadata for every barn library."""
+        return plan_metadata(self.repo_root)
+
+    def validate_metadata(self, edits: list[LibraryEdit]) -> list[str]:
+        """Every problem across the batch, human-readable. Empty when clean."""
+        problems: list[str] = []
+        for edit in edits:
+            problems.extend(validate_edit(edit.lib_dir, edit))
+        return problems
+
+    def apply_metadata(self, edits: list[LibraryEdit]) -> list[Path]:
+        """Write the metadata edits. Raises ValueError if any edit is invalid."""
+        return self.record(apply_metadata(self.repo_root, edits))
 
     # ── Steps 2b–2e: the dependency writes ───────────────────────────────────
     #

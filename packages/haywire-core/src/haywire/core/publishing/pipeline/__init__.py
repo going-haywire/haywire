@@ -27,6 +27,10 @@ from haywire.core.publishing.pipeline.errors import (
     VersionError,
 )
 from haywire.core.publishing.pipeline.pipeline import GIT_INSTALL_HINT, SharePipeline
+from haywire.core.publishing.pipeline.steps.metadata import (
+    LibraryEdit,
+    MetadataPlan,
+)
 from haywire.core.publishing.pipeline.results import (
     BumpResult,
     CommitPlan,
@@ -57,9 +61,11 @@ __all__ = [
     "GIT_INSTALL_HINT",
     "GitResult",
     "InvalidSpecifierError",
+    "LibraryEdit",
     "LibraryVersion",
     "ManifestError",
     "MarketstallError",
+    "MetadataPlan",
     "PipelineStateError",
     "PreconditionFailure",
     "PreconditionsError",

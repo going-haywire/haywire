@@ -34,6 +34,7 @@ _UI_ONLY_STEPS = frozenset({"done"})
 _EXPECTED_PIPELINE_STEPS = (
     "preconditions",
     "detect",
+    "metadata",
     "dependencies",
     "framework",
     "version",
@@ -48,6 +49,7 @@ _EXPECTED_PIPELINE_STEPS = (
 # several modules name the one they are principally about.
 _SCREEN_TO_STEP = {
     "preflight": "preconditions",
+    "edit": "metadata",
     "review": "dependencies",
     "publish": "commit",
 }
