@@ -143,7 +143,7 @@ whole ADR exists to prevent.
   - `validate_edit(lib_dir, edit) -> list[str]` — human-readable problems, empty when clean.
   - `SharePipeline.plan_metadata()` / `.apply_metadata(edits)`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/share_pipeline/test_metadata_step.py`:
 
@@ -346,14 +346,14 @@ def test_apply_validates_before_writing_anything(repo):
     assert (repo / "barn" / "haybale-demo" / "haybale_demo" / "__init__.py").read_text() == before
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `uv run pytest tests/share_pipeline/test_metadata_step.py -v`
 
 Expected: FAIL — `ModuleNotFoundError: No module named
 'haywire.core.publishing.pipeline.steps.metadata'`.
 
-- [ ] **Step 3: Write the step module**
+- [x] **Step 3: Write the step module**
 
 Create `packages/haywire-core/src/haywire/core/publishing/pipeline/steps/metadata.py`:
 
@@ -499,7 +499,7 @@ def apply_metadata(repo_root: Path, edits: list[LibraryEdit]) -> list[Path]:
     return written
 ```
 
-- [ ] **Step 4: Run the test to verify it passes**
+- [x] **Step 4: Run the test to verify it passes**
 
 Run: `uv run pytest tests/share_pipeline/test_metadata_step.py -v`
 
@@ -512,7 +512,7 @@ empty `tests_path=""` reads the same as absent — but if the assertion trips,
 prefer *removing* the field when the value is empty and add a helper to
 `decorator_io` rather than weakening the test.
 
-- [ ] **Step 5: Expose it on the pipeline**
+- [x] **Step 5: Expose it on the pipeline**
 
 In `packages/haywire-core/src/haywire/core/publishing/pipeline/pipeline.py`, add
 two methods beside the existing `plan_*`/`apply_*` pairs:
@@ -542,7 +542,7 @@ Export `LibraryEdit` and `MetadataPlan` from
 `packages/haywire-core/src/haywire/core/publishing/pipeline/__init__.py` alongside
 the other plan dataclasses — `_flow/_state.py` imports them from there.
 
-- [ ] **Step 6: Run the pipeline suite**
+- [x] **Step 6: Run the pipeline suite**
 
 ```bash
 uv run pytest tests/share_pipeline/ -q
@@ -550,7 +550,7 @@ uv run pytest tests/share_pipeline/ -q
 
 Expected: all pass.
 
-- [ ] **Step 7: Lint, format, type-check**
+- [x] **Step 7: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/haywire-core/src/ tests/share_pipeline/
@@ -560,7 +560,7 @@ uv run mypy packages/haywire-core/src/
 
 Expected: clean.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -599,7 +599,7 @@ ADR 0024."
   - `async ShareFlow.advance_from_edit()` — validates, sets `step = "review"`
   - `panel_edit(flow, rerender)`
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/share_pipeline/test_edit_screen.py`:
 
@@ -721,14 +721,14 @@ def test_publish_applies_the_edits():
     flow.pipeline.apply_metadata.assert_called_once_with([edit])
 ```
 
-- [ ] **Step 2: Run it to verify it fails**
+- [x] **Step 2: Run it to verify it fails**
 
 Run: `uv run pytest tests/share_pipeline/test_edit_screen.py -v`
 
 Expected: FAIL — `STEPS` has four entries, `panel_edit` and `advance_from_edit`
 do not exist.
 
-- [ ] **Step 3: Add the step**
+- [x] **Step 3: Add the step**
 
 In `barn/haybale-share/haybale_share/_flow/copy.py`:
 
@@ -755,7 +755,7 @@ Extend the comment above `STEPS` to say why `edit` sits where it does:
 #: state; editing afterwards could invalidate a decision just authorized.
 ```
 
-- [ ] **Step 4: Add flow state and the advance method**
+- [x] **Step 4: Add flow state and the advance method**
 
 In `_flow/_state.py`, add to `ShareFlow.__init__`:
 
@@ -828,7 +828,7 @@ In `advance_from_review`, apply the edits before the bump:
 
 Import `LibraryEdit` and `MetadataPlan` from `haywire.core.publishing.pipeline`.
 
-- [ ] **Step 5: Write the panel**
+- [x] **Step 5: Write the panel**
 
 In `_flow/panels.py`, add `panel_edit` following `panel_review`'s shape — read it
 first for the section/field idiom and the confirm-button wiring:
@@ -899,12 +899,12 @@ Match the file's existing imports and helpers — `replace` from `dataclasses`,
 If `hui.section` does not exist, use the same grouping element `panel_review`
 uses.
 
-- [ ] **Step 6: Wire the panel**
+- [x] **Step 6: Wire the panel**
 
 `show_step_flow` raises when a `STEPS` entry has no panel, so find the panels dict
 (likely in `_flow/chrome.py`) and add `"edit": panel_edit`.
 
-- [ ] **Step 7: Run the tests**
+- [x] **Step 7: Run the tests**
 
 ```bash
 uv run pytest tests/share_pipeline/ -q
@@ -914,7 +914,7 @@ Expected: all pass. Existing tests asserting the four-step `STEPS` tuple or
 `advance_from_preflight` landing on `"review"` must be updated — those are the
 behavior this task changes.
 
-- [ ] **Step 8: Run the full gate**
+- [x] **Step 8: Run the full gate**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/task2.log 2>&1; echo "exit=$?"
@@ -923,7 +923,7 @@ grep -E "^FAILED|^ERROR" /tmp/task2.log | head -20
 
 Expected: `exit=0`, no FAILED lines.
 
-- [ ] **Step 9: Lint, format, type-check**
+- [x] **Step 9: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/ barn/ tests/
@@ -933,7 +933,7 @@ uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale
 
 Expected: clean.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add -A
@@ -971,7 +971,7 @@ ADR 0024."
 - Consumes: nothing new.
 - Produces: `update_library_identity` and `_apply_os_to_pyproject` cease to exist.
 
-- [ ] **Step 1: Find every reference**
+- [x] **Step 1: Find every reference**
 
 ```bash
 grep -rn "update_library_identity\|_overview_edit_dialog\|build_edit_dialog\|_apply_os_to_pyproject\|read_os_from_pyproject" --include="*.py" packages/ barn/ tests/
@@ -980,7 +980,7 @@ grep -rn "update_library_identity\|_overview_edit_dialog\|build_edit_dialog\|_ap
 Record the list. Expect: the dialog module, `library_manager.py`, the overview
 editor's Edit button, and their tests.
 
-- [ ] **Step 2: Delete the dialog and the writer**
+- [x] **Step 2: Delete the dialog and the writer**
 
 ```bash
 rm barn/haybale-marketplace/haybale_marketplace/editors/_overview_edit_dialog.py
@@ -996,7 +996,7 @@ This also removes the **live bug** noted in the verified state: the dialog wrote
 `[tool.haywire].os` while the decorator owns `os`, so an OS edit made in the UI
 was never read back.
 
-- [ ] **Step 3: Repoint the overview editor's Edit button**
+- [x] **Step 3: Repoint the overview editor's Edit button**
 
 In `library_overview_editor.py`, replace the Edit button's handler. The library
 detail view becomes read-only for metadata, which fits its role.
@@ -1009,7 +1009,7 @@ cross-library entry point is not this plan's scope.
 Delete `_do_update_identity` / `_offer_restart` and any helper left with no
 caller. Verify with grep before each removal.
 
-- [ ] **Step 4: Update or delete the dialog's tests**
+- [x] **Step 4: Update or delete the dialog's tests**
 
 ```bash
 grep -rln "update_library_identity\|build_edit_dialog\|read_os_from_pyproject" tests/
@@ -1021,7 +1021,7 @@ quote-bug regression from the foundation plan) test `decorator_io`, which
 survives: keep those, and move them to a `tests/core/test_library/` path if they
 currently live under `tests/marketplace/`.
 
-- [ ] **Step 5: Verify nothing dangles**
+- [x] **Step 5: Verify nothing dangles**
 
 ```bash
 grep -rn "update_library_identity\|_overview_edit_dialog\|build_edit_dialog\|_apply_os_to_pyproject\|read_os_from_pyproject" --include="*.py" packages/ barn/ tests/
@@ -1029,7 +1029,7 @@ grep -rn "update_library_identity\|_overview_edit_dialog\|build_edit_dialog\|_ap
 
 Expected: no output.
 
-- [ ] **Step 6: Run the full gate**
+- [x] **Step 6: Run the full gate**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/task3.log 2>&1; echo "exit=$?"
@@ -1038,7 +1038,7 @@ grep -E "^FAILED|^ERROR" /tmp/task3.log | head -20
 
 Expected: `exit=0`, no FAILED lines.
 
-- [ ] **Step 7: Lint, format, type-check**
+- [x] **Step 7: Lint, format, type-check**
 
 ```bash
 uv run ruff check packages/ barn/ tests/
@@ -1048,7 +1048,7 @@ uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale
 
 Expected: clean.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add -A
@@ -1118,6 +1118,43 @@ list rather than aliasing it.
    rather than widening this plan.
 
 ---
+
+## Landed
+
+All three tasks landed 2026-08-09 (`7f8ca3eb`, `c04f4cf9`, `914edc55`). Gate
+green at each commit: `pytest -m "not browser and not perf"` exit=0, ruff
+check + format clean, mypy clean.
+
+Five deviations from the plan as written, each forced by the code as found:
+
+1. **`SharePipeline.apply_metadata` routes through `self.record()`.** Every
+   other apply step registers what it wrote, and step 5 stages exactly
+   `self.written` — without it the edited `__init__.py` would be written but
+   never staged, so the publish would commit everything except the edit.
+2. **`fail()` no longer rolls back on `edit`.** The branch was
+   `step != "preflight"`; `edit` writes nothing, so a failure there would have
+   run a rollback reaching past this flow into the user's own working tree.
+   Now `step not in ("preflight", "edit")`.
+3. **`tests/share_pipeline/test_step_sequence.py` pins the step-module roster**
+   and screen→module map; both gained `metadata`/`edit`. The plan did not
+   mention this guard test.
+4. **The panel follows the file's real idiom** — `_footer()` + `_decision()` +
+   `_busy_advance(rerender, button, coro)`, not the sketched
+   `hui.section`/`dialog_actions`, which do not exist. Selects pass
+   `in_popup=True`: the flow renders in a `Popup` (z-7001) and a QMenu at
+   z-6000 would open behind it.
+5. **`LibraryReloadAction` imports from `haywire.core.library.identity`**, not
+   `.reload`, matching `_state.py`.
+
+Two smaller notes: the plan's `test_apply_writes_the_decorator` declared
+`tests_path="tests/"` against a fixture that never created it, which
+`validate_edit` correctly rejects — the fixture now creates the directory. And
+`_set_decorator_str_field`'s insert-when-absent behavior did NOT trip the
+round-trip test, so the remove-when-empty helper Task 1 Step 4 anticipated was
+not needed.
+
+Risk 3 from the self-review is now real: the library detail view has no Edit
+button and no Share entry point. Deferred to step 10, as the plan directed.
 
 ## Execution Handoff
 
