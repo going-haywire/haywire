@@ -27,14 +27,14 @@ The plugin was carved out of `haybale-studio` per [ADR-0001](../../adr/0001-hayb
 haywire.core.marketstall          haybale-marketplace             haybale-studio
 ────────────────────────          ───────────────────             ──────────────
 the runtime:                      the plugin (this doc):          the host studio:
- parse / refresh / resolve        - 4 editors (browser,            provides the editor
- marketplace + marketstall          overview, component,           slots (action/edit/context)
- files into a Haybale catalog       source) + 1 dialog module      into which the editors
+ parse / refresh / resolve        - 3 editors (browser,            provides the editor
+ marketplace + marketstall          overview, component)           slots (action/edit/context)
+ files into a Haybale catalog       + flow helper modules          into which the editors
                           ◀──────  - MarketplaceState              self-register.
                                     - LibraryManager (+            If haybale-marketplace
                                       LibraryManagerState)         is absent, the ACTION slot
-                                  - drives uv pip install          is simply empty — no
-                                                                   defensive code needed.
+                                  - farmhands (MCP tools)          is simply empty — no
+                                  - drives uv pip install          defensive code needed.
        LibraryRegistry  ◀──────── manager.registry.enable/
        (core) owns                 disable_library(id);
        enable/disable              registry persists via
@@ -47,35 +47,59 @@ The plugin owns **no registry state and no runtime parsing**. It calls `Marketpl
 
 ## 3. What the plugin ships
 
-`barn/haybale-marketplace/haybale_marketplace/` registers two component categories from its `Library.register_components()`: states (via `LibraryStateRegistry`) and editors (via `EditorTypeRegistry`). **State is scanned before editors** — editor modules transitively import the state classes, and scanning them first keeps a single class object live (the same ordering rule `haybale-studio` follows).
+`barn/haybale-marketplace/haybale_marketplace/` registers three component categories from its `Library.register_components()`: states (via `LibraryStateRegistry`), farmhands (via `FarmhandRegistry`), and editors (via `EditorTypeRegistry`). **State is scanned first** — both the farmhand tools and the editor modules transitively import the state classes, and scanning them first keeps a single class object live (the same ordering rule `haybale-studio` follows).
 
 ### Editors
 
 | Editor | Default slot | Role |
 |---|---|---|
-| `LibraryBrowserEditor` | `left` | Lists installed + available libraries, grouped REQUIRED / ENABLED / DISABLED / AVAILABLE. Burger menu: Refresh, Add Source, Share Project, Edit File. |
-| `LibraryOverviewEditor` | `main` | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall / Install actions. |
-| `LibraryComponentEditor` | `right` | Detail view for one component (node/type/widget/…) — import snippet, port-wiring hints. |
+| `LibraryBrowserEditor` | `ACTION` | Lists installed + available libraries, grouped REQUIRED / ENABLED / DISABLED / AVAILABLE. Burger menu: Refresh, Add Source…, Edit File…. |
+| `LibraryOverviewEditor` | `EDIT` | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall / Install actions. |
+| `LibraryComponentEditor` | `CONTEXT` | Detail view for one component (node/type/widget/…) — import snippet, port-wiring hints. |
 
-`library_marketplace_dialog` is **not** a registered editor — it is a module of helper functions (`show_add_source_dialog`, conflict-resolution prompts) the Browser's Add Source button calls.
+The multi-step flows each live in their own subpackage beside the editors
+(`_add_source_flow/`, `_install_flow/`, `_refresh_flow/`, `_uninstall_flow/`),
+with `_overview_actions.py`, `_overview_edit_dialog.py` and
+`_overview_install_flow.py` holding the Overview editor's verbs. None of these
+are registered editors — they are helper modules the editors call.
 
-### Publishing a project
+### Farmhands (MCP tools)
+
+`farmhands/` registers into `FarmhandRegistry`: `catalog_tools.py` (list
+available, refresh, fetch library docs) and `install_tools.py` (dry-run
+install, install, uninstall). These are the marketplace verbs exposed to an
+agent over MCP.
+
+### Publishing a project — not this plugin
+
+**Publishing lives in `haybale-share`'s `ShareEditor`, not here.** This plugin
+*consumes* feeds; producing one is a different concern, and project-scoped
+publishing (ADR 0023) has nothing to do with the per-library view the browser
+presents. There is no Share Project item in the burger menu — its items are
+Refresh, Add Source…, and Edit File….
+
+The CLI side is summarised below because a marketplace subscriber needs to know
+what a publisher does to the feed they follow; the mechanism belongs to
+[sharing-arch](../../architecture/sharing/sharing-arch.md).
 
 `haywire share` publishes the whole project: every `barn/*` library is bumped to
 the same version (lockstep), docs are regenerated, `marketstall.toml` is rebuilt,
 and the result is committed, tagged `v<version>`, and pushed.
 
-| Mode | What it does |
+| Command | What it does |
 | --- | --- |
-| `haywire share` | Interactive. Prompts through the same six steps as the GUI wizard. |
-| `haywire share --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
+| `haywire share --bump patch` | Publishes. Non-interactive is the *only* mode — every answer comes from a flag. `--bump` takes `patch\|minor\|major` or an explicit `X.Y.Z`, and is required unless `--dry-run`. |
+| `haywire share --dry-run` | Reports what a publish would do — preconditions, findings, the version it would cut — and writes nothing. |
 | `haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use it as a PR gate. |
 
-The same pipeline backs the **Share Project…** item in the Marketplace editor's
-burger menu. The share URL is always branch-live — it tracks whatever branch
-you published from, because `marketstall.toml` is a subscription feed and a
-frozen, tag-pinned URL would lock subscribers to whatever version they first
-subscribed to.
+There is no `--yes` and no prompt-driven mode: walking a git-mutating pipeline
+through `input()` duplicated every judgement the Share editor already makes.
+Other flags: `--message`, `--requires-haywire`.
+
+The same pipeline backs `haybale-share`'s Share editor. The share URL is always
+branch-live — it tracks whatever branch you published from, because
+`marketstall.toml` is a subscription feed and a frozen, tag-pinned URL would
+lock subscribers to whatever version they first subscribed to.
 
 ### States
 
@@ -94,7 +118,7 @@ subscribed to.
 
 **Persistence lives in the core registry, not here.** "Which libraries are disabled" is a property of the `LibraryRegistry`, not the installer. The editors call `manager.registry.enable_library(id)` / `disable_library(id)`; the registry writes through to `HostStore` (`<workspace>/.haywire/host.toml`, `[libraries] disabled`). There is no marketplace-owned persistence and no `AppState` in the enable/disable path. See [ADR-0001 §Why persistence moves out](../../adr/0001-haybale-marketplace-carveout.md).
 
-**It depends on `haybale-studio`, not the reverse.** `haybale-marketplace`'s `pyproject.toml` declares `haywire-core`, `haywire-studio`, and `haybale-studio` as dependencies — it consumes the studio's slots and editor base classes. `haybale-studio` declares no dependency on the marketplace; the relationship is strictly one-directional, which is what preserves optionality.
+**It depends on `haybale-studio`, not the reverse.** `haybale-marketplace`'s `pyproject.toml` declares `haywire-core`, `haywire-studio` and `haybale-studio` (plus `nicegui`, `toml`, `packaging`) as dependencies — it consumes the studio's slots and editor base classes. `haybale-studio` declares no dependency on the marketplace; the relationship is strictly one-directional, which is what preserves optionality.
 
 **`file_watcher=True`.** The plugin enables hot-reload like any editable haybale — edit an editor and the studio re-renders without restart (editable install only).
 
@@ -107,48 +131,25 @@ marketplace = "haybale_marketplace:Library"
 
 ## 5. Live example from the codebase
 
-Source: [`barn/haybale-marketplace/haybale_marketplace/__init__.py`](../../../barn/haybale-marketplace/haybale_marketplace/__init__.py)
+Read it in the tree rather than here — a pasted copy goes stale, and this one did:
 
-```python
-@library(
-    label="Library Marketplace",
-    id="marketplace",
-    version=_pkg_version("haybale-marketplace"),
-    description="Library installer + browser editors",
-    dependencies=[],
-    tags=["marketplace"],
-    file_watcher=True,
-)
-class Library(BaseLibrary):
-    def register_components(self):
-        base_path = Path(__file__).parent
+- [`haybale_marketplace/__init__.py`](../../../barn/haybale-marketplace/haybale_marketplace/__init__.py) — the `@library` decoration and `register_components()`
+- [`haybale_marketplace/haybale.toml`](../../../barn/haybale-marketplace/haybale_marketplace/haybale.toml) — `label`, `description`, `tags`
 
-        # state/ MUST be scanned before editors/. Editor modules transitively
-        # import classes from state/ (LibraryManagerState, MarketplaceState);
-        # scanning state first keeps a single class object live.
-        self.add_folder_to_registry(
-            folder_path=str(base_path / "state"),
-            registry_cls=LibraryStateRegistry,
-        )
-        self.add_folder_to_registry(
-            folder_path=str(base_path / "editors"),
-            registry_cls=EditorTypeRegistry,
-        )
-
-    def validate(self) -> bool:
-        return True
-```
+The split is the point: the decorator carries only what code must know
+(`id`, `version`, `file_watcher`), and everything descriptive lives in
+`haybale.toml`, editable in the studio with no reinstall and no reload.
 
 What this example exercises:
 
 | Concept | Where |
 |---|---|
 | A standalone optional plugin registering studio UI | the whole package |
-| `version` sourced from `importlib.metadata.version(...)` — pyproject is the source of truth | `version=_pkg_version("haybale-marketplace")` |
-| Two registry categories: states + editors | two `add_folder_to_registry` calls |
-| State-before-editors scan ordering | comment in `register_components` |
+| `version` sourced from `importlib.metadata.version(...)` — pyproject is the source of truth | `version=_pkg_version("haybale-marketplace")` in the decorator |
+| Descriptive metadata out of the decorator | `label`, `description`, `tags` in `haybale.toml` |
+| Three registry categories: states, farmhands, editors | three `add_folder_to_registry` calls |
+| State-before-farmhands-before-editors scan ordering | comment in `register_components` |
 | Hot-reload for an editable plugin | `file_watcher=True` |
-| `linked_libraries` in `haybale.toml` (pip requirements are `[project] dependencies`, a different thing) | decoration |
 
 ---
 
@@ -159,18 +160,24 @@ What this example exercises:
 | Thing | Path |
 |---|---|
 | `Library` (entry point) | `barn/haybale-marketplace/haybale_marketplace/__init__.py` |
+| Descriptive metadata (`label`, `description`, `tags`) | `…/haybale.toml` |
 | `LibraryManager` service | `…/library_manager.py` |
 | `MarketplaceState`, `LibraryManagerState` | `…/state/` |
-| Browser / Overview / Component / Source editors | `…/editors/` |
-| Add-Source + conflict dialogs (helper module) | `…/editors/library_marketplace_dialog.py` |
+| Browser / Overview / Component editors | `…/editors/` |
+| Multi-step flows (add-source, install, refresh, uninstall) | `…/editors/_*_flow/` |
+| MCP tools (catalog + install) | `…/farmhands/` |
 
 ### Reaching the manager from another editor
 
 ```python
 state = ctx.app_data[LibraryManagerState]
-state.manager.install(entry)            # uv pip install
+await state.manager.install(entry)               # uv pip install — async
 state.manager.registry.disable_library(lib_id)   # registry persists via host.toml
 ```
+
+`install` / `uninstall` are coroutines (there are `_streaming` variants that
+report progress); `enable_library` / `disable_library` on the registry are
+plain calls.
 
 ### Common pitfalls
 
