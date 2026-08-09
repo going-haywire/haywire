@@ -3152,7 +3152,7 @@
 <p>A <strong>haybale library</strong> is a Python package containing one <code>BaseLibrary</code> subclass plus the components it contributes (nodes, types, widgets, skins, adapters, themes, panels, editors, states, settings). Sharing one means making it findable and installable by other people without going through a central registry. The mechanism is a small TOML file you host yourself, called a <strong>marketstall</strong>, that lists what you publish and how to install it.</p>
 <p>Three things have to be true for a shared library to land cleanly in someone else's project:</p>
 <ol>
-<li>The library's manifests (<code>@library(dependencies=...)</code> decorator and the library's own <code>pyproject.toml</code>) accurately describe what the source actually imports.</li>
+<li>The library's manifests (<code>@library(linked_libraries=...)</code> decorator and the library's own <code>pyproject.toml</code>) accurately describe what the source actually imports.</li>
 <li>The marketstall file contains a valid entry pointing at the library's git location.</li>
 <li>The marketstall is hosted somewhere a consumer can reach by URL.</li>
 </ol>
@@ -3180,7 +3180,7 @@
 <td>"What Python distributions does this library need installed?"</td>
 </tr>
 <tr>
-<td><code>@library(dependencies=[...])</code> in <code>__init__.py</code></td>
+<td><code>@library(linked_libraries=[...])</code> in <code>__init__.py</code></td>
 <td>haywire's runtime (LibraryManager)</td>
 <td>"Which <em>other haywire libraries</em> must be enabled for this one to enable?"</td>
 </tr>

@@ -3838,7 +3838,7 @@
 <tbody>
 <tr>
 <td><strong>REQUIRED</strong></td>
-<td>Installed + enabled + some other installed haywire library declares it in its <code>@library(dependencies=[...])</code>. The signal comes from <code>LibraryManager.get_installed_dependents(lib_id)</code> — the same source the Overview Editor's Disable / Uninstall gating uses.</td>
+<td>Installed + enabled + some other installed haywire library declares it in its <code>@library(linked_libraries=[...])</code>. The signal comes from <code>LibraryManager.get_installed_dependents(lib_id)</code> — the same source the Overview Editor's Disable / Uninstall gating uses.</td>
 </tr>
 <tr>
 <td><strong>ENABLED</strong></td>
@@ -3940,7 +3940,7 @@ is exactly what a marketplace install is for.</p>
 <p>When the user clicks Detect:</p>
 <ol>
 <li>The runtime statically scans the library's source via <code>detect_deps(lib_dir, libraries=manager.registry)</code>.</li>
-<li>It computes two diffs: the current <code>@library(dependencies=[...])</code> value vs detected, and the current <code>[project] dependencies</code> in the library's <code>pyproject.toml</code> vs detected.</li>
+<li>It computes two diffs: the current <code>@library(linked_libraries=[...])</code> value vs detected, and the current <code>[project] dependencies</code> in the library's <code>pyproject.toml</code> vs detected.</li>
 <li>A diff modal previews both, offering two apply modes:</li>
 </ol>
 <table>

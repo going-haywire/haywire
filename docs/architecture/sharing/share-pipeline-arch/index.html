@@ -2284,6 +2284,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#28-step-8-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Step 8 — Refresh
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3159,6 +3170,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#28-step-8-refresh" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8 Step 8 — Refresh
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3305,7 +3327,7 @@
 <p>It is stateful because later steps consume earlier steps' outputs — dependency resolution precedes docs regeneration, the bumped version feeds both the docs render and the marketstall entry, and the final commit's file list is the union of every step's writes. A stateful object keeps that sequencing in one place instead of re-derived by each caller, and maps onto the flow's linear, resumable stepper UI.</p>
 <p>Each step that can affect the working tree is split into a <strong>check/plan</strong> call (mutates nothing) and an <strong>apply</strong> call (mutates). This plan/apply split is covered in full in §3.</p>
 <h2 id="2-the-steps">2. The steps<a class="headerlink" href="#2-the-steps" title="Permanent link">&para;</a></h2>
-<p>Eight step modules under <code>publishing/pipeline/steps/</code> — <code>preconditions.py</code>, <code>detect.py</code>, <code>dependencies.py</code>, <code>framework.py</code>, <code>version.py</code>, <code>docs.py</code>, <code>commit.py</code>, <code>push.py</code>. <code>SharePipeline</code> delegates to each rather than implementing the logic inline.</p>
+<p>Nine step modules under <code>publishing/pipeline/steps/</code> — <code>preconditions.py</code>, <code>detect.py</code>, <code>dependencies.py</code>, <code>framework.py</code>, <code>version.py</code>, <code>docs.py</code>, <code>commit.py</code>, <code>push.py</code>, <code>refresh.py</code>. <code>SharePipeline</code> delegates to each rather than implementing the logic inline.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1. Preconditions          check_preconditions() / require_preconditions()
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2. Detect                 check_drift()   [pure — writes nothing]
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>3. Dependencies           apply_framework() | apply_removals() | apply_additions() | apply_floors()
@@ -3313,9 +3335,10 @@
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>5. Regenerate docs        docs_command() → apply_docs()   [async, subprocess]
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>6. Marketstall + commit   apply_marketstall() → plan_commit() → apply_commit()
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>7. Push                   verify_push_allowed() → apply_push()   [async]
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>8. Refresh                apply_sync()   [after the push; never blocks]
 </span></code></pre></div>
 <h3 id="20-steps-are-not-11-with-ui-screens">2.0 Steps are not 1:1 with UI screens<a class="headerlink" href="#20-steps-are-not-11-with-ui-screens" title="Permanent link">&para;</a></h3>
-<p>The Share flow renders <strong>three</strong> screens over eight step modules, because the user asks three questions — can I publish, what am I publishing, ship it:</p>
+<p>The Share flow renders <strong>three</strong> screens over nine step modules, because the user asks three questions — can I publish, what am I publishing, ship it:</p>
 <table>
 <thead>
 <tr>
@@ -3334,7 +3357,7 @@
 </tr>
 <tr>
 <td>Publish</td>
-<td><code>docs.py</code> → <code>commit.apply_marketstall()</code> → <code>push.verify_allowed()</code> → <code>commit.apply()</code> → <code>push.apply()</code></td>
+<td><code>docs.py</code> → <code>commit.apply_marketstall()</code> → <code>push.verify_allowed()</code> → <code>commit.apply()</code> → <code>push.apply()</code> → <code>refresh.apply()</code></td>
 </tr>
 </tbody>
 </table>
@@ -3370,7 +3393,7 @@
 <li><code>apply_framework(specifier)</code> — the <code>haywire-core</code> entry, and nothing else. The one authored floor in the flow.</li>
 <li><code>apply_removals({lib: [dist, …]})</code> — drops unused declarations the author ticked.</li>
 <li><code>apply_additions({lib: [entry, …]})</code> — declares undeclared imports with the author's chosen pins. Skips distributions already declared: an addition never restates an existing floor.</li>
-<li><code>apply_decorator_registrations({lib: [name, …]})</code> — adds imported haywire libraries to <code>@library(dependencies=[...])</code>. <strong>Applied without asking</strong>, at the framework step so it lands exactly once. There is nothing to decide: <code>detect_deps</code> emits a name here only when the source imports it <em>and</em> it resolves to an installed registered library, so every entry is provably true, carries no version specifier, and narrows nothing for consumers. It is <em>reported</em> on the Findings and Confirm screens rather than done silently, because it edits a hand-authored <code>__init__.py</code> rather than a manifest.</li>
+<li><code>apply_decorator_registrations({lib: [name, …]})</code> — adds imported haywire libraries to <code>@library(linked_libraries=[...])</code>. <strong>Applied without asking</strong>, at the framework step so it lands exactly once. There is nothing to decide: <code>detect_deps</code> emits a name here only when the source imports it <em>and</em> it resolves to an installed registered library, so every entry is provably true, carries no version specifier, and narrows nothing for consumers. It is <em>reported</em> on the Findings and Confirm screens rather than done silently, because it edits a hand-authored <code>__init__.py</code> rather than a manifest.</li>
 <li><code>apply_floors({lib: [entry, …]})</code> — rewrites only the floors the author actively changed.</li>
 </ul>
 <p>An empty mapping writes nothing, so "keep them" is a real answer on every screen.</p>
@@ -3392,6 +3415,16 @@
 <h3 id="27-step-7-push">2.7 Step 7 — Push<a class="headerlink" href="#27-step-7-push" title="Permanent link">&para;</a></h3>
 <p><code>verify_push_allowed()</code> runs <code>git push --dry-run</code> immediately <em>before</em> the commit step actually commits, closing the race window opened at step 1: someone else may have pushed to the same branch in the meantime, and discovering that after a commit and tag already exist would force the user to clean up. It mirrors the marketplace's <code>dry_run()</code> → <code>install()</code> pairing — pre-flight verification beats post-failure recovery when nothing needs undoing if nothing was mutated yet.</p>
 <p><code>apply_push()</code> pushes the commit and tag to <code>origin</code> via <code>git_remote_streaming()</code> (env-hardened — see §4). On failure it raises <code>PushError</code>, which carries the exact command to retry by hand; the step is safely retryable in place since nothing here mutates pipeline state.</p>
+<h3 id="28-step-8-refresh">2.8 Step 8 — Refresh<a class="headerlink" href="#28-step-8-refresh" title="Permanent link">&para;</a></h3>
+<p><code>apply_sync()</code> runs <code>uv sync</code>, so the versions step 4 wrote reach the <em>installed</em> distribution metadata. Step 4 already re-ran <code>uv lock</code>, but the lockfile is not what a running process reads: a library declaring <code>version=_pkg_version("haybale-x")</code> calls <code>importlib.metadata.version</code>, which reads <code>site-packages/&lt;dist&gt;.dist-info/METADATA</code> — a static file written at install time, editable installs included. <code>uv lock</code> never touches it. Without this step the studio keeps reporting the pre-bump version at the exact moment the wizard displays a "published vX.Y.Z" success screen.</p>
+<p><strong>Why after the push rather than beside the bump it corrects.</strong> Two reasons, and both are about the rollback boundary:</p>
+<ul>
+<li>The bump sits <em>inside</em> that boundary. Syncing there would leave the environment on a version the tree no longer holds if a later step failed and reverted the manifests.</li>
+<li>Evicting and re-importing libraries mid-flow strands the studio without them across the docs subprocess and the commit, for no benefit — nothing between the bump and the push reads the registry.</li>
+</ul>
+<p><strong>Order within the step is load-bearing.</strong> The flow's registry reload (<code>ShareFlow._hot_swap_bumped_libraries</code>) re-runs each <code>@library(...)</code> decorator and reads back exactly the metadata <code>uv sync</code> rewrites, so a reload that runs first picks up the <em>pre-bump</em> version and silently accomplishes nothing. <code>tests/share_flow/test_refresh_tail.py</code> pins the ordering, because every way of getting it wrong still produces a successful publish and a panel that claims the reload worked.</p>
+<p><code>refresh.py</code> owns the environment half only; the registry reload lives in <code>haybale-share</code>, which holds the live library system. The CLI (<code>haywire share --yes</code>) calls <code>apply_sync()</code> too and simply has no registry to reload.</p>
+<p>Never blocks — for a stronger reason than <code>refresh_lockfile</code>'s. By the time this runs the commit, tag and push have all landed, so the publish is already public and a failed sync cannot be a failed share. It returns <code>(refreshed, warning)</code>; the warning carries its own remedy (a manual <code>uv sync</code>) and surfaces on the Done screen.</p>
 <h2 id="3-the-planapply-split">3. The plan/apply split<a class="headerlink" href="#3-the-planapply-split" title="Permanent link">&para;</a></h2>
 <p>Every step that can touch disk or the remote separates a read-only <strong>check/plan</strong> call from a mutating <strong>apply</strong> call:</p>
 <table>
@@ -3437,6 +3470,11 @@
 <td>7</td>
 <td><code>verify_push_allowed()</code></td>
 <td><code>apply_push()</code></td>
+</tr>
+<tr>
+<td>8</td>
+<td>— (nothing to plan; runs only after a landed push)</td>
+<td><code>apply_sync()</code></td>
 </tr>
 </tbody>
 </table>
@@ -3563,7 +3601,7 @@ the fix's scope.</p>
 <h2 id="key-files">Key files<a class="headerlink" href="#key-files" title="Permanent link">&para;</a></h2>
 <ul>
 <li><code>packages/haywire-core/src/haywire/core/publishing/pipeline/pipeline.py</code> — <code>SharePipeline</code>, every step plus <code>apply_all()</code>.</li>
-<li><code>packages/haywire-core/src/haywire/core/publishing/pipeline/steps/</code> — one module per step (<code>preconditions.py</code>, <code>detect.py</code>, <code>dependencies.py</code>, <code>framework.py</code>, <code>version.py</code>, <code>docs.py</code>, <code>commit.py</code>, <code>push.py</code>) that <code>SharePipeline</code> delegates to.</li>
+<li><code>packages/haywire-core/src/haywire/core/publishing/pipeline/steps/</code> — one module per step (<code>preconditions.py</code>, <code>detect.py</code>, <code>dependencies.py</code>, <code>framework.py</code>, <code>version.py</code>, <code>docs.py</code>, <code>commit.py</code>, <code>push.py</code>, <code>refresh.py</code>) that <code>SharePipeline</code> delegates to.</li>
 <li><code>packages/haywire-core/src/haywire/core/publishing/pipeline/errors.py</code> — <code>ShareError</code> and its subclasses.</li>
 <li><code>packages/haywire-core/src/haywire/core/publishing/pipeline/results.py</code> — the frozen result dataclasses each step returns.</li>
 <li><code>packages/haywire-core/src/haywire/core/publishing/manifest/reader.py</code> — manifest reading (<code>read_manifest</code>); <code>publishing/manifest/errors.py</code> — <code>ManifestReadError</code>/<code>InvalidOsDeclarationError</code>.</li>
