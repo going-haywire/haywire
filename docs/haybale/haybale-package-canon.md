@@ -1,552 +1,552 @@
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |---
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |status: draft
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |doc_template: canonical-example
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |scope: Packaging a Haybale — pyproject.toml shape, folder layout, entry points, install/build/publish workflow
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |see-also:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - library-canon.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - ../architecture/library-system/library-system-arch.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - marketplace/haybale-marketplace-arch.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - ../architecture/sharing/sharing-arch.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - ../guides/sharing-libraries.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - ../guides/subscribing-to-marketplaces.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - ../reference/glossary.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |---
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# Haybale Package — Canonical Example
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## 1. What it solves
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |A **Haybale package** is the distribution unit of a haywire library — a Python package whose `pyproject.toml` declares an entry point under `haywire.libraries`, containing exactly one `BaseLibrary` subclass. It is meaning **#3** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../reference/glossary.md#library-five-distinct-meanings)).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |You package a haybale when you want to:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Distribute your library on PyPI (`uv pip install haybale-mylib`).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Share it via a Git URL (`uv pip install git+https://...#subdirectory=...`).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Develop it locally with hot-reload (`uv pip install -e .`).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Publish it through a `marketstall.toml` feed that others can subscribe to from the studio's library manager.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The naming convention is **`haybale-<name>`** for the pip distribution and **`haybale_<name>`** for the Python module — the framework expects this prefix and the library manager UI surfaces it. The `haybale-` prefix is conventional, not required, but tools assume it.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## 2. How it fits
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```text
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Source layout                  pyproject.toml                 Distribution
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |─────────────                  ──────────────                 ────────────
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |haybale-mylib/                 [project]                      uv pip install:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  pyproject.toml               name = "haybale-mylib"           - editable: -e .
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  README.md                    [project.entry-points.            (hot-reload)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  haybale_mylib/                "haywire.libraries"]             - regular: .
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    __init__.py                mylib =                          - PyPI: package name
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |       @library(...)             "haybale_mylib:Library"        - git: URL
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |       class Library:                                            - subdir: URL#subdirectory=
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |                               [tool.hatch.build.targets.wheel]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    nodes/                     packages = ["haybale_mylib"]    haywire share — project-wide
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    types/                                                       lockstep publish (§3, §6)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    adapters/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    widgets/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    skins/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    themes/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The pip distribution name (`haybale-mylib`) and the Python module name (`haybale_mylib`) are *different things*. Pip uses hyphens, Python imports use underscores; the entry point connects them.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**Boundaries.** What `BaseLibrary`, `register_components()`, and `validate()` actually do — see [haybale/library](library-canon.md). What `LibraryDiscovery` reads at runtime, the install-type rules, hot-reload mechanics — see [architecture/library-system](../architecture/library-system/library-system-arch.md). The studio's library manager UI that consumes `marketplace.toml` and runs `uv pip install` — see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## 3. Important concepts
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**The conventional folder layout.** A haybale package has these subfolders, each scanned by the matching call in `register_components()`:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```text
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |haybale-mylib/                  ← git repo / pip distribution name
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  pyproject.toml                ← entry point + build config
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  README.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  haybale_mylib/                ← Python module (note underscore)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    __init__.py                 ← @library + Library class + __all__ = ['Library']
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    nodes/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    types/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    adapters/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    widgets/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    skins/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    themes/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**Two valid layouts: package or flat.** *Package* layout is what you want for any distributable library — `haybale-mylib/` contains a `pyproject.toml` and the Python module nested below it. *Flat* layout (the Python module sitting alone in a directory, no `pyproject.toml`) is only useful for ad-hoc libraries loaded via the framework's `library_paths` config — they get the `FOLDER` install type and skip the pip layer entirely. Use package layout unless you have a specific reason not to.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**The entry point is what makes the library discoverable.** In `pyproject.toml`:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[project.entry-points."haywire.libraries"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |mylib = "haybale_mylib:Library"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- The **key** (`mylib`) is the entry-point name. Its only job is to be unique within the entry-point group; it doesn't have to match the library `id`.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- The **value** (`haybale_mylib:Library`) is `<python_module>:<class_name>` — a dotted module path, a colon, then the attribute name to import.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |When the framework runs `importlib.metadata.entry_points(group='haywire.libraries')`, every haybale package on the Python path appears.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**Multiple libraries per package** are supported by listing multiple entry points:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[project.entry-points."haywire.libraries"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |lib_a = "my_package.lib_a:Library"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |lib_b = "my_package.lib_b:Library"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Each entry imports a different module/class pair from the same distribution.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**Four install types, three commands.** From the user's perspective:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Install command | Result | Hot-reload? | Use when… |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. ||---|---|---|---|
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv pip install -e /abs/path` | Editable — symlink to source | Yes (with `file_watcher=True`) | Local development |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv pip install <name>` | Regular — copied into `site-packages` | No | Production / using a published library |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv pip install git+https://...` | Regular — checked out into pip cache | No | Installing from git without publishing |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv pip install <name> @ git+...#subdirectory=...` | Regular — monorepo subdirectory | No | When one repo holds many haybales |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The studio's [library manager](marketplace/haybale-marketplace-arch.md) wraps these commands behind a UI; users rarely run them directly.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**Hot-reload requires editable install.** `file_watcher=True` only does something when the framework can find the live source directory. For pip-from-wheel (`REGULAR` install type), there is no source path to watch — the wheel is unpacked into `site-packages`. Editable installs (`EDITABLE`) and folder-loaded packages (`FOLDER`) both work.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**`marketstall.toml` is how libraries are listed for the studio.** A marketstall TOML file lists `[[haybales]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads subscribed marketstalls (and remote marketplaces that reference them) at refresh time and surfaces the result as the "Available" list. Full coverage in [haybale/marketplace §The two-tier marketplace](marketplace/haybale-marketplace-arch.md#2-the-two-tier-marketplace).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**`haywire share` publishes the project, not the package.** The unit of sharing
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |is the whole project: every `barn/*` library is bumped to the same version in
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |lockstep, then published together (see
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[ADR-0023](../adr/0023-project-scoped-lockstep-sharing.md) for why). What it
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |reads from *your* package is its `pyproject.toml` and `__init__.py`; from those
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |plus the git remote it computes the `#subdirectory=` fragment and writes one
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`[[haybales]]` block per library into the aggregated `marketstall.toml`.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |SSH→HTTPS conversion is automatic. Command flags are in [§6](#6-quick-reference);
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |the full author flow is in [sharing-libraries](../guides/sharing-libraries.md).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**`haywire init`** scaffolds a new project with a starter haybale — creating
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`<project>/.haywire/marketplace.toml` and a `barn/haybale-<name>/` skeleton.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |See [§6](#6-quick-reference) for the flags.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Documentation files generated by `haywire docs`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |A haybale package's documentation is split across several files with distinct roles and distinct **audiences**. All except `NOTES.md` are produced deterministically by the `haywire docs` CLI — pure extraction (identity fields, live instance introspection for nodes, verbatim docstrings), never an agent, never inferred prose. `NOTES.md` is hand-authored and never touched by the generator.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```bash
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv run haywire docs barn/haybale-foo   # one library
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv run haywire docs --all              # every in-repo library, one load
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```text
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |barn/haybale-foo/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  pyproject.toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  README.md                        ← generated — universal discovery doc (see below)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  haybale_foo/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    __init__.py                    ← @library(version=importlib.metadata.version("haybale-foo"))
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    OVERVIEW.md                    ← generated — HUMAN catalog: labels + prose (ships inside wheel)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    QUICKREF.md                    ← generated — AGENT index: registry_keys + intent (ships inside wheel)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    NOTES.md                       ← hand-authored, never touched by generator (ships inside wheel)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    docs/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |      foo.node.SomeNode.md         ← generated deep doc, one per component, ALL 11 kinds
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |      foo.widget.SomeWidget.md       (flat folder; filename = registry_key with ":" → ".")
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`marketstall.toml` lives at the repo root, not inside the haybale package directory.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |#### `OVERVIEW.md` vs `QUICKREF.md` — audience split
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The two catalog files project the *same* extracted data for two different readers:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **`OVERVIEW.md`** is for **humans** — rendered by the Library Manager's Overview tab. Components are identified by their `label`, grouped by node menu category, one intent sentence each. Registry keys never appear.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **`QUICKREF.md`** is for **agents** — the tier-1 steering index consumed by the Farmhand drill-down tools (`studio_list_components` / `marketplace_get_library_docs`). Every entry is keyed by `registry_key` (the handle other Farmhand tools take), grouped by kind, and carries `search_tags`/deprecation flags. Hidden components are excluded from both catalogs but still get a deep doc.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Per-component deep docs (`docs/<registry_key-with-dots>.md`) are generated for **all 11 component kinds** (node, type, adapter, widget, skin, setting, theme, panel, editor, state, farmhand) — not just nodes and widgets. For nodes, the ports/settings tables come from instantiating the node and reading it through `NodeInstanceInspector` (the same introspection the Farmhand `graph_editor_inspect_node` tool uses on a live graph); the other 10 kinds document from class-level identity + docstring only, since they have no ports to instantiate for.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Regeneration reconciles `docs/`: a component that no longer exists has its stale deep doc removed, not left as an orphan.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |#### `README.md` content model
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`README.md` is **fully generated** by `haywire docs` in the same pass as `OVERVIEW.md`/`QUICKREF.md`. Hand-authored content belongs in `NOTES.md`.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```text
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |README.md  (package root — NOT shipped in wheel; visible on PyPI and git platforms)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |├── [NOTES.md content verbatim, if present]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   The author's "what & why" — problem domain, key abstractions, when to use
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |└── [Component catalog — identical content to OVERVIEW.md, i.e. the human/label view]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    Nodes grouped by category, one intent line each
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    Types, Widgets, Adapters, etc. as flat lists
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Both `README.md` and `OVERVIEW.md` render the same underlying extraction; they cannot diverge because there is no separate authoring step for either — the generator's single extraction pass feeds every renderer.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |#### Why `README.md` and `OVERVIEW.md` both exist
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. ||                | `README.md`                                                         | `OVERVIEW.md`                                                    |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || -------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Location       | package root (not in wheel)                                         | module dir (in wheel)                                            |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Reachable via  | git raw URL, PyPI `info.description`                                | `lib.identity.folder_path` on disk                               |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || When useful    | pre-install discovery (marketplace browsing, LLM agents, PyPI page) | post-install runtime (Library Manager, LLM agents after install) |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Contains NOTES | yes (prepended)                                                     | no (catalog only)                                                |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The PyPI JSON API returns `README.md` content as `info.description` — the only discovery path for a package with no git reference. This makes `README.md` the **universal fallback** discovery document reachable via every distribution method.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`NOTES.md` replaces the old `LIBRARY.md` name. Its content is prepended to `README.md` and also appended as "Additional Notes" in `OVERVIEW.md` by the generator.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |#### Coverage report
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Each `haywire docs` run ends with a coverage report listing components with no `description` or no docstring — the generator never fabricates missing prose; it flags the gap for the author to fill directly in the decorator/docstring, then re-run.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |#### Coordination with `haywire share`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`haywire share` updates README files in place between marker pairs to keep the published share URL current — for every `barn/*/README.md`, not just the library being edited. When `haywire docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## 4. One comprehensive example
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and the resulting `marketstall.toml` entry for distribution.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Folder layout
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```text
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |haybale-image/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |├── pyproject.toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |├── README.md
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |├── haybale_image/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── __init__.py              ← @library + Library class
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── nodes/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   ├── __init__.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   ├── resize_node.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   └── filter_node.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── types/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   ├── __init__.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   └── image_data.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── adapters/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   ├── __init__.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   └── image_adapters.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── widgets/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   ├── __init__.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   └── image_preview_widget.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── skins/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   └── __init__.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   ├── themes/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   │   └── __init__.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│   └── settings/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |│       └── settings.py          ← @settings(LibrarySettings) classes
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |└── tests/
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    ├── conftest.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    └── test_resize.py
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### `pyproject.toml`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[project]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |name = "haybale-image"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |version = "1.0.0"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |description = "Image processing nodes for haywire — resize, filter, format convert."
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |readme = "README.md"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |requires-python = ">=3.10"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |license = {text = "MIT"}
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |authors = [{name = "Author Name", email = "you@example.com"}]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |keywords = ["haywire", "image", "vision"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |dependencies = [
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "haywire-core>=0.1.0",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "numpy>=1.20.0",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "pillow>=9.0.0",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[project.optional-dependencies]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |dev = [
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "pytest>=7.0.0",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "ruff>=0.1.0",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[project.urls]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Homepage = "https://github.com/me/haybale-image"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Repository = "https://github.com/me/haybale-image"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Documentation = "https://github.com/me/haybale-image/blob/main/README.md"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# ── This is the line that makes the library discoverable ──────────────
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[project.entry-points."haywire.libraries"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |image = "haybale_image:Library"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[build-system]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |requires = ["hatchling"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |build-backend = "hatchling.build"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[tool.hatch.build.targets.wheel]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |packages = ["haybale_image"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[tool.hatch.build.targets.sdist]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |include = [
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "haybale_image/",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    "README.md",
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### `README.md` (rendered by the library manager Overview tab)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```markdown
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# haybale-image
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Image processing nodes for haywire — resize, filter, format convert.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## Installation
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |\`\`\`bash
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install haybale-image
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |\`\`\`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## Nodes provided
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Resize Image** — resize using nearest, bilinear, bicubic, or lanczos
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Filter Image** — gaussian blur, sharpen, edge detect
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Convert Format** — JPEG/PNG/WebP encoding
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## Library settings
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- `image_lib.jpeg_quality` — default JPEG quality (1–100)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- `image_lib.resize_algorithm` — default resize algorithm
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- `image_lib.gpu_acceleration` — enable CUDA when available
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## Development
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |\`\`\`bash
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |git clone https://github.com/me/haybale-image
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |cd haybale-image
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install -e ".[dev]"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |\`\`\`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Editable install enables hot-reload — edit `.py` files and the canvas
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |rebuilds nodes automatically.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## License
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |MIT
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Build, test, publish
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```bash
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 1. Develop locally with hot-reload
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |cd haybale-image
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install -e ".[dev]"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 2. Run tests
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv run pytest
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 3. Build wheel + sdist
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |python -m build
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# → dist/haybale_image-1.0.0-py3-none-any.whl
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# → dist/haybale_image-1.0.0.tar.gz
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 4. Verify the built wheel installs cleanly
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install dist/haybale_image-1.0.0-py3-none-any.whl
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 5. Optional dry run — upload to Test PyPI first to validate metadata + wheel
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |#    (requires a separate https://test.pypi.org account)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |python -m twine upload --repository testpypi dist/*
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install --index-url https://test.pypi.org/simple/ \
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |               --extra-index-url https://pypi.org/simple/ \
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |               haybale-image
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# (the --extra-index-url lets pip resolve `haywire-core` and other deps from real PyPI)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 6. Publish to PyPI (after `uv pip install twine`)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |python -m twine upload dist/*
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# 7. Tag the release in git
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |git tag v1.0.0
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |git push origin v1.0.0
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |**Test PyPI vs PyPI.** Test PyPI is a separate service at `https://test.pypi.org` with its own user accounts and package namespace; uploads there are throwaway. Use it to validate that your `pyproject.toml` metadata is correct, the wheel is well-formed, and the install works end-to-end before burning a version number on real PyPI (versions can't be re-uploaded once published).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Distribution via `marketstall.toml`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Publish the whole project with `haywire share` (run from the repo root — see
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[sharing-libraries](../guides/sharing-libraries.md)):
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```bash
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv run haywire share --bump patch
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`haybale-image` lives in its own repo rather than a monorepo `barn/`, so its
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |entry carries no `#subdirectory=` fragment and its paths sit at the repo root:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[[haybales]]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |name             = "haybale-image"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |version          = "1.0.0"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |require = "haywire-core>=0.0.31"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |description      = "Image processing nodes for haywire — resize, filter, format convert."
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |author           = "Author Name"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |source           = "git"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |install_spec     = "haybale-image @ git+https://github.com/me/haybale-image.git@v1.0.0"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |tags             = ["image", "vision"]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |source_url       = "https://github.com/me/haybale-image"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |docs_url         = "https://raw.githubusercontent.com/me/haybale-image/v1.0.0/haybale_image/"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Or for a PyPI-published version:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```toml
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[[haybales]]
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |name             = "haybale-image"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |version          = "1.0.0"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |require = "haywire-core>=0.0.31"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |source           = "pypi"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |install_spec     = "haybale-image>=1.0.0"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |docs_url         = ""   # falls back to PyPI long_description
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The `source = "git"` variant above is what a **monorepo** entry differs from:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |published from a `barn/`, the same library gains
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`#subdirectory=barn/haybale-image` on its `install_spec` and the matching
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`barn/haybale-image/` prefix on every URL. Field-by-field definitions live in
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |[the `Haybale` schema](marketplace/haybale-marketplace-arch.md#23-the-haybale-schema).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |What this example exercises:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Concept | Where |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. ||---|---|
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Conventional package layout (`haybale-name/haybale_name/...`) | folder tree |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `[project.entry-points."haywire.libraries"]` declaration | `pyproject.toml` |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `[tool.hatch.build.targets.wheel]` packages list | `pyproject.toml` |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Optional dev dependencies under `[project.optional-dependencies]` | `pyproject.toml` |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `[project.urls]` populating the library manager UI | `pyproject.toml` |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || README format consumed by the library manager Overview tab | `README.md` |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv pip install -e ".[dev]"` for editable + dev deps | build/test/publish workflow |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `python -m build` + `python -m twine upload` for PyPI | build/test/publish workflow |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `haywire share` publishing a project-wide marketstall | distribution |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Both `source = "git"` (subdirectory) and `source = "pypi"` entry variants | distribution |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |For the `Library` class that lives in `__init__.py`, see [haybale/library](library-canon.md). For the framework that loads your published package at app startup, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's library manager UI that consumes the marketplace snippet, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |If you need to embed the Haywire library system programmatically (in a script, headless tool, or integration test) without launching the studio app, see [architecture/library-system §5 — Programmatic embedding](../architecture/library-system/library-system-arch.md#5-programmatic-embedding).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |---
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## 5. Compliance contract
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The contract a third-party haybale library MUST satisfy to participate in the haywire ecosystem. Designed to be tooling-independent: any author meeting it works with the shipped Library Manager and the marketstall pipeline.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Required
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |A third-party haybale library MUST provide:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **`pyproject.toml`** at the repo root (or at the library subdirectory in multi-library
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  repos) with:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `[project] name = "haybale-*"` — the pip distribution name follows the `haybale-` prefix
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    convention.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `[project] version = "X.Y.Z"` — semver, the single source of truth.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `[project] requires-python = ">=3.10"` — minimum Python version.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `[project.entry-points."haywire.libraries"]` entry resolving to a `BaseLibrary` subclass.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **`@library` decorator** on the `BaseLibrary` subclass with at least:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `label` — human-readable display name.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `id` — short identifier (no `haybale_` prefix).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `version` — must come from `importlib.metadata.version("haybale-foo")`, not a hardcoded
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    string. This guarantees `pyproject.toml` is the single source of truth.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  - `dependencies` — list of pip distribution names (hyphens) for any required haybale
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |    libraries, e.g. `["haybale-core"]`. Empty list if none.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **For PyPI publishing**: a valid PyPI package — Trusted Publisher (OIDC) recommended, but
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  the author may use any auth method PyPI supports.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **For marketstall publishing**: a valid `marketstall.toml`.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |A library meeting only the Required contract is installable, importable, and resolvable by
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |the Library Manager. It may render with minimal UI affordances (no description, no tags,
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |no docs link) — see Recommended below.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Recommended
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |A compliant library SHOULD additionally provide:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **`@library` decorator** fields: `description`, `author`, `tags`, `url`,
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  `author_url`. These populate the Library Manager UI.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Optional marketstall entry fields** beyond the required ones, with a resolution
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  strategy when fields are omitted.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Generated documentation** via `haywire docs` — see §3 "Documentation files generated
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  by `haywire docs`" above for the content model and file layout.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Hand-authored `NOTES.md`** in the module directory — the author's "what & why" content
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  that the generator prepends to `README.md`.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- **Semver discipline** — patch versions for fixes, minor for new features, major for
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  breaking changes. `>=X.Y.Z` constraints depend on this.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Private repos and auth
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |If an author publishes from a private git repo, **subscribers are responsible for configuring
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |their own git credentials** (SSH keys, credential helper, `~/.netrc`, etc.). The Library
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Manager does not handle authentication — it delegates entirely to `uv pip install` and the
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |underlying git client. Any auth failure surfaces as the raw clone error from uv. Authors
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |publishing from private repos should document the required credentials setup in their
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |`NOTES.md`.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |Auth handling is intentionally out of scope: it is an OS/git configuration concern that
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |haywire does not own. The contract requires only that the install target is reachable with
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |the subscriber's existing git setup.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### UI behaviour for partial compliance
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |The Library Manager surfaces a hint on entries that meet Required but not Recommended:
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Missing `description` → "No description provided" in the list view.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Missing `tags` → tag chips area shows "No tags".
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- Missing `docs_url` and no resolvable fallback → "No documentation available" in the
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |  details view, with a tooltip linking to the contract docs.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |These hints are informational, not gating — a library with no recommended fields still
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |installs, enables, and runs normally.
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |## 6. Quick reference
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Packaging checklist
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] Distribution name `haybale-<name>` (with hyphen)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] Python module name `haybale_<name>` (with underscore)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] `pyproject.toml` at the repo root
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] `[project.entry-points."haywire.libraries"]` line referencing `<module>:Library`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] `[tool.hatch.build.targets.wheel]` listing the package
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] `dependencies` includes `haywire-core` (or `haywire>=...`)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] README.md with installation + node list (used by Library Manager UI)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] `Library` class in `__init__.py` exporting via `__all__ = ['Library']`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |- [ ] Conventional subfolders for the categories you contribute (`nodes/`, `types/`, etc.)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Install commands by intent
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```bash
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# Local development (editable; hot-reload works)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install -e .
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# From local wheel (regular)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install dist/haybale_mylib-1.0.0-py3-none-any.whl
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# From PyPI (regular)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install haybale-mylib
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# From git (whole repo)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install git+https://github.com/user/haybale-mylib.git
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |# From git (subdirectory of a monorepo)
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirectory=barn/haybale-mylib"
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |```
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### `haywire share` and `haywire init`
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Command | What it does |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. ||---|---|
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire share` | Interactive. Publish the whole project: bump every `barn/*` library in lockstep, regenerate docs, rebuild `<repo-root>/marketstall.toml`, commit, tag `v<version>`, push. Prompts through each step. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire share --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use as a PR gate. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire docs barn/haybale-mylib` | Generate `README.md`/`OVERVIEW.md`/`QUICKREF.md`/`docs/*.md` for one library. Deterministic — pure extraction, no agent. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || `uv run haywire docs --all` | Generate docs for every **in-repo** library in one library-system load — every installed library whose folder resolves under the current directory (i.e. `barn/*` + `haywire.barn.builtin`; externally-installed libraries like a gitignored dev symlink are excluded). Ends with a per-library coverage-gap summary. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |For the full author flow including how dependency drift is resolved before a share, see the [sharing-libraries guide](../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../guides/subscribing-to-marketplaces.md).
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |### Common pitfalls
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Pitfall | Why it matters |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. ||---|---|
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Using `_` in the pip distribution name | Convention is hyphen for distribution, underscore for module |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Entry point pointing to the wrong attribute (`Library` vs the class name) | Discovery silently skips the library |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Bumping `version=` in `@library(...)` but not in `pyproject.toml` (or vice versa) | Confusing reports in the library manager UI |
- Non-interactive — the only CLI mode. Every answer comes from a flag or takes its inert default; an undeclared import is DECLARED for you (unambiguously correct), while removals and floor changes are left alone. || Committing a `source = "local"` marketplace entry to a shared repo | Path is machine-specific; breaks for everyone else |
+---
+status: draft
+doc_template: canonical-example
+scope: Packaging a Haybale — pyproject.toml shape, folder layout, entry points, install/build/publish workflow
+see-also:
+  - library-canon.md
+  - ../architecture/library-system/library-system-arch.md
+  - marketplace/haybale-marketplace-arch.md
+  - ../architecture/sharing/sharing-arch.md
+  - ../guides/sharing-libraries.md
+  - ../guides/subscribing-to-marketplaces.md
+  - ../reference/glossary.md
+---
+
+# Haybale Package — Canonical Example
+
+## 1. What it solves
+
+A **Haybale package** is the distribution unit of a haywire library — a Python package whose `pyproject.toml` declares an entry point under `haywire.libraries`, containing exactly one `BaseLibrary` subclass. It is meaning **#3** of the five "library" concepts in haywire (see [reference/glossary §Library — five distinct meanings](../reference/glossary.md#library-five-distinct-meanings)).
+
+You package a haybale when you want to:
+
+- Distribute your library on PyPI (`uv pip install haybale-mylib`).
+- Share it via a Git URL (`uv pip install git+https://...#subdirectory=...`).
+- Develop it locally with hot-reload (`uv pip install -e .`).
+- Publish it through a `marketstall.toml` feed that others can subscribe to from the studio's library manager.
+
+The naming convention is **`haybale-<name>`** for the pip distribution and **`haybale_<name>`** for the Python module — the framework expects this prefix and the library manager UI surfaces it. The `haybale-` prefix is conventional, not required, but tools assume it.
+
+## 2. How it fits
+
+```text
+Source layout                  pyproject.toml                 Distribution
+─────────────                  ──────────────                 ────────────
+haybale-mylib/                 [project]                      uv pip install:
+  pyproject.toml               name = "haybale-mylib"           - editable: -e .
+  README.md                    [project.entry-points.            (hot-reload)
+  haybale_mylib/                "haywire.libraries"]             - regular: .
+    __init__.py                mylib =                          - PyPI: package name
+       @library(...)             "haybale_mylib:Library"        - git: URL
+       class Library:                                            - subdir: URL#subdirectory=
+                               [tool.hatch.build.targets.wheel]
+    nodes/                     packages = ["haybale_mylib"]    haywire share — project-wide
+    types/                                                       lockstep publish (§3, §6)
+    adapters/
+    widgets/
+    skins/
+    themes/
+```
+
+The pip distribution name (`haybale-mylib`) and the Python module name (`haybale_mylib`) are *different things*. Pip uses hyphens, Python imports use underscores; the entry point connects them.
+
+**Boundaries.** What `BaseLibrary`, `register_components()`, and `validate()` actually do — see [haybale/library](library-canon.md). What `LibraryDiscovery` reads at runtime, the install-type rules, hot-reload mechanics — see [architecture/library-system](../architecture/library-system/library-system-arch.md). The studio's library manager UI that consumes `marketplace.toml` and runs `uv pip install` — see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
+
+## 3. Important concepts
+
+**The conventional folder layout.** A haybale package has these subfolders, each scanned by the matching call in `register_components()`:
+
+```text
+haybale-mylib/                  ← git repo / pip distribution name
+  pyproject.toml                ← entry point + build config
+  README.md
+  haybale_mylib/                ← Python module (note underscore)
+    __init__.py                 ← @library + Library class + __all__ = ['Library']
+    nodes/
+    types/
+    adapters/
+    widgets/
+    skins/
+    themes/
+```
+
+You can omit any subfolder you don't use. The `Library.register_components()` method makes one `add_folder_to_registry()` call per category (see [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)).
+
+**Two valid layouts: package or flat.** *Package* layout is what you want for any distributable library — `haybale-mylib/` contains a `pyproject.toml` and the Python module nested below it. *Flat* layout (the Python module sitting alone in a directory, no `pyproject.toml`) is only useful for ad-hoc libraries loaded via the framework's `library_paths` config — they get the `FOLDER` install type and skip the pip layer entirely. Use package layout unless you have a specific reason not to.
+
+**The entry point is what makes the library discoverable.** In `pyproject.toml`:
+
+```toml
+[project.entry-points."haywire.libraries"]
+mylib = "haybale_mylib:Library"
+```
+
+- The **key** (`mylib`) is the entry-point name. Its only job is to be unique within the entry-point group; it doesn't have to match the library `id`.
+- The **value** (`haybale_mylib:Library`) is `<python_module>:<class_name>` — a dotted module path, a colon, then the attribute name to import.
+
+When the framework runs `importlib.metadata.entry_points(group='haywire.libraries')`, every haybale package on the Python path appears.
+
+**Multiple libraries per package** are supported by listing multiple entry points:
+
+```toml
+[project.entry-points."haywire.libraries"]
+lib_a = "my_package.lib_a:Library"
+lib_b = "my_package.lib_b:Library"
+```
+
+Each entry imports a different module/class pair from the same distribution.
+
+**Four install types, three commands.** From the user's perspective:
+
+| Install command | Result | Hot-reload? | Use when… |
+|---|---|---|---|
+| `uv pip install -e /abs/path` | Editable — symlink to source | Yes (with `file_watcher=True`) | Local development |
+| `uv pip install <name>` | Regular — copied into `site-packages` | No | Production / using a published library |
+| `uv pip install git+https://...` | Regular — checked out into pip cache | No | Installing from git without publishing |
+| `uv pip install <name> @ git+...#subdirectory=...` | Regular — monorepo subdirectory | No | When one repo holds many haybales |
+
+The studio's [library manager](marketplace/haybale-marketplace-arch.md) wraps these commands behind a UI; users rarely run them directly.
+
+**Hot-reload requires editable install.** `file_watcher=True` only does something when the framework can find the live source directory. For pip-from-wheel (`REGULAR` install type), there is no source path to watch — the wheel is unpacked into `site-packages`. Editable installs (`EDITABLE`) and folder-loaded packages (`FOLDER`) both work.
+
+**`marketstall.toml` is how libraries are listed for the studio.** A marketstall TOML file lists `[[haybales]]` entries with metadata + an `install_spec` that gets passed verbatim to `uv pip install`. The Library Manager UI reads subscribed marketstalls (and remote marketplaces that reference them) at refresh time and surfaces the result as the "Available" list. Full coverage in [haybale/marketplace §The two-tier marketplace](marketplace/haybale-marketplace-arch.md#2-the-two-tier-marketplace).
+
+**`haywire share` publishes the project, not the package.** The unit of sharing
+is the whole project: every `barn/*` library is bumped to the same version in
+lockstep, then published together (see
+[ADR-0023](../adr/0023-project-scoped-lockstep-sharing.md) for why). What it
+reads from *your* package is its `pyproject.toml` and `__init__.py`; from those
+plus the git remote it computes the `#subdirectory=` fragment and writes one
+`[[haybales]]` block per library into the aggregated `marketstall.toml`.
+SSH→HTTPS conversion is automatic. Command flags are in [§6](#6-quick-reference);
+the full author flow is in [sharing-libraries](../guides/sharing-libraries.md).
+
+**`haywire init`** scaffolds a new project with a starter haybale — creating
+`<project>/.haywire/marketplace.toml` and a `barn/haybale-<name>/` skeleton.
+See [§6](#6-quick-reference) for the flags.
+
+### Documentation files generated by `haywire docs`
+
+A haybale package's documentation is split across several files with distinct roles and distinct **audiences**. All except `NOTES.md` are produced deterministically by the `haywire docs` CLI — pure extraction (identity fields, live instance introspection for nodes, verbatim docstrings), never an agent, never inferred prose. `NOTES.md` is hand-authored and never touched by the generator.
+
+```bash
+uv run haywire docs barn/haybale-foo   # one library
+uv run haywire docs --all              # every in-repo library, one load
+```
+
+```text
+barn/haybale-foo/
+  pyproject.toml
+  README.md                        ← generated — universal discovery doc (see below)
+  haybale_foo/
+    __init__.py                    ← @library(version=importlib.metadata.version("haybale-foo"))
+    OVERVIEW.md                    ← generated — HUMAN catalog: labels + prose (ships inside wheel)
+    QUICKREF.md                    ← generated — AGENT index: registry_keys + intent (ships inside wheel)
+    NOTES.md                       ← hand-authored, never touched by generator (ships inside wheel)
+    docs/
+      foo.node.SomeNode.md         ← generated deep doc, one per component, ALL 11 kinds
+      foo.widget.SomeWidget.md       (flat folder; filename = registry_key with ":" → ".")
+```
+
+`marketstall.toml` lives at the repo root, not inside the haybale package directory.
+
+#### `OVERVIEW.md` vs `QUICKREF.md` — audience split
+
+The two catalog files project the *same* extracted data for two different readers:
+
+- **`OVERVIEW.md`** is for **humans** — rendered by the Library Manager's Overview tab. Components are identified by their `label`, grouped by node menu category, one intent sentence each. Registry keys never appear.
+- **`QUICKREF.md`** is for **agents** — the tier-1 steering index consumed by the Farmhand drill-down tools (`studio_list_components` / `marketplace_get_library_docs`). Every entry is keyed by `registry_key` (the handle other Farmhand tools take), grouped by kind, and carries `search_tags`/deprecation flags. Hidden components are excluded from both catalogs but still get a deep doc.
+
+Per-component deep docs (`docs/<registry_key-with-dots>.md`) are generated for **all 11 component kinds** (node, type, adapter, widget, skin, setting, theme, panel, editor, state, farmhand) — not just nodes and widgets. For nodes, the ports/settings tables come from instantiating the node and reading it through `NodeInstanceInspector` (the same introspection the Farmhand `graph_editor_inspect_node` tool uses on a live graph); the other 10 kinds document from class-level identity + docstring only, since they have no ports to instantiate for.
+
+Regeneration reconciles `docs/`: a component that no longer exists has its stale deep doc removed, not left as an orphan.
+
+#### `README.md` content model
+
+`README.md` is **fully generated** by `haywire docs` in the same pass as `OVERVIEW.md`/`QUICKREF.md`. Hand-authored content belongs in `NOTES.md`.
+
+```text
+README.md  (package root — NOT shipped in wheel; visible on PyPI and git platforms)
+│
+├── [NOTES.md content verbatim, if present]
+│   The author's "what & why" — problem domain, key abstractions, when to use
+│
+└── [Component catalog — identical content to OVERVIEW.md, i.e. the human/label view]
+    Nodes grouped by category, one intent line each
+    Types, Widgets, Adapters, etc. as flat lists
+```
+
+Both `README.md` and `OVERVIEW.md` render the same underlying extraction; they cannot diverge because there is no separate authoring step for either — the generator's single extraction pass feeds every renderer.
+
+#### Why `README.md` and `OVERVIEW.md` both exist
+
+|                | `README.md`                                                         | `OVERVIEW.md`                                                    |
+| -------------- | ------------------------------------------------------------------- | ---------------------------------------------------------------- |
+| Location       | package root (not in wheel)                                         | module dir (in wheel)                                            |
+| Reachable via  | git raw URL, PyPI `info.description`                                | `lib.identity.folder_path` on disk                               |
+| When useful    | pre-install discovery (marketplace browsing, LLM agents, PyPI page) | post-install runtime (Library Manager, LLM agents after install) |
+| Contains NOTES | yes (prepended)                                                     | no (catalog only)                                                |
+
+The PyPI JSON API returns `README.md` content as `info.description` — the only discovery path for a package with no git reference. This makes `README.md` the **universal fallback** discovery document reachable via every distribution method.
+
+`NOTES.md` replaces the old `LIBRARY.md` name. Its content is prepended to `README.md` and also appended as "Additional Notes" in `OVERVIEW.md` by the generator.
+
+#### Coverage report
+
+Each `haywire docs` run ends with a coverage report listing components with no `description` or no docstring — the generator never fabricates missing prose; it flags the gap for the author to fill directly in the decorator/docstring, then re-run.
+
+#### Coordination with `haywire share`
+
+`haywire share` updates README files in place between marker pairs to keep the published share URL current — for every `barn/*/README.md`, not just the library being edited. When `haywire docs` generates a fresh README, it preserves the marker pair and any URL written between them — the generator's template includes the markers, and the share command's edits are confined to the block between them. The two tools coexist by convention: the generator owns everything outside the markers; the share command owns everything inside.
+
+## 4. One comprehensive example
+
+A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and the resulting `marketstall.toml` entry for distribution.
+
+### Folder layout
+
+```text
+haybale-image/
+├── pyproject.toml
+├── README.md
+├── haybale_image/
+│   ├── __init__.py              ← @library + Library class
+│   ├── nodes/
+│   │   ├── __init__.py
+│   │   ├── resize_node.py
+│   │   └── filter_node.py
+│   ├── types/
+│   │   ├── __init__.py
+│   │   └── image_data.py
+│   ├── adapters/
+│   │   ├── __init__.py
+│   │   └── image_adapters.py
+│   ├── widgets/
+│   │   ├── __init__.py
+│   │   └── image_preview_widget.py
+│   ├── skins/
+│   │   └── __init__.py
+│   ├── themes/
+│   │   └── __init__.py
+│   └── settings/
+│       └── settings.py          ← @settings(LibrarySettings) classes
+└── tests/
+    ├── conftest.py
+    └── test_resize.py
+```
+
+### `pyproject.toml`
+
+```toml
+[project]
+name = "haybale-image"
+version = "1.0.0"
+description = "Image processing nodes for haywire — resize, filter, format convert."
+readme = "README.md"
+requires-python = ">=3.10"
+license = {text = "MIT"}
+authors = [{name = "Author Name", email = "you@example.com"}]
+keywords = ["haywire", "image", "vision"]
+
+dependencies = [
+    "haywire-core>=0.1.0",
+    "numpy>=1.20.0",
+    "pillow>=9.0.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0.0",
+    "ruff>=0.1.0",
+]
+
+[project.urls]
+Homepage = "https://github.com/me/haybale-image"
+Repository = "https://github.com/me/haybale-image"
+Documentation = "https://github.com/me/haybale-image/blob/main/README.md"
+
+# ── This is the line that makes the library discoverable ──────────────
+[project.entry-points."haywire.libraries"]
+image = "haybale_image:Library"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["haybale_image"]
+
+[tool.hatch.build.targets.sdist]
+include = [
+    "haybale_image/",
+    "README.md",
+]
+```
+
+### `README.md` (rendered by the library manager Overview tab)
+
+```markdown
+# haybale-image
+
+Image processing nodes for haywire — resize, filter, format convert.
+
+## Installation
+
+\`\`\`bash
+uv pip install haybale-image
+\`\`\`
+
+## Nodes provided
+
+- **Resize Image** — resize using nearest, bilinear, bicubic, or lanczos
+- **Filter Image** — gaussian blur, sharpen, edge detect
+- **Convert Format** — JPEG/PNG/WebP encoding
+
+## Library settings
+
+- `image_lib.jpeg_quality` — default JPEG quality (1–100)
+- `image_lib.resize_algorithm` — default resize algorithm
+- `image_lib.gpu_acceleration` — enable CUDA when available
+
+## Development
+
+\`\`\`bash
+git clone https://github.com/me/haybale-image
+cd haybale-image
+uv pip install -e ".[dev]"
+\`\`\`
+
+Editable install enables hot-reload — edit `.py` files and the canvas
+rebuilds nodes automatically.
+
+## License
+
+MIT
+```
+
+### Build, test, publish
+
+```bash
+# 1. Develop locally with hot-reload
+cd haybale-image
+uv pip install -e ".[dev]"
+
+# 2. Run tests
+uv run pytest
+
+# 3. Build wheel + sdist
+python -m build
+# → dist/haybale_image-1.0.0-py3-none-any.whl
+# → dist/haybale_image-1.0.0.tar.gz
+
+# 4. Verify the built wheel installs cleanly
+uv pip install dist/haybale_image-1.0.0-py3-none-any.whl
+
+# 5. Optional dry run — upload to Test PyPI first to validate metadata + wheel
+#    (requires a separate https://test.pypi.org account)
+python -m twine upload --repository testpypi dist/*
+uv pip install --index-url https://test.pypi.org/simple/ \
+               --extra-index-url https://pypi.org/simple/ \
+               haybale-image
+# (the --extra-index-url lets pip resolve `haywire-core` and other deps from real PyPI)
+
+# 6. Publish to PyPI (after `uv pip install twine`)
+python -m twine upload dist/*
+
+# 7. Tag the release in git
+git tag v1.0.0
+git push origin v1.0.0
+```
+
+**Test PyPI vs PyPI.** Test PyPI is a separate service at `https://test.pypi.org` with its own user accounts and package namespace; uploads there are throwaway. Use it to validate that your `pyproject.toml` metadata is correct, the wheel is well-formed, and the install works end-to-end before burning a version number on real PyPI (versions can't be re-uploaded once published).
+
+### Distribution via `marketstall.toml`
+
+Publish the whole project with `haywire share` (run from the repo root — see
+[sharing-libraries](../guides/sharing-libraries.md)):
+
+```bash
+uv run haywire share --bump patch
+```
+
+`haybale-image` lives in its own repo rather than a monorepo `barn/`, so its
+entry carries no `#subdirectory=` fragment and its paths sit at the repo root:
+
+```toml
+[[haybales]]
+name             = "haybale-image"
+version          = "1.0.0"
+require = "haywire-core>=0.0.31"
+description      = "Image processing nodes for haywire — resize, filter, format convert."
+author           = "Author Name"
+source           = "git"
+install_spec     = "haybale-image @ git+https://github.com/me/haybale-image.git@v1.0.0"
+tags             = ["image", "vision"]
+source_url       = "https://github.com/me/haybale-image"
+docs_url         = "https://raw.githubusercontent.com/me/haybale-image/v1.0.0/haybale_image/"
+```
+
+Or for a PyPI-published version:
+
+```toml
+[[haybales]]
+name             = "haybale-image"
+version          = "1.0.0"
+require = "haywire-core>=0.0.31"
+source           = "pypi"
+install_spec     = "haybale-image>=1.0.0"
+docs_url         = ""   # falls back to PyPI long_description
+```
+
+The `source = "git"` variant above is what a **monorepo** entry differs from:
+published from a `barn/`, the same library gains
+`#subdirectory=barn/haybale-image` on its `install_spec` and the matching
+`barn/haybale-image/` prefix on every URL. Field-by-field definitions live in
+[the `Haybale` schema](marketplace/haybale-marketplace-arch.md#23-the-haybale-schema).
+
+What this example exercises:
+
+| Concept | Where |
+|---|---|
+| Conventional package layout (`haybale-name/haybale_name/...`) | folder tree |
+| `[project.entry-points."haywire.libraries"]` declaration | `pyproject.toml` |
+| `[tool.hatch.build.targets.wheel]` packages list | `pyproject.toml` |
+| Optional dev dependencies under `[project.optional-dependencies]` | `pyproject.toml` |
+| `[project.urls]` populating the library manager UI | `pyproject.toml` |
+| README format consumed by the library manager Overview tab | `README.md` |
+| `uv pip install -e ".[dev]"` for editable + dev deps | build/test/publish workflow |
+| `python -m build` + `python -m twine upload` for PyPI | build/test/publish workflow |
+| `haywire share` publishing a project-wide marketstall | distribution |
+| Both `source = "git"` (subdirectory) and `source = "pypi"` entry variants | distribution |
+
+For the `Library` class that lives in `__init__.py`, see [haybale/library](library-canon.md). For the framework that loads your published package at app startup, see [architecture/library-system](../architecture/library-system/library-system-arch.md). For the studio's library manager UI that consumes the marketplace snippet, see [haybale/marketplace](marketplace/haybale-marketplace-arch.md).
+
+If you need to embed the Haywire library system programmatically (in a script, headless tool, or integration test) without launching the studio app, see [architecture/library-system §5 — Programmatic embedding](../architecture/library-system/library-system-arch.md#5-programmatic-embedding).
+
+---
+
+## 5. Compliance contract
+
+The contract a third-party haybale library MUST satisfy to participate in the haywire ecosystem. Designed to be tooling-independent: any author meeting it works with the shipped Library Manager and the marketstall pipeline.
+
+### Required
+
+A third-party haybale library MUST provide:
+
+- **`pyproject.toml`** at the repo root (or at the library subdirectory in multi-library
+  repos) with:
+  - `[project] name = "haybale-*"` — the pip distribution name follows the `haybale-` prefix
+    convention.
+  - `[project] version = "X.Y.Z"` — semver, the single source of truth.
+  - `[project] requires-python = ">=3.10"` — minimum Python version.
+  - `[project.entry-points."haywire.libraries"]` entry resolving to a `BaseLibrary` subclass.
+- **`@library` decorator** on the `BaseLibrary` subclass with at least:
+  - `label` — human-readable display name.
+  - `id` — short identifier (no `haybale_` prefix).
+  - `version` — must come from `importlib.metadata.version("haybale-foo")`, not a hardcoded
+    string. This guarantees `pyproject.toml` is the single source of truth.
+  - `dependencies` — list of pip distribution names (hyphens) for any required haybale
+    libraries, e.g. `["haybale-core"]`. Empty list if none.
+- **For PyPI publishing**: a valid PyPI package — Trusted Publisher (OIDC) recommended, but
+  the author may use any auth method PyPI supports.
+- **For marketstall publishing**: a valid `marketstall.toml`.
+
+A library meeting only the Required contract is installable, importable, and resolvable by
+the Library Manager. It may render with minimal UI affordances (no description, no tags,
+no docs link) — see Recommended below.
+
+### Recommended
+
+A compliant library SHOULD additionally provide:
+
+- **`@library` decorator** fields: `description`, `author`, `tags`, `url`,
+  `author_url`. These populate the Library Manager UI.
+- **Optional marketstall entry fields** beyond the required ones, with a resolution
+  strategy when fields are omitted.
+- **Generated documentation** via `haywire docs` — see §3 "Documentation files generated
+  by `haywire docs`" above for the content model and file layout.
+- **Hand-authored `NOTES.md`** in the module directory — the author's "what & why" content
+  that the generator prepends to `README.md`.
+- **Semver discipline** — patch versions for fixes, minor for new features, major for
+  breaking changes. `>=X.Y.Z` constraints depend on this.
+
+### Private repos and auth
+
+If an author publishes from a private git repo, **subscribers are responsible for configuring
+their own git credentials** (SSH keys, credential helper, `~/.netrc`, etc.). The Library
+Manager does not handle authentication — it delegates entirely to `uv pip install` and the
+underlying git client. Any auth failure surfaces as the raw clone error from uv. Authors
+publishing from private repos should document the required credentials setup in their
+`NOTES.md`.
+
+Auth handling is intentionally out of scope: it is an OS/git configuration concern that
+haywire does not own. The contract requires only that the install target is reachable with
+the subscriber's existing git setup.
+
+### UI behaviour for partial compliance
+
+The Library Manager surfaces a hint on entries that meet Required but not Recommended:
+
+- Missing `description` → "No description provided" in the list view.
+- Missing `tags` → tag chips area shows "No tags".
+- Missing `docs_url` and no resolvable fallback → "No documentation available" in the
+  details view, with a tooltip linking to the contract docs.
+
+These hints are informational, not gating — a library with no recommended fields still
+installs, enables, and runs normally.
+
+## 6. Quick reference
+
+### Packaging checklist
+
+- [ ] Distribution name `haybale-<name>` (with hyphen)
+- [ ] Python module name `haybale_<name>` (with underscore)
+- [ ] `pyproject.toml` at the repo root
+- [ ] `[project.entry-points."haywire.libraries"]` line referencing `<module>:Library`
+- [ ] `[tool.hatch.build.targets.wheel]` listing the package
+- [ ] `dependencies` includes `haywire-core` (or `haywire>=...`)
+- [ ] README.md with installation + node list (used by Library Manager UI)
+- [ ] `Library` class in `__init__.py` exporting via `__all__ = ['Library']`
+- [ ] Conventional subfolders for the categories you contribute (`nodes/`, `types/`, etc.)
+
+### Install commands by intent
+
+```bash
+# Local development (editable; hot-reload works)
+uv pip install -e .
+
+# From local wheel (regular)
+uv pip install dist/haybale_mylib-1.0.0-py3-none-any.whl
+
+# From PyPI (regular)
+uv pip install haybale-mylib
+
+# From git (whole repo)
+uv pip install git+https://github.com/user/haybale-mylib.git
+
+# From git (subdirectory of a monorepo)
+uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirectory=barn/haybale-mylib"
+```
+
+### `haywire share` and `haywire init`
+
+| Command | What it does |
+|---|---|
+| `uv run haywire share` | Interactive. Publish the whole project: bump every `barn/*` library in lockstep, regenerate docs, rebuild `<repo-root>/marketstall.toml`, commit, tag `v<version>`, push. Prompts through each step. |
+| `uv run haywire share --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
+| `uv run haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use as a PR gate. |
+| `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
+| `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. |
+| `uv run haywire docs barn/haybale-mylib` | Generate `README.md`/`OVERVIEW.md`/`QUICKREF.md`/`docs/*.md` for one library. Deterministic — pure extraction, no agent. |
+| `uv run haywire docs --all` | Generate docs for every **in-repo** library in one library-system load — every installed library whose folder resolves under the current directory (i.e. `barn/*` + `haywire.barn.builtin`; externally-installed libraries like a gitignored dev symlink are excluded). Ends with a per-library coverage-gap summary. |
+
+For the full author flow including how dependency drift is resolved before a share, see the [sharing-libraries guide](../guides/sharing-libraries.md). For the consumer flow that subscribes to what you publish, see [subscribing-to-marketplaces](../guides/subscribing-to-marketplaces.md).
+
+### Common pitfalls
+
+| Pitfall | Why it matters |
+|---|---|
+| Using `_` in the pip distribution name | Convention is hyphen for distribution, underscore for module |
+| Entry point pointing to the wrong attribute (`Library` vs the class name) | Discovery silently skips the library |
+| Bumping `version=` in `@library(...)` but not in `pyproject.toml` (or vice versa) | Confusing reports in the library manager UI |
+| Committing a `source = "local"` marketplace entry to a shared repo | Path is machine-specific; breaks for everyone else |
