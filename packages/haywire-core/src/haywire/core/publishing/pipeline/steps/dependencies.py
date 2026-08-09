@@ -33,7 +33,11 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.library.decorator_io import merge_decorator_list_field
+from haywire.core.library.haybale_toml import (
+    HAYBALE_TOML,
+    read_haybale_toml_lenient,
+    write_haybale_fields,
+)
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.dep_edit import add_dependencies, remove_dependencies, set_dependency
 from haywire.core.marketstall.requirement import CORE
@@ -141,14 +145,16 @@ def apply_decorator_registrations(
         module_dir = find_module_dir(lib_dir)
         if module_dir is None:
             continue
-        init_file = module_dir / "__init__.py"
-        if not init_file.is_file():
+        toml_file = module_dir / HAYBALE_TOML
+        if not toml_file.is_file():
             continue
         try:
-            merge_decorator_list_field(init_file, "dependencies", names, mode="union")
+            declared = read_haybale_toml_lenient(module_dir).get("linked_libraries") or []
+            merged = list(declared) + [n for n in names if n not in declared]
+            write_haybale_fields(module_dir, {"linked_libraries": merged})
         except _MANIFEST_FAILURE_TYPES as exc:
             raise ManifestError(str(exc)) from exc
-        written.append(init_file)
+        written.append(toml_file)
     return pipeline.record(written)
 
 

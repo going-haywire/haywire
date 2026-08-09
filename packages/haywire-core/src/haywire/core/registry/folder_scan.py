@@ -192,7 +192,18 @@ class FolderScanMixin:
             return f"{module_prefix}.{rel_path.stem}"
 
     def _validate_python_file(self, file_path: str | Path) -> bool:
-        """Check if Python file compiles without syntax errors"""
+        """Check the file is a Python module that compiles.
+
+        Returns False rather than raising: a caller uses this to *decide*, and a
+        file that is not a module — or is one an author is halfway through
+        typing — is an expected input here, not an exceptional one. Whether a
+        rejection is worth reporting is the caller's judgement, not this
+        method's; see ``BaseRegistry.event_dispatcher``, which stays silent for a
+        non-Python file and raises for a ``.py`` that will not parse.
+        """
+        if Path(file_path).suffix != ".py":
+            return False
+
         try:
             with open(file_path, "r", encoding="utf-8") as f:
                 source_code = f.read()
@@ -201,6 +212,10 @@ class FolderScanMixin:
             logger.error(f"Error reading {file_path}: {e}")
             return False
 
-        ast.parse(source_code, filename=file_path)
+        try:
+            ast.parse(source_code, filename=str(file_path))
+        except SyntaxError as e:
+            logger.error(f"Syntax error in {file_path}: {e}")
+            return False
 
         return True

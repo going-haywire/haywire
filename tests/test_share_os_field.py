@@ -1,4 +1,10 @@
-"""haywire share reads and validates [tool.haywire].os per spec §2.1."""
+"""haywire share reads the `os` declaration into the haybale entry.
+
+`os` moved from [tool.haywire] in pyproject to haybale.toml. It had to live in
+pyproject while the decorator could not carry it into a wheel — [tool.haywire]
+does not survive a build either, which is why the field was read at publish time
+only. haybale.toml ships inside the package, so it carries it for real.
+"""
 
 from __future__ import annotations
 
@@ -22,7 +28,7 @@ build-backend = "hatchling.build"
 
 
 def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
-    """Scaffold a minimal barn library with optional [tool.haywire].os declaration."""
+    """Scaffold a minimal barn library with an optional `os` declaration."""
     lib_dir = tmp_path / "barn" / "haybale-foo"
     lib_dir.mkdir(parents=True)
     pkg = lib_dir / "haybale_foo"
@@ -32,25 +38,24 @@ def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
         "from haywire.core.library.base import BaseLibrary\n"
         "from haywire.core.library.decorator import library\n"
         "\n"
-        '@library(label="Foo", id="foo", version="0.1.0", description="x",\n'
-        '         url="", help_url="", author="", author_url="",\n'
-        "         dependencies=[], tags=[], file_watcher=False)\n"
+        '@library(id="foo", version="0.1.0", file_watcher=False)\n'
         "class Library(BaseLibrary):\n"
         "    def register_components(self): pass\n"
         "    def validate(self) -> bool: return True\n"
     )
-    pyproject = _SHIPPABLE_PYPROJECT
+    declared = 'name = "haybale-foo"\nid = "foo"\nlabel = "Foo"\ndescription = "x"\n'
     if os_decl is not None:
         os_inline = ", ".join(f'"{x}"' for x in os_decl)
-        pyproject += f"\n[tool.haywire]\nos = [{os_inline}]\n"
-    (lib_dir / "pyproject.toml").write_text(pyproject)
+        declared += f"os = [{os_inline}]\n"
+    (pkg / "haybale.toml").write_text(declared)
+    (lib_dir / "pyproject.toml").write_text(_SHIPPABLE_PYPROJECT)
     (tmp_path / ".git").mkdir()  # so _find_git_root succeeds
     return lib_dir
 
 
 @pytest.mark.unit
 def test_share_reads_os_field(tmp_path: Path) -> None:
-    """Declared [tool.haywire].os is copied into the haybale entry."""
+    """A declared `os` is copied into the haybale entry."""
     from haywire.core.publishing.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=["macos", "linux"])
@@ -115,7 +120,7 @@ def test_strip_removes_invalid_value_keeping_declarable_ones(tmp_path: Path) -> 
     removed = strip_undeclarable_os_values(lib_dir)
 
     assert removed == ["other"]
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["macos"]' in text
 
 
@@ -127,7 +132,7 @@ def test_strip_corrects_near_miss_osx_to_macos(tmp_path: Path) -> None:
     removed = strip_undeclarable_os_values(lib_dir)
 
     assert removed == ["osx"]
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["macos"]' in text
 
 
@@ -138,7 +143,7 @@ def test_strip_maps_all_macos_near_misses(tmp_path: Path, value: str) -> None:
 
     lib_dir = _make_lib(tmp_path, os_decl=[value])
     strip_undeclarable_os_values(lib_dir)
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["macos"]' in text
 
 
@@ -149,7 +154,7 @@ def test_strip_maps_all_windows_near_misses(tmp_path: Path, value: str) -> None:
 
     lib_dir = _make_lib(tmp_path, os_decl=[value])
     strip_undeclarable_os_values(lib_dir)
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["windows"]' in text
 
 
@@ -161,7 +166,7 @@ def test_strip_drops_unmapped_unknown_value_without_guessing(tmp_path: Path) -> 
     removed = strip_undeclarable_os_values(lib_dir)
 
     assert removed == ["freebsd"]
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["macos"]' in text
 
 
@@ -170,20 +175,19 @@ def test_strip_preserves_comments_and_key_order(tmp_path: Path) -> None:
     from haywire.core.publishing import strip_undeclarable_os_values
 
     lib_dir = _make_lib(tmp_path, os_decl=None)
-    pyproject_path = lib_dir / "pyproject.toml"
-    original = pyproject_path.read_text()
-    original += (
-        "\n[tool.haywire]\n"
+    declared_path = lib_dir / "haybale_foo" / "haybale.toml"
+    declared_path.write_text(
+        'name = "haybale-foo"\n'
+        'id = "foo"\n'
         "# a comment that must survive\n"
         'os = ["macos", "other", "windows"]\n'
         "other_key = 1\n"
     )
-    pyproject_path.write_text(original)
 
     removed = strip_undeclarable_os_values(lib_dir)
 
     assert removed == ["other"]
-    text = pyproject_path.read_text()
+    text = declared_path.read_text()
     assert "# a comment that must survive" in text
     assert 'os = ["macos", "windows"]' in text
     # key order preserved: other_key still follows os on its own line
@@ -204,7 +208,7 @@ def test_strip_dedups_near_miss_preceding_its_declarable_target(tmp_path: Path) 
     removed = strip_undeclarable_os_values(lib_dir)
 
     assert removed == ["osx"]
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["macos"]' in text
 
 
@@ -216,7 +220,7 @@ def test_strip_returns_empty_list_when_nothing_invalid(tmp_path: Path) -> None:
     removed = strip_undeclarable_os_values(lib_dir)
 
     assert removed == []
-    text = (lib_dir / "pyproject.toml").read_text()
+    text = (lib_dir / "haybale_foo" / "haybale.toml").read_text()
     assert 'os = ["macos", "linux"]' in text
 
 

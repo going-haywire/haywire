@@ -16,7 +16,6 @@ def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "
         version="0.1.0",
         description="",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path=folder_path,

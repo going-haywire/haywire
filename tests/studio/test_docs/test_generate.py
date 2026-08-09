@@ -204,7 +204,6 @@ def _make_identity(lib_id: str, folder_path: Path) -> LibraryIdentity:
         version="1.0.0",
         description="",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path=str(folder_path),

@@ -16,7 +16,6 @@ def _make_identity(**overrides) -> LibraryIdentity:
         version="1.0.0",
         description="",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path="/tmp/test",
@@ -30,7 +29,7 @@ def _make_identity(**overrides) -> LibraryIdentity:
 @pytest.mark.unit
 def test_on_reload_defaults_to_none():
     """A library that declares nothing asks nothing of the user."""
-    assert _make_identity().on_reload is LibraryReloadAction.NONE
+    assert _make_identity().reload_action is LibraryReloadAction.NONE
 
 
 @pytest.mark.unit
@@ -39,7 +38,7 @@ def test_on_reload_defaults_to_none():
     [LibraryReloadAction.NONE, LibraryReloadAction.REFRESH, LibraryReloadAction.RESTART],
 )
 def test_on_reload_enum_member_round_trips(action: LibraryReloadAction):
-    assert _make_identity(on_reload=action).on_reload is action
+    assert _make_identity(on_reload=action).reload_action is action
 
 
 @pytest.mark.unit
@@ -56,7 +55,7 @@ def test_on_reload_enum_member_round_trips(action: LibraryReloadAction):
 def test_on_reload_coerces_the_on_disk_string_form(raw: str, expected: LibraryReloadAction):
     """Authors write on_reload="restart" so the decorator source needs no import."""
     identity = _make_identity(on_reload=raw)
-    assert identity.on_reload is expected
+    assert identity.reload_action is expected
 
 
 @pytest.mark.unit

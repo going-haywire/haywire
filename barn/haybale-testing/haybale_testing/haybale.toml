@@ -1,0 +1,19 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+# Edited in the studio's library overview — no reinstall, no reload.
+
+name = "haybale-testing"
+id = "testing"
+label = "Testing"
+description = "Test library for test support"
+tags = ["testing", "development", "debug"]
+
+# Sibling haybales this library subscribes to, as MODULE names.
+# Required for hot-reload scope tracking.
+linked_libraries = ["haybale_core", "haybale_graph_editor"]
+
+homepage_url = "https://github.com/going-haywire/haywire"
+
+[[authors]]
+name = "Haywire Team"
+url = "https://github.com/going-haywire/haywire"

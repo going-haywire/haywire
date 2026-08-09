@@ -211,7 +211,7 @@ The Browser groups libraries into four sections, computed at render time:
 
 | Section | Inclusion rule |
 |---|---|
-| **REQUIRED** | Installed + enabled + some other installed haywire library declares it in its `@library(dependencies=[...])`. The signal comes from `LibraryManager.get_installed_dependents(lib_id)` — the same source the Overview Editor's Disable / Uninstall gating uses. |
+| **REQUIRED** | Installed + enabled + some other installed haywire library declares it in its `haybale.toml` `linked_libraries`. The signal comes from `LibraryManager.get_installed_dependents(lib_id)` — the same source the Overview Editor's Disable / Uninstall gating uses. |
 | **ENABLED** | Installed + enabled + not in REQUIRED. |
 | **DISABLED** | Installed + not enabled. |
 | **AVAILABLE** | Anything in the project marketplace's `[[caches]]` OR `[[heaps]]` that isn't already installed. Heaps are surfaced here as `source="local"` entries so they're visible before the user installs them. Blocked haybales (per spec §7.4) never appear — they're filtered out at refresh time. |
@@ -282,7 +282,7 @@ A separate but related pipeline lives in the Library Overview Editor's **Edit di
 When the user clicks Detect:
 
 1. The runtime statically scans the library's source via `detect_deps(lib_dir, libraries=manager.registry)`.
-2. It computes two diffs: the current `@library(dependencies=[...])` value vs detected, and the current `[project] dependencies` in the library's `pyproject.toml` vs detected.
+2. It computes two diffs: the current `linked_libraries` value vs detected, and the current `[project] dependencies` in the library's `pyproject.toml` vs detected.
 3. A diff modal previews both, offering two apply modes:
 
    | Apply mode | Effect |

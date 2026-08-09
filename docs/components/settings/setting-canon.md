@@ -394,7 +394,7 @@ Move the call into a method (`__init__`, `on_enable`, a render method — anythi
 If your library reads settings from a sibling library, declare it as a dependency:
 
 ```python
-@library(id="my_lib", dependencies=["other_lib"], ...)
+@library(id="my_lib", ...)   # linked_libraries live in haybale.toml
 class Library(BaseLibrary):
     ...
 ```

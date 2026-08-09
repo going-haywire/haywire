@@ -14,6 +14,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
+from haywire.core.session.signals import LibraryCatalogChanged
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -114,4 +115,12 @@ class ShareEditor(BaseEditor):
 
         # Redraw on close: a completed publish changes the version this editor
         # displays, and a bumped registry may have changed the library list.
-        show_share_flow(root, on_done=self._redraw)
+        show_share_flow(root, on_done=self._on_flow_done)
+
+    def _on_flow_done(self) -> None:
+        """Redraw this editor, then tell every other catalog view to redraw too."""
+        self._redraw()
+        context = self._context
+        session = context.session if context is not None else None
+        if session is not None:
+            session.publish(LibraryCatalogChanged())

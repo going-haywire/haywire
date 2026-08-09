@@ -48,12 +48,12 @@ def add_heap_to_project(
     path: Path,
     label: str = "",
     description: str = "",
-    dependencies: list[str] | None = None,
+    linked_libraries: list[str] | None = None,
 ) -> None:
     """Append a [[heaps]] entry to <project>/.haywire/marketplace.toml.
 
-    `dependencies` are the heap's declared haybale dependencies (package names);
-    persisting them lets the marketplace install gate block a heap whose deps
+    `linked_libraries` are the heap's declared sibling haybales (module names);
+    persisting them lets the marketplace install gate block a heap whose links
     aren't installed/enabled yet, the same way it gates [[caches]] entries.
 
     Raises DuplicateHeapNameError if the name already exists in this project's heaps.
@@ -71,8 +71,8 @@ def add_heap_to_project(
         entry["label"] = label
     if description:
         entry["description"] = description
-    if dependencies:
-        entry["dependencies"] = list(dependencies)
+    if linked_libraries:
+        entry["linked_libraries"] = list(linked_libraries)
     pm.heaps.append(entry)
 
     project_path.parent.mkdir(parents=True, exist_ok=True)

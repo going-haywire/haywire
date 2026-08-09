@@ -9,35 +9,48 @@ import toml
 
 
 @pytest.mark.unit
-def test_update_library_identity_writes_heap_entry() -> None:
-    """update_library_identity must update [[heaps]] not legacy [[packages]]."""
-    # We can't easily call update_library_identity without a full LibraryRegistry,
-    # so this test focuses on the marketplace.toml write semantics by reading
-    # the source file's logic. The actual functional verification is the smoke
-    # test at the end of slice 4.
-    #
-    # This test asserts the lib_manager module's source uses the new section name.
-    from pathlib import Path as P
+def test_update_library_identity_writes_heap_entry(tmp_path: Path) -> None:
+    """The [[heaps]] entry mirrors label/description so the browser can show a
+    heap it has not loaded — keep it in step, and write [[heaps]] not the
+    legacy [[packages]].
 
-    src = (
-        P(__file__).parent.parent
-        / "barn"
-        / "haybale-marketplace"
-        / "haybale_marketplace"
-        / "library_manager.py"
+    Functional now: this used to grep library_manager.py's source for a
+    section name, which asserted the text of an implementation rather than its
+    behaviour and broke the moment the surrounding code was rewritten.
+    """
+    from unittest.mock import MagicMock
+
+    from haybale_marketplace.library_manager import LibraryManager
+    from haywire.core.library.identity import LibraryIdentity
+
+    pkg_dir = tmp_path / "barn" / "haybale-demo" / "haybale_demo"
+    pkg_dir.mkdir(parents=True)
+    (pkg_dir / "haybale.toml").write_text('id = "demo"\nlabel = "Old"\n')
+
+    marketplace = tmp_path / ".haywire" / "marketplace.toml"
+    marketplace.parent.mkdir(parents=True)
+    marketplace.write_text(
+        '[[heaps]]\nname = "haybale-demo"\npath = "barn/haybale-demo"\n'
+        'label = "Old"\ndescription = "Old description"\n'
     )
-    content = src.read_text()
 
-    # The project-marketplace.toml write in update_library_identity must reference
-    # "heaps", not "packages".
-    # (data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] is
-    # hatch's wheel-packages config, unrelated to our marketplace section.)
-    update_identity_marker = "# Update matching entry in marketplace.toml"
-    update_identity_block = content[
-        content.index(update_identity_marker) : content.index(update_identity_marker) + 800
-    ]
-    assert 'data.get("heaps"' in update_identity_block
-    assert 'data.get("packages"' not in update_identity_block
+    registry = MagicMock()
+    registry.get_library_distribution_name.return_value = "haybale-demo"
+    registry.get_library_identity.return_value = LibraryIdentity(
+        id="demo", label="Old", folder_path=str(pkg_dir), module_name="haybale_demo"
+    )
+    manager = LibraryManager.__new__(LibraryManager)
+    manager.registry = registry
+
+    ok, message = manager.update_library_identity(
+        "demo", str(tmp_path), {"label": "New", "description": "New description"}
+    )
+
+    assert ok, message
+    written = marketplace.read_text()
+    assert 'label = "New"' in written
+    assert 'description = "New description"' in written
+    assert "[[packages]]" not in written
 
 
 @pytest.mark.unit

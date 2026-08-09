@@ -14,7 +14,7 @@ from haywire.core.library.decorator_io import (
 
 _INIT_TEMPLATE = """@library(
     id="x",
-    dependencies=[{deps}],
+    linked_libraries=[{deps}],
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -39,13 +39,13 @@ def test_norm_dep_collapses_separators_and_case():
 @pytest.mark.unit
 def test_get_decorator_list_field_converts_underscores_to_hyphens():
     content = _INIT_TEMPLATE.format(deps="'haybale_core'")
-    assert _get_decorator_list_field(content, "dependencies") == ["haybale-core"]
+    assert _get_decorator_list_field(content, "linked_libraries") == ["haybale-core"]
 
 
 @pytest.mark.unit
 def test_get_decorator_list_field_absent_field_returns_empty():
     content = '@library(\n    id="x",\n)\nclass Library(BaseLibrary):\n    pass\n'
-    assert _get_decorator_list_field(content, "dependencies") == []
+    assert _get_decorator_list_field(content, "linked_libraries") == []
 
 
 @pytest.mark.unit
@@ -55,10 +55,10 @@ def test_merge_union_adds_missing_and_preserves_existing_spelling(tmp_path: Path
     matching apply_drift_fix's historical output exactly."""
     init_file = _write_init(tmp_path, ["haybale_core"])
 
-    merge_decorator_list_field(init_file, "dependencies", ["haybale_studio"], mode="union")
+    merge_decorator_list_field(init_file, "linked_libraries", ["haybale_studio"], mode="union")
 
     content = init_file.read_text()
-    assert "dependencies=['haybale-core', 'haybale_studio']," in content
+    assert "linked_libraries=['haybale-core', 'haybale_studio']," in content
 
 
 @pytest.mark.unit
@@ -67,7 +67,7 @@ def test_merge_union_dedupes_by_normalized_form(tmp_path: Path):
 
     # "haybale-core" normalizes the same as the already-declared "haybale_core"
     # (read back as "haybale-core") — must not be added twice.
-    merge_decorator_list_field(init_file, "dependencies", ["haybale-core"], mode="union")
+    merge_decorator_list_field(init_file, "linked_libraries", ["haybale-core"], mode="union")
 
     content = init_file.read_text()
     assert content.count("haybale-core") == 1
@@ -78,10 +78,10 @@ def test_merge_union_dedupes_by_normalized_form(tmp_path: Path):
 def test_merge_union_no_op_when_nothing_missing(tmp_path: Path):
     init_file = _write_init(tmp_path, ["haybale_core", "haybale_studio"])
 
-    merge_decorator_list_field(init_file, "dependencies", [], mode="union")
+    merge_decorator_list_field(init_file, "linked_libraries", [], mode="union")
 
     content = init_file.read_text()
-    assert "dependencies=['haybale-core', 'haybale-studio']," in content
+    assert "linked_libraries=['haybale-core', 'haybale-studio']," in content
 
 
 @pytest.mark.unit
@@ -90,10 +90,10 @@ def test_merge_replace_overwrites_wholesale(tmp_path: Path):
     normalization dance. A declaration not present in `values` is dropped."""
     init_file = _write_init(tmp_path, ["haybale_core", "haybale_unused"])
 
-    merge_decorator_list_field(init_file, "dependencies", ["haybale_studio"], mode="replace")
+    merge_decorator_list_field(init_file, "linked_libraries", ["haybale_studio"], mode="replace")
 
     content = init_file.read_text()
-    assert "dependencies=['haybale_studio']," in content
+    assert "linked_libraries=['haybale_studio']," in content
     assert "haybale_core" not in content
     assert "haybale_unused" not in content
 
@@ -102,10 +102,12 @@ def test_merge_replace_overwrites_wholesale(tmp_path: Path):
 def test_merge_replace_sorts_values(tmp_path: Path):
     init_file = _write_init(tmp_path, [])
 
-    merge_decorator_list_field(init_file, "dependencies", ["haybale_studio", "haybale_core"], mode="replace")
+    merge_decorator_list_field(
+        init_file, "linked_libraries", ["haybale_studio", "haybale_core"], mode="replace"
+    )
 
     content = init_file.read_text()
-    assert "dependencies=['haybale_core', 'haybale_studio']," in content
+    assert "linked_libraries=['haybale_core', 'haybale_studio']," in content
 
 
 @pytest.mark.unit
@@ -124,8 +126,8 @@ def test_set_decorator_list_field_still_works_directly():
     rename.py and the marketplace Edit dialog call it directly on in-memory
     content, not through merge_decorator_list_field."""
     content = _INIT_TEMPLATE.format(deps="'a'")
-    rewritten = _set_decorator_list_field(content, "dependencies", ["b", "c"])
-    assert "dependencies=['b', 'c']," in rewritten
+    rewritten = _set_decorator_list_field(content, "linked_libraries", ["b", "c"])
+    assert "linked_libraries=['b', 'c']," in rewritten
 
 
 @pytest.mark.unit

@@ -105,7 +105,6 @@ def test_tool_table_seed_and_evict():
         version="0.1",
         description="",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path="/tmp/studio",

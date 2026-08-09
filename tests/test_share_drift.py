@@ -73,7 +73,7 @@ def _make_library(
         "@library(\n"
         "    label='Fake',\n"
         "    id='fake',\n"
-        f"    dependencies={deps_repr},\n"
+        f"    linked_libraries={deps_repr},\n"
         "    file_watcher=False,\n"
         ")\n"
         "class Library:\n"

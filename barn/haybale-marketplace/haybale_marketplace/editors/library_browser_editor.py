@@ -14,6 +14,7 @@ from urllib.parse import urlsplit
 
 from nicegui import ui
 
+from haywire.core.library.haybale_toml import read_display
 from haywire.core.marketstall import Haybale
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
@@ -50,12 +51,16 @@ class _LibView(NamedTuple):
 def _lib_view(lib) -> "_LibView":
     """Normalise a LibraryInfo or Haybale into a _LibView."""
     if hasattr(lib, "identity"):
+        # Description and tags come off haybale.toml rather than the identity:
+        # the identity is built at import, so a value read through it is stale
+        # until the next reload — the staleness this design exists to remove.
+        display = read_display(Path(lib.identity.folder_path))
         return _LibView(
             raw=lib,
             label=lib.identity.label or "",
             version=lib.identity.version or "",
-            description=lib.identity.description or "",
-            tags=lib.identity.tags or [],
+            description=display.description,
+            tags=list(display.tags),
             enabled=lib.enabled,
             dist_name=lib.distribution_name,
             is_installed=True,
@@ -588,7 +593,7 @@ class LibraryBrowserEditor(BaseEditor):
                                 description=raw.get("description", ""),
                                 source="local",
                                 install_spec=str(raw.get("path", "")),
-                                dependencies=list(raw.get("dependencies", [])),
+                                linked_libraries=list(raw.get("linked_libraries", [])),
                             )
                         )
                     available = [e for e in candidates if e.name not in installed_names and matches(e)]

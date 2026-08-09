@@ -1,0 +1,9 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+# Edited in the studio's library overview — no reinstall, no reload.
+
+name = "haybale-studio"
+id = "studio"
+label = "Studio"
+description = "Library for haywire studio"
+tags = ["experimental", "project-local"]

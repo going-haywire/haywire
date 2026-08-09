@@ -225,7 +225,8 @@ When your library defines a `Signal` subclass that **another** library subscribe
 LIBRARY = LibraryIdentity(
     id="haybale_studio",
     label="Studio",
-    dependencies=["haybale_haystack"],   # we subscribe to its signals
+    # linked_libraries = ["haybale_haystack"] in haybale.toml —
+    # we subscribe to its signals, so hot-reload must track it
     # ...
 )
 ```

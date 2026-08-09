@@ -25,17 +25,8 @@ __all__ = ["GraphContainer", "GraphAppState", "Library"]
 
 
 @library(
-    label="Graph Editor",
     id="graph_editor",
     version=_pkg_version("haybale-graph-editor"),
-    description="Visual graph editor library — host-agnostic",
-    url="",
-    help_url="",
-    author="",
-    author_url="",
-    dependencies=[],
-    tags=["graph-editor"],
-    on_reload="refresh",
     file_watcher=True,
 )
 class Library(BaseLibrary):

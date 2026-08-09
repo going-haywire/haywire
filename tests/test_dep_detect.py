@@ -161,7 +161,7 @@ def test_haywire_studio_import_still_emits_haywire_studio(tmp_path: Path) -> Non
 @pytest.mark.unit
 def test_registered_library_lands_in_both_outputs(tmp_path: Path) -> None:
     """Imports of a *registered* haywire library belong in both
-    @library(dependencies=...) and pyproject."""
+    @library(linked_libraries=...) and pyproject."""
     lib = _make_library(tmp_path, init_body="from haybale_core import types\n")
     # haybale-core is installed in the dev workspace; the FakeLibrarySource
     # asserts it as a registered library.

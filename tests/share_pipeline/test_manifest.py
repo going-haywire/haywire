@@ -68,13 +68,14 @@ def test_strict_read_raises_on_unreadable(tmp_path: Path) -> None:
 
 
 def test_strict_read_raises_on_undeclarable_os_value(tmp_path: Path) -> None:
-    """read_manifest absorbs [tool.haywire].os validation: InvalidOsDeclarationError
+    """read_manifest absorbs `os` validation: InvalidOsDeclarationError
     is a ManifestReadError subclass, so strict callers see one error family."""
     lib_dir = _make_lib(
         tmp_path,
-        pyproject_text=(
-            '[project]\nname = "haybale-foo"\nversion = "0.1.0"\n\n[tool.haywire]\nos = ["freebsd"]\n'
-        ),
+        pyproject_text='[project]\nname = "haybale-foo"\nversion = "0.1.0"\n',
+    )
+    (lib_dir / "haybale_foo" / "haybale.toml").write_text(
+        'name = "haybale-foo"\nid = "foo"\nos = ["freebsd"]\n'
     )
     with pytest.raises(InvalidOsDeclarationError):
         read_manifest(lib_dir)

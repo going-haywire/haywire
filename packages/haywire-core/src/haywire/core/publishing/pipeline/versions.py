@@ -100,17 +100,35 @@ def next_version(spec: str, current: str | None) -> str:
 
 
 def write_barn_versions(repo_root: Path, version: str) -> list[Path]:
-    """Write *version* into every ``barn/*/pyproject.toml``.
+    """Write *version* into every barn library, haybale.toml first.
 
-    Rewrites the ``version = "..."`` line with a regex rather than round-tripping
-    through toml, so comments, key order, and formatting survive untouched.
-    Returns the written paths, sorted.
+    Phase A of the publish: haybale.toml is finalized, then pyproject is
+    generated from it. The order is the invariant — nothing generates until
+    haybale.toml is final — and it is why the version lands in both files from
+    one call rather than being written twice by two callers who might disagree.
+
+    The pyproject write rewrites the ``version = "..."`` line with a regex
+    rather than round-tripping through toml, so comments, key order, and
+    formatting survive untouched. Returns the written paths, sorted.
     """
+    from haywire.core.library.dep_detect import find_module_dir
+    from haywire.core.library.haybale_toml import HAYBALE_TOML
+    from haywire.core.tomlio import edit_toml
+
     if not _VERSION_RE.match(version):
         raise VersionError(f"'{version}' is not a valid version (expected X.Y.Z).")
 
     written: list[Path] = []
     for lib_dir in barn_library_dirs(repo_root):
+        # ── Phase A: the declaration ──────────────────────────────────────
+        module_dir = find_module_dir(lib_dir)
+        if module_dir is not None and (module_dir / HAYBALE_TOML).is_file():
+            declared = module_dir / HAYBALE_TOML
+            with edit_toml(declared) as doc:
+                doc["version"] = version
+            written.append(declared)
+
+        # ── Phase B: the generated copy ───────────────────────────────────
         pyproject = lib_dir / "pyproject.toml"
         content = pyproject.read_text()
         new_content, count = re.subn(
@@ -147,3 +165,46 @@ def refresh_lockfile(repo_root: Path, *, timeout: float = 300.0) -> tuple[bool, 
     if result.timed_out:
         return (False, f"uv lock timed out after {timeout:g}s — uv.lock left stale.")
     return (False, f"uv lock failed (uv.lock left stale): {result.stderr.strip()}")
+
+
+def refresh_environment(repo_root: Path, *, timeout: float = 300.0) -> tuple[bool, str | None]:
+    """Re-run ``uv sync`` so the bumped versions reach the installed metadata.
+
+    Distinct from :func:`refresh_lockfile`, which exists so ``uv.lock`` is
+    committed consistent with the bumped manifests. ``uv lock`` writes only the
+    lockfile; it does NOT touch ``.venv``, so ``.dist-info/METADATA`` keeps the
+    pre-bump version. Every library's ``_pkg_version(...)`` reads that metadata,
+    so without a sync the studio reports the OLD version right as the wizard
+    shows a "published vX.Y.Z" success screen — verified 2026-08-08: ``uv lock``
+    alone left the installed version at 1.0.0 while ``uv.lock`` said 2.0.0.
+
+    Must run BEFORE the flow's hot-swap. The hot-swap evicts each bumped library
+    and rescans, re-running ``@library(version=_pkg_version(...))``; if the
+    metadata has not been refreshed by then it re-reads the PRE-bump version and
+    the reload silently accomplishes nothing. Ordering, not presence, is what
+    makes this work.
+
+    Runs after the push, so it is past the rollback boundary entirely: the
+    commit, tag and push have landed and nothing reverts. Beside the bump it
+    corrects — inside that window — a later failure would revert the manifests
+    and strand the environment on a version no longer on disk.
+
+    Returns ``(refreshed, warning)``. Never raises — same posture as
+    :func:`refresh_lockfile`: the bump has already landed on disk and is not
+    rolled back for this, so a failed sync is a warning, not a failed share.
+    The remedy is a manual ``uv sync``.
+    """
+    result = git_run(["uv", "sync"], cwd=repo_root, timeout=timeout)
+    if result.ok:
+        return (True, None)
+    if result.returncode == 127:
+        return (False, "uv not found on PATH — run `uv sync` to refresh installed versions.")
+    if result.timed_out:
+        return (
+            False,
+            f"uv sync timed out after {timeout:g}s — run `uv sync` to refresh installed versions.",
+        )
+    return (
+        False,
+        f"uv sync failed (installed versions left stale, run `uv sync`): {result.stderr.strip()}",
+    )

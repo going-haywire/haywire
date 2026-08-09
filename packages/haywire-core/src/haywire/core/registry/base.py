@@ -372,6 +372,18 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         Args:
             event (FileChangeEvent): The file change event to handle
         """
+        if not event.file_path.endswith(".py"):
+            # Not a Python module — nothing here to reload. The watcher is a
+            # router and offers us every file under the folders we claimed;
+            # deciding that only modules matter is this registry's business, not
+            # the router's.
+            #
+            # This sits above resolve_module_name deliberately: that call strips
+            # the suffix, so 'foo/nodes.toml' would resolve onto the real
+            # 'nodes.py' module — and DELETED skips validation entirely, so a
+            # guard further down would let a haybale.toml delete reach _on_delete.
+            return None
+
         module_name = None
 
         try:
@@ -400,11 +412,13 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
             # ... before validating the file
             if event.event_type != FileEventType.DELETED:  # no need to validate deleted files
                 if not self._validate_python_file(event.file_path):
-                    self.logger.error(
-                        f"Library '{event.library_identity.label}': "
-                        f"Invalid Python file: {event.file_path}. Skipping Hot Reloading."
-                    )
-                    return None
+                    # The guard above already established this is a .py, so the
+                    # only way to fail here is source that will not parse — an
+                    # author's broken save. That is a reload failure worth
+                    # reporting, so it takes the exception path and lands in the
+                    # error ledger as CLASS_RELOAD_FAILED, exactly as it did when
+                    # ast.parse threw from inside the validator.
+                    raise SyntaxError(f"Invalid Python file: {event.file_path}")
 
             if event.dependency_event or event.event_type == FileEventType.MODIFIED:
                 if module_name in sys.modules:
@@ -864,7 +878,7 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
 
         Returns scopes based on:
         1. Own library module name (always tracked)
-        2. Declared dependencies from LibraryIdentity.dependencies
+        2. Declared siblings from LibraryIdentity.linked_libraries
         3. Core framework (always tracked, unless we ARE core)
 
         Args:
@@ -879,8 +893,8 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         scopes.append(library_identity.module_name + ".")
 
         # Add declared library dependencies
-        if library_identity.dependencies:
-            for dep_lib_id in library_identity.dependencies:
+        if library_identity.linked_libraries:
+            for dep_lib_id in library_identity.linked_libraries:
                 # Dependencies are library IDs (e.g., 'haywire.widgets')
                 # Convert to module prefix by adding dot
                 scopes.append(dep_lib_id + ".")

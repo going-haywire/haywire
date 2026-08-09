@@ -8,11 +8,14 @@ clicks the modal's own "Restart Wizard" button to re-run
 
 from __future__ import annotations
 
+from functools import partial
+from pathlib import Path
 from typing import TYPE_CHECKING, Callable
 
 import toml
 
 from haywire.core.publishing.git import git
+from haywire.core.library.haybale_toml import HaybaleTomlError
 from haywire.core.publishing.manifest.errors import ManifestReadError
 from haywire.core.publishing.manifest.os_field import strip_undeclarable_os_values
 from haywire.core.publishing.pipeline.errors import (
@@ -30,7 +33,11 @@ if TYPE_CHECKING:
 # I/O failure must translate to a ShareError subclass before it can reach a
 # wizard step handler's `except ShareError`, never surface as the raw
 # exception type.
-_MANIFEST_FAILURE_TYPES = (ManifestReadError, toml.TomlDecodeError, OSError)
+#: HaybaleTomlError is in here because haybale.toml is now a manifest the
+#: pipeline writes: a rejected field or a malformed file is the same class of
+#: failure as a bad pyproject, and callers already translate this tuple into a
+#: user-facing "this file is malformed" message.
+_MANIFEST_FAILURE_TYPES = (ManifestReadError, HaybaleTomlError, toml.TomlDecodeError, OSError)
 
 
 def _fix_add_origin(pipeline: "SharePipeline", **kwargs: str) -> None:
@@ -133,6 +140,84 @@ def _fix_strip_os(pipeline: "SharePipeline", **kwargs: str) -> None:
         strip_undeclarable_os_values(lib_dir)
     except _MANIFEST_FAILURE_TYPES as exc:
         raise ManifestError(str(exc)) from exc
+    pipeline.record([_haybale_toml_of(lib_dir)])
+
+
+def _haybale_toml_of(lib_dir: Path) -> Path:
+    """The library's haybale.toml. Raises ManifestError if it has no package dir."""
+    from haywire.core.library.dep_detect import find_module_dir
+    from haywire.core.library.haybale_toml import HAYBALE_TOML
+
+    module_dir = find_module_dir(lib_dir)
+    if module_dir is None:
+        raise ManifestError(f"No Python package found in {lib_dir}; cannot locate {HAYBALE_TOML}.")
+    return module_dir / HAYBALE_TOML
+
+
+def _fix_clear_declared_path(pipeline: "SharePipeline", field: str, **kwargs: str) -> None:
+    """Remove a declared path that does not exist.
+
+    The blunt repair: the author pointed at something that is not there, and
+    dropping the claim is always correct. :func:`_fix_set_declared_path` is the
+    better one where a candidate can be offered.
+    """
+    from haywire.core.tomlio import edit_toml
+
+    lib_dir_rel = kwargs.get("lib_dir")
+    if not lib_dir_rel:
+        raise PipelineStateError(f"apply_precondition_fix('clear_{field}', ...) requires a lib_dir kwarg.")
+    source = _haybale_toml_of(pipeline.repo_root / lib_dir_rel)
+    try:
+        with edit_toml(source) as doc:
+            doc.pop(field, None)
+    except _MANIFEST_FAILURE_TYPES as exc:
+        raise ManifestError(str(exc)) from exc
+    pipeline.record([source])
+
+
+def _fix_set_declared_path(pipeline: "SharePipeline", field: str, **kwargs: str) -> None:
+    """Point a declared path at something that exists.
+
+    Requires a ``path`` kwarg — the wizard offers candidates it found on disk,
+    so the user picks rather than types. An empty ``path`` clears the field,
+    which is how "none of these" is expressed without a second fix_id.
+    """
+    from haywire.core.tomlio import edit_toml
+
+    lib_dir_rel = kwargs.get("lib_dir")
+    if not lib_dir_rel:
+        raise PipelineStateError(f"apply_precondition_fix('set_{field}', ...) requires a lib_dir kwarg.")
+    path = kwargs.get("path", "")
+    source = _haybale_toml_of(pipeline.repo_root / lib_dir_rel)
+    try:
+        with edit_toml(source) as doc:
+            if path:
+                doc[field] = path
+            else:
+                doc.pop(field, None)
+    except _MANIFEST_FAILURE_TYPES as exc:
+        raise ManifestError(str(exc)) from exc
+    pipeline.record([source])
+
+
+def _fix_sync_pyproject(pipeline: "SharePipeline", **kwargs: str) -> None:
+    """Regenerate a library's [project] fields from its haybale.toml.
+
+    No per-field choice: haybale.toml wins, always. Offering a direction would
+    imply pyproject might legitimately be canon, which is what this design
+    denies — the same line `DepDrift` draws when it auto-applies a finding that
+    is provably true rather than offering it.
+    """
+    from haywire.core.publishing.generate import sync_pyproject_from_haybale
+
+    lib_dir_rel = kwargs.get("lib_dir")
+    if not lib_dir_rel:
+        raise PipelineStateError("apply_precondition_fix('sync_pyproject', ...) requires a lib_dir kwarg.")
+    lib_dir = pipeline.repo_root / lib_dir_rel
+    try:
+        sync_pyproject_from_haybale(lib_dir)
+    except _MANIFEST_FAILURE_TYPES as exc:
+        raise ManifestError(str(exc)) from exc
     pipeline.record([lib_dir / "pyproject.toml"])
 
 
@@ -197,6 +282,11 @@ def _fix_switch_branch(pipeline: "SharePipeline", **kwargs: str) -> None:
 # no-op.
 _PRECONDITION_FIXES: dict[str, Callable[..., None]] = {
     "strip_os": _fix_strip_os,
+    "sync_pyproject": _fix_sync_pyproject,
+    "clear_examples_path": partial(_fix_clear_declared_path, field="examples_path"),
+    "clear_tests_path": partial(_fix_clear_declared_path, field="tests_path"),
+    "set_examples_path": partial(_fix_set_declared_path, field="examples_path"),
+    "set_tests_path": partial(_fix_set_declared_path, field="tests_path"),
     "add_origin": _fix_add_origin,
     "commit_dirty_tree": _fix_commit_dirty_tree,
     "switch_branch": _fix_switch_branch,

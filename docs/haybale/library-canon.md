@@ -22,9 +22,9 @@ This is meaning **#1** of the five "library" concepts in haywire (see [reference
 ```text
 Author writes                  pyproject.toml                 Discovery
 ─────────────                  ──────────────                 ─────────
-@library(label='...')          [project.entry-points          LibraryDiscovery
-class Library(BaseLibrary):    "haywire.libraries"]            scans installed
-   def register_components:    mylib = "haybale_mylib:Library" packages on startup
+haybale.toml   ─────┐          [project.entry-points          LibraryDiscovery
+@library(id='...')  │          "haywire.libraries"]            scans installed
+class Library(BaseLibrary):    mylib = "haybale_mylib:Library" packages on startup
        self.add_folder_to_                                     ↓
          registry(...)                                         LibraryRegistry
    def validate(): ...                                         imports the module,
@@ -43,26 +43,66 @@ The Library class has two mandatory hooks:
 - `register_components()` — call `self.add_folder_to_registry(folder, registry_cls)` for each component category your library contributes. The framework scans the folder for `@node`/`@type`/`@adapter`/`@widget`/etc.-decorated classes and registers each one.
 - `validate() -> bool` — return `False` to abort loading. Use for sanity checks (required folders exist, dependencies importable). Most libraries return `True` unconditionally.
 
-Optional: `@library(file_watcher=True)` enables hot-reload — the framework starts a file watcher rooted at the library's source directory and re-runs `register_components()` whenever a `.py` file changes.
+Optional: `@library(file_watcher=True)` enables hot-reload — the framework starts a file watcher rooted at the library's source directory and re-runs `register_components()` whenever a `.py` file changes. The same watcher re-reads `haybale.toml` when you edit it, without reloading any module.
 
 **Boundaries.** What the registries actually do at runtime, what `LibraryDiscovery` checks, how `InstallType` is determined, the discovery priority order — all in [architecture/library-system](../architecture/library-system/library-system-arch.md). The `pyproject.toml` shape, build/publish workflow, and `marketstall.toml` distribution — all in [haybale/haybale-package](haybale-package-canon.md).
 
 ## 3. Important concepts
 
-**The `@library` decorator.** Sets `class_identity` (a `LibraryIdentity`), records the metadata, and registers the file watcher when `file_watcher=True`. **The bare `@library` form (no parens) is not supported** — always invoke with parentheses, even when only `label=` is given.
+**The `@library` decorator.** Sets `class_identity` (a `LibraryIdentity`), reads `haybale.toml`, and registers the file watcher when `file_watcher=True`. **The bare `@library` form (no parens) is not supported** — always invoke with parentheses.
+
+It takes three arguments, and only three:
 
 | Parameter | Required | Default | Purpose |
 |---|---|---|---|
-| `label` | yes | — | Human-readable display name |
-| `id` | no | derived from `label` | Unique identifier (becomes part of every component's `registry_key`) |
-| `version` | no | `'1.0.0'` | Semantic version — see SemVer guidance below |
-| `description` | no | `''` | Description for the library manager UI |
-| `file_watcher` | no | `False` | Enable hot-reload via filesystem observer |
-| `dependencies` | no | `[]` | List of required library IDs (currently informational only — load order is by discovery priority, not dependency graph) |
-| `url` | no | `''` | Library website |
-| `help_url` | no | `''` | Documentation URL |
-| `author` | no | `''` | Author name |
-| `author_url` | no | `''` | Author homepage |
+| `id` | yes | — | Unique identifier; becomes the prefix of every component's `registry_key`. Also declared in `haybale.toml` — the file wins, and a mismatch raises rather than being guessed at |
+| `version` | no | `'1.0.0'` | Use `_pkg_version("haybale-yourlib")`; the share wizard keeps it in step with `haybale.toml` and the git tag |
+| `file_watcher` | no | `False` | Enable hot-reload via filesystem observer. Development only |
+
+**Everything else lives in `haybale.toml`,** beside `__init__.py` inside your package:
+
+```toml
+name = "haybale-mylib"
+id = "mylib"
+label = "My Library"
+description = "What this library does"
+tags = ["mylib"]
+
+os = ["macos", "linux"]        # empty/absent = all platforms; gates installation
+on_reload = "none"             # "none" | "refresh" | "restart"
+
+# Sibling haybales whose classes you subscribe to, as MODULE names.
+# Required for hot-reload: without it a subscriber holds a stale class
+# reference after a reload. NOT [project] dependencies, which are pip packages.
+linked_libraries = ["haybale_core"]
+
+notes = "NOTES.md"             # one supplementary page, a bare filename here
+examples_path = "examples/"    # relative to the PROJECT root, not this directory
+tests_path = "tests/"
+
+homepage_url = "https://github.com/you/yourrepo"
+documentation_url = "https://you.github.io/yourrepo/"
+issues_url = "https://github.com/you/yourrepo/issues"
+
+[[authors]]
+name = "Your Name"
+url = "https://your.site"      # optional
+```
+
+**Why a separate file rather than decorator kwargs.** A decorator edit is a *source* edit, and a source edit needs a library reload before it takes effect. `haybale.toml` is read from disk at the point of use, so editing it — in the library overview, or by hand — is visible on the next render with no reinstall and no restart. See [ADR 0025](../adr/0025-haybale-toml-is-canon.md).
+
+The file ships **inside** the package, so it reaches consumers in the wheel. `pyproject.toml` cannot do this — it is not installed — which is why `version`, `description`, `keywords`, `authors` and `[project.urls]` are *generated* from `haybale.toml` when you publish. Do not hand-edit them: preflight will tell you they disagree, and publishing regenerates them.
+
+**Written for you, not by you.** The share wizard writes `version`, `origin` and `origin_provider`; the drift detector maintains `linked_libraries`. `name` and `id` are immutable — they key saved graphs and every consumer's install spec. `[deprecated]` is hand-edited, since retiring a library should not be one stray click:
+
+```toml
+[deprecated]
+since = "0.0.41"
+reason = "Superseded by haybale-vision."
+successor = "haybale-vision"   # optional
+```
+
+It informs and never blocks: a deprecated library still installs, enables and updates.
 
 **SemVer for the `version` field.** Follow [Semantic Versioning](https://semver.org/) when publishing updates:
 
@@ -72,7 +112,7 @@ Optional: `@library(file_watcher=True)` enables hot-reload — the framework sta
 | **MINOR** (1.0.0 → 1.1.0) | New features, backward-compatible — added nodes, optional fields |
 | **PATCH** (1.0.0 → 1.0.1) | Bug fixes only, no API changes |
 
-Keep `version=` in the `@library(...)` decorator in sync with the `version` field in `pyproject.toml` — they are independent strings; mismatching them confuses the library manager UI.
+You do not keep the two copies in sync by hand — `haywire share` bumps `haybale.toml`, generates `[project] version` from it, and tags `v<version>`.
 
 **Naming conventions.** Each of the four names in a haybale project has its own casing rule:
 

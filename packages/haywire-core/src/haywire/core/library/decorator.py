@@ -3,6 +3,7 @@ from pathlib import Path
 from typing import Any, Callable, Type, TypeVar
 
 from .base import BaseLibrary
+from .haybale_toml import read_haybale_toml
 from .identity import LibraryIdentity
 
 # ============================================================================
@@ -11,101 +12,106 @@ from .identity import LibraryIdentity
 
 T = TypeVar("T")
 
+#: Fields that moved to ``haybale.toml``. Rejected rather than ignored: every
+#: one is a real identity field, so passing it would be accepted and then
+#: silently overwritten by the file — exactly the drift this change removes.
+#: ``dependencies`` is the pre-rename spelling of ``linked_libraries`` and also
+#: collides with ``[project] dependencies``, which means something else.
+_MOVED_TO_TOML = {
+    "label",
+    "description",
+    "tags",
+    "author",
+    "author_url",
+    "url",
+    "on_reload",
+    "linked_libraries",
+    "dependencies",
+}
+
 
 def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a Haywire library.
 
-    Always invoked with parentheses — `@library(...)`. The bare `@library`
-    form (no parens) is not supported; `label=` is required.
+    Always invoked with parentheses — ``@library(...)``. The bare ``@library``
+    form (no parens) is not supported.
 
-    Accepts any LibraryIdentity field as a keyword argument. Common arguments include:
+    **Descriptive metadata is not declared here.** It lives in ``haybale.toml``,
+    beside ``__init__.py`` inside the package, and is read from disk at
+    decoration time. That is what makes a metadata edit a plain file write:
+    visible on the next read, with no ``uv sync`` and no registry reload. A
+    decorator kwarg would be a *source* edit, and a source edit needs a reload —
+    the cost this design exists to remove. Nothing in the studio writes this
+    call.
+
+    ``haybale.toml``::
+
+        name = "haybale-mylib"
+        id = "mylib"
+        label = "My Library"
+        description = "What this library does"
+        tags = ["mylib"]
+        on_reload = "none"
+        linked_libraries = ["haybale_core"]
+
+    What stays here:
 
     Args:
-        label (str, required): Human-readable library name.
-        version (str, optional): Semantic version string. Defaults to '1.0.0'.
-            Ideally use _pkg_version("haybale-packagename")
-            from importlib.metadata import version as _pkg_version
-        description (str, optional): Human-readable description of the library.
-            Defaults to empty string.
-        url (str, optional): Library's main URL. Defaults to empty string.
-        help_url (str, optional): URL to documentation. Defaults to empty string.
-        author (str, optional): Author name. Defaults to empty string.
-        author_url (str, optional): Author's URL. Defaults to empty string.
-        id (str, optional): Unique identifier for the library.
-            Defaults to label if not provided.
-        dependencies (list[str], optional): List of required haywire libraries.
-            Defaults to empty list.
-        file_watcher (bool, optional): Whether to enable file watching for this library.
-            Defaults to False.
-        on_reload (str, optional): What the user must do after this library is
-            installed, updated, or uninstalled, when hot-reload alone is not enough.
-            One of ``"none"`` (default — hot-reload handles it), ``"refresh"`` (the
-            library registers Vue components or JS resources an already-open browser
-            tab cannot pick up, so the tab must be reloaded), or ``"restart"`` (the
-            Python process is left in a state hot-reload cannot repair — C-extension
-            modules, import-time global mutation — so the Studio must restart).
-            Symmetric: the same declaration applies in every direction.
+        id (str, optional): Unique identifier; prefixes every component's
+            registry key. Also declared in ``haybale.toml``, which wins — the
+            kwarg exists because the registry needs an id before any file read,
+            and a mismatch between the two is reported rather than guessed at.
+        version (str, optional): Installed version. Use
+            ``_pkg_version("haybale-packagename")``. Read from the distribution,
+            not authored here, and never written by any tool.
+        file_watcher (bool, optional): Watch this library's files and hot-reload
+            on change. Development only; has no publishing meaning.
 
-    Any other keyword arguments will be passed through to the LibraryIdentity constructor.
-    See the LibraryIdentity dataclass for the complete list of available fields.
-
-    Usage:
-        Minimal usage - only label is required::
-
-            @library(label="my.library")
-            class Library(BaseLibrary):
-
-        Common customization::
-
-            @library(
-                label="my.library",
-                version=_pkg_version("haybale-my.library"),
-                description="My custom library")
-            class Library(BaseLibrary):
-                ...
-
-        Full customization::
-
-            @library(
-                label="advanced.library",
-                version=_pkg_version("haybale-advanced.library"),
-                description="Advanced library with many features",
-                url="https://github.com/user/advanced-library",
-                help_url="https://advanced-library.readthedocs.io",
-                author="John Doe",
-                author_url="https://johndoe.com",
-                id="advanced_lib",
-                dependencies=["haywire.core", "numpy"],
-                file_watcher=True
-            )
-            class Library(BaseLibrary): ...
-
-        With file watching::
-
-            @library(
-                label="dev.library",
-                version=_pkg_version("haybale-dev.library"))
-                file_watcher=True,
-            class Library(BaseLibrary): ...
+    Raises:
+        HaybaleTomlError: ``haybale.toml`` is missing, malformed, or declares no
+            ``id``. Fatal for this library alone — ``LibraryRegistry`` wraps each
+            load, so the studio still starts and the failure names the file.
+        TypeError: a kwarg that moved to ``haybale.toml`` was passed.
     """
 
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseLibrary):
             raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
 
-        # Require label field
-        if "label" not in kwargs:
-            raise ValueError("@library decorator requires 'label' argument")
+        moved = _MOVED_TO_TOML & kwargs.keys()
+        if moved:
+            raise TypeError(
+                f"@library({kwargs.get('id', '?')!r}): "
+                f"{', '.join(sorted(moved))} "
+                f"{'is' if len(moved) == 1 else 'are'} no longer decorator "
+                f"argument(s) — declare {'it' if len(moved) == 1 else 'them'} in "
+                f"haybale.toml, beside __init__.py. Editing that file needs no "
+                f"reinstall and no reload, which a decorator edit does."
+            )
 
-        # Set defaults if not provided
-        kwargs.setdefault("version", "1.0.0")
-        kwargs.setdefault("id", kwargs["label"])
-
-        # Auto-detect folder_path - use the directory where inner_cls is defined
+        # Auto-detect folder_path — the directory where inner_cls is defined,
+        # which is also where haybale.toml lives.
         class_file = inspect.getfile(inner_cls)
-        kwargs["folder_path"] = str(Path(class_file).parent)
+        package_dir = Path(class_file).parent
+        kwargs["folder_path"] = str(package_dir)
         kwargs["module_name"] = inner_cls.__module__
+
+        kwargs.setdefault("version", "1.0.0")
+
+        # The file is canon for everything it declares, including `id`: a
+        # decorator id that disagrees is the author's bug, and letting the file
+        # win keeps one answer rather than two.
+        declared = read_haybale_toml(package_dir)
+        decorator_id = kwargs.get("id")
+        if decorator_id and decorator_id != declared["id"]:
+            raise TypeError(
+                f"@library(id={decorator_id!r}) disagrees with "
+                f"{package_dir / 'haybale.toml'} (id={declared['id']!r}). "
+                f"The id prefixes every component's registry key, so the two "
+                f"must match."
+            )
+        kwargs.update(declared)
 
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls

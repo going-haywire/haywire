@@ -1,8 +1,19 @@
-"""Validation and repair of a library's ``[tool.haywire].os`` declaration."""
+"""Validation and repair of a library's ``os`` declaration in ``haybale.toml``.
+
+``os`` gates installation, so a typo is expensive: "osx" declares a platform
+nobody runs on, and the library silently offers itself to nobody. The vocabulary
+is closed (macos/windows/linux) precisely so a wrong value can be *detected*
+rather than passed through.
+
+The declaration used to live in ``[tool.haywire]`` in pyproject, because a
+decorator kwarg could not reach a consumer — but neither could that table, since
+``pyproject.toml`` is not installed. It was therefore readable only at publish
+time. ``haybale.toml`` ships inside the package, so the field is now readable
+wherever the library is.
+"""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 
 from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError
@@ -10,23 +21,30 @@ from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError
 _DECLARABLE_OS_VALUES = frozenset({"macos", "windows", "linux"})
 
 
-def _read_os_field(data: dict, lib_dir: Path) -> list[str]:
-    """Read and validate [tool.haywire].os from a parsed pyproject.toml dict."""
-    tool_haywire = data.get("tool", {}).get("haywire", {})
-    os_decl = tool_haywire.get("os")
+def read_os_field(lib_dir: Path) -> list[str]:
+    """Read and validate ``os`` from the library's haybale.toml.
+
+    Raises :class:`InvalidOsDeclarationError` on anything outside the closed
+    vocabulary, so a typo surfaces at preflight — where ``strip_os`` can repair
+    it — rather than at install time on a consumer's machine, where it silently
+    hides the library from everyone.
+    """
+    from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
+
+    module_dir = _module_dir_of(lib_dir)
+    if module_dir is None:
+        return []
+    source = module_dir / HAYBALE_TOML
+    os_decl = read_raw(module_dir).get("os")
     if os_decl is None:
         return []
     if not isinstance(os_decl, list):
-        raise InvalidOsDeclarationError(
-            f"[tool.haywire].os in {lib_dir / 'pyproject.toml'} must be a list, "
-            f"got {type(os_decl).__name__}."
-        )
+        raise InvalidOsDeclarationError(f"`os` in {source} must be a list, got {type(os_decl).__name__}.")
     validated: list[str] = []
     for value in os_decl:
         if not isinstance(value, str) or value not in _DECLARABLE_OS_VALUES:
             raise InvalidOsDeclarationError(
-                f"Invalid os value {value!r} in {lib_dir / 'pyproject.toml'} [tool.haywire].os. "
-                f"Declarable values: macos, windows, linux."
+                f"Invalid os value {value!r} in {source}. Declarable values: macos, windows, linux."
             )
         validated.append(value)
     return validated
@@ -83,17 +101,24 @@ def _partition_os_values(os_decl: list) -> tuple[list[str], list[str]]:
     return invalid, list(dict.fromkeys(corrected))
 
 
+def _module_dir_of(lib_dir: Path) -> Path | None:
+    from haywire.core.library.dep_detect import find_module_dir
+
+    return find_module_dir(lib_dir)
+
+
 def invalid_os_values(lib_dir: Path) -> list[str]:
-    """The invalid [tool.haywire].os values in lib_dir/pyproject.toml, read-only.
+    """The invalid ``os`` values in the library's haybale.toml, read-only.
 
     Returns [] when the field is absent, not a list, or fully declarable.
-    Used to compute a strip_os fix's label without mutating the file. Raises
-    ManifestReadError if the file cannot be read or parsed.
+    Used to compute a strip_os fix's label without mutating the file.
     """
-    from haywire.core.publishing.manifest.reader import _read_raw_toml
+    from haywire.core.library.haybale_toml import read_raw
 
-    _content, data = _read_raw_toml(lib_dir / "pyproject.toml")
-    os_decl = data.get("tool", {}).get("haywire", {}).get("os")
+    module_dir = _module_dir_of(lib_dir)
+    if module_dir is None:
+        return []
+    os_decl = read_raw(module_dir).get("os")
     if not isinstance(os_decl, list):
         return []
     invalid, _corrected = _partition_os_values(os_decl)
@@ -101,31 +126,43 @@ def invalid_os_values(lib_dir: Path) -> list[str]:
 
 
 def strip_undeclarable_os_values(lib_dir: Path) -> list[str]:
-    """Rewrite [tool.haywire].os in lib_dir/pyproject.toml, keeping only
-    declarable values (macos/windows/linux).
+    """Rewrite ``os`` in the library's haybale.toml, keeping only declarable
+    values (macos/windows/linux).
 
     Near-miss values (osx/darwin/mac -> macos, win/win32/nt -> windows) are
-    corrected rather than dropped; anything else unmapped is removed outright
-    — the vocabulary is closed and there is no honest way to guess intent for
+    corrected rather than dropped; anything else unmapped is removed outright —
+    the vocabulary is closed and there is no honest way to guess intent for
     values like "other" or "freebsd".
 
-    Rewrites the ``os = [...]`` line with a regex, following
-    ``write_barn_versions``'s technique, so comments, key order, and
-    formatting elsewhere in the file survive untouched.
-
-    Returns the original non-declarable values found (i.e. the values that
-    were not already declarable) — this is what a fix_label describes and
-    what a caller reports as "removed", regardless of whether a value was
+    Returns the original non-declarable values found — what a fix_label
+    describes and what a caller reports as "removed", whether a value was
     corrected via near-miss mapping or dropped entirely.
 
-    Raises ManifestReadError if the file cannot be read or parsed.
+    Edits through ``edit_toml`` rather than a regex: the file is hand-editable
+    and carries the author's comments, and unlike the pyproject rewrite this
+    replaced, there is no risk of matching an ``os = [...]`` line belonging to
+    some other table.
     """
-    from haywire.core.publishing.manifest.reader import _read_raw_toml
+    from haywire.core.library.haybale_toml import HAYBALE_TOML
+    from haywire.core.publishing.manifest.errors import ManifestReadError
+    from haywire.core.tomlio import edit_toml, read_toml
 
-    pyproject_path = lib_dir / "pyproject.toml"
-    content, data = _read_raw_toml(pyproject_path)
+    module_dir = _module_dir_of(lib_dir)
+    if module_dir is None:
+        return []
 
-    os_decl = data.get("tool", {}).get("haywire", {}).get("os")
+    source = module_dir / HAYBALE_TOML
+    # Parsed strictly, unlike the read-only probe above: a file this cannot
+    # read is the condition the caller most needs reported. Skipping it
+    # silently would report "repaired" on a file still holding a bad value.
+    try:
+        data = read_toml(source)
+    except OSError as exc:
+        raise ManifestReadError(f"Could not read {source}: {exc}") from exc
+    except Exception as exc:
+        raise ManifestReadError(f"Malformed TOML in {source}: {exc}") from exc
+
+    os_decl = data.get("os")
     if not isinstance(os_decl, list):
         return []
 
@@ -133,17 +170,12 @@ def strip_undeclarable_os_values(lib_dir: Path) -> list[str]:
     if not invalid:
         return []
 
-    new_list = ", ".join(f'"{v}"' for v in corrected)
-    new_content, count = re.subn(
-        r"^(os\s*=\s*)\[[^\]]*\]",
-        rf"\g<1>[{new_list}]",
-        content,
-        count=1,
-        flags=re.MULTILINE,
-    )
-    if count == 0:
-        raise InvalidOsDeclarationError(
-            f"Could not locate an `os = [...]` line to rewrite in {pyproject_path}."
-        )
-    pyproject_path.write_text(new_content)
+    with edit_toml(module_dir / HAYBALE_TOML) as doc:
+        if corrected:
+            doc["os"] = corrected
+        else:
+            # Every value was junk. An empty list means "all platforms", which
+            # is what an absent key already means — so remove it rather than
+            # leaving a declaration that says nothing.
+            doc.pop("os", None)
     return invalid

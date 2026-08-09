@@ -19,8 +19,11 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire.core.tomlio import edit_toml
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.library.decorator_io import _set_decorator_list_field, _set_decorator_str_field
-from haywire.core.library.identity import LibraryReloadAction
+from haywire.core.library.haybale_toml import (
+    HAYBALE_TOML,
+    HaybaleTomlError,
+    write_haybale_fields,
+)
 from haywire.core.marketstall import Haybale
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
@@ -344,7 +347,7 @@ class LibraryManager:
             identity = self.registry.get_library_identity(library_id)
         except KeyError:
             return PostInstallHints()
-        return PostInstallHints(identity.on_reload)
+        return PostInstallHints(identity.reload_action)
 
     FRAMEWORK_CONFLICT_MESSAGE = (
         "This library needs a different version of the Haywire framework than the "
@@ -796,7 +799,7 @@ class LibraryManager:
         result = []
         for installed in self.list_installed():
             identity = self.registry.get_library_identity(installed.identity.id)
-            for dep in identity.dependencies or []:
+            for dep in identity.linked_libraries or []:
                 if self._norm(dep.split(".")[0]) == target_norm:
                     result.append(installed)
                     break
@@ -821,7 +824,7 @@ class LibraryManager:
             if self.registry.is_library_enabled(lid):
                 enabled.add(norm)
         check = enabled if require_enabled else installed
-        return [d for d in (pkg.dependencies or []) if self._norm(d.split(".")[0]) not in check]
+        return [d for d in (pkg.linked_libraries or []) if self._norm(d.split(".")[0]) not in check]
 
     def get_missing_dependencies(self, lib_id: str, require_enabled: bool) -> list[str]:
         """Return dependency names from @library that are not satisfied.
@@ -839,7 +842,9 @@ class LibraryManager:
                 enabled_norms.add(norm)
         check_set = enabled_norms if require_enabled else installed_norms
         return [
-            dep for dep in (identity.dependencies or []) if self._norm(dep.split(".")[0]) not in check_set
+            dep
+            for dep in (identity.linked_libraries or [])
+            if self._norm(dep.split(".")[0]) not in check_set
         ]
 
     async def fetch_versions(self, pkg: "Haybale") -> list[str]:
@@ -936,93 +941,52 @@ class LibraryManager:
         workspace_root: str,
         identity: dict[str, Any],
     ) -> tuple[bool, str]:
-        """Update identity metadata in __init__.py and marketplace.toml.
+        """Write edited metadata to the library's ``haybale.toml``.
 
-        Lightweight alternative to rename — only rewrites metadata fields
-        (label, description, url, author, author_url, tags, dependencies,
-        on_reload). Never touches version — that's set by
-        Share/publish (lockstep bump). No directory rename, no pyproject.toml
-        changes, no uv sync required.
+        A file write and nothing else. No decorator rewrite, no ``uv sync``, no
+        module eviction, no restart — the runtime reads this file at the point
+        of use, so the next render shows the change. That is the whole reason
+        the metadata moved into the package directory.
 
-        After writing the files the library is disabled and its module is
-        ejected from sys.modules so the caller can rescan to pick up the
-        fresh decorator values.
+        The library's own file watcher picks the write up and refreshes the two
+        identity fields that cannot be read on demand (``label``,
+        ``linked_libraries``); everything else is read straight from the file by
+        whoever displays it.
+
+        Never touches ``name``/``id`` (immutable — they key saved graphs and
+        every consumer's install_spec), ``version``/``origin`` (the share wizard
+        writes those from facts it observes), or ``[deprecated]`` (hand-edited).
+        :func:`write_haybale_fields` rejects them rather than dropping them
+        quietly.
         """
-        workspace = Path(workspace_root)
+        identity_obj = self.registry.get_library_identity(library_id)
+        package_dir = Path(identity_obj.folder_path)
+        if not package_dir.is_dir():
+            return False, f"Library package directory not found: {package_dir}"
 
-        dist_name = self.registry.get_library_distribution_name(library_id) or ""
-        if not dist_name:
-            return False, f"Cannot find distribution name for library {library_id!r}"
-
-        # Derive the package directory the same way rename does (most reliable)
-        name_part = dist_name.removeprefix("haybale-") if dist_name.startswith("haybale-") else library_id
-        module_name = f"haybale_{_sanitize_name(name_part)}"
-        pkg_dir = workspace / "barn" / dist_name / module_name
-
-        if not pkg_dir.exists():
-            return False, f"Library package directory not found: {pkg_dir}"
-
-        label_val = identity.get("label", "")
-        desc_val = identity.get("description", "")
-        url_val = identity.get("url", "")
-        author_val = identity.get("author", "")
-        author_url_val = identity.get("author_url", "")
-        tags_list: list[str] = identity.get("tags") or []
-        deps_list: list[str] = identity.get("dependencies") or []
-        # Validated through the enum so a bad value fails here rather than at the
-        # next library import, when the rewritten file is already on disk.
-        on_reload_val = LibraryReloadAction(
-            str(identity.get("on_reload", LibraryReloadAction.NONE)).strip().lower()
-        ).value
-
-        # Update __init__.py decorator fields. version is deliberately excluded —
-        # it's set by Share/publish (lockstep bump), which overwrites it on the
-        # next publish regardless of what a caller passes here.
         try:
-            init_file = pkg_dir / "__init__.py"
-            if not init_file.exists():
-                return False, f"__init__.py not found at {init_file}"
-            content = init_file.read_text()
-            content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
-            content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
-            content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
-            content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
-            content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
-            content = _set_decorator_list_field(content, "tags", tags_list)
-            content = _set_decorator_list_field(content, "dependencies", deps_list)
-            content = _set_decorator_str_field(content, "on_reload", on_reload_val)
-            init_file.write_text(content)
+            write_haybale_fields(package_dir, identity)
+        except HaybaleTomlError as e:
+            return False, str(e)
         except OSError as e:
-            return False, f"Failed to update __init__.py: {e}"
+            return False, f"Failed to write {package_dir / HAYBALE_TOML}: {e}"
 
-        # Write [tool.haywire].os to the heap's pyproject.toml. This is editable
-        # only on heaps (project libraries), which is where update_library_identity
-        # operates.
-        os_list = identity.get("os")
-        if os_list is not None:  # caller opted in
-            try:
-                _apply_os_to_pyproject(pkg_dir.parent / "pyproject.toml", os_list)
-            except OSError as e:
-                return False, f"Failed to update [tool.haywire].os: {e}"
-
-        # Update matching entry in marketplace.toml
-        marketplace_path = workspace / ".haywire" / "marketplace.toml"
+        # The project marketplace's [[heaps]] entry duplicates label and
+        # description for the browser to show a heap it has not loaded. Keep it
+        # in step; comment-preserving because the file is hand-editable.
+        dist_name = self.registry.get_library_distribution_name(library_id) or ""
+        marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml"
         try:
-            if marketplace_path.exists():
-                # Comment-preserving: the marketplace file is hand-editable
-                # (the browser offers an Edit File button for it), so a
-                # rebuild-from-dicts write would delete the user's notes.
+            if dist_name and marketplace_path.exists():
                 with edit_toml(marketplace_path) as data:
                     for heap in data.get("heaps", []):
                         if heap.get("name", "").lower() == dist_name.lower():
-                            heap["label"] = label_val
-                            heap["description"] = desc_val
+                            if "label" in identity:
+                                heap["label"] = identity["label"]
+                            if "description" in identity:
+                                heap["description"] = identity["description"]
                             break
         except (OSError, KeyError) as e:
             return False, f"Failed to update marketplace.toml: {e}"
 
-        # Fully remove the library from the registry (disable + unregister + tracking
-        # dicts cleared, sys.modules ejected) so scan_for_libraries() reimports fresh.
-        self.registry.remove_library(library_id)
-
-        return True, f"Updated identity for {dist_name}"
+        return True, f"Updated {dist_name or library_id}"

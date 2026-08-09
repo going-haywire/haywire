@@ -1,0 +1,15 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+# Edited in the studio's library overview — no reinstall, no reload.
+
+name = "haybale-core"
+id = "core"
+label = "Core"
+description = "Fundamental components for haywire graphs"
+tags = ["core", "types", "widgets", "skins", "adapters"]
+
+homepage_url = "https://github.com/going-haywire/haywire"
+
+[[authors]]
+name = "maybites"
+url = "https://maybites.ch"

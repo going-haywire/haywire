@@ -378,7 +378,6 @@ from haywire.ui.widget.registry import WidgetRegistry
     version=_pkg_version('haybale-{lib_base}'),
     description='Local library for {name} project',
     url='',
-    help_url='',
     author='',
     author_url='',
     dependencies=[],
@@ -497,12 +496,13 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
         lib_name = project.get("name", lib_dir.name)
         label = lib_name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
         description = project.get("description", "")
-        # The @library(dependencies=[...]) decorator is the definitive source for
-        # the marketplace install gate — a version-less subset of the pyproject
-        # deps (share.py keeps the two in sync). _read_library_dependencies
-        # returns pip-package form (hyphens), which the gate normalizes.
+        # The @library(linked_libraries=[...]) decorator is the definitive
+        # source for the marketplace install gate — a version-less subset of the
+        # pyproject deps (share.py keeps the two in sync).
+        # _read_library_dependencies returns pip-package form (hyphens), which
+        # the gate normalizes.
         module_dir = find_module_dir(lib_dir)
-        dependencies = _read_library_dependencies(module_dir) if module_dir else []
+        linked_libraries = _read_library_dependencies(module_dir) if module_dir else []
 
         try:
             add_heap_to_project(
@@ -511,7 +511,7 @@ def _register_dev_repo_locals_in_project(dev_repo: str, project_dir: Path) -> No
                 path=lib_dir,
                 label=label,
                 description=description,
-                dependencies=dependencies,
+                linked_libraries=linked_libraries,
             )
         except DuplicateHeapNameError:
             continue

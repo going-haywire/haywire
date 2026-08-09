@@ -12,7 +12,7 @@ from pathlib import Path
 from typing import Any
 
 
-from haywire.core.library.decorator_io import _set_decorator_list_field
+from haywire.core.library.haybale_toml import HAYBALE_TOML
 from haywire.core.tomlio import edit_toml
 
 
@@ -100,15 +100,10 @@ def rename_library(
     new_pkg_dir_tmp = old_lib_dir / new_module  # inside old lib dir before lib rename
     new_label = new_name.replace("-", " ").replace("_", " ").title()
 
-    # Resolve all identity values (defaults only; no new_identity override in CLI)
+    # Resolve the identity values a rename resets (defaults only; no
+    # new_identity override in CLI).
     label_val = new_label
-    version_val = "0.1.0"
     desc_val = f"Local library for {new_name} project"
-    url_val = ""
-    author_val = ""
-    author_url_val = ""
-    tags_list: list[str] = []
-    deps_list: list[str] = []
 
     # --- 3. (Studio: disable old library — skipped in CLI) ---
     sink(f"Renaming {dist_name} → {new_lib_name}...")
@@ -120,20 +115,14 @@ def rename_library(
     except OSError as e:
         return False, f"Failed to rename module directory: {e}"
 
-    # --- 5. Update __init__.py ---
-    sink("Updating __init__.py...")
+    # --- 5. Update __init__.py and haybale.toml ---
+    # The decorator carries only `id` now; everything else a rename touches
+    # lives in haybale.toml, which is rewritten rather than regex-patched.
+    sink("Updating __init__.py and haybale.toml...")
     try:
         init_file = new_pkg_dir_tmp / "__init__.py"
         content = init_file.read_text()
-        content = re.sub(r"(    id=')[^']*(')", rf"\g<1>{new_name}\2", content)
-        content = re.sub(r"(    label=')[^']*(')", rf"\g<1>{label_val}\2", content)
-        content = re.sub(r"(    version=')[^']*(')", rf"\g<1>{version_val}\2", content)
-        content = re.sub(r"(    description=')[^']*(')", rf"\g<1>{desc_val}\2", content)
-        content = re.sub(r"(    url=')[^']*(')", rf"\g<1>{url_val}\2", content)
-        content = re.sub(r"(    author=')[^']*(')", rf"\g<1>{author_val}\2", content)
-        content = re.sub(r"(    author_url=')[^']*(')", rf"\g<1>{author_url_val}\2", content)
-        content = _set_decorator_list_field(content, "tags", tags_list)
-        content = _set_decorator_list_field(content, "dependencies", deps_list)
+        content = re.sub(r"(    id=[\"'])[^\"']*([\"'])", rf"\g<1>{new_name}\2", content)
         content = re.sub(
             r"(Local haybale library for the )[^\n]*(\.)",
             rf"\g<1>{new_name} project\2",
@@ -142,6 +131,20 @@ def rename_library(
         init_file.write_text(content)
     except OSError as e:
         return False, f"Failed to update __init__.py: {e}"
+
+    try:
+        with edit_toml(new_pkg_dir_tmp / HAYBALE_TOML) as doc:
+            doc["name"] = new_lib_name
+            doc["id"] = new_name
+            doc["label"] = label_val
+            doc["description"] = desc_val
+            # A renamed library is a new library as far as consumers are
+            # concerned, so anything pointing at the old one is cleared rather
+            # than carried over.
+            for key in ("tags", "linked_libraries", "homepage_url", "notes"):
+                doc.pop(key, None)
+    except (OSError, KeyError) as e:
+        return False, f"Failed to update {HAYBALE_TOML}: {e}"
 
     # --- 6. Update lib's pyproject.toml ---
     sink("Updating lib pyproject.toml...")

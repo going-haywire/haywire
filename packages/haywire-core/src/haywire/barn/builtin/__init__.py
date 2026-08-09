@@ -12,16 +12,8 @@ from haywire.core.library.decorator import library
 
 
 @library(
-    label="Builtin",
     id="builtin",
     version=_pkg_version("haywire-core"),
-    description="Framework-owned primitive types and adapters",
-    url="https://github.com/going-haywire/haywire",
-    help_url="https://github.com/going-haywire/haywire",
-    author="maybites",
-    author_url="https://maybites.ch",
-    dependencies=[],
-    tags=["builtin", "types", "adapters", "nodes", "skins"],
     file_watcher=False,
 )
 class Library(BaseLibrary):

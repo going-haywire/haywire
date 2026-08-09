@@ -1,14 +1,20 @@
 # haywire.core.library.base.py
 from abc import ABC, abstractmethod
 import logging
+from pathlib import Path
 from typing import Any, ClassVar, Dict, List, Tuple, Type, Optional
 
 from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 
 from haywire.core.library.compatibility import CompatibilityWarning
 from haywire.core.library.file_watcher import FileWatcher
+from haywire.core.library.haybale_toml import (
+    HAYBALE_TOML,
+    HaybaleTomlError,
+    read_haybale_toml,
+)
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.registry.base import BaseRegistry
+from haywire.core.registry.base import BaseRegistry, FileChangeEvent, HotReloadRegistry
 from haywire.core.debug.keys import library_log_key
 
 logger = logging.getLogger(__name__)
@@ -17,6 +23,30 @@ logger = logging.getLogger(__name__)
 # ============================================================================
 #    BASE CLASS
 # ============================================================================
+
+
+class _HaybaleTomlWatcher(HotReloadRegistry):
+    """Turns a ``haybale.toml`` write into a metadata refresh.
+
+    An adapter, not a base class: a library is a plugin host, not a registry,
+    and this interface is one method — cheap to delegate, misleading to inherit.
+    It rides the ordinary root-fallback dispatch so metadata changes travel the
+    same path as everything else the watcher sees, rather than a second
+    mechanism beside it.
+    """
+
+    def __init__(self, library: "BaseLibrary") -> None:
+        self._library = library
+
+    def event_dispatcher(self, event: FileChangeEvent) -> None:
+        path = Path(event.file_path)
+        if path.name != HAYBALE_TOML:
+            return
+        if path.parent != Path(self._library.identity.folder_path):
+            # A nested library's file, seen because the watch is recursive.
+            # Its own library owns it.
+            return
+        self._library._reload_metadata()
 
 
 class BaseLibrary(ABC):
@@ -51,6 +81,9 @@ class BaseLibrary(ABC):
                 "Library registration must populate folder_path before instantiation."
             )
         self.file_watcher: FileWatcher = FileWatcher(watch_path=self.identity.folder_path)
+        # Rides the root fallback like any other registry — see
+        # _HaybaleTomlWatcher and _attach_to_registries.
+        self._toml_watcher = _HaybaleTomlWatcher(self)
 
     @property
     def enabled(self) -> bool:
@@ -205,6 +238,19 @@ class BaseLibrary(ABC):
         if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
+        if Path(folder_path).resolve() == Path(self.identity.folder_path).resolve():
+            # Folder mappings have priority AND exclusivity over root fallbacks
+            # in the watcher: if any folder mapping matches a path, the fallbacks
+            # are never consulted. Claiming the root as a component folder would
+            # therefore starve everything registered on the fallback — including
+            # this library's own haybale.toml refresh, which would simply stop
+            # firing with nothing to show for it. Register a subfolder.
+            raise ValueError(
+                f"Library '{self.identity.label}': cannot register the library root "
+                f"('{folder_path}') as a component folder for {registry_cls.__name__}. "
+                "Register a subfolder (e.g. 'nodes', 'types') instead."
+            )
+
         self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
 
     # Canonical scan order: settings → state → (types/nodes/adapters/
@@ -225,6 +271,41 @@ class BaseLibrary(ABC):
         "FarmhandRegistry": 110,
     }
 
+    def _reload_metadata(self) -> None:
+        """Re-read ``haybale.toml`` into :attr:`identity`.
+
+        A metadata edit is not a code change: nothing needs re-importing and no
+        class reference goes stale, so this deliberately skips the reload
+        pipeline entirely.
+
+        Only the fields that *cannot* be read at the point of use are refreshed.
+        ``label`` is logged and rendered from inside the registry, which cannot
+        do a file read per line; ``linked_libraries`` is consumed during module
+        registration, inside the import machinery; ``on_reload`` is read after a
+        library is evicted, when its files may already be gone. Everything else
+        — description, tags, urls — is read straight from the file by whoever
+        displays it.
+
+        Mutates the identity in place rather than replacing it: the same object
+        is held by the watcher's routing tables and by the registry, so a fresh
+        instance would update nothing.
+
+        Never raises. The author is mid-keystroke and a half-written file is
+        expected; the previous values stay in force until the next save. That is
+        the opposite of the import-time rule, where a library that cannot name
+        itself must not load at all.
+        """
+        try:
+            fields = read_haybale_toml(Path(self.identity.folder_path))
+        except HaybaleTomlError as exc:
+            logger.warning(f"Library '{self.identity.label}': keeping previous metadata — {exc}")
+            return
+
+        for key in ("label", "linked_libraries", "on_reload"):
+            if key in fields:
+                setattr(self.identity, key, fields[key])
+        logger.info(f"Library '{self.identity.label}': reloaded {HAYBALE_TOML}")
+
     def _attach_to_registries(self):
         """Add ALL library classes to their registries, in canonical scan order."""
 
@@ -240,7 +321,7 @@ class BaseLibrary(ABC):
             self.file_watcher.add_root_fallback(
                 self.identity.folder_path,
                 self.identity,
-                list(self.registries.values()),
+                [*self.registries.values(), self._toml_watcher],
                 self.debounce_delay,
             )
 

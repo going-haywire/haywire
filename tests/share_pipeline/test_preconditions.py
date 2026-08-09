@@ -20,9 +20,18 @@ def _init_repo(path: Path) -> None:
 
 def _add_lib(repo: Path, name: str = "haybale-alpha") -> Path:
     lib = repo / "barn" / name
-    (lib / name.replace("-", "_")).mkdir(parents=True)
+    module = lib / name.replace("-", "_")
+    module.mkdir(parents=True)
+    (module / "__init__.py").write_text('@library(id="alpha")\nclass Library: pass\n')
+    (module / "haybale.toml").write_text(f'name = "{name}"\nid = "alpha"\nlabel = "Alpha"\n')
     (lib / "pyproject.toml").write_text(f'[project]\nname = "{name}"\nversion = "0.1.0"\n')
     return lib
+
+
+def _declare_os(lib: Path, values: str) -> None:
+    """Append an `os` declaration to a library's haybale.toml."""
+    declared = next(lib.glob("haybale_*/haybale.toml"))
+    declared.write_text(declared.read_text() + f"os = [{values}]\n")
 
 
 def _commit(repo: Path, message: str = "init") -> str:
@@ -361,16 +370,15 @@ def test_every_failure_has_a_non_empty_remedy(tmp_path: Path, bare_remote: Path,
 
 
 def test_invalid_os_declaration_fails_with_remedy(project: Path) -> None:
-    """[tool.haywire].os with 'other' (a runtime sentinel) is rejected (4a)."""
+    """An `os` of 'other' (a runtime sentinel) is rejected (4a)."""
     lib = project / "barn" / "haybale-alpha"
-    pyproject = lib / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
 
     assert report.ok is False
-    matches = [f for f in report.failures if "pyproject.toml" in f.message]
+    matches = [f for f in report.failures if "haybale.toml" in f.message]
     assert matches, report.failures
     for f in matches:
         assert f.remedy
@@ -384,14 +392,13 @@ def test_invalid_os_declaration_carries_strip_os_fix_id(project: Path) -> None:
     """The os fault is the ONE remediable precondition in Task 2's scope: it
     offers fix_id='strip_os' with a label describing what will happen."""
     lib = project / "barn" / "haybale-alpha"
-    pyproject = lib / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
 
     assert report.ok is False
-    matches = [f for f in report.failures if "pyproject.toml" in f.message]
+    matches = [f for f in report.failures if "haybale.toml" in f.message]
     assert matches, report.failures
     for f in matches:
         assert f.kind == "act"
@@ -402,13 +409,12 @@ def test_invalid_os_declaration_carries_strip_os_fix_id(project: Path) -> None:
 def test_invalid_os_declaration_fix_label_states_correction_when_unambiguous(project: Path) -> None:
     """When every bad value maps cleanly to the same target, the label says so."""
     lib = project / "barn" / "haybale-alpha"
-    pyproject = lib / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["osx"]\n')
+    _declare_os(lib, '"osx"')
     _commit(project, "add correctable os")
 
     report = SharePipeline(project).check_preconditions()
 
-    matches = [f for f in report.failures if "pyproject.toml" in f.message]
+    matches = [f for f in report.failures if "haybale.toml" in f.message]
     assert matches, report.failures
     for f in matches:
         assert f.fix_id == "strip_os"
@@ -669,8 +675,7 @@ def test_apply_precondition_fix_strip_os_repairs_the_named_library(project: Path
     before the next check_preconditions() call can reach the probe it
     means to exercise — matching what "Restart Wizard" actually re-checks."""
     lib = project / "barn" / "haybale-alpha"
-    pyproject = lib / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
@@ -680,7 +685,7 @@ def test_apply_precondition_fix_strip_os_repairs_the_named_library(project: Path
     pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
     _commit(project, "strip invalid os")
 
-    text = pyproject.read_text()
+    text = next(lib.glob("haybale_*/haybale.toml")).read_text()
     assert 'os = ["macos"]' in text
 
     report2 = pipeline.check_preconditions()
@@ -695,16 +700,15 @@ def test_apply_precondition_fix_strip_os_dedups_reversed_near_miss_order(project
     import toml
 
     lib = project / "barn" / "haybale-alpha"
-    pyproject = lib / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["osx", "macos"]\n')
+    _declare_os(lib, '"osx", "macos"')
     _commit(project, "add near-miss os")
 
     pipeline = SharePipeline(project)
     pipeline.apply_precondition_fix("strip_os", lib_dir="barn/haybale-alpha")
     _commit(project, "strip near-miss os")
 
-    data = toml.loads(pyproject.read_text())
-    os_values = data["tool"]["haywire"]["os"]
+    data = toml.loads(next(lib.glob("haybale_*/haybale.toml")).read_text())
+    os_values = data["os"]
     assert os_values == ["macos"]
     assert len(os_values) == len(set(os_values))
 
@@ -718,8 +722,7 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
     any string-parsing of `message`. This test proves the round-trip using
     ONLY data taken from the PreconditionFailure itself — no hardcoded path."""
     lib = project / "barn" / "haybale-alpha"
-    pyproject = lib / "pyproject.toml"
-    pyproject.write_text(pyproject.read_text() + '\n[tool.haywire]\nos = ["macos", "other"]\n')
+    _declare_os(lib, '"macos", "other"')
     _commit(project, "add invalid os")
 
     report = SharePipeline(project).check_preconditions()
@@ -733,17 +736,17 @@ def test_failure_lib_dir_round_trips_through_apply_precondition_fix(project: Pat
     pipeline.apply_precondition_fix("strip_os", lib_dir=failure.lib_dir)
     _commit(project, "strip invalid os")
 
-    assert 'os = ["macos"]' in pyproject.read_text()
+    assert 'os = ["macos"]' in next(lib.glob("haybale_*/haybale.toml")).read_text()
     assert pipeline.check_preconditions().ok is True
 
 
 def test_apply_precondition_fix_strip_os_translates_manifest_failures(project: Path) -> None:
-    """A pyproject that no longer parses at fix-time surfaces as ManifestError,
-    the same translation convention apply_drift_union follows."""
+    """A haybale.toml that no longer parses at fix-time surfaces as
+    ManifestError, the same translation convention apply_drift_union follows."""
     from haywire.core.publishing.pipeline import ManifestError
 
     lib = project / "barn" / "haybale-alpha"
-    (lib / "pyproject.toml").write_text("this is not [[[ valid toml")
+    next(lib.glob("haybale_*/haybale.toml")).write_text("this is not [[[ valid toml")
 
     pipeline = SharePipeline(project)
     with pytest.raises(ManifestError):

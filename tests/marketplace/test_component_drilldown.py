@@ -53,8 +53,8 @@ def test_installed_component_doc_read_from_wheel():
 
 
 @pytest.mark.anyio
-async def test_available_component_doc_fetched_over_docs_url(tmp_path, monkeypatch):
-    """A component doc for an available (not-installed) library is fetched via docs_url."""
+async def test_available_component_doc_fetched_over_docs_path(tmp_path, monkeypatch):
+    """A component doc for an available (not-installed) library is fetched via docs_path."""
     from haybale_marketplace.farmhands.catalog_tools import MarketplaceGetLibraryDocsTool
     from haybale_marketplace.state.marketplace_state import MarketplaceState
     from haywire.core.marketstall import cache as cache_mod
@@ -75,7 +75,8 @@ async def test_available_component_doc_fetched_over_docs_url(tmp_path, monkeypat
     pkg = Haybale(
         name="not_installed_lib",
         version="1.0.0",
-        docs_url="https://raw.example.com/lib/haybale_lib",
+        origin="https://github.com/me/repo",
+        install_spec=("not_installed_lib @ git+https://github.com/me/repo.git@v1.0.0#subdirectory=barn/lib"),
     )
     monkeypatch.setattr(MarketplaceState, "get_project_haybales", lambda self: [pkg])
 

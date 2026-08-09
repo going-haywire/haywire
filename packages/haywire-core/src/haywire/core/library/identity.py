@@ -62,38 +62,59 @@ _RELOAD_ACTION_RANK = {
 
 @dataclass
 class LibraryIdentity:
-    """Metadata for a Haywire library"""
+    """A library as loaded in this process.
 
-    label: str
-    version: str
-    description: str
-    url: str
-    help_url: str
-    author: str
-    author_url: str
-    folder_path: str  # Path to the library folder
-    module_name: str  # Python module name
-    id: str  # Unique identifier for the library
-    dependencies: list[str] | None = None
-    """Referenced haywire libraries (Python package names). Must be specified for
-        hot-reload: this includes any library whose subclasses this one
-        subscribes to — without the dependency, hot-reload
-        leaves the subscriber holding a stale class reference"""
+    Populated by ``@library(...)``: ``id``, ``folder_path``, ``module_name`` and
+    ``file_watcher`` from the call itself, ``version`` from the installed
+    distribution, and the rest read out of ``haybale.toml``.
+
+    The descriptive fields below (``description``, ``url``, ``author``,
+    ``author_url``, ``tags``) are **transitional**. The design has consumers read
+    them from ``haybale.toml`` at the point of use instead, so an edit is visible
+    without a reload; they are still carried here while ~30 call sites are
+    migrated. What must stay on the identity is only what cannot do a file read:
+    ``label`` (logged and rendered from inside the registry), ``linked_libraries``
+    (read during module registration, inside the import machinery), and
+    ``on_reload`` (read by ``_hints_for_library`` *after* a library is evicted,
+    when its files may already be gone).
+    """
+
+    label: str = ""
+    version: str = ""
+    description: str = ""
+    url: str = ""
+    author: str = ""
+    author_url: str = ""
+    folder_path: str = ""  # Path to the library folder
+    module_name: str = ""  # Python module name
+    id: str = ""  # Unique identifier for the library
+    linked_libraries: list[str] | None = None
+    """Sibling haybales whose classes this library subscribes to, as **module**
+    names (``haybale_studio``). Required for hot-reload scope tracking: without
+    the declaration a subscriber holds a stale class reference after a reload.
+
+    Renamed from ``dependencies``, which collided with ``[project]
+    dependencies`` — pip requirements, a different concept entirely."""
     tags: list[str] | None = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
-    on_reload: LibraryReloadAction = LibraryReloadAction.NONE
+    on_reload: str = LibraryReloadAction.NONE.value
     """What the user must do after this library is installed, updated, or
-        uninstalled. Symmetric: the same declaration applies in every direction. 
-        Accepts the bare string (``on_reload="restart"``), which is the on-disk form."""
+        uninstalled. Stored in the wire form (``"none"``/``"refresh"``/``"restart"``)
+        so it is identical on ``Haybale``, in TOML, and in farmhand JSON. Use
+        :attr:`reload_action` to compare or combine declarations."""
 
     def __post_init__(self):
-        if self.dependencies is None:
-            self.dependencies = []
+        if self.linked_libraries is None:
+            self.linked_libraries = []
         if self.tags is None:
             self.tags = []
-        # Coerce the on-disk/string form. Authors write on_reload="restart" so
-        # the decorator source needs no import of this enum; the marketplace
-        # edit dialog and farmhand payloads pass plain strings for the same
-        # reason.
-        if not isinstance(self.on_reload, LibraryReloadAction):
-            self.on_reload = LibraryReloadAction(str(self.on_reload).strip().lower())
+        # Validate and normalise to the wire form. Accepts the enum or any
+        # case/whitespace variant of its value; an unknown value raises here
+        # rather than at the next library import.
+        self.on_reload = LibraryReloadAction(str(self.on_reload).strip().lower()).value
+
+    @property
+    def reload_action(self) -> LibraryReloadAction:
+        """The ordered enum form. Use for comparison and ``max()``; the stored
+        field is a plain string so both metadata shapes agree."""
+        return LibraryReloadAction(self.on_reload)

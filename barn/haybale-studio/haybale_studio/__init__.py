@@ -34,16 +34,8 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    label="Studio",
     id="studio",
     version=_pkg_version("haybale-studio"),
-    description="Library for haywire studio",
-    url="",
-    help_url="",
-    author="",
-    author_url="",
-    dependencies=[],
-    tags=["experimental", "project-local"],
     file_watcher=True,
 )
 class Library(BaseLibrary):

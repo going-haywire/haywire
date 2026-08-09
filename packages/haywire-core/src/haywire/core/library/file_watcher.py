@@ -1,9 +1,9 @@
 import logging
+import os
 import time
 import threading
-from pathlib import Path
 
-from typing import Dict, Set, Tuple, List, Optional
+from typing import Dict, Iterator, Set, Tuple, List, Optional
 
 from watchdog.observers import Observer
 from watchdog.observers.api import BaseObserver
@@ -14,14 +14,38 @@ from .identity import LibraryIdentity
 
 logger = logging.getLogger(__name__)
 
+#: Directory names never walked when seeding _known_files. These hold no source
+#: a registry could claim, and a library with a local virtualenv makes the
+#: unfiltered walk cost real time on the enable path.
+_UNWALKED_DIRS = frozenset({"__pycache__", ".venv", "venv", "node_modules", ".git", ".mypy_cache"})
+
+
+def _walk_files(folder_path: str) -> Iterator[str]:
+    """Yield every file under ``folder_path``, skipping :data:`_UNWALKED_DIRS`.
+
+    An explicit walk rather than ``rglob``: pruning has to happen *before*
+    descending, and ``rglob`` offers no way to say "do not enter this one".
+    """
+    for dirpath, dirnames, filenames in os.walk(folder_path):
+        dirnames[:] = [d for d in dirnames if d not in _UNWALKED_DIRS]
+        for filename in filenames:
+            yield os.path.join(dirpath, filename)
+
 
 class LibraryFileHandler(FileSystemEventHandler):
     """
     Handles file system events with multiple folder-to-registry mappings.
 
-    Library-agnostic handler that routes file events to appropriate registries
-    based on folder path matching. Each folder mapping includes its own
-    library identity, allowing one handler to serve multiple libraries.
+    Library-agnostic handler that routes **every** non-directory event to the
+    registries whose folder matches, based on folder path matching. Each folder
+    mapping includes its own library identity, allowing one handler to serve
+    multiple libraries.
+
+    The handler is a router: it detects file changes and informs. It asserts
+    nothing about which *kind* of file matters — a registry that only reloads
+    Python modules rejects the rest itself (see
+    ``BaseRegistry.event_dispatcher``), and a consumer interested in some other
+    file registers for it like any other.
     """
 
     def __init__(self):
@@ -56,10 +80,10 @@ class LibraryFileHandler(FileSystemEventHandler):
         """Register a folder path to be routed to a specific registry"""
         with self._lock:
             self.folder_mappings[folder_path] = (library_identity, registry, debounce_delay)
-            # Seed _known_files with existing .py files so that atomic-write
-            # CREATEs for pre-existing files are correctly downgraded to MODIFIED.
-            for py_file in Path(folder_path).rglob("*.py"):
-                self._known_files.add(str(py_file))
+            # Seed _known_files with the files already on disk so that
+            # atomic-write CREATEs for pre-existing files are correctly
+            # downgraded to MODIFIED.
+            self._known_files.update(_walk_files(folder_path))
 
     def remove_folder_mapping(self, folder_path: str):
         """Unregister a folder path"""
@@ -118,36 +142,39 @@ class LibraryFileHandler(FileSystemEventHandler):
         return matches
 
     def on_modified(self, event):
-        if not event.is_directory and event.src_path.endswith(".py"):
-            with self._lock:
-                self._known_files.add(event.src_path)
-            self._handle_file_change(event.src_path, FileEventType.MODIFIED)
+        if event.is_directory:
+            return
+        with self._lock:
+            self._known_files.add(event.src_path)
+        self._handle_file_change(event.src_path, FileEventType.MODIFIED)
 
     def on_created(self, event):
-        if not event.is_directory and event.src_path.endswith(".py"):
-            with self._lock:
-                already_known = event.src_path in self._known_files
-                self._known_files.add(event.src_path)
-            if already_known:
-                # File already existed — this CREATE is from an atomic write
-                # (or similar overwrite). Downgrade to MODIFIED.
-                logger.info(f"FileWatcher: downgrading CREATE to MODIFIED for known file: {event.src_path}")
-                self._handle_file_change(event.src_path, FileEventType.MODIFIED)
-            else:
-                self._handle_file_change(event.src_path, FileEventType.CREATED)
+        if event.is_directory:
+            return
+        with self._lock:
+            already_known = event.src_path in self._known_files
+            self._known_files.add(event.src_path)
+        if already_known:
+            # File already existed — this CREATE is from an atomic write
+            # (or similar overwrite). Downgrade to MODIFIED.
+            logger.debug(f"FileWatcher: downgrading CREATE to MODIFIED for known file: {event.src_path}")
+            self._handle_file_change(event.src_path, FileEventType.MODIFIED)
+        else:
+            self._handle_file_change(event.src_path, FileEventType.CREATED)
 
     def on_deleted(self, event):
-        if not event.is_directory and event.src_path.endswith(".py"):
-            with self._lock:
-                expiry = self._atomic_write_suppress.get(event.src_path, 0)
-                if time.time() < expiry:
-                    logger.info(
-                        f"FileWatcher: suppressing spurious DELETE for atomic-written file: {event.src_path}"
-                    )
-                    return
-            with self._lock:
-                self._known_files.discard(event.src_path)
-            self._handle_file_change(event.src_path, FileEventType.DELETED)
+        if event.is_directory:
+            return
+        with self._lock:
+            expiry = self._atomic_write_suppress.get(event.src_path, 0)
+            if time.time() < expiry:
+                logger.info(
+                    f"FileWatcher: suppressing spurious DELETE for atomic-written file: {event.src_path}"
+                )
+                return
+        with self._lock:
+            self._known_files.discard(event.src_path)
+        self._handle_file_change(event.src_path, FileEventType.DELETED)
 
     def on_moved(self, event):
         """
@@ -155,35 +182,41 @@ class LibraryFileHandler(FileSystemEventHandler):
 
         A true rename (foo.py → bar.py) is treated as DELETED + CREATED.
         An atomic write (foo.py.tmp → foo.py) is treated as MODIFIED — the
-        source was a temp file, not a tracked Python module. This also
-        cancels any pending DELETED event for the destination file that may
-        have been queued when the editor truncated/replaced the original.
+        source was a temp file, not a tracked file. This also cancels any
+        pending DELETED event for the destination file that may have been
+        queued when the editor truncated/replaced the original.
+
+        The two are told apart by whether the source was *tracked*: a real file
+        that moved was seeded into ``_known_files`` or arrived as a CREATE,
+        whereas an editor's scratch file was never seen before it vanished.
 
         Args:
             event: FileMovedEvent with src_path and dest_path
         """
-        if not event.is_directory:
-            src_is_py = event.src_path.endswith(".py")
-            dest_is_py = event.dest_path.endswith(".py")
+        if event.is_directory:
+            return
 
-            if src_is_py or dest_is_py:
-                logger.info(f"File moved: {event.src_path} → {event.dest_path}")
+        logger.info(f"File moved: {event.src_path} → {event.dest_path}")
 
-            if src_is_py and dest_is_py:
-                # True rename: foo.py → bar.py
-                with self._lock:
-                    self._known_files.discard(event.src_path)
-                    self._known_files.add(event.dest_path)
-                self._handle_file_change(event.src_path, FileEventType.DELETED)
-                self._handle_file_change(event.dest_path, FileEventType.CREATED)
-            elif dest_is_py and not src_is_py:
-                # Atomic write: tmp file promoted to .py — treat as modification.
-                # Suppress any spurious DELETE that the OS may deliver for dest_path
-                # after this move event (observed on macOS/kqueue).
-                with self._lock:
-                    self._known_files.add(event.dest_path)
-                    self._atomic_write_suppress[event.dest_path] = time.time() + 2.0
-                self._handle_file_change(event.dest_path, FileEventType.MODIFIED)
+        with self._lock:
+            src_was_tracked = event.src_path in self._known_files
+
+        if src_was_tracked:
+            # True rename: a file we knew about moved to a new name.
+            with self._lock:
+                self._known_files.discard(event.src_path)
+                self._known_files.add(event.dest_path)
+            self._handle_file_change(event.src_path, FileEventType.DELETED)
+            self._handle_file_change(event.dest_path, FileEventType.CREATED)
+        else:
+            # Atomic write: an untracked temp file promoted over the target —
+            # treat as a modification of the destination. Suppress any spurious
+            # DELETE the OS may deliver for dest_path after this move event
+            # (observed on macOS/kqueue).
+            with self._lock:
+                self._known_files.add(event.dest_path)
+                self._atomic_write_suppress[event.dest_path] = time.time() + 2.0
+            self._handle_file_change(event.dest_path, FileEventType.MODIFIED)
 
     def _handle_file_change(self, file_path: str, event_type: FileEventType):
         """

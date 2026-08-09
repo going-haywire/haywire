@@ -16,7 +16,11 @@ class Haybale:
     """One entry from a [[haybales]] section."""
 
     name: str
-    version: str
+    version: str = ""
+    """The version the publisher advertised. Defaulted so a row can be built
+    field-by-field in tests and fixtures; an absent version in a real feed is
+    still an error, raised by :func:`~haywire.core.marketstall.parsing` — which
+    is the only place a row is constructed from untrusted input."""
     # The framework requirement as a full PEP 508 token, identical in shape to
     # the library's own pyproject entry: "haywire-core>=0.0.31",
     # "haywire-core~=0.0.31,<1.0.0", or the bare "haywire-core" when the author
@@ -32,12 +36,54 @@ class Haybale:
     install_spec: str = ""
     tags: list[str] = field(default_factory=list)
     os: list[str] = field(default_factory=list)
-    dependencies: list[str] = field(default_factory=list)
-    source_url: str = ""
-    docs_url: str = ""
-    examples_url: str = ""
-    tests_url: str = ""
-    # Runtime-only routing metadata (not persisted).
+    on_reload: str = "none"
+    linked_libraries: list[str] = field(default_factory=list)
+    """Sibling haybales this library subscribes to, as **module** names
+    (``haybale_studio``). Renamed from ``dependencies``, which collided with
+    ``[project] dependencies`` — a different concept entirely."""
+
+    origin: str = ""
+    """The repository this library is published from. The base that every path
+    below resolves against; renamed from ``source_url``."""
+
+    origin_provider: str = ""
+    """Which kind of forge ``origin`` is — ``"github"`` / ``"gitlab"``.
+
+    Published because the hostname→provider mapping is otherwise machine-local
+    (``~/.haywire/config.toml``), while ``origin`` travels to every consumer. A
+    self-hosted forge would then resolve on the publisher's machine and nowhere
+    else, so its links would silently not render — invisibly to the one person
+    who could fix it. Only the publisher knows what their host runs, so that
+    answer is published rather than rediscovered."""
+
+    notes: str = ""
+    """A bare filename inside the package directory — one supplementary
+    human-readable page. Not the front page: label/description/tags already
+    carry that. Replaces ``docs_path``, which held the *module directory* and
+    to which both consumers appended something."""
+
+    homepage_url: str = ""
+    documentation_url: str = ""
+    issues_url: str = ""
+    """Absolute URLs, used verbatim. Unlike the paths below they name a place
+    outside the repository, so there is nothing to resolve them against."""
+
+    examples_path: str = ""
+    tests_path: str = ""
+    """Paths, not URLs, relative to the **project root** — the directory holding
+    ``.haywire/``, which preflight requires to be the git root.
+
+    Project-relative rather than library-relative because examples and tests
+    belong to the project: an example graph wires several libraries together and
+    cannot live inside any one of them. The consumer resolves them against
+    ``origin`` at ``install_spec``'s ref — see
+    :func:`haywire.core.marketstall.locate.resolve_row_path`. Storing a baked
+    URL instead let the ref disagree with the one actually published; a trailing
+    slash marks a directory."""
+
+    # Runtime-only routing metadata (not persisted). `source_origin` is
+    # unrelated to `origin` above — it records whether this row arrived from a
+    # market or a stall.
     source_label: str = ""
     source_file: str = ""
     source_origin: str = ""
@@ -57,11 +103,16 @@ class Haybale:
         "install_spec",
         "tags",
         "os",
-        "dependencies",
-        "source_url",
-        "docs_url",
-        "examples_url",
-        "tests_url",
+        "on_reload",
+        "linked_libraries",
+        "origin",
+        "origin_provider",
+        "notes",
+        "homepage_url",
+        "documentation_url",
+        "issues_url",
+        "examples_path",
+        "tests_path",
         "via",
         "last_seen",
         "stale",

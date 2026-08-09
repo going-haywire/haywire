@@ -20,7 +20,6 @@ _FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
     version="0.0.0",
     description="Haywire built-in themes",
     url="",
-    help_url="",
     author="Haywire",
     author_url="",
     id="haywire-core",

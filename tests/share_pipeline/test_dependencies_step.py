@@ -29,8 +29,9 @@ def project(tmp_path: Path) -> Path:
         (lib / "pyproject.toml").write_text(
             f'[project]\nname = "{name}"\nversion = "0.1.0"\ndependencies = {deps}\n'
         )
-        (module / "__init__.py").write_text(
-            '@library(label="X", id="x", dependencies=["haybale_core"])\nclass Library: pass\n'
+        (module / "__init__.py").write_text('@library(id="x")\nclass Library: pass\n')
+        (module / "haybale.toml").write_text(
+            f'name = "{name}"\nid = "x"\nlabel = "X"\nlinked_libraries = ["haybale_core"]\n'
         )
     return repo
 
@@ -210,26 +211,25 @@ def test_decorator_gap_alone_is_not_drift(project: Path) -> None:
 
 def test_decorator_registrations_are_applied_in_union_mode(project: Path) -> None:
     """Existing entries survive: a name added by hand for a dynamic import
-    would otherwise be dropped by a tool that cannot see that import.
-
-    Note ``merge_decorator_list_field`` normalizes separators, so the kept
-    entry may come back hyphenated — the registration is what must survive,
-    not its spelling.
-    """
+    would otherwise be dropped by a tool that cannot see that import."""
     lib = project / "barn" / "haybale-alpha"
-    init = lib / "haybale_alpha" / "__init__.py"
+    declared = lib / "haybale_alpha" / "haybale.toml"
 
     pipeline = SharePipeline(project)
     pipeline.apply_decorator_registrations({lib: ["haybale_studio"]})
 
-    source = init.read_text()
+    source = declared.read_text()
     assert "haybale_studio" in source
-    assert "haybale_core" in source or "haybale-core" in source
-    assert init in pipeline.written
+    assert "haybale_core" in source
+    assert declared in pipeline.written
 
 
 def test_decorator_registrations_never_touch_pyproject(project: Path) -> None:
-    """Separate carriers, separate writes — this one only edits __init__.py."""
+    """Separate carriers, separate writes — this one only edits haybale.toml.
+
+    [project] dependencies are pip requirements; linked_libraries are sibling
+    haybales. Conflating them is the confusion the rename removed.
+    """
     lib = project / "barn" / "haybale-alpha"
     before = (lib / "pyproject.toml").read_text()
 
@@ -237,7 +237,7 @@ def test_decorator_registrations_never_touch_pyproject(project: Path) -> None:
     pipeline.apply_decorator_registrations({lib: ["haybale_studio"]})
 
     assert (lib / "pyproject.toml").read_text() == before
-    assert [p.name for p in pipeline.written] == ["__init__.py"]
+    assert [p.name for p in pipeline.written] == ["haybale.toml"]
 
 
 def test_acknowledge_undeclared_records_the_choice(project: Path) -> None:

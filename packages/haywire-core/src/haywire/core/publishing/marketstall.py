@@ -11,17 +11,23 @@ from pathlib import Path
 import toml
 
 from haywire.core.library.dep_detect import find_module_dir
+from haywire.core.library.haybale_toml import (
+    LibraryDisplay,
+    read_display,
+    read_haybale_toml_lenient,
+    read_raw,
+)
 from haywire.core.marketstall import Haybale
-from haywire.core.marketstall.host_providers import ssh_to_https
+from urllib.parse import urlparse
+
+from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire.core.marketstall.requirement import haywire_core_requirement
 from haywire.core.publishing.barn import barn_library_dirs
-from haywire.core.publishing.manifest.deps import _read_library_dependencies, _read_library_label
 from haywire.core.publishing.manifest.reader import read_manifest
 from haywire.core.publishing.readme import _update_repo_readmes
 from haywire.core.publishing.url import (
     _derive_url,
     _find_git_root,
-    _get_current_ref,
     _get_remote_url,
 )
 
@@ -35,12 +41,12 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
 
     When `tag` is given (the full SharePipeline always supplies it — the
     version is resolved and tag-collision-checked in step 3, well before this
-    runs in step 5), every ref-bearing URL pins to that tag: install_spec,
-    docs_url, examples_url, and tests_url all resolve to the exact commit a
-    consumer will get, not whatever the branch currently holds. When `tag` is
-    None (standalone `write_marketstall()` calls outside the pipeline, or a
-    repo with no tags yet), falls back to the previous branch/ref-less
-    behavior unchanged.
+    runs in step 5), ``install_spec`` pins to that tag, naming the exact commit
+    a consumer will get. It is the entry's ONLY ref: ``examples_path``,
+    ``tests_path`` and the derived module directory all resolve against it, so
+    no two fields can disagree about which commit was published. When `tag` is
+    None (standalone `write_marketstall()` calls, or a repo with no tags yet),
+    install_spec floats to the branch as before.
 
     The framework requirement is DERIVED from this library's own
     ``haywire-core`` floor, not passed in: the pyproject is the truth and
@@ -56,13 +62,18 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     data = read_manifest(lib_dir)
     project = data.get("project", {})
 
+    module_dir = find_module_dir(lib_dir)
+
+    # haybale.toml is canon for everything descriptive. Only two fields are read
+    # from pyproject: `version`, which the release machinery owns, and `require`
+    # below, which is a projection of [project] dependencies.
+    declared = read_display(module_dir) if module_dir else LibraryDisplay()
+
     name = project.get("name", lib_dir.name)
     version = project.get("version", "0.0.0")
-    description = project.get("description", "")
-    tags = project.get("keywords", [])
-
-    authors = project.get("authors", [])
-    author = authors[0].get("name", "") if authors else ""
+    description = declared.description
+    tags = list(declared.tags)
+    author = declared.author_names
 
     # Derived, never passed in: the library's own floor IS the requirement, and
     # the entry is its projection. None (undeclared) omits the key entirely;
@@ -90,63 +101,39 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         )
         install_spec = f"{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}"
 
-    module_dir = find_module_dir(lib_dir)
     label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
-    label = _read_library_label(module_dir, label_fallback) if module_dir else label_fallback
-    dependencies = _read_library_dependencies(module_dir) if module_dir else []
+    label = declared.label or label_fallback
+    # Module names, as declared — the row carries them verbatim so a consumer
+    # can match them against installed libraries' module_name.
+    linked = list(read_haybale_toml_lenient(module_dir).get("linked_libraries") or []) if module_dir else []
 
-    # The branch a raw-content URL points at MUST be the repo's actual current
-    # branch, not a hardcoded guess — this repo's default is "master", and a
-    # hardcoded "main" 404s on raw.githubusercontent.com even though the file
-    # exists on the real branch. No fallback: a guessed branch name nobody
-    # verified exists silently emits a URL that may 404 forever, whereas
-    # `None` (detached HEAD, git unavailable) propagates to an empty URL below
-    # — an honest "couldn't determine this" beats a plausible-looking wrong
-    # answer. `SharePipeline.check_preconditions` is the layer that turns an
-    # undeterminable/wrong branch into an actual failure before publish; this
-    # module has no such gate, so it degrades instead of guessing.
+    # No ref is read here any more. It used to be needed because this function
+    # baked raw-content URLs, and getting the branch wrong ("main" against a
+    # repo whose default is "master") emitted URLs that 404'd forever. Rows now
+    # carry repo-relative paths, and the ref lives in install_spec alone — so
+    # the two can no longer disagree, and there is nothing left to guess.
+
+    os_decl: list[str] = list(read_haybale_toml_lenient(module_dir).get("os") or []) if module_dir else []
+
+    # examples_path/tests_path are PROJECT-relative and reach the row verbatim.
+    # `notes` is a bare filename inside the package directory. Neither is
+    # prefixed here: the consumer resolves them against `origin` at
+    # install_spec's ref — see haywire.core.marketstall.locate.
+    declared_raw = read_raw(module_dir) if module_dir else {}
+
+    # Phase A wrote origin + origin_provider into haybale.toml before anything
+    # here ran, so the declaration is preferred: the row and the shipped file
+    # then carry one answer rather than two derived independently.
     #
-    # `ref` is what every raw-content URL below resolves against. A supplied
-    # tag always wins — it names the exact commit a consumer's install_spec
-    # will resolve to, so the doc/example/test URLs must point at the same
-    # commit or they contradict install_spec about which state of the library
-    # "publishing" refers to. With no tag (standalone write_marketstall(), or
-    # a repo with no release yet) this falls back to the current branch, same
-    # as before this parameter existed.
-    ref = tag or (_get_current_ref(git_root) if git_root else None)
-
-    docs_url = ""
-    if remote_url and module_dir and ref:
-        assert git_root is not None
-        module_rel = module_dir.relative_to(git_root)
-        if "github.com" in https_url:
-            raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
-            docs_url = f"{raw_base}/{ref}/{module_rel}/"
-        elif "gitlab.com" in https_url:
-            docs_url = f"{https_url}/-/raw/{ref}/{module_rel}/"
-
-    # read_manifest() above already validated [tool.haywire].os via
-    # _read_os_field; re-running it here would just re-validate the same
-    # already-checked value. Read it directly off the validated `data`.
-    os_decl: list[str] = data.get("tool", {}).get("haywire", {}).get("os") or []
-
-    def _folder_url(folder_name: str) -> str:
-        """Raw git URL for <lib>/<folder>/ when it holds >=1 .haywire graph."""
-        if not (remote_url and git_root and ref):
-            return ""
-        folder = lib_dir / folder_name
-        if not folder.is_dir() or not any(folder.rglob("*.haywire")):
-            return ""
-        rel = lib_dir.relative_to(git_root)
-        if "github.com" in https_url:
-            raw_base = https_url.replace("github.com", "raw.githubusercontent.com")
-            return f"{raw_base}/{ref}/{rel}/{folder_name}/"
-        if "gitlab.com" in https_url:
-            return f"{https_url}/-/raw/{ref}/{rel}/{folder_name}/"
-        return ""
-
-    examples_url = _folder_url("examples")
-    tests_url = _folder_url("tests")
+    # The fallback covers a standalone `write_marketstall()` — CI's generator,
+    # or `haywire share` on a checkout that never ran the wizard — where nothing
+    # has written the declaration yet.
+    origin = declared_raw.get("origin") or (https_url if remote_url else "")
+    origin_provider = declared_raw.get("origin_provider", "")
+    if not origin_provider and origin:
+        hostname = urlparse(origin).hostname
+        provider = resolve_host(hostname) if hostname else None
+        origin_provider = provider.name if provider else ""
 
     return Haybale(
         name=name,
@@ -159,11 +146,15 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         install_spec=install_spec,
         tags=tags,
         os=os_decl,
-        dependencies=dependencies,
-        source_url=https_url if remote_url else "",
-        docs_url=docs_url,
-        examples_url=examples_url,
-        tests_url=tests_url,
+        linked_libraries=linked,
+        origin=origin,
+        origin_provider=origin_provider,
+        notes=declared_raw.get("notes", ""),
+        homepage_url=declared.homepage_url,
+        documentation_url=declared.documentation_url,
+        issues_url=declared.issues_url,
+        examples_path=declared_raw.get("examples_path", ""),
+        tests_path=declared_raw.get("tests_path", ""),
     ).to_dict()
 
 
@@ -202,9 +193,9 @@ def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> lis
     rebuilt from disk in full — a partial rebuild silently deletes the entries
     of libraries that weren't part of this run.
 
-    ``tag``, when given, pins every entry's ref-bearing URLs (install_spec,
-    docs_url, examples_url, tests_url) to that tag instead of the current
-    branch — see :func:`_build_entry_for_library`.
+    ``tag``, when given, pins every entry's ``install_spec`` — the entry's only
+    ref — to that tag instead of the current branch. See
+    :func:`_build_entry_for_library`.
 
     Each entry's framework requirement is derived from that library's own
     ``haywire-core`` floor — see :func:`_build_entry_for_library`.
@@ -270,7 +261,7 @@ def write_marketstall(
     second gate here would re-ask a settled question. Prints nothing — callers
     own their own output.
 
-    ``tag``, when given, pins every entry's ref-bearing URLs to that tag
+    ``tag``, when given, pins every entry's ``install_spec`` to that tag
     rather than the current branch. The share pipeline always supplies it
     (the version is resolved and reserved in step 3, before this runs in
     step 5); direct/standalone callers that don't have a tag yet get the

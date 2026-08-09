@@ -57,7 +57,7 @@ _notify_registry_subscribers()              [Cross-registry cascade]
 
 | Trigger | Mechanism |
 |---|---|
-| `FileWatcher` detects `.py` change | `watchdog` filesystem observer; one per library with `file_watcher=True` |
+| `FileWatcher` detects a file change | `watchdog` filesystem observer; one per library with `file_watcher=True`. The handler is a **router**: it offers *every* non-directory event to the registries that claimed the folder. `BaseRegistry.event_dispatcher` drops anything that is not a `.py` — deciding that only modules reload is the registry's business, not the watcher's. A library's own `haybale.toml` is picked up on the root fallback by `_HaybaleTomlWatcher`, which refreshes the identity without any module reload |
 | Module reload | `importlib.reload(module)` |
 | Class re-registration | Decorator (`@node`, `@type`, etc.) re-runs on import; `BaseRegistry._class_filter` picks up the new class under the same `registry_key` |
 | Wrapper rebuild | `NodeWrapper.build()` re-instantiates from recipe; `EdgeWrapper.build()` runs the 4-stage pipeline against new ports |

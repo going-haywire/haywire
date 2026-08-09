@@ -27,7 +27,7 @@ def test_dep_satisfied_by_module_name_when_dist_name_set():
         lib_id="widgets", module_name="haybale_widgets", dist_name="haybale-widgets"
     )
     pkg = MagicMock()
-    pkg.dependencies = ["haybale_widgets"]
+    pkg.linked_libraries = ["haybale_widgets"]
 
     missing = mgr.get_missing_dependencies_for_package(pkg, require_enabled=False)
 
@@ -43,7 +43,7 @@ def test_folder_lib_without_dist_name_does_not_satisfy_marketplace_dep():
     """
     mgr = _make_manager_with_lib(lib_id="widgets", module_name="haybale_widgets", dist_name="")
     pkg = MagicMock()
-    pkg.dependencies = ["haybale_widgets"]
+    pkg.linked_libraries = ["haybale_widgets"]
 
     missing = mgr.get_missing_dependencies_for_package(pkg, require_enabled=False)
 
@@ -65,7 +65,7 @@ def test_disabled_dep_blocks_install_when_require_enabled():
 
     mgr = LibraryManager(library_registry=registry)
     pkg = MagicMock()
-    pkg.dependencies = ["haybale_graph_editor"]
+    pkg.linked_libraries = ["haybale_graph_editor"]
 
     missing = mgr.get_missing_dependencies_for_package(pkg, require_enabled=True)
 
@@ -79,11 +79,11 @@ def test_not_installed_dep_blocks_install_when_require_enabled():
 
     registry = MagicMock()
     registry.list_names.return_value = []  # nothing installed
-    registry.get_library_identity.return_value = MagicMock(dependencies=None)
+    registry.get_library_identity.return_value = MagicMock(linked_libraries=None)
 
     mgr = LibraryManager(library_registry=registry)
     pkg = MagicMock()
-    pkg.dependencies = ["haybale_graph_editor"]
+    pkg.linked_libraries = ["haybale_graph_editor"]
 
     missing = mgr.get_missing_dependencies_for_package(pkg, require_enabled=True)
 

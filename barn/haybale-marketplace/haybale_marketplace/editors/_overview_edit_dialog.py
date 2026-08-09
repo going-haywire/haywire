@@ -1,11 +1,20 @@
-"""Edit-identity dialog for LibraryOverviewEditor.
+"""Edit-metadata dialog for LibraryOverviewEditor.
 
-Identity only. Both of the fields this dialog once wrote and no longer does —
-the package name and the dependency list — moved out for the same reason: they
-need a flow that can sequence several writes and validate between them. Rename
-runs from the CLI with studio stopped; dependencies are authored by
-``haywire share``, whose steps each own disjoint entries in
-``[project] dependencies``.
+Writes ``haybale.toml`` and nothing else — no ``uv sync``, no module eviction,
+no restart. The runtime reads that file at the point of use, so the next render
+shows the change.
+
+What this dialog deliberately cannot write, and why:
+
+* ``name`` / ``id`` — immutable. They key every saved graph's node references
+  and every consumer's ``install_spec``. Renaming runs from the CLI with studio
+  stopped, because it rewrites installed packages and runs ``uv sync``.
+* ``version`` / ``origin`` — the share wizard writes these from facts it
+  observes (the lockstep bump, the git remote), and would overwrite anything
+  typed here on the next publish.
+* ``[deprecated]`` — retiring a library is rare and deliberate, so it is
+  hand-edited in the file rather than given a control that invites a stray
+  click.
 """
 
 from __future__ import annotations
@@ -14,9 +23,9 @@ import logging
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
-import toml
 from nicegui import ui
 
+from haywire.core.library.haybale_toml import read_display, read_haybale_toml_lenient
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
 from haywire.ui import elements as hui
@@ -30,25 +39,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
-
-
-def read_os_from_pyproject(lib: LibraryInfo, marketplace_path: str | None) -> list[str]:
-    """Read the heap's current [tool.haywire].os values. Empty list if unset or non-heap."""
-    if not is_project_library(lib, marketplace_path):
-        return []
-    if not lib.identity.folder_path:
-        return []
-    # lib.identity.folder_path is the MODULE path (e.g. workspace/barn/haybale-foo/haybale_foo).
-    # The pyproject.toml lives in its parent.
-    pyproject = Path(lib.identity.folder_path).parent / "pyproject.toml"
-    if not pyproject.is_file():
-        return []
-    try:
-        data = toml.loads(pyproject.read_text())
-    except Exception:
-        return []
-    os_decl = data.get("tool", {}).get("haywire", {}).get("os", [])
-    return [v for v in os_decl if isinstance(v, str)]
 
 
 def build_edit_dialog(
@@ -81,31 +71,39 @@ def build_edit_dialog(
         backdrop_click_close=False,
         escape_close=True,
     )
+    # Read the file, not the identity: the identity carries only what the
+    # runtime needs, and reading it here would show pre-edit values for
+    # anything a previous save changed.
+    display = read_display(Path(lib.identity.folder_path))
+
     with edit_popup:
         hui.section_label("Identity")
-        label_input = hui.input_field(label="Label", value=lib.identity.label)
+        label_input = hui.input_field(label="Label", value=display.label)
         # Version is not editable here — it's set by Share/publish (lockstep bump),
         # which overwrites this on the next publish regardless of what's typed here.
         ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
             "text-xs hw-text-dim"
         )
-        # Dependencies are authored by `haywire share`, not here. 
+        # linked_libraries is maintained by `haywire share`'s drift detector,
+        # which can prove what a library actually imports.
         ui.label(
-            f"Dependencies: {', '.join(lib.identity.dependencies or []) or '(none)'} (set via Share/publish)"
+            f"Linked libraries: {', '.join(lib.identity.linked_libraries or []) or '(none)'}"
+            " (maintained by Share)"
         ).classes("text-xs hw-text-dim")
 
-        desc_input = hui.input_field(label="Description", value=lib.identity.description)
-        author_input = hui.input_field(label="Author", value=lib.identity.author)
-        author_url_input = hui.input_field(label="Author URL", value=lib.identity.author_url)
-        url_input = hui.input_field(label="URL", value=lib.identity.url)
+        desc_input = hui.input_field(label="Description", value=display.description)
+        url_input = hui.input_field(label="Homepage URL", value=display.homepage_url)
+        docs_url_input = hui.input_field(label="Documentation URL", value=display.documentation_url)
+        issues_url_input = hui.input_field(label="Issues URL", value=display.issues_url)
         tags_input = hui.input_field(
             label="Tags (comma-separated)",
-            value=", ".join(lib.identity.tags or []),
+            value=", ".join(display.tags),
         )
 
-        # OS multi-select. Visible only for heaps (writable pyproject.toml).
+        # OS multi-select. Editable for heaps — an installed wheel's file is in
+        # site-packages, where an edit would be lost on the next reinstall.
         _is_heap = is_project_library(lib, marketplace_path)
-        current_os = read_os_from_pyproject(lib, marketplace_path) if _is_heap else []
+        current_os = list(read_haybale_toml_lenient(Path(lib.identity.folder_path)).get("os") or [])
         os_select = None
         if _is_heap:
             os_select = (
@@ -140,7 +138,7 @@ def build_edit_dialog(
                     "Restart the Studio — C-extension modules, import-time global mutation"
                 ),
             },
-            value=lib.identity.on_reload.value,
+            value=lib.identity.on_reload,
             in_popup=True,
         ).classes("w-full")
 
@@ -174,20 +172,19 @@ def build_edit_dialog(
             )
 
         async def _save():
+            # Only the keys this dialog owns. write_haybale_fields edits in
+            # place, so an omitted key is left alone rather than erased — which
+            # is why linked_libraries and [deprecated] survive a save untouched.
             identity = {
                 "label": label_input.value.strip(),
                 "description": desc_input.value.strip(),
-                "url": url_input.value.strip(),
-                "author": author_input.value.strip(),
-                "author_url": author_url_input.value.strip(),
+                "homepage_url": url_input.value.strip(),
+                "documentation_url": docs_url_input.value.strip(),
+                "issues_url": issues_url_input.value.strip(),
                 "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
-                # Passed through untouched: this dialog no longer authors
-                # dependencies, but the identity dict is written wholesale, so
-                # omitting the key would erase the declaration.
-                "dependencies": list(lib.identity.dependencies or []),
                 "on_reload": on_reload_select.value or LibraryReloadAction.NONE.value,
             }
-            # Include `os` only if the multi-select was rendered (heap libraries).
+            # `os` only when the multi-select was rendered (heap libraries).
             if os_select is not None:
                 identity["os"] = list(os_select.value or [])
             edit_popup.close()

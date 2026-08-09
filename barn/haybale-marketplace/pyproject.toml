@@ -1,7 +1,7 @@
 [project]
 name = "haybale-marketplace"
 version = "0.0.39"
-description = "Library installer + browser editors for Haywire"
+description = "Library installer + browser editors"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 
@@ -13,6 +13,7 @@ dependencies = [
     "nicegui>=3.12.1",
     "packaging",
 ]
+keywords = ["marketplace"]
 
 [project.entry-points."haywire.libraries"]
 marketplace = "haybale_marketplace:Library"

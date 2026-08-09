@@ -19,16 +19,8 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    label="Test A",
     id="test_a",
     version=_pkg_version("haybale-TEST_A"),
-    description="Test library A for demonstrating multi-library support",
-    url="https://github.com/going-haywire/haywire",
-    help_url="https://github.com/going-haywire/haywire",
-    author="Haywire Team",
-    author_url="https://github.com/going-haywire/haywire",
-    dependencies=[],
-    tags=["testing", "development"],
     file_watcher=False,
 )
 class Library(BaseLibrary):

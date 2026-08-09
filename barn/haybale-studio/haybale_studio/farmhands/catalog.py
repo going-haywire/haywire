@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import inspect
 from collections import Counter
+from pathlib import Path
 from typing import Any
 
 from haywire.core.docs.canons import canon_uri
@@ -14,6 +15,7 @@ from haywire.core.farmhand import (
     farmhand,
     truncation_note,
 )
+from haywire.core.library.haybale_toml import read_display
 from haywire.core.library.registry import LibraryRegistry
 
 from ._helpers import kind_registry_map, page, resolve_component_class
@@ -59,8 +61,11 @@ class StudioListLibrariesTool(Farmhand):
             if detail:
                 # Prose and tags are the bulk of a row; an agent picking a library
                 # to inspect needs the id first and the blurb only sometimes.
-                row["description"] = identity.description
-                row["tags"] = list(identity.tags or [])
+                # Read from haybale.toml, not the identity: an agent asking twice
+                # across an edit should see the edit.
+                display = read_display(Path(identity.folder_path))
+                row["description"] = display.description
+                row["tags"] = list(display.tags)
             rows.append(row)
         rows, total = page(rows, limit, offset)
         result = {

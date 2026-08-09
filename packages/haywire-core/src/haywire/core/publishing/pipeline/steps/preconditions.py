@@ -7,7 +7,10 @@ from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 
+from haywire.core.library.dep_detect import find_module_dir
+from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
+from haywire.core.publishing.generate import pyproject_drift
 from haywire.core.publishing.git import git, git_remote
 from haywire.core.publishing.manifest.errors import InvalidOsDeclarationError, ManifestReadError
 from haywire.core.publishing.manifest.os_field import describe_os_fix, invalid_os_values
@@ -24,6 +27,44 @@ GIT_INSTALL_HINT = (
 )
 
 _NO_REMOTE_HINT = "git remote add origin <your-repo-url>\ngit push -u origin <branch-name>"
+
+
+#: How deep to look for a misplaced project root. Two levels covers the shapes
+#: that actually occur — `<repo>/<project>/` and `<repo>/projects/<project>/` —
+#: without walking a whole repository on every preflight.
+_NESTED_PROJECT_SEARCH_DEPTH = 2
+
+
+def _has_haywire_dir_below(repo_root: Path) -> bool:
+    """True when a `.haywire/` exists below the git root but not at it.
+
+    That shape means the git root and the project root are different
+    directories, which silently redirects every declared path for consumers.
+    """
+    for depth in range(1, _NESTED_PROJECT_SEARCH_DEPTH + 1):
+        pattern = "/".join(["*"] * depth) + "/.haywire"
+        if any(match.is_dir() for match in repo_root.glob(pattern)):
+            return True
+    return False
+
+
+def _path_candidates(project_root: Path, field: str) -> list[str]:
+    """Directories a declared path could plausibly have meant.
+
+    Offered rather than typed: the wizard shows what is actually on disk, so a
+    repair cannot introduce a second wrong value. Deliberately shallow — a full
+    walk of a project would offer hundreds of irrelevant directories.
+    """
+    wanted = "examples" if field == "examples_path" else "tests"
+    found = [
+        f"{entry.relative_to(project_root)}/"
+        for entry in sorted(project_root.glob(f"*/{wanted}"))
+        if entry.is_dir()
+    ]
+    root_level = project_root / wanted
+    if root_level.is_dir():
+        found.insert(0, f"{wanted}/")
+    return found
 
 
 def check(pipeline: "SharePipeline") -> PreconditionsReport:
@@ -99,6 +140,34 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
             barn_libraries=[],
         )
 
+    # ── the project root must BE the git root ───────────────────────────
+    # examples_path/tests_path are project-relative and reach the row verbatim,
+    # but a consumer resolves them against `origin` at a tag — git-root-relative.
+    # Those are the same directory only if the project IS the repository.
+    # `haywire init` guarantees it (git init at the project dir), so this guards
+    # a relocated or hand-assembled project. Worth guarding because a mismatch
+    # is wrong only for CONSUMERS: the publisher's local paths keep working, so
+    # nothing surfaces on the machine that could fix it.
+    if (pipeline.repo_root / ".haywire").is_dir() is False and _has_haywire_dir_below(pipeline.repo_root):
+        return PreconditionsReport(
+            failures=[
+                PreconditionFailure(
+                    message=(
+                        "This project is not the root of its git repository. "
+                        "Declared example and test paths would resolve against "
+                        "the wrong directory for anyone who installs from it."
+                    ),
+                    remedy=(
+                        "Publish from a repository whose root is the project "
+                        "itself — `git init` inside the project directory, or "
+                        "move the project to the repository root."
+                    ),
+                )
+            ],
+            remote_url=None,
+            barn_libraries=[],
+        )
+
     barn = pipeline.repo_root / "barn"
     barn_libraries: list[Path] = []
     if not barn.is_dir():
@@ -142,6 +211,9 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
             rel_lib_dir = lib_dir.relative_to(pipeline.repo_root)
         except ValueError:
             rel_lib_dir = lib_dir
+        module_dir = find_module_dir(lib_dir)
+        declared = read_raw(module_dir) if module_dir else {}
+        rel_declared = f"{rel_lib_dir}/{module_dir.name}/{HAYBALE_TOML}" if module_dir else HAYBALE_TOML
         try:
             read_manifest(lib_dir)
         except InvalidOsDeclarationError as exc:
@@ -175,6 +247,72 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                     PreconditionFailure(
                         message=f"Could not read {rel_path}: {exc}",
                         remedy=f"Fix the TOML in {rel_path} so it parses, then try again.",
+                    )
+                ],
+                remote_url=None,
+                barn_libraries=barn_libraries,
+            )
+
+        # ── declared paths must exist ───────────────────────────────────
+        # Checked here and nowhere else. The edit modal accepts any value,
+        # because a broken path is nobody's problem until it is published: at
+        # that point the row points at nothing for every consumer.
+        for field in ("examples_path", "tests_path"):
+            declared_path = declared.get(field)
+            if not isinstance(declared_path, str) or not declared_path:
+                continue
+            # Project-relative — the project root is the git root, which the
+            # check below enforces.
+            if (pipeline.repo_root / declared_path.lstrip("/")).exists():
+                continue
+            candidates = _path_candidates(pipeline.repo_root, field)
+            return PreconditionsReport(
+                failures=[
+                    PreconditionFailure(
+                        message=(
+                            f"{rel_declared} declares {field} = {declared_path!r}, which does not exist."
+                        ),
+                        remedy=(
+                            f"Point {field} at a path that exists, or remove the "
+                            f"declaration. Paths are relative to the project root."
+                        ),
+                        kind="act",
+                        fix_id=f"set_{field}" if candidates else f"clear_{field}",
+                        fix_label=(
+                            f"Choose from {len(candidates)} candidate(s)"
+                            if candidates
+                            else "Remove the declaration"
+                        ),
+                        lib_dir=str(rel_lib_dir),
+                    )
+                ],
+                remote_url=None,
+                barn_libraries=barn_libraries,
+            )
+
+        # ── pyproject must agree with haybale.toml ──────────────────────
+        # No per-field choice: haybale.toml wins. This exists to tell the
+        # author their hand-edit is about to be discarded, BEFORE the point
+        # of no return — publish would regenerate either way.
+        try:
+            drift = pyproject_drift(lib_dir)
+        except ManifestReadError:
+            drift = {}
+        if drift:
+            fields = ", ".join(sorted(drift))
+            return PreconditionsReport(
+                failures=[
+                    PreconditionFailure(
+                        message=(f"{rel_path} disagrees with {rel_declared} on: {fields}."),
+                        remedy=(
+                            "haybale.toml is canon for these fields; publishing "
+                            "regenerates them. Apply the fix to do it now and see "
+                            "the result before anything is committed."
+                        ),
+                        kind="act",
+                        fix_id="sync_pyproject",
+                        fix_label=f"Regenerate {fields}",
+                        lib_dir=str(rel_lib_dir),
                     )
                 ],
                 remote_url=None,

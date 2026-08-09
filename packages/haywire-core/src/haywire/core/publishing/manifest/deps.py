@@ -1,37 +1,35 @@
-"""Reading label and dependency metadata out of a library's @library decorator."""
+"""Reading label and sibling-library metadata out of a library's ``haybale.toml``.
+
+Both functions used to regex the ``@library(...)`` call in ``__init__.py``. They
+read the TOML now: the fields moved there, and a TOML parse cannot be defeated by
+quoting, line wrapping, or a comment that happens to contain the field name — all
+of which the regexes could be.
+
+Lenient by design. Every caller here is building a *report* or a scaffold entry,
+where a library that cannot be read should degrade to a fallback rather than
+abort the run. The strict reader lives in
+:mod:`haywire.core.library.haybale_toml` and is used at decoration time, where a
+library that cannot name itself must not load.
+"""
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
+
+from haywire.core.library.haybale_toml import read_haybale_toml_lenient
 
 
 def _read_library_label(module_dir: Path, fallback: str) -> str:
-    """Read the label from the @library decorator in module_dir/__init__.py.
-
-    Falls back to *fallback* if the file is missing or the field can't be found.
-    """
-    init_file = module_dir / "__init__.py"
-    if not init_file.exists():
-        return fallback
-    content = init_file.read_text()
-    match = re.search(r"label\s*=\s*['\"]([^'\"]+)['\"]", content)
-    return match.group(1) if match else fallback
+    """The library's declared label, or *fallback* when it declares none."""
+    return read_haybale_toml_lenient(module_dir).get("label") or fallback
 
 
 def _read_library_dependencies(module_dir: Path) -> list[str]:
-    """Read dependencies from the @library decorator in module_dir/__init__.py.
+    """The library's ``linked_libraries``, as **pip** names.
 
-    Returns pip package names (hyphens), converted from the module names
-    (underscores) used in the decorator.  Returns [] if none declared.
+    Declared as module names (``haybale_studio``); converted here to the
+    distribution form (``haybale-studio``) because the callers — the marketplace
+    install gate and the ``[[heaps]]`` writer — match against distribution names.
     """
-    init_file = module_dir / "__init__.py"
-    if not init_file.exists():
-        return []
-    content = init_file.read_text()
-    match = re.search(r"dependencies\s*=\s*\[([^\]]*)\]", content, re.DOTALL)
-    if not match:
-        return []
-    raw = match.group(1)
-    modules = re.findall(r"['\"]([^'\"]+)['\"]", raw)
-    return [m.replace("_", "-") for m in modules]
+    declared = read_haybale_toml_lenient(module_dir).get("linked_libraries") or []
+    return [m.replace("_", "-") for m in declared]

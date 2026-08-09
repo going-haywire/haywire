@@ -8,7 +8,7 @@ Covers:
   - Spurious DELETE suppression after atomic writes
   - True renames (foo.py → bar.py): should emit DELETED + CREATED
   - Debounce coalescing: rapid events collapse into the latest one
-  - Non-.py files are ignored
+  - Non-.py files are routed like any other and rejected by the registry
   - Directory events are ignored
   - Multiple registry routing
   - Race condition: CREATE arriving before MOVE during atomic write
@@ -29,7 +29,12 @@ from watchdog.events import (
 
 from haywire.core.library.file_watcher import LibraryFileHandler
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.registry.base import FileChangeEvent, FileEventType, HotReloadRegistry
+from haywire.core.registry.base import (
+    BaseRegistry,
+    FileChangeEvent,
+    FileEventType,
+    HotReloadRegistry,
+)
 
 
 # ---------------------------------------------------------------------------
@@ -43,7 +48,6 @@ def _make_identity(label: str = "TestLib", folder: str = "/tmp/fake") -> Library
         version="0.1",
         description="test",
         url="",
-        help_url="",
         author="",
         author_url="",
         folder_path=folder,
@@ -80,6 +84,48 @@ class RecordingRegistry(HotReloadRegistry):
     def clear(self):
         self.events.clear()
         self._event.clear()
+
+
+class _RejectingRegistry(BaseRegistry):
+    """A real BaseRegistry: it takes the genuine event_dispatcher path, so the
+    non-.py rejection under test is the shipped one, not a stand-in."""
+
+    def __init__(self):
+        super().__init__()
+        self.events: list[FileChangeEvent] = []
+        self.changed: list[str] = []
+        self.created: list[str] = []
+        self.deleted: list[str] = []
+
+    def _class_filter(self, cls) -> bool:  # pragma: no cover - never reached here
+        return False
+
+    def _register_class(self, cls, library_identity=None):  # pragma: no cover
+        return None
+
+    def _unregister_class(self, registry_key):  # pragma: no cover
+        return None
+
+    def event_dispatcher(self, event: FileChangeEvent):
+        self.events.append(event)
+        return super().event_dispatcher(event)
+
+    def _on_change(self, module_name, library_identity, event=None):
+        self.changed.append(module_name)
+
+    def _on_creation(self, module_name, library_identity, event=None):
+        self.created.append(module_name)
+
+    def _on_delete(self, module_name, library_identity):
+        self.deleted.append(module_name)
+
+    def wait_for_n_events(self, n: int, timeout: float = 2.0) -> bool:
+        deadline = time.monotonic() + timeout
+        while len(self.events) < n:
+            if time.monotonic() >= deadline:
+                return False
+            time.sleep(0.01)
+        return True
 
 
 @pytest.fixture
@@ -159,17 +205,27 @@ class TestBasicFileOperations:
 @pytest.mark.unit
 @pytest.mark.core
 class TestFiltering:
-    """Verify that non-.py files and directories are ignored."""
+    """Verify that directories are ignored and non-.py files are rejected
+    downstream rather than filtered here."""
 
-    def test_non_python_file_ignored(self, wired_handler, identity, registry):
-        """Events for non-.py files should be silently dropped."""
+    def test_non_python_file_is_routed_and_rejected_downstream(self, handler, identity):
+        """The handler is a router: it offers every file to the registries that
+        claimed the folder, and the registry decides only modules matter.
+
+        Asserted against a real BaseRegistry.event_dispatcher rather than a
+        mock, because the seam between the two IS the behaviour under test."""
+        registry = _RejectingRegistry()
+        handler.add_folder_mapping(identity.folder_path, identity, registry, debounce_delay=0.05)
         base = identity.folder_path
-        wired_handler.on_created(FileCreatedEvent(f"{base}/readme.md"))
-        wired_handler.on_modified(FileModifiedEvent(f"{base}/data.json"))
-        wired_handler.on_deleted(FileDeletedEvent(f"{base}/style.css"))
-        # Give debounce time to fire (if anything were pending)
-        time.sleep(0.1)
-        assert len(registry.events) == 0
+
+        handler.on_created(FileCreatedEvent(f"{base}/readme.md"))
+        handler.on_modified(FileModifiedEvent(f"{base}/data.json"))
+        handler.on_deleted(FileDeletedEvent(f"{base}/style.css"))
+
+        assert registry.wait_for_n_events(3), "every file must reach the registry"
+        assert registry.changed == [], "and none of them may reload a module"
+        assert registry.created == []
+        assert registry.deleted == []
 
     def test_directory_events_ignored(self, wired_handler, identity, registry):
         """Directory events should be silently dropped."""
@@ -206,6 +262,16 @@ class TestAtomicWrites:
         assert len(registry.events) == 1
         assert registry.events[0].event_type == FileEventType.MODIFIED
         assert registry.events[0].file_path == f"{base}/module.py"
+
+    def test_atomic_write_of_a_non_python_file_emits_modified(self, wired_handler, identity, registry):
+        """Nothing about the atomic-write shape is Python-specific — an editor
+        saves haybale.toml the same way it saves a module."""
+        base = identity.folder_path
+        wired_handler.on_moved(FileMovedEvent(f"{base}/haybale.toml.tmp.12345", f"{base}/haybale.toml"))
+        assert registry.wait_for_event()
+        assert len(registry.events) == 1
+        assert registry.events[0].event_type == FileEventType.MODIFIED
+        assert registry.events[0].file_path == f"{base}/haybale.toml"
 
     def test_atomic_write_suppresses_spurious_delete(self, wired_handler, identity, registry):
         """
@@ -245,16 +311,33 @@ class TestAtomicWrites:
 @pytest.mark.unit
 @pytest.mark.core
 class TestTrueRenames:
-    """A rename of one .py file to another .py file should emit DELETED + CREATED."""
+    """Renaming a tracked file should emit DELETED + CREATED."""
 
     def test_rename_emits_deleted_and_created(self, wired_handler, identity, registry):
-        """foo.py → bar.py should produce DELETED(foo) then CREATED(bar)."""
+        """existing.py → bar.py should produce DELETED(existing) then CREATED(bar).
+
+        The source is a file the handler knows about — seeded from disk — which
+        is what distinguishes a rename from an editor's atomic write."""
         base = identity.folder_path
-        wired_handler.on_moved(FileMovedEvent(f"{base}/foo.py", f"{base}/bar.py"))
+        assert f"{base}/existing.py" in wired_handler._known_files
+
+        wired_handler.on_moved(FileMovedEvent(f"{base}/existing.py", f"{base}/bar.py"))
         assert registry.wait_for_n_events(2)
         types = [(e.file_path, e.event_type) for e in registry.events]
-        assert (f"{base}/foo.py", FileEventType.DELETED) in types
+        assert (f"{base}/existing.py", FileEventType.DELETED) in types
         assert (f"{base}/bar.py", FileEventType.CREATED) in types
+
+    def test_moving_an_untracked_file_is_an_atomic_write(self, wired_handler, identity, registry):
+        """A source nobody ever saw is a scratch file, whatever it is named."""
+        base = identity.folder_path
+        assert f"{base}/foo.py" not in wired_handler._known_files
+
+        wired_handler.on_moved(FileMovedEvent(f"{base}/foo.py", f"{base}/bar.py"))
+        assert registry.wait_for_event()
+        time.sleep(0.1)
+        assert len(registry.events) == 1
+        assert registry.events[0].event_type == FileEventType.MODIFIED
+        assert registry.events[0].file_path == f"{base}/bar.py"
 
 
 # ---------------------------------------------------------------------------
@@ -361,13 +444,44 @@ class TestKnownFilesTracking:
     """Verify that _known_files is seeded and maintained correctly."""
 
     def test_existing_files_seeded_on_registration(self, handler, tmp_lib):
-        """Pre-existing .py files should be in _known_files after add_folder_mapping."""
+        """Pre-existing files should be in _known_files after add_folder_mapping."""
         identity = _make_identity(folder=str(tmp_lib))
         registry = RecordingRegistry()
         handler.add_folder_mapping(str(tmp_lib), identity, registry, debounce_delay=0.05)
 
         expected = str(tmp_lib / "existing.py")
         assert expected in handler._known_files
+
+    def test_non_python_files_are_seeded_and_downgraded_too(self, handler, tmp_lib, registry):
+        """_known_files tracks whatever is on disk, so the CREATE→MODIFIED
+        downgrade protects a .md exactly as it protects a module."""
+        readme = tmp_lib / "README.md"
+        readme.write_text("# hello\n")
+        identity = _make_identity(folder=str(tmp_lib))
+        handler.add_folder_mapping(str(tmp_lib), identity, registry, debounce_delay=0.05)
+
+        assert str(readme) in handler._known_files
+
+        handler.on_created(FileCreatedEvent(str(readme)))
+        assert registry.wait_for_event()
+        assert registry.events[0].event_type == FileEventType.MODIFIED
+
+    def test_excluded_directories_are_not_walked(self, handler, tmp_lib, registry):
+        """A library with a local virtualenv must not cost a full tree walk on
+        the enable path — and nothing in there is a component anyway."""
+        venv_pkg = tmp_lib / ".venv" / "lib" / "site-packages"
+        venv_pkg.mkdir(parents=True)
+        (venv_pkg / "vendored.py").write_text("# not ours\n")
+        cache = tmp_lib / "__pycache__"
+        cache.mkdir()
+        (cache / "existing.cpython-312.pyc").write_text("")
+
+        identity = _make_identity(folder=str(tmp_lib))
+        handler.add_folder_mapping(str(tmp_lib), identity, registry, debounce_delay=0.05)
+
+        assert str(tmp_lib / "existing.py") in handler._known_files
+        assert not [p for p in handler._known_files if ".venv" in p]
+        assert not [p for p in handler._known_files if "__pycache__" in p]
 
     def test_created_file_added_to_known(self, wired_handler, identity):
         """A CREATE event should add the file to _known_files."""

@@ -24,8 +24,8 @@ def _scaffold_minimal_heap(workspace: Path, dist_name: str = "haybale-foo") -> P
         "from haywire.core.library.decorator import library\n"
         "\n"
         '@library(label="Foo", id="foo", version="0.1.0", description="x",\n'
-        '         url="", help_url="", author="", author_url="",\n'
-        "         dependencies=[], tags=[], file_watcher=False)\n"
+        '         url="", author="", author_url="",\n'
+        "         linked_libraries=[], tags=[], file_watcher=False)\n"
         "class Library(BaseLibrary):\n"
         "    def register_components(self): pass\n"
         "    def validate(self) -> bool: return True\n"

@@ -1,0 +1,17 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+#
+# The builtin library is framework-owned: it lives inside haywire-core rather
+# than in barn/, and is never published as a standalone haybale.
+
+name = "haywire-core"
+id = "builtin"
+label = "Builtin"
+description = "Framework-owned primitive types and adapters"
+tags = ["builtin", "types", "adapters", "nodes", "skins"]
+
+homepage_url = "https://github.com/going-haywire/haywire"
+
+[[authors]]
+name = "maybites"
+url = "https://maybites.ch"

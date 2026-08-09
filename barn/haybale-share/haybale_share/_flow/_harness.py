@@ -456,10 +456,23 @@ def done_needs_refresh() -> ShareFlow:
 
 
 def done_needs_restart() -> ShareFlow:
-    """A library declared on_reload="restart", or no live registry was reachable."""
+    """Reloaded fine, but a library declares on_reload="restart".
+
+    The registry is NOT stale here — the restart is that library's own
+    requirement (C-extension modules, import-time global mutation), which is a
+    different sentence from the one below.
+    """
     flow = _published()
     flow.hot_swapped_libraries = ["alpha"]
     flow.hot_swap_on_reload = LibraryReloadAction.RESTART
+    return flow
+
+
+def done_nothing_swapped() -> ShareFlow:
+    """No library was live to reload, so what's loaded really does predate the bump."""
+    flow = _published()
+    flow.hot_swapped_libraries = []
+    flow.hot_swap_on_reload = LibraryReloadAction.NONE
     return flow
 
 
@@ -497,6 +510,7 @@ SCENARIOS: dict[str, list[tuple[str, Callable[[], ShareFlow], Panel]]] = {
     "4 · Done": [
         ("Hot-swapped, no restart", done_hot_swapped, panel_done),
         ("Page reload needed", done_needs_refresh, panel_done),
-        ("Restart needed", done_needs_restart, panel_done),
+        ("Restart needed (library asked)", done_needs_restart, panel_done),
+        ("Restart needed (nothing swapped)", done_nothing_swapped, panel_done),
     ],
 }

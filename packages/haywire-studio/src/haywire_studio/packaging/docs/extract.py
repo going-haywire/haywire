@@ -1,10 +1,12 @@
 from __future__ import annotations
 
 import inspect
+from pathlib import Path
 from typing import Any
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.scheduler import SyncScheduler
+from haywire.core.library.haybale_toml import read_display
 from haywire.core.library.kinds import kind_registry_map
 from haywire.core.node.inspector import NodeInstanceInspector
 from haywire_studio.packaging.docs.model import ComponentRecord, LibraryDoc
@@ -148,11 +150,15 @@ def extract_library(service: Any, library_id: str) -> LibraryDoc:
             else:
                 records.append(_record_from_class(kind, key, cls))
     records.sort(key=lambda r: r.registry_key)
+    # Description off haybale.toml: docs are regenerated after an edit, and
+    # regenerating them from an identity built at import would bake the
+    # pre-edit prose into the output.
+    display = read_display(Path(lib_identity.folder_path))
     return LibraryDoc(
         library_id=library_id,
         label=lib_identity.label,
         version=lib_identity.version,
-        description=lib_identity.description,
+        description=display.description,
         components=records,
     )
 

@@ -61,3 +61,19 @@ class HostProvider(Protocol):
     def blob_url(self, owner: str, repo: str, ref: str, path: str) -> str:
         """Construct the share URL (canonical, browser-friendly)."""
         ...
+
+    def tree_url(self, owner: str, repo: str, ref: str, path: str) -> str:
+        """Construct the browser URL for a *directory*.
+
+        Distinct from :meth:`blob_url` because hosts route files and directories
+        differently — GitHub uses /blob/ and /tree/, GitLab /-/blob/ and /-/tree/.
+        """
+        ...
+
+    def parse_origin(self, url: str) -> tuple[str, str] | None:
+        """Split a bare repository URL into ``(owner, repo)``. None if not a match.
+
+        The existing parse_* methods take blob/raw URLs, which carry a ref and a
+        path; a row's ``origin`` has neither, so it needs its own parser.
+        """
+        ...

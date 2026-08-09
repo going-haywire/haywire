@@ -29,8 +29,8 @@ def _panel_selected(flow: InstallFlow, rerender: Callable[[], None]) -> None:
         ui.label(f"version {flow.target_version}").classes("text-xs font-mono hw-text-dim")
 
     pkg = flow.package
-    if pkg is not None and pkg.source_url:
-        hui.info_row("Source", pkg.source_url)
+    if pkg is not None and pkg.origin:
+        hui.info_row("Source", pkg.origin)
 
     if not flow.is_update:
         ui.label(

@@ -7,7 +7,7 @@ from pathlib import Path
 import toml
 
 from haywire.core.publishing.manifest.errors import ManifestReadError
-from haywire.core.publishing.manifest.os_field import _read_os_field
+from haywire.core.publishing.manifest.os_field import read_os_field
 
 
 def _read_raw_toml(pyproject_path: Path) -> tuple[str, dict]:
@@ -45,7 +45,7 @@ def read_manifest(lib_dir: Path) -> dict:
         data = toml.loads(text)
     except toml.TomlDecodeError as exc:
         raise ManifestReadError(f"Malformed TOML in {pyproject_path}: {exc}") from exc
-    _read_os_field(data, lib_dir)
+    read_os_field(lib_dir)
     return data
 
 

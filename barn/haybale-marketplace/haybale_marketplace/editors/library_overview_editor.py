@@ -53,7 +53,9 @@ from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
+from haywire.core.library.haybale_toml import read_display
 from haywire.core.marketstall import Haybale
+from haywire.core.marketstall.locate import link_form, module_dir_path, resolve_row_path
 from haywire.ui.modals import info_modal
 
 from haywire.ui.widget.registry import WidgetRegistry
@@ -116,32 +118,40 @@ def should_block_install_for_os(haybale) -> str | None:
     return f"Not available on this OS; this library targets: {targets}."
 
 
-def _clickable_doc_url(url: str) -> str:
-    """A browser-fetchable file URL for a generated docs_url/examples_url prefix.
-
-    docs_url is a DIRECTORY prefix meant for programmatic fetching — the same
-    resolution MarketplaceState.fetch_overview applies (append OVERVIEW.md when
-    the URL doesn't already name a file). A raw-content host like
-    raw.githubusercontent.com serves no directory index, so handing the bare
-    prefix to a browser link 404s even when the file inside it exists.
-    """
-    stripped = url.rstrip("/")
-    return stripped if stripped.endswith(".md") else f"{stripped}/OVERVIEW.md"
-
-
 def collect_overview_links(pkg) -> list[tuple[str, str]]:
     """The (label, href) links shown in the library overview header.
 
-    Examples are surfaced for humans; tests_url is deliberately NOT surfaced
-    (framework-maintainer metadata only).
+    Rows carry repo-relative paths, not URLs, so each is resolved against the
+    row's ``origin`` at ``install_spec``'s ref — a trailing slash links as a
+    directory, anything else as a file. ``resolve_row_path`` returns None rather
+    than guessing when the host is unrecognised or the row lacks coordinates;
+    the link is then simply absent, because a wrong URL is worse than none.
+
+    Examples are surfaced for humans; ``tests_path`` is deliberately NOT
+    surfaced (framework-maintainer metadata only).
+
+    ``documentation_url`` is an absolute URL to a rendered site, so it is used
+    verbatim. The old "Docs" link resolved the *module directory* and therefore
+    opened a source-tree listing — nodes/, widgets/, __init__.py — which is not
+    documentation.
     """
+    if pkg is None:
+        return []
     links: list[tuple[str, str]] = []
-    if pkg and pkg.source_url:
-        links.append(("Source", pkg.source_url))
-    if pkg and pkg.docs_url and pkg.docs_url.startswith("http"):
-        links.append(("Docs", _clickable_doc_url(pkg.docs_url)))
-    if pkg and getattr(pkg, "examples_url", "") and pkg.examples_url.startswith("http"):
-        links.append(("Examples", pkg.examples_url))
+    if pkg.origin:
+        links.append(("Source", pkg.origin))
+    if getattr(pkg, "documentation_url", ""):
+        links.append(("Documentation", pkg.documentation_url))
+    notes_dir = module_dir_path(pkg)
+    for label, path in (
+        ("Notes", f"{notes_dir}{pkg.notes}" if (notes_dir and pkg.notes) else ""),
+        ("Examples", pkg.examples_path),
+    ):
+        if not path:
+            continue
+        href = resolve_row_path(pkg, path, form=link_form(path))
+        if href:
+            links.append((label, href))
     return links
 
 
@@ -318,13 +328,18 @@ class LibraryOverviewEditor(BaseEditor):
 
         marketplace_path = str(Path(app.workspace_root) / ".haywire" / "marketplace.toml")
 
-        # Determine display properties
-        if installed_lib:
-            name = installed_lib.identity.label
+        # Determine display properties. An installed library is rendered from
+        # its own haybale.toml, read now rather than off the identity built at
+        # import — that is what makes an edit visible without a reload. A
+        # not-yet-installed one has no files on disk, so it renders from the
+        # marketstall row, which carries a verbatim copy of the same fields.
+        display = read_display(Path(installed_lib.identity.folder_path)) if installed_lib else None
+        if installed_lib and display is not None:
+            name = display.label or installed_lib.identity.label
             version = installed_lib.identity.version
-            description = installed_lib.identity.description
-            author = installed_lib.identity.author
-            tags = installed_lib.identity.tags or (marketplace_pkg.tags if marketplace_pkg else []) or []
+            description = display.description
+            author = display.author_names
+            tags = list(display.tags) or (marketplace_pkg.tags if marketplace_pkg else []) or []
         else:
             assert marketplace_pkg is not None
             name = marketplace_pkg.label or marketplace_pkg.name
@@ -363,7 +378,7 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Header ────────────────────────────────────────────────────
                 with ui.row().classes("w-full items-start justify-between mb-2"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
-                        _title_url = (installed_lib.identity.url if installed_lib else "") or ""
+                        _title_url = (display.homepage_url if display else "") or ""
                         if _title_url.startswith("http"):
                             with ui.row().classes("items-center gap-1"):
                                 ui.label(name).classes("text-2xl font-bold")
@@ -603,7 +618,7 @@ class LibraryOverviewEditor(BaseEditor):
                 if description:
                     ui.label(description).classes("hw-text-muted text-sm mb-1")
                 if author:
-                    _author_url = (installed_lib.identity.author_url if installed_lib else "") or ""
+                    _author_url = (display.authors[0][1] if display and display.authors else "") or ""
                     if _author_url.startswith("http"):
                         with ui.row().classes("items-center gap-1"):
                             ui.label("By").classes("text-xs hw-text-dim")
@@ -780,7 +795,7 @@ class LibraryOverviewEditor(BaseEditor):
         manager,
         context: "SessionContext",
     ):
-        """Save identity fields, then rescan so the in-memory identity is refreshed."""
+        """Write the edited metadata, then re-render. No reload, no restart."""
         if not marketplace_path:
             ui.notify("No project workspace set.", type="negative")
             return
@@ -796,57 +811,17 @@ class LibraryOverviewEditor(BaseEditor):
             ui.notify(message, type="negative")
             return
 
-        # Rescan. This re-executes the decorator so the panel shows the new
-        # metadata, but it does NOT refresh objects already built from the
-        # ejected module — mounted nodes and registered types still point at
-        # the old classes. Hence the restart offer below rather than a plain
-        # success notification.
-        manager._invalidate_caches()
-        await asyncio.to_thread(manager.registry.scan_for_libraries)
-        manager.registry.enable_all_libraries()
+        # No rescan, no module eviction, no restart offer. The write went to
+        # haybale.toml, which every consumer reads at the point of use, and the
+        # library's own file watcher refreshes the two identity fields that
+        # cannot be read on demand. Re-rendering is enough to show it.
+        ui.notify(f"Saved: {identity.get('label', lib.identity.label)}", type="positive")
 
-        ui.notify(
-            f"Saved: {identity.get('label', lib.identity.label)} — restart to fully apply",
-            type="positive",
-        )
-
-        # Reload the freshly-saved library into context and re-render
-        try:
-            libs = manager.list_installed()
-            context.active_library = next(
-                (entry for entry in libs if entry.identity.id == lib.identity.id), None
-            )
-        except Exception:
-            pass
         # _do_update_identity is wired from a button drawn during draw(),
         # so _container has been set by then.
         assert self._container is not None
         self._container.clear()
         self._rebuild(context)
-        self._offer_restart(lib.identity.label)
-
-    def _offer_restart(self, label: str) -> None:
-        """Offer a restart after an identity edit, in a popup of its own.
-
-        Not rendered inline: ``_do_update_identity`` clears and rebuilds the
-        editor container immediately before this runs, which would delete any
-        element added to it.
-        """
-        from haywire.ui.components.popup import Popup
-        from haywire.ui.modals import restart_affordance
-
-        popup = Popup(title="Restart to apply", width="420px", closable=True)
-        with popup:
-            with ui.column().classes("w-full gap-2"):
-                restart_affordance(
-                    reason=(
-                        f"“{label}” was edited on disk. The panel shows the new details, "
-                        "but components already loaded from it are unchanged."
-                    )
-                )
-                with ui.row().classes("w-full justify-end"):
-                    ui.button("Later", on_click=popup.close).props("flat dense")
-        popup.open()
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)
@@ -873,10 +848,10 @@ class LibraryOverviewEditor(BaseEditor):
                     ui.label("No overview available for this package.").classes(
                         "hw-text-muted text-sm italic"
                     )
-                    if pkg.source_url:
+                    if pkg.origin:
                         ui.link(
                             "View source repository →",
-                            pkg.source_url,
+                            pkg.origin,
                             new_tab=True,
                         ).classes("text-xs hw-text-accent mt-1")
         except Exception:

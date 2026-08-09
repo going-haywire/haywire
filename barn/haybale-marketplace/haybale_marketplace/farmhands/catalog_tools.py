@@ -173,10 +173,14 @@ class MarketplaceGetLibraryDocsTool(Farmhand):
                     ),
                 )
             from haywire.core.marketstall.cache import fetch_doc
+            from haywire.core.marketstall.locate import module_dir_path, resolve_row_path
 
             for pkg in _marketplace_state(ctx).get_project_haybales():
-                if pkg.name == library and pkg.docs_url:
-                    url = pkg.docs_url.rstrip("/") + "/" + rel
+                docs_dir = module_dir_path(pkg)
+                if pkg.name == library and docs_dir:
+                    url = resolve_row_path(pkg, f"{docs_dir.rstrip('/')}/{rel}", form="raw")
+                    if not url:
+                        continue
                     text = await asyncio.to_thread(fetch_doc, url, pkg.name)
                     if text:
                         return _doc_result(

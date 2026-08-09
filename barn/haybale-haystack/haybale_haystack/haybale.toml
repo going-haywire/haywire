@@ -1,0 +1,13 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+# Edited in the studio's library overview — no reinstall, no reload.
+
+name = "haybale-haystack"
+id = "haystack"
+label = "Haystack"
+description = "File-centric multi-graph manager"
+tags = ["graph-management"]
+
+# Sibling haybales this library subscribes to, as MODULE names.
+# Required for hot-reload scope tracking.
+linked_libraries = ["haybale_studio", "haybale_graph_editor"]

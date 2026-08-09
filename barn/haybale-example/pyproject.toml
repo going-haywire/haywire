@@ -1,14 +1,11 @@
 [project]
 name = "haybale-example"
 version = "0.0.39"
-description = "Example library for Haywire node system demonstrating custom types, nodes, widgets, and renderers"
+description = "Example library for demonstrating multi-library support"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
-authors = [
-    {name = "Haywire Team"}
-]
-keywords = ["haywire", "node-editor", "visual-programming", "example"]
+keywords = ["example", "demo", "tutorial"]
 
 dependencies = [
     "haywire-core>=0.0.39",
@@ -18,8 +15,13 @@ dependencies = [
     "typing_extensions"]
 
 # Entry point for Haywire library discovery
+[[project.authors]]
+name = "Example Author"
 [project.entry-points."haywire.libraries"]
 example = "haybale_example:Library"
+
+[project.urls]
+Homepage = "https://github.com/author/haywire_library"
 
 [build-system]
 requires = ["hatchling"]

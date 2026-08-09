@@ -561,7 +561,23 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
             ui.label("Reload the page to pick up their new front-end resources.").classes(
                 "text-xs hw-text-muted"
             )
+    elif flow.hot_swapped_libraries:
+        # Reloaded fine; a library declares @library(on_reload="restart") — it
+        # leaves the process in a state hot-reload cannot repair (C-extension
+        # modules, import-time global mutation). The registry is NOT stale: the
+        # restart is the library's own requirement, not a consequence of the bump.
+        count = len(flow.hot_swapped_libraries)
+        restart_affordance(
+            reason=(
+                f"Reloaded {count} bumped librar{'y' if count == 1 else 'ies'}, but one of them "
+                "declares that it needs a Studio restart to load cleanly."
+            ),
+            compact=True,
+        )
     else:
+        # Nothing was swapped — no library was live in this process to reload
+        # (none enabled, or no live library system at all), so whatever is
+        # loaded still predates the bump.
         restart_affordance(
             reason="Publishing bumped every barn library's version, so the loaded registry is now stale.",
             compact=True,

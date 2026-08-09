@@ -1,22 +1,24 @@
 [project]
 name = "haybale-core"
 version = "0.0.39"
-description = "Haywire's core library with types, nodes, widgets, and renderers"
+description = "Fundamental components for haywire graphs"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
-authors = [
-    {name = "Haywire Team"}
-]
-keywords = ["haywire", "node-editor", "visual-programming", "core"]
+keywords = ["core", "types", "widgets", "skins", "adapters"]
 
 dependencies = [
     "haywire-core>=0.0.39",
     "typing_extensions"]
 
 # Entry point for Haywire library discovery
+[[project.authors]]
+name = "maybites"
 [project.entry-points."haywire.libraries"]
 core = "haybale_core:Library"
+
+[project.urls]
+Homepage = "https://github.com/going-haywire/haywire"
 
 [build-system]
 requires = ["hatchling"]

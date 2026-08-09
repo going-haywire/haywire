@@ -13,7 +13,6 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     version="0.1",
     description="test",
     url="",
-    help_url="",
     author="",
     author_url="",
     folder_path="/tmp/fake",

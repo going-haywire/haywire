@@ -84,10 +84,10 @@ def test_add_heap_to_project_persists_dependencies(tmp_path: Path) -> None:
         f,
         name="haybale-haystack",
         path=Path("/abs/haystack"),
-        dependencies=["haybale-studio", "haybale-graph-editor"],
+        linked_libraries=["haybale-studio", "haybale-graph-editor"],
     )
     pm = parse_project_marketplace(f)
-    assert pm.heaps[0]["dependencies"] == ["haybale-studio", "haybale-graph-editor"]
+    assert pm.heaps[0]["linked_libraries"] == ["haybale-studio", "haybale-graph-editor"]
 
 
 @pytest.mark.unit

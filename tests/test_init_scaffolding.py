@@ -454,15 +454,15 @@ class TestDevModeProjectRegistration:
         assert names == ["haybale-test-project"]
 
     def test_dev_heaps_carry_decorator_dependencies(self, scaffold_dev_with_fake_home):
-        """A dev heap records its @library(dependencies=...) so the install gate can check.
+        """A dev heap records its @library(linked_libraries=...) so the install gate can check.
 
         haybale-haystack's @library decorator declares haybale_studio +
         haybale_graph_editor; both must be written (pip-package form) into its
-        [[heaps]] entry's `dependencies` field.
+        [[heaps]] entry's `linked_libraries` field.
         """
         data = toml.loads((scaffold_dev_with_fake_home / ".haywire" / "marketplace.toml").read_text())
         haystack = next(e for e in data["heaps"] if e["name"] == "haybale-haystack")
-        deps = set(haystack.get("dependencies", []))
+        deps = set(haystack.get("linked_libraries", []))
         assert {"haybale-studio", "haybale-graph-editor"} <= deps
         # The decorator only declares haybale libraries — no framework/PyPI deps.
         assert all(d.startswith("haybale-") for d in deps)

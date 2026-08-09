@@ -25,7 +25,7 @@ def repo_with_two_barn_libs(tmp_path: Path) -> Path:
         'authors = [{name = "Alpha Author"}]\n'
     )
     (lib_a / "haybale_alpha" / "__init__.py").write_text(
-        '@library(label="Alpha", id="alpha", dependencies=["haybale_beta"])\nclass Library: pass\n'
+        '@library(label="Alpha", id="alpha", linked_libraries=["haybale_beta"])\nclass Library: pass\n'
     )
 
     # Library B

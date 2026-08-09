@@ -1,0 +1,19 @@
+# Library metadata. Canon for everything descriptive about this haybale;
+# ships in the wheel beside __init__.py and is read from disk at runtime.
+# Edited in the studio's library overview — no reinstall, no reload.
+
+name = "haybale-example"
+id = "example"
+label = "Example"
+description = "Example library for demonstrating multi-library support"
+tags = ["example", "demo", "tutorial"]
+
+# Sibling haybales this library subscribes to, as MODULE names.
+# Required for hot-reload scope tracking.
+linked_libraries = ["haybale_core"]
+
+homepage_url = "https://github.com/author/haywire_library"
+
+[[authors]]
+name = "Example Author"
+url = "https://author_url"

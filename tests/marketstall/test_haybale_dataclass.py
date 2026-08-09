@@ -30,9 +30,9 @@ def test_haybale_full_construction() -> None:
         install_spec="haybale-vision @ git+https://example.com",
         tags=["vision"],
         os=["macos", "linux"],
-        dependencies=["haybale-core"],
-        source_url="https://example.com/repo",
-        docs_url="https://example.com/docs",
+        linked_libraries=["haybale_core"],
+        origin="https://example.com/repo",
+        notes="NOTES.md",
     )
     assert h.os == ["macos", "linux"]
     assert h.tags == ["vision"]
@@ -65,7 +65,7 @@ def test_haybale_to_dict_omits_empty_fields() -> None:
     # Empty/default falsy fields are omitted.
     assert "os" not in d
     assert "tags" not in d
-    assert "dependencies" not in d
+    assert "linked_libraries" not in d
     assert "stale" not in d
     assert "label" not in d
     assert "description" not in d
@@ -83,14 +83,14 @@ def test_haybale_to_dict_includes_os_when_present() -> None:
 
 @pytest.mark.unit
 def test_haybale_field_order_in_toml_fields() -> None:
-    """Spec §2 field-semantics table sets the canonical order; `os` lives between tags and dependencies."""
+    """Spec §2 sets the canonical order; `os` lives between tags and linked_libraries."""
     from haywire.core.marketstall.types import Haybale
 
     fields = Haybale._TOML_FIELDS
     assert "os" in fields
     tags_idx = fields.index("tags")
     os_idx = fields.index("os")
-    deps_idx = fields.index("dependencies")
+    deps_idx = fields.index("linked_libraries")
     assert tags_idx < os_idx < deps_idx
 
 
