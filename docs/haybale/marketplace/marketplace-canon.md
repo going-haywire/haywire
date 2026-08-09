@@ -131,10 +131,18 @@ marketplace = "haybale_marketplace:Library"
 
 ## 5. Live example from the codebase
 
-Read it in the tree rather than here — a pasted copy goes stale, and this one did:
+Source: `barn/haybale-marketplace/haybale_marketplace/__init__.py` — pulled in
+live, so it cannot drift from the code:
 
-- [`haybale_marketplace/__init__.py`](../../../barn/haybale-marketplace/haybale_marketplace/__init__.py) — the `@library` decoration and `register_components()`
-- [`haybale_marketplace/haybale.toml`](../../../barn/haybale-marketplace/haybale_marketplace/haybale.toml) — `label`, `description`, `tags`
+```python
+--8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:marketplace_library"
+```
+
+The descriptive half lives beside it in `haybale.toml`:
+
+```toml
+--8<-- "barn/haybale-marketplace/haybale_marketplace/haybale.toml:marketplace_metadata"
+```
 
 The split is the point: the decorator carries only what code must know
 (`id`, `version`, `file_watcher`), and everything descriptive lives in

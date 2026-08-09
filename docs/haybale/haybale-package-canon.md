@@ -201,7 +201,11 @@ Each `haywire docs` run ends with a coverage report listing components with no `
 
 ## 4. One comprehensive example
 
-A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, all six conventional subfolders (the `Library` class lives in [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and the resulting `marketstall.toml` entry for distribution.
+A complete haybale `haybale-image` exercising every packaging concept: package layout, entry point, build configuration, dependency declaration, the `haybale.toml` metadata file, all six conventional subfolders (the `Library` class lives in [haybale/library §5](library-canon.md#5-live-example-from-the-codebase)), the README format the library manager renders, and the resulting `marketstall.toml` entry for distribution.
+
+This package is illustrative — it is not in the tree, so the blocks below are
+written out rather than pulled in with a snippet. For a real one you can read,
+see [marketplace-canon §5](marketplace/marketplace-canon.md#5-live-example-from-the-codebase).
 
 ### Folder layout
 
@@ -211,6 +215,7 @@ haybale-image/
 ├── README.md
 ├── haybale_image/
 │   ├── __init__.py              ← @library + Library class
+│   ├── haybale.toml             ← label, description, tags, linked_libraries
 │   ├── nodes/
 │   │   ├── __init__.py
 │   │   ├── resize_node.py
@@ -281,6 +286,29 @@ include = [
     "haybale_image/",
     "README.md",
 ]
+```
+
+`haybale.toml` lives *inside* the package directory, so `packages = [...]`
+already carries it into the wheel — it needs no `force-include`. It is read
+from disk at runtime, so a build that omits it produces a library that cannot
+load.
+
+### `haybale.toml`
+
+Descriptive metadata, beside `__init__.py`. Editable in the studio's library
+overview with no reinstall and no reload — which is the whole reason it is not
+decorator kwargs:
+
+```toml
+name = "haybale-image"
+id = "image"
+label = "Image Processing"
+description = "Image processing nodes for haywire — resize, filter, format convert."
+tags = ["image", "vision"]
+
+# Haybale libraries that must be loaded first — NOT pip requirements,
+# which are [project] dependencies in pyproject.toml.
+linked_libraries = []
 ```
 
 ### `README.md` (rendered by the library manager Overview tab)
@@ -440,13 +468,27 @@ A third-party haybale library MUST provide:
   - `[project] version = "X.Y.Z"` — semver, the single source of truth.
   - `[project] requires-python = ">=3.10"` — minimum Python version.
   - `[project.entry-points."haywire.libraries"]` entry resolving to a `BaseLibrary` subclass.
-- **`@library` decorator** on the `BaseLibrary` subclass with at least:
+- **`haybale.toml`** beside `__init__.py` inside the package, declaring at least:
+  - `name` — the pip distribution name, e.g. `"haybale-image"`.
+  - `id` — short identifier (no `haybale_` prefix). Also passed to the decorator;
+    the file wins, and a mismatch is reported rather than guessed at.
   - `label` — human-readable display name.
-  - `id` — short identifier (no `haybale_` prefix).
+
+  Optional here: `description`, `tags`, `on_reload`, `linked_libraries` (the
+  *haybale* libraries this one needs loaded — **not** pip requirements, which
+  are `[project] dependencies`). Missing or malformed, the library alone fails
+  to load and the error names the file.
+- **`@library` decorator** on the `BaseLibrary` subclass, carrying only what code
+  must know before any file read:
+  - `id` — see above.
   - `version` — must come from `importlib.metadata.version("haybale-foo")`, not a hardcoded
     string. This guarantees `pyproject.toml` is the single source of truth.
-  - `dependencies` — list of pip distribution names (hyphens) for any required haybale
-    libraries, e.g. `["haybale-core"]`. Empty list if none.
+  - `file_watcher` — development hot-reload; no publishing meaning.
+
+  Passing a descriptive field here (`label`, `description`, `tags`,
+  `dependencies`, …) raises `TypeError` naming the file it moved to. The split
+  is what makes a metadata edit a plain file write: visible on the next read,
+  with no `uv sync` and no registry reload.
 - **For PyPI publishing**: a valid PyPI package — Trusted Publisher (OIDC) recommended, but
   the author may use any auth method PyPI supports.
 - **For marketstall publishing**: a valid `marketstall.toml`.
@@ -459,8 +501,9 @@ no docs link) — see Recommended below.
 
 A compliant library SHOULD additionally provide:
 
-- **`@library` decorator** fields: `description`, `author`, `tags`, `url`,
-  `author_url`. These populate the Library Manager UI.
+- **`haybale.toml`** fields beyond the required ones: `description`, `tags`,
+  `linked_libraries`, `on_reload`. These populate the Library Manager UI and the
+  reload behaviour. They are *not* decorator kwargs — see Required above.
 - **Optional marketstall entry fields** beyond the required ones, with a resolution
   strategy when fields are omitted.
 - **Generated documentation** via `haywire docs` — see §3 "Documentation files generated
@@ -502,6 +545,8 @@ installs, enables, and runs normally.
 - [ ] Distribution name `haybale-<name>` (with hyphen)
 - [ ] Python module name `haybale_<name>` (with underscore)
 - [ ] `pyproject.toml` at the repo root
+- [ ] `haybale.toml` inside the package, declaring `name`, `id`, `label`
+- [ ] `@library` carries only `id`, `version`, `file_watcher`
 - [ ] `[project.entry-points."haywire.libraries"]` line referencing `<module>:Library`
 - [ ] `[tool.hatch.build.targets.wheel]` listing the package
 - [ ] `dependencies` includes `haywire-core` (or `haywire>=...`)
@@ -532,8 +577,8 @@ uv pip install "haybale-mylib @ git+https://github.com/user/repo.git#subdirector
 
 | Command | What it does |
 |---|---|
-| `uv run haywire share` | Interactive. Publish the whole project: bump every `barn/*` library in lockstep, regenerate docs, rebuild `<repo-root>/marketstall.toml`, commit, tag `v<version>`, push. Prompts through each step. |
-| `uv run haywire share --bump patch` | Non-interactive. Every answer comes from a flag; refuses to run with unresolved dependency drift. |
+| `uv run haywire share --bump patch` | Publish the whole project: bump every `barn/*` library in lockstep, regenerate docs, rebuild `<repo-root>/marketstall.toml`, commit, tag `v<version>`, push. Non-interactive is the only mode — every answer comes from a flag. `--bump` takes `patch\|minor\|major` or an explicit `X.Y.Z`, and is required unless `--dry-run`. |
+| `uv run haywire share --dry-run` | Report what a publish would do — preconditions, findings, the version it would cut — and write nothing. |
 | `uv run haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use as a PR gate. |
 | `uv run haywire init my-project` | Scaffold a new project. Writes `<my-project>/.haywire/marketplace.toml` with the project's own library as a `[[heaps]]` entry. |
 | `uv run haywire init my-project --dev` | Same, but additionally writes one `[[heaps]]` per haybale in the local dev repo into the project marketplace — *not* the global marketplace. The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. |
@@ -547,6 +592,9 @@ For the full author flow including how dependency drift is resolved before a sha
 | Pitfall | Why it matters |
 |---|---|
 | Using `_` in the pip distribution name | Convention is hyphen for distribution, underscore for module |
+| Passing `label`/`description`/`tags`/`dependencies` to `@library(...)` | Raises `TypeError` — they moved to `haybale.toml` |
+| Shipping a wheel without `haybale.toml` | It is read from disk at runtime; the library cannot load |
+| Confusing `linked_libraries` with `[project] dependencies` | The first is haybale load order, the second is pip requirements |
 | Entry point pointing to the wrong attribute (`Library` vs the class name) | Discovery silently skips the library |
 | Bumping `version=` in `@library(...)` but not in `pyproject.toml` (or vice versa) | Confusing reports in the library manager UI |
 | Committing a `source = "local"` marketplace entry to a shared repo | Path is machine-specific; breaks for everyone else |
