@@ -359,24 +359,40 @@ shell's "Check for updates" control as the remedy.
 The `haybale-*` libraries are deliberately **not** constrained: upgrading them
 is exactly what a marketplace install is for.
 
-## 6. Drift detection at edit time
+## 6. Linked-libraries registration at edit time
 
-A separate but related pipeline lives in the Library Overview Editor's **Edit dialog**: the **Detect Dependencies** button.
+The Library Overview Editor's Edit dialog can register imported haywire libraries into `haybale.toml`'s `linked_libraries` without going through `haywire share`. It applies the same rule the share pipeline applies, deliberately: **union in what the source provably imports; never remove; never ask.**
 
-When the user clicks Detect:
+**Why this field and no other.** `linked_libraries` is the one dependency-shaped field this editor authors. Every other dependency concern — `[project] dependencies` in the library's pyproject — stays exclusively a `haywire share` concern. The distinction is decision vs. fact: a pip dependency's version floor is an authored choice with real tradeoffs (which floor, whether a lagging version matters). A missing `linked_libraries` entry is provably true — `detect_deps` emits a name only when the source imports it *and* it resolves to an installed, registered haywire library — so there is nothing to decide, only to apply.
 
-1. The runtime statically scans the library's source via `detect_deps(lib_dir, libraries=manager.registry)`.
-2. It computes two diffs: the current `linked_libraries` value vs detected, and the current `[project] dependencies` in the library's `pyproject.toml` vs detected.
-3. A diff modal previews both, offering two apply modes:
+That is why the control is a **label and a button**, not an editable field. An input would imply a judgement the author does not have to make, and would invite a hand-typed value that `_validate_linked_libraries` rejects at write time.
 
-   | Apply mode | Effect |
-   |---|---|
-   | **Union** | Add what's missing; never remove. Safe against dynamic imports the static scan can't see. |
-   | **Replace** | Overwrite both manifests with exactly the detected set, dropping anything not detected. Useful for cleanup; destructive when a dependency is only reached via a dynamic import. |
+### How it works
 
-4. On apply, the `@library` deps update the dialog's input field (the user still has to click Save Changes to persist); the pyproject.toml is written immediately.
+1. "Linked libraries" renders as a read-only label of the current declared list, read from `haybale.toml` rather than from `LibraryInfo.identity` (identity holds the startup value and would render stale after an in-session save).
+2. A **Refresh** button — heap libraries only, the same rule `os` follows — runs `detect_share_drift(lib_root, libraries=manager.registry)`, the same function `haywire share` uses, passed the studio's live `LibraryRegistry` instead of the CLI's entry-point-derived source.
+3. Detected entries not already declared are unioned into a staged list and the label re-renders. Nothing else changes: an entry the scan no longer sees is left alone, because a dynamic import the scanner cannot see is indistinguishable from an obsolete one.
+4. Refresh writes nothing. Only **Save Changes** writes, through the same `write_haybale_fields` path every other field uses — and only when Refresh actually changed the list, so an untouched dialog never churns a hand-authored file.
 
-The scan is static AST analysis, so `importlib.import_module(name)` and `__import__(...)` are invisible to it — this is precisely why Union rather than Replace is the safe default.
+### The library-root subtlety
+
+`detect_share_drift` takes the **library root** (the `pyproject.toml` directory) and locates the package itself via `find_module_dir`. Both CLI callers get that path from a filesystem scan — `barn_library_dirs(repo_root)`, which selects non-symlinked children of `barn/` that have a `pyproject.toml`.
+
+The editor has no such scan; it has a `LibraryInfo` whose `identity.folder_path` is the **package** directory (it is what `read_display` and `read_haybale_toml_lenient` are given). The editor therefore passes `folder_path.parent`, which is correct precisely because of the heap gate: `is_project_library` establishes that `folder_path` sits under the workspace's `barn/`, so its parent is the `barn/<lib>/` directory the pipeline would have scanned. For a site-packages wheel the parent is `site-packages/` — no `pyproject.toml`, no valid detection. Passing `folder_path` directly fails silently: `find_module_dir` returns `None` and the button renders permanently disabled, looking like correct behavior.
+
+### One rule, three surfaces
+
+| Surface | How registrations are applied |
+| --- | --- |
+| `haywire share` CLI | Unconditionally, before the drift branch; each entry printed as it is applied |
+| Share wizard | Named on the Review screen, applied by `apply_all` in the single write pass |
+| Edit dialog Refresh | Staged into the label on click, written by Save Changes |
+
+All three read the same `DriftReport.linked_registrations` / `linked_missing` and apply the same union. That property is load-bearing and was not always true: the wizard rendered registrations it never wrote, because `_collect` omitted them from the `ShareDecisions` it handed `apply_all`, while the CLI applied the same registrations on identical input. `DriftReport.linked_registrations` exists as a single hoisted property for exactly this reason — its docstring records that the logic "was duplicated in both, divergently, before this property existed."
+
+### Not a return of the old Detect Dependencies button
+
+An earlier version of this dialog had a "Detect Dependencies" button that scanned *both* `linked_libraries` and pip dependencies, offering Union/Replace across both. It was removed because the pip-dependency side created two uncoordinated writers to the same `[project] dependencies` list — this button and the Share wizard's own writer — which is what let the framework floor get silently clobbered. That bug never existed on the `linked_libraries` side: those entries were already "applied automatically, never a choice" even inside the Share flow, so a second surface applying the same provably-true rule does not recreate the conflict. Note also that only Union survives here; Replace was the destructive half and has no equivalent on any surface.
 
 The same detection backs the CLI: step 2 of `SharePipeline` and `haywire deps check` both call `detect_share_drift()` ([share-pipeline-arch §2.2](../../architecture/sharing/share-pipeline-arch.md#22-step-2-dependency-drift)). For the author-facing workflow, see the [sharing-libraries guide §3](../../guides/sharing-libraries.md#63-keeping-the-manifests-honest).
 
