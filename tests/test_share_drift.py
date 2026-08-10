@@ -51,10 +51,17 @@ def _make_library(
     project_name: str = "haybale-fake",
     module_name: str = "haybale_fake",
     pyproject_deps: list[str] | None = None,
-    decorator_deps: list[str] | None = None,
+    linked_libraries: list[str] | None = None,
     init_body_imports: str = "",
 ) -> Path:
-    """Scaffold a fake library with explicit pyproject + decorator + imports.
+    """Scaffold a fake library with explicit pyproject + haybale.toml + imports.
+
+    ``linked_libraries`` lands in ``haybale.toml``, which is where
+    ``_read_library_dependencies`` reads it (ADR 0025). It used to be written
+    into an ``@library(...)`` call in ``__init__.py`` — a kwarg that now raises
+    ``TypeError`` — where nothing under test ever read it, so every
+    declared-side assertion in this file compared against an empty list and
+    held for the wrong reason.
 
     Returns the library root path.
     """
@@ -68,19 +75,12 @@ def _make_library(
     )
     pkg_dir = lib_dir / module_name
     pkg_dir.mkdir()
-    deps_repr = repr(decorator_deps) if decorator_deps is not None else "[]"
-    init_content = (
-        "@library(\n"
-        "    label='Fake',\n"
-        "    id='fake',\n"
-        f"    linked_libraries={deps_repr},\n"
-        "    file_watcher=False,\n"
-        ")\n"
-        "class Library:\n"
-        "    pass\n\n"
-        f"{init_body_imports}\n"
+    linked = linked_libraries or []
+    linked_repr = "[" + ", ".join(f'"{n}"' for n in linked) + "]"
+    (pkg_dir / "haybale.toml").write_text(
+        f'name = "{project_name}"\nid = "fake"\nlabel = "Fake"\nlinked_libraries = {linked_repr}\n'
     )
-    (pkg_dir / "__init__.py").write_text(init_content)
+    (pkg_dir / "__init__.py").write_text(f"{init_body_imports}\n")
     return lib_dir
 
 
@@ -124,7 +124,7 @@ def test_drift_decorator_missing_registered_library(tmp_path: Path, monkeypatch)
     lib = _make_library(
         tmp_path,
         pyproject_deps=["haybale-core~=0.0.1"],
-        decorator_deps=[],
+        linked_libraries=[],
         init_body_imports="from haybale_core import types\n",
     )
     drift = detect_share_drift(lib)
@@ -145,13 +145,17 @@ def test_drift_no_drift_when_everything_declared(tmp_path: Path, monkeypatch) ->
     lib = _make_library(
         tmp_path,
         pyproject_deps=["haywire-core~=0.0.1", "haybale-core~=0.0.1"],
-        decorator_deps=["haybale_core"],
+        linked_libraries=["haybale_core"],
         init_body_imports=(
             "from haywire.core.node.registry import NodeRegistry\nfrom haybale_core import types\n"
         ),
     )
     drift = detect_share_drift(lib)
     assert not drift.has_drift
+    # The declared side specifically: has_drift excludes decorator_missing by
+    # design, so without this the linked_libraries declaration is never read
+    # by any assertion and the fixture could stop writing it unnoticed.
+    assert drift.decorator_missing == []
 
 
 @pytest.mark.unit
