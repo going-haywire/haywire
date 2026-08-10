@@ -622,14 +622,18 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
                     ui.label(description).classes("hw-text-muted text-sm mb-1")
-                if author:
-                    _author_url = (display.authors[0][1] if display and display.authors else "") or ""
-                    if _author_url.startswith("http"):
-                        with ui.row().classes("items-center gap-1"):
-                            ui.label("By").classes("text-xs hw-text-dim")
-                            ui.link(author, _author_url, new_tab=True).classes("text-xs hw-text-accent")
-                    else:
-                        ui.label(f"By {author}").classes("text-xs hw-text-dim")
+                if display and display.authors:
+                    with ui.row().classes("items-center gap-1"):
+                        ui.label("By").classes("text-xs hw-text-dim")
+                        for i, (_name, _url) in enumerate(display.authors):
+                            if i:
+                                ui.label(",").classes("text-xs hw-text-dim")
+                            if _url.startswith("http"):
+                                ui.link(_name, _url, new_tab=True).classes("text-xs hw-text-accent")
+                            else:
+                                ui.label(_name).classes("text-xs hw-text-dim")
+                elif author:
+                    ui.label(f"By {author}").classes("text-xs hw-text-dim")
 
                 # Collect relevant links
                 _links = collect_overview_links(marketplace_pkg)
