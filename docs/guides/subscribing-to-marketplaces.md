@@ -32,7 +32,7 @@ toolbar has exactly three buttons: Refresh, Add Source, Edit File.
 Click **Add Source** and paste the URL the author gave you — typically a GitHub
 link to their `marketstall.toml`. The official haywire feed is:
 
-```
+```text
 https://going-haywire.github.io/haywire/marketplace.toml
 ```
 
@@ -41,10 +41,56 @@ body, works out whether it is one author's feed or an aggregator's catalog, and
 subscribes accordingly. A refresh fires automatically, and a green toast reports
 what it found.
 
-Four things are accepted — a page URL, a raw URL, any URL serving TOML, or a
-TOML block pasted straight in. A bare repository URL
-(`https://github.com/alice/cool-libs`) is rejected: the resolver needs the full
-path to the file so it always knows what it is fetching.
+Four kinds of input are accepted:
+
+**A page URL** — the file as you see it in your browser on GitHub or GitLab.
+This is the form most authors share, and the one to reach for by default:
+
+```text
+https://github.com/alice/cool-libs/blob/main/marketstall.toml
+https://gitlab.com/alice/cool-libs/-/blob/main/marketstall.toml
+```
+
+A page URL serves HTML, not TOML, so the runtime rewrites it to its raw
+equivalent before storing the subscription — you never have to do that
+conversion yourself.
+
+**A raw URL** — the same file, already in raw form. Used as-is:
+
+```text
+https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml
+```
+
+**Any URL serving TOML** — a Pages site, your own web server, or a local file.
+Fetched exactly as given:
+
+```text
+https://going-haywire.github.io/haywire/marketplace.toml
+file:///Users/me/dev/cool-libs/marketstall.toml
+```
+
+**A TOML block pasted straight in** — the entries themselves, with no URL at
+all. Useful when an author sends you a snippet, or for testing:
+
+```toml
+[[haybales]]
+name         = "haybale-cool"
+version      = "0.1.0"
+install_spec = "haybale-cool @ git+https://github.com/alice/cool-libs.git@v0.1.0"
+```
+
+The block is saved to `~/.haywire/db/haybale_marketplace/stalls/<name>.toml` and
+subscribed as a local file, so it refreshes like any other source.
+
+**A bare repository URL is rejected**:
+
+```text
+https://github.com/alice/cool-libs        ✗
+```
+
+The resolver needs the full path to the file so it always knows what it is
+fetching. If you only have the repo link, open its README and look for a
+`marketstall:share-url` block — authors publish the exact URL there.
 
 ### 1.2 Find the library
 
@@ -82,6 +128,7 @@ installed it.
 
 A library that does not run on your OS shows a disabled Install button and a
 "Not available on this OS" tooltip, rather than being hidden.
+
 ## 2. When two authors use the same name
 
 Two authors can pick the same library name — there's no central namespace stopping them. The system surfaces collisions at the moment you're about to follow a new feed that would introduce one.
@@ -182,21 +229,27 @@ The Library Browser in haywire-studio is the surface that drives this. It lists 
 
 The auto-refresh is a convenience — you don't have to remember to click Refresh after adding a source. If you ever subscribe by hand-editing the file (via Edit File), you'll need to click Refresh yourself.
 
-### 4.3 The four accepted inputs
+### 4.3 How an input is classified
 
-| Form | What it looks like | Result |
-|---|---|---|
-| **Blob URL** (recommended) | `https://github.com/alice/cool-libs/blob/main/marketstall.toml` | The runtime recognizes the host, converts to the raw URL, and saves the appropriate `[[markets]]` or `[[stalls]]` subscription depending on the fetched body's shape. |
-| **Raw URL** | `https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml` | Same as blob, but skips the URL transformation. |
-| **Plain TOML URL** | Any URL that serves a TOML file (GitHub Pages, GitLab Pages, your own host) | Fetched as-is; the body shape determines subscription type. |
-| **TOML block** pasted directly | A `[[haybales]]` (or `[[markets]]`/`[[stalls]]`) section pasted into the field | Saved as a local file under `~/.haywire/db/haybale_marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry. |
+The four forms from [§1.1](#11-add-a-source) are `BLOB_URL`, `RAW_URL`,
+`PLAIN_TOML_URL` and `PASTED_BLOCK` internally. Two things are decided
+separately, and conflating them is easy:
 
-The runtime inspects the fetched body and decides which kind of subscription to write:
+**What gets stored.** The URL written into your marketplace file must be
+directly fetchable, because refresh calls it with no re-classification. A blob
+URL serves HTML, so it is normalised to its raw form *before* being stored —
+that is the only input that changes on the way in. A pasted block is written to
+disk first and stored as the resulting `file://` URL.
 
-- If it contains `[[markets]]` or `[[stalls]]` references → saved as a `[[markets]]` subscription (it's an aggregator's catalog).
-- If it contains only `[[haybales]]` → saved as a `[[stalls]]` subscription (it's a single marketstall).
+**Which section it lands in.** That comes from the fetched body, not the URL:
 
-Bare repository URLs (e.g. `https://github.com/alice/cool-libs`) are rejected — the dialog asks for the full path to a `marketstall.toml` or `marketplace.toml` so the resolver always knows what it's fetching.
+- Contains `[[markets]]` or `[[stalls]]` → a `[[markets]]` subscription (it is
+  an aggregator's catalog).
+- Contains only `[[haybales]]` → a `[[stalls]]` subscription (it is a single
+  marketstall).
+
+So a Pages URL and a GitHub blob URL can both end up as either kind — the shape
+of what they serve decides, not where they point.
 
 ### 4.4 What refresh does
 
