@@ -53,7 +53,7 @@ from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.library.haybale_toml import read_display
+from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.locate import link_form, module_dir_path, resolve_row_path
 from haywire.ui.modals import info_modal
@@ -333,19 +333,19 @@ class LibraryOverviewEditor(BaseEditor):
         # import — that is what makes an edit visible without a reload. A
         # not-yet-installed one has no files on disk, so it renders from the
         # marketstall row, which carries a verbatim copy of the same fields.
-        display = read_display(Path(installed_lib.identity.folder_path)) if installed_lib else None
-        if installed_lib and display is not None:
-            name = display.label or installed_lib.identity.label
+        row = read_haybale(Path(installed_lib.identity.folder_path)) if installed_lib else None
+        if installed_lib and row is not None:
+            name = row.label or installed_lib.identity.label
             version = installed_lib.identity.version
-            description = display.description
-            author = display.author_names
-            tags = list(display.tags) or (marketplace_pkg.tags if marketplace_pkg else []) or []
+            description = row.description
+            authors = list(row.authors)
+            tags = list(row.tags) or (marketplace_pkg.tags if marketplace_pkg else []) or []
         else:
             assert marketplace_pkg is not None
             name = marketplace_pkg.label or marketplace_pkg.name
             version = marketplace_pkg.version
             description = marketplace_pkg.description
-            author = marketplace_pkg.author
+            authors = list(marketplace_pkg.authors)
             tags = marketplace_pkg.tags or []
 
         # Check for available update
@@ -378,7 +378,7 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Header ────────────────────────────────────────────────────
                 with ui.row().classes("w-full items-start justify-between mb-2"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
-                        _title_url = (display.homepage_url if display else "") or ""
+                        _title_url = (row.homepage_url if row else "") or ""
                         if _title_url.startswith("http"):
                             with ui.row().classes("items-center gap-1"):
                                 ui.label(name).classes("text-2xl font-bold")
@@ -622,18 +622,16 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
                     ui.label(description).classes("hw-text-muted text-sm mb-1")
-                if display and display.authors:
+                if authors:
                     with ui.row().classes("items-center gap-1"):
                         ui.label("By").classes("text-xs hw-text-dim")
-                        for i, (_name, _url) in enumerate(display.authors):
+                        for i, (_name, _url) in enumerate(authors):
                             if i:
                                 ui.label(",").classes("text-xs hw-text-dim")
                             if _url.startswith("http"):
                                 ui.link(_name, _url, new_tab=True).classes("text-xs hw-text-accent")
                             else:
                                 ui.label(_name).classes("text-xs hw-text-dim")
-                elif author:
-                    ui.label(f"By {author}").classes("text-xs hw-text-dim")
 
                 # Collect relevant links
                 _links = collect_overview_links(marketplace_pkg)

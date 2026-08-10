@@ -14,7 +14,7 @@ from urllib.parse import urlsplit
 
 from nicegui import ui
 
-from haywire.core.library.haybale_toml import read_display
+from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.marketstall import Haybale
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
@@ -54,13 +54,13 @@ def _lib_view(lib) -> "_LibView":
         # Description and tags come off haybale.toml rather than the identity:
         # the identity is built at import, so a value read through it is stale
         # until the next reload — the staleness this design exists to remove.
-        display = read_display(Path(lib.identity.folder_path))
+        row = read_haybale(Path(lib.identity.folder_path))
         return _LibView(
             raw=lib,
             label=lib.identity.label or "",
             version=lib.identity.version or "",
-            description=display.description,
-            tags=list(display.tags),
+            description=row.description,
+            tags=list(row.tags),
             enabled=lib.enabled,
             dist_name=lib.distribution_name,
             is_installed=True,

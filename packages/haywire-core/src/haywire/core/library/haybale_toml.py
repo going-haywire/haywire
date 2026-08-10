@@ -392,8 +392,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
     indistinguishable from one an author wrote by hand.
 
     ``authors`` is the one non-scalar/non-string-list field: it takes
-    ``(name, url)`` tuples — matching :attr:`LibraryDisplay.authors` — and is
-    converted to ``[[authors]]`` tables here, dropping ``url`` when it is
+    ``(name, url)`` tuples — matching :attr:`~haywire.core.marketstall.types.Haybale.authors`
+    — and is converted to ``[[authors]]`` tables here, dropping ``url`` when it is
     ``""`` rather than writing an empty key. A tuple with a blank ``name`` is
     the caller's problem, not this function's: nothing downstream of a bare
     ``[[authors]]`` table treats a missing ``name`` as a landmine the way a
