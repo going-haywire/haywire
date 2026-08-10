@@ -4,7 +4,7 @@
 
 name = "haybale-core"
 id = "core"
-version = "0.0.39"
+version = "0.1.0"
 label = "Core"
 description = "Fundamental components for haywire graphs"
 tags = ["core", "types", "widgets", "skins", "adapters"]

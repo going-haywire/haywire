@@ -4,7 +4,7 @@
 
 name = "haybale-TEST_A"
 id = "test_a"
-version = "0.0.39"
+version = "0.1.0"
 label = "Test A"
 description = "Test library A for demonstrating multi-library support"
 tags = ["testing", "development"]

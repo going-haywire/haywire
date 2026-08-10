@@ -4,7 +4,7 @@
 
 name = "haybale-studio"
 id = "studio"
-version = "0.0.39"
+version = "0.1.0"
 label = "Studio"
 description = "Library for haywire studio"
 tags = ["experimental", "project-local"]
