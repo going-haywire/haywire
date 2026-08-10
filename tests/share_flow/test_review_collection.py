@@ -52,12 +52,14 @@ def test_untouched_controls_produce_an_inert_decision_set() -> None:
             floors=[(ALPHA, "toml", "0.10.2", _Control("keep"), _Control(""))],
         ),
         None,
+        registrations={},
     )
 
     assert decisions.framework is None
     assert decisions.removals == {}
     assert decisions.floors == {}
     assert decisions.undeclared_acknowledged is False
+    assert decisions.registrations == {}
     # An undeclared import still gets declared: that is the one state that
     # breaks a consumer's install, and declaring it is unambiguously correct.
     assert decisions.additions == {ALPHA: ["numpy"]}
@@ -73,6 +75,7 @@ def test_pin_modes_build_the_right_specifier() -> None:
             ]
         ),
         None,
+        registrations={},
     )
 
     assert decisions.additions == {ALPHA: ["numpy>=1.26.0", "toml>=0.10"], BETA: ["attrs"]}
@@ -84,6 +87,7 @@ def test_skipping_an_undeclared_import_records_the_acknowledgement() -> None:
     decisions = _collect(
         _controls(additions=[(ALPHA, "numpy", "1.26.0", _Control("skip"), _Control(""))]),
         None,
+        registrations={},
     )
 
     assert decisions.additions == {}
@@ -95,6 +99,7 @@ def test_installed_pin_degrades_to_a_bare_declaration_when_unknown() -> None:
     decisions = _collect(
         _controls(additions=[(ALPHA, "mystery", "", _Control("installed"), _Control(""))]),
         None,
+        registrations={},
     )
 
     assert decisions.additions == {ALPHA: ["mystery"]}
@@ -110,6 +115,7 @@ def test_only_ticked_removals_are_collected() -> None:
             ]
         ),
         None,
+        registrations={},
     )
 
     assert decisions.removals == {ALPHA: ["requests"], BETA: ["click"]}
@@ -125,12 +131,38 @@ def test_floor_modes_write_only_what_changed() -> None:
             ]
         ),
         None,
+        registrations={},
     )
 
     assert decisions.floors == {ALPHA: ["toml>=0.10.2"], BETA: ["click>=8.0"]}
 
 
 def test_framework_specifier_passes_through() -> None:
-    decisions = _collect(_controls(), ">=0.0.31")
+    decisions = _collect(_controls(), ">=0.0.31", registrations={})
 
     assert decisions.framework == ">=0.0.31"
+
+
+def test_registrations_are_carried_into_the_decision_set() -> None:
+    """The Review screen renders each registration as a promise to write it.
+
+    `_collect` must carry them through: they are not a decision (no control
+    exists for them) but they ARE a write, and apply_all is the only thing
+    that performs it. Omitting them made the screen name a file edit it never
+    made — the CLI applied the same registrations unconditionally, so the two
+    surfaces disagreed on identical input.
+    """
+    decisions = _collect(
+        _controls(),
+        None,
+        registrations={ALPHA: ["haybale_studio"]},
+    )
+
+    assert decisions.registrations == {ALPHA: ["haybale_studio"]}
+
+
+def test_no_registrations_stays_an_empty_mapping() -> None:
+    """apply_all skips empty mappings, so nothing-to-register stays a no-op."""
+    decisions = _collect(_controls(), None, registrations={})
+
+    assert decisions.registrations == {}

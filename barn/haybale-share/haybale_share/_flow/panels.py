@@ -194,7 +194,10 @@ def panel_review(flow: ShareFlow, rerender: Callable[[], None]) -> None:
     apply_button = _footer("Apply and bump")
 
     async def _go() -> None:
-        await flow.advance_from_review(_collect(controls, framework_spec()), version_spec=version_spec())
+        await flow.advance_from_review(
+            _collect(controls, framework_spec(), registrations=registrations),
+            version_spec=version_spec(),
+        )
 
     apply_button.on_click(lambda: _busy_advance(rerender, apply_button, _go))
 
@@ -420,8 +423,20 @@ def _render_version(flow: ShareFlow) -> Callable[[], str]:
     return _spec
 
 
-def _collect(controls: dict, framework: str | None) -> ShareDecisions:
-    """Read every control into the decision set. Touches no file."""
+def _collect(
+    controls: dict,
+    framework: str | None,
+    *,
+    registrations: dict[Path, list[str]],
+) -> ShareDecisions:
+    """Read every control into the decision set. Touches no file.
+
+    ``registrations`` has no control to read — it is not a decision (see
+    ``DriftReport.linked_registrations``). It is threaded through because
+    ``apply_all`` is the single write pass, so anything the Review screen
+    promised on-screen has to reach it. It was omitted here once, and the
+    wizard rendered registrations it never wrote while the CLI applied them.
+    """
     additions: dict[Path, list[str]] = {}
     skipped = False
     for lib_dir, dep, installed, pin, custom in controls["additions"]:
@@ -452,6 +467,7 @@ def _collect(controls: dict, framework: str | None) -> ShareDecisions:
 
     return ShareDecisions(
         framework=framework,
+        registrations=registrations,
         removals=removals,
         additions=additions,
         floors=floors,
