@@ -40,26 +40,30 @@ marketplace's inline section, and in the project cache — see
 # ║ MOST OF A ROW IS NOT SHOWN HERE.                                          ║
 # ║                                                                           ║
 # ║ Every row also carries the descriptive fields copied verbatim from the    ║
-# ║ library's haybale.toml — label, description, tags, author, os, on_reload, ║
+# ║ library's haybale.toml — id, label, description, tags, os, on_reload,     ║
 # ║ linked_libraries, origin, origin_provider, notes, examples_path,          ║
-# ║ tests_path, the three *_url fields, and a [deprecated] table when the     ║
-# ║ author declared one. They mean exactly what they mean there, and are      ║
-# ║ documented there, once:                                                   ║
+# ║ tests_path, the three *_url fields, repeatable [[authors]] tables, and a  ║
+# ║ [deprecated] table when the author declared one. They mean exactly what   ║
+# ║ they mean there, and are documented there, once:                          ║
 # ║                                                                           ║
 # ║     docs/reference/files/haybale-toml.md                                  ║
 # ║                                                                           ║
-# ║ Shown below are only the fields that do NOT exist in haybale.toml: the    ║
-# ║ two read out of pyproject.toml, and the two the publisher generates       ║
-# ║ because a library cannot state them about itself.                         ║
+# ║ Shown below are only `require`, projected from pyproject's [project]      ║
+# ║ dependencies, and the fields the publisher generates because a library    ║
+# ║ cannot state them about itself. `name` and `version` are canon in         ║
+# ║ haybale.toml and merely copied here.                                      ║
 # ╚═══════════════════════════════════════════════════════════════════════════╝
 
 [[haybales]]
 name              = "haybale-core"
 
-# ── read from the library's pyproject.toml ──────────────────────────────────
-# Owned by the release machinery. Not a floor and nothing resolves against it:
-# its only job is the update comparison against what is installed.
+# ── copied from haybale.toml, which is canon ────────────────────────────────
+# Owned by the release machinery, which writes it to haybale.toml and syncs the
+# generated copy into pyproject.toml. Not a floor and nothing resolves against
+# it: its only job is the update comparison against what is installed.
 version           = "0.0.40"
+
+# ── projected from the library's pyproject.toml ─────────────────────────────
 # The framework floor, projected from [project] dependencies as a full PEP 508
 # token. An absent key means undeclared; the bare name "haywire-core" means
 # declared with no floor. Those are different answers, which is why the field
@@ -73,7 +77,8 @@ require           = "haywire-core>=0.0.39"
 # commit was published.
 install_spec      = "haybale-core @ git+https://github.com/going-haywire/haywire.git@v0.0.40#subdirectory=barn/haybale-core"
 # "git" (share wizard) or "pypi" (CI publishing script). Drives install
-# routing and the version-fetching strategy.
+# routing and the version-fetching strategy. A row read from a haybale.toml on
+# disk carries "local" instead, but such a row is never published.
 source            = "git"
 
 # ── plus every copied field; see the block at the top ───────────────────────
@@ -127,8 +132,8 @@ they appear. The runtime dataclass is `Haybale`
 | field               | haybale                                                | marketstall                                                                                                               | example                                                                 |
 | ------------------- | ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
 | `name`              | immutable (mutable only via rename-wizard)             | copy                                                                                                                      | `"haybale-core"`                                                        |
-| `id`                | immutable (mutable only via rename-wizard)             | — not a row field                                                                                                         | `"core"`                                                                |
-| `version`           | set via share-wizard                                   | copy — read from `[project] version`                                                                                      | `"0.0.40"`                                                              |
+| `id`                | immutable (mutable only via rename-wizard)             | copy — published so a consumer can resolve a registry key before installing                                               | `"core"`                                                                |
+| `version`           | canon here; set via share-wizard                       | copy — `pyproject.toml` carries the generated copy                                                                        | `"0.0.40"`                                                              |
 | `linked_libraries`  | seeded by scaffold; share-wizard maintains             | copy                                                                                                                      | module names: `["haybale_studio"]`                                      |
 | `label`             | user input                                             | copy                                                                                                                      | `"Core"`                                                                |
 | `description`       | user input                                             | copy                                                                                                                      | `"Fundamental components for haywire graphs"`                           |
