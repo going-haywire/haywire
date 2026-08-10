@@ -27,6 +27,7 @@ stays exclusively a ``haywire share`` concern (see marketplace-arch.md §6).
 
 from __future__ import annotations
 
+import asyncio
 import logging
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -172,9 +173,12 @@ def build_edit_dialog(
             if _is_heap:
                 _lib_root = _pkg_dir.parent
 
-                def _do_refresh(m=manager, lib_root=_lib_root) -> None:
-                    result = _refresh_linked_libraries(
-                        lib_root, current=list(_linked_staged), libraries=m.registry
+                async def _do_refresh(m=manager, lib_root=_lib_root) -> None:
+                    result = await asyncio.to_thread(
+                        _refresh_linked_libraries,
+                        lib_root,
+                        current=list(_linked_staged),
+                        libraries=m.registry,
                     )
                     if result.no_module_dir:
                         ui.notify("No inspectable source found — nothing to detect.", type="warning")

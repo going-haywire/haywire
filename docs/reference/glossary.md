@@ -386,7 +386,7 @@ See [architecture/studio](../architecture/studio/studio-arch.md) for the studio 
 | **pick_modal** | Title + single-select dropdown + Confirm/Cancel. Pre-populated to the first option. | — |
 | **rename_modal** | Title + single name input with live classification (same / changed / existing collision) + Confirm/Cancel. The confirm button relabels per state. | — |
 | **save_as_modal** | The path-prompt variant of rename_modal: directory + filename input with extension control. | — |
-| **diff_modal** | Title + sectioned diff body (DiffSection blocks) + up to two action buttons + Cancel. Used by Detect Dependencies; reusable for any "preview changes, pick how to apply" surface. *(new)* | — |
+| **diff_modal** | Title + sectioned diff body (DiffSection blocks) + up to two action buttons + Cancel. Reusable for any "preview changes, pick how to apply" surface; no current caller. *(new)* | — |
 
 ### Editor instance-mode terms
 
