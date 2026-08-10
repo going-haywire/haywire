@@ -67,39 +67,6 @@ def test_unknown_keys_are_ignored(tmp_path: Path) -> None:
     assert fields == {"id": "core", "version": "0.0.40"}
 
 
-@pytest.mark.unit
-def test_homepage_and_first_author_project_onto_the_identity(tmp_path: Path) -> None:
-    """The file is shaped for the marketstall row — repeatable [[authors]], and
-    urls split by role. The identity carries one of each, so the reader projects
-    the homepage and the first author onto it."""
-    fields = read_haybale_toml(
-        _write(
-            tmp_path,
-            'id = "core"\nversion = "0.0.40"\nhomepage_url = "https://example.com"\n'
-            '\n[[authors]]\nname = "Alice"\nurl = "https://alice.example"\n'
-            '\n[[authors]]\nname = "Bob"\n',
-        )
-    )
-    assert fields["url"] == "https://example.com"
-    assert fields["author"] == "Alice"
-    assert fields["author_url"] == "https://alice.example"
-
-
-@pytest.mark.unit
-def test_author_without_a_url_is_fine(tmp_path: Path) -> None:
-    fields = read_haybale_toml(
-        _write(tmp_path, 'id = "core"\nversion = "0.0.40"\n\n[[authors]]\nname = "Alice"\n')
-    )
-    assert fields["author"] == "Alice"
-    assert "author_url" not in fields
-
-
-@pytest.mark.unit
-def test_malformed_authors_entry_raises(tmp_path: Path) -> None:
-    with pytest.raises(HaybaleTomlError, match=r"\[\[authors\]\]"):
-        read_haybale_toml(_write(tmp_path, 'id = "core"\nauthors = ["Alice"]\n'))
-
-
 # ── the raises ───────────────────────────────────────────────────────────────
 
 

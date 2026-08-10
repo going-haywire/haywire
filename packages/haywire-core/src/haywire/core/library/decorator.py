@@ -94,7 +94,20 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
                 f"The id prefixes every component's registry key, so the two "
                 f"must match."
             )
-        kwargs.update(declared)
+        # read_haybale_toml() returns every LibraryIdentity-shaped field the
+        # file declares, including ones (description, tags, ...) that live
+        # only in the file now — LibraryIdentity itself carries just what
+        # cannot be answered by a file read. Filter to what the dataclass
+        # still accepts rather than splatting the whole dict; unfiltered,
+        # a descriptive field's presence in the file would raise
+        # "unexpected keyword argument" here at import time.
+        kwargs.update(
+            {
+                k: v
+                for k, v in declared.items()
+                if k in ("id", "label", "version", "on_reload", "linked_libraries")
+            }
+        )
 
         inner_cls.class_identity = LibraryIdentity(**kwargs)
         return inner_cls

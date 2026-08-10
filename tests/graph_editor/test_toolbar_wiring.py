@@ -90,10 +90,6 @@ def test_toolbar_panels_registered_in_panel_registry(tmp_path):
     identity = LibraryIdentity(
         label="Graph Editor Test",
         version="0.0.1",
-        description="test",
-        url="",
-        author="",
-        author_url="",
         folder_path=str(tmp_path),
         module_name="haybale_graph_editor",
         id="graph_editor",

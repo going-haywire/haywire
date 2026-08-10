@@ -46,10 +46,6 @@ def _make_identity(label: str = "TestLib", folder: str = "/tmp/fake") -> Library
     return LibraryIdentity(
         label=label,
         version="0.1",
-        description="test",
-        url="",
-        author="",
-        author_url="",
         folder_path=folder,
         module_name="test_module",
         id="test_lib",

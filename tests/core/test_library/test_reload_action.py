@@ -11,10 +11,6 @@ def _identity(**overrides):
     base = dict(
         label="Demo",
         version="0.1.0",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path="/tmp/demo",
         module_name="haybale_demo",
         id="demo",

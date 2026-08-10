@@ -31,14 +31,9 @@ def test_container_stamps_session_weakref_on_session_state():
             id="test:lib",
             label="test",
             version="0",
-            description="",
-            url="",
-            author="",
-            author_url="",
             folder_path="",
             module_name="test_lib",
             linked_libraries=[],
-            tags=[],
         )
 
         def on_enable(self) -> None:

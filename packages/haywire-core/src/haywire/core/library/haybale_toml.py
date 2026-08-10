@@ -153,28 +153,6 @@ def _fields_from(data: dict, source: Path) -> dict[str, Any]:
             _validate_linked_libraries(value, source)
         fields[key] = list(value)
 
-    # Two fields whose file spelling differs from the identity's, both
-    # transitional: the identity carries one author and one URL, while the file
-    # is already shaped for the marketstall row (repeatable [[authors]], and
-    # url split into homepage/documentation/issues). Project the first author
-    # and the homepage so nothing regresses while call sites migrate to reading
-    # the file directly.
-    homepage = data.get("homepage_url")
-    if isinstance(homepage, str) and homepage:
-        fields["url"] = homepage
-
-    authors = data.get("authors")
-    if isinstance(authors, list) and authors:
-        first = authors[0]
-        if not isinstance(first, dict):
-            raise HaybaleTomlError(f"{source}: [[authors]] entries must be tables with a `name`")
-        name = first.get("name")
-        if isinstance(name, str) and name:
-            fields["author"] = name
-        url = first.get("url")
-        if isinstance(url, str) and url:
-            fields["author_url"] = url
-
     return fields
 
 
