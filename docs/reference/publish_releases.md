@@ -175,7 +175,15 @@ Failure stops the pipeline. Nothing publishes.
 
 #### Job 2 — build all wheels
 
-For every package in `publish_order`, run `uv build` and collect the resulting wheel and sdist
+First, `scripts/check_release_versions.py --expect <tag minus its leading v>` asserts that the
+tag being built matches what is actually committed: every package in `[tool.haywire.release]` at
+that one version, and every `haybale.toml` in sync with its own `pyproject.toml`. Since the
+bump is a local step, this is the only thing standing between a forgotten
+`scripts/bump_version.py` run and a green release that publishes nothing — Job 3 reads its
+versions from `pyproject.toml`, would find the previous release already on PyPI, and skip
+every package as "already published". Failure stops the pipeline before any wheel is built.
+
+Then, for every package in `publish_order`, run `uv build` and collect the resulting wheel and sdist
 into the workflow's artifact storage. All builds happen before any publish — a build failure
 in any package stops the pipeline before anything reaches PyPI. This catches build errors
 (missing files, invalid metadata, dependency resolution failures) without leaving partial

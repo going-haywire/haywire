@@ -235,6 +235,17 @@ Expected: `uv.lock` is rewritten with the new versions for all bumped packages.
 (`haybale-visiongraph` lives in its own repo and is excluded from the workspace in
 `[tool.uv.workspace].exclude`, so it never appears in the lock or the bump.)
 
+Then verify the bump actually landed everywhere — every release package at
+`<NEW_VERSION>`, and every `haybale.toml` in sync with its own `pyproject.toml`:
+
+```bash
+uv run python scripts/check_release_versions.py --expect <NEW_VERSION>
+```
+
+Expected: `Release version check passed`. This is the same gate both publish
+workflows run against the tag, so a failure here is a failure that would
+otherwise surface only after tagging and pushing. Stop and fix if it fails.
+
 Then bake the docs. `scripts/bake_docs.py` regenerates the gitignored
 `packages/haywire-core/src/haywire/_baked_docs/` tree that the haywire-core wheel
 force-includes as `haywire/docs`. The bake rewrites source-file links to
@@ -439,6 +450,9 @@ a real release — without any persistent or shared-state action. Rollback is a 
 
 - [`scripts/bump_version.py`](../../../scripts/bump_version.py) — the version-rewriting
   CLI this skill calls. Documented in [`scripts/README.md`](../../../scripts/README.md).
+- [`scripts/check_release_versions.py`](../../../scripts/check_release_versions.py) — the
+  read-back for the bump, run at Step 6 and again by CI against the tag. Unlike
+  `check_deps.py`, it is a gate: it exits non-zero on any disagreement.
 - [`scripts/check_deps.py`](../../../scripts/check_deps.py) — the dependency auditor
   this skill runs at Step 2.5. Wraps `deptry` per package; reports unused/missing
   deps without blocking or editing.

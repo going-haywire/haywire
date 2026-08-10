@@ -217,11 +217,23 @@ def test_rewrite_haybale_toml_raises_when_no_version_line() -> None:
         bump_version.rewrite_haybale_toml(src, "0.0.1")
 
 
+def _make_module(pkg_dir: Path, *parts: str) -> Path:
+    """Create a real Python package dir (with `__init__.py`) under *pkg_dir*.
+
+    The `__init__.py` is what makes it a package as far as
+    `find_module_dir` is concerned — see
+    `test_find_haybale_toml_ignores_dir_without_init`.
+    """
+    module_dir = pkg_dir.joinpath(*parts)
+    module_dir.mkdir(parents=True)
+    (module_dir / "__init__.py").write_text("")
+    return module_dir
+
+
 @pytest.mark.unit
 def test_find_haybale_toml_finds_flat_layout(tmp_path: Path) -> None:
     pkg_dir = tmp_path / "alpha"
-    module_dir = pkg_dir / "alpha_pkg"
-    module_dir.mkdir(parents=True)
+    module_dir = _make_module(pkg_dir, "alpha_pkg")
     (module_dir / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
 
     found = bump_version.find_haybale_toml(pkg_dir)
@@ -232,8 +244,7 @@ def test_find_haybale_toml_finds_flat_layout(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_find_haybale_toml_finds_src_layout(tmp_path: Path) -> None:
     pkg_dir = tmp_path / "alpha"
-    module_dir = pkg_dir / "src" / "alpha_pkg"
-    module_dir.mkdir(parents=True)
+    module_dir = _make_module(pkg_dir, "src", "alpha_pkg")
     (module_dir / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
 
     found = bump_version.find_haybale_toml(pkg_dir)
@@ -244,7 +255,23 @@ def test_find_haybale_toml_finds_src_layout(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_find_haybale_toml_returns_none_when_absent(tmp_path: Path) -> None:
     pkg_dir = tmp_path / "alpha"
-    (pkg_dir / "alpha_pkg").mkdir(parents=True)
+    _make_module(pkg_dir, "alpha_pkg")
+
+    assert bump_version.find_haybale_toml(pkg_dir) is None
+
+
+@pytest.mark.unit
+def test_find_haybale_toml_ignores_dir_without_init(tmp_path: Path) -> None:
+    """A bare directory holding a haybale.toml is not a Python package.
+
+    Pins the semantics inherited from `find_module_dir`, which the share
+    wizard also uses: without `__init__.py` there is nothing importable to
+    own the manifest, so it is not a library root.
+    """
+    pkg_dir = tmp_path / "alpha"
+    stray = pkg_dir / "not_a_package"
+    stray.mkdir(parents=True)
+    (stray / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
 
     assert bump_version.find_haybale_toml(pkg_dir) is None
 
@@ -267,8 +294,7 @@ def test_apply_bump_also_syncs_haybale_toml_when_present(tmp_path: Path) -> None
     root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())
 
     alpha_dir = tmp_path / "subdir-a/alpha"
-    alpha_module = alpha_dir / "alpha_pkg"
-    alpha_module.mkdir(parents=True)
+    alpha_module = _make_module(alpha_dir, "alpha_pkg")
     (alpha_dir / "pyproject.toml").write_text('[project]\nname = "alpha-pkg"\nversion = "0.0.1"\n')
     (alpha_module / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
 

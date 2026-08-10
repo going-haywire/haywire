@@ -63,6 +63,13 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
+      # See the same step in publish.yml for why: a tag pushed without running
+      # the local bump would publish nothing and still go green. The trigger tag
+      # is vTEST-X.Y.Z, so strip the prefix to get the committed version.
+      - name: Verify tag matches committed package versions
+        if: github.ref_type == 'tag'
+        run: uv run python scripts/check_release_versions.py --expect "${GITHUB_REF_NAME#vTEST-}"
+
       # The haywire-core wheel force-includes the gitignored (never-committed)
       # _baked_docs/ tree as haywire/docs/, so it must be regenerated before the
       # build. The trigger tag is vTEST-X.Y.Z; strip the TEST- so the baked

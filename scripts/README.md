@@ -2,11 +2,12 @@
 
 Maintenance scripts run by humans or CI.
 
-| Script                | Purpose                                                          |
-| --------------------- | ---------------------------------------------------------------- |
-| `bump_version.py`     | Bump every Tier 1+2 package to a new lockstep version.           |
-| `check_deps.py`       | Audit declared vs. imported deps per package (wraps `deptry`).   |
-| `generate_marketstall.py` | CI marketstall generator for the published packages.            |
+| Script                      | Purpose                                                              |
+| --------------------------- | -------------------------------------------------------------------- |
+| `bump_version.py`           | Bump every Tier 1+2 package to a new lockstep version.               |
+| `check_release_versions.py` | Verify every package (and its `haybale.toml`) agrees on one version. |
+| `check_deps.py`             | Audit declared vs. imported deps per package (wraps `deptry`).       |
+| `generate_marketstall.py`   | CI marketstall generator for the published packages.                 |
 
 ## bump_version.py
 
@@ -27,6 +28,27 @@ package list. To add or remove a publishable package, edit that block — not th
 `pyproject.toml` is canon for `version`; any package that also carries a `haybale.toml`
 (the runtime-read copy `LibraryIdentity` loads) gets that file's `version` line synced
 too, so the two never disagree after a release.
+
+## check_release_versions.py
+
+```bash
+# Lockstep + haybale.toml sync check against whatever is committed.
+uv run python scripts/check_release_versions.py
+
+# Require an exact version (what CI does, using the tag being built).
+uv run python scripts/check_release_versions.py --expect 0.0.2
+```
+
+The read-back for `bump_version.py`'s write. Asserts that every package in
+`[tool.haywire.release]` declares the same `[project] version`, and that every
+`haybale.toml` matches its own `pyproject.toml`. Exits 1 and lists each
+disagreeing file otherwise — unlike `check_deps.py`, this one *is* a gate.
+
+Both publish workflows run it before building any wheel, with `--expect` set
+from the tag. Without it, tagging without having run the bump produces a green
+run that publishes nothing: the publish job reads each version from
+`pyproject.toml`, finds the previous release already on PyPI, and skips every
+package as "already published".
 
 ## check_deps.py
 

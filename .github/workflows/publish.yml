@@ -60,6 +60,17 @@ jobs:
       - name: Install workspace
         run: uv sync --dev
 
+      # The bump is a LOCAL step (`/haywire-release` → scripts/bump_version.py),
+      # so nothing downstream verifies that the tag being built actually matches
+      # the versions committed in the tree. Tagging without having run the bump
+      # would otherwise sail through: the publish job reads its version from
+      # pyproject.toml, finds the PREVIOUS release already on PyPI, and skips
+      # every package as "already published" — a green run that shipped nothing.
+      # Fail here instead, before any wheel is built.
+      - name: Verify tag matches committed package versions
+        if: github.ref_type == 'tag'
+        run: uv run python scripts/check_release_versions.py --expect "${GITHUB_REF_NAME#v}"
+
       # The haywire-core wheel force-includes packages/haywire-core/src/haywire/
       # _baked_docs/ as haywire/docs/. A committed .gitkeep keeps the directory
       # present (so editable installs above don't fail the force-include), but

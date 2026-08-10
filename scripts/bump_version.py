@@ -15,6 +15,14 @@ separately.
 
 Prints a unified diff of all changes and asks for confirmation before
 writing. Use --yes to skip the prompt (for scripted use).
+
+Runs as a workspace script, always under `uv run` with the workspace synced
+(`/haywire-release`, `scripts/README.md`, `docs/reference/publish_releases.md`),
+so it imports `haywire.core` freely rather than reimplementing what the
+framework already owns. It is never invoked from a bare checkout: CI only
+*reads* release config from this module (`publish.yml`, `publish-testpypi.yml`,
+`check_deps.py`, `generate_marketstall.py`), and the bump itself happens
+locally, before the tag that triggers CI exists.
 """
 
 from __future__ import annotations
@@ -26,6 +34,9 @@ import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
+
+from haywire.core.library.dep_detect import find_module_dir
+from haywire.core.library.haybale_toml import HAYBALE_TOML
 
 
 @dataclass(frozen=True)
@@ -158,33 +169,40 @@ _BUILTIN_HAYBALE_TOML = Path("src/haywire/barn/builtin/haybale.toml")
 def find_haybale_toml(pkg_dir: Path) -> Path | None:
     """Locate `haybale.toml` inside a package directory, or None if absent.
 
-    Mirrors `haywire.core.library.dep_detect.find_module_dir`'s flat/src-layout
-    search, kept as a local copy rather than an import: this script runs before
-    any package is guaranteed installed, and stays dependency-free by design
-    (stdlib only) so it works in a bare CI checkout.
+    Delegates the flat/src-layout search to
+    `haywire.core.library.dep_detect.find_module_dir`, the same function the
+    share wizard's `write_barn_versions` uses, so the two version writers can
+    never disagree about which module directory owns a library's manifest.
+
+    The one case `find_module_dir` cannot serve is `_BUILTIN_HAYBALE_TOML`
+    (checked first, below): the share wizard only ever walks `barn/`, which
+    never contains builtin, so its search has no reason to know about that
+    nesting.
     """
     builtin_candidate = pkg_dir / _BUILTIN_HAYBALE_TOML
     if builtin_candidate.is_file():
         return builtin_candidate
 
-    for search_root in (pkg_dir, pkg_dir / "src"):
-        if not search_root.is_dir():
-            continue
-        for child in sorted(search_root.iterdir()):
-            if not child.is_dir() or child.name.startswith((".", "_")):
-                continue
-            candidate = child / "haybale.toml"
-            if candidate.is_file():
-                return candidate
-    return None
+    module_dir = find_module_dir(pkg_dir)
+    if module_dir is None:
+        return None
+    candidate = module_dir / HAYBALE_TOML
+    return candidate if candidate.is_file() else None
 
 
 def rewrite_haybale_toml(source: str, new_version: str) -> tuple[str, list[str]]:
     """Return (new_source, list_of_human_edit_descriptions) for one `haybale.toml`.
 
-    Same regex-substitution approach as :func:`rewrite_pyproject`'s version line —
-    a single top-level `version = "..."` key, no nested tables above it, so a
-    full TOML parse buys nothing here and this script stays stdlib-only.
+    Same regex-substitution approach as :func:`rewrite_pyproject`'s version
+    line, deliberately kept local rather than shared with the share wizard's
+    `write_barn_versions`: this one also accumulates human-readable edit
+    descriptions for the unified diff below, which that one has no use for.
+    The shared part is eight lines; the contexts differ.
+
+    Valid because `haybale.toml` has a single top-level `version = "..."` key
+    with no nested tables above it. Should that ever stop holding, this must
+    move to a structured edit (`haywire.core.tomlio.edit_toml`) — the anchored
+    regex would silently target the first `version` line in some other table.
     """
     edits: list[str] = []
 
