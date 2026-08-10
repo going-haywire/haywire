@@ -349,6 +349,7 @@ EDITABLE_FIELDS = (
     "examples_path",
     "tests_path",
     "notes",
+    "authors",
 )
 
 
@@ -366,6 +367,15 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
     An empty value removes the key rather than writing ``""``. Absent and empty
     then mean the same thing, which keeps a file edited through the UI
     indistinguishable from one an author wrote by hand.
+
+    ``authors`` is the one non-scalar/non-string-list field: it takes
+    ``(name, url)`` tuples — matching :attr:`LibraryDisplay.authors` — and is
+    converted to ``[[authors]]`` tables here, dropping ``url`` when it is
+    ``""`` rather than writing an empty key. A tuple with a blank ``name`` is
+    the caller's problem, not this function's: nothing downstream of a bare
+    ``[[authors]]`` table treats a missing ``name`` as a landmine the way a
+    malformed ``linked_libraries`` entry does, so there is nothing here to
+    validate against.
     """
     unknown = set(fields) - set(EDITABLE_FIELDS)
     if unknown:
@@ -385,6 +395,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
 
     with edit_toml(source) as doc:
         for key, value in fields.items():
+            if key == "authors" and value:
+                value = [{"name": name, **({"url": url} if url else {})} for name, url in value]
             if value in ("", [], None):
                 doc.pop(key, None)
             else:

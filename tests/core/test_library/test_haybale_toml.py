@@ -287,3 +287,46 @@ def test_display_drops_wrong_typed_values_rather_than_raising(tmp_path: Path) ->
     assert d.label == ""
     assert d.tags == ()
     assert d.authors == ()
+
+
+# ── writing ───────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_write_authors_round_trips_through_display(tmp_path: Path) -> None:
+    from haywire.core.library.haybale_toml import read_display, write_haybale_fields
+
+    d = _write(tmp_path, 'id = "core"\nlabel = "Core"\n')
+    write_haybale_fields(d, {"authors": [("maybites", "https://maybites.ch"), ("cansik", "")]})
+
+    written = (d / HAYBALE_TOML).read_text()
+    assert '[[authors]]\nname = "maybites"\nurl = "https://maybites.ch"' in written
+    assert '[[authors]]\nname = "cansik"\n' in written
+    assert "url" not in written.split("cansik")[1]  # no url = "" for the url-less author
+
+    assert read_display(d).authors == (("maybites", "https://maybites.ch"), ("cansik", ""))
+
+
+@pytest.mark.unit
+def test_write_empty_authors_list_removes_the_key(tmp_path: Path) -> None:
+    from haywire.core.library.haybale_toml import write_haybale_fields
+
+    d = _write(
+        tmp_path,
+        'id = "core"\nlabel = "Core"\n\n[[authors]]\nname = "old"\n',
+    )
+    write_haybale_fields(d, {"authors": []})
+
+    written = (d / HAYBALE_TOML).read_text()
+    assert "authors" not in written
+
+
+@pytest.mark.unit
+def test_write_authors_preserves_comments_elsewhere_in_the_file(tmp_path: Path) -> None:
+    """Comment-preserving like every other field write_haybale_fields makes."""
+    from haywire.core.library.haybale_toml import write_haybale_fields
+
+    d = _write(tmp_path, '# hand-written note\nid = "core"\nlabel = "Core"\n')
+    write_haybale_fields(d, {"authors": [("alice", "")]})
+
+    assert "# hand-written note" in (d / HAYBALE_TOML).read_text()

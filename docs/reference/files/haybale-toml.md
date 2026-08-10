@@ -175,16 +175,23 @@ and the entry point live in [`pyproject.toml`](pyproject-toml.md).
 | Written by | Fields |
 | --- | --- |
 | `haywire init` (scaffold) | `name`, `id`, `label`, `linked_libraries` |
-| The author, by hand or in the edit modal | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes` |
-| The author, by hand only | `[deprecated]`, `[[authors]]` |
+| The author, by hand or in the edit modal | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
+| The author, by hand only | `[deprecated]` |
 | The share wizard | `version`, `origin`, `origin_provider`, and drift-detected `linked_libraries` additions |
 | Nothing — immutable | `name`, `id` |
 
-The edit modal accepts exactly the twelve author-editable fields above
+The edit modal accepts exactly the thirteen author-editable fields above
 (`EDITABLE_FIELDS`); passing any other raises rather than silently dropping the
 write. Writing an empty value removes the key instead of writing `""`, so absent
 and empty stay the same thing and a UI-edited file is indistinguishable from a
 hand-written one.
+
+`[[authors]]` rows are edited positionally: the modal has no per-author identity
+to diff against, so save always writes exactly the rows currently shown,
+top-to-bottom. A row with a name but no URL writes `url`-less; a row with no
+name is dropped from the save (matching the read side's own rule that a
+nameless entry is not an author) unless it carries a URL, in which case the
+save is blocked rather than silently discarding the typed URL.
 
 There is no supported rename path today: `name` and `id` are read-only
 everywhere until the rename-wizard lands.

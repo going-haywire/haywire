@@ -338,6 +338,11 @@ split for an undeterminable branch.
 
 ## Authors are names only
 
+> **Update (2026-08-10):** per-author URLs are now editable in the marketplace
+> edit modal — see [haybale-toml.md](../reference/files/haybale-toml.md). The
+> "speculative" call below no longer holds; it is retained for the reasoning
+> that led here, not as current guidance.
+
 `[project] authors` is already a list; the generator took `authors[0]` and
 discarded the rest. It now takes all of them.
 

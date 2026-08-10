@@ -208,6 +208,38 @@ def build_edit_dialog(
             value=", ".join(display.tags),
         )
 
+        # Authors — positional, whole-value replace on save (like every other
+        # field here except linked_libraries). `_author_rows` holds one
+        # (row, name_input, url_input) triple per rendered row; add/remove
+        # mutate the container directly, the same clear-and-redraw spirit
+        # `_render_linked` above uses, but per-row rather than whole-list since
+        # each row deletes independently.
+        ui.label("Authors").classes("text-xs hw-text-dim")
+        _author_rows: list[tuple[ui.row, ui.input, ui.input]] = []
+        _authors_container = ui.column().classes("w-full gap-1")
+
+        def _remove_author_row(row: ui.row) -> None:
+            _author_rows[:] = [entry for entry in _author_rows if entry[0] is not row]
+            row.delete()
+
+        def _add_author_row(name: str = "", url: str = "") -> None:
+            with _authors_container:
+                with ui.row().classes("w-full items-center gap-2") as row:
+                    name_in = hui.input_field(placeholder="Name", value=name).classes("flex-1")
+                    url_in = hui.input_field(placeholder="URL (optional)", value=url).classes("flex-1")
+                    hui.icon_action(
+                        "close", tooltip="Remove author", on_click=lambda r=row: _remove_author_row(r)
+                    )
+            _author_rows.append((row, name_in, url_in))
+
+        for _name, _url in display.authors:
+            _add_author_row(_name, _url)
+
+        with ui.row().classes("items-center"):
+            ui.button("Add author", icon="add", on_click=lambda: _add_author_row()).props(
+                "size=sm flat dense"
+            )
+
         # OS multi-select. Editable for heaps — an installed wheel's file is in
         # site-packages, where an edit would be lost on the next reinstall.
         current_os = list(read_haybale_toml_lenient(Path(lib.identity.folder_path)).get("os") or [])
@@ -273,6 +305,19 @@ def build_edit_dialog(
             )
 
         async def _save():
+            # A blank name with a filled url would otherwise be silently
+            # dropped by write_haybale_fields (an author needs a name to be
+            # one at all) — block the save instead of losing a typed URL.
+            for _, name_in, url_in in _author_rows:
+                if not name_in.value.strip() and url_in.value.strip():
+                    ui.notify("An author needs a name to keep its URL.", type="negative")
+                    return
+            authors = [
+                (name_in.value.strip(), url_in.value.strip())
+                for _, name_in, url_in in _author_rows
+                if name_in.value.strip()
+            ]
+
             # Only the keys this dialog owns. write_haybale_fields edits in
             # place, so an omitted key is left alone rather than erased — which
             # is why [deprecated] survives a save untouched, and why an
@@ -285,6 +330,7 @@ def build_edit_dialog(
                 "issues_url": issues_url_input.value.strip(),
                 "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
                 "on_reload": on_reload_select.value or LibraryReloadAction.NONE.value,
+                "authors": authors,
             }
             # `os` only when its multi-select was rendered (heap libraries).
             if os_select is not None:
