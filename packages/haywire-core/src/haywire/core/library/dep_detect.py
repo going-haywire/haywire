@@ -4,7 +4,7 @@ Walks a library's source tree, resolves every top-level imported module to
 its providing distribution, and classifies the result into the two output
 shapes downstream consumers need:
 
-  - ``library_decorator``: underscored module names for ``haybale.toml``'s
+  - ``library_linked``: underscored module names for ``haybale.toml``'s
     ``linked_libraries``. Limited to *registered* haywire libraries;
     framework imports and third-party packages do not belong here.
   - ``pyproject``: distribution names with version specifiers, ready for
@@ -99,10 +99,10 @@ class EntryPointLibrarySource:
 class DetectedDeps:
     """The classified result of scanning a library's imports.
 
-    Both ``library_decorator`` and ``pyproject`` are deterministically sorted.
+    Both ``library_linked`` and ``pyproject`` are deterministically sorted.
     """
 
-    library_decorator: list[str] = field(default_factory=list)
+    library_linked: list[str] = field(default_factory=list)
     pyproject: list[str] = field(default_factory=list)
     resolved: dict[str, str] = field(default_factory=dict)
     unresolved: list[str] = field(default_factory=list)
@@ -283,7 +283,7 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
         if dist:
             registered_dists.add(dist)
 
-    decorator: list[str] = []
+    linked: list[str] = []
     pyproject: list[str] = []
     resolved: dict[str, str] = {}
     unresolved: list[str] = []
@@ -308,12 +308,12 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
 
         if dist in registered_dists:
             # Registered haywire library — emit to both outputs.
-            decorator.append(module)
+            linked.append(module)
             pyproject.append(_format_specifier(dist))
         elif dist.startswith("haywire-"):
             # Framework dist reached via a top-level other than `haywire` —
             # e.g. `import haywire_studio` resolving to haywire-studio.
-            # Framework, so pyproject only (not the @library decorator).
+            # Framework, so pyproject only (not linked_libraries).
             # `candidates` is a set, so each module is visited once and no
             # duplicate guard is needed.
             pyproject.append(_format_specifier(dist))
@@ -321,11 +321,11 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
             # Third-party.
             pyproject.append(_format_specifier(dist))
 
-    decorator.sort()
+    linked.sort()
     pyproject.sort()
     unresolved.sort()
     return DetectedDeps(
-        library_decorator=decorator,
+        library_linked=linked,
         pyproject=pyproject,
         resolved=resolved,
         unresolved=unresolved,

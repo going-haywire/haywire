@@ -200,7 +200,7 @@ def test_decorator_gap_alone_is_not_drift(project: Path) -> None:
     with patch.object(
         steps_detect,
         "detect_share_drift",
-        side_effect=lambda lib_dir: DepDrift(lib_dir=lib_dir, decorator_missing=["haybale_studio"]),
+        side_effect=lambda lib_dir: DepDrift(lib_dir=lib_dir, linked_missing=["haybale_studio"]),
     ):
         report = SharePipeline(project).check_drift()
 
@@ -209,14 +209,14 @@ def test_decorator_gap_alone_is_not_drift(project: Path) -> None:
     assert len(report.findings_only) == 2
 
 
-def test_decorator_registrations_are_applied_in_union_mode(project: Path) -> None:
+def test_linked_registrations_are_applied_in_union_mode(project: Path) -> None:
     """Existing entries survive: a name added by hand for a dynamic import
     would otherwise be dropped by a tool that cannot see that import."""
     lib = project / "barn" / "haybale-alpha"
     declared = lib / "haybale_alpha" / "haybale.toml"
 
     pipeline = SharePipeline(project)
-    pipeline.apply_decorator_registrations({lib: ["haybale_studio"]})
+    pipeline.apply_linked_registrations({lib: ["haybale_studio"]})
 
     source = declared.read_text()
     assert "haybale_studio" in source
@@ -224,7 +224,7 @@ def test_decorator_registrations_are_applied_in_union_mode(project: Path) -> Non
     assert declared in pipeline.written
 
 
-def test_decorator_registrations_never_touch_pyproject(project: Path) -> None:
+def test_linked_registrations_never_touch_pyproject(project: Path) -> None:
     """Separate carriers, separate writes — this one only edits haybale.toml.
 
     [project] dependencies are pip requirements; linked_libraries are sibling
@@ -234,7 +234,7 @@ def test_decorator_registrations_never_touch_pyproject(project: Path) -> None:
     before = (lib / "pyproject.toml").read_text()
 
     pipeline = SharePipeline(project)
-    pipeline.apply_decorator_registrations({lib: ["haybale_studio"]})
+    pipeline.apply_linked_registrations({lib: ["haybale_studio"]})
 
     assert (lib / "pyproject.toml").read_text() == before
     assert [p.name for p in pipeline.written] == ["haybale.toml"]
@@ -355,7 +355,7 @@ def test_apply_all_writes_the_framework_floor_before_the_other_entries(project: 
 
     with (
         patch.object(SharePipeline, "apply_framework", _record("framework")),
-        patch.object(SharePipeline, "apply_decorator_registrations", _record("registrations")),
+        patch.object(SharePipeline, "apply_linked_registrations", _record("registrations")),
         patch.object(SharePipeline, "apply_removals", _record("removals")),
         patch.object(SharePipeline, "apply_additions", _record("additions")),
         patch.object(SharePipeline, "apply_floors", _record("floors")),

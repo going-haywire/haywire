@@ -75,7 +75,7 @@ Inline, specifically, rather than in a modal: a `ui.dialog()` is a top-level ele
 The findings split by consequence, not by category:
 
 - **`drifted`** — the library has an **undeclared import** (`pyproject_missing`): the source imports a distribution the published manifest omits. This is the only state that breaks a consumer's install, so it is the only one `DepDrift.has_drift` and `DriftReport.needs_decision` count.
-- **`findings_only`** — something to report, nothing to refuse over: **decorator registrations** (repaired automatically, see §2.3), **unused declarations** (declared, never imported), **version floor lag** (a declared floor below the installed version), and unresolved imports (usually dynamic).
+- **`findings_only`** — something to report, nothing to refuse over: **linked registrations** (repaired automatically, see §2.3), **unused declarations** (declared, never imported), **version floor lag** (a declared floor below the installed version), and unresolved imports (usually dynamic).
 
 Version floor lag is deliberately *not* drift. A floor states the oldest version that still works, which requires resolving and testing candidate versions — static scanning cannot reach it, so "installed is newer" only means time passed. Raising it automatically would narrow consumer compatibility based on the author's dev-machine state, which is exactly what the codebase already refuses to do for third-party deps.
 
@@ -88,7 +88,7 @@ Every write to a library's `[project] dependencies` lives in `steps/dependencies
 - `apply_framework(specifier)` — the `haywire-core` entry, and nothing else. The one authored floor in the flow.
 - `apply_removals({lib: [dist, …]})` — drops unused declarations the author ticked.
 - `apply_additions({lib: [entry, …]})` — declares undeclared imports with the author's chosen pins. Skips distributions already declared: an addition never restates an existing floor.
-- `apply_decorator_registrations({lib: [name, …]})` — adds imported haywire libraries to `linked_libraries` in `haybale.toml`. **Applied without asking**, at the framework step so it lands exactly once. There is nothing to decide: `detect_deps` emits a name here only when the source imports it *and* it resolves to an installed registered library, so every entry is provably true, carries no version specifier, and narrows nothing for consumers. It is *reported* on the Findings and Confirm screens rather than done silently, because it edits a hand-authored declaration rather than a generated one.
+- `apply_linked_registrations({lib: [name, …]})` — adds imported haywire libraries to `linked_libraries` in `haybale.toml`. **Applied without asking**, at the framework step so it lands exactly once. There is nothing to decide: `detect_deps` emits a name here only when the source imports it *and* it resolves to an installed registered library, so every entry is provably true, carries no version specifier, and narrows nothing for consumers. It is *reported* on the Findings and Confirm screens rather than done silently, because it edits a hand-authored declaration rather than a generated one.
 - `apply_floors({lib: [entry, …]})` — rewrites only the floors the author actively changed.
 
 An empty mapping writes nothing, so "keep them" is a real answer on every screen.
@@ -152,7 +152,7 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 |---|---|---|
 | 1 | `check_preconditions()` / `require_preconditions()` | `apply_precondition_fix()` — the two/three failures with a mechanical repair (missing origin, invalid `os` declaration, unrecognized host); every other failure is fixed outside the pipeline |
 | 2 | `check_drift()` | — (Detect is pure) |
-| 3 | `plan_framework()` | `apply_framework()`, `apply_decorator_registrations()`, `apply_removals()`, `apply_additions()`, `apply_floors()`, `acknowledge_undeclared()` |
+| 3 | `plan_framework()` | `apply_framework()`, `apply_linked_registrations()`, `apply_removals()`, `apply_additions()`, `apply_floors()`, `acknowledge_undeclared()` |
 | 4 | `plan_version()`, `check_tag_available()` | `apply_bump()` |
 | 5 | `docs_command()` | `apply_docs()` |
 | 6 | `plan_commit()` | `apply_marketstall()`, `apply_commit()` |
@@ -171,7 +171,7 @@ See `steps/rollback.py`.
 
 This split is what lets the Share flow show every finding and its consequence before anything is written, and `haywire share --dry-run` report the same material without writing, while the plain CLI drives the exact same methods and renders none of it.
 
-Step 3's applies take **mappings of what the author chose**, not a mode flag. An empty mapping writes nothing, which is what makes "keep them" a real answer rather than a branch the caller has to remember to skip. `apply_decorator_registrations()` is the exception that proves it: nothing about it is chosen, so it is never offered — it runs alongside `apply_framework()` and is reported afterwards.
+Step 3's applies take **mappings of what the author chose**, not a mode flag. An empty mapping writes nothing, which is what makes "keep them" a real answer rather than a branch the caller has to remember to skip. `apply_linked_registrations()` is the exception that proves it: nothing about it is chosen, so it is never offered — it runs alongside `apply_framework()` and is reported afterwards.
 
 ### 3.1 Collect-then-apply-once
 

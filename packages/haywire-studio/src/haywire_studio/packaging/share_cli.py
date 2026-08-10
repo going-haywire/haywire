@@ -121,12 +121,12 @@ def _run_publish(
 
     report = pipeline.check_drift()
 
-    registrations = report.decorator_registrations
+    registrations = report.linked_registrations
     if registrations:
         for lib_dir, names in registrations.items():
             for name in names:
                 print(f"  + {lib_dir.name}: haybale.toml linked_libraries {name}")
-        pipeline.apply_decorator_registrations(registrations)
+        pipeline.apply_linked_registrations(registrations)
         print("✓ Registered imported libraries in haybale.toml linked_libraries")
 
     if report.needs_decision:

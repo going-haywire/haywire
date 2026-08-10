@@ -155,13 +155,13 @@ class SharePipeline:
         """Declare imports the pyproject omits, using the author's chosen pins."""
         return steps_dependencies.apply_additions(self, pyproject_entries)
 
-    def apply_decorator_registrations(self, registrations: dict[Path, list[str]]) -> list[Path]:
+    def apply_linked_registrations(self, registrations: dict[Path, list[str]]) -> list[Path]:
         """Register imported haywire libraries in ``haybale.toml``'s ``linked_libraries``.
 
         Applied without asking — every entry is provably true and constrains
         nothing. Callers report it rather than offering it.
         """
-        return steps_dependencies.apply_decorator_registrations(self, registrations)
+        return steps_dependencies.apply_linked_registrations(self, registrations)
 
     def apply_floors(self, floors: dict[Path, list[str]]) -> list[Path]:
         """Rewrite the declared floors the author chose to change."""
@@ -191,7 +191,7 @@ class SharePipeline:
         if decisions.framework is not None:
             written += self.apply_framework(decisions.framework)
         if decisions.registrations:
-            written += self.apply_decorator_registrations(decisions.registrations)
+            written += self.apply_linked_registrations(decisions.registrations)
         if decisions.removals:
             written += self.apply_removals(decisions.removals)
         if decisions.additions:

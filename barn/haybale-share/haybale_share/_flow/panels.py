@@ -184,7 +184,7 @@ def panel_review(flow: ShareFlow, rerender: Callable[[], None]) -> None:
     report = flow.drift_report
     libraries = report.libraries if report else []
 
-    registrations = report.decorator_registrations if report else {}
+    registrations = report.linked_registrations if report else {}
     controls = _render_findings(flow, libraries)
     _render_clean_lines(libraries, registrations)
 

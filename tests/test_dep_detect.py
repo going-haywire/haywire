@@ -86,7 +86,7 @@ def test_stdlib_imports_yield_nothing(tmp_path: Path) -> None:
         init_body="import os\nimport sys\nfrom pathlib import Path\n",
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert result.library_decorator == []
+    assert result.library_linked == []
     assert result.pyproject == []
     assert result.unresolved == []
 
@@ -98,7 +98,7 @@ def test_haywire_core_import_emits_haywire_core(tmp_path: Path) -> None:
         init_body="from haywire.core.node.registry import NodeRegistry\n",
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert result.library_decorator == []
+    assert result.library_linked == []
     assert len(result.pyproject) == 1
     assert result.pyproject[0].startswith("haywire-core>=")
 
@@ -114,7 +114,7 @@ def test_haywire_ui_import_emits_haywire_core_not_studio(tmp_path: Path) -> None
         init_body="from haywire.ui.elements import elements as hui\n",
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert result.library_decorator == []
+    assert result.library_linked == []
     assert len(result.pyproject) == 1
     assert result.pyproject[0].startswith("haywire-core>=")
     assert not any(s.startswith("haywire-studio") for s in result.pyproject)
@@ -167,7 +167,7 @@ def test_registered_library_lands_in_both_outputs(tmp_path: Path) -> None:
     # asserts it as a registered library.
     src = FakeLibrarySource({"core": "haybale-core"})
     result = detect_deps(lib, libraries=src)
-    assert result.library_decorator == ["haybale_core"]
+    assert result.library_linked == ["haybale_core"]
     assert len(result.pyproject) == 1
     assert result.pyproject[0].startswith("haybale-core>=")
 
@@ -180,7 +180,7 @@ def test_unregistered_haybale_shaped_module_is_third_party(tmp_path: Path) -> No
     # `toml` (third-party, definitely installed, definitely not a library).
     lib = _make_library(tmp_path, init_body="import toml\n")
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert result.library_decorator == []
+    assert result.library_linked == []
     assert len(result.pyproject) == 1
     spec = result.pyproject[0]
     assert spec.startswith("toml>="), f"expected toml>=..., got {spec!r}"
@@ -228,7 +228,7 @@ def test_self_import_is_ignored(tmp_path: Path) -> None:
         init_body="from haybale_fake import nothing\n",
     )
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert result.library_decorator == []
+    assert result.library_linked == []
     assert result.pyproject == []
 
 
@@ -237,7 +237,7 @@ def test_relative_imports_are_ignored(tmp_path: Path) -> None:
     """`from . import foo` should not be treated as a dependency edge."""
     lib = _make_library(tmp_path, init_body="from . import sibling\n")
     result = detect_deps(lib, libraries=FakeLibrarySource())
-    assert result.library_decorator == []
+    assert result.library_linked == []
     assert result.pyproject == []
     assert result.unresolved == []
 
@@ -273,7 +273,7 @@ def test_mixed_realistic_tree(tmp_path: Path) -> None:
     result = detect_deps(lib, libraries=src)
 
     # Decorator: only the registered library.
-    assert result.library_decorator == ["haybale_core"]
+    assert result.library_linked == ["haybale_core"]
 
     # Pyproject: framework (one dist, both subpackages) + registered lib +
     # third-party = 3 entries.

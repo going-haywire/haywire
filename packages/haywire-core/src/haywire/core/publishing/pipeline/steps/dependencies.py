@@ -104,7 +104,7 @@ def apply_additions(
     addition never restates an existing floor.
 
     ``haybale.toml``'s ``linked_libraries`` is NOT written here — see
-    :func:`apply_decorator_registrations`, which needs no author input.
+    :func:`apply_linked_registrations`, which needs no author input.
     """
     written: list[Path] = []
     for lib_dir, entries in pyproject_entries.items():
@@ -119,7 +119,7 @@ def apply_additions(
     return pipeline.record(written)
 
 
-def apply_decorator_registrations(
+def apply_linked_registrations(
     pipeline: "SharePipeline", registrations: dict[Path, list[str]]
 ) -> list[Path]:
     """Add imported haywire libraries to ``haybale.toml``'s ``linked_libraries``.

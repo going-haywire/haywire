@@ -350,7 +350,7 @@ def review_everything() -> ShareFlow:
                 DepDrift(
                     lib_dir=ALPHA,
                     pyproject_missing=["numpy", "opencv-python"],
-                    decorator_missing=["haybale_studio"],
+                    linked_missing=["haybale_studio"],
                     unused_declarations=["requests"],
                     pyproject_version_lag=[("toml", ">=0.10.0", "0.10.2")],
                     unresolved=["cv2.legacy"],

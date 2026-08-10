@@ -63,9 +63,9 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     declared_pyproject: list[str] = list(pyproject_data.get("project", {}).get("dependencies", []))
 
     module_dir = find_module_dir(lib_dir)
-    declared_decorator: list[str] = []
+    declared_linked: list[str] = []
     if module_dir:
-        declared_decorator = _read_library_dependencies(module_dir)
+        declared_linked = _read_library_dependencies(module_dir)
 
     # Convert declared_pyproject specs ("haywire-core~=0.0.1") to bare dist names
     # so we can compare against detected entries by name.
@@ -78,19 +78,19 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     # declaration, so acting on this without asking would break the library.
     unused_declarations = sorted(decl_py_names - detected_py_names)
 
-    # Decorator deps round-trip as bare module names in detect_deps output;
+    # linked_libraries round-trip as bare module names in detect_deps output;
     # _read_library_dependencies already converts to pip-package form. Re-
     # normalize both sides so "haybale_core" and "haybale-core" compare equal.
-    decl_dec_norm = {_norm_dep(d) for d in declared_decorator}
-    detected_dec_norm = {_norm_dep(d) for d in detected.library_decorator}
-    decorator_missing = sorted(detected_dec_norm - decl_dec_norm)
+    decl_linked_norm = {_norm_dep(d) for d in declared_linked}
+    detected_linked_norm = {_norm_dep(d) for d in detected.library_linked}
+    linked_missing = sorted(detected_linked_norm - decl_linked_norm)
 
     pyproject_version_lag = _detect_pyproject_version_lag(declared_pyproject, libraries=libraries)
 
     return DepDrift(
         lib_dir=lib_dir,
         pyproject_missing=pyproject_missing,
-        decorator_missing=decorator_missing,
+        linked_missing=linked_missing,
         unused_declarations=unused_declarations,
         pyproject_version_lag=pyproject_version_lag,
         unresolved=list(detected.unresolved),

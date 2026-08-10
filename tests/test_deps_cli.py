@@ -48,7 +48,7 @@ def test_actionable_drift_exits_drift_and_prints_each_kind(tmp_path: Path, capsy
     drift = DepDrift(
         lib_dir=lib_dir,
         pyproject_missing=["haywire-core"],
-        decorator_missing=["haybale_core"],
+        linked_missing=["haybale_core"],
         pyproject_version_lag=[("haybale-core", "0.1.0", "0.2.0")],
     )
 

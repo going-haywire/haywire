@@ -112,7 +112,7 @@ def test_drift_when_pyproject_missing_haywire_core(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
-def test_drift_decorator_missing_registered_library(tmp_path: Path, monkeypatch) -> None:
+def test_drift_linked_missing_registered_library(tmp_path: Path, monkeypatch) -> None:
     """Source imports a registered haywire library but the decorator
     omits it — drift on the decorator side, not pyproject."""
     import importlib.metadata as _meta
@@ -130,7 +130,7 @@ def test_drift_decorator_missing_registered_library(tmp_path: Path, monkeypatch)
     drift = detect_share_drift(lib)
     # haybale_core is a registered library (real entry point in dev workspace)
     # so it should appear in the decorator-missing list.
-    assert "haybale_core" in drift.decorator_missing
+    assert "haybale_core" in drift.linked_missing
 
 
 @pytest.mark.unit
@@ -152,10 +152,10 @@ def test_drift_no_drift_when_everything_declared(tmp_path: Path, monkeypatch) ->
     )
     drift = detect_share_drift(lib)
     assert not drift.has_drift
-    # The declared side specifically: has_drift excludes decorator_missing by
+    # The declared side specifically: has_drift excludes linked_missing by
     # design, so without this the linked_libraries declaration is never read
     # by any assertion and the fixture could stop writing it unnoticed.
-    assert drift.decorator_missing == []
+    assert drift.linked_missing == []
 
 
 @pytest.mark.unit
@@ -226,7 +226,7 @@ def test_format_drift_report_groups_pyproject_decorator_unresolved(tmp_path: Pat
     drift = DepDrift(
         lib_dir=tmp_path / "haybale-fake",
         pyproject_missing=["haywire-core"],
-        decorator_missing=["haybale_core"],
+        linked_missing=["haybale_core"],
         unresolved=["mystery"],
     )
     report = _format_drift_report(drift)

@@ -170,7 +170,7 @@ def test_framework_plan_carries_installed_declared_and_options() -> None:
 
 
 @pytest.mark.unit
-def test_drift_report_decorator_registrations_reads_every_library() -> None:
+def test_drift_report_linked_registrations_reads_every_library() -> None:
     """The registrations property must NOT be limited to `drifted`.
 
     A missing `linked_libraries` entry is not drift, so a library whose
@@ -181,14 +181,14 @@ def test_drift_report_decorator_registrations_reads_every_library() -> None:
     from haywire.core.publishing.pipeline import DepDrift, DriftReport
 
     broken = DepDrift(lib_dir=Path("barn/haybale-alpha"), pyproject_missing=["numpy"])
-    registration_only = DepDrift(lib_dir=Path("barn/haybale-beta"), decorator_missing=["haybale_studio"])
+    registration_only = DepDrift(lib_dir=Path("barn/haybale-beta"), linked_missing=["haybale_studio"])
     report = DriftReport(drifted=[broken], findings_only=[registration_only])
 
-    assert report.decorator_registrations == {Path("barn/haybale-beta"): ["haybale_studio"]}
+    assert report.linked_registrations == {Path("barn/haybale-beta"): ["haybale_studio"]}
 
 
 @pytest.mark.unit
-def test_drift_report_decorator_registrations_omits_libraries_with_none() -> None:
+def test_drift_report_linked_registrations_omits_libraries_with_none() -> None:
     """A library with nothing to register must not appear as an empty entry —
     callers treat a present key as "there is a write to make"."""
     from haywire.core.publishing.pipeline import DepDrift, DriftReport
@@ -196,4 +196,4 @@ def test_drift_report_decorator_registrations_omits_libraries_with_none() -> Non
     clean = DepDrift(lib_dir=Path("barn/haybale-alpha"), unused_declarations=["requests"])
     report = DriftReport(drifted=[], findings_only=[clean])
 
-    assert report.decorator_registrations == {}
+    assert report.linked_registrations == {}

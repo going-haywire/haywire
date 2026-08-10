@@ -10,9 +10,9 @@ def _format_drift_report(drift: DepDrift) -> str:
         lines.append("  pyproject.toml [project] dependencies missing:")
         for s in drift.pyproject_missing:
             lines.append(f"    + {s}")
-    if drift.decorator_missing:
+    if drift.linked_missing:
         lines.append("  haybale.toml linked_libraries missing:")
-        for s in drift.decorator_missing:
+        for s in drift.linked_missing:
             lines.append(f"    + {s}")
     if drift.pyproject_version_lag:
         lines.append("  pyproject.toml haybale floors lagging installed:")

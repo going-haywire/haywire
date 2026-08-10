@@ -142,7 +142,7 @@ class DriftReport:
         return [*self.drifted, *self.findings_only]
 
     @property
-    def decorator_registrations(self) -> dict[Path, list[str]]:
+    def linked_registrations(self) -> dict[Path, list[str]]:
         """Per-library ``haybale.toml`` ``linked_libraries`` entries to add without asking.
 
         Lives here rather than in each caller because it is a *pipeline*
@@ -155,9 +155,7 @@ class DriftReport:
         never appears in ``drifted`` at all.
         """
         return {
-            drift.lib_dir: list(drift.decorator_missing)
-            for drift in self.libraries
-            if drift.decorator_missing
+            drift.lib_dir: list(drift.linked_missing) for drift in self.libraries if drift.linked_missing
         }
 
 
@@ -257,7 +255,7 @@ class ShareDecisions:
     fail specifier parsing.
 
     ``registrations`` is not a decision (see
-    :attr:`DriftReport.decorator_registrations`); it travels here only so
+    :attr:`DriftReport.linked_registrations`); it travels here only so
     :meth:`apply_all` can write it in the same pass, at the same point in the
     order the incremental path used.
     """

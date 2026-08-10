@@ -13,7 +13,7 @@ class DepDrift:
     it fails on import. Everything else is a *fact about the library*, and each
     is handled differently:
 
-    * ``decorator_missing`` — registered haywire libraries the source imports
+    * ``linked_missing`` — registered haywire libraries the source imports
       that ``haybale.toml``'s ``linked_libraries`` does not list. Applied
       AUTOMATICALLY, never offered as a choice, because there is nothing to
       decide: ``detect_deps`` only emits a name here when the source imports it
@@ -40,7 +40,7 @@ class DepDrift:
 
     lib_dir: Path
     pyproject_missing: list[str] = field(default_factory=list)
-    decorator_missing: list[str] = field(default_factory=list)
+    linked_missing: list[str] = field(default_factory=list)
     unused_declarations: list[str] = field(default_factory=list)
     pyproject_version_lag: list[tuple[str, str, str]] = field(default_factory=list)
     unresolved: list[str] = field(default_factory=list)
@@ -49,7 +49,7 @@ class DepDrift:
     def has_drift(self) -> bool:
         """True iff an imported distribution is undeclared — the breaking state.
 
-        Excludes ``decorator_missing``: that is repaired automatically, so it is
+        Excludes ``linked_missing``: that is repaired automatically, so it is
         never a state the author is asked to resolve or allowed to decline.
         """
         return bool(self.pyproject_missing)
@@ -59,7 +59,7 @@ class DepDrift:
         """True iff the detect report has anything at all to show for this library."""
         return bool(
             self.pyproject_missing
-            or self.decorator_missing
+            or self.linked_missing
             or self.unused_declarations
             or self.pyproject_version_lag
             or self.unresolved
