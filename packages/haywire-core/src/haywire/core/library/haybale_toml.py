@@ -56,10 +56,10 @@ HAYBALE_TOML = "haybale.toml"
 #: ``distribution_fields()`` established for the reader this replaces.
 #:
 #: ``version`` is here too, but unlike the others its absence is fatal — see
-#: the check in :func:`read_haybale_toml`. ``pyproject.toml`` is canon for the
-#: value (release tooling and the share wizard both bump it there first); this
-#: file carries the synced copy so ``LibraryIdentity`` never needs an installed
-#: distribution to answer "what version is this".
+#: the check in :func:`read_haybale_toml`. This file is canon for the value;
+#: ``pyproject.toml`` carries the generated copy because pip reads version out
+#: of that file and cannot read this one. The value is written here by
+#: ``scripts/bump_version.py`` and the share wizard rather than by hand.
 _STR_FIELDS = ("id", "label", "on_reload", "description", "version")
 _LIST_FIELDS = ("linked_libraries", "tags", "os")
 

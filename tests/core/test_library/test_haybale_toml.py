@@ -400,3 +400,23 @@ def test_version_is_projected_into_pyproject():
     from haywire.core.publishing.generate import PROJECT_FIELDS
 
     assert PROJECT_FIELDS["version"] == "version"
+
+
+@pytest.mark.unit
+def test_sync_never_removes_the_pyproject_version(tmp_path):
+    """pip reads version from pyproject and cannot read haybale.toml, so an
+    absent declared version must leave the existing literal in place."""
+    from haywire.core.publishing.generate import sync_pyproject_from_haybale
+
+    module_dir = tmp_path / "haybale_alpha"
+    module_dir.mkdir()
+    (module_dir / "__init__.py").write_text("")
+    _write(module_dir, 'id = "alpha"\ndescription = "d"\n')
+    (tmp_path / "pyproject.toml").write_text(
+        '[project]\nname = "haybale-alpha"\nversion = "1.2.3"\ndescription = "old"\n'
+    )
+
+    sync_pyproject_from_haybale(tmp_path)
+
+    written = (tmp_path / "pyproject.toml").read_text()
+    assert 'version = "1.2.3"' in written

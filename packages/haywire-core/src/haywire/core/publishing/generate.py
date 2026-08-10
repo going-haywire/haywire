@@ -121,6 +121,12 @@ def pyproject_drift(lib_dir: Path) -> dict[str, tuple[Any, Any]]:
     for key in (*PROJECT_FIELDS, "authors", "classifiers"):
         have = project.get(key)
         want_value = want.get(key)
+        if key == "version" and not want_value:
+            # A sync never removes an existing literal version (pip reads it
+            # and cannot read haybale.toml), so an absent declared version is
+            # not drift against one already on disk — reporting it would flag
+            # something sync can never resolve.
+            continue
         # tomlkit containers compare unequal to plain lists/dicts of the same
         # content, so normalise both sides before comparing.
         if _plain(have) != _plain(want_value):
@@ -162,7 +168,11 @@ def sync_pyproject_from_haybale(lib_dir: Path) -> list[str]:
             value = want.get(key)
             if value:
                 project[key] = value
-            else:
+            elif key != "version":
+                # Every other generated field may legitimately vanish, but pip
+                # reads `version` out of this file and cannot read haybale.toml.
+                # Removing it would leave an unbuildable package, so an absent
+                # or empty declared version leaves the existing literal alone.
                 project.pop(key, None)
 
         urls = want.get("urls") or {}
