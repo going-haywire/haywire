@@ -294,10 +294,24 @@ If the library declares haybale dependencies that you don't have installed, the 
 
 Your project's library state lives in two files. Knowing what each is for helps when you have to reason about what's happening.
 
-| File | Path | What it holds |
-|---|---|---|
-| **Global marketplace** | `~/.haywire/db/haybale_marketplace/marketplace.toml` | Your subscriptions: `[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a `file://` `[[stalls]]` entry. Per-machine. |
-| **Project marketplace** | `<project>/.haywire/marketplace.toml` | This project's path-based libraries (`[[heaps]]`, written by `haywire init`) and the resolved catalog cache (`[[caches]]`, written by Refresh). Per-project; travels with the source tree. |
+**Global marketplace** — per-machine, your subscriptions.
+
+```text
+~/.haywire/db/haybale_marketplace/marketplace.toml
+```
+
+`[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall
+feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a
+`file://` `[[stalls]]` entry.
+
+**Project marketplace** — per-project, travels with the source tree.
+
+```text
+<project>/.haywire/marketplace.toml
+```
+
+This project's path-based libraries (`[[heaps]]`, written by `haywire init`) and
+the resolved catalog cache (`[[caches]]`, written by Refresh).
 
 You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — `haywire init` sets up `[[heaps]]`, and Refresh maintains `[[caches]]`.
 
