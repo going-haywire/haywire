@@ -21,20 +21,24 @@ The same split ``read_manifest`` / ``read_manifest_lenient`` already draws for
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import toml
 
 from haywire.core.tomlio import edit_toml, read_toml
 
+if TYPE_CHECKING:
+    # Only for the string annotations below; the real import stays inside the
+    # function bodies (see read_haybale) to avoid a haybale_toml <-> marketstall
+    # import cycle at module load time.
+    from haywire.core.marketstall.types import Haybale
+
 __all__ = [
     "HaybaleTomlError",
     "HAYBALE_TOML",
-    "LibraryDisplay",
     "module_of",
-    "read_display",
+    "read_haybale",
     "tag_for",
     "read_haybale_toml",
     "read_haybale_toml_lenient",
@@ -232,87 +236,67 @@ def read_haybale_toml_lenient(package_dir: Path) -> dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True)
-class LibraryDisplay:
-    """The descriptive fields, read from disk at the moment they are rendered.
+#: (path, mtime_ns) -> parsed row. The overview re-renders on every panel redraw,
+#: so a parse per render is waste; a stat per render is not. Keyed on mtime so an
+#: edit invalidates the entry without anyone having to remember to.
+_row_cache: dict[Path, tuple[int, "Haybale"]] = {}
 
-    Deliberately *not* served off ``LibraryIdentity``. The identity is built once
-    at import, so a value read through it is only as fresh as the last reload —
-    the same staleness the installed distribution's ``METADATA`` had, with a
-    shorter cache. Reading the file at the point of use is what makes an edit
-    visible immediately, which is the whole reason the metadata moved into the
-    package directory.
 
-    Every field defaults, so a library whose file is missing or unreadable
-    renders blank rather than raising. That is the opposite of the import-time
-    rule, and correct here: a renderer has a frame to draw, and a caller
-    displaying a half-known library is better than a panel that cannot draw.
+def read_haybale(package_dir: Path) -> "Haybale":
+    """The library's declared metadata, read from *package_dir*'s ``haybale.toml``.
+
+    The same :class:`~haywire.core.marketstall.types.Haybale` a marketstall feed
+    yields — the two files carry the same fields, so a renderer takes one row and
+    never asks which source it came from.
+
+    Never raises: an unreadable or malformed file yields an empty row. That is the
+    opposite of :func:`read_haybale_toml`'s import-time rule, and correct here — a
+    renderer has a frame to draw, and a caller displaying a half-known library is
+    better than a panel that cannot draw. Cached on the file's mtime, so repeated
+    renders cost one ``stat``.
+
+    ``source`` is ``"local"`` and the publish/transport fields are empty: this row
+    was read off disk, not fetched from a feed.
     """
+    from haywire.core.marketstall.types import Haybale
 
-    id: str = ""
-    label: str = ""
-    description: str = ""
-    tags: tuple[str, ...] = ()
-    homepage_url: str = ""
-    documentation_url: str = ""
-    issues_url: str = ""
-    authors: tuple[tuple[str, str], ...] = ()
-    """``(name, url)`` pairs; url is "" when the author declared none."""
-
-    @property
-    def author_names(self) -> str:
-        """The authors as one display string — ``"Alice, Bob"``."""
-        return ", ".join(name for name, _ in self.authors if name)
-
-
-#: (path, mtime_ns) -> parsed display. The overview re-renders on every panel
-#: redraw, so a parse per render is waste; a stat per render is not. Keyed on
-#: mtime so an edit invalidates the entry without anyone having to remember to.
-_display_cache: dict[Path, tuple[int, "LibraryDisplay"]] = {}
-
-
-def read_display(package_dir: Path) -> LibraryDisplay:
-    """The descriptive fields declared in *package_dir*'s ``haybale.toml``.
-
-    Never raises: an unreadable or malformed file yields an empty
-    :class:`LibraryDisplay`. Cached on the file's mtime, so repeated renders cost
-    one ``stat``.
-    """
     source = package_dir / HAYBALE_TOML
     try:
         mtime = source.stat().st_mtime_ns
     except OSError:
-        _display_cache.pop(package_dir, None)
-        return LibraryDisplay()
+        _row_cache.pop(package_dir, None)
+        return Haybale(name="", source="local")
 
-    cached = _display_cache.get(package_dir)
+    cached = _row_cache.get(package_dir)
     if cached is not None and cached[0] == mtime:
         return cached[1]
 
     try:
         data = read_toml(source)
     except (toml.TomlDecodeError, OSError):
-        display = LibraryDisplay()
+        row = Haybale(name="", source="local")
     else:
-        display = _display_from(dict(data) if isinstance(data, dict) else {})
+        row = _row_from(dict(data) if isinstance(data, dict) else {})
 
-    _display_cache[package_dir] = (mtime, display)
-    return display
+    _row_cache[package_dir] = (mtime, row)
+    return row
 
 
-def _display_from(data: dict) -> LibraryDisplay:
-    """Project a parsed document onto :class:`LibraryDisplay`, ignoring junk.
+def _row_from(data: dict) -> "Haybale":
+    """Project a parsed document onto :class:`Haybale`, ignoring junk.
 
-    Wrong-typed values are dropped rather than raised on — see the class
-    docstring: rendering degrades, it does not fail.
+    Wrong-typed values are dropped rather than raised on — see
+    :func:`read_haybale`: rendering degrades, it does not fail.
     """
+    from haywire.core.marketstall.types import Deprecation, Haybale
 
     def _str(key: str) -> str:
         value = data.get(key)
         return value if isinstance(value, str) else ""
 
-    raw_tags = data.get("tags")
-    tags = tuple(t for t in raw_tags if isinstance(t, str)) if isinstance(raw_tags, list) else ()
+    def _list(key: str) -> list[str]:
+        value = data.get(key)
+        return [v for v in value if isinstance(v, str)] if isinstance(value, list) else []
 
     authors: list[tuple[str, str]] = []
     raw_authors = data.get("authors")
@@ -326,15 +310,41 @@ def _display_from(data: dict) -> LibraryDisplay:
             url = entry.get("url")
             authors.append((name, url if isinstance(url, str) else ""))
 
-    return LibraryDisplay(
+    deprecated = None
+    raw_dep = data.get("deprecated")
+    if isinstance(raw_dep, dict):
+        since = raw_dep.get("since")
+        if isinstance(since, str) and since:
+            reason = raw_dep.get("reason")
+            successor = raw_dep.get("successor")
+            deprecated = Deprecation(
+                since=since,
+                reason=reason if isinstance(reason, str) else "",
+                successor=successor if isinstance(successor, str) else "",
+            )
+
+    return Haybale(
+        name=_str("name"),
         id=_str("id"),
+        version=_str("version"),
         label=_str("label"),
         description=_str("description"),
-        tags=tags,
+        tags=_list("tags"),
+        os=_list("os"),
+        on_reload=_str("on_reload") or "none",
+        linked_libraries=_list("linked_libraries"),
+        origin=_str("origin"),
+        origin_provider=_str("origin_provider"),
+        notes=_str("notes"),
+        examples_path=_str("examples_path"),
+        tests_path=_str("tests_path"),
         homepage_url=_str("homepage_url"),
         documentation_url=_str("documentation_url"),
         issues_url=_str("issues_url"),
-        authors=tuple(authors),
+        authors=authors,
+        deprecated=deprecated,
+        # Read off disk, not fetched: this row has no feed coordinates.
+        source="local",
     )
 
 

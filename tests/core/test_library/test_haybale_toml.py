@@ -245,64 +245,108 @@ def test_tag_for_does_not_double_the_prefix() -> None:
 
 
 @pytest.mark.unit
-def test_display_reads_the_descriptive_fields(tmp_path: Path) -> None:
-    from haywire.core.library.haybale_toml import read_display
+def test_read_haybale_reads_every_declared_field(tmp_path):
+    from haywire.core.library.haybale_toml import read_haybale
 
-    d = read_display(
+    row = read_haybale(
         _write(
             tmp_path,
-            'id = "core"\nlabel = "Core"\ndescription = "Fundamentals"\n'
-            'tags = ["a", "b"]\nhomepage_url = "https://example.com"\n'
-            '\n[[authors]]\nname = "Alice"\nurl = "https://alice.example"\n'
-            '\n[[authors]]\nname = "Bob"\n',
+            'name = "haybale-core"\n'
+            'id = "core"\n'
+            'version = "1.2.3"\n'
+            'label = "Core"\n'
+            'description = "d"\n'
+            'tags = ["a", "b"]\n'
+            'os = ["linux"]\n'
+            'on_reload = "refresh"\n'
+            'linked_libraries = ["haybale_studio"]\n'
+            'origin = "https://github.test/o/r"\n'
+            'origin_provider = "github"\n'
+            'notes = "NOTES.md"\n'
+            'examples_path = "examples/"\n'
+            'tests_path = "tests/"\n'
+            'homepage_url = "https://home.test"\n'
+            'documentation_url = "https://docs.test"\n'
+            'issues_url = "https://issues.test"\n'
+            "[[authors]]\n"
+            'name = "maybites"\n'
+            'url = "https://maybites.ch"\n'
+            "[[authors]]\n"
+            'name = "cansik"\n',
         )
     )
-    assert d.label == "Core"
-    assert d.description == "Fundamentals"
-    assert d.tags == ("a", "b")
-    assert d.homepage_url == "https://example.com"
-    assert d.authors == (("Alice", "https://alice.example"), ("Bob", ""))
-    assert d.author_names == "Alice, Bob"
+    assert row.name == "haybale-core"
+    assert row.id == "core"
+    assert row.version == "1.2.3"
+    assert row.label == "Core"
+    assert row.description == "d"
+    assert row.tags == ["a", "b"]
+    assert row.os == ["linux"]
+    assert row.on_reload == "refresh"
+    assert row.linked_libraries == ["haybale_studio"]
+    assert row.origin == "https://github.test/o/r"
+    assert row.origin_provider == "github"
+    assert row.notes == "NOTES.md"
+    assert row.examples_path == "examples/"
+    assert row.tests_path == "tests/"
+    assert row.homepage_url == "https://home.test"
+    assert row.documentation_url == "https://docs.test"
+    assert row.issues_url == "https://issues.test"
+    assert row.authors == [("maybites", "https://maybites.ch"), ("cansik", "")]
 
 
 @pytest.mark.unit
-def test_an_edit_is_visible_without_a_reload(tmp_path: Path) -> None:
-    """The reason the metadata moved into the package directory at all.
+def test_read_haybale_marks_source_local(tmp_path):
+    from haywire.core.library.haybale_toml import read_haybale
 
-    The identity is built once at import; this reader is not, so a write to the
-    file changes what the next render sees. The mtime-keyed cache must not
-    defeat that.
-    """
-    import os
+    row = read_haybale(_write(tmp_path, 'id = "core"\nversion = "1.0.0"\n'))
+    assert row.source == "local"
+    assert row.install_spec == ""
+    assert row.stale is False
+    assert row.via == ""
 
-    from haywire.core.library.haybale_toml import read_display
+
+@pytest.mark.unit
+def test_read_haybale_never_raises(tmp_path):
+    from haywire.core.library.haybale_toml import read_haybale
+
+    assert read_haybale(tmp_path).name == ""  # no file at all
+    assert read_haybale(_write(tmp_path, "id = [broken\n")).name == ""
+
+
+@pytest.mark.unit
+def test_read_haybale_drops_wrong_typed_values(tmp_path):
+    from haywire.core.library.haybale_toml import read_haybale
+
+    row = read_haybale(_write(tmp_path, 'id = "core"\nlabel = 3\ntags = "nope"\nauthors = ["Alice"]\n'))
+    assert row.label == ""
+    assert row.tags == []
+    assert row.authors == []
+
+
+@pytest.mark.unit
+def test_read_haybale_reads_deprecation(tmp_path):
+    from haywire.core.library.haybale_toml import read_haybale
+
+    row = read_haybale(
+        _write(
+            tmp_path,
+            'id = "core"\n[deprecated]\nsince = "1.0.0"\nreason = "old"\n',
+        )
+    )
+    assert row.deprecated is not None
+    assert row.deprecated.since == "1.0.0"
+    assert row.deprecated.reason == "old"
+
+
+@pytest.mark.unit
+def test_read_haybale_reflects_edits(tmp_path):
+    from haywire.core.library.haybale_toml import read_haybale
 
     d = _write(tmp_path, 'id = "core"\ndescription = "before"\n')
-    assert read_display(d).description == "before"
-
-    (d / HAYBALE_TOML).write_text('id = "core"\ndescription = "after"\n')
-    os.utime(d / HAYBALE_TOML, ns=(0, 1))  # force a distinct mtime
-    assert read_display(d).description == "after"
-
-
-@pytest.mark.unit
-def test_display_never_raises(tmp_path: Path) -> None:
-    """A renderer has a frame to draw. Unlike the import-time reader, a bad file
-    degrades to blank rather than failing the caller."""
-    from haywire.core.library.haybale_toml import LibraryDisplay, read_display
-
-    assert read_display(tmp_path) == LibraryDisplay()  # no file at all
-    assert read_display(_write(tmp_path, "id = [broken\n")) == LibraryDisplay()
-
-
-@pytest.mark.unit
-def test_display_drops_wrong_typed_values_rather_than_raising(tmp_path: Path) -> None:
-    from haywire.core.library.haybale_toml import read_display
-
-    d = read_display(_write(tmp_path, 'id = "core"\nlabel = 3\ntags = "nope"\nauthors = ["Alice"]\n'))
-    assert d.label == ""
-    assert d.tags == ()
-    assert d.authors == ()
+    assert read_haybale(d).description == "before"
+    _write(tmp_path, 'id = "core"\ndescription = "after"\n')
+    assert read_haybale(d).description == "after"
 
 
 # ── writing ───────────────────────────────────────────────────────────────────
