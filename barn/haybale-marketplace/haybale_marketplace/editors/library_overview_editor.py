@@ -443,6 +443,11 @@ class LibraryOverviewEditor(BaseEditor):
 
                             # Enable / Disable toggle
                             if installed_lib.enabled:
+                                # Annotated because the protected branch below
+                                # narrows it to str, while the dependents branch
+                                # yields None for "not blocked" — the value
+                                # _action_button's block_reason expects.
+                                _disable_msg: str | None
                                 if _origin.is_protected:
                                     # Framework-owned or this workspace's own
                                     # project-local library — disabling has no
