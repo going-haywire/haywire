@@ -102,7 +102,7 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     version = project.get("version", "0.0.0")
     description = declared.description
     tags = list(declared.tags)
-    author = declared.author_names
+    authors = list(declared.authors)
 
     # Derived, never passed in: the library's own floor IS the requirement, and
     # the entry is its projection. None (undeclared) omits the key entirely;
@@ -170,7 +170,7 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         version=version,
         require=require or "",
         description=description,
-        author=author,
+        authors=authors,
         source="git",
         install_spec=install_spec,
         tags=tags,

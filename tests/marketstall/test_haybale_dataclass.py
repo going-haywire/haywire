@@ -25,7 +25,7 @@ def test_haybale_full_construction() -> None:
         version="0.2.0",
         label="Vision",
         description="A library",
-        author="Alice",
+        authors=[("Alice", "")],
         source="git",
         install_spec="haybale-vision @ git+https://example.com",
         tags=["vision"],
@@ -256,3 +256,85 @@ def test_requires_haywire_defaults_empty_and_round_trips():
 
     declared = Haybale(name="haybale-foo", version="0.1.0", require=">=0.0.31,<1.0.0")
     assert declared.to_dict()["require"] == ">=0.0.31,<1.0.0"
+
+
+def test_authors_round_trip_as_table_array():
+    from haywire.core.marketstall.types import Haybale
+
+    row = Haybale(
+        name="haybale-x",
+        version="1.0.0",
+        authors=[("maybites", "https://maybites.ch"), ("cansik", "")],
+    )
+    d = row.to_dict()
+    assert d["authors"] == [
+        {"name": "maybites", "url": "https://maybites.ch"},
+        {"name": "cansik"},
+    ]
+
+
+def test_authors_and_deprecated_are_serialized_last():
+    from haywire.core.marketstall.types import Deprecation, Haybale
+
+    row = Haybale(
+        name="haybale-x",
+        version="1.0.0",
+        label="X",
+        authors=[("a", "")],
+        deprecated=Deprecation(since="1.0.0", reason="r", successor=""),
+    )
+    keys = list(row.to_dict())
+    assert keys[-2:] == ["authors", "deprecated"]
+
+
+def test_id_is_carried_on_the_row():
+    from haywire.core.marketstall.types import Haybale
+
+    row = Haybale(name="haybale-x", version="1.0.0", id="x")
+    assert row.to_dict()["id"] == "x"
+
+
+def test_empty_authors_is_omitted():
+    from haywire.core.marketstall.types import Haybale
+
+    row = Haybale(name="haybale-x", version="1.0.0")
+    assert "authors" not in row.to_dict()
+
+
+def test_parse_reads_authors_table_array():
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    row = _parse_haybale_entry(
+        {
+            "name": "haybale-x",
+            "version": "1.0.0",
+            "id": "x",
+            "authors": [
+                {"name": "maybites", "url": "https://maybites.ch"},
+                {"name": "cansik"},
+            ],
+        }
+    )
+    assert row.authors == [("maybites", "https://maybites.ch"), ("cansik", "")]
+    assert row.id == "x"
+
+
+def test_parse_ignores_legacy_author_string():
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    row = _parse_haybale_entry({"name": "haybale-x", "version": "1.0.0", "author": "maybites, cansik"})
+    assert row.authors == []
+    assert not hasattr(row, "author")
+
+
+def test_parse_drops_nameless_author_entries():
+    from haywire.core.marketstall.parsing import _parse_haybale_entry
+
+    row = _parse_haybale_entry(
+        {
+            "name": "haybale-x",
+            "version": "1.0.0",
+            "authors": [{"url": "https://x.test"}, {"name": "ok"}, "junk"],
+        }
+    )
+    assert row.authors == [("ok", "")]

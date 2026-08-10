@@ -58,7 +58,9 @@ class Haybale:
     require: str = ""
     label: str = ""
     description: str = ""
-    author: str = ""
+    id: str = ""
+    """The library's registry-key prefix (``core`` in ``core:node:Add``). Published
+    so a consumer can resolve a component key before installing."""
     source: str = "pypi"
     install_spec: str = ""
     tags: list[str] = field(default_factory=list)
@@ -128,13 +130,19 @@ class Haybale:
     last_seen: str = ""
     stale: bool = False
 
+    authors: list[tuple[str, str]] = field(default_factory=list)
+    """``(name, url)`` pairs; ``url`` is ``""`` when the author declared none.
+
+    Serializes to a ``[[authors]]`` table array, so it is written after every bare
+    key — see the ordering note on ``_TOML_FIELDS``."""
+
     _TOML_FIELDS: ClassVar[tuple[str, ...]] = (
         "name",
+        "id",
         "label",
         "version",
         "require",
         "description",
-        "author",
         "source",
         "install_spec",
         "tags",
@@ -152,8 +160,10 @@ class Haybale:
         "via",
         "last_seen",
         "stale",
-        # Serializes to a TOML table, so it MUST stay last: every bare key
-        # written after a table header is parsed into that table.
+        # Both serialize to TOML tables, so they MUST stay last and in this
+        # order: every bare key written after a table header is parsed into
+        # that table.
+        "authors",
         "deprecated",
     )
 
@@ -164,7 +174,10 @@ class Haybale:
             val = getattr(self, f)
             if not val:
                 continue
-            result[f] = val.to_dict() if isinstance(val, Deprecation) else val
+            if f == "authors":
+                result[f] = [{"name": name, **({"url": url} if url else {})} for name, url in val]
+            else:
+                result[f] = val.to_dict() if isinstance(val, Deprecation) else val
         return result
 
 
