@@ -143,12 +143,58 @@ def build_edit_dialog(
         ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
             "text-xs hw-text-dim"
         )
-        # linked_libraries is maintained by `haywire share`'s drift detector,
-        # which can prove what a library actually imports.
-        ui.label(
-            f"Linked libraries: {', '.join(lib.identity.linked_libraries or []) or '(none)'}"
-            " (maintained by Share)"
-        ).classes("text-xs hw-text-dim")
+        # Still a label, not an input: the author has nothing to decide here.
+        # Refresh applies the pipeline's own rule (union what is provably
+        # imported, never remove), so the only affordance needed is the button.
+        #
+        # Heap-gated for the same reason `os` is — an installed wheel lives in
+        # site-packages, where an edit is lost on the next reinstall. It is also
+        # a correctness gate: detect_share_drift needs the LIBRARY ROOT, and
+        # folder_path.parent only reaches it for heaps, whose folder_path is
+        # provably barn/<lib>/<module>/ (exactly what is_project_library
+        # checks). For a site-packages wheel the parent is site-packages itself.
+        _is_heap = is_project_library(lib, marketplace_path)
+        _pkg_dir = Path(lib.identity.folder_path)
+        # Read the file, not lib.identity: identity carries the value loaded at
+        # startup, so a previous save in this session would render stale.
+        _linked: list[str] = list(read_haybale_toml_lenient(_pkg_dir).get("linked_libraries") or [])
+        _linked_staged: list[str] = list(_linked)
+
+        with ui.row().classes("items-center gap-2"):
+            linked_label = ui.label().classes("text-xs hw-text-dim")
+
+            def _render_linked() -> None:
+                shown = ", ".join(_linked_staged) or "(none)"
+                linked_label.set_text(f"Linked libraries: {shown}")
+
+            _render_linked()
+
+            if _is_heap:
+                _lib_root = _pkg_dir.parent
+
+                def _do_refresh(m=manager, lib_root=_lib_root) -> None:
+                    result = _refresh_linked_libraries(
+                        lib_root, current=list(_linked_staged), libraries=m.registry
+                    )
+                    if result.no_module_dir:
+                        ui.notify("No inspectable source found — nothing to detect.", type="warning")
+                        return
+                    if not result.added:
+                        ui.notify("Nothing new detected.", type="info")
+                        return
+                    _linked_staged[:] = result.merged
+                    _render_linked()
+                    ui.notify(
+                        f"Added: {', '.join(result.added)}. Click Save Changes to write.",
+                        type="positive",
+                    )
+
+                _refresh_button = ui.button(icon="refresh", on_click=_do_refresh).props("size=sm flat dense")
+                if find_module_dir(_lib_root) is None:
+                    _refresh_button.disable()
+                    _refresh_button.tooltip("No inspectable source found for this library.")
+                else:
+                    _refresh_button.tooltip("Detect imported haywire libraries and add any missing.")
 
         desc_input = hui.input_field(label="Description", value=display.description)
         url_input = hui.input_field(label="Homepage URL", value=display.homepage_url)
@@ -161,7 +207,6 @@ def build_edit_dialog(
 
         # OS multi-select. Editable for heaps — an installed wheel's file is in
         # site-packages, where an edit would be lost on the next reinstall.
-        _is_heap = is_project_library(lib, marketplace_path)
         current_os = list(read_haybale_toml_lenient(Path(lib.identity.folder_path)).get("os") or [])
         os_select = None
         if _is_heap:
@@ -233,7 +278,8 @@ def build_edit_dialog(
         async def _save():
             # Only the keys this dialog owns. write_haybale_fields edits in
             # place, so an omitted key is left alone rather than erased — which
-            # is why linked_libraries and [deprecated] survive a save untouched.
+            # is why [deprecated] survives a save untouched, and why an
+            # unrefreshed linked_libraries is left exactly as the file has it.
             identity = {
                 "label": label_input.value.strip(),
                 "description": desc_input.value.strip(),
@@ -243,9 +289,13 @@ def build_edit_dialog(
                 "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
                 "on_reload": on_reload_select.value or LibraryReloadAction.NONE.value,
             }
-            # `os` only when the multi-select was rendered (heap libraries).
+            # `os` only when its multi-select was rendered (heap libraries).
             if os_select is not None:
                 identity["os"] = list(os_select.value or [])
+            # linked_libraries only when Refresh actually changed it — an
+            # untouched dialog must not rewrite a hand-authored list.
+            if _linked_staged != _linked:
+                identity["linked_libraries"] = list(_linked_staged)
             edit_popup.close()
             await on_save(identity)
 
