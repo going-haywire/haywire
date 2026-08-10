@@ -332,8 +332,13 @@ class LibraryOverviewEditor(BaseEditor):
         # edit shows without a reload, or the marketstall row for a library that
         # has no files on disk yet. Both carry the same fields.
         row = info.row
-        name = row.label or row.name
-        version = row.version
+        # The identity is the fallback, not the source: it is built at import, so
+        # it is stale after an edit. But `read_haybale` degrades to an empty row
+        # rather than raising, and a library that loaded successfully still has a
+        # good label and version on its identity — so a corrupt file mid-session
+        # names the library instead of rendering a blank header.
+        name = row.label or row.name or info.identity.label
+        version = row.version or info.identity.version
         description = row.description
         tags = list(row.tags)
         installed_lib = info if info.installed else None
@@ -392,7 +397,7 @@ class LibraryOverviewEditor(BaseEditor):
 
                         # Mechanism/origin badges on their own row — kept off the
                         # version/dist-name line above so short vs. long names (e.g.
-                        # builtin's empty distribution_name vs. "haybale-example")
+                        # builtin's "haywire-core" vs. "haybale-example")
                         # don't make badges wrap unpredictably from row to row.
                         # One flat color per AXIS, not per value: every mechanism
                         # badge is blue-grey, every origin badge is purple —

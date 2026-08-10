@@ -527,9 +527,9 @@ class LibraryBrowserEditor(BaseEditor):
                     if not entry.version or not entry.name:
                         continue
                     lib = next((x for x in libraries if x.distribution_name == entry.name), None)
-                    if lib and lib.identity.version:
+                    if lib and lib.row.version:
                         try:
-                            if Version(entry.version) > Version(lib.identity.version):
+                            if Version(entry.version) > Version(lib.row.version):
                                 updates_available.add(entry.name)
                         except Exception:
                             pass
