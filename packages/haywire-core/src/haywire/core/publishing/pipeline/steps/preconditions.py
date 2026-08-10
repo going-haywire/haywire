@@ -570,7 +570,7 @@ def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: s
 #: exist — ``tests/share_pipeline/test_unreachable_remedy.py`` fails if the
 #: two ever diverge, the same guard LOCKSTEP_DISTS uses for the release config.
 SHARING_GUIDE_URL = (
-    "https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/#44-git-remote-requirements"
+    "https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/#41-git-requirements"
 )
 
 

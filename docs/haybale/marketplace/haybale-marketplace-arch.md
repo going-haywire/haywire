@@ -378,7 +378,7 @@ When the user clicks Detect:
 
 The scan is static AST analysis, so `importlib.import_module(name)` and `__import__(...)` are invisible to it — this is precisely why Union rather than Replace is the safe default.
 
-The same detection backs the CLI: step 2 of `SharePipeline` and `haywire deps check` both call `detect_share_drift()` ([share-pipeline-arch §2.2](../../architecture/sharing/share-pipeline-arch.md#22-step-2-dependency-drift)). For the author-facing workflow, see the [sharing-libraries guide §3](../../guides/sharing-libraries.md#3-keeping-the-manifests-honest).
+The same detection backs the CLI: step 2 of `SharePipeline` and `haywire deps check` both call `detect_share_drift()` ([share-pipeline-arch §2.2](../../architecture/sharing/share-pipeline-arch.md#22-step-2-dependency-drift)). For the author-facing workflow, see the [sharing-libraries guide §3](../../guides/sharing-libraries.md#63-keeping-the-manifests-honest).
 
 ## 7. Failure surfaces
 
