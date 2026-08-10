@@ -66,7 +66,7 @@ def test_share_reads_os_field(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_share_omits_os_when_absent(tmp_path: Path) -> None:
-    """Absent [tool.haywire].os means absent from the haybale entry (= all platforms)."""
+    """An absent `os` in haybale.toml means absent from the haybale entry (= all platforms)."""
     from haywire.core.publishing.marketstall import _build_entry_for_library
 
     lib_dir = _make_lib(tmp_path, os_decl=None)

@@ -41,7 +41,7 @@ def read_barn_versions(repo_root: Path) -> list[LibraryVersion]:
     """Read each barn library's declared name and version.
 
     ``version`` is None for a library whose pyproject has no version field,
-    cannot be parsed, or declares an invalid ``[tool.haywire].os`` value —
+    cannot be parsed, or whose ``haybale.toml`` declares an invalid ``os`` value —
     the caller decides whether that is fatal.
     """
     out: list[LibraryVersion] = []

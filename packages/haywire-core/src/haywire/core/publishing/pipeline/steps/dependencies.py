@@ -134,9 +134,9 @@ def apply_decorator_registrations(
     Union mode: existing entries are never dropped, so a name the author added
     by hand for a dynamic import survives.
 
-    Writes ``__init__.py``, which is hand-authored source rather than a
-    manifest — the reason this is reported on the Findings and Confirm screens
-    instead of happening quietly.
+    Writes ``haybale.toml``, which is hand-authored rather than generated —
+    the reason this is reported on the Findings and Confirm screens instead of
+    happening quietly.
     """
     written: list[Path] = []
     for lib_dir, names in registrations.items():

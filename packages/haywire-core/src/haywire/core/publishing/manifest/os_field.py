@@ -78,7 +78,7 @@ def describe_os_fix(invalid_values: list[str]) -> str:
 
 
 def _partition_os_values(os_decl: list) -> tuple[list[str], list[str]]:
-    """Split a raw [tool.haywire].os list into (invalid, corrected).
+    """Split a raw ``haybale.toml`` ``os`` list into (invalid, corrected).
 
     ``invalid`` holds the original values that are not declarable (in
     document order, duplicates included). ``corrected`` is the list this

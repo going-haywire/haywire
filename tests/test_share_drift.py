@@ -1,9 +1,9 @@
 """Tests for the dependency-drift gate in `haywire share` (piece 3).
 
-The gate detects when a library's pyproject.toml or @library decorator
-falls out of sync with what its source actually imports. It surfaces
-this at share time so the published library doesn't ship a misleading
-manifest.
+The gate detects when a library's pyproject.toml or its ``haybale.toml``
+``linked_libraries`` falls out of sync with what its source actually
+imports. It surfaces this at share time so the published library doesn't
+ship a misleading manifest.
 """
 
 from __future__ import annotations
@@ -187,7 +187,7 @@ def test_drift_handles_malformed_pyproject_gracefully(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_drift_handles_invalid_os_declaration_gracefully(tmp_path: Path) -> None:
-    """A valid TOML with an invalid [tool.haywire].os value should NOT crash
+    """A valid TOML with an invalid haybale.toml `os` value should NOT crash
     detect_share_drift; it degrades the same way a malformed pyproject does,
     via read_manifest_lenient."""
     lib = _make_library(
@@ -226,9 +226,9 @@ def test_format_drift_report_groups_pyproject_decorator_unresolved(tmp_path: Pat
         unresolved=["mystery"],
     )
     report = _format_drift_report(drift)
-    # Pyproject section appears before decorator section appears before unresolved.
-    assert report.index("pyproject") < report.index("@library")
-    assert report.index("@library") < report.index("Unresolved")
+    # pyproject section, then linked_libraries, then unresolved.
+    assert report.index("pyproject") < report.index("linked_libraries")
+    assert report.index("linked_libraries") < report.index("Unresolved")
 
 
 @pytest.mark.unit

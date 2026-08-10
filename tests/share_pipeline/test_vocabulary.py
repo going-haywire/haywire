@@ -173,7 +173,7 @@ def test_framework_plan_carries_installed_declared_and_options() -> None:
 def test_drift_report_decorator_registrations_reads_every_library() -> None:
     """The registrations property must NOT be limited to `drifted`.
 
-    A missing @library(dependencies) entry is not drift, so a library whose
+    A missing `linked_libraries` entry is not drift, so a library whose
     only gap is this appears in `findings_only`. Reading `drifted` alone
     silently skipped exactly those — the bug that made the wizard's and the
     CLI's duplicated copies of this comprehension diverge.

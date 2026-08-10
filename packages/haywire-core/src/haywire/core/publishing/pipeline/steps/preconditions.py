@@ -225,9 +225,9 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
             return PreconditionsReport(
                 failures=[
                     PreconditionFailure(
-                        message=f"Invalid manifest at {rel_path}: {exc}",
+                        message=f"Invalid manifest at {rel_declared}: {exc}",
                         remedy=(
-                            "[tool.haywire].os may only declare `macos`, `windows`, `linux`. "
+                            "`haybale.toml`'s `os` may only declare `macos`, `windows`, `linux`. "
                             "`other` is a runtime sentinel for platforms that don't map to one "
                             "of those three — it is set at runtime and must never be declared. "
                             "Remove it (or the whole invalid entry) from the list."

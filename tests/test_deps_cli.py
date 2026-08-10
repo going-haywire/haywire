@@ -59,7 +59,7 @@ def test_actionable_drift_exits_drift_and_prints_each_kind(tmp_path: Path, capsy
     assert exit_code == EXIT_DRIFT
     assert lib_dir.name in out
     assert "+ pyproject.toml: haywire-core" in out
-    assert "+ @library(dependencies): haybale_core" in out
+    assert "+ haybale.toml linked_libraries: haybale_core" in out
     assert "~ haybale-core: declared 0.1.0, installed 0.2.0" in out
     assert "Dependency drift found" in out
 

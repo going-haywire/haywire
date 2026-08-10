@@ -21,7 +21,7 @@ class DepDrift:
       provably true. It carries no version specifier, narrows nothing for
       consumers, and its only effects are hot-reload scope tracking and the
       marketplace's enable/disable gating. Reported rather than silent, though
-      — it edits a hand-authored ``__init__.py``, not a manifest.
+      — it edits ``haybale.toml``, which is hand-authored, not generated.
     * ``unused_declarations`` — declared but not imported. Inert for consumers;
       common for transitive deps and optional features. Removing is a decision,
       never automatic, because ``detect_deps`` cannot see dynamic imports.

@@ -2,10 +2,10 @@
 
 `haywire share` is the publish boundary: whatever the user emits here is what
 downstream consumers will install. If the library's pyproject.toml or its
-@library decorator are out of sync with the actual source imports, the
-published library will fail to install or to enable for consumers. The gate
-below detects that drift at share time so the user can fix it before
-emitting.
+``haybale.toml`` ``linked_libraries`` are out of sync with the actual source
+imports, the published library will fail to install or to enable for
+consumers. The gate below detects that drift at share time so the user can fix
+it before emitting.
 """
 
 from pathlib import Path
@@ -34,11 +34,11 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
 
     Drift surfaces only ``missing`` entries — items that detect_deps found in
     the source but are NOT declared in the library's pyproject.toml or
-    @library decorator. Extra declarations (declared but unused) are not
-    flagged: they are common (transitive deps, optional features) and false
-    positives would block users unfairly. `share` is about correctness for
-    consumers, which means "everything imported must be declared," not
-    "everything declared must be imported."
+    ``haybale.toml``'s ``linked_libraries``. Extra declarations (declared but
+    unused) are not flagged: they are common (transitive deps, optional
+    features) and false positives would block users unfairly. `share` is about
+    correctness for consumers, which means "everything imported must be
+    declared," not "everything declared must be imported."
 
     Uses :class:`EntryPointLibrarySource` so the gate works without a live
     haywire registry — any installed dist with a ``haywire.libraries`` entry
@@ -49,8 +49,8 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     "nothing to gate" rather than an error.
 
     Degrades to treating declarations as empty (surfacing everything as
-    missing) not just on unparsable TOML but also on an invalid
-    ``[tool.haywire].os`` declaration, since both go through
+    missing) not just on unparsable TOML but also on an invalid ``os``
+    declaration in ``haybale.toml``, since both go through
     :func:`read_manifest_lenient`.
     """
     libraries = EntryPointLibrarySource()

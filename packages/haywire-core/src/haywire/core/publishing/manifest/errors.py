@@ -14,7 +14,7 @@ class ManifestReadError(RuntimeError):
 
 
 class InvalidOsDeclarationError(ManifestReadError):
-    """Raised when a library's [tool.haywire].os contains an invalid value.
+    """Raised when a library's ``haybale.toml`` ``os`` contains an invalid value.
 
     Only "macos", "windows", "linux" are declarable. "other" is a runtime
     sentinel for unmapped platform.system() results and must not be declared.

@@ -11,7 +11,7 @@ from haywire.core.publishing.manifest.os_field import read_os_field
 
 
 def _read_raw_toml(pyproject_path: Path) -> tuple[str, dict]:
-    """Read and parse a pyproject.toml with NO [tool.haywire].os validation.
+    """Read and parse a pyproject.toml with NO ``haybale.toml`` ``os`` validation.
 
     Returns (raw_text, parsed_dict). Raises ManifestReadError on I/O or parse
     failure. Deliberately bypasses :func:`read_manifest`, which raises
@@ -34,7 +34,7 @@ def read_manifest(lib_dir: Path) -> dict:
 
     For read-to-rewrite callers: refusing is the point, because the
     alternative is overwriting a file we could not understand. Also validates
-    [tool.haywire].os, whose vocabulary is closed.
+    the library's ``haybale.toml`` ``os``, whose vocabulary is closed.
     """
     pyproject_path = lib_dir / "pyproject.toml"
     try:

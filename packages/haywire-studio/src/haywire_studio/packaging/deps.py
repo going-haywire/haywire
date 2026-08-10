@@ -3,8 +3,7 @@
 Deliberately independent of SharePipeline: no git, no preconditions, no
 versioning, no marketstall. Loops every barn/* library, runs the same
 detect_share_drift() the interactive wizard and --yes both gate on, and
-reports. Never writes — fixing drift stays on the wizard's drift step or
-the Library Overview Editor's Detect Dependencies button.
+reports. Never writes — fixing drift stays on the wizard's drift step.
 """
 
 from __future__ import annotations
@@ -22,8 +21,8 @@ def run_deps_check_cli(repo_root: Path) -> int:
     """Report dependency-manifest drift for every barn/* library.
 
     Never writes. Exit code gates only on actionable drift (missing pyproject
-    or decorator declarations, or a version-lag floor) — unresolved imports
-    are printed for information but never fail the run, matching the
+    or ``linked_libraries`` declarations, or a version-lag floor) — unresolved
+    imports are printed for information but never fail the run, matching the
     interactive wizard's own treatment of them.
     """
     barn = repo_root / "barn"
@@ -51,10 +50,7 @@ def run_deps_check_cli(repo_root: Path) -> int:
             print(f"{lib_dir.name}: unresolved imports (declare manually): {', '.join(drift.unresolved)}")
 
     if any_drift:
-        print(
-            "\n✗ Dependency drift found. Resolve it with `haywire share` "
-            "(interactive) or the Library Overview Editor's Detect Dependencies button."
-        )
+        print("\n✗ Dependency drift found. Resolve it with `haywire share` (interactive).")
         return EXIT_DRIFT
 
     print("✓ No dependency drift.")

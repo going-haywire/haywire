@@ -237,7 +237,7 @@ The library's source imports are a third, implicit layer. The three have to agre
 
 As you add imports to your library's source, you'll add lines like `from haywire.ui.elements import elements as hui` or `from haybale_haystack.states import HaystackState`. Each new import is a new dependency — and the two manifests need to follow.
 
-You don't have to track this by hand. Open your library in the Library Overview Editor, click **Edit**, and click the magnifying-glass **Detect Dependencies** button next to the dependencies field.
+You don't have to track this by hand. `haywire share`'s **Detect** step does it for you, and `uv run haywire deps check` runs the same detection non-interactively (useful in CI).
 
 What happens:
 
@@ -245,21 +245,23 @@ What happens:
 2. It resolves every top-level import to its installed Python distribution.
 3. It classifies each one: framework (`haywire-core`, `haywire-studio`), registered haywire library (anything declaring a `haywire.libraries` entry point), or third-party (`numpy`, `requests`, etc.).
 4. It diffs the result against what your two manifests currently declare.
-5. A diff modal previews the changes, offering **Union** (add what's missing,
-   never remove — the safe default) or **Replace** (overwrite with exactly the
-   detected set). Both modes are specified in
-   [haybale-marketplace-arch §6](../haybale/marketplace/haybale-marketplace-arch.md#6-drift-detection-at-edit-time).
+5. The Share flow's screens ask you about each finding, one kind at a time.
 
-The share pipeline runs the same detection, so a publish never ships a manifest
-that lies about the source. Doing it as you go just means the publish has
-nothing to report.
+How each finding is handled:
 
-After Apply:
+| Finding | What happens |
+| --- | --- |
+| An import your library pyproject doesn't declare | You choose the pin per item: no pin, floor at installed, custom, or skip. This is the only finding that blocks a publish — it breaks a consumer's install. |
+| An imported haywire library missing from `linked_libraries` | Added for you, and reported. There is nothing to decide: it carries no version and narrows nothing. |
+| A declaration the source no longer imports | Reported, never removed on its own. A dynamic import looks exactly like an unused declaration, so dropping it is your call. |
+| A declared floor below the installed version | Left alone by default. "Newer is installed" only means time passed, not that your floor is wrong. |
 
-- The Edit dialog's dependencies field updates immediately. You still have to click **Save Changes** to write `linked_libraries` into `haybale.toml`.
-- The library's `pyproject.toml` is written to disk right away (it isn't part of the identity-save bundle).
+Nothing is ever removed without you asking for it, so a hand-added entry for a
+dynamic import survives every publish.
 
-A typical workflow is: write code → realize you've added an import → click Detect → Union → Save Changes. Done in five seconds.
+Because the share pipeline runs this detection itself, a publish never ships a
+manifest that lies about the source. Running `deps check` as you go just means
+the publish has nothing left to report.
 
 ### 6.4 Versioning in the haywire monorepo
 
@@ -328,8 +330,8 @@ Three causes worth checking:
 2. The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, your entry is in their `ignores`. They can edit `~/.haywire/marketplace.toml` to remove the ignore.
 3. The git URL in your `install_spec` is unreachable. Test with `uv pip install '<install_spec>'` directly.
 
-**Detect Dependencies didn't pick up an import.**
-The scan is static AST analysis, so dynamic imports (`importlib.import_module(name)`, `__import__(...)`) are invisible to it. Declare those manually in both manifests — and prefer Union over Replace in that library, since Replace would drop them again.
+**Detection didn't pick up an import.**
+The scan is static AST analysis, so dynamic imports (`importlib.import_module(name)`, `__import__(...)`) are invisible to it. Declare those manually in both manifests. Nothing removes a declaration on its own — a declaration the scan can't see is reported as unused and left alone unless you choose to drop it — so a hand-added entry for a dynamic import survives.
 
 **`haywire share` fails with "Working tree is not clean.".**
 You have uncommitted changes somewhere in the repo — not just under `barn/`. The publish pipeline reverts everything it writes if a later step fails partway through, by resetting the whole working tree, and that's only safe when nothing else was dirty to begin with. Commit or stash your changes, then retry.

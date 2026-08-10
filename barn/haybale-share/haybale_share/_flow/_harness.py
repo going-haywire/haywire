@@ -112,9 +112,10 @@ def preflight_invalid_os() -> ShareFlow:
     """act-kind, no input — the fix's subject rides on lib_dir."""
     return _failed(
         PreconditionFailure(
-            message="Invalid manifest at barn/haybale-alpha/pyproject.toml: 'other' is not declarable",
+            message="Invalid manifest at barn/haybale-alpha/haybale_alpha/haybale.toml: "
+            "'other' is not declarable",
             remedy=(
-                "[tool.haywire].os may only declare `macos`, `windows`, `linux`. "
+                "`haybale.toml`'s `os` may only declare `macos`, `windows`, `linux`. "
                 "`other` is a runtime sentinel for platforms that don't map to one of "
                 "those three — it is set at runtime and must never be declared."
             ),
