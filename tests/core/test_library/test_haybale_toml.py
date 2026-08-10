@@ -353,8 +353,8 @@ def test_read_haybale_reflects_edits(tmp_path):
 
 
 @pytest.mark.unit
-def test_write_authors_round_trips_through_display(tmp_path: Path) -> None:
-    from haywire.core.library.haybale_toml import read_display, write_haybale_fields
+def test_write_authors_round_trips_through_read_haybale(tmp_path: Path) -> None:
+    from haywire.core.library.haybale_toml import read_haybale, write_haybale_fields
 
     d = _write(tmp_path, 'id = "core"\nlabel = "Core"\n')
     write_haybale_fields(d, {"authors": [("maybites", "https://maybites.ch"), ("cansik", "")]})
@@ -364,7 +364,7 @@ def test_write_authors_round_trips_through_display(tmp_path: Path) -> None:
     assert '[[authors]]\nname = "cansik"\n' in written
     assert "url" not in written.split("cansik")[1]  # no url = "" for the url-less author
 
-    assert read_display(d).authors == (("maybites", "https://maybites.ch"), ("cansik", ""))
+    assert read_haybale(d).authors == [("maybites", "https://maybites.ch"), ("cansik", "")]
 
 
 @pytest.mark.unit
