@@ -332,11 +332,11 @@ def _row_from(data: dict) -> "Haybale":
 
 #: What :func:`write_haybale_fields` will set. Everything else in the file is
 #: off-limits to the editor: `name` and `id` are immutable (renaming rewrites
-#: registry keys and every consumer's install_spec), `version` is synced from
-#: `pyproject.toml` (canon) by `scripts/bump_version.py` and the share wizard,
-#: `origin` and `origin_provider` are written by the share wizard from facts it
-#: observes, and `[deprecated]` is hand-edited because retiring a library is
-#: rare and deliberate.
+#: registry keys and every consumer's install_spec), `version` is canon here and
+#: is written by `scripts/bump_version.py` and the share wizard, which sync the
+#: generated copy into `pyproject.toml`, `origin` and `origin_provider` are
+#: written by the share wizard from facts it observes, and `[deprecated]` is
+#: hand-edited because retiring a library is rare and deliberate.
 EDITABLE_FIELDS = (
     "label",
     "os",
@@ -363,7 +363,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
 
     Only :data:`EDITABLE_FIELDS` are writable; anything else raises rather than
     being silently dropped, so a caller passing ``version`` learns that
-    ``pyproject.toml`` owns it instead of wondering why the write did nothing.
+    ``scripts/bump_version.py`` / the share wizard own it instead of wondering
+    why the write did nothing.
 
     An empty value removes the key rather than writing ``""``. Absent and empty
     then mean the same thing, which keeps a file edited through the UI
@@ -383,7 +384,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
         raise HaybaleTomlError(
             f"{package_dir / HAYBALE_TOML}: {', '.join(sorted(unknown))} "
             f"{'is' if len(unknown) == 1 else 'are'} not editable here. "
-            f"name/id are immutable, version is synced from pyproject.toml, "
+            f"name/id are immutable, version is canon here but written by "
+            f"scripts/bump_version.py or the share wizard rather than by hand, "
             f"origin is set by the share wizard, and [deprecated] is hand-edited."
         )
 

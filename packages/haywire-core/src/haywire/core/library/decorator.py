@@ -47,10 +47,10 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
         on_reload = "none"
         linked_libraries = ["haybale_core"]
 
-    ``version`` is required but is not hand-authored: ``pyproject.toml`` is
-    canon, and ``scripts/bump_version.py`` / the share wizard keep ``haybale.toml``
-    in sync with it. A library missing the key has not been through either path
-    yet.
+    ``version`` is required but is not hand-authored: ``haybale.toml`` is
+    canon, and ``scripts/bump_version.py`` / the share wizard write it here and
+    sync the generated copy into ``pyproject.toml``. A library missing the key
+    has not been through either path yet.
 
     Args:
         id (str, optional): Unique identifier; prefixes every component's

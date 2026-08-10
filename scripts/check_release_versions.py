@@ -7,9 +7,10 @@ already made true — this asserts it actually did:
      `[project] version`, and (with --expect) that version is the one asked
      for. The release is lockstep; a package left behind is a broken release.
   2. Every package's `haybale.toml`, where it has one, declares that same
-     version. `pyproject.toml` is canon and `haybale.toml` is its runtime-read
-     copy (consumed by `LibraryIdentity`), but nothing else ever reads the two
-     back to confirm they agree — the bump writes both and moves on.
+     version. `haybale.toml` is canon (consumed by `LibraryIdentity`) and
+     `pyproject.toml`'s `[project] version` is its generated copy, but nothing
+     else ever reads the two back to confirm they agree — the bump writes both
+     and moves on. If they disagree, `haybale.toml` names the intended version.
 
 Run in CI before wheels are built, so a tag pushed without a bump fails loudly
 instead of publishing nothing (see .github/workflows/publish.yml). Exits 0 when

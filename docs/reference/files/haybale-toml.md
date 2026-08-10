@@ -177,7 +177,7 @@ and the entry point live in [`pyproject.toml`](pyproject-toml.md).
 | `haywire init` (scaffold) | `name`, `id`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template |
 | The author, by hand or in the edit modal | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
 | The author, by hand only | `[deprecated]` |
-| `scripts/bump_version.py` and the share wizard | `version`, synced from `pyproject.toml` (canon) |
+| `scripts/bump_version.py` and the share wizard | `version` — canon here; the generated copy is synced into `pyproject.toml` |
 | The share wizard | `origin`, `origin_provider`, and drift-detected `linked_libraries` additions |
 | Nothing — immutable | `name`, `id` |
 
@@ -211,7 +211,9 @@ PEP 440, no `v` prefix. The `v` belongs to the git tag, which is derived —
 `tag_for("0.0.40")` → `v0.0.40`, one definition for the commit step, the tag
 step, and `install_spec`.
 
-`pyproject.toml`'s `[project] version` is canon; haybale.toml `version` is the synced, runtime-read copy from which `LibraryIdentity.version` loads at decoration time.
+haybale.toml's `version` is canon and is what `LibraryIdentity.version` loads at decoration
+time; `pyproject.toml`'s `[project] version` is the generated copy, written because pip reads
+that file and cannot read this one.
 
 `scripts/bump_version.py` writes both files together for the monorepo's own lockstep release;
 the share wizard's `write_barn_versions()` does the same for a per-library publish. Required:
