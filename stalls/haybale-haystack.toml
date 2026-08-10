@@ -5,14 +5,14 @@
 
 [[haybales]]
 name = "haybale-haystack"
-label = "Haystack"
-version = "0.0.39"
-require = "haywire-core>=0.0.39"
+label = "haybale-haystack"
+version = "0.1.0"
+require = "haywire-core>=0.1.0"
 description = "File-centric multi-graph manager"
 author = "Haywire Team"
 source = "pypi"
 install_spec = "haybale-haystack"
-tags = ["graph-management"]
+tags = []
 dependencies = ["haybale-studio", "haybale-graph-editor"]
 source_url = "https://github.com/going-haywire/haywire"
 docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/master/barn/haybale-haystack/haybale_haystack/"
