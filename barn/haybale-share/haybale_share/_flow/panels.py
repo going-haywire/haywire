@@ -17,11 +17,9 @@ from typing import Callable
 
 from nicegui import ui
 
-from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.publishing.pipeline import ShareDecisions
 from haywire.ui import elements as hui
 from haywire.ui.components.stepper import busy_advance as _busy_advance
-from haywire.ui.modals import restart_affordance
 
 from ._state import ShareFlow
 from .copy import DETECT_SECTIONS, FLOOR_OPTIONS, PIN_OPTIONS
@@ -123,7 +121,7 @@ def _render_fix(flow: ShareFlow, failure, note: ui.label) -> None:
             kwargs["url"] = (field.value or "").strip() if field else ""
         elif fix_id == "commit_dirty_tree":
             kwargs["message"] = (field.value or "").strip() if field else ""
-        elif fix_id == "strip_os":
+        elif fix_id in ("strip_os", "sync_pyproject"):
             kwargs["lib_dir"] = failure.lib_dir or ""
         elif fix_id == "add_host_config":
             written = _write_host_config(failure.lib_dir or "")
@@ -567,37 +565,6 @@ def panel_done(flow: ShareFlow, _rerender: Callable[[], None]) -> None:
             hui.code_snippet(tagged_url)
     elif warning:
         ui.label(warning).classes("text-xs hw-text-muted")
-
-    if flow.hot_swapped_libraries and flow.hot_swap_on_reload is not LibraryReloadAction.RESTART:
-        count = len(flow.hot_swapped_libraries)
-        ui.label(
-            f"Reloaded {count} bumped librar{'y' if count == 1 else 'ies'} — no restart needed."
-        ).classes("text-xs hw-text-dim")
-        if flow.hot_swap_on_reload is LibraryReloadAction.REFRESH:
-            ui.label("Reload the page to pick up their new front-end resources.").classes(
-                "text-xs hw-text-muted"
-            )
-    elif flow.hot_swapped_libraries:
-        # Reloaded fine; a library declares @library(on_reload="restart") — it
-        # leaves the process in a state hot-reload cannot repair (C-extension
-        # modules, import-time global mutation). The registry is NOT stale: the
-        # restart is the library's own requirement, not a consequence of the bump.
-        count = len(flow.hot_swapped_libraries)
-        restart_affordance(
-            reason=(
-                f"Reloaded {count} bumped librar{'y' if count == 1 else 'ies'}, but one of them "
-                "declares that it needs a Studio restart to load cleanly."
-            ),
-            compact=True,
-        )
-    else:
-        # Nothing was swapped — no library was live in this process to reload
-        # (none enabled, or no live library system at all), so whatever is
-        # loaded still predates the bump.
-        restart_affordance(
-            reason="Publishing bumped every barn library's version, so the loaded registry is now stale.",
-            compact=True,
-        )
 
     done = _footer("Done")
     done.on_click(lambda: flow.popup and flow.popup.close())

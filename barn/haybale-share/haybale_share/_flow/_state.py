@@ -45,7 +45,6 @@ from haywire.core.publishing.pipeline import (
     SharePipeline,
     VersionPlan,
 )
-from haywire.core.library.identity import LibraryReloadAction
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 
@@ -103,9 +102,6 @@ class ShareFlow(StepFlow):
         # form — rendering str(exc) as well would restate what they just drew
         # (PushError's message embeds both the stderr and the retry command).
         self.last_error: BaseException | None = None
-
-        self.hot_swapped_libraries: list[str] = []
-        self.hot_swap_on_reload = LibraryReloadAction.NONE
 
     # ── read-only helpers for the panels ─────────────────────────────────────
 
@@ -225,64 +221,8 @@ class ShareFlow(StepFlow):
             self.warnings.append(result.lock_warning)
         self.step = "publish"
 
-    async def _hot_swap_bumped_libraries(self) -> None:
-        """Re-import every bumped barn library still live in this process.
-
-        Runs AFTER the push, as the flow's last act. Two reasons it cannot sit
-        next to the bump that motivates it: the bump is inside the rollback
-        window, so a later failure would revert the manifests and leave the
-        registry holding versions no longer on disk; and evicting libraries
-        mid-flow strands the studio without them across the docs subprocess and
-        the commit, for no benefit — nothing between here and the push reads the
-        registry.
-
-        The bump rewrote each library's version on disk (both ``pyproject.toml``
-        and ``haybale.toml``), so this evicts the stale module
-        (registry.remove_library()) and rescans, and the running registry
-        picks up the new version without a restart in the common case:
-        ``@library(...)`` reads ``haybale.toml`` fresh off disk at decoration
-        time, so no environment sync is needed first.
-
-        The registry comes from core's DI rather than from a LibraryManager:
-        the manager was only ever carrying it, and reaching for it would make
-        this library depend on haybale-marketplace for one attribute. It also
-        means the CLI and this flow behave identically — the predecessor
-        silently skipped the hot-swap whenever no manager was passed.
-
-        Best-effort: a library not found live (not yet enabled) is skipped, not
-        an error — the bump already succeeded and is not rolled back.
-        """
-        from haywire.core.di.config import get_library_system
-
-        plan = self.version_plan
-        if plan is None:
-            return
-        try:
-            registry = get_library_system().get_library_registry()
-        except Exception:  # noqa: BLE001 — no live library system (CLI, tests)
-            return
-
-        swapped: list[str] = []
-        on_reload = LibraryReloadAction.NONE
-        for lib in plan.current:
-            lib_id = registry.find_library_by_distribution_name(lib.name)
-            if lib_id is None:
-                continue
-            identity = registry.get_library_identity(lib_id)
-            on_reload = max(on_reload, identity.reload_action)
-            registry.remove_library(lib_id)
-            swapped.append(lib_id)
-
-        if not swapped:
-            return
-
-        await asyncio.to_thread(registry.scan_for_libraries)
-        registry.enable_all_libraries()
-        self.hot_swapped_libraries = swapped
-        self.hot_swap_on_reload = on_reload
-
     async def advance_from_publish(self, message: str | None = None) -> None:
-        """Docs, marketstall, commit, tag, push, then reload this process.
+        """Docs, marketstall, commit, tag, push, then done.
 
         The user decided on Review; there is no decision between these, so
         splitting them into screens would ask for three clicks to authorize one
@@ -290,11 +230,13 @@ class ShareFlow(StepFlow):
         pushed since preflight, and discovering that after a commit and tag
         exist leaves cleanup.
 
-        The reload tail runs outside the try/except, after everything is
-        public: it cannot fail the share, and is reported by the Done panel
-        rather than gated behind a button — a stale registry is a worse
-        default than a brief pause, and a user who closes the popup instead of
-        clicking would be left with libraries that disagree with disk.
+        No registry reload happens here: the bump only rewrites
+        ``pyproject.toml``/``haybale.toml`` on disk, and every already-running
+        library keeps its already-decorated ``class_identity`` — the version
+        bump changes nothing about how the loaded modules behave. The next
+        process that imports the library (a hot-reload for an unrelated code
+        change, or a restart) reads the new version off disk at decoration
+        time, same as always.
         """
         self.retry()
         try:
@@ -313,8 +255,6 @@ class ShareFlow(StepFlow):
         except ShareError as exc:
             self.fail(exc)
             return
-
-        await self._hot_swap_bumped_libraries()
 
         self.step = "done"
 
