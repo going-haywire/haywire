@@ -173,9 +173,16 @@ Out: any rethink of the detail page's link presentation or information hierarchy
 | `marketstall-toml.md:150` | `source` values include `"local"` (D2) |
 | `marketstall.py:95-97` | Comment becomes true via D6's code change; no edit needed |
 
-Split out, own commit: delete `scripts/generate_marketstall.py` (dead — `ast`-parses
-`@library` fields ADR 0025 removed). Requires a CI check first; `bump_version.py`'s
-docstring cites it as a CI consumer of release config.
+Split out, own change: **repair** `scripts/generate_marketstall.py` — it is **not** dead
+(an earlier draft of this document said so, wrongly). `.github/workflows/publish.yml:229`
+invokes it on every PyPI publish. It `ast`-parses `@library(author=…/label/description/
+tags)` kwargs that ADR 0025 removed, so it silently emits `default_author` and the
+pyproject description for every library, and at `:147` reads `name` from pyproject — the
+one surviving place D6's inversion is not honoured. Its tests
+(`tests/scripts/test_generate_marketstall.py`) pass because they assert the old
+decorator-kwarg behaviour against synthetic fixtures, so they mask the breakage. The fix
+is to read `haybale.toml` via `read_haybale()` like every other consumer. Deleting it
+would break the publish workflow.
 
 ## Glossary
 
