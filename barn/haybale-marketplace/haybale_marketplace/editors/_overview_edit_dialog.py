@@ -137,8 +137,6 @@ def build_edit_dialog(
     display = read_display(Path(lib.identity.folder_path))
 
     with edit_popup:
-        hui.section_label("Identity")
-        label_input = hui.input_field(label="Label", value=display.label)
         # Version is not editable here — it's set by Share/publish (lockstep bump),
         # which overwrites this on the next publish regardless of what's typed here.
         ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
@@ -200,6 +198,7 @@ def build_edit_dialog(
                 else:
                     _refresh_button.tooltip("Detect imported haywire libraries and add any missing.")
 
+        label_input = hui.input_field(label="Label", value=display.label)
         desc_input = hui.input_field(label="Description", value=display.description)
         url_input = hui.input_field(label="Homepage URL", value=display.homepage_url)
         docs_url_input = hui.input_field(label="Documentation URL", value=display.documentation_url)
@@ -232,10 +231,7 @@ def build_edit_dialog(
             if wheel_os:
                 ui.label(f"Supported OS (read-only): {', '.join(wheel_os)}").classes("text-xs hw-text-dim")
 
-        hui.separator()
-
-        hui.section_label("Reload requirement")
-        ui.label("Declare behavior for install, update, and uninstall alike.").classes("text-xs hw-text-dim")
+        ui.label("Declare behavior for install, update, and uninstall alike:").classes("text-xs hw-text-dim")
         on_reload_select = hui.select_field(
             options={
                 LibraryReloadAction.NONE.value: "No special action — library is hot-reloadable",
@@ -250,9 +246,6 @@ def build_edit_dialog(
             in_popup=True,
         ).classes("w-full")
 
-        hui.separator()
-
-        hui.section_label("Package Name")
         name_input = hui.input_field(value=old_name_part).props("readonly")
         with name_input.add_slot("prepend"):
             ui.label("haybale-").classes("text-sm font-mono hw-text-muted")

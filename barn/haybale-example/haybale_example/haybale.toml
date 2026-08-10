@@ -10,9 +10,10 @@ tags = ["example", "demo", "tutorial"]
 
 # Sibling haybales this library subscribes to, as MODULE names.
 # Required for hot-reload scope tracking.
-linked_libraries = ["haybale_core"]
+linked_libraries = ["haybale_core", "haybale_studio"]
 
-homepage_url = "https://github.com/author/haywire_library"
+homepage_url = "https://github.com/going-haywire/haywire"
+on_reload = "none"
 
 [[authors]]
 name = "Example Author"
