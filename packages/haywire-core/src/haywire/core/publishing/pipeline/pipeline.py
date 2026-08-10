@@ -156,7 +156,7 @@ class SharePipeline:
         return steps_dependencies.apply_additions(self, pyproject_entries)
 
     def apply_decorator_registrations(self, registrations: dict[Path, list[str]]) -> list[Path]:
-        """Register imported haywire libraries in ``@library(dependencies)``.
+        """Register imported haywire libraries in ``haybale.toml``'s ``linked_libraries``.
 
         Applied without asking — every entry is provably true and constrains
         nothing. Callers report it rather than offering it.

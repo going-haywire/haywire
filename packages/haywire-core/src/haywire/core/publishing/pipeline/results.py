@@ -143,7 +143,7 @@ class DriftReport:
 
     @property
     def decorator_registrations(self) -> dict[Path, list[str]]:
-        """Per-library ``@library(dependencies)`` entries to add without asking.
+        """Per-library ``haybale.toml`` ``linked_libraries`` entries to add without asking.
 
         Lives here rather than in each caller because it is a *pipeline*
         decision — "which registrations are provably true and need no author

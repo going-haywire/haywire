@@ -42,7 +42,7 @@ def run_deps_check_cli(repo_root: Path) -> int:
             for dep in drift.pyproject_missing:
                 print(f"  + pyproject.toml: {dep}")
             for dep in drift.decorator_missing:
-                print(f"  + @library(dependencies): {dep}")
+                print(f"  + haybale.toml linked_libraries: {dep}")
             for dist, declared, installed in drift.pyproject_version_lag:
                 print(f"  ~ {dist}: declared {declared}, installed {installed}")
         if drift.unresolved:

@@ -125,9 +125,9 @@ def _run_publish(
     if registrations:
         for lib_dir, names in registrations.items():
             for name in names:
-                print(f"  + {lib_dir.name}: @library(dependencies) {name}")
+                print(f"  + {lib_dir.name}: haybale.toml linked_libraries {name}")
         pipeline.apply_decorator_registrations(registrations)
-        print("✓ Registered imported libraries in @library(dependencies)")
+        print("✓ Registered imported libraries in haybale.toml linked_libraries")
 
     if report.needs_decision:
         # Declaring an import the source actually uses is unambiguously

@@ -517,10 +517,10 @@ class LibraryBrowserEditor(BaseEditor):
         def is_required(lib) -> bool:
             # Required if origin.is_protected (framework-owned or this
             # workspace's own project-local library) OR some other installed
-            # library declares this one in its @library(dependencies=[...])
-            # decorator. These are independent reasons for the same badge —
-            # see LibraryOrigin.is_protected's docstring and the glossary
-            # entry "required" vs "dependent".
+            # library declares this one in its haybale.toml's
+            # linked_libraries. These are independent reasons for the same
+            # badge — see LibraryOrigin.is_protected's docstring and the
+            # glossary entry "required" vs "dependent".
             if not hasattr(lib, "identity"):
                 return False
             origin = compute_library_origin(

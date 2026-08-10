@@ -4,10 +4,9 @@ Walks a library's source tree, resolves every top-level imported module to
 its providing distribution, and classifies the result into the two output
 shapes downstream consumers need:
 
-  - ``library_decorator``: underscored module names for the
-    ``@library(dependencies=[...])`` decorator. Limited to *registered*
-    haywire libraries; framework imports and third-party packages do not
-    belong here.
+  - ``library_decorator``: underscored module names for ``haybale.toml``'s
+    ``linked_libraries``. Limited to *registered* haywire libraries;
+    framework imports and third-party packages do not belong here.
   - ``pyproject``: distribution names with version specifiers, ready for
     ``[project] dependencies`` in the library's pyproject.toml. Includes
     framework, registered libraries, and third-party packages.
@@ -19,7 +18,6 @@ limitation; callers are expected to surface the output for review rather
 than write blindly.
 
 Used by:
-  - haybale-studio's library Edit dialog ("Detect dependencies" button)
   - haywire-studio's ``haywire share`` pre-publish gate
 """
 

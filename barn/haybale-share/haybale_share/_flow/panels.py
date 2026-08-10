@@ -335,18 +335,18 @@ def _render_clean_lines(libraries, registrations: dict) -> None:
 
     if registrations:
         # Never a choice — every entry is provably true and constrains nothing
-        # — but it edits a hand-authored __init__.py, so it is always named.
+        # — but it edits a hand-authored file, so it is always named.
         with _section(
             "Library dependencies",
-            "Adding a detected haywire library dependency to the library's __init__.py file.",
+            "Adding a detected haywire library dependency to the library's haybale.toml file.",
         ):
             for lib_dir, names in registrations.items():
                 for name in names:
                     with ui.row().classes("items-baseline gap-2"):
                         with ui.row().classes("items-baseline gap-0"):
-                            ui.label("@library(dependencies=[..., ").classes("text-xs font-mono hw-text-dim")
+                            ui.label("linked_libraries = [..., ").classes("text-xs font-mono hw-text-dim")
                             ui.label(name).classes("text-xs font-mono hw-text-warning")
-                            ui.label("])").classes("text-xs font-mono hw-text-dim")
+                            ui.label("]").classes("text-xs font-mono hw-text-dim")
                         ui.label(f"in {lib_dir.name}").classes("text-xs hw-text-dim")
 
 

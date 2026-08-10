@@ -159,10 +159,10 @@ A **stale** entry is a package that was in your project cache from a previous re
 
 In the Library Browser, stale entries render with a **red dot + (stale) suffix** in the row's sublabel, plus a tooltip showing when the entry was last seen fresh. Two cases:
 
-| State | Action available |
-|---|---|
-| Stale **+ uninstalled** | A trash icon appears on the row. Click to remove from the cache. |
-| Stale **+ installed** | The trash icon is suppressed. Uninstall the library first, then refresh again to re-evaluate. |
+| State                   | Action available                                                                              |
+| ----------------------- | --------------------------------------------------------------------------------------------- |
+| Stale **+ uninstalled** | A trash icon appears on the row. Click to remove from the cache.                              |
+| Stale **+ installed**   | The trash icon is suppressed. Uninstall the library first, then refresh again to re-evaluate. |
 
 The asymmetry exists because removing the cache entry while the library is still installed on disk would leave the catalog inconsistent with reality.
 
@@ -300,8 +300,9 @@ Your project's library state lives in two files. Knowing what each is for helps 
 ~/.haywire/db/haybale_marketplace/marketplace.toml
 ```
 
-`[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall
-feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a
+`[[markets]]` for remote aggregators, `[[stalls]]` for individual marketstall feeds. 
+
+Pasted-TOML inputs are saved as a local stall file and referenced via a
 `file://` `[[stalls]]` entry.
 
 **Project marketplace** — per-project, travels with the source tree.

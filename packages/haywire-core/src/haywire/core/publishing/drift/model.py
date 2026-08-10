@@ -14,7 +14,7 @@ class DepDrift:
     is handled differently:
 
     * ``decorator_missing`` — registered haywire libraries the source imports
-      that ``@library(dependencies=[...])`` does not list. Applied
+      that ``haybale.toml``'s ``linked_libraries`` does not list. Applied
       AUTOMATICALLY, never offered as a choice, because there is nothing to
       decide: ``detect_deps`` only emits a name here when the source imports it
       AND it resolves to an installed, registered library, so the entry is

@@ -785,8 +785,8 @@ class LibraryManager:
     def _lib_module_norm(self, lib_id: str) -> str:
         """Normalized TOP-LEVEL module name — the canonical dependency key.
 
-        @library(dependencies=[...]) entries are top-level package names equal
-        to the dependency's module_name top package. NOT distribution_name
+        haybale.toml's linked_libraries entries are top-level package names
+        equal to the dependency's module_name top package. NOT distribution_name
         (empty for folder installs) and NOT the short id.
         """
         identity = self.registry.get_library_identity(lib_id)

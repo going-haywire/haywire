@@ -103,7 +103,7 @@ def apply_additions(
     Distributions already declared are skipped by ``add_dependencies``: an
     addition never restates an existing floor.
 
-    The ``@library(dependencies=[...])`` list is NOT written here — see
+    ``haybale.toml``'s ``linked_libraries`` is NOT written here — see
     :func:`apply_decorator_registrations`, which needs no author input.
     """
     written: list[Path] = []
@@ -122,7 +122,7 @@ def apply_additions(
 def apply_decorator_registrations(
     pipeline: "SharePipeline", registrations: dict[Path, list[str]]
 ) -> list[Path]:
-    """Add imported haywire libraries to ``@library(dependencies=[...])``.
+    """Add imported haywire libraries to ``haybale.toml``'s ``linked_libraries``.
 
     Applied automatically — the author is told, never asked. There is nothing
     to decide: ``detect_deps`` emits a name here only when the source imports
