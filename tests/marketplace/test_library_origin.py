@@ -30,6 +30,7 @@ def _identity(folder_path: str) -> LibraryIdentity:
 
 def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "") -> LibraryInfo:
     return LibraryInfo(
+        row=Haybale(name="haybale-x", version="1.0.0"),
         identity=_identity(folder_path),
         enabled=True,
         install_type=install_type,
@@ -88,7 +89,11 @@ class TestIsProjectLibrary:
         # absent folder path is represented as "", which is_project_library's
         # `not lib.identity.folder_path` check treats the same as None.
         lib = LibraryInfo(
-            identity=_identity(""), enabled=True, install_type=InstallType.EDITABLE, distribution_name=""
+            row=Haybale(name="haybale-x", version="1.0.0"),
+            identity=_identity(""),
+            enabled=True,
+            install_type=InstallType.EDITABLE,
+            distribution_name="",
         )
         marketplace_path = str(tmp_path / ".haywire" / "marketplace.toml")
         assert is_project_library(lib, marketplace_path) is False
