@@ -10,7 +10,7 @@ emitting.
 
 from pathlib import Path
 
-from haywire.core.library.decorator_io import norm_dep
+from haywire.core.library.dep_edit import norm_dep
 from haywire.core.library.dep_detect import (
     DetectedDeps,
     EntryPointLibrarySource,

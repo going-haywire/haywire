@@ -25,14 +25,24 @@ library author's own files.
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from typing import Any
 
 import toml
 
-from haywire.core.library.decorator_io import norm_dep
 from haywire.core.marketstall.requirement import dependency_name
 from haywire.core.tomlio import edit_toml
+
+
+def norm_dep(name: str) -> str:
+    """Normalize a dep name to a comparable form (underscores, lowercase).
+
+    Shared by ``haywire share``'s drift detection and the entry-level edits
+    below, so both agree on when two spellings (``haybale-core`` vs.
+    ``haybale_core``) name the same thing.
+    """
+    return re.sub(r"[-_.]+", "_", name).lower()
 
 
 def read_dependencies(lib_dir: Path) -> list[str]:

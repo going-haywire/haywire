@@ -36,8 +36,6 @@ def _sanitize_name(name: str) -> str:
     return sanitized
 
 
-_DECLARABLE_OS_VALUES = ("macos", "windows", "linux")
-
 # Packages the marketplace must never move. Pinned to their installed exact
 # versions on every install, so a haybale whose tree wants a different
 # framework version fails at uv's resolver instead of silently swapping the
@@ -176,37 +174,6 @@ def _dep_name(dep_entry: str) -> str:
     head = head.split(" @ ", 1)[0]
     head = re.split(r"[\[<>=!~ ]", head, maxsplit=1)[0]
     return head.strip()
-
-
-def _apply_os_to_pyproject(pyproject_path: Path, os_values: list[str]) -> None:
-    """Write or remove [tool.haywire].os in the library's pyproject.toml.
-
-    Rules:
-      - Filter to allowed values (macos, windows, linux); silently drop others.
-      - Empty list after filtering OR all three present → remove [tool.haywire].os
-        entirely (absent = "all platforms").
-      - Non-empty subset → write the filtered list in canonical order.
-      - Preserves other [tool.*] sections (hatch, etc.) verbatim — including
-        their comments, which a toml.loads/dumps round trip would delete.
-    """
-    # Filter to allowed values, then canonicalize order to (macos, windows, linux).
-    filtered = [v for v in _DECLARABLE_OS_VALUES if v in os_values]
-
-    with edit_toml(pyproject_path) as data:
-        tool = data.setdefault("tool", {})
-
-        if not filtered or len(filtered) == len(_DECLARABLE_OS_VALUES):
-            # Remove the section entirely.
-            haywire = tool.get("haywire")
-            if haywire is not None:
-                haywire.pop("os", None)
-                if not haywire:
-                    tool.pop("haywire", None)
-            if not tool:
-                data.pop("tool", None)
-        else:
-            haywire = tool.setdefault("haywire", {})
-            haywire["os"] = filtered
 
 
 class LibraryManager:
