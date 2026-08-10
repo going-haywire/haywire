@@ -79,7 +79,7 @@ def install_with_safety_check(
         ui.notify(f"Blocked {pkg.name} from {target}", type="positive")
         state.refresh()
         active = getattr(context, "active_library", None)
-        if active is not None and getattr(active, "name", None) == pkg.name:
+        if active is not None and active.row.name == pkg.name:
             context.active_library = None
         notify_library_changed(context)
 

@@ -3,8 +3,8 @@
 LibraryOverviewEditor — full center-panel port from LibraryManagerPage.
 
 Renders in the middle area and reacts to LIBRARY_STATE_CHANGED events.
-Receives the active library via context.active_library (InstalledLibrary or
-Haybale). All services are retrieved from
+Receives the active library via context.active_library — always a LibraryInfo,
+installed or merely catalogued. All services are retrieved from
 context.app (= HaywireApp).
 
 When a component (node/widget/type/adapter/renderer) is clicked, the editor
@@ -53,7 +53,6 @@ from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.locate import link_form, module_dir_path, resolve_row_path
 from haywire.ui.modals import info_modal
@@ -134,6 +133,8 @@ def collect_overview_links(pkg) -> list[tuple[str, str]]:
     verbatim. The old "Docs" link resolved the *module directory* and therefore
     opened a source-tree listing — nodes/, widgets/, __init__.py — which is not
     documentation.
+
+    ``issues_url`` is likewise absolute and used verbatim.
     """
     if pkg is None:
         return []
@@ -142,6 +143,8 @@ def collect_overview_links(pkg) -> list[tuple[str, str]]:
         links.append(("Source", pkg.origin))
     if getattr(pkg, "documentation_url", ""):
         links.append(("Documentation", pkg.documentation_url))
+    if pkg.issues_url:
+        links.append(("Issues", pkg.issues_url))
     notes_dir = module_dir_path(pkg)
     for label, path in (
         ("Notes", f"{notes_dir}{pkg.notes}" if (notes_dir and pkg.notes) else ""),
@@ -219,15 +222,18 @@ class LibraryOverviewEditor(BaseEditor):
             self._render_placeholder()
             return
 
-        if isinstance(lib, LibraryInfo):
-            self._render_center(lib, self._lookup_marketplace_pkg(lib, context), context)
-        elif isinstance(lib, Haybale):
-            self._render_center(None, lib, context)
-        else:
-            self._render_placeholder()
+        self._render_center(lib, context)
 
-    def _lookup_marketplace_pkg(self, lib: LibraryInfo, context: "SessionContext") -> Haybale | None:
-        """Find the marketplace [[caches]] entry that matches the installed library.
+    def _catalog_row_for(self, info: LibraryInfo, context: "SessionContext") -> Haybale | None:
+        """The marketplace [[caches]] entry matching an installed library, if any.
+
+        Metadata never comes from here — that is ``info.row``'s job, whatever its
+        source. This supplies only what a *feed* knows and a library's own
+        ``haybale.toml`` cannot: the version the publisher currently advertises
+        (the update check), the install coordinates the Update button and version
+        picker need, and the ``source`` field that classifies a library's
+        :class:`LibraryOrigin` as pypi vs git. A not-installed library's catalog
+        row *is* ``info.row``, so this is only consulted for installed ones.
 
         Matching by distribution_name mirrors the LibraryBrowser update-arrow logic
         so the same packages flagged in the list also expose an Update button here.
@@ -237,7 +243,7 @@ class LibraryOverviewEditor(BaseEditor):
         if context.app_data is None or MarketplaceState not in context.app_data:
             return None
         state = context.app_data[MarketplaceState]
-        dist_name = lib.distribution_name
+        dist_name = info.distribution_name
         if not dist_name:
             return None
         try:
@@ -286,18 +292,11 @@ class LibraryOverviewEditor(BaseEditor):
     # Center panel — unified renderer
     # ─────────────────────────────────────────────────────────────────────────
 
-    def _render_center(
-        self,
-        installed_lib: LibraryInfo | None,
-        marketplace_pkg: Haybale | None,
-        context: "SessionContext",
-    ):
-        """
-        Unified center panel renderer.
+    def _render_center(self, info: "LibraryInfo", context: "SessionContext"):
+        """Render one library — installed or merely catalogued.
 
-        - installed_lib only  → installed header + tabs
-        - installed_lib + pkg → marketplace header with installed badges + tabs
-        - pkg only            → marketplace header + Install button, no tabs
+        Takes a single :class:`LibraryInfo`: metadata comes off ``info.row``
+        whatever its source, and install-state branches read ``info.installed``.
         """
         # _rebuild() creates _fixed and _scroll before calling this method —
         # narrow them here so the body can use the columns directly.
@@ -328,33 +327,29 @@ class LibraryOverviewEditor(BaseEditor):
 
         marketplace_path = str(Path(app.workspace_root) / ".haywire" / "marketplace.toml")
 
-        # Determine display properties. An installed library is rendered from
-        # its own haybale.toml, read now rather than off the identity built at
-        # import — that is what makes an edit visible without a reload. A
-        # not-yet-installed one has no files on disk, so it renders from the
-        # marketstall row, which carries a verbatim copy of the same fields.
-        row = read_haybale(Path(installed_lib.identity.folder_path)) if installed_lib else None
-        if installed_lib and row is not None:
-            name = row.label or installed_lib.identity.label
-            version = installed_lib.identity.version
-            description = row.description
-            authors = list(row.authors)
-            tags = list(row.tags) or (marketplace_pkg.tags if marketplace_pkg else []) or []
-        else:
-            assert marketplace_pkg is not None
-            name = marketplace_pkg.label or marketplace_pkg.name
-            version = marketplace_pkg.version
-            description = marketplace_pkg.description
-            authors = list(marketplace_pkg.authors)
-            tags = marketplace_pkg.tags or []
+        # Every displayed field comes off the one row, whichever source built it:
+        # an installed library's own haybale.toml, read at the point of use so an
+        # edit shows without a reload, or the marketstall row for a library that
+        # has no files on disk yet. Both carry the same fields.
+        row = info.row
+        name = row.label or row.name
+        version = row.version
+        description = row.description
+        tags = list(row.tags)
+        installed_lib = info if info.installed else None
 
-        # Check for available update
+        # The feed's copy of this library, consulted only for what a feed knows
+        # and the row cannot say about itself — see _catalog_row_for.
+        catalog_row = self._catalog_row_for(info, context) if installed_lib else row
+
+        # Check for available update — the version the publisher advertises
+        # against the version installed here.
         update_available = False
-        if marketplace_pkg and installed_lib and marketplace_pkg.version and installed_lib.identity.version:
+        if catalog_row and installed_lib and catalog_row.version and version:
             try:
                 from packaging.version import Version
 
-                update_available = Version(marketplace_pkg.version) > Version(installed_lib.identity.version)
+                update_available = Version(catalog_row.version) > Version(version)
             except Exception:
                 pass
 
@@ -378,7 +373,7 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Header ────────────────────────────────────────────────────
                 with ui.row().classes("w-full items-start justify-between mb-2"):
                     with ui.column().classes("gap-0.5 min-w-0 flex-1"):
-                        _title_url = (row.homepage_url if row else "") or ""
+                        _title_url = row.homepage_url
                         if _title_url.startswith("http"):
                             with ui.row().classes("items-center gap-1"):
                                 ui.label(name).classes("text-2xl font-bold")
@@ -389,13 +384,11 @@ class LibraryOverviewEditor(BaseEditor):
 
                         with ui.row().classes("items-center gap-2 mt-1 flex-wrap"):
                             ui.label(f"v{version}").classes("text-sm hw-text-muted")
-                            _dist_name = (installed_lib.distribution_name if installed_lib else None) or (
-                                marketplace_pkg.name if marketplace_pkg else None
-                            )
+                            _dist_name = info.distribution_name or row.name
                             if _dist_name:
                                 ui.label(_dist_name).classes("text-xs hw-text-muted font-mono")
-                            if update_available and marketplace_pkg:
-                                hui.tag(f"v{marketplace_pkg.version} available", color="orange")
+                            if update_available and catalog_row:
+                                hui.tag(f"v{catalog_row.version} available", color="orange")
 
                         # Mechanism/origin badges on their own row — kept off the
                         # version/dist-name line above so short vs. long names (e.g.
@@ -408,22 +401,22 @@ class LibraryOverviewEditor(BaseEditor):
                         # instead of a 5-way palette nobody will learn to decode.
                         if installed_lib:
                             with ui.row().classes("items-center gap-2 flex-wrap"):
-                                hui.tag(installed_lib.install_type.name.lower(), color="blue-grey")
+                                hui.tag(info.install_type.name.lower(), color="blue-grey")
                                 # Origin badge — always shown, no suppression even for the
                                 # single FOLDER+framework row (no special-casing anywhere,
                                 # per the settled design). Computed once here; the action
                                 # buttons below reuse this same `_origin` value rather than
                                 # recomputing it.
                                 _origin = compute_library_origin(
-                                    installed_lib, marketplace_path, catalog_entry=marketplace_pkg
+                                    info, marketplace_path, catalog_entry=catalog_row
                                 )
                                 hui.tag(_origin.value, color="purple")
 
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
                         if installed_lib and manager:
-                            _lib_id = installed_lib.identity.id
-                            _lib_label = installed_lib.identity.label
+                            _lib_id = info.identity.id
+                            _lib_label = info.identity.label
 
                             # Dependents: all installed libs whose @library deps include me
                             _dependents = manager.get_installed_dependents(_lib_id)
@@ -442,7 +435,7 @@ class LibraryOverviewEditor(BaseEditor):
                             _block_enable = _missing_for_enable
 
                             # Enable / Disable toggle
-                            if installed_lib.enabled:
+                            if info.enabled:
                                 # Annotated because the protected branch below
                                 # narrows it to str, while the dependents branch
                                 # yields None for "not blocked" — the value
@@ -505,10 +498,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 ui.button(
                                     "Edit",
                                     icon=hui.icon.edit,
-                                    on_click=lambda ilib=installed_lib,
-                                    mp=marketplace_path,
-                                    m=manager,
-                                    ctx=context: (
+                                    on_click=lambda ilib=info, mp=marketplace_path, m=manager, ctx=context: (
                                         build_edit_dialog(
                                             ilib,
                                             mp,
@@ -542,18 +532,18 @@ class LibraryOverviewEditor(BaseEditor):
                                     )
                                 else:
                                     with ui.row().classes("gap-0 items-center"):
-                                        if update_available and marketplace_pkg:
+                                        if update_available and catalog_row:
                                             # build_versioned_spec pins to pkg.version — see its
-                                            # docstring for why marketplace_pkg.install_spec alone
+                                            # docstring for why catalog_row.install_spec alone
                                             # isn't safe to use here.
                                             ui.button(
                                                 "Update",
                                                 icon="arrow_upward",
                                                 on_click=lambda e,
-                                                n=marketplace_pkg.name,
+                                                n=catalog_row.name,
                                                 m=manager,
                                                 ctx=context,
-                                                pkg=marketplace_pkg: (
+                                                pkg=catalog_row: (
                                                     install_package(
                                                         m.build_versioned_spec(pkg, pkg.version),
                                                         n,
@@ -576,10 +566,10 @@ class LibraryOverviewEditor(BaseEditor):
                                             "size=sm color=negative flat"
                                         ):
                                             with ui.menu():
-                                                if marketplace_pkg:
+                                                if catalog_row:
                                                     ui.menu_item(
                                                         "Install specific version…",
-                                                        on_click=lambda p=marketplace_pkg,
+                                                        on_click=lambda p=catalog_row,
                                                         m=manager,
                                                         ctx=context: (open_version_picker(p, m, ctx)),
                                                     )
@@ -591,18 +581,18 @@ class LibraryOverviewEditor(BaseEditor):
                                                     m=manager,
                                                     ctx=context: (confirm_uninstall(lid, ln, m, ctx)),
                                                 )
-                        elif not installed_lib and marketplace_pkg and manager:
+                        elif not installed_lib and manager:
                             # Not installed — Install, blocked if deps missing/disabled or OS mismatch
                             _missing_deps = manager.get_missing_dependencies_for_package(
-                                marketplace_pkg, require_enabled=True
+                                row, require_enabled=True
                             )
-                            _os_block_msg = should_block_install_for_os(marketplace_pkg)
+                            _os_block_msg = should_block_install_for_os(row)
 
                             _install_block: str | None
                             if _missing_deps:
                                 _names = ", ".join(f'"{d}"' for d in _missing_deps)
                                 _install_block = (
-                                    f'"{marketplace_pkg.label or marketplace_pkg.name}"'
+                                    f'"{name}"'
                                     f" cannot be installed — {_names} must be installed and enabled first."
                                 )
                             else:
@@ -612,7 +602,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 "Install",
                                 hui.icon.download,
                                 block_reason=_install_block,
-                                on_click=lambda e, pkg=marketplace_pkg, m=manager, ctx=context: (
+                                on_click=lambda e, pkg=row, m=manager, ctx=context: (
                                     install_with_safety_check(pkg, e.sender, m, ctx)
                                 ),
                                 color="positive",
@@ -622,10 +612,10 @@ class LibraryOverviewEditor(BaseEditor):
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:
                     ui.label(description).classes("hw-text-muted text-sm mb-1")
-                if authors:
+                if row.authors:
                     with ui.row().classes("items-center gap-1"):
                         ui.label("By").classes("text-xs hw-text-dim")
-                        for i, (_name, _url) in enumerate(authors):
+                        for i, (_name, _url) in enumerate(row.authors):
                             if i:
                                 ui.label(",").classes("text-xs hw-text-dim")
                             if _url.startswith("http"):
@@ -634,7 +624,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 ui.label(_name).classes("text-xs hw-text-dim")
 
                 # Collect relevant links
-                _links = collect_overview_links(marketplace_pkg)
+                _links = collect_overview_links(row)
                 if _links:
                     with ui.row().classes("items-center gap-3 mt-1 flex-wrap"):
                         for _lbl, _href in _links:
@@ -697,7 +687,7 @@ class LibraryOverviewEditor(BaseEditor):
                                 tab, self._render_component_tab, installed_lib, registry, cfg, context
                             )
 
-            elif marketplace_pkg and not installed_lib:
+            elif not installed_lib:
                 # Marketplace-only: async-load OVERVIEW.md from source repo
                 with ui.scroll_area().classes("w-full").style("height: 100%;"):
                     with ui.column().classes("w-full p-6 gap-2"):
@@ -707,8 +697,8 @@ class LibraryOverviewEditor(BaseEditor):
                             ui.label("Loading overview…").classes("text-sm hw-text-muted")
                         content_area = ui.column().classes("w-full")
                 background_tasks.create(
-                    self._load_marketplace_overview(marketplace_pkg, loading_row, content_area, context),
-                    name=f"marketplace-overview-{marketplace_pkg.name}",
+                    self._load_marketplace_overview(row, loading_row, content_area, context),
+                    name=f"marketplace-overview-{row.name}",
                 )
 
     # ─────────────────────────────────────────────────────────────────────────
