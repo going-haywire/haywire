@@ -274,7 +274,7 @@
     
     
       <li class="md-tabs__item">
-        <a href="../../haybale/library-canon/" class="md-tabs__link">
+        <a href="../../haybale/haybale-canon/" class="md-tabs__link">
           
   
   
@@ -1084,14 +1084,14 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/library-canon/" class="md-nav__link">
+      <a href="../../haybale/haybale-canon/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Library
+    Authoring a haybale
   
 
     
@@ -1119,19 +1119,26 @@
   
   
     <li class="md-nav__item">
-      <a href="../../haybale/haybale-package-canon/" class="md-nav__link">
+      <a href="../../haybale/metadata-flow/" class="md-nav__link">
         
   
   
   <span class="md-ellipsis">
     
   
-    Haybale package
+    Metadata flow
   
 
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1160,6 +1167,13 @@
     
   </span>
   
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
   
 
       </a>
@@ -1537,44 +1551,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-what-it-solves" class="md-nav__link">
+  <a href="#1-subscribe-and-install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. What it solves
+        1. Subscribe and install
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-the-two-tier-file-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. The two-tier file layout
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-add-source-subscribing-to-a-feed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Add Source: subscribing to a feed
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Add Source: subscribing to a feed">
+    <nav class="md-nav" aria-label="1. Subscribe and install">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-what-happens-after-you-click-add" class="md-nav__link">
+  <a href="#11-add-a-source" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.1 What happens after you click Add
+        1.1 Add a source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-find-the-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Find the library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-install-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Install it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-keeping-up-to-date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Keeping up to date
       
     </span>
   </a>
@@ -1587,10 +1612,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-handling-name-conflicts" class="md-nav__link">
+  <a href="#2-when-two-authors-use-the-same-name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Handling name conflicts
+        2. When two authors use the same name
       
     </span>
   </a>
@@ -1598,22 +1623,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-refresh-pulling-the-latest-catalog" class="md-nav__link">
+  <a href="#3-when-something-looks-wrong" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Refresh: pulling the latest catalog
+        3. When something looks wrong
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="5. Refresh: pulling the latest catalog">
+    <nav class="md-nav" aria-label="3. When something looks wrong">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#51-the-available-section" class="md-nav__link">
+  <a href="#31-a-source-is-unavailable" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.1 The Available section
+        3.1 A source is unavailable
       
     </span>
   </a>
@@ -1621,10 +1646,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#52-the-install-safety-modal" class="md-nav__link">
+  <a href="#32-an-entry-is-marked-stale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.2 The install-safety modal
+        3.2 An entry is marked stale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-edit-file-when-you-need-the-toml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Edit File: when you need the TOML
       
     </span>
   </a>
@@ -1637,55 +1684,77 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-sources-unavailable" class="md-nav__link">
+  <a href="#4-under-the-hood" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Sources unavailable
+        4. Under the hood
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#7-stale-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        7. Stale entries
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#8-edit-file-when-you-need-the-toml" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        8. Edit File: when you need the TOML
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#9-installing-and-updating-what-you-found" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        9. Installing and updating what you found
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="9. Installing and updating what you found">
+    <nav class="md-nav" aria-label="4. Under the hood">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#91-updates-available" class="md-nav__link">
+  <a href="#41-what-a-subscription-is" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.1 Updates available
+        4.1 What a subscription is
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-what-happens-when-you-click-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 What happens when you click Add
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-how-an-input-is-classified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 How an input is classified
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-what-refresh-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 What refresh does
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-what-install-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 What install does
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-where-the-state-lives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Where the state lives
       
     </span>
   </a>
@@ -1698,21 +1767,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#10-common-pitfalls" class="md-nav__link">
+  <a href="#5-reading-on" class="md-nav__link">
     <span class="md-ellipsis">
       
-        10. Common pitfalls
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#11-reading-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        11. Reading on
+        5. Reading on
       
     </span>
   </a>
@@ -1743,8 +1801,6 @@
   
     
     
-      
-        
       
         
       
@@ -2299,41 +2355,6 @@
   
   
     <li class="md-nav__item">
-      <a href="../../architecture/sharing/sharing-arch/" class="md-nav__link">
-        
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Sharing — philosophy
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
-
-      </a>
-    </li>
-  
-
-              
-            
-              
-                
-  
-  
-  
-  
-    <li class="md-nav__item">
       <a href="../../architecture/sharing/share-pipeline-arch/" class="md-nav__link">
         
   
@@ -2501,10 +2522,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_12" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_6_11" >
         
           
-          <label class="md-nav__link" for="__nav_6_12" id="__nav_6_12_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_6_11" id="__nav_6_11_label" tabindex="0">
             
   
   
@@ -2522,8 +2543,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_12_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_6_12">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_6_11_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_6_11">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2740,6 +2761,8 @@
       
         
       
+        
+      
     
     
     
@@ -2861,6 +2884,218 @@
   
 
       </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    
+    
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    
+    
+      
+      
+        
+      
+    
+    
+    <li class="md-nav__item md-nav__item--nested">
+      
+        
+        
+          
+        
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        
+          
+          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+            
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    File formats
+  
+
+    
+  </span>
+  
+  
+
+            <span class="md-nav__icon md-icon"></span>
+          </label>
+        
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_4">
+            <span class="md-nav__icon md-icon"></span>
+            
+  
+    File formats
+  
+
+          </label>
+          <ul class="md-nav__list" data-md-scrollfix>
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/files/haybale-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    haybale.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/files/pyproject-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    pyproject.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/files/marketstall-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    marketstall.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../reference/files/marketplace-toml/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    marketplace.toml
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+          </ul>
+        </nav>
+      
     </li>
   
 
@@ -2993,44 +3228,55 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-what-it-solves" class="md-nav__link">
+  <a href="#1-subscribe-and-install" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. What it solves
+        1. Subscribe and install
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-the-two-tier-file-layout" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. The two-tier file layout
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-add-source-subscribing-to-a-feed" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. Add Source: subscribing to a feed
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="3. Add Source: subscribing to a feed">
+    <nav class="md-nav" aria-label="1. Subscribe and install">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#31-what-happens-after-you-click-add" class="md-nav__link">
+  <a href="#11-add-a-source" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.1 What happens after you click Add
+        1.1 Add a source
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#12-find-the-library" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.2 Find the library
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#13-install-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.3 Install it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#14-keeping-up-to-date" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.4 Keeping up to date
       
     </span>
   </a>
@@ -3043,10 +3289,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#4-handling-name-conflicts" class="md-nav__link">
+  <a href="#2-when-two-authors-use-the-same-name" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4. Handling name conflicts
+        2. When two authors use the same name
       
     </span>
   </a>
@@ -3054,22 +3300,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-refresh-pulling-the-latest-catalog" class="md-nav__link">
+  <a href="#3-when-something-looks-wrong" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Refresh: pulling the latest catalog
+        3. When something looks wrong
       
     </span>
   </a>
   
-    <nav class="md-nav" aria-label="5. Refresh: pulling the latest catalog">
+    <nav class="md-nav" aria-label="3. When something looks wrong">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#51-the-available-section" class="md-nav__link">
+  <a href="#31-a-source-is-unavailable" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.1 The Available section
+        3.1 A source is unavailable
       
     </span>
   </a>
@@ -3077,10 +3323,32 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#52-the-install-safety-modal" class="md-nav__link">
+  <a href="#32-an-entry-is-marked-stale" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5.2 The install-safety modal
+        3.2 An entry is marked stale
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#33-common-pitfalls" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.3 Common pitfalls
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#34-edit-file-when-you-need-the-toml" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3.4 Edit File: when you need the TOML
       
     </span>
   </a>
@@ -3093,55 +3361,77 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#6-sources-unavailable" class="md-nav__link">
+  <a href="#4-under-the-hood" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6. Sources unavailable
+        4. Under the hood
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#7-stale-entries" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        7. Stale entries
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#8-edit-file-when-you-need-the-toml" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        8. Edit File: when you need the TOML
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#9-installing-and-updating-what-you-found" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        9. Installing and updating what you found
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="9. Installing and updating what you found">
+    <nav class="md-nav" aria-label="4. Under the hood">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#91-updates-available" class="md-nav__link">
+  <a href="#41-what-a-subscription-is" class="md-nav__link">
     <span class="md-ellipsis">
       
-        9.1 Updates available
+        4.1 What a subscription is
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#42-what-happens-when-you-click-add" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.2 What happens when you click Add
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#43-how-an-input-is-classified" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.3 How an input is classified
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#44-what-refresh-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.4 What refresh does
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#45-what-install-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 What install does
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#46-where-the-state-lives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.6 Where the state lives
       
     </span>
   </a>
@@ -3154,21 +3444,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#10-common-pitfalls" class="md-nav__link">
+  <a href="#5-reading-on" class="md-nav__link">
     <span class="md-ellipsis">
       
-        10. Common pitfalls
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#11-reading-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        11. Reading on
+        5. Reading on
       
     </span>
   </a>
@@ -3193,140 +3472,97 @@
 
 
 <h1 id="subscribing-to-marketplaces-user-guide">Subscribing to marketplaces — User guide<a class="headerlink" href="#subscribing-to-marketplaces-user-guide" title="Permanent link">&para;</a></h1>
-<p>This guide walks a user through following other authors' libraries: adding a source, refreshing the catalog, installing what you want, and handling the edge cases (conflicts, offline feeds, stale entries, malformed files). For the conceptual model — <em>why</em> the flow is shaped this way — see <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a>. For the publisher side, see <a href="../sharing-libraries/">sharing-libraries</a>.</p>
-<h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
-<p>A <strong>subscription</strong> is the consumer's opt-in to follow what another author publishes. There's no central registry — there's a network of independent feeds, each one a TOML file hosted by its author, and each consumer chooses which to follow. Subscribing is explicit at every step: you add a source, you refresh, you install. Nothing pushes; nothing auto-installs.</p>
-<p>The Library Browser in haywire-studio is the surface that drives this. It lists what you currently have installed and what's available to install, with filter toggles to scope the view. The three buttons in its toolbar — Refresh, Add Source, Edit File — are the entire consumer-facing surface.</p>
-<h2 id="2-the-two-tier-file-layout">2. The two-tier file layout<a class="headerlink" href="#2-the-two-tier-file-layout" title="Permanent link">&para;</a></h2>
-<p>Your project's library state lives in two files. Knowing what each is for helps when you have to reason about what's happening.</p>
-<table>
-<thead>
-<tr>
-<th>File</th>
-<th>Path</th>
-<th>What it holds</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Global marketplace</strong></td>
-<td><code>~/.haywire/db/haybale_marketplace/marketplace.toml</code></td>
-<td>Your subscriptions: <code>[[markets]]</code> for remote aggregators, <code>[[stalls]]</code> for individual marketstall feeds. Pasted-TOML inputs are saved as a local stall file and referenced via a <code>file://</code> <code>[[stalls]]</code> entry. Per-machine.</td>
-</tr>
-<tr>
-<td><strong>Project marketplace</strong></td>
-<td><code>&lt;project&gt;/.haywire/marketplace.toml</code></td>
-<td>This project's path-based libraries (<code>[[heaps]]</code>, written by <code>haywire init</code>) and the resolved catalog cache (<code>[[caches]]</code>, written by Refresh). Per-project; travels with the source tree.</td>
-</tr>
-</tbody>
-</table>
-<p>You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — <code>haywire init</code> sets up <code>[[heaps]]</code>, and Refresh maintains <code>[[caches]]</code>.</p>
-<p>For a deep dive into the split and why it exists, see <a href="../../architecture/sharing/sharing-arch/#why-two-tiers">sharing-arch §Why two tiers</a>.</p>
-<h2 id="3-add-source-subscribing-to-a-feed">3. Add Source: subscribing to a feed<a class="headerlink" href="#3-add-source-subscribing-to-a-feed" title="Permanent link">&para;</a></h2>
-<p>Click <strong>Add Source</strong> in the Library Browser toolbar. A single-field dialog opens — paste any of four forms:</p>
-<table>
-<thead>
-<tr>
-<th>Form</th>
-<th>What it looks like</th>
-<th>Result</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Blob URL</strong> (recommended)</td>
-<td><code>https://github.com/alice/cool-libs/blob/main/marketstall.toml</code></td>
-<td>The runtime recognizes the host, converts to the raw URL, and saves the appropriate <code>[[markets]]</code> or <code>[[stalls]]</code> subscription depending on the fetched body's shape.</td>
-</tr>
-<tr>
-<td><strong>Raw URL</strong></td>
-<td><code>https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml</code></td>
-<td>Same as blob, but skips the URL transformation.</td>
-</tr>
-<tr>
-<td><strong>Plain TOML URL</strong></td>
-<td>Any URL that serves a TOML file (GitHub Pages, GitLab Pages, your own host)</td>
-<td>Fetched as-is; the body shape determines subscription type.</td>
-</tr>
-<tr>
-<td><strong>TOML block</strong> pasted directly</td>
-<td>A <code>[[haybales]]</code> (or <code>[[markets]]</code>/<code>[[stalls]]</code>) section pasted into the field</td>
-<td>Saved as a local file under <code>~/.haywire/db/haybale_marketplace/stalls/&lt;dist-name&gt;.toml</code> and referenced via a <code>file://</code> <code>[[stalls]]</code> entry.</td>
-</tr>
-</tbody>
-</table>
-<p>You don't pick a tab — the runtime inspects the fetched body and decides:</p>
-<ul>
-<li>If it contains <code>[[markets]]</code> or <code>[[stalls]]</code> references → saved as a <code>[[markets]]</code> subscription (it's an aggregator's catalog).</li>
-<li>If it contains only <code>[[haybales]]</code> → saved as a <code>[[stalls]]</code> subscription (it's a single marketstall).</li>
-</ul>
-<p>Bare repository URLs (e.g. <code>https://github.com/alice/cool-libs</code>) are rejected — the dialog asks for the full path to a <code>marketstall.toml</code> or <code>marketplace.toml</code> so the resolver always knows what it's fetching.</p>
-<p>Most authors share blob URLs (the canonical GitHub form). The official haywire feed lives at <code>https://going-haywire.github.io/haywire/marketplace.toml</code> — pasting that subscribes you as a <code>[[markets]]</code> entry. A <code>file://</code> URL also works, useful for testing local fixtures or air-gapped setups.</p>
-<h3 id="31-what-happens-after-you-click-add">3.1 What happens after you click Add<a class="headerlink" href="#31-what-happens-after-you-click-add" title="Permanent link">&para;</a></h3>
-<ol>
-<li>The URL (or pasted body) is classified by host provider and parsed.</li>
-<li>A new <code>[[markets]]</code> or <code>[[stalls]]</code> entry is written to your global marketplace.</li>
-<li>An auto-refresh fires.</li>
-<li>If the new source's haybales collide with anything you already have, a conflict-resolution prompt opens (see §4).</li>
-<li>After refresh: a green toast reports the result (e.g. <code>"Refreshed 3 package(s) · 1 update(s) available"</code>).</li>
-</ol>
-<p>The auto-refresh is a convenience — you don't have to remember to click Refresh after adding a source. If you ever subscribe by hand-editing the file (via Edit File), you'll need to click Refresh yourself.</p>
-<h2 id="4-handling-name-conflicts">4. Handling name conflicts<a class="headerlink" href="#4-handling-name-conflicts" title="Permanent link">&para;</a></h2>
+<p>Following another author's libraries takes three clicks: <strong>Add Source</strong>,
+<strong>Refresh</strong>, <strong>Install</strong>. This guide starts there. Later sections cover what to
+do when something misbehaves (§3) and how the machinery works (§4) —
+worth reading once, not before your first install.</p>
+<p>For the publisher side, see <a href="../sharing-libraries/">sharing-libraries</a>.</p>
+<h2 id="1-subscribe-and-install">1. Subscribe and install<a class="headerlink" href="#1-subscribe-and-install" title="Permanent link">&para;</a></h2>
+<p>There is no central registry. Each author hosts their own feed — a TOML file at
+a URL — and you choose which to follow. Nothing pushes, nothing auto-installs:
+you add a source, you refresh, you install.</p>
+<p>Everything happens in the <strong>Library Browser</strong>, the studio's left-hand panel. Its
+toolbar has exactly three buttons: Refresh, Add Source, Edit File.</p>
+<h3 id="11-add-a-source">1.1 Add a source<a class="headerlink" href="#11-add-a-source" title="Permanent link">&para;</a></h3>
+<p>Click <strong>Add Source</strong> and paste the URL the author gave you — typically a GitHub
+link to their <code>marketstall.toml</code>. The official haywire feed is:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>https://going-haywire.github.io/haywire/marketplace.toml
+</span></code></pre></div>
+<p>The dialog takes one field. You do not pick a type: the runtime fetches the
+body, works out whether it is one author's feed or an aggregator's catalog, and
+subscribes accordingly. A refresh fires automatically, and a green toast reports
+what it found.</p>
+<p>Four kinds of input are accepted:</p>
+<p><strong>A page URL</strong> — the file as you see it in your browser on GitHub or GitLab.
+This is the form most authors share, and the one to reach for by default:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>https://github.com/alice/cool-libs/blob/main/marketstall.toml
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>https://gitlab.com/alice/cool-libs/-/blob/main/marketstall.toml
+</span></code></pre></div>
+<p>A page URL serves HTML, not TOML, so the runtime rewrites it to its raw
+equivalent before storing the subscription — you never have to do that
+conversion yourself.</p>
+<p><strong>A raw URL</strong> — the same file, already in raw form. Used as-is:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>https://raw.githubusercontent.com/alice/cool-libs/main/marketstall.toml
+</span></code></pre></div>
+<p><strong>Any URL serving TOML</strong> — a Pages site, your own web server, or a local file.
+Fetched exactly as given:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>https://going-haywire.github.io/haywire/marketplace.toml
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>file:///Users/me/dev/cool-libs/marketstall.toml
+</span></code></pre></div>
+<p><strong>A TOML block pasted straight in</strong> — the entries themselves, with no URL at
+all. Useful when an author sends you a snippet, or for testing:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">[[haybales]]</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="n">name</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-cool&quot;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="n">version</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="n">install_spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-cool @ git+https://github.com/alice/cool-libs.git@v0.1.0&quot;</span>
+</span></code></pre></div>
+<p>The block is saved to <code>~/.haywire/db/haybale_marketplace/stalls/&lt;name&gt;.toml</code> and
+subscribed as a local file, so it refreshes like any other source.</p>
+<p><strong>A bare repository URL is rejected</strong>:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>https://github.com/alice/cool-libs        ✗
+</span></code></pre></div>
+<p>The resolver needs the full path to the file so it always knows what it is
+fetching. If you only have the repo link, open its README and look for a
+<code>marketstall:share-url</code> block — authors publish the exact URL there.</p>
+<h3 id="12-find-the-library">1.2 Find the library<a class="headerlink" href="#12-find-the-library" title="Permanent link">&para;</a></h3>
+<p>Switch the Library Browser to <strong>AVAILABLE</strong> (the blue cloud-download icon) to
+see everything you can install but have not. Each row carries a provenance
+label — "from github.com/alice" for a feed you subscribed to directly, "via
+going-haywire.github.io" for one that arrived through an aggregator — so you can
+always tell where a library came from.</p>
+<p>Your project's own local libraries appear here too, marked <code>local</code>.</p>
+<h3 id="13-install-it">1.3 Install it<a class="headerlink" href="#13-install-it" title="Permanent link">&para;</a></h3>
+<p>Click the row, then <strong>Install</strong> in the editor that opens on the right.</p>
+<p>Because you are installing third-party code, a confirmation modal opens every
+time, with a <strong>Review source</strong> link to read the code first. Choose <strong>Install</strong>
+to proceed, <strong>Cancel</strong> to back out, or <strong>Block source</strong> to hide this library
+from that feed permanently.</p>
+<p>The library installs, the Library System picks it up, and the row moves from
+AVAILABLE to ENABLED. No restart.</p>
+<h3 id="14-keeping-up-to-date">1.4 Keeping up to date<a class="headerlink" href="#14-keeping-up-to-date" title="Permanent link">&para;</a></h3>
+<p>Click <strong>Refresh</strong> whenever you want to see what has changed. It is the only
+operation that touches the network, and it never runs on a timer — you decide
+when.</p>
+<p>When an author publishes a newer version of something you have installed, the
+row shows a quiet <strong>▲ v0.5.0 available</strong> and the editor's actions menu gains
+<strong>Update to v0.5.0</strong>. Nothing auto-updates; the signal is informational. Update
+does not re-open the safety modal — you already trusted this source when you
+installed it.</p>
+<p>A library that does not run on your OS shows a disabled Install button and a
+"Not available on this OS" tooltip, rather than being hidden.</p>
+<h2 id="2-when-two-authors-use-the-same-name">2. When two authors use the same name<a class="headerlink" href="#2-when-two-authors-use-the-same-name" title="Permanent link">&para;</a></h2>
 <p>Two authors can pick the same library name — there's no central namespace stopping them. The system surfaces collisions at the moment you're about to follow a new feed that would introduce one.</p>
 <p>When Add Source detects a conflict (a package in the new source whose name matches one your existing sources already provide), a conflict-resolution dialog opens with one row per colliding name. Each row shows the name and which sources offer it; you pick which to keep.</p>
 <p>The choice is permanent: the losing source's <code>ignores</code> array gains the name, and from then on refresh will silently skip it from that source. You won't be asked again for the same conflict.</p>
 <p>If you change your mind later, you can edit <code>~/.haywire/marketplace.toml</code> directly via the Edit File button — remove the entry from the <code>ignores</code> array, then click Refresh.</p>
-<p>For the principle behind asking at intake rather than at refresh, see <a href="../../architecture/sharing/sharing-arch/#resolving-conflicts">sharing-arch §Resolving conflicts</a>.</p>
-<h2 id="5-refresh-pulling-the-latest-catalog">5. Refresh: pulling the latest catalog<a class="headerlink" href="#5-refresh-pulling-the-latest-catalog" title="Permanent link">&para;</a></h2>
-<p>The <strong>Refresh</strong> button is the only operation that talks to the network. It does not run on a timer. You decide when to refresh.</p>
-<p>What refresh does, in concept:</p>
-<ol>
-<li>Reads your global marketplace.</li>
-<li>Fetches every subscribed <code>[[markets]]</code> and <code>[[stalls]]</code> URL.</li>
-<li>For each <code>[[markets]]</code> body, reads its <code>[[stalls]]</code> references one level deep and fetches those too. Inline <code>[[haybales]]</code> in the markets body are also collected.</li>
-<li>For each haybale, applies the subscription's <code>blocked</code> array first (silently drops names you've actively rejected), then <code>ignores</code> (drops names you chose against in a previous conflict prompt). Each surviving haybale is stamped with the subscription's URL as its <code>via</code> field.</li>
-<li>Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).</li>
-<li>Deduplicates by name (first occurrence wins for any straggler).</li>
-<li>Marks newly-missing entries as stale (see §7). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as <code>stale=true</code>.</li>
-<li>Counts installed libraries whose cache <code>version</code> exceeds the installed version (updates available, see §9).</li>
-<li>Writes the result to your project marketplace's <code>[[caches]]</code> section.</li>
-</ol>
-<p>After a successful refresh, a green toast summarizes: <code>"Refreshed N package(s) · M source(s) unavailable · K newly stale · L update(s) available"</code>. The middle phrases appear only when relevant.</p>
-<h3 id="51-the-available-section">5.1 The Available section<a class="headerlink" href="#51-the-available-section" title="Permanent link">&para;</a></h3>
-<p>The Library Browser's AVAILABLE filter (blue cloud-download icon) shows the resolved catalog: every haybale not currently installed. Clicking a row opens its Library Overview Editor for install.</p>
-<p>Each row carries a <strong>provenance label</strong> derived from the <code>via</code> cache field — "from github.com/alice" for direct stalls, "via going-haywire.github.io" for haybales that arrived through an aggregator. The tooltip names both the aggregator and the underlying stall so you can audit which feeds contribute which haybales. If an aggregator silently adds new sources, the new haybales' provenance labels make the expansion visible.</p>
-<p>Heaps — your project's path-based libraries — show up here too, even though they aren't on any remote feed. They're presented as <code>source = "local"</code> entries. Installing them runs <code>uv pip install -e &lt;path&gt;</code> so they become editable.</p>
-<h3 id="52-the-install-safety-modal">5.2 The install-safety modal<a class="headerlink" href="#52-the-install-safety-modal" title="Permanent link">&para;</a></h3>
-<p>Every Install click opens a modal interposing between the click and the actual <code>uv pip install</code>. The user is installing third-party code, and the modal makes that explicit:</p>
-<table>
-<thead>
-<tr>
-<th>Button</th>
-<th>Effect</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>Cancel</strong></td>
-<td>Closes the modal, no change.</td>
-</tr>
-<tr>
-<td><strong>Block source</strong></td>
-<td>Adds the haybale's <code>name</code> to the <code>blocked</code> array on the subscription that resolved it (the one whose URL matches the cache entry's <code>via</code>). The haybale disappears from AVAILABLE immediately; the only un-block path is editing <code>marketplace.toml</code> by hand.</td>
-</tr>
-<tr>
-<td><strong>Install</strong></td>
-<td>Proceeds with <code>uv pip install &lt;install_spec&gt;</code> and triggers a Library System rescan.</td>
-</tr>
-</tbody>
-</table>
-<p>The modal also shows the haybale's <code>source_url</code> as a clickable "Review source" link so you can read the code at the source before installing. The modal fires on every Install click — there's no first-time-only suppression, since third-party install is a serious enough operation that the safety prompt is shown every time. Cancel dismisses it in one click if you're sure.</p>
-<h2 id="6-sources-unavailable">6. Sources unavailable<a class="headerlink" href="#6-sources-unavailable" title="Permanent link">&para;</a></h2>
+<p>Why you are asked here rather than at refresh: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</p>
+<h2 id="3-when-something-looks-wrong">3. When something looks wrong<a class="headerlink" href="#3-when-something-looks-wrong" title="Permanent link">&para;</a></h2>
+<h3 id="31-a-source-is-unavailable">3.1 A source is unavailable<a class="headerlink" href="#31-a-source-is-unavailable" title="Permanent link">&para;</a></h3>
 <p>If a refresh can't fetch a subscribed URL — network error, server down, 404 — the refresh doesn't abort. It records the failed URL and falls back to the HTTP cache at <code>~/.haywire/cache/</code>. If the cache has a previous successful fetch, the catalog still reflects that. If no cache exists, the URL is simply absent from the candidate list.</p>
 <p>You'll see a <strong>yellow banner</strong> above the library list: <code>"N source(s) unavailable"</code> with an info button. Click the info button for the specific URLs that failed.</p>
 <p>The catalog continues to work with whatever did fetch successfully. You can keep installing, browsing, and refreshing; the next refresh will retry the failed URLs. If a URL has gone permanently offline (the author moved their hosting, say), you can remove the subscription via Edit File.</p>
-<p>For the principle behind not aborting on partial failure, see <a href="../../architecture/sharing/sharing-arch/#drift-staleness-and-other-soft-signals">sharing-arch §Drift, staleness, and other soft signals</a>.</p>
-<h2 id="7-stale-entries">7. Stale entries<a class="headerlink" href="#7-stale-entries" title="Permanent link">&para;</a></h2>
+<p>Why a partial failure does not abort the refresh: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</p>
+<h3 id="32-an-entry-is-marked-stale">3.2 An entry is marked stale<a class="headerlink" href="#32-an-entry-is-marked-stale" title="Permanent link">&para;</a></h3>
 <p>A <strong>stale</strong> entry is a package that was in your project cache from a previous refresh but didn't re-resolve in the current one. Maybe the author dropped it, maybe the feed went offline, maybe the package was renamed. The cache entry persists with <code>stale = true</code> and a <code>last_seen</code> timestamp, so you can see what was there and decide what to do.</p>
 <p>In the Library Browser, stale entries render with a <strong>red dot + (stale) suffix</strong> in the row's sublabel, plus a tooltip showing when the entry was last seen fresh. Two cases:</p>
 <table>
@@ -3348,36 +3584,7 @@
 </tbody>
 </table>
 <p>The asymmetry exists because removing the cache entry while the library is still installed on disk would leave the catalog inconsistent with reality.</p>
-<h2 id="8-edit-file-when-you-need-the-toml">8. Edit File: when you need the TOML<a class="headerlink" href="#8-edit-file-when-you-need-the-toml" title="Permanent link">&para;</a></h2>
-<p>Sometimes the UI doesn't cover what you need to do. Examples:</p>
-<ul>
-<li>Removing a subscription (no UI yet — coming).</li>
-<li>Removing a name from an <code>ignores</code> array to undo a conflict-resolution choice.</li>
-<li>Adding or removing a name from a <code>blocked</code> array to undo an install-safety-modal Block choice.</li>
-<li>Inspecting what subscriptions you actually have.</li>
-</ul>
-<p>The <strong>Edit File</strong> button in the Library Browser toolbar opens <code>~/.haywire/marketplace.toml</code> in the embedded code editor. Save your changes there, then click Refresh to apply them.</p>
-<p>If the file becomes malformed (a typo in TOML syntax), the Library Browser shows a <strong>red banner</strong> at the top of the list: <code>"Global marketplace is malformed..."</code> with a hint to click Edit File again to repair. The catalog stops rendering until the file is parseable. The Library Browser refuses to mask this kind of error — a half-resolved catalog is worse than no catalog.</p>
-<h2 id="9-installing-and-updating-what-you-found">9. Installing and updating what you found<a class="headerlink" href="#9-installing-and-updating-what-you-found" title="Permanent link">&para;</a></h2>
-<p>Browsing the catalog is one thing; installing is another. They're deliberately separate steps.</p>
-<p>To install: click an AVAILABLE row in the Library Browser. The Library Overview Editor opens on the right; click <strong>Install</strong> — and the install-safety modal opens (see §5.2). Behind the scenes:</p>
-<ul>
-<li>The runtime parses the entry's <code>install_spec</code>.</li>
-<li>It runs <code>uv pip install &lt;install_spec&gt;</code> (which routes to PyPI, git, or a local editable path depending on the entry's <code>source</code>).</li>
-<li>On success, the Library System rescans to pick up the new entry point.</li>
-<li>The row moves from AVAILABLE to ENABLED.</li>
-</ul>
-<p>If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-boundary-what-the-library-manager-is-not">library-manager-arch §What the Library Manager is not</a>).</p>
-<h3 id="91-updates-available">9.1 Updates available<a class="headerlink" href="#91-updates-available" title="Permanent link">&para;</a></h3>
-<p>For each installed haybale, refresh compares the installed distribution version against the cache <code>version</code> — the version the author published. When the cache advertises <code>0.5.0</code> and you have <code>0.1.0</code> installed, an update is available:</p>
-<ul>
-<li>The Library Browser row shows a quiet <strong>▲ "v0.5.0 available"</strong> indicator alongside the installed version.</li>
-<li>The post-refresh toast appends a count: <code>"... · 2 update(s) available"</code>.</li>
-<li>The Library Overview Editor's actions menu adds an <strong>Update to v0.5.0</strong> entry. Clicking it runs the same install pipeline against the current <code>install_spec</code>, which pip resolves to a higher matching version.</li>
-</ul>
-<p>The signal is informational only — nothing auto-updates. You decide when to upgrade. The Update button does NOT open the install-safety modal: you already trusted this source by installing it originally.</p>
-<p>OS-incompatible haybales never appear as updates either. If a haybale declares <code>os = ["linux"]</code> and you're on macOS, the Library Browser row shows a disabled Install button with a "Not available on this OS" tooltip — you can still see the entry for awareness, but the install path is blocked at the gate.</p>
-<h2 id="10-common-pitfalls">10. Common pitfalls<a class="headerlink" href="#10-common-pitfalls" title="Permanent link">&para;</a></h2>
+<h3 id="33-common-pitfalls">3.3 Common pitfalls<a class="headerlink" href="#33-common-pitfalls" title="Permanent link">&para;</a></h3>
 <p><strong>You added a subscription but nothing shows in AVAILABLE.</strong>
 Check three things:</p>
 <ol>
@@ -3403,10 +3610,100 @@ The marketplace's job ends at producing the catalog; the install step is uv's. C
 Stale is a soft signal — the library is still installed and works. The flag is purely informational, telling you it's no longer in any feed you subscribe to. You can keep using it indefinitely; if the original author republishes, the next refresh will mark it fresh again.</p>
 <p><strong>You uninstalled a stale library and want to re-evaluate.</strong>
 Click Refresh. Stale-uninstalled entries that aren't re-resolved by the refresh stay in the cache (so you can decide to remove them); they're not auto-pruned. Use the trash icon to remove the entry once you're done with it.</p>
-<h2 id="11-reading-on">11. Reading on<a class="headerlink" href="#11-reading-on" title="Permanent link">&para;</a></h2>
+<h3 id="34-edit-file-when-you-need-the-toml">3.4 Edit File: when you need the TOML<a class="headerlink" href="#34-edit-file-when-you-need-the-toml" title="Permanent link">&para;</a></h3>
+<p>Sometimes the UI doesn't cover what you need to do. Examples:</p>
+<ul>
+<li>Removing a subscription (no UI yet — coming).</li>
+<li>Removing a name from an <code>ignores</code> array to undo a conflict-resolution choice.</li>
+<li>Adding or removing a name from a <code>blocked</code> array to undo an install-safety-modal Block choice.</li>
+<li>Inspecting what subscriptions you actually have.</li>
+</ul>
+<p>The <strong>Edit File</strong> button in the Library Browser toolbar opens <code>~/.haywire/marketplace.toml</code> in the embedded code editor. Save your changes there, then click Refresh to apply them.</p>
+<p>If the file becomes malformed (a typo in TOML syntax), the Library Browser shows a <strong>red banner</strong> at the top of the list: <code>"Global marketplace is malformed..."</code> with a hint to click Edit File again to repair. The catalog stops rendering until the file is parseable. The Library Browser refuses to mask this kind of error — a half-resolved catalog is worse than no catalog.</p>
+<h2 id="4-under-the-hood">4. Under the hood<a class="headerlink" href="#4-under-the-hood" title="Permanent link">&para;</a></h2>
+<p>None of this is something you have to do. It is what the three buttons are
+doing on your behalf — useful when a result surprises you.</p>
+<h3 id="41-what-a-subscription-is">4.1 What a subscription is<a class="headerlink" href="#41-what-a-subscription-is" title="Permanent link">&para;</a></h3>
+<p>A <strong>subscription</strong> is the consumer's opt-in to follow what another author publishes. There's no central registry — there's a network of independent feeds, each one a TOML file hosted by its author, and each consumer chooses which to follow. Subscribing is explicit at every step: you add a source, you refresh, you install. Nothing pushes; nothing auto-installs.</p>
+<p>The Library Browser in haywire-studio is the surface that drives this. It lists what you currently have installed and what's available to install, with filter toggles to scope the view. The three buttons in its toolbar — Refresh, Add Source, Edit File — are the entire consumer-facing surface.</p>
+<h3 id="42-what-happens-when-you-click-add">4.2 What happens when you click Add<a class="headerlink" href="#42-what-happens-when-you-click-add" title="Permanent link">&para;</a></h3>
+<ol>
+<li>The URL (or pasted body) is classified by host provider and parsed.</li>
+<li>A new <code>[[markets]]</code> or <code>[[stalls]]</code> entry is written to your global marketplace.</li>
+<li>An auto-refresh fires.</li>
+<li>If the new source's haybales collide with anything you already have, a conflict-resolution prompt opens (see <a href="#2-when-two-authors-use-the-same-name">§2</a>).</li>
+<li>After refresh: a green toast reports the result (e.g. <code>"Refreshed 3 package(s) · 1 update(s) available"</code>).</li>
+</ol>
+<p>The auto-refresh is a convenience — you don't have to remember to click Refresh after adding a source. If you ever subscribe by hand-editing the file (via Edit File), you'll need to click Refresh yourself.</p>
+<h3 id="43-how-an-input-is-classified">4.3 How an input is classified<a class="headerlink" href="#43-how-an-input-is-classified" title="Permanent link">&para;</a></h3>
+<p>The four forms from <a href="#11-add-a-source">§1.1</a> are <code>BLOB_URL</code>, <code>RAW_URL</code>,
+<code>PLAIN_TOML_URL</code> and <code>PASTED_BLOCK</code> internally. Two things are decided
+separately, and conflating them is easy:</p>
+<p><strong>What gets stored.</strong> The URL written into your marketplace file must be
+directly fetchable, because refresh calls it with no re-classification. A blob
+URL serves HTML, so it is normalised to its raw form <em>before</em> being stored —
+that is the only input that changes on the way in. A pasted block is written to
+disk first and stored as the resulting <code>file://</code> URL.</p>
+<p><strong>Which section it lands in.</strong> That comes from the fetched body, not the URL:</p>
+<ul>
+<li>Contains <code>[[markets]]</code> or <code>[[stalls]]</code> → a <code>[[markets]]</code> subscription (it is
+  an aggregator's catalog).</li>
+<li>Contains only <code>[[haybales]]</code> → a <code>[[stalls]]</code> subscription (it is a single
+  marketstall).</li>
+</ul>
+<p>So a Pages URL and a GitHub blob URL can both end up as either kind — the shape
+of what they serve decides, not where they point.</p>
+<h3 id="44-what-refresh-does">4.4 What refresh does<a class="headerlink" href="#44-what-refresh-does" title="Permanent link">&para;</a></h3>
+<p>The <strong>Refresh</strong> button is the only operation that talks to the network. It does not run on a timer. You decide when to refresh.</p>
+<p>What refresh does, in concept:</p>
+<ol>
+<li>Reads your global marketplace.</li>
+<li>Fetches every subscribed <code>[[markets]]</code> and <code>[[stalls]]</code> URL.</li>
+<li>For each <code>[[markets]]</code> body, reads its <code>[[stalls]]</code> references one level deep and fetches those too. Inline <code>[[haybales]]</code> in the markets body are also collected.</li>
+<li>For each haybale, applies the subscription's <code>blocked</code> array first (silently drops names you've actively rejected), then <code>ignores</code> (drops names you chose against in a previous conflict prompt). Each surviving haybale is stamped with the subscription's URL as its <code>via</code> field.</li>
+<li>Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).</li>
+<li>Deduplicates by name (first occurrence wins for any straggler).</li>
+<li>Marks newly-missing entries as stale (see <a href="#32-an-entry-is-marked-stale">§3.2</a>). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as <code>stale=true</code>.</li>
+<li>Counts installed libraries whose cache <code>version</code> exceeds the installed version (updates available, see <a href="#14-keeping-up-to-date">§1.4</a>).</li>
+<li>Writes the result to your project marketplace's <code>[[caches]]</code> section.</li>
+</ol>
+<p>After a successful refresh, a green toast summarizes: <code>"Refreshed N package(s) · M source(s) unavailable · K newly stale · L update(s) available"</code>. The middle phrases appear only when relevant.</p>
+<h3 id="45-what-install-does">4.5 What install does<a class="headerlink" href="#45-what-install-does" title="Permanent link">&para;</a></h3>
+<p>Browsing the catalog and installing are deliberately separate steps. Behind the Install button:</p>
+<ul>
+<li>The runtime parses the entry's <code>install_spec</code>.</li>
+<li>It runs <code>uv pip install &lt;install_spec&gt;</code> (which routes to PyPI, git, or a local editable path depending on the entry's <code>source</code>).</li>
+<li>On success, the Library System rescans to pick up the new entry point.</li>
+<li>The row moves from AVAILABLE to ENABLED.</li>
+</ul>
+<p>Installing a <strong>local</strong> library (one of your project's own <code>[[heaps]]</code>) runs
+<code>uv pip install -e &lt;path&gt;</code> instead, so it stays editable and hot-reloads.</p>
+<p>The safety modal's three buttons write different things. <strong>Block source</strong> adds
+the library's name to the <code>blocked</code> array on the subscription that resolved it —
+the one whose URL matches the cache entry's <code>via</code> — so it disappears from
+AVAILABLE immediately. The only way back is editing <code>marketplace.toml</code> by hand
+(<a href="#34-edit-file-when-you-need-the-toml">§3.4</a>). <strong>Cancel</strong> writes nothing. The
+modal fires on every install, with no first-time-only suppression.</p>
+<p>If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see <a href="../../haybale/marketplace/haybale-marketplace-arch/#what-the-library-manager-is-not">haybale-marketplace-arch §8</a>).</p>
+<h3 id="46-where-the-state-lives">4.6 Where the state lives<a class="headerlink" href="#46-where-the-state-lives" title="Permanent link">&para;</a></h3>
+<p>Your project's library state lives in two files. Knowing what each is for helps when you have to reason about what's happening.</p>
+<p><strong>Global marketplace</strong> — per-machine, your subscriptions.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>~/.haywire/db/haybale_marketplace/marketplace.toml
+</span></code></pre></div>
+<p><code>[[markets]]</code> for remote aggregators, <code>[[stalls]]</code> for individual marketstall feeds. </p>
+<p>Pasted-TOML inputs are saved as a local stall file and referenced via a
+<code>file://</code> <code>[[stalls]]</code> entry.</p>
+<p><strong>Project marketplace</strong> — per-project, travels with the source tree.</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>&lt;project&gt;/.haywire/marketplace.toml
+</span></code></pre></div>
+<p>This project's path-based libraries (<code>[[heaps]]</code>, written by <code>haywire init</code>) and
+the resolved catalog cache (<code>[[caches]]</code>, written by Refresh).</p>
+<p>You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — <code>haywire init</code> sets up <code>[[heaps]]</code>, and Refresh maintains <code>[[caches]]</code>.</p>
+<p>Field by field: <a href="../../reference/files/marketplace-toml/">marketplace.toml</a>. Why the split exists: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</p>
+<h2 id="5-reading-on">5. Reading on<a class="headerlink" href="#5-reading-on" title="Permanent link">&para;</a></h2>
 <ul>
 <li>The <strong>publisher side</strong> of this flow: <a href="../sharing-libraries/">sharing-libraries</a>.</li>
-<li>The <strong>conceptual model</strong> behind these mechanics: <a href="../../architecture/sharing/sharing-arch/">sharing-arch</a>.</li>
+<li>Why the model is shaped this way: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</li>
 <li>The <strong>library manager architecture</strong> these tools plug into: <a href="../../haybale/marketplace/haybale-marketplace-arch/">haybale-marketplace-arch</a>.</li>
 <li>The <strong>canonical vocabulary</strong> (Marketplace, Marketstall, Subscription, Refresh, Stale, etc.): <a href="../../reference/glossary/">glossary</a>.</li>
 </ul>
