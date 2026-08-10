@@ -9,7 +9,7 @@ import pytest
 
 from haywire.core.farmhand import FarmhandContext
 from haywire.core.library.kinds import doc_filename
-from haywire.core.marketstall.types import Haybale
+from haywire.core.marketstall import Haybale
 
 pytestmark = pytest.mark.integration
 

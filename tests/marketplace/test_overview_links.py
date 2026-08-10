@@ -1,5 +1,5 @@
 from haybale_marketplace.editors.library_overview_editor import collect_overview_links
-from haywire.core.marketstall.types import Haybale
+from haywire.core.marketstall import Haybale
 
 _SPEC = "lib @ git+https://github.com/me/repo.git@v1.2.3#subdirectory=barn/lib"
 

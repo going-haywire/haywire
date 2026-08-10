@@ -32,7 +32,7 @@ if TYPE_CHECKING:
     # Only for the string annotations below; the real import stays inside the
     # function bodies (see read_haybale) to avoid a haybale_toml <-> marketstall
     # import cycle at module load time.
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.marketstall import Haybale
 
 __all__ = [
     "HaybaleTomlError",
@@ -236,7 +236,7 @@ def read_haybale(package_dir: Path) -> "Haybale":
     ``source`` is ``"local"`` and the publish/transport fields are empty: this row
     was read off disk, not fetched from a feed.
     """
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.marketstall import Haybale
 
     source = package_dir / HAYBALE_TOML
     try:
@@ -266,7 +266,7 @@ def _row_from(data: dict) -> "Haybale":
     Wrong-typed values are dropped rather than raised on — see
     :func:`read_haybale`: rendering degrades, it does not fail.
     """
-    from haywire.core.marketstall.types import Deprecation, Haybale
+    from haywire.core.marketstall import Deprecation, Haybale
 
     def _str(key: str) -> str:
         value = data.get(key)

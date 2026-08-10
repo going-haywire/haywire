@@ -26,7 +26,7 @@ from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
 
 if TYPE_CHECKING:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.marketstall import Haybale
 
 
 class LibraryOrigin(enum.Enum):

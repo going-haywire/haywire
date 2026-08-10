@@ -15,7 +15,7 @@ from .identity import LibraryIdentity
 from .install_type import InstallType
 
 if TYPE_CHECKING:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.marketstall import Haybale
 
 
 @dataclass(frozen=True)

@@ -275,8 +275,8 @@ def test_the_row_prefers_the_declaration_over_re_deriving_it(project: Path) -> N
 def test_a_self_hosted_row_resolves_without_local_config(project: Path) -> None:
     """The point of publishing origin_provider: a consumer has never heard of
     the publisher's forge and has nothing in ~/.haywire/config.toml."""
+    from haywire.core.marketstall import Haybale
     from haywire.core.marketstall.host_providers import provider_for
-    from haywire.core.marketstall.types import Haybale
 
     row = Haybale(
         name="haybale-alpha",

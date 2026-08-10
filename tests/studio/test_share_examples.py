@@ -11,8 +11,8 @@ import subprocess
 from pathlib import Path
 from typing import cast
 
+from haywire.core.marketstall import Haybale
 from haywire.core.marketstall.locate import module_dir_path, resolve_row_path
-from haywire.core.marketstall.types import Haybale
 from haywire.core.publishing import _build_entry_for_library
 
 _DECORATOR = """from haywire.core.library.decorator import library
