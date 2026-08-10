@@ -15,19 +15,30 @@ What this dialog deliberately cannot write, and why:
 * ``[deprecated]`` — retiring a library is rare and deliberate, so it is
   hand-edited in the file rather than given a control that invites a stray
   click.
+
+``linked_libraries`` is the one exception to "no detection here", and it is a
+narrow one: a Refresh button applies the same rule the share pipeline's
+``apply_linked_registrations`` applies — union in what the source provably
+imports, never remove, never ask. It is a fact, not an authored decision like a
+pip dependency's version floor, which is why it needs no control beyond a
+button. This does NOT extend to pip dependencies: ``[project] dependencies``
+stays exclusively a ``haywire share`` concern (see marketplace-arch.md §6).
 """
 
 from __future__ import annotations
 
 import logging
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable, Coroutine
 
 from nicegui import ui
 
+from haywire.core.library.dep_detect import HaywireLibrarySource, find_module_dir
 from haywire.core.library.haybale_toml import read_display, read_haybale_toml_lenient
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
+from haywire.core.publishing.drift.detect import detect_share_drift
 from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
 from haywire.ui.modals import info_modal
@@ -39,6 +50,54 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class _RefreshResult:
+    """Outcome of one Refresh click — never written to disk by this module."""
+
+    added: list[str] = field(default_factory=list)
+    """Detected entries that were not already declared."""
+    merged: list[str] = field(default_factory=list)
+    """`current` ∪ `added`, sorted — the value to stage. Never smaller than
+    `current`: Refresh is union-only."""
+    no_module_dir: bool = False
+    """True when the library has no inspectable source — nothing to scan."""
+
+
+def _refresh_linked_libraries(
+    lib_dir: Path,
+    *,
+    current: list[str],
+    libraries: HaywireLibrarySource,
+) -> _RefreshResult:
+    """Detect the library's imported haywire libraries and union them in.
+
+    Pure — no writes. The rule is the share pipeline's, deliberately:
+    ``apply_linked_registrations`` merges ``linked_missing`` into the declared
+    list and drops nothing, because ``detect_deps`` emits a name only when the
+    source imports it AND it resolves to an installed registered library. A
+    declared entry the scan does not see is indistinguishable from a dynamic
+    import it cannot see, so removal is never inferred — on any surface.
+
+    ``lib_dir`` is the LIBRARY ROOT (the ``pyproject.toml`` directory), NOT the
+    package dir: ``detect_share_drift`` reads ``lib_dir/pyproject.toml`` and
+    finds the package itself via ``find_module_dir``.
+    ``LibraryInfo.identity.folder_path`` is the *package* dir, so the caller
+    passes its ``.parent`` — sound only for heap libraries, whose folder_path is
+    provably ``barn/<lib>/<module>/``. See :func:`build_edit_dialog`.
+
+    Only ``linked_missing`` is read. The pyproject-dependency fields on the
+    returned ``DepDrift`` are deliberately ignored: pip-dependency authoring
+    stays out of this dialog (see the module docstring).
+    """
+    if find_module_dir(lib_dir) is None:
+        return _RefreshResult(no_module_dir=True)
+
+    drift = detect_share_drift(lib_dir, libraries=libraries)
+    current_set = set(current)
+    added = sorted(n for n in drift.linked_missing if n not in current_set)
+    return _RefreshResult(added=added, merged=sorted(current_set | set(added)), no_module_dir=False)
 
 
 def build_edit_dialog(
