@@ -6,6 +6,13 @@ then surgically edits every listed package's pyproject.toml:
   - rewrites every `"<sibling>>=A.B.C"` dep on a known sibling to
     `"<sibling>>=<new>"`.
 
+`pyproject.toml` is canon for `version`. Any package that also carries a
+`haybale.toml` (its runtime-read copy, consumed by `LibraryIdentity`) gets
+that file's `version` line rewritten too, so the two never disagree after a
+release. This mirrors the share wizard's per-library version write
+(`write_barn_versions`), minus the commit/tag/push that skill handles
+separately.
+
 Prints a unified diff of all changes and asks for confirmation before
 writing. Use --yes to skip the prompt (for scripted use).
 """
@@ -80,7 +87,9 @@ def locate_packages(root_pyproject: Path, config: ReleaseConfig) -> dict[str, Pa
 
 # Matches `version = "X.Y.Z"` at the start of a line, with optional surrounding spaces.
 # We anchor on start-of-line + optional spaces to skip occurrences inside dep strings or
-# nested tables. `[project]` is the only top-level table where this should fire.
+# nested tables. `[project]` is the only top-level table where this should fire in
+# pyproject.toml; haybale.toml has no nested tables above `version` either, so the same
+# pattern is reused for both files.
 _VERSION_LINE_RE = re.compile(r'^(?P<lead>\s*version\s*=\s*")[^"]+(?P<trail>")', re.MULTILINE)
 
 # Matches a quoted PEP 508 requirement like "pkg-name>=0.0.1" or "pkg-name~=0.1.0",
@@ -138,6 +147,60 @@ def rewrite_pyproject(
     return new_source, edits
 
 
+#: `haywire-core` ships the framework-owned `builtin` haybale nested three
+#: levels inside its own source tree (`src/haywire/barn/builtin/`), not at the
+#: one-library-per-package depth every other haybale uses — so it can't be
+#: found by the same flat/src-layout search. Named explicitly rather than
+#: generalizing the search, since nothing else in the workspace nests this way.
+_BUILTIN_HAYBALE_TOML = Path("src/haywire/barn/builtin/haybale.toml")
+
+
+def find_haybale_toml(pkg_dir: Path) -> Path | None:
+    """Locate `haybale.toml` inside a package directory, or None if absent.
+
+    Mirrors `haywire.core.library.dep_detect.find_module_dir`'s flat/src-layout
+    search, kept as a local copy rather than an import: this script runs before
+    any package is guaranteed installed, and stays dependency-free by design
+    (stdlib only) so it works in a bare CI checkout.
+    """
+    builtin_candidate = pkg_dir / _BUILTIN_HAYBALE_TOML
+    if builtin_candidate.is_file():
+        return builtin_candidate
+
+    for search_root in (pkg_dir, pkg_dir / "src"):
+        if not search_root.is_dir():
+            continue
+        for child in sorted(search_root.iterdir()):
+            if not child.is_dir() or child.name.startswith((".", "_")):
+                continue
+            candidate = child / "haybale.toml"
+            if candidate.is_file():
+                return candidate
+    return None
+
+
+def rewrite_haybale_toml(source: str, new_version: str) -> tuple[str, list[str]]:
+    """Return (new_source, list_of_human_edit_descriptions) for one `haybale.toml`.
+
+    Same regex-substitution approach as :func:`rewrite_pyproject`'s version line —
+    a single top-level `version = "..."` key, no nested tables above it, so a
+    full TOML parse buys nothing here and this script stays stdlib-only.
+    """
+    edits: list[str] = []
+
+    def _version_sub(m: re.Match[str]) -> str:
+        existing = m.group(0)[len(m.group("lead")) : -len(m.group("trail"))]
+        if existing == new_version:
+            return m.group(0)
+        edits.append(f'version: "{existing}" → "{new_version}"')
+        return f"{m.group('lead')}{new_version}{m.group('trail')}"
+
+    new_source, count = _VERSION_LINE_RE.subn(_version_sub, source, count=1)
+    if count == 0:
+        raise ValueError('could not find `version = "..."` line in haybale.toml')
+    return new_source, edits
+
+
 def apply_bump(
     root_pyproject: Path,
     new_version: str,
@@ -160,22 +223,45 @@ def apply_bump(
         path = located[pkg_name]
         original = path.read_text(encoding="utf-8")
         new_text, edits = rewrite_pyproject(original, new_version, known_siblings)
-        if not edits:
-            continue
-        edited += 1
-        rel = path.relative_to(root_dir).as_posix()
-        diff_parts.append(
-            "".join(
-                difflib.unified_diff(
-                    original.splitlines(keepends=True),
-                    new_text.splitlines(keepends=True),
-                    fromfile=f"a/{rel}",
-                    tofile=f"b/{rel}",
+        if edits:
+            edited += 1
+            rel = path.relative_to(root_dir).as_posix()
+            diff_parts.append(
+                "".join(
+                    difflib.unified_diff(
+                        original.splitlines(keepends=True),
+                        new_text.splitlines(keepends=True),
+                        fromfile=f"a/{rel}",
+                        tofile=f"b/{rel}",
+                    )
                 )
             )
-        )
-        if not dry_run:
-            path.write_text(new_text, encoding="utf-8")
+            if not dry_run:
+                path.write_text(new_text, encoding="utf-8")
+
+        # A package's haybale.toml (if it has one) is the runtime-read copy of
+        # `version` — kept in sync here so LibraryIdentity never lags behind
+        # the pyproject.toml this bump just wrote. Not every package has one
+        # (haywire-studio is the app shell, not a haybale library).
+        haybale_path = find_haybale_toml(path.parent)
+        if haybale_path is not None:
+            haybale_original = haybale_path.read_text(encoding="utf-8")
+            haybale_new, haybale_edits = rewrite_haybale_toml(haybale_original, new_version)
+            if haybale_edits:
+                edited += 1
+                rel = haybale_path.relative_to(root_dir).as_posix()
+                diff_parts.append(
+                    "".join(
+                        difflib.unified_diff(
+                            haybale_original.splitlines(keepends=True),
+                            haybale_new.splitlines(keepends=True),
+                            fromfile=f"a/{rel}",
+                            tofile=f"b/{rel}",
+                        )
+                    )
+                )
+                if not dry_run:
+                    haybale_path.write_text(haybale_new, encoding="utf-8")
 
     return "\n".join(diff_parts), edited
 

@@ -5,7 +5,6 @@ Contains fundamental nodes, widgets, adapters, and data definitions
 that form the foundation of the Haywire system.
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -24,7 +23,6 @@ from haywire.ui.skin.registry import SkinRegistry
 
 @library(
     id="core",
-    version=_pkg_version("haybale-core"),
     file_watcher=False,
 )
 class Library(BaseLibrary):

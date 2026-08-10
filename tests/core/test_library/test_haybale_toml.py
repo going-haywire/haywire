@@ -15,6 +15,7 @@ from haywire.core.library.haybale_toml import (
 
 _FULL = """\
 id = "core"
+version = "0.0.40"
 label = "Core"
 on_reload = "restart"
 linked_libraries = ["haybale_studio", "haybale_graph_editor"]
@@ -34,6 +35,7 @@ def test_reads_every_identity_field(tmp_path: Path) -> None:
     fields = read_haybale_toml(_write(tmp_path, _FULL))
     assert fields == {
         "id": "core",
+        "version": "0.0.40",
         "label": "Core",
         "on_reload": "restart",
         "linked_libraries": ["haybale_studio", "haybale_graph_editor"],
@@ -44,17 +46,17 @@ def test_reads_every_identity_field(tmp_path: Path) -> None:
 def test_absent_keys_are_omitted_not_emptied(tmp_path: Path) -> None:
     """The splat contract: a caller updates defaults, so an absent key must not
     arrive as "" and clobber one."""
-    fields = read_haybale_toml(_write(tmp_path, 'id = "core"\n'))
-    assert fields == {"id": "core"}
+    fields = read_haybale_toml(_write(tmp_path, 'id = "core"\nversion = "0.0.40"\n'))
+    assert fields == {"id": "core", "version": "0.0.40"}
     assert "label" not in fields
     assert "linked_libraries" not in fields
 
 
 @pytest.mark.unit
 def test_unknown_keys_are_ignored(tmp_path: Path) -> None:
-    """`version` is read from the installed distribution, and `name` plus the
-    publishing coordinates are the marketstall row's business — none of them
-    reach the identity, even though they live in the same file."""
+    """`name` and the publishing coordinates are the marketstall row's
+    business — they don't reach the identity, even though they live in the
+    same file."""
     fields = read_haybale_toml(
         _write(
             tmp_path,
@@ -62,7 +64,7 @@ def test_unknown_keys_are_ignored(tmp_path: Path) -> None:
             'examples_path = "examples/"\nnotes = "NOTES.md"\n',
         )
     )
-    assert fields == {"id": "core"}
+    assert fields == {"id": "core", "version": "0.0.40"}
 
 
 @pytest.mark.unit
@@ -73,7 +75,7 @@ def test_homepage_and_first_author_project_onto_the_identity(tmp_path: Path) -> 
     fields = read_haybale_toml(
         _write(
             tmp_path,
-            'id = "core"\nhomepage_url = "https://example.com"\n'
+            'id = "core"\nversion = "0.0.40"\nhomepage_url = "https://example.com"\n'
             '\n[[authors]]\nname = "Alice"\nurl = "https://alice.example"\n'
             '\n[[authors]]\nname = "Bob"\n',
         )
@@ -85,7 +87,9 @@ def test_homepage_and_first_author_project_onto_the_identity(tmp_path: Path) -> 
 
 @pytest.mark.unit
 def test_author_without_a_url_is_fine(tmp_path: Path) -> None:
-    fields = read_haybale_toml(_write(tmp_path, 'id = "core"\n\n[[authors]]\nname = "Alice"\n'))
+    fields = read_haybale_toml(
+        _write(tmp_path, 'id = "core"\nversion = "0.0.40"\n\n[[authors]]\nname = "Alice"\n')
+    )
     assert fields["author"] == "Alice"
     assert "author_url" not in fields
 
@@ -123,6 +127,18 @@ def test_missing_id_raises(tmp_path: Path) -> None:
 def test_empty_id_raises(tmp_path: Path) -> None:
     with pytest.raises(HaybaleTomlError, match="`id` is required"):
         read_haybale_toml(_write(tmp_path, 'id = ""\n'))
+
+
+@pytest.mark.unit
+def test_missing_version_raises(tmp_path: Path) -> None:
+    with pytest.raises(HaybaleTomlError, match="`version` is required"):
+        read_haybale_toml(_write(tmp_path, 'id = "core"\n'))
+
+
+@pytest.mark.unit
+def test_empty_version_raises(tmp_path: Path) -> None:
+    with pytest.raises(HaybaleTomlError, match="`version` is required"):
+        read_haybale_toml(_write(tmp_path, 'id = "core"\nversion = ""\n'))
 
 
 @pytest.mark.unit

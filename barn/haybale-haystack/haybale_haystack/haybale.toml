@@ -4,6 +4,7 @@
 
 name = "haybale-haystack"
 id = "haystack"
+version = "0.0.39"
 label = "Haystack"
 description = "File-centric multi-graph manager"
 tags = ["graph-management"]

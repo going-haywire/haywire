@@ -42,8 +42,10 @@ authors = [{ name = "maybites" }, { name = "cansik" }]
 classifiers = ["Development Status :: 7 - Inactive"]
 
 # ── owned by the release machinery ──────────────────────────────────────────
-# The one field that flows the other way: the share wizard bumps it here and
-# writes the same value into haybale.toml, and the marketstall row reads it
+# The one field that flows the other way: scripts/bump_version.py (lockstep
+# monorepo release) or the share wizard (per-library publish) bumps it here and
+# writes the same value into haybale.toml — LibraryIdentity.version reads the
+# haybale.toml copy, not this file directly — and the marketstall row reads it
 # from this file. PEP 440 — no "v".
 version = "0.0.40"
 

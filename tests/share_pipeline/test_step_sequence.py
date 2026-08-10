@@ -40,7 +40,6 @@ _EXPECTED_PIPELINE_STEPS = (
     "docs",
     "commit",
     "push",
-    "refresh",
     "rollback",
 )
 

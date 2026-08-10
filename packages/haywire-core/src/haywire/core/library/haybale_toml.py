@@ -50,7 +50,13 @@ HAYBALE_TOML = "haybale.toml"
 #: absent from the file are omitted from the result rather than set empty, so a
 #: caller can splat over defaults without clobbering them — the contract
 #: ``distribution_fields()`` established for the reader this replaces.
-_STR_FIELDS = ("id", "label", "on_reload", "description")
+#:
+#: ``version`` is here too, but unlike the others its absence is fatal — see
+#: the check in :func:`read_haybale_toml`. ``pyproject.toml`` is canon for the
+#: value (release tooling and the share wizard both bump it there first); this
+#: file carries the synced copy so ``LibraryIdentity`` never needs an installed
+#: distribution to answer "what version is this".
+_STR_FIELDS = ("id", "label", "on_reload", "description", "version")
 _LIST_FIELDS = ("linked_libraries", "tags", "os")
 
 #: A Python module name: identifier characters only, no hyphens, no dots. The
@@ -200,6 +206,12 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
     fields = _fields_from(dict(data), source)
     if not fields.get("id"):
         raise HaybaleTomlError(f"{source}: `id` is required — it prefixes every component's registry key.")
+    if not fields.get("version"):
+        raise HaybaleTomlError(
+            f"{source}: `version` is required. It is synced from pyproject.toml by "
+            f"scripts/bump_version.py and the share wizard — run one of those rather "
+            f"than authoring it by hand."
+        )
     return fields
 
 
@@ -332,10 +344,11 @@ def _display_from(data: dict) -> LibraryDisplay:
 
 #: What :func:`write_haybale_fields` will set. Everything else in the file is
 #: off-limits to the editor: `name` and `id` are immutable (renaming rewrites
-#: registry keys and every consumer's install_spec), `version`, `origin` and
-#: `origin_provider` are written by the share wizard from facts it observes, and
-#: `[deprecated]` is hand-edited because retiring a library is rare and
-#: deliberate.
+#: registry keys and every consumer's install_spec), `version` is synced from
+#: `pyproject.toml` (canon) by `scripts/bump_version.py` and the share wizard,
+#: `origin` and `origin_provider` are written by the share wizard from facts it
+#: observes, and `[deprecated]` is hand-edited because retiring a library is
+#: rare and deliberate.
 EDITABLE_FIELDS = (
     "label",
     "os",
@@ -361,8 +374,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
     round-trip through plain dicts would silently delete every comment.
 
     Only :data:`EDITABLE_FIELDS` are writable; anything else raises rather than
-    being silently dropped, so a caller passing ``version`` learns that the
-    share wizard owns it instead of wondering why the write did nothing.
+    being silently dropped, so a caller passing ``version`` learns that
+    ``pyproject.toml`` owns it instead of wondering why the write did nothing.
 
     An empty value removes the key rather than writing ``""``. Absent and empty
     then mean the same thing, which keeps a file edited through the UI
@@ -382,8 +395,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
         raise HaybaleTomlError(
             f"{package_dir / HAYBALE_TOML}: {', '.join(sorted(unknown))} "
             f"{'is' if len(unknown) == 1 else 'are'} not editable here. "
-            f"name/id are immutable, version/origin are set by the share wizard, "
-            f"and [deprecated] is hand-edited."
+            f"name/id are immutable, version is synced from pyproject.toml, "
+            f"origin is set by the share wizard, and [deprecated] is hand-edited."
         )
 
     if "linked_libraries" in fields:

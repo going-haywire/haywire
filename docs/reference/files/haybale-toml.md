@@ -147,7 +147,7 @@ Every field this file may declare, and which file each one reaches.
 | --- | --- | --- | :-: | :-: | :-: | --- |
 | `name` | string | yes | | ● | `name` | Pip distribution name. Immutable |
 | `id` | string | yes | ● | | | Prefixes every component's registry key (`core:node:Add`). Immutable |
-| `version` | string | yes | | ● | `version` | PEP 440, no `v`. The git tag is derived from it |
+| `version` | string | yes | ● | ● | `version` | PEP 440, no `v`. The git tag is derived from it |
 | `label` | string | yes | ● | ● | | Human display name |
 | `description` | string | no | ● | ● | `description` | One line |
 | `tags` | list[str] | no | ● | ● | `keywords` | Filter tags in the library browser |
@@ -174,10 +174,11 @@ and the entry point live in [`pyproject.toml`](pyproject-toml.md).
 
 | Written by | Fields |
 | --- | --- |
-| `haywire init` (scaffold) | `name`, `id`, `label`, `linked_libraries` |
+| `haywire init` (scaffold) | `name`, `id`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template |
 | The author, by hand or in the edit modal | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
 | The author, by hand only | `[deprecated]` |
-| The share wizard | `version`, `origin`, `origin_provider`, and drift-detected `linked_libraries` additions |
+| `scripts/bump_version.py` and the share wizard | `version`, synced from `pyproject.toml` (canon) |
+| The share wizard | `origin`, `origin_provider`, and drift-detected `linked_libraries` additions |
 | Nothing — immutable | `name`, `id` |
 
 The edit modal accepts exactly the thirteen author-editable fields above
@@ -210,14 +211,21 @@ PEP 440, no `v` prefix. The `v` belongs to the git tag, which is derived —
 `tag_for("0.0.40")` → `v0.0.40`, one definition for the commit step, the tag
 step, and `install_spec`.
 
-Storing the tag form here instead would be invalid in `[project] version`
-(generated from this), and `packaging.Version` normalises a leading `v` away —
-so mixed forms compare correctly right up until something does a string
-equality.
+`pyproject.toml`'s `[project] version` is canon; haybale.toml `version` is the synced, runtime-read copy from which `LibraryIdentity.version` loads at decoration time.
 
-The share wizard is the bump machinery, so this field is displayed read-only in
-the edit modal: a version the modal could edit would be a version no tag
-corresponds to.
+`scripts/bump_version.py` writes both files together for the monorepo's own lockstep release;
+the share wizard's `write_barn_versions()` does the same for a per-library publish. Required:
+`read_haybale_toml()` raises if the key is absent, the same way it does for a
+missing `id`.
+
+Storing the tag form here instead would be invalid in `[project] version`,
+and `packaging.Version` normalises a leading `v` away — so mixed forms compare
+correctly right up until something does a string equality.
+
+The bump machinery owns this field, so it is displayed read-only in the edit
+modal: a version the modal could edit would be a version no tag corresponds
+to, and `write_haybale_fields()` rejects it outright (`EDITABLE_FIELDS`
+excludes it) rather than silently dropping the write.
 
 ### `linked_libraries`
 
@@ -309,7 +317,7 @@ order:
 
 | | Lives in |
 | --- | --- |
-| `id`, `version`, `file_watcher` kwargs | `@library(...)` — see [haybale-canon](../../haybale/haybale-canon.md#4-the-library-class) |
+| `id`, `file_watcher` kwargs | `@library(...)` — see [haybale-canon](../../haybale/haybale-canon.md#4-the-library-class) |
 | Pip requirements (`dependencies`) | [`pyproject.toml`](pyproject-toml.md) |
 | The entry point and build config | [`pyproject.toml`](pyproject-toml.md) |
 | `install_spec`, `require`, `source` | [`marketstall.toml`](marketstall-toml.md) — generated at publish |

@@ -176,15 +176,6 @@ def _run_publish(
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
 
-    # Step 7, after the push, matching the wizard. No registry to reload here —
-    # the CLI holds no live library system — so this only refreshes the
-    # environment for the next process.
-    synced, sync_warning = pipeline.apply_sync()
-    if synced:
-        print("✓ Refreshed installed versions (uv sync)")
-    elif sync_warning:
-        print(f"⚠ {sync_warning}")
-
     pypi_url = read_pypi_marketplace_url(pipeline.repo_root)
     if pypi_url:
         print(f"\n✓ Released packages (recommended):\n  {pypi_url}")

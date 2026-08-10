@@ -12,25 +12,8 @@ from .identity import LibraryIdentity
 
 T = TypeVar("T")
 
-#: Fields that moved to ``haybale.toml``. Rejected rather than ignored: every
-#: one is a real identity field, so passing it would be accepted and then
-#: silently overwritten by the file — exactly the drift this change removes.
-#: ``dependencies`` is the pre-rename spelling of ``linked_libraries`` and also
-#: collides with ``[project] dependencies``, which means something else.
-_MOVED_TO_TOML = {
-    "label",
-    "description",
-    "tags",
-    "author",
-    "author_url",
-    "url",
-    "on_reload",
-    "linked_libraries",
-    "dependencies",
-}
 
-
-def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
+def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a Haywire library.
 
@@ -45,50 +28,52 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
     the cost this design exists to remove. Nothing in the studio writes this
     call.
 
+    Takes exactly these two keyword arguments. The signature is explicit
+    rather than ``**kwargs``, so a stale call site passing a descriptive field
+    that moved to ``haybale.toml`` (``label``, ``description``, ``tags``,
+    ``author``, ``author_url``, ``url``, ``on_reload``, ``linked_libraries``,
+    ``version``) — or any other unrecognized name — fails immediately with
+    Python's own "unexpected keyword argument" ``TypeError``, rather than
+    being silently accepted and overwritten by the file.
+
     ``haybale.toml``::
 
         name = "haybale-mylib"
         id = "mylib"
+        version = "1.0.0"
         label = "My Library"
         description = "What this library does"
         tags = ["mylib"]
         on_reload = "none"
         linked_libraries = ["haybale_core"]
 
-    What stays here:
+    ``version`` is required but is not hand-authored: ``pyproject.toml`` is
+    canon, and ``scripts/bump_version.py`` / the share wizard keep ``haybale.toml``
+    in sync with it. A library missing the key has not been through either path
+    yet.
 
     Args:
         id (str, optional): Unique identifier; prefixes every component's
             registry key. Also declared in ``haybale.toml``, which wins — the
             kwarg exists because the registry needs an id before any file read,
             and a mismatch between the two is reported rather than guessed at.
-        version (str, optional): Installed version. Use
-            ``_pkg_version("haybale-packagename")``. Read from the distribution,
-            not authored here, and never written by any tool.
         file_watcher (bool, optional): Watch this library's files and hot-reload
             on change. Development only; has no publishing meaning.
 
     Raises:
         HaybaleTomlError: ``haybale.toml`` is missing, malformed, or declares no
-            ``id``. Fatal for this library alone — ``LibraryRegistry`` wraps each
-            load, so the studio still starts and the failure names the file.
-        TypeError: a kwarg that moved to ``haybale.toml`` was passed.
+            ``id`` or no ``version``. Fatal for this library alone —
+            ``LibraryRegistry`` wraps each load, so the studio still starts and
+            the failure names the file.
+        TypeError: an unrecognized kwarg was passed — including any name that
+            moved to ``haybale.toml``.
     """
 
     def decorator(inner_cls: Type[T]) -> Type[T]:
         if not issubclass(inner_cls, BaseLibrary):
             raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
 
-        moved = _MOVED_TO_TOML & kwargs.keys()
-        if moved:
-            raise TypeError(
-                f"@library({kwargs.get('id', '?')!r}): "
-                f"{', '.join(sorted(moved))} "
-                f"{'is' if len(moved) == 1 else 'are'} no longer decorator "
-                f"argument(s) — declare {'it' if len(moved) == 1 else 'them'} in "
-                f"haybale.toml, beside __init__.py. Editing that file needs no "
-                f"reinstall and no reload, which a decorator edit does."
-            )
+        kwargs: dict[str, Any] = {"id": id, "file_watcher": file_watcher}
 
         # Auto-detect folder_path — the directory where inner_cls is defined,
         # which is also where haybale.toml lives.
@@ -96,8 +81,6 @@ def library(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         package_dir = Path(class_file).parent
         kwargs["folder_path"] = str(package_dir)
         kwargs["module_name"] = inner_cls.__module__
-
-        kwargs.setdefault("version", "1.0.0")
 
         # The file is canon for everything it declares, including `id`: a
         # decorator id that disagrees is the author's bug, and letting the file

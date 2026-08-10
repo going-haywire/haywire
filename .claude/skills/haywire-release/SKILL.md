@@ -174,8 +174,12 @@ uv run python scripts/bump_version.py <NEW_VERSION> --dry-run
 
 Expected: the script either prints `Nothing to do: all packages already at version
 X.Y.Z.` (shouldn't happen — step 1 already rejected no-op bumps) or prints a unified
-diff covering 10 files (`packages/*/pyproject.toml` ×2, `barn/*/pyproject.toml` ×8)
-followed by `10 file(s) will change. Target version: X.Y.Z.`.
+diff covering 21 files (`packages/*/pyproject.toml` ×2, `barn/*/pyproject.toml` ×8,
+plus each of those 8 barn packages' `haybale.toml` and the framework-owned
+`builtin` library's `haybale.toml` nested inside `haywire-core`) followed by
+`21 file(s) will change. Target version: X.Y.Z.`. `haybale.toml` is the
+runtime-read copy of `version` (`pyproject.toml` stays canon); it's synced
+here so `LibraryIdentity` never lags behind a release.
 
 Present the diff verbatim in the chat. Make sure the user can scroll the whole thing
 before the next step.
@@ -191,7 +195,7 @@ uv run python scripts/bump_version.py <NEW_VERSION> --yes
 
 Tell the user:
 
-> **Dry-run: stopping here.** Bump applied; working tree now has 10 modified files.
+> **Dry-run: stopping here.** Bump applied; working tree now has 21 modified files.
 > Run `git diff` to inspect, then `git checkout packages barn uv.lock` to roll back.
 > To actually cut the release, re-invoke `/haywire-release <NEW_VERSION>` without
 > `--dry-run`.
@@ -264,7 +268,8 @@ workspace `exclude`), git aborts the whole `git add` with
 silently fails with "no changes added." `git add -u` sidesteps this entirely: it only
 touches files git already tracks, and the visiongraph symlink is untracked, so it's
 never considered. This is safe because Step 2 guaranteed a clean tree, so the only
-tracked modifications are this release's 10 `pyproject.toml`s + `uv.lock`.
+tracked modifications are this release's 10 `pyproject.toml`s, 9 `haybale.toml`s
+(8 barn libraries + framework-owned `builtin`), and `uv.lock`.
 
 Single-line subject, no body. The commit subject is exactly that — `chore: release v`
 prefix followed by the version. The CI workflow doesn't care about the message, but
@@ -272,8 +277,8 @@ following the convention keeps `git log --oneline` searchable for past releases.
 
 After `uv lock`, `uv.lock` will always have changed (the version lines moved), so it's
 part of the staged set — confirm it's in the commit with `git diff --cached --name-only`
-(expect exactly 11 paths: 10 `pyproject.toml` + `uv.lock`). The baked docs are
-gitignored, so they are correctly absent from this set.
+(expect exactly 20 paths: 10 `pyproject.toml` + 9 `haybale.toml` + `uv.lock`). The
+baked docs are gitignored, so they are correctly absent from this set.
 
 ### Step 6.5 — wheel-build smoke (before tag)
 
@@ -405,7 +410,7 @@ If the user invoked `/haywire-release --dry-run <VERSION>`:
   tree contains the actual changes that would ship, then STOPS without asking for
   confirmation. The user sees:
 
-  > **Dry-run: stopping here.** Bump applied; working tree now has 10 modified files.
+  > **Dry-run: stopping here.** Bump applied; working tree now has 21 modified files.
   > Run `git diff` to inspect, then `git checkout packages barn uv.lock` to roll back.
   > To actually cut the release, re-invoke `/haywire-release <VERSION>` without
   > `--dry-run`.

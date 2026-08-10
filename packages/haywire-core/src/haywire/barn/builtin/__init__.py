@@ -4,7 +4,6 @@ entry-point plugin so that ``builtin:type:*`` (and ``builtin:node:*``,
 ``builtin:skin:*``) keys resolve when graphs and plugins reference them.
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -13,7 +12,6 @@ from haywire.core.library.decorator import library
 
 @library(
     id="builtin",
-    version=_pkg_version("haywire-core"),
     file_watcher=False,
 )
 class Library(BaseLibrary):

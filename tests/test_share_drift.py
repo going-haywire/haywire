@@ -78,7 +78,8 @@ def _make_library(
     linked = linked_libraries or []
     linked_repr = "[" + ", ".join(f'"{n}"' for n in linked) + "]"
     (pkg_dir / "haybale.toml").write_text(
-        f'name = "{project_name}"\nid = "fake"\nlabel = "Fake"\nlinked_libraries = {linked_repr}\n'
+        f'name = "{project_name}"\nid = "fake"\nversion = "0.0.1"\nlabel = "Fake"\n'
+        f"linked_libraries = {linked_repr}\n"
     )
     (pkg_dir / "__init__.py").write_text(f"{init_body_imports}\n")
     return lib_dir

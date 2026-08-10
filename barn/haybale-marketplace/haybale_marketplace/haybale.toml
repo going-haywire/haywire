@@ -2,6 +2,8 @@
 # ships in the wheel beside __init__.py and is read from disk at runtime.
 # Edited in the studio's library overview — no reinstall, no reload.
 
+version = "0.0.39"
+
 # --8<-- [start:marketplace_metadata]
 name = "haybale-marketplace"
 id = "marketplace"

@@ -38,12 +38,12 @@ def _make_lib(tmp_path: Path, *, os_decl: list[str] | None = None) -> Path:
         "from haywire.core.library.base import BaseLibrary\n"
         "from haywire.core.library.decorator import library\n"
         "\n"
-        '@library(id="foo", version="0.1.0", file_watcher=False)\n'
+        '@library(id="foo", file_watcher=False)\n'
         "class Library(BaseLibrary):\n"
         "    def register_components(self): pass\n"
         "    def validate(self) -> bool: return True\n"
     )
-    declared = 'name = "haybale-foo"\nid = "foo"\nlabel = "Foo"\ndescription = "x"\n'
+    declared = 'name = "haybale-foo"\nid = "foo"\nversion = "0.1.0"\nlabel = "Foo"\ndescription = "x"\n'
     if os_decl is not None:
         os_inline = ", ".join(f'"{x}"' for x in os_decl)
         declared += f"os = [{os_inline}]\n"

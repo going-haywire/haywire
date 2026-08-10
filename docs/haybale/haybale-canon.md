@@ -104,6 +104,7 @@ Beside `__init__.py`, inside the package:
 ```toml
 name = "haybale-image"
 id = "image"
+version = "0.1.0"   # synced from pyproject.toml — see §5, don't hand-edit
 label = "Image Processing"
 description = "Image processing nodes for haywire — resize, filter, convert."
 tags = ["image", "vision"]
@@ -132,10 +133,14 @@ name = "Your Name"
 url = "https://your.site"      # optional
 ```
 
-The smallest valid file is four keys — `name`, `id`, `label`, and a
-`description` worth reading. `id` is the only one whose absence is fatal.
+The smallest valid file is five keys — `name`, `id`, `version`, `label`, and a
+`description` worth reading. `id` and `version` are the two whose absence is
+fatal; `haywire init` seeds `version` at scaffold, and the bump machinery
+keeps it current afterward, so an author rarely types it by hand.
 
-**Written for you, not by you.** The share wizard writes `version`, `origin` and
+**Written for you, not by you.** `scripts/bump_version.py` (monorepo lockstep
+release) and the share wizard (per-library publish) write `version`, synced
+from `pyproject.toml`; the share wizard also writes `origin` and
 `origin_provider`; the drift detector maintains `linked_libraries`. `name` and
 `id` are immutable — they key saved graphs and every consumer's install spec.
 `[deprecated]` is hand-edited, since retiring a library should not be one stray
@@ -170,14 +175,13 @@ class Library(BaseLibrary):
 __all__ = ['Library']
 ```
 
-**The decorator takes three arguments, and only three.** Everything descriptive
-lives in `haybale.toml`; passing a descriptive field here raises `TypeError`
-naming the file it moved to.
+**The decorator takes two arguments, and only two.** Everything descriptive —
+including `version` — lives in `haybale.toml`; passing it to the decorator
+raises `TypeError` naming the file it moved to.
 
 | Parameter | Required | Purpose |
 | --- | --- | --- |
 | `id` | yes | Prefixes every component's `registry_key`. Also in `haybale.toml`, which wins; a mismatch is reported rather than guessed at |
-| `version` | no | Use `importlib.metadata.version("haybale-yourlib")`. Read from the distribution, never authored here |
 | `file_watcher` | no | Hot-reload via filesystem observer. Development only; no publishing meaning |
 
 **Always use parentheses.** `@library` without them is unsupported — as with
@@ -329,10 +333,10 @@ pipeline.
   `version`, `requires-python`, and a
   `[project.entry-points."haywire.libraries"]` entry resolving to a
   `BaseLibrary` subclass.
-- **`haybale.toml`** inside the package, declaring at least `name`, `id` and
-  `label`. Missing or malformed, that library alone fails to load and the error
-  names the file.
-- **`@library`** carrying only `id`, `version`, `file_watcher`.
+- **`haybale.toml`** inside the package, declaring at least `name`, `id`,
+  `version` and `label`. Missing or malformed, that library alone fails to
+  load and the error names the file.
+- **`@library`** carrying only `id`, `file_watcher`.
 - **For PyPI publishing**: a valid PyPI package (Trusted Publisher recommended).
 - **For marketstall publishing**: a valid `marketstall.toml`.
 
@@ -400,7 +404,7 @@ the codebase. Pulled in live, so it cannot drift:
 
 | Concept | Where |
 | --- | --- |
-| `@library(id=…, version=…, file_watcher=True)` | decoration |
+| `@library(id=…, file_watcher=True)` | decoration |
 | `BaseLibrary` subclass with both required hooks | `class Library(BaseLibrary)` |
 | One `add_folder_to_registry` call per category | nine calls |
 | State scanned before farmhands and editors | comment in `register_components` |
@@ -414,8 +418,8 @@ the codebase. Pulled in live, so it cannot drift:
 ### Authoring checklist
 
 - [ ] Distribution `haybale-<name>` (hyphen); module `haybale_<name>` (underscore)
-- [ ] `haybale.toml` inside the package with `name`, `id`, `label`
-- [ ] `@library(id='…')` — parens always; only `id` / `version` / `file_watcher`
+- [ ] `haybale.toml` inside the package with `name`, `id`, `version`, `label`
+- [ ] `@library(id='…')` — parens always; only `id` / `file_watcher`
 - [ ] `Library(BaseLibrary)` in `__init__.py` implementing `register_components` and `validate`
 - [ ] `__all__ = ['Library']`
 - [ ] `[project.entry-points."haywire.libraries"]` pointing at `<module>:Library`

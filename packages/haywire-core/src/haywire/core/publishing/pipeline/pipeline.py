@@ -38,7 +38,6 @@ from haywire.core.publishing.pipeline.steps import docs as steps_docs
 from haywire.core.publishing.pipeline.steps import framework as steps_framework
 from haywire.core.publishing.pipeline.steps import preconditions as steps_preconditions
 from haywire.core.publishing.pipeline.steps import push as steps_push
-from haywire.core.publishing.pipeline.steps import refresh as steps_refresh
 from haywire.core.publishing.pipeline.steps import rollback as steps_rollback
 from haywire.core.publishing.pipeline.steps import version as steps_version
 from haywire.core.publishing.pipeline.steps.preconditions import GIT_INSTALL_HINT  # noqa: F401
@@ -261,19 +260,3 @@ class SharePipeline:
     async def apply_push(self, on_output: Callable[[str], None] | None = None) -> PushResult:
         """Push the commit and tag to ``origin``, for all callers."""
         return await steps_push.apply(self, on_output)
-
-    # ── Step 7: refresh the environment ──────────────────────────────────────
-
-    def apply_sync(self) -> tuple[bool, str | None]:
-        """``uv sync`` so the bumped versions reach installed metadata.
-
-        Call AFTER :meth:`apply_push`, and before reloading any bumped library:
-        the reload re-runs ``@library(...)`` and reads back the very metadata
-        this rewrites, so a reload that runs first picks up the pre-bump
-        version. See :mod:`haywire.core.publishing.pipeline.steps.refresh` for
-        why the step sits after the push rather than beside the bump.
-
-        On the pipeline rather than in the wizard so the CLI (``haywire share
-        --yes``) gets it too. Never raises.
-        """
-        return steps_refresh.apply(self)

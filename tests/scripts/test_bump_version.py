@@ -190,6 +190,109 @@ def test_apply_bump_writes_files_and_returns_diff(tmp_path: Path) -> None:
 
 
 @pytest.mark.unit
+def test_rewrite_haybale_toml_bumps_top_level_version() -> None:
+    src = 'name = "alpha"\nid = "alpha"\nversion = "0.0.1"\nlabel = "Alpha"\n'
+
+    new_text, edits = bump_version.rewrite_haybale_toml(src, "0.0.2")
+
+    assert 'version = "0.0.2"' in new_text
+    assert 'version = "0.0.1"' not in new_text
+    assert any("version" in e for e in edits)
+
+
+@pytest.mark.unit
+def test_rewrite_haybale_toml_idempotent_when_target_matches_current() -> None:
+    src = 'name = "alpha"\nid = "alpha"\nversion = "0.0.2"\n'
+
+    new_text, edits = bump_version.rewrite_haybale_toml(src, "0.0.2")
+
+    assert new_text == src
+    assert edits == []
+
+
+@pytest.mark.unit
+def test_rewrite_haybale_toml_raises_when_no_version_line() -> None:
+    src = 'name = "alpha"\nid = "alpha"\n'
+    with pytest.raises(ValueError, match="could not find"):
+        bump_version.rewrite_haybale_toml(src, "0.0.1")
+
+
+@pytest.mark.unit
+def test_find_haybale_toml_finds_flat_layout(tmp_path: Path) -> None:
+    pkg_dir = tmp_path / "alpha"
+    module_dir = pkg_dir / "alpha_pkg"
+    module_dir.mkdir(parents=True)
+    (module_dir / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
+
+    found = bump_version.find_haybale_toml(pkg_dir)
+
+    assert found == module_dir / "haybale.toml"
+
+
+@pytest.mark.unit
+def test_find_haybale_toml_finds_src_layout(tmp_path: Path) -> None:
+    pkg_dir = tmp_path / "alpha"
+    module_dir = pkg_dir / "src" / "alpha_pkg"
+    module_dir.mkdir(parents=True)
+    (module_dir / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
+
+    found = bump_version.find_haybale_toml(pkg_dir)
+
+    assert found == module_dir / "haybale.toml"
+
+
+@pytest.mark.unit
+def test_find_haybale_toml_returns_none_when_absent(tmp_path: Path) -> None:
+    pkg_dir = tmp_path / "alpha"
+    (pkg_dir / "alpha_pkg").mkdir(parents=True)
+
+    assert bump_version.find_haybale_toml(pkg_dir) is None
+
+
+@pytest.mark.unit
+def test_find_haybale_toml_finds_nested_builtin_special_case(tmp_path: Path) -> None:
+    pkg_dir = tmp_path / "haywire-core"
+    builtin_dir = pkg_dir / "src" / "haywire" / "barn" / "builtin"
+    builtin_dir.mkdir(parents=True)
+    (builtin_dir / "haybale.toml").write_text('id = "builtin"\nversion = "0.0.1"\n')
+
+    found = bump_version.find_haybale_toml(pkg_dir)
+
+    assert found == builtin_dir / "haybale.toml"
+
+
+@pytest.mark.unit
+def test_apply_bump_also_syncs_haybale_toml_when_present(tmp_path: Path) -> None:
+    root = tmp_path / "pyproject.toml"
+    root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())
+
+    alpha_dir = tmp_path / "subdir-a/alpha"
+    alpha_module = alpha_dir / "alpha_pkg"
+    alpha_module.mkdir(parents=True)
+    (alpha_dir / "pyproject.toml").write_text('[project]\nname = "alpha-pkg"\nversion = "0.0.1"\n')
+    (alpha_module / "haybale.toml").write_text('id = "alpha"\nversion = "0.0.1"\n')
+
+    beta_dir = tmp_path / "subdir-a/beta"
+    beta_dir.mkdir(parents=True)
+    (beta_dir / "pyproject.toml").write_text('[project]\nname = "beta-pkg"\nversion = "0.0.1"\n')
+
+    delta_dir = tmp_path / "subdir-a/delta"
+    delta_dir.mkdir(parents=True)
+    (delta_dir / "pyproject.toml").write_text('[project]\nname = "delta-pkg"\nversion = "0.0.1"\n')
+
+    gamma_dir = tmp_path / "subdir-b/gamma"
+    gamma_dir.mkdir(parents=True)
+    (gamma_dir / "pyproject.toml").write_text('[project]\nname = "gamma-pkg"\nversion = "0.0.1"\n')
+
+    diff_text, edited_count = bump_version.apply_bump(root, new_version="0.0.2", dry_run=False)
+
+    # 4 pyproject.toml + 1 haybale.toml (only alpha has one).
+    assert edited_count == 5
+    assert 'version = "0.0.2"' in (alpha_module / "haybale.toml").read_text()
+    assert "alpha_pkg/haybale.toml" in diff_text
+
+
+@pytest.mark.unit
 def test_apply_bump_dry_run_does_not_write(tmp_path: Path) -> None:
     root = tmp_path / "pyproject.toml"
     root.write_text((FIXTURE_DIR / "sample_root_pyproject.toml").read_text())

@@ -1,4 +1,3 @@
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.farmhand import FarmhandRegistry
@@ -12,7 +11,6 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 # --8<-- [start:marketplace_library]
 @library(
     id="marketplace",
-    version=_pkg_version("haybale-marketplace"),
     file_watcher=True,
 )
 class Library(BaseLibrary):

@@ -4,10 +4,11 @@
 so the wheel is a well-formed package — PyPI, ``uv`` and ``pip`` read them, and
 Haywire does not — so they are *projected* out of it rather than authored twice.
 
-``pyproject.toml`` keeps exactly one canonical field of its own,
-``[project] dependencies``, plus the packaging machinery no other file can own
-(``build-system``, ``entry-points``, ``[tool.hatch]``). None of that is touched
-here.
+``pyproject.toml`` keeps two canonical fields of its own — ``[project]
+dependencies`` and ``[project] version`` (the release machinery's; its
+``haybale.toml`` copy is synced *from* here, not read into it) — plus the
+packaging machinery no other file can own (``build-system``, ``entry-points``,
+``[tool.hatch]``). None of that is touched here.
 """
 
 from __future__ import annotations

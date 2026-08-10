@@ -143,6 +143,10 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
 def _generate_library_pyproject(name: str, module_name: str, dev_repo: str | None = None) -> str:
     """Generate the local haybale library's pyproject.toml content.
 
+    Commented so an author can tell what's safe to hand-edit from what a
+    publish regenerates — see docs/reference/files/pyproject-toml.md for the
+    full field-by-field breakdown.
+
     Args:
         name: Project name.
         module_name: Python module name (e.g. haybale_my_project).
@@ -157,15 +161,25 @@ def _generate_library_pyproject(name: str, module_name: str, dev_repo: str | Non
 haywire-core = {{ path = "{dev_repo}/packages/haywire-core", editable = true }}
 '''
 
-    return f'''[project]
-name = "{lib_name}"
+    return f'''# Full field reference: docs/reference/files/pyproject-toml.md
+[project]
+# ── generated from haybale.toml at publish; hand-edits are reported as drift ─
+name = "{lib_name}"  # from haybale.name
+description = "Local library for {name} project"  # from haybale.description
+keywords = ["experimental", "project-local"]  # from haybale.tags
+
+# CANON, but owned by the release machinery — synced to haybale.toml
 version = "0.0.1"
-description = "Local library for {name} project"
+
+# ── authored here ────────────────────────────────────────────────────────────
 requires-python = ">=3.12"
 license = {{text = "MIT"}}
 
+# CANON — pip requirements. Add third-party packages and sibling haybales here.
 dependencies = ["haywire-core{pin}"]
 
+# The key is the entry-point name (unique within the group; need not match the
+# library id). The value is <module>:<class>.
 [project.entry-points."haywire.libraries"]
 {name} = "{module_name}:Library"
 
@@ -173,9 +187,70 @@ dependencies = ["haywire-core{pin}"]
 requires = ["hatchling"]
 build-backend = "hatchling.build"
 
+# Declares the package DIRECTORY, so everything not VCS-ignored inside it
+# reaches the wheel, including haybale.toml — do not add include/exclude here.
 [tool.hatch.build.targets.wheel]
 packages = ["{module_name}"]
 {sources_section}'''
+
+
+def _generate_haybale_toml(name: str, label: str) -> str:
+    """Generate the local haybale library's `haybale.toml` content.
+
+    Every field the file may declare, commented — see
+    docs/reference/files/haybale-toml.md for the full field table. `version`
+    is seeded to match `_generate_library_pyproject()`'s hardcoded `"0.0.1"` —
+    the two files must agree from the first write, since nothing else
+    reconciles them until the author's first version bump.
+    """
+    lib_base = _lib_basename(name)
+    return f'''# Library metadata. Canon for everything descriptive about this haybale; ships
+# in the wheel beside __init__.py and is read from disk at runtime. Full field
+# reference: docs/reference/files/haybale-toml.md
+
+# ── identity — immutable ──────────────────────────────────────────────────
+name = "haybale-{lib_base}"  # pip distribution name
+id = "{lib_base}"  # prefixes every component's registry key, e.g. {lib_base}:node:Add
+
+# ── written by scripts/bump_version.py / the share wizard, not by hand ──────
+version = "0.0.1"  # PEP 440, no "v" — pyproject.toml is canon, this is the synced copy
+
+# ── display ───────────────────────────────────────────────────────────────
+label = "{label}"  # human display name
+description = "Local library for {name} project"  # one line
+tags = ["experimental", "project-local"]  # filter tags in the library browser
+
+# ── behaviour ─────────────────────────────────────────────────────────────
+# os = ["macos", "linux"]  # macos/linux/windows; empty/absent = every platform
+# on_reload = "none"  # none (default) / refresh (reload tab) / restart (restart studio)
+
+# Sibling haybales this library subscribes to, as MODULE names (not
+# distribution names). Required for hot-reload scope tracking.
+linked_libraries = []
+
+# ── declared paths, relative to the project root ────────────────────────────
+# examples_path = "examples/"
+# tests_path = "tests/"
+
+# One supplementary human-readable page: a bare filename in this directory.
+# notes = "NOTES.md"
+
+# ── absolute URLs, used verbatim ─────────────────────────────────────────────
+# homepage_url = "https://example.com"
+# documentation_url = "https://example.com/docs/"
+# issues_url = "https://example.com/issues"
+
+# Repeatable; url is optional. Written by the studio's library overview edit modal.
+# [[authors]]
+# name = "Your Name"
+# url = "https://your.site"
+
+# Omitted unless the library is being retired — hand-edited, no edit-modal field.
+# [deprecated]
+# since = "0.1.0"
+# reason = "Superseded by haybale-successor."
+# successor = "haybale-successor"
+'''
 
 
 _README_MARKER_START = "<!-- marketstall:share-url:start -->"
@@ -354,7 +429,6 @@ Add your custom components in the corresponding folders:
 - editors/    — custom UI editors
 """
 
-from importlib.metadata import version as _pkg_version
 from pathlib import Path
 
 from haywire.core.library.base import BaseLibrary
@@ -373,15 +447,7 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    label='{label}',
     id='{lib_base}',
-    version=_pkg_version('haybale-{lib_base}'),
-    description='Local library for {name} project',
-    url='',
-    author='',
-    author_url='',
-    dependencies=[],
-    tags=['experimental', 'project-local'],
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -624,6 +690,7 @@ def init_project(name: str, auto_sync: bool = True, dev_repo: str | None = None)
     )
 
     (pkg_dir / "__init__.py").write_text(_generate_library_init(name, label))
+    (pkg_dir / "haybale.toml").write_text(_generate_haybale_toml(name, label))
 
     # README.md at repo root (with marketstall share-url marker pair)
     (project_dir / "README.md").write_text(_generate_root_readme(name, label))

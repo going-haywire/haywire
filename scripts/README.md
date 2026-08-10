@@ -24,6 +24,10 @@ uv run python scripts/bump_version.py 0.0.2 --yes
 Reads `[tool.haywire.release]` in the workspace root `pyproject.toml` for the canonical
 package list. To add or remove a publishable package, edit that block — not the script.
 
+`pyproject.toml` is canon for `version`; any package that also carries a `haybale.toml`
+(the runtime-read copy `LibraryIdentity` loads) gets that file's `version` line synced
+too, so the two never disagree after a release.
+
 ## check_deps.py
 
 ```bash

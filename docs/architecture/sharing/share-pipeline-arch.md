@@ -21,7 +21,7 @@ Each step that can affect the working tree is split into a **check/plan** call (
 
 ## 2. The steps
 
-Nine step modules under `publishing/pipeline/steps/` — `preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`, `refresh.py`. `SharePipeline` delegates to each rather than implementing the logic inline.
+Eight step modules under `publishing/pipeline/steps/` — `preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`. `SharePipeline` delegates to each rather than implementing the logic inline.
 
 ```text
 1. Preconditions          check_preconditions() / require_preconditions()
@@ -31,7 +31,6 @@ Nine step modules under `publishing/pipeline/steps/` — `preconditions.py`, `de
 5. Regenerate docs        docs_command() → apply_docs()   [async, subprocess]
 6. Marketstall + commit   apply_marketstall() → plan_commit() → apply_commit()
 7. Push                   verify_push_allowed() → apply_push()   [async]
-8. Refresh                apply_sync()   [after the push; never blocks]
 ```
 
 ### 2.0 Steps are not 1:1 with UI screens
@@ -42,7 +41,7 @@ The Share flow renders **three** screens over nine step modules, because the use
 |---|---|
 | Preflight | `preconditions.py`, then `detect.py` + `framework.plan()` + `version.plan()` to prepare the next screen |
 | Review | `SharePipeline.apply_all()` over every `dependencies.py` applier, then `version.apply_bump()` |
-| Publish | `docs.py` → `commit.apply_marketstall()` → `push.verify_allowed()` → `commit.apply()` → `push.apply()` → `refresh.apply()` |
+| Publish | `docs.py` → `commit.apply_marketstall()` → `push.verify_allowed()` → `commit.apply()` → `push.apply()` → `ShareFlow._hot_swap_bumped_libraries()` |
 
 The engine keeps its finer-grained modules because each has its own reason to exist: `detect.py` is pure and shared with `haywire deps check`; `dependencies.py` owns every write to `[project] dependencies` (splitting one file's mutations across modules would spread one concern thin); `framework.py` only **plans**, because `plan_framework()` must read the author's actual prior declaration — when the framework write lived alongside the other dependency writes, "keep the current declaration" computed from a value another step had already rewritten.
 
@@ -129,20 +128,14 @@ Coverage gaps (missing docstrings, etc.) are read-only feedback and never fail t
 
 `apply_push()` pushes the commit and tag to `origin` via `git_remote_streaming()` (env-hardened — see §4). On failure it raises `PushError`, which carries the exact command to retry by hand; the step is safely retryable in place since nothing here mutates pipeline state.
 
-### 2.8 Step 8 — Refresh
+**The reload tail.** After a successful push, the flow (`ShareFlow._hot_swap_bumped_libraries`, `haybale-share`, not the pipeline itself — the pipeline has no live library system to reload) evicts and rescans every barn library the bump touched. `@library(...)` reads `version` out of `haybale.toml` fresh off disk at decoration time (step 4 already wrote the bumped value there — see §2.4 and `write_barn_versions`), so the rescan picks up the new version with no environment sync in between.
 
-`apply_sync()` runs `uv sync`, so the versions step 4 wrote reach the *installed* distribution metadata. Step 4 already re-ran `uv lock`, but the lockfile is not what a running process reads: a library declaring `version=_pkg_version("haybale-x")` calls `importlib.metadata.version`, which reads `site-packages/<dist>.dist-info/METADATA` — a static file written at install time, editable installs included. `uv lock` never touches it. Without this step the studio keeps reporting the pre-bump version at the exact moment the wizard displays a "published vX.Y.Z" success screen.
+**Why after the push rather than beside the bump.** Two reasons, both about the rollback boundary:
 
-**Why after the push rather than beside the bump it corrects.** Two reasons, and both are about the rollback boundary:
-
-- The bump sits *inside* that boundary. Syncing there would leave the environment on a version the tree no longer holds if a later step failed and reverted the manifests.
+- The bump sits *inside* that boundary. Reloading there would strand the registry on a version the tree no longer holds if a later step failed and reverted the manifests.
 - Evicting and re-importing libraries mid-flow strands the studio without them across the docs subprocess and the commit, for no benefit — nothing between the bump and the push reads the registry.
 
-**Order within the step is load-bearing.** The flow's registry reload (`ShareFlow._hot_swap_bumped_libraries`) re-runs each `@library(...)` decorator and reads back exactly the metadata `uv sync` rewrites, so a reload that runs first picks up the *pre-bump* version and silently accomplishes nothing. `tests/share_flow/test_refresh_tail.py` pins the ordering, because every way of getting it wrong still produces a successful publish and a panel that claims the reload worked.
-
-`refresh.py` owns the environment half only; the registry reload lives in `haybale-share`, which holds the live library system. The CLI (`haywire share --yes`) calls `apply_sync()` too and simply has no registry to reload.
-
-Never blocks — for a stronger reason than `refresh_lockfile`'s. By the time this runs the commit, tag and push have all landed, so the publish is already public and a failed sync cannot be a failed share. It returns `(refreshed, warning)`; the warning carries its own remedy (a manual `uv sync`) and surfaces on the Done screen.
+The CLI (`haywire share --yes`) has no live library system, so it skips the reload entirely; only the flow performs it. `tests/share_flow/test_refresh_tail.py` covers the tail's placement and failure posture.
 
 ## 3. The plan/apply split
 
@@ -157,7 +150,6 @@ Every step that can touch disk or the remote separates a read-only **check/plan*
 | 5 | `docs_command()` | `apply_docs()` |
 | 6 | `plan_commit()` | `apply_marketstall()`, `apply_commit()` |
 | 7 | `verify_push_allowed()` | `apply_push()` |
-| 8 | — (nothing to plan; runs only after a landed push) | `apply_sync()` |
 
 A failure past step 1 has **three** possible outcomes, and conflating them is how the UI once told users something false:
 
@@ -289,7 +281,7 @@ As with `deps check`, this describes what the command does and how it's meant to
 ## Key files
 
 - `packages/haywire-core/src/haywire/core/publishing/pipeline/pipeline.py` — `SharePipeline`, every step plus `apply_all()`.
-- `packages/haywire-core/src/haywire/core/publishing/pipeline/steps/` — one module per step (`preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`, `refresh.py`) that `SharePipeline` delegates to.
+- `packages/haywire-core/src/haywire/core/publishing/pipeline/steps/` — one module per step (`preconditions.py`, `detect.py`, `dependencies.py`, `framework.py`, `version.py`, `docs.py`, `commit.py`, `push.py`) that `SharePipeline` delegates to.
 - `packages/haywire-core/src/haywire/core/publishing/pipeline/errors.py` — `ShareError` and its subclasses.
 - `packages/haywire-core/src/haywire/core/publishing/pipeline/results.py` — the frozen result dataclasses each step returns.
 - `packages/haywire-core/src/haywire/core/publishing/manifest/reader.py` — manifest reading (`read_manifest`); `publishing/manifest/errors.py` — `ManifestReadError`/`InvalidOsDeclarationError`.

@@ -104,6 +104,11 @@ class TestProjectStructure:
             scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
         ).is_file()
 
+    def test_library_haybale_toml_exists(self, scaffold_project):
+        assert (
+            scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "haybale.toml"
+        ).is_file()
+
 
 class TestComponentFolders:
     """Verify that all 5 component folders are created with __init__.py."""
@@ -184,6 +189,34 @@ class TestLibraryPyproject:
             (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
         )
         assert data["project"]["version"] == "0.0.1"
+
+
+class TestLibraryHaybaleToml:
+    """Verify the generated library haybale.toml content."""
+
+    def _read(self, scaffold_project):
+        return toml.loads(
+            (
+                scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "haybale.toml"
+            ).read_text()
+        )
+
+    def test_id_matches_decorator(self, scaffold_project):
+        data = self._read(scaffold_project)
+        assert data["id"] == "test-project"
+
+    def test_name_matches_pyproject(self, scaffold_project):
+        data = self._read(scaffold_project)
+        assert data["name"] == "haybale-test-project"
+
+    def test_version_matches_pyproject(self, scaffold_project):
+        """The two files must agree from the first write — nothing else
+        reconciles them until the author's first version bump."""
+        pyproject = toml.loads(
+            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
+        )
+        data = self._read(scaffold_project)
+        assert data["version"] == pyproject["project"]["version"]
 
 
 class TestLibraryInit:

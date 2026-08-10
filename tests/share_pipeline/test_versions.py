@@ -11,7 +11,6 @@ from haywire.core.publishing.pipeline.versions import (
     next_version,
     plan_versions,
     read_barn_versions,
-    refresh_environment,
     refresh_lockfile,
     write_barn_versions,
 )
@@ -242,85 +241,6 @@ def test_refresh_lockfile_warns_but_never_raises_on_permission_error(
 
     monkeypatch.setattr(subprocess, "run", _boom)
     refreshed, warning = refresh_lockfile(repo_agreeing)
-    assert refreshed is False
-    assert warning is not None
-    assert "uv" in warning
-
-
-# ── refresh_environment ──────────────────────────────────────────────────────
-
-
-def test_refresh_environment_runs_uv_sync(repo_agreeing: Path, monkeypatch) -> None:
-    """`uv sync`, NOT `uv lock` — the lockfile is not what carries installed
-    metadata, and running the wrong one is the bug this function exists to fix."""
-    seen: list[list[str]] = []
-
-    def _ok(cmd, *_a, **_kw):
-        seen.append(list(cmd))
-        return subprocess.CompletedProcess(cmd, 0, "", "")
-
-    monkeypatch.setattr(subprocess, "run", _ok)
-    refreshed, warning = refresh_environment(repo_agreeing)
-    assert refreshed is True
-    assert warning is None
-    assert seen == [["uv", "sync"]]
-
-
-def test_refresh_environment_runs_without_a_lockfile(repo_agreeing: Path, monkeypatch) -> None:
-    """Unlike refresh_lockfile, absence of uv.lock is not a reason to skip: the
-    environment still needs the new metadata whether or not a lockfile exists."""
-    monkeypatch.setattr(
-        subprocess, "run", lambda cmd, *_a, **_kw: subprocess.CompletedProcess(cmd, 0, "", "")
-    )
-    refreshed, warning = refresh_environment(repo_agreeing)
-    assert refreshed is True
-    assert warning is None
-
-
-def test_refresh_environment_warns_but_never_raises(repo_agreeing: Path, monkeypatch) -> None:
-    """By the time this runs the publish is already public, so a failed sync is a
-    warning carrying its remedy — never an exception that fails the share."""
-
-    def _fail(cmd, *_a, **_kw):
-        return subprocess.CompletedProcess(cmd, 1, "", "resolution impossible")
-
-    monkeypatch.setattr(subprocess, "run", _fail)
-    refreshed, warning = refresh_environment(repo_agreeing)
-    assert refreshed is False
-    assert warning is not None
-    assert "uv sync" in warning
-    assert "resolution impossible" in warning
-
-
-def test_refresh_environment_warns_when_uv_not_found(repo_agreeing: Path, monkeypatch) -> None:
-    def _boom(*_a, **_kw):
-        raise FileNotFoundError("uv")
-
-    monkeypatch.setattr(subprocess, "run", _boom)
-    refreshed, warning = refresh_environment(repo_agreeing)
-    assert refreshed is False
-    assert warning == "uv not found on PATH — run `uv sync` to refresh installed versions."
-
-
-def test_refresh_environment_warns_on_timeout(repo_agreeing: Path, monkeypatch) -> None:
-    def _boom(*_a, **_kw):
-        raise subprocess.TimeoutExpired(cmd="uv sync", timeout=300.0)
-
-    monkeypatch.setattr(subprocess, "run", _boom)
-    refreshed, warning = refresh_environment(repo_agreeing, timeout=300.0)
-    assert refreshed is False
-    assert warning is not None
-    assert "timed out after 300s" in warning
-
-
-def test_refresh_environment_warns_but_never_raises_on_permission_error(
-    repo_agreeing: Path, monkeypatch
-) -> None:
-    def _boom(*_a, **_kw):
-        raise PermissionError("uv")
-
-    monkeypatch.setattr(subprocess, "run", _boom)
-    refreshed, warning = refresh_environment(repo_agreeing)
     assert refreshed is False
     assert warning is not None
     assert "uv" in warning

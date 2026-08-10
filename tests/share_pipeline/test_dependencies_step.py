@@ -31,7 +31,8 @@ def project(tmp_path: Path) -> Path:
         )
         (module / "__init__.py").write_text('@library(id="x")\nclass Library: pass\n')
         (module / "haybale.toml").write_text(
-            f'name = "{name}"\nid = "x"\nlabel = "X"\nlinked_libraries = ["haybale_core"]\n'
+            f'name = "{name}"\nid = "x"\nversion = "0.1.0"\nlabel = "X"\n'
+            'linked_libraries = ["haybale_core"]\n'
         )
     return repo
 

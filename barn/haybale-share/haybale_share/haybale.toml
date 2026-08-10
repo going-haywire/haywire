@@ -4,6 +4,7 @@
 
 name = "haybale-share"
 id = "share"
+version = "0.0.39"
 label = "Share"
 description = "Publish this project: dependencies, version, docs, commit, tag, push"
 tags = ["publishing"]

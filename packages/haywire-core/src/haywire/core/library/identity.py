@@ -65,8 +65,8 @@ class LibraryIdentity:
     """A library as loaded in this process.
 
     Populated by ``@library(...)``: ``id``, ``folder_path``, ``module_name`` and
-    ``file_watcher`` from the call itself, ``version`` from the installed
-    distribution, and the rest read out of ``haybale.toml``.
+    ``file_watcher`` from the call itself, the rest — including ``version`` —
+    read out of ``haybale.toml``.
 
     The descriptive fields below (``description``, ``url``, ``author``,
     ``author_url``, ``tags``) are **transitional**. The design has consumers read
