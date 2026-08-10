@@ -5,8 +5,7 @@ scope: Publishing a haybale library to PyPI — account setup, name claim, Trust
 see-also:
   - ./sharing-libraries.md
   - ./subscribing-to-marketplaces.md
-  - ../haybale/haybale-package-canon.md
-  - ../architecture/sharing/sharing-arch.md
+  - ../haybale/haybale-canon.md
   - ../reference/publish_releases.md
 ---
 
@@ -272,5 +271,5 @@ A library whose `__init__.py` carries the `@library(...)` decorator but whose wh
 
 - [sharing-libraries](./sharing-libraries.md) — the git-clone path and the full authoring flow
 - [subscribing-to-marketplaces](./subscribing-to-marketplaces.md) — the consumer's side of the feed you just deployed
-- [haybale-package canon](../haybale/haybale-package-canon.md) — required package layout
-- [sharing-arch](../architecture/sharing/sharing-arch.md) — why the flow is shaped this way
+- [haybale-canon](../haybale/haybale-canon.md) — required package layout
+- [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way) — why the flow is shaped this way

@@ -1,177 +1,257 @@
 ---
 status: draft
 doc_template: impl-spec
-scope: The haybale-marketplace plugin — the optional library installer/browser surface, its two-tier marketplace files, refresh pipeline, conflict resolution, drift detection, and the editors and states that drive them
+scope: The haybale-marketplace plugin — the catalog lifecycle from Add Source to install, what is cached where, conflict resolution, recovery, and the editors and states that drive them
 see-also:
   - marketplace-canon.md
-  - ../../architecture/sharing/sharing-arch.md
+  - ../../reference/files/marketplace-toml.md
+  - ../../reference/files/marketstall-toml.md
   - ../../architecture/library-system/library-system-arch.md
-  - ../../architecture/studio/studio-arch.md
-  - ../haybale-package-canon.md
-  - ../../guides/sharing-libraries.md
+  - ../haybale-canon.md
   - ../../guides/subscribing-to-marketplaces.md
-  - ../../reference/glossary.md
 ---
 
 # haybale-marketplace — Architecture
 
-This document describes *how* the library-management surface is built: the file layout it reads and writes, the pipeline that turns subscriptions into a usable catalog, the editors that drive that pipeline, and the boundary between this subsystem and the rest of haywire. For the *why* — the conceptual model behind these mechanics — see [sharing-arch](../../architecture/sharing/sharing-arch.md). For the author-facing view of the plugin (what it ships, how it self-registers, optionality), see [marketplace-canon](marketplace-canon.md).
+How the library-management surface is built: the pipeline that turns a pasted URL into an installable catalog, what lands on disk along the way, the editors that drive it, and how to recover when the result is wrong. Why it is shaped this way is [§8](#8-why-the-model-is-shaped-this-way). For what the plugin ships and how it self-registers, see [marketplace-canon](marketplace-canon.md).
 
-The library-management surface lives in its own optional haybale package, **`haybale-marketplace`** (`barn/haybale-marketplace/`), carved out of `haybale-studio` per [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md). The studio runs without it: if the package is absent, the left-slot library browser simply doesn't appear — no defensive code in `haybale-studio`. `haywire init` installs it by default.
+**File formats are documented once**, in [`marketplace.toml`](../../reference/files/marketplace-toml.md) and [`marketstall.toml`](../../reference/files/marketstall-toml.md). This page names the sections and says what moves them; it does not restate their fields.
+
+The surface lives in its own optional haybale package, **`haybale-marketplace`** (`barn/haybale-marketplace/`). The studio runs without it: if the package is absent, the left-slot library browser simply doesn't appear — no defensive code in `haybale-studio`. `haywire init` installs it by default.
 
 ## 1. Mental model
 
-The Library Manager is the `haybale-marketplace` plugin — a UI layer that self-registers its editors and states into the studio and aggregates three things behind its editors:
+**The Library Manager decides *which* libraries exist on this machine; the
+Library System decides *what they contribute* once they do.** The first is an
+optional UI plugin that shells out to `uv pip install`, the second is framework
+infrastructure that imports `Library` classes and fills the registries. They
+meet at exactly one point: after an install or uninstall, the Library Manager
+asks the Library System to rescan.
 
-- **uv / pip** — the package layer that installs Python distributions.
-- **The [Library System](../../architecture/library-system/library-system-arch.md)** — the framework infrastructure that loads `Library` classes once installed.
-- **The marketplace runtime** — the discovery layer that turns user-opt-in subscriptions into a browsable catalog of installable packages.
+So the Library Manager never discovers entry points, imports a module, or owns
+registry state — below that one call, everything is the Library System's job.
+Deleting the whole plugin costs you the UI and nothing else: the libraries
+already installed still load.
 
-Users see the **Library Browser** (ACTION slot, lists installed and available libraries) and the **Library Overview Editor** (EDIT slot, shows one library's identity / components / actions). The data behind both comes from two `marketplace.toml` files following a two-tier scheme.
+### Terms on this page
 
-The Library Manager is not the Library System. It does not discover entry points, load classes, or own registry state — it issues `uv pip install / uninstall` commands and asks the Library System to rescan. Below the wrapper, everything is the Library System's job.
+| Term | Is |
+| --- | --- |
+| **`haybale-marketplace`** | The optional haybale package (`barn/haybale-marketplace/`) holding everything on this page. The studio runs without it |
+| **Library Manager** | The subsystem as a whole — what this plugin *is*, informally. Not a class |
+| **`LibraryManager`** | The class owning the install / uninstall / enable / disable verbs. A plain class, not an `AppState` |
+| **Library Browser** | The ACTION-slot editor listing installed and available libraries, grouped REQUIRED / ENABLED / DISABLED / AVAILABLE |
+| **Library Overview Editor** | The EDIT-slot editor showing one library's identity, components and actions |
+| **Library Component Editor** | The CONTEXT-slot editor showing one component of one library |
+| **`MarketplaceState`** | The `AppState` owning catalog data — parse, refresh, resolve. The UI never calls the marketstall runtime directly |
+| **`LibraryManagerState`** | A thin `AppState` publishing the `LibraryManager` to other editors |
+| **Marketplace** | The aggregated catalog a user can install *from* — subscriptions resolved into rows |
+| **Marketstall** | One author's published feed, the unit a user subscribes to |
+| **Library System** | Framework infrastructure — **not part of this plugin**. `LibraryRegistry`, `LibraryDiscovery`, `LibraryIdentity`, `FileWatcher` |
+| **`LibraryRegistry`** | The Library System's registry of loaded libraries. Owns enable/disable **persistence**; the plugin calls it and does not duplicate it |
 
-## 2. The two-tier marketplace
+The plugin aggregates three layers behind its editors: **uv / pip** installs
+distributions, the
+**[Library System](../../architecture/library-system/library-system-arch.md)**
+loads them, and the **marketplace runtime**
+(`haywire.core.marketstall`) turns subscriptions into a browsable catalog.
 
-Two files cooperate. Their concerns are deliberately separated. This section is the architecture-level summary of the file format.
+The data behind every view comes from two `marketplace.toml` files — a global
+one holding the user's subscriptions, and a per-project one holding the resolved
+catalog ([§2](#2-the-catalog-lifecycle)).
 
-### 2.1 Global marketplace
+## 2. The catalog lifecycle
 
-**Path:** `~/.haywire/db/haybale_marketplace/marketplace.toml`.
-**Owner:** the user (per-machine).
-**Purpose:** records what the user has opted into following, plus per-source overrides.
-
-| Section | Schema | What it expresses |
-|---|---|---|
-| `[[markets]]` | `url`, `ignores`, `doubles`, `blocked` | A subscription to a remote *marketplace* (an aggregator's catalog that references one or more marketstalls). |
-| `[[stalls]]` | `url`, `ignores`, `doubles`, `blocked` | A subscription to a remote *marketstall* (one author's publish file). |
-| `[[haybales]]` | full `Haybale` schema | A library the user has pasted in directly. Persisted under `~/.haywire/db/haybale_marketplace/stalls/<dist-name>.toml` and referenced via a `file://` `[[stalls]]` entry — there's no separate inline section. |
-
-`[[markets]]` and `[[stalls]]` are structurally identical (same fields); the distinction is **how the runtime parses the response body**. A `[[markets]]` body may itself reference more stalls (one level deep, see §3.1); a `[[stalls]]` body contains only `[[haybales]]`.
-
-### 2.2 Project marketplace
-
-**Path:** `<project>/.haywire/marketplace.toml`.
-**Owner:** the project (travels with the source tree).
-**Purpose:** records the project's own path-based libraries plus the latest refresh cache.
-
-| Section | Schema | What it expresses |
-|---|---|---|
-| `[[heaps]]` | `name`, `path`, optional metadata | Path-based libraries this project knows about. Written by `haywire init` (the project's own scaffolded library) and `haywire init --dev` (additionally, every dev-repo sibling library). |
-| `[[caches]]` | full `Haybale` with `via`, `last_seen`, `stale` extensions | The resolved catalog from the last refresh. Rebuilt on every refresh; consulted by the UI's "Available" filter. |
-
-The project marketplace **never** contains `[[markets]]` or `[[stalls]]` sections — those live only in the global file. Subscriptions are a user concern, not a project concern.
-
-### 2.3 The `Haybale` schema
-
-All `[[haybales]]` and `[[caches]]` entries (in both files, plus what marketplaces and marketstalls deliver remotely) share one schema. The runtime dataclass is `Haybale` (`haywire.core.marketstall.types`).
-
-| Field | Type | Required | Description |
-|---|---|---|---|
-| `name` | string | yes | Pip distribution name (e.g. `haybale-visiongraph`). |
-| `version` | string | yes | The version this entry advertises — what the author published. Not a floor; nothing resolves against it. Its only job is the update comparison. |
-| `require` | string | no | The framework requirement as a full PEP 508 token (`haywire-core>=0.0.31`), or the bare `haywire-core` when declared with no floor. Absent means undeclared. Derived from the library's own pyproject floor at write time, never authored separately. |
-| `label` | string | no | Human display name. |
-| `description` | string | no | One-line description. |
-| `author` | string | no | Author name(s). |
-| `source` | string | no | `"pypi"`, `"git"`, or `"local"`. Drives install routing and version-fetching strategy. |
-| `install_spec` | string | yes | Passed verbatim to `uv pip install`. |
-| `tags` | list[str] | no | Filter tags. |
-| `os` | list[str] | no | Declared compatible operating systems (`macos`, `linux`, `windows`). Empty = compatible everywhere; non-empty values not in this set are rejected at `haywire share` time. |
-| `dependencies` | list[str] | no | Distribution names of other haybale libraries this one needs. |
-| `source_url` | string | no | URL to the repo or source location. Surfaced as a clickable link in the install-safety modal. |
-| `docs_url` | string | no | URL or local path to the docs directory. |
-| `examples_url` | string | no | Raw URL to the library's `examples/` folder. Emitted only when that folder holds at least one `.haywire` graph, and only for GitHub/GitLab remotes. |
-| `tests_url` | string | no | Raw URL to the library's `tests/` folder, under the same conditions as `examples_url`. |
-
-`install_spec`, `docs_url`, `examples_url`, and `tests_url` are the four **ref-bearing** URLs. When an entry is produced through `SharePipeline`, all four pin to the release tag `v<version>` created by that run; a standalone `write_marketstall()` call with no `tag` leaves `install_spec` ref-less and the other three on the current branch. See [share-pipeline-arch §5](../../architecture/sharing/share-pipeline-arch.md#5-the-default-branch-publishing-rule).
-
-Cache-only fields (project marketplace `[[caches]]` only, never authored upstream):
-
-| Field | Description |
-|---|---|
-| `via` | URL of the subscription that resolved this entry during refresh. Drives the Library Browser's provenance label and the Block button's three-case resolver. |
-| `last_seen` | ISO timestamp; set when the entry first goes stale. |
-| `stale` | True when the most recent refresh did not re-resolve this name. |
-
-## 3. The refresh pipeline
-
-Refresh is the only operation that talks to the network. It is **explicit** — triggered by the user via the Library Browser's Refresh button, or automatically once after a successful Add Source. It is never timer-driven.
+Everything from a pasted URL to an installed library. Five sections in two
+files carry the state; each hop below names which one it writes.
 
 ```text
-[Global marketplace]                          [Project marketplace]
-       │                                              ▲
-       ├── parse                                      │
-       │                                              │
-       ├── for each [[markets]] subscription:         │
-       │     fetch → parse → collect haybales         │
-       │     and one-level-deep stall references      │
-       │                                              │
-       ├── for each [[stalls]] subscription           │
-       │     (direct + discovered):                   │
-       │     fetch → parse → collect haybales         │
-       │                                              │
-       ├── per-subscription filters:                  │
-       │     apply blocked (hide rejected names)      │
-       │     apply ignores (skip conflicted names)    │
-       │     stamp via = subscription URL on each     │
-       │                                              │
-       ├── combined candidate list                    │
-       │                                              │
-       ├── cross-list filters:                        │
-       │     apply heaps shadow → project heaps win   │
-       │     apply first-come-first-served → dedup    │
-       │                                              │
-       ├── stale marking:                             │
-       │     diff against previous project cache      │
-       │     entries dropped from sources but         │
-       │     present in the prior cache → stale=True  │
-       │     (blocked names are filtered out first    │
-       │     so they fully disappear, not survive     │
-       │     as stale)                                │
-       │                                              │
-       └── serialize and write ──────────────────────►│
-                                                      │
-                                                      ▼
-                                            project [[caches]] section
+  user pastes a URL
+        │
+        ▼
+  ┌───────────────┐  classify the body's shape
+  │  Add Source   │  ─────────────────────────────────────────────┐
+  └───────┬───────┘                                               │
+          │ writes a subscription                                 │
+          ▼                                                       │
+  ~/.haywire/db/haybale_marketplace/marketplace.toml              │
+      [[markets]]  an aggregator's catalog                        │
+      [[stalls]]   one author's feed                              │
+      [[haybales]] hand-written inline entries                    │
+          │                                                       │
+          │ auto-refresh once                                     │
+          ▼                                                       │
+  ┌───────────────┐  the ONLY network operation                   │
+  │   refresh()   │                                               │
+  └───────┬───────┘                                               │
+          │  fetch each subscription ──▶ ~/.haywire/cache/<hash>.toml
+          │  parse markets one level deep (their [[stalls]] only)
+          │  apply blocked / ignores per subscription
+          │  apply heaps shadow, then first-come-first-served
+          │  diff against the previous cache to mark stale
+          ▼
+  <project>/.haywire/marketplace.toml
+      [[heaps]]   path-based project libraries (written by haywire init)
+      [[caches]]  the resolved catalog — rebuilt in full every refresh
+          │
+          │ the browser's AVAILABLE section reads this; no network
+          ▼
+  ┌───────────────┐  uv pip install <install_spec>
+  │    Install    │  → invalidate caches → Library System rescan
+  └───────────────┘
 ```
 
-The pipeline owns no install logic. It produces a catalog; installation runs separately when the user clicks Install on a catalog entry.
+### 2.1 The five sections
 
-### 3.1 One-level-deep resolution
+| Section | File | Written by | What it expresses |
+| --- | --- | --- | --- |
+| `[[markets]]` | global | Add Source | A subscription to an aggregator that references other stalls |
+| `[[stalls]]` | global | Add Source | A subscription to one author's marketstall |
+| `[[haybales]]` | global | hand-written | Libraries declared inline, without a subscription |
+| `[[heaps]]` | project | `haywire init` | Path-based libraries this project knows about |
+| `[[caches]]` | project | refresh | The resolved catalog from the last refresh |
 
-When a remote `[[markets]]` body lists its *own* `[[markets]]` subscriptions, those are ignored. Only the remote's `[[stalls]]` references and inline `[[haybales]]` are consumed. This bounds the resolution to a single hop and keeps the trust model legible — see [sharing-arch §Bounded resolution](../../architecture/sharing/sharing-arch.md#bounded-resolution).
+Subscriptions are a user concern, not a project concern: `[[markets]]` and
+`[[stalls]]` never appear in the project file, and `[[heaps]]`/`[[caches]]`
+never in the global one. Sections in the wrong file are dropped at parse.
 
-### 3.2 HTTP cache and fallback
+`[[markets]]` and `[[stalls]]` are structurally identical. The difference is
+only how the fetched body is parsed — a market body may reference further
+stalls; a stall body contains `[[haybales]]` and nothing else.
 
-Every fetched URL is cached on disk at `~/.haywire/db/haybale_marketplace/cache/<url-hash>.toml`. If a refresh fetch fails (network error, 404), the runtime falls back to the cached body. If neither succeeds, the URL is recorded in the `RefreshReport.unavailable_urls` list. Cache invalidation happens only on the next successful fetch — there is no TTL.
+Field-by-field definitions: [`marketplace.toml`](../../reference/files/marketplace-toml.md).
 
-### 3.3 Conflict resolution
+### 2.2 Add Source — what is written where
 
-Conflicts come from two sources providing the same `name`. The runtime applies four filters; the per-subscription ones (`blocked`, `ignores`) run while building each candidate batch, the cross-list ones (heaps shadow, first-come-first-served) run on the combined list:
+The dialog takes one field and accepts a blob URL, a raw URL, a plain TOML URL,
+or a TOML block pasted directly. The runtime fetches the body, inspects its
+shape, and writes the matching subscription:
 
-| Filter | What it does |
-|---|---|
-| `blocked` | Each subscription has a `blocked` array of names the user actively rejected via the install-safety modal (§7.4 of the spec). Blocked haybales are fully hidden — they're filtered both from the candidate list AND from the previous cache's stale-rescue pool, so they don't survive as stale=True entries. Only un-blockable by editing the marketplace file by hand. |
-| `ignores` | Each subscription has an `ignores` array of names to skip from that source. Populated by the conflict-resolution prompt at Add Source time. Unlike `blocked`, an ignored haybale may still appear from a different source. |
-| Heaps shadow | Any candidate whose `name` matches a project `[[heaps]]` entry is dropped — local heaps always win. |
-| First-come-first-served | After the above, if any name still appears twice (e.g. from a user hand-edit), the runtime deterministically keeps the first occurrence. Safety net only — every conflict that flows through the UI is supposed to land in `ignores` or `blocked`. |
+| Body contains | Written as |
+| --- | --- |
+| `[[markets]]` or `[[stalls]]` | a `[[markets]]` subscription |
+| `[[haybales]]` only | a `[[stalls]]` subscription |
+| neither | rejected — the body is not a marketplace or a marketstall |
 
-The user-prompt path: when Add Source fetches the new URL and detects a name collision against the existing resolved state, the user is shown one row per conflict and asked which source to keep. The losing side's subscription gets the name added to its `ignores` array. Subsequent refreshes honor the choice without re-asking.
+A **pasted block** is saved to
+`~/.haywire/db/haybale_marketplace/stalls/<dist-name>.toml` and subscribed via a
+`file://` URL, so it follows exactly the same refresh path as a remote feed
+rather than needing a second code path. The file is written only when the user
+commits — resolving a source the user then abandons leaves nothing on disk.
 
-### 3.4 The refresh report
+Both writers are idempotent on URL match, so re-subscribing an existing source
+is a no-op rather than a duplicate entry.
 
-Each refresh produces a `RefreshReport` cached on `MarketplaceState.last_report`:
+### 2.3 Refresh — the only network operation
 
-| Field | Type | Meaning |
-|---|---|---|
-| `sources_fetched` | int | Subscriptions successfully read from the network this refresh. |
-| `sources_from_cache` | int | Subscriptions served from the disk cache (network unreachable, prior body re-used). |
-| `sources_unavailable` | int | Subscriptions that failed to fetch AND had no cached fallback. |
-| `unavailable_urls` | list[str] | The specific URLs in the previous count. Drives the yellow banner. |
-| `haybales_resolved` | int | Non-stale entries in the final cache. |
-| `new_stale` | int | Entries that became stale on this refresh (previously fresh). |
-| `updates_available` | int | Installed haybales whose cache `version` exceeds the installed version. Surfaced in the post-refresh toast. |
+Explicit by design: the Refresh button, or once automatically after a successful
+Add Source. Never timer-driven.
+
+The pipeline splits into a **fetch** phase and a pure **resolve** phase, so a
+caller can fetch once and resolve as often as it likes — which is what lets the
+UI preview "3 newly stale, 2 updates available" before committing the write.
+
+1. **Fetch** every `[[markets]]` and `[[stalls]]` subscription.
+2. **Parse markets one level deep** — their `[[stalls]]` references and inline
+   `[[haybales]]` are consumed; any `[[markets]]` *inside* a fetched market body
+   are ignored. This bounds resolution to a single hop, so a subscription cannot
+   silently enrol the user in an unbounded graph of feeds.
+3. **Fetch the discovered stalls.**
+4. **Filter and resolve** ([§2.5](#25-conflict-resolution)).
+5. **Mark stale** by diffing against the previous cache.
+6. **Write** the project's `[[caches]]`, then GC orphaned cache files.
+
+The pipeline owns no install logic. It produces a catalog; installation runs
+separately when the user clicks Install.
+
+### 2.4 What lands on disk
+
+| Path | Holds | Written by |
+| --- | --- | --- |
+| `~/.haywire/db/haybale_marketplace/marketplace.toml` | Subscriptions | Add Source; created with the official feed on first run |
+| `~/.haywire/db/haybale_marketplace/stalls/<dist>.toml` | Pasted-in blocks | Add Source |
+| `~/.haywire/cache/<url-hash>.toml` | Raw fetched bodies | Every successful fetch |
+| `~/.haywire/cache/docs/<library>/` | Fetched doc bodies | Overview doc fetches |
+| `<project>/.haywire/marketplace.toml` | `[[heaps]]` + `[[caches]]` | `haywire init`; refresh |
+
+**The HTTP cache has no TTL.** An entry is valid until a successful fetch
+overwrites it. When a fetch fails, the cached body is served instead and the
+refresh reports `CACHE_FALLBACK`; only a failure with no cached body counts as
+unavailable. At the end of a refresh, cache files whose URL is no longer in any
+subscription are deleted.
+
+Note the cache is **not** under the marketplace's own storage directory — it is
+`~/.haywire/cache/`, shared infrastructure, and can be deleted wholesale without
+touching subscriptions.
+
+### 2.5 Conflict resolution
+
+Two sources offering the same `name`. Four filters, in the order they run — the
+first two per subscription while building each batch, the last two across the
+combined list:
+
+| Filter | Effect |
+| --- | --- |
+| `blocked` | Names the user rejected in the install-safety modal. Filtered from the candidate list **and** from the previous cache's stale-rescue pool, so they disappear entirely rather than surviving as stale rows. Un-blockable only by editing the file |
+| `ignores` | Names to skip from *this* source. Written by the conflict prompt at Add Source time; the library may still appear from a different source |
+| Heaps shadow | A candidate whose `name` matches a project `[[heaps]]` entry is dropped — local always wins |
+| First-come-first-served | Any name still appearing twice keeps its first occurrence. A safety net for hand-edits; every conflict routed through the UI lands in `ignores` or `blocked` |
+
+When Add Source detects a collision against already-resolved state, the user
+picks which source wins; the loser's subscription gains the name in its
+`ignores`. Later refreshes honour the choice without re-asking.
+
+### 2.6 The refresh report
+
+Cached on `MarketplaceState.last_report`.
+
+| Field | Meaning |
+| --- | --- |
+| `sources_fetched` | Read from the network this refresh |
+| `sources_from_cache` | Served from the disk cache — network unreachable, prior body reused |
+| `sources_unavailable` | Failed to fetch **and** had no cached fallback |
+| `unavailable_urls` | The URLs behind that count. Drives the yellow banner |
+| `haybales_resolved` | Non-stale entries in the final cache |
+| `new_stale` | Entries that became stale on this refresh |
+| `updates_available` | Installed haybales whose cache `version` exceeds the installed one |
+
+The first three always partition the active subscription set.
+
+## 3. Recovering a botched database
+
+Every file here is plain TOML and safe to inspect. **No installed package is
+ever lost by deleting any of them** — installation is pip state, not marketplace
+state, so the worst case is a rebuild plus re-subscribing.
+
+### Symptoms
+
+| Symptom | Cause | Fix |
+| --- | --- | --- |
+| Red banner; the catalog refuses to render | The global `marketplace.toml` is malformed | Edit File — the parse error names the file. The browser deliberately refuses to render a catalog it cannot trust |
+| Yellow banner, "N sources unavailable" | Fetch failed with no cached fallback | Check the URLs in the info modal. Refresh continues; cached sources still fill in |
+| A library will not go away | Its name is in a subscription's `blocked` or `ignores` | Remove it from that array in the global file. `blocked` hides it everywhere; `ignores` only from that source |
+| Rows marked "(stale)" that should be gone | The source stopped listing them | Trash icon on the row when the library is not installed, or clear `[[caches]]` |
+| The wrong library wins | A project `[[heaps]]` entry shadows the remote one, or first-come-first-served picked one | Check `[[heaps]]` first — local always wins |
+| A source serves old content | Its cached body is being reused | Delete `~/.haywire/cache/` to force a refetch |
+| A heap points nowhere | `path` is absolute and machine-specific | Fix or remove the `[[heaps]]` entry; these break when a project is cloned |
+
+### The reset ladder
+
+Smallest blast radius first. Stop as soon as it works.
+
+1. **Delete the project's `[[caches]]` section.** Rebuilt by the next refresh.
+   Costs one cycle of stale bookkeeping and nothing else.
+2. **Delete `~/.haywire/cache/`.** Forces every source to be refetched.
+   Subscriptions are untouched.
+3. **Delete `<project>/.haywire/marketplace.toml`.** Loses the project's
+   `[[heaps]]` too — re-run `haywire init --dev` to regenerate them.
+4. **Delete the global `marketplace.toml`.** Loses every subscription the user
+   added; it is recreated with the official feed on next start.
+
+A malformed `[[caches]]` section is already self-healing: the parser discards it
+and refetches rather than raising, because a strict parse would block the very
+refresh that would repair it. `[[heaps]]` stays strict — it is user-authored, so
+a malformed entry is a mistake worth surfacing rather than silently dropping.
 
 ## 4. State and ownership
 
@@ -192,14 +272,18 @@ The UI calls **`MarketplaceState`**, not `marketplace_runtime` directly. The sta
 
 ### 4.2 The editors and the manager state
 
-`haybale-marketplace` registers four editors (`barn/haybale-marketplace/haybale_marketplace/editors/`); the two primary ones are:
+`haybale-marketplace` registers three editors (`barn/haybale-marketplace/haybale_marketplace/editors/`):
 
 | Editor | Slot | Drives |
 |---|---|---|
-| **Library Browser** | left | Lists installed + available libraries. Filter toggles for REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar exposes Refresh, Add Source, Edit File. |
-| **Library Overview Editor** | main | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall actions. Reached by clicking a row in the Library Browser. |
+| **Library Browser** | `ACTION` | Lists installed + available libraries. Filter toggles for REQUIRED / ENABLED / DISABLED / AVAILABLE. Toolbar exposes Refresh, Add Source, Edit File. |
+| **Library Overview Editor** | `EDIT` | One library's identity, component breakdown, and Edit / Enable / Disable / Uninstall actions. Reached by clicking a row in the Library Browser. |
+| **Library Component Editor** | `CONTEXT` | One component of one library — import snippet, port-wiring hints. |
 
-The remaining two (`library_component_editor`, `library_marketplace_dialog`) handle per-component inspection and the Add-Source flow. The full editor/state inventory is in [marketplace-canon §What it ships](marketplace-canon.md#3-what-the-plugin-ships).
+The multi-step flows (add-source, install, refresh, uninstall) are **not**
+editors: they live in `editors/_*_flow/` subpackages and are driven by the
+editors above. The full editor/state inventory is in
+[marketplace-canon §What it ships](marketplace-canon.md#3-what-the-plugin-ships).
 
 `LibraryManager` (the orchestrator class in `barn/haybale-marketplace/haybale_marketplace/library_manager.py`) owns the install / uninstall / enable / disable / edit-identity verbs. It is a plain class — *not* an `AppState`. It is published to the other editors through a thin `LibraryManagerState(AppState)` holder (composition, not inheritance — see [ADR-0001 §Why composition](../../adr/0001-haybale-marketplace-carveout.md)), so consumers reach it via `ctx.app_data[LibraryManagerState].manager.X`. The state resolves the registry and workspace root from the ambient DI context in `on_enable()`.
 
@@ -214,7 +298,7 @@ The Browser groups libraries into four sections, computed at render time:
 | **REQUIRED** | Installed + enabled + some other installed haywire library declares it in its `haybale.toml` `linked_libraries`. The signal comes from `LibraryManager.get_installed_dependents(lib_id)` — the same source the Overview Editor's Disable / Uninstall gating uses. |
 | **ENABLED** | Installed + enabled + not in REQUIRED. |
 | **DISABLED** | Installed + not enabled. |
-| **AVAILABLE** | Anything in the project marketplace's `[[caches]]` OR `[[heaps]]` that isn't already installed. Heaps are surfaced here as `source="local"` entries so they're visible before the user installs them. Blocked haybales (per spec §7.4) never appear — they're filtered out at refresh time. |
+| **AVAILABLE** | Anything in the project marketplace's `[[caches]]` OR `[[heaps]]` that isn't already installed. Heaps are surfaced here as `source="local"` entries so they're visible before the user installs them. Blocked haybales never appear — they're filtered out at refresh time. |
 
 Stale entries in AVAILABLE render with a red dot + "(stale)" suffix + last-seen tooltip. If the package isn't installed, a trash icon allows removing it from the project cache.
 
@@ -243,7 +327,7 @@ User clicks Install in the Library Overview Editor
   └── UI refreshes: entry moves from AVAILABLE to ENABLED
 ```
 
-Uninstall is the inverse: `uv pip uninstall <dist_name>`, then rescan. The Overview Editor refuses Uninstall while any other installed library declares this one in its `@library` dependencies.
+Uninstall is the inverse: `uv pip uninstall <dist_name>`, then rescan. The Overview Editor refuses Uninstall while any other installed library declares this one in its `linked_libraries`.
 
 ### 5.1 InstallType detection
 
@@ -306,19 +390,62 @@ The Library Browser handles three classes of failure with three distinct visual 
 | **Sources unavailable** | `RefreshReport.unavailable_urls` non-empty | Yellow banner above the list using `--hw-warning`. Info button opens a modal listing the failed URLs. Refresh continues; cached fallbacks fill in where available. |
 | **Stale entries** | `Haybale.stale=True` on an AVAILABLE row | Red dot + "(stale)" sublabel suffix + tooltip showing `last_seen`. Trash icon if uninstalled. |
 
-## 8. Boundary — what the Library Manager is not
+## 8. Why the model is shaped this way
+
+The mechanics above follow from a few commitments. They are worth stating,
+because each one rules out an obvious-looking alternative.
+
+**Haywire aggregates; it does not host.** There is no server, no registry, no
+vetting, and no ranking. An author publishes by putting a file somewhere
+consumers can fetch it; a consumer subscribes by pointing at that URL. The
+official haywire feed travels the same path as everyone else's — there is no
+privileged route. The catalog is a *view* computed from one user's subscription
+list at refresh time, not a database: there is no canonical list of all haywire
+libraries anywhere.
+
+**Two tiers, because two different questions.** "Which feeds do I follow?" is an
+answer about the person; "what does this project need?" is an answer about the
+project. Mixing them leaks subscriptions into projects and dev-mode libraries
+across unrelated work, so the global and project files stay separate
+([§2.1](#21-the-five-sections)).
+
+**Refresh is pull-only.** Nothing polls on a timer, because that means network
+calls the user did not ask for and failures they cannot time. It is also the
+*only* network step: once the cache is written, browsing, inspecting and
+installing all work offline. A project that refreshed successfully once keeps
+working even when every feed it follows is down.
+
+**Resolution stops after one hop** ([§2.3](#23-refresh-the-only-network-operation)).
+Otherwise one subscription could transitively pull in arbitrarily many feeds,
+each able to add packages to your catalog, with no protocol-level limit on
+recursion. You trust who you follow — not everyone they follow.
+
+**Conflicts are resolved at intake, not at refresh.** Adding a source is a
+deliberate act where a question fits; refresh is maintenance a user runs to
+*avoid* surprises. Prompting there would punish keeping the catalog fresh
+([§2.5](#25-conflict-resolution)).
+
+**Soft signals inform; they do not act.** Unavailable feeds, stale rows and
+dependency drift are recorded and surfaced, never auto-resolved. A refresh that
+pruned stale entries would destroy information; a publish that hard-failed on
+drift would block authors at the wrong moment.
+
+### What the Library Manager is not
 
 - **Not a registry.** The class registries belong to the [Library System](../../architecture/library-system/library-system-arch.md). The Library Manager *triggers* a rescan; it does not own registry state.
 - **Not a publisher.** It consumes marketplace and marketstall files; producing one is `haywire share`'s job — see the [sharing-libraries guide](../../guides/sharing-libraries.md).
 - **Not a build tool.** It does not build wheels, run `uv build`, or run `uv publish`. Releases go through `/haywire-release` and CI — see [publish_releases](../../reference/publish_releases.md).
-- **Not a transitive dep resolver.** When a library's `Haybale.dependencies` lists other haybale packages, the Library Manager does not install them automatically. The user installs each library individually; uv handles the actual pip-level resolution.
-- **Not a curator.** No source is more authoritative than any other in the data. The official haywire feed is one feed among many — see [sharing-arch §The aggregator, not the publisher](../../architecture/sharing/sharing-arch.md#the-aggregator-not-the-publisher).
+- **Not a transitive dep resolver.** When a row's `linked_libraries` names other haybale packages, the Library Manager does not install them automatically. The user installs each library individually; uv handles the actual pip-level resolution.
+- **Not a curator.** No source is more authoritative than any other in the data. The official haywire feed is one feed among many.
+- **Not a trusted namespace.** Two authors may publish the same package name; the collision surfaces as a conflict for the user to settle. That is the price of letting anyone publish without permission.
+- **Not a verifier.** No signing, no checksums, no cryptographic trust chain. A consumer who wants assurance reads the source at the install URL before installing.
+- **Not a lockfile.** Reproducibility belongs to the project, through ordinary Python tooling. The catalog is a discovery layer, not a build system.
 
-## 9. Examples
+## 9. Worked example — subscribing to the official feed
 
-### 9.1 Subscribing to the official feed
-
-The user clicks **Add Source** in the Library Browser, pastes one URL — the single-field dialog accepts a blob URL, a raw URL, a plain TOML URL, or a TOML block pasted directly (spec §4.2). The runtime fetches the body, inspects its shape, and writes either a `[[markets]]` (aggregator catalog) or a `[[stalls]]` (single marketstall) entry to `~/.haywire/db/haybale_marketplace/marketplace.toml`. For the official feed:
+The user clicks **Add Source** and pastes one URL. The runtime fetches the body,
+sees `[[stalls]]` references, and writes a `[[markets]]` subscription to
+`~/.haywire/db/haybale_marketplace/marketplace.toml`:
 
 ```toml
 [[markets]]
@@ -328,64 +455,33 @@ doubles = []
 blocked = []
 ```
 
-Add Source then auto-refreshes. The runtime parses the aggregator's `[[stalls]]` references one level deep, fetches each stall (each contains exactly one `[[haybales]]` entry per spec §11), assembles the candidate list, applies the four-stage conflict resolution, and writes the project's `[[caches]]` section. The Library Browser's AVAILABLE section now lists every official haybale, each labeled "via maybites.github.io".
+Add Source then auto-refreshes. The runtime:
 
-### 9.2 A project-scaffolded library after `haywire init --dev`
+1. fetches that URL, caching the body at `~/.haywire/cache/<hash>.toml`;
+2. reads its `[[stalls]]` references **one level deep** and fetches each one,
+   caching those too;
+3. assembles the candidate list and applies the four filters;
+4. stamps `via` on each surviving row with the subscription that resolved it;
+5. writes the project's `[[caches]]`.
 
-Running `haywire init --dev my-project` creates `<my-project>/.haywire/marketplace.toml`:
+The Library Browser's AVAILABLE section now lists every official haybale. Each
+row carries a provenance label derived from `via`: **"via
+going-haywire.github.io"** for these, because they arrived through an
+aggregator, versus **"from github.com/alice"** for a stall the user subscribed
+to directly.
 
-```toml
-[[heaps]]
-name = "haybale-my-project"
-path = "/abs/path/to/my-project/barn/haybale-my-project"
-label = "My Project"
-description = "Local library for the my-project project"
+Nothing here touched the user's project source tree, and nothing is installed
+yet — the catalog is a list of what *could* be installed.
 
-[[heaps]]
-name = "haybale-core"
-path = "/abs/path/to/haywire-repo/barn/haybale-core"
-label = "Core"
-description = "Core library for Haywire node system..."
-
-# ...one [[heaps]] per dev-repo sibling library
-```
-
-The user's `~/.haywire/db/haybale_marketplace/marketplace.toml` is left untouched. The dev-repo libraries are scoped to this project only; opening a different project doesn't see them.
-
-### 9.3 What `haywire share` produces
-
-Running `haywire share` at a repo root with a `barn/` containing libraries writes `<repo-root>/marketstall.toml`, one `[[haybales]]` entry per library, in lockstep with the version bump for that run. Field meanings are in [§2.3](#23-the-haybale-schema):
-
-```toml
-# marketstall.toml — share this file's raw URL so others can subscribe
-# Run: haywire share   to update this file
-
-[[haybales]]
-name             = "haybale-my-lib"
-label            = "My Lib"
-version          = "0.1.0"
-require = "haywire-core>=0.0.31"
-description      = "..."
-author           = "Your Name"
-source           = "git"
-install_spec     = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
-tags             = []
-os               = []
-dependencies     = ["haybale-core"]
-source_url       = "https://github.com/you/repo"
-docs_url         = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
-examples_url     = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/examples/"
-tests_url        = ""
-```
-
-`examples_url` is populated here because that library ships `.haywire` graphs under `examples/`; `tests_url` is empty because it ships none under `tests/`.
-
-A consumer pastes the file's blob URL (e.g. `https://github.com/you/repo/blob/main/marketstall.toml`) into Add Source. The runtime recognizes the host, derives the raw URL, fetches the body, sees one `[[haybales]]` entry, and writes a `[[stalls]]` subscription to the user's global marketplace. The next refresh picks up the library.
+For a `haywire init --dev` project's `[[heaps]]`, and the shape of the
+marketstall being consumed, see
+[`marketplace.toml`](../../reference/files/marketplace-toml.md) and
+[`marketstall.toml`](../../reference/files/marketstall-toml.md).
 
 ## 10. Open questions
 
 - **Lazy library loading.** Every discovered library loads eagerly at startup (see [library-system §4.2](../../architecture/library-system/library-system-arch.md#42-module-resolution-cost)). Should the Library Browser surface a Defer-loading option for heavy libraries?
 - **Cross-feed dep resolution.** When a library's `dependencies` lists another haybale package not yet installed, should the Library Manager offer to install both? Currently the user installs each individually.
-- **Auto-refresh on a schedule.** Refresh is explicit by design — see [sharing-arch §The refresh cycle](../../architecture/sharing/sharing-arch.md#the-refresh-cycle) — but a "refresh on first open of the day" option may be worth exposing.
+- **Auto-refresh on a schedule.** Refresh is explicit by design ([§8](#8-why-the-model-is-shaped-this-way)) — but a "refresh on first open of the day" option may be worth exposing.
 
 > **Resolved:** the `haybale-marketplace` carve-out has landed. The Library Browser, Library Overview Editor, `MarketplaceState`, and `LibraryManager` now live in the standalone `barn/haybale-marketplace/` package — see [ADR-0001](../../adr/0001-haybale-marketplace-carveout.md) and [marketplace-canon](marketplace-canon.md).

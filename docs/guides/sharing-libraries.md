@@ -3,8 +3,7 @@ status: draft
 doc_template: guide
 scope: Authoring a haybale library and publishing it for others — from new import to a hosted marketstall consumers can subscribe to
 see-also:
-  - ../haybale/haybale-package-canon.md
-  - ../architecture/sharing/sharing-arch.md
+  - ../haybale/haybale-canon.md
   - ../haybale/marketplace/haybale-marketplace-arch.md
   - ./subscribing-to-marketplaces.md
   - ../reference/publish_releases.md
@@ -13,7 +12,21 @@ see-also:
 
 # Sharing libraries — Author guide
 
-This guide walks an author through the full publish flow: scaffolding the library, keeping its dependency manifests honest as it evolves, producing the publish artifact, and hosting it so others can subscribe. For the conceptual model — *why* the flow is shaped this way — see [sharing-arch](../architecture/sharing/sharing-arch.md). For the consumer side, see [subscribing-to-marketplaces](./subscribing-to-marketplaces.md).
+This guide walks you through the full publish flow: scaffolding the library, keeping its dependency manifests honest as it evolves, producing the publish artifact, and hosting it so others can subscribe. For why the flow is shaped this way, see [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way). For the consumer side, see [subscribing-to-marketplaces](./subscribing-to-marketplaces.md).
+
+## 0. For the lazy
+
+Sharing a library is easy. If you followed the standard way of setting up a haywire project, then your project already contains its own library. All the nodes and widgets and types and other components you created for your graphs are already placed in it. All you need is to share it with the world. 
+
+The process:
+
+* Document your components: write descriptions, tags, class docstrings etc.
+
+* Inside Marketplace browser -> Select your local library -> in the Overview editor press edit and update the infos.
+
+* The haybale-share library (installable via Marketplace) gives you a Wizard to step you interactively through the share process. All you need is a cloud account for a git repository. 
+
+* Once the wizard has successfully completed, your library is online for other authors to subscribe to.
 
 ## 1. What it solves
 
@@ -21,7 +34,7 @@ A **haybale library** is a Python package containing one `BaseLibrary` subclass 
 
 Three things have to be true for a shared library to land cleanly in someone else's project:
 
-1. The library's manifests (`@library(dependencies=...)` decorator and the library's own `pyproject.toml`) accurately describe what the source actually imports.
+1. The library's manifests (`linked_libraries` in `haybale.toml` and `dependencies` in the library's own `pyproject.toml`) accurately describe what the source actually imports.
 2. The marketstall file contains a valid entry pointing at the library's git location.
 3. The marketstall is hosted somewhere a consumer can reach by URL.
 
@@ -29,23 +42,28 @@ The tooling in this guide makes all three easy.
 
 ## 2. The shape of a haybale library
 
-A haybale library is a Python package with a specific layout. `haywire init` produces this for you; if you're starting from scratch, see [haybale/haybale-package](../haybale/haybale-package-canon.md) for the full canon. The relevant parts for sharing:
+A haybale library is a Python package with a specific layout. `haywire init` produces this for you; if you're starting from scratch, see [haybale-canon](../haybale/haybale-canon.md) for the full canon. The relevant parts for sharing:
 
 ```
 haybale-my-lib/
-├── pyproject.toml          ← library-level manifest (travels to PyPI / pip)
+├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
 └── haybale_my_lib/
-    └── __init__.py         ← @library(...) decorator declares the haywire runtime contract
+    ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
+    └── __init__.py         ← @library(id=...) declares the haywire runtime contract
 ```
 
 The two manifests answer different questions:
 
-| Manifest | Audience | Answers |
-|---|---|---|
-| `pyproject.toml` `[project] dependencies` | pip / PyPI / `uv pip install` | "What Python distributions does this library need installed?" |
-| `@library(dependencies=[...])` in `__init__.py` | haywire's runtime (LibraryManager) | "Which *other haywire libraries* must be enabled for this one to enable?" |
+| Manifest                                  | Audience                           | Answers                                                                   |
+| ----------------------------------------- | ---------------------------------- | ------------------------------------------------------------------------- |
+| `pyproject.toml` `[project] dependencies` | pip / PyPI / `uv pip install`      | "What Python distributions does this library need installed?"             |
+| `haybale.toml` `linked_libraries`         | haywire's runtime (LibraryManager) | "Which *other haywire libraries* must be enabled for this one to enable?" |
 
-The library's source imports are a third, implicit layer. The three have to agree at publish time — if your source `from haybale_core import types` but neither manifest declares `haybale-core`, the published library will fail to install or to enable for consumers.
+Note the spelling difference: `dependencies` takes pip **distribution** names (`haybale-core`), `linked_libraries` takes Python **module** names (`haybale_core`).
+
+`haybale.toml` also carries everything descriptive a subscriber sees before installing — `label`, `description`, `tags`, `os`, and the URL fields — which is why it lives *inside* the package and ships in the wheel. Publishing copies it almost verbatim into your marketstall, and generates `pyproject.toml`'s descriptive `[project]` fields from it, so you never write those twice. Full field list: [reference/files/haybale.toml](../reference/files/haybale-toml.md).
+
+The library's source imports are a third, implicit layer. The three have to agree at publish time — if your source `from haybale_core import types` but neither manifest declares it, the published library will fail to install or to enable for consumers.
 
 ## 3. Keeping the manifests honest
 
@@ -66,7 +84,7 @@ What happens:
 
 After Apply:
 
-- The Edit dialog's dependencies field updates immediately. You still have to click **Save Changes** to persist the `@library` decorator update.
+- The Edit dialog's dependencies field updates immediately. You still have to click **Save Changes** to write `linked_libraries` into `haybale.toml`.
 - The library's `pyproject.toml` is written to disk right away (it isn't part of the identity-save bundle).
 
 A typical workflow is: write code → realize you've added an import → click Detect → Union → Save Changes. Done in five seconds.
@@ -174,20 +192,24 @@ report.
    command line exactly as it does in the Share editor — both run the same
    checks. (A step-1 failure itself never mutates anything and never
    triggers a revert — there's nothing yet to revert.)
-2. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The Share editor's Preflight screen offers this as an **Add origin remote** fix (§8).
-3. **The remote's host is recognized.** GitHub and GitLab (`github.com`, `gitlab.com`) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in `~/.haywire/config.toml`:
 
+2. **An `origin` remote is configured.** `git remote add origin <url>` if it isn't. The Share editor's Preflight screen offers this as an **Add origin remote** fix (§8).
+
+3. **The remote's host is recognized.** GitHub and GitLab (`github.com`, `gitlab.com`) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in `~/.haywire/config.toml`:
+   
    ```toml
    [[hosts]]
    hostname = "gitlab.example.com"
    provider = "gitlab"   # or "github"
    ```
-
+   
    This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 4. A remote pointing at a local filesystem path (a sibling clone, a shared network drive) skips this check entirely — it isn't an unrecognized host, since there's no hostname to recognize or fail to recognize.
+
 4. **The push will be accepted.** `haywire share`'s commit step runs a `git push --dry-run` before it commits or tags anything, so a credential problem surfaces before anything is written. Because both the Share editor and the CLI push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:
+   
    - An **HTTPS** remote (`https://gitlab.example.com/...`) needs a credential cached ahead of time — a personal access token stored via a credential helper (`git config --global credential.helper osxkeychain` on macOS, then push once by hand to seed it) is the common approach.
    - An **SSH** remote (`git@gitlab.example.com:...`) needs a key registered with the host and `ssh-agent` running, so no passphrase prompt blocks the push either.
-
+   
    Setting up either is entirely between you and your git host — see your host's own documentation: [GitHub's guide to authenticating with the CLI/HTTPS](https://docs.github.com/en/authentication) or [GitLab's guide to credentials](https://docs.gitlab.com/auth/) cover both paths and the most common failures. This guide only covers what haywire itself checks, not general git credential troubleshooting.
 
 ### 4.5 What an entry looks like
@@ -197,25 +219,30 @@ Each `barn/*` library becomes one `[[haybales]]` entry in the generated
 
 ```toml
 [[haybales]]
+# copied verbatim from your haybale.toml
 name             = "haybale-my-lib"
 label            = "My Lib"
-version          = "0.1.0"
-require = "haywire-core>=0.0.31"
 description      = "One-line summary of what the library does."
 author           = "Your Name"
-source           = "git"
-install_spec     = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
 tags             = ["vision", "experimental"]
 os               = ["macos", "linux"]
-dependencies     = ["haybale-core"]
-source_url       = "https://github.com/you/repo"
-docs_url         = "https://raw.githubusercontent.com/you/repo/v0.1.0/barn/haybale-my-lib/haybale_my_lib/"
+linked_libraries = ["haybale_core"]
+origin           = "https://github.com/you/repo"
+origin_provider  = "github"
+
+# read from your pyproject.toml
+version          = "0.1.0"
+require          = "haywire-core>=0.0.31"
+
+# generated — the coordinates your library cannot state about itself
+source           = "git"
+install_spec     = "haybale-my-lib @ git+https://github.com/you/repo.git@v0.1.0#subdirectory=barn/haybale-my-lib"
 ```
 
-A few points worth knowing as an author (every field is defined in [the `Haybale` schema](../haybale/marketplace/haybale-marketplace-arch.md#23-the-haybale-schema)):
+A few points worth knowing as an author (every field is defined in [the marketstall.toml reference](../reference/files/marketstall-toml.md#field-inheritance)):
 
+- **Most of the entry is your `haybale.toml`, copied.** You do not author a marketstall entry; you author that file, and publishing projects it here.
 - `source = "git"` and the `install_spec` with `#subdirectory=` are how `haywire share` packages a monorepo library. The consumer installs it directly from your git repo; you don't have to publish to PyPI. If you want to — releasing a wheel instead of shipping a clone — see [publish-to-pypi](./publish-to-pypi.md).
-- `dependencies` lists pip distribution names of the haybale libraries you depend on — *not* the underscore form used inside the `@library` decorator.
 - `version` is the version this entry advertises — what you published. It is not
   a floor and nothing resolves against it; its only job is the update comparison.
 - `require` declares which framework versions your library needs, as a full PEP
@@ -224,9 +251,9 @@ A few points worth knowing as an author (every field is defined in [the `Haybale
   it as low as your library actually allows: a floor restricts *consumers*, and
   raising it forces every one of them to update their project before they can
   install you.
-- The four ref-bearing URLs (`install_spec`, `docs_url`, `examples_url`, `tests_url`) all pin to the release tag `v<version>` created by this run — not the branch you published from — so they stay correct even after your branch is deleted.
+- `install_spec` pins to the release tag `v<version>` created by this run — not the branch you published from — so it stays correct even after your branch is deleted. It is the entry's **only** ref: declared paths like `examples_path` resolve against it, so no two fields can disagree about which commit was published.
 
-`haywire share` derives all this from each library's `pyproject.toml`, its `__init__.py`, and your git remote. SSH URLs are converted to HTTPS automatically.
+`haywire share` derives all this from each library's `haybale.toml`, its `pyproject.toml`, and your git remote. SSH URLs are converted to HTTPS automatically.
 
 ## 5. Versioning
 
@@ -245,14 +272,14 @@ Authors outside the official monorepo can use any versioning scheme they like �
 
 A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:
 
-| Hosting | URL shape | Notes |
-|---|---|---|
-| GitHub Pages | `https://<you>.github.io/<repo>/marketstall.toml` | Free, persistent, served as raw bytes. Standard for monorepo libraries. |
-| GitHub raw | `https://raw.githubusercontent.com/<you>/<repo>/main/marketstall.toml` | Works without Pages setup. Counts against GitHub's rate limit; less appropriate for high-traffic. |
-| GitLab Pages | `https://<you>.gitlab.io/<repo>/marketstall.toml` | Same shape as GitHub Pages. |
-| Your own static host | Any URL serving TOML | No haywire-specific requirements; just must be reachable. |
+| Hosting              | URL shape                                                              | Notes                                                                                             |
+| -------------------- | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| GitHub Pages         | `https://<you>.github.io/<repo>/marketstall.toml`                      | Free, persistent, served as raw bytes. Standard for monorepo libraries.                           |
+| GitHub raw           | `https://raw.githubusercontent.com/<you>/<repo>/main/marketstall.toml` | Works without Pages setup. Counts against GitHub's rate limit; less appropriate for high-traffic. |
+| GitLab Pages         | `https://<you>.gitlab.io/<repo>/marketstall.toml`                      | Same shape as GitHub Pages.                                                                       |
+| Your own static host | Any URL serving TOML                                                   | No haywire-specific requirements; just must be reachable.                                         |
 
-The haywire team publishes the official marketstall at `https://going-haywire.github.io/haywire/marketplace.toml` (a marketplace aggregating multiple marketstalls — see [sharing-arch](../architecture/sharing/sharing-arch.md) for the marketplace vs marketstall distinction). Your file is structurally the same.
+The haywire team publishes the official marketstall at `https://going-haywire.github.io/haywire/marketplace.toml` (a marketplace aggregating multiple marketstalls — see [marketplace.toml](../reference/files/marketplace-toml.md) for the distinction). Your file is structurally the same.
 
 Once hosted, share the URL. Per spec §4.2 a consumer can paste any of four forms into the Library Manager's Add Source dialog — the GitHub *blob* URL of your `marketstall.toml` (e.g. `https://github.com/you/repo/blob/main/marketstall.toml`) is the recommended canonical form. The runtime recognizes the host, derives the raw URL, fetches the body, sees one `[[haybales]]` section, and writes a `[[stalls]]` subscription to the user's global marketplace. The next refresh picks up your library. See [subscribing-to-marketplaces](./subscribing-to-marketplaces.md) for the consumer side.
 
@@ -346,7 +373,7 @@ Dependencies button (§3).
 ## 9. Reading on
 
 - The **consumer side** of this flow: [subscribing-to-marketplaces](./subscribing-to-marketplaces.md).
-- The **conceptual model** behind these mechanics: [sharing-arch](../architecture/sharing/sharing-arch.md).
+- Why the model is shaped this way: [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 - The **library manager architecture** these tools plug into: [haybale-marketplace-arch](../haybale/marketplace/haybale-marketplace-arch.md).
 - The **operational release flow** for the monorepo (`/haywire-release`, CI, PyPI Trusted Publisher): [publish_releases](../reference/publish_releases.md).
-- The **per-author canon** for the package itself (folder layout, pyproject shape, build/test/publish): [haybale/haybale-package](../haybale/haybale-package-canon.md).
+- The **per-author canon** for the package itself (folder layout, pyproject shape, build/test/publish): [haybale-canon](../haybale/haybale-canon.md).

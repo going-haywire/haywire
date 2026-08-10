@@ -39,13 +39,14 @@ docs/
 │   ├── settings/setting-canon.md (majorly rewritten alongside the ADR arc above)
 │   └── <area>-canon.md files
 ├── haybale/               ← library/package authoring + marketplace docs
-│   ├── library-canon.md
-│   ├── haybale-package-canon.md
+│   ├── haybale-canon.md   (authoring + packaging, merged)
+│   ├── metadata-flow.md   (haybale.toml → pyproject → marketstall → cache)
 │   └── marketplace/
 ├── guides/                ← how-tos (e.g., sharing-libraries.md)
 ├── plans/                 ← implementation plans (distinct from docs/superpowers/plans/ below)
 ├── reference/             ← glossary + design guide + dependency report
 │   ├── glossary.md (updated — Promotion, CHOICES, widget key entries rewritten for ADR 0013/0014/0017)
+│   ├── files/             ← one page per TOML format (haybale, pyproject, marketstall, marketplace)
 │   ├── dependency-report.md (updated — haybale-visiongraph false-positive re-audit note)
 │   └── design-guide.md
 ├── superpowers/plans/     ← dated implementation-plan writeups; pruned once landed
@@ -65,7 +66,8 @@ docs/
 - Authoring nodes/types/ports/themes/editors/panels → the matching `docs/components/<area>/<area>-canon.md`.
 - **Authoring widgets** → `docs/components/widgets/widget-canon.md` (covers BaseWidget unification, ADR 0007).
 - Widget rendering in ports panel → ADR 0008 + `haybale_graph_editor.panels.node_ports_panel`.
-- Authoring a library / haybale package → `docs/haybale/` (library-canon.md, haybale-package-canon.md).
+- Authoring a library / haybale package → `docs/haybale/haybale-canon.md` (one page; the two old canons merged).
+- What a field in any TOML file means → `docs/reference/files/<file>-toml.md`. Defined once there; every other doc links.
 - Marketplace behaviour → `docs/haybale/marketplace/`.
 - Understanding execution/library/settings/session internals → `docs/architecture/`.
 - Show vs hide widget logic → ADR 0003.

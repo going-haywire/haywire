@@ -193,7 +193,7 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                     message=f"No library with a pyproject.toml under {barn}. Nothing to publish.",
                     remedy=(
                         "Add a library under barn/, each with its own pyproject.toml — "
-                        "see docs/haybale/haybale-package-canon.md for the expected layout."
+                        "see docs/haybale/haybale-canon.md for the expected layout."
                     ),
                 )
             ],

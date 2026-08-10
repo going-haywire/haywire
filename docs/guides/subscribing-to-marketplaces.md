@@ -3,7 +3,6 @@ status: draft
 doc_template: guide
 scope: Subscribing to other authors' libraries — Add Source, Refresh, conflict resolution, stale handling, what to do when feeds go offline
 see-also:
-  - ../architecture/sharing/sharing-arch.md
   - ../haybale/marketplace/haybale-marketplace-arch.md
   - ./sharing-libraries.md
   - ../reference/glossary.md
@@ -11,7 +10,7 @@ see-also:
 
 # Subscribing to marketplaces — User guide
 
-This guide walks a user through following other authors' libraries: adding a source, refreshing the catalog, installing what you want, and handling the edge cases (conflicts, offline feeds, stale entries, malformed files). For the conceptual model — *why* the flow is shaped this way — see [sharing-arch](../architecture/sharing/sharing-arch.md). For the publisher side, see [sharing-libraries](./sharing-libraries.md).
+This guide walks a user through following other authors' libraries: adding a source, refreshing the catalog, installing what you want, and handling the edge cases (conflicts, offline feeds, stale entries, malformed files). For why the flow is shaped this way, see [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way). For the publisher side, see [sharing-libraries](./sharing-libraries.md).
 
 ## 1. What it solves
 
@@ -30,7 +29,7 @@ Your project's library state lives in two files. Knowing what each is for helps 
 
 You generally interact with the global file (subscriptions are a user concern). The project file is managed for you — `haywire init` sets up `[[heaps]]`, and Refresh maintains `[[caches]]`.
 
-For a deep dive into the split and why it exists, see [sharing-arch §Why two tiers](../architecture/sharing/sharing-arch.md#why-two-tiers).
+For the split and why it exists, see [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 
 ## 3. Add Source: subscribing to a feed
 
@@ -72,7 +71,7 @@ The choice is permanent: the losing source's `ignores` array gains the name, and
 
 If you change your mind later, you can edit `~/.haywire/marketplace.toml` directly via the Edit File button — remove the entry from the `ignores` array, then click Refresh.
 
-For the principle behind asking at intake rather than at refresh, see [sharing-arch §Resolving conflicts](../architecture/sharing/sharing-arch.md#resolving-conflicts).
+For the principle behind asking at intake rather than at refresh, see [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 
 ## 5. Refresh: pulling the latest catalog
 
@@ -120,7 +119,7 @@ You'll see a **yellow banner** above the library list: `"N source(s) unavailable
 
 The catalog continues to work with whatever did fetch successfully. You can keep installing, browsing, and refreshing; the next refresh will retry the failed URLs. If a URL has gone permanently offline (the author moved their hosting, say), you can remove the subscription via Edit File.
 
-For the principle behind not aborting on partial failure, see [sharing-arch §Drift, staleness, and other soft signals](../architecture/sharing/sharing-arch.md#drift-staleness-and-other-soft-signals).
+For the principle behind not aborting on partial failure, see [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 
 ## 7. Stale entries
 
@@ -159,7 +158,7 @@ To install: click an AVAILABLE row in the Library Browser. The Library Overview 
 - On success, the Library System rescans to pick up the new entry point.
 - The row moves from AVAILABLE to ENABLED.
 
-If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see [library-manager-arch §What the Library Manager is not](../haybale/marketplace/haybale-marketplace-arch.md#8-boundary-what-the-library-manager-is-not)).
+If the library declares haybale dependencies that you don't have installed, the Overview Editor's gating lets you know — but it doesn't auto-install them. You install each library individually. This is by design: the dependency information is informational, not a directive (see [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#what-the-library-manager-is-not)).
 
 ### 9.1 Updates available
 
@@ -205,6 +204,6 @@ Click Refresh. Stale-uninstalled entries that aren't re-resolved by the refresh 
 ## 11. Reading on
 
 - The **publisher side** of this flow: [sharing-libraries](./sharing-libraries.md).
-- The **conceptual model** behind these mechanics: [sharing-arch](../architecture/sharing/sharing-arch.md).
+- Why the model is shaped this way: [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 - The **library manager architecture** these tools plug into: [haybale-marketplace-arch](../haybale/marketplace/haybale-marketplace-arch.md).
 - The **canonical vocabulary** (Marketplace, Marketstall, Subscription, Refresh, Stale, etc.): [glossary](../reference/glossary.md).

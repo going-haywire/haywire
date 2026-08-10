@@ -3,14 +3,13 @@ status: current
 doc_template: impl-spec
 scope: SharePipeline's step-by-step mechanics, the collect-then-apply-once contract, the three failure outcomes, the error taxonomy, the default-branch publishing rule, and the current CI-facing tooling
 see-also:
-  - ../sharing/sharing-arch.md
   - ../../guides/sharing-libraries.md
   - ../../reference/glossary.md
 ---
 
 # Share Pipeline — Architecture
 
-*Where [sharing-arch](../sharing/sharing-arch.md) is the philosophy — no code, no UI, no schemas — this document is the mechanics: what `SharePipeline` actually does, step by step, in the current codebase.*
+*The mechanics: what `SharePipeline` actually does, step by step, in the current codebase.*
 
 ## 1. Mental model
 

@@ -5,8 +5,7 @@ scope: Runtime infrastructure that discovers, loads, and tracks libraries — Li
 see-also:
   - ../../haybale/marketplace/haybale-marketplace-arch.md
   - ../hot-reload/hot-reload-arch.md
-  - ../../haybale/library-canon.md
-  - ../../haybale/haybale-package-canon.md
+  - ../../haybale/haybale-canon.md
   - ../../reference/glossary.md
 ---
 
@@ -16,7 +15,7 @@ see-also:
 
 The Library System is the framework infrastructure that finds Haywire libraries on disk, loads their `Library` classes, and routes their components into the right registries (nodes, types, adapters, widgets, skins, themes). It runs at app startup and stays running for hot-reload.
 
-It is **not** the studio's library-manager UI — see [haybale/marketplace — architecture](../../haybale/marketplace/haybale-marketplace-arch.md) for that. It is **not** how a developer authors a library — see [haybale/library](../../haybale/library-canon.md) for that. It is the layer between the package manager (uv/pip) and the registries.
+It is **not** the studio's library-manager UI — see [haybale/marketplace — architecture](../../haybale/marketplace/haybale-marketplace-arch.md) for that. It is **not** how a developer authors a library — see [haybale-canon](../../haybale/haybale-canon.md) for that. It is the layer between the package manager (uv/pip) and the registries.
 
 Two layers, one wrapper:
 
@@ -113,7 +112,7 @@ The debounce delay (how long the watcher waits after the last `.py` change befor
 
 ### 2.6 `BaseLibrary` and `@library` (`haywire/core/library/base.py`, `decorator.py`)
 
-Authoring surface — see [haybale/library](../../haybale/library-canon.md). The architecture-relevant facts:
+Authoring surface — see [haybale-canon](../../haybale/haybale-canon.md). The architecture-relevant facts:
 
 - `register_components()` is the mandatory hook called by `LibraryRegistry`.
 - `validate()` is called after registration; returning `False` aborts the load.
@@ -165,6 +164,8 @@ First match wins. Detection is by the resolved filesystem location of the import
 ### 3.2a The `builtin` library (Priority 1's sole occupant)
 
 `haywire.barn.builtin` (`id="builtin"`) is the only library that currently loads via the Priority 1 "core libraries" path. It differs from every other library in this doc in one structural way: it ships **inside the `haywire-core` distribution** (`packages/haywire-core/src/haywire/barn/builtin/`), not as a separate haybale package with its own `pyproject.toml` and entry point. `core_libraries_path` (wired in DI to `Path(haywire.barn.__file__).parent`) is scanned directly — no `importlib.metadata.entry_points()` involved for this one.
+
+**Priority 1 has no `InstallType` of its own: `builtin` is tagged `InstallType.FOLDER`**, the same value a `library_paths` library gets at Priority 4, with `entry_point_name=None`. The priority tiers are a *discovery order*, not a parallel taxonomy — mechanically both are directory scans, and what separates them is only which directory is scanned. `_discover_folder_libraries()` skips `core_libraries_path` by `os.path.samefile` so the same folder is never discovered twice.
 
 Because it always loads first, `builtin` is where framework-owned primitives that every other library may depend on must live: base scalar/vector/color types, their adapters and widgets, and the reroute node/skin (`nodes/`, `skins/` folders registered the same way any plugin registers them, via `add_folder_to_registry()` in `register_components()`). A plugin library never needs to declare a dependency on `builtin` — it is guaranteed to be loaded and its registries populated before any Priority 2+ library's `register_components()` runs.
 
@@ -222,7 +223,7 @@ A failed library does not abort the app — it is logged and skipped, its compon
 
 - **Not a package manager.** It does not install, uninstall, or update Python packages. That is uv/pip (Layer 1) and the [library-manager UI](../../haybale/marketplace/haybale-marketplace-arch.md) (Layer 3) wrapping uv.
 - **Not a marketplace.** The `marketplace.toml` format and feed-fetching live with the library-manager UI, not here.
-- **Not the place where component authoring is documented.** That belongs in [haybale/library](../../haybale/library-canon.md) and [haybale/haybale-package](../../haybale/haybale-package-canon.md).
+- **Not the place where component authoring is documented.** That belongs in [haybale-canon](../../haybale/haybale-canon.md).
 
 ### 4.6 Authoring contract for libraries
 
@@ -236,7 +237,7 @@ A haybale library is a Python package with:
 2. An `__init__.py` containing a `@library(...)` decorated `Library` class that subclasses `BaseLibrary`.
 3. Implements `register_components()` (mandatory) and `validate()` (returns `bool`).
 
-See [haybale/library](../../haybale/library-canon.md) for the full authoring story and [haybale/haybale-package](../../haybale/haybale-package-canon.md) for packaging and distribution.
+See [haybale-canon](../../haybale/haybale-canon.md) for the full authoring and packaging story.
 
 The one exception is the framework-internal [`builtin` library](#32a-the-builtin-library-priority-1s-sole-occupant) — it skips step 1 entirely (no `pyproject.toml`, no entry point) because it ships inside `haywire-core` and is discovered by filesystem scan, not `importlib.metadata`.
 

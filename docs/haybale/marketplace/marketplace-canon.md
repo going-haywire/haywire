@@ -4,8 +4,7 @@ doc_template: canonical-example
 scope: The haybale-marketplace plugin — the optional library installer/browser haybale, its editors, its manager + marketplace states, and the optionality contract that lets the studio run without it
 see-also:
   - haybale-marketplace-arch.md
-  - ../library-canon.md
-  - ../haybale-package-canon.md
+  - ../haybale-canon.md
   - ../../architecture/library-system/library-system-arch.md
   - ../../adr/0001-haybale-marketplace-carveout.md
   - ../../reference/glossary.md
@@ -43,7 +42,7 @@ the runtime:                      the plugin (this doc):          the host studi
 
 The plugin owns **no registry state and no runtime parsing**. It calls `MarketplaceState` for catalog data (which wraps `haywire.core.marketstall`) and `LibraryManager` for install verbs (which shells out to `uv` and asks the Library System to rescan). Enable/disable persistence belongs to the core `LibraryRegistry`, not the plugin.
 
-**Boundaries.** *How* the editors, refresh pipeline, two-tier marketplace files, conflict resolution, and `InstallType`-gated actions work — see [haybale-marketplace-arch](haybale-marketplace-arch.md). *Why* the marketplace/marketstall trust model is shaped the way it is — see [sharing-arch](../../architecture/sharing/sharing-arch.md). What a `BaseLibrary`/`@library` author writes — see [library-canon](../library-canon.md). How a haybale is packaged and published — see [haybale-package-canon](../haybale-package-canon.md).
+**Boundaries.** *How* the editors, refresh pipeline, two-tier marketplace files, conflict resolution, and `InstallType`-gated actions work — see [haybale-marketplace-arch](haybale-marketplace-arch.md). *Why* the marketplace/marketstall trust model is shaped the way it is — see [haybale-marketplace-arch §8](haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way). What a haybale author writes, and how one is packaged and published — see [haybale-canon](../haybale-canon.md).
 
 ## 3. What the plugin ships
 
@@ -78,28 +77,16 @@ publishing (ADR 0023) has nothing to do with the per-library view the browser
 presents. There is no Share Project item in the burger menu — its items are
 Refresh, Add Source…, and Edit File….
 
-The CLI side is summarised below because a marketplace subscriber needs to know
-what a publisher does to the feed they follow; the mechanism belongs to
-[sharing-arch](../../architecture/sharing/sharing-arch.md).
+What a subscriber needs to know about the other side: `haywire share` publishes
+the whole project — every `barn/*` library bumped to the same version
+(lockstep), docs regenerated, `marketstall.toml` rebuilt, committed, tagged
+`v<version>`, and pushed. The commands are in
+[haybale-canon](../haybale-canon.md#quick-reference); the pipeline is in
+[share-pipeline-arch](../../architecture/sharing/share-pipeline-arch.md).
 
-`haywire share` publishes the whole project: every `barn/*` library is bumped to
-the same version (lockstep), docs are regenerated, `marketstall.toml` is rebuilt,
-and the result is committed, tagged `v<version>`, and pushed.
-
-| Command | What it does |
-| --- | --- |
-| `haywire share --bump patch` | Publishes. Non-interactive is the *only* mode — every answer comes from a flag. `--bump` takes `patch\|minor\|major` or an explicit `X.Y.Z`, and is required unless `--dry-run`. |
-| `haywire share --dry-run` | Reports what a publish would do — preconditions, findings, the version it would cut — and writes nothing. |
-| `haywire deps check` | Read-only. Checks every `barn/*` library's dependency manifests for drift, exits 1 if any library has drift, exits 0 otherwise. Never writes. Use it as a PR gate. |
-
-There is no `--yes` and no prompt-driven mode: walking a git-mutating pipeline
-through `input()` duplicated every judgement the Share editor already makes.
-Other flags: `--message`, `--requires-haywire`.
-
-The same pipeline backs `haybale-share`'s Share editor. The share URL is always
-branch-live — it tracks whatever branch you published from, because
-`marketstall.toml` is a subscription feed and a frozen, tag-pinned URL would
-lock subscribers to whatever version they first subscribed to.
+The share URL is always branch-live — it tracks whatever branch you published
+from, because `marketstall.toml` is a subscription feed and a frozen, tag-pinned
+URL would lock subscribers to whatever version they first subscribed to.
 
 ### States
 
@@ -120,14 +107,7 @@ lock subscribers to whatever version they first subscribed to.
 
 **It depends on `haybale-studio`, not the reverse.** `haybale-marketplace`'s `pyproject.toml` declares `haywire-core`, `haywire-studio` and `haybale-studio` (plus `nicegui`, `toml`, `packaging`) as dependencies — it consumes the studio's slots and editor base classes. `haybale-studio` declares no dependency on the marketplace; the relationship is strictly one-directional, which is what preserves optionality.
 
-**`file_watcher=True`.** The plugin enables hot-reload like any editable haybale — edit an editor and the studio re-renders without restart (editable install only).
-
-**Entry point.**
-
-```toml
-[project.entry-points."haywire.libraries"]
-marketplace = "haybale_marketplace:Library"
-```
+**`file_watcher=True`.** The plugin enables hot-reload like any editable haybale — edit an editor and the studio re-renders without restart (editable install only). Its entry point, `marketplace = "haybale_marketplace:Library"`, is declared like any other haybale's.
 
 ## 5. Live example from the codebase
 
@@ -138,23 +118,15 @@ live, so it cannot drift from the code:
 --8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:marketplace_library"
 ```
 
-The descriptive half lives beside it in `haybale.toml`:
+It registers like any other haybale, and its descriptive metadata lives beside
+it in `haybale.toml` — see [haybale-canon](../haybale-canon.md) for the
+authoring surface both share.
 
-```toml
---8<-- "barn/haybale-marketplace/haybale_marketplace/haybale.toml:marketplace_metadata"
-```
-
-The split is the point: the decorator carries only what code must know
-(`id`, `version`, `file_watcher`), and everything descriptive lives in
-`haybale.toml`, editable in the studio with no reinstall and no reload.
-
-What this example exercises:
+What this example exercises, beyond the ordinary:
 
 | Concept | Where |
 |---|---|
 | A standalone optional plugin registering studio UI | the whole package |
-| `version` sourced from `importlib.metadata.version(...)` — pyproject is the source of truth | `version=_pkg_version("haybale-marketplace")` in the decorator |
-| Descriptive metadata out of the decorator | `label`, `description`, `tags` in `haybale.toml` |
 | Three registry categories: states, farmhands, editors | three `add_folder_to_registry` calls |
 | State-before-farmhands-before-editors scan ordering | comment in `register_components` |
 | Hot-reload for an editable plugin | `file_watcher=True` |

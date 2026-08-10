@@ -9,13 +9,15 @@ Read the following documentation files in order and use them as the authoritativ
 
 ## Files to read
 
-1. `docs/components/libraries/library-canon.md` — practical guide: `@library` decorator, `BaseLibrary`, `register_components()`, hot-reload via `file_watcher=True`, the `Library` class authoring contract
-2. `docs/components/haybale-package/haybale-package-canon.md` — packaging: `pyproject.toml` entry points, folder layout, `haybale-` naming, install/build/publish workflow, `marketplace.toml` distribution
+1. `docs/haybale/haybale-canon.md` — authoring and packaging in one: `@library` decorator, `BaseLibrary`, `register_components()`, the eleven registries, hot-reload via `file_watcher=True`, `pyproject.toml` entry points, folder layout, `haybale-` naming, the compliance contract
+2. `docs/reference/files/haybale-toml.md` — the authoring surface: every field, who writes it, and which files it reaches. Descriptive metadata is NOT decorator kwargs
 3. `docs/architecture/library-system/library-system-arch.md` — runtime infrastructure: `LibraryRegistry`, `LibraryDiscovery`, `LibraryIdentity`, `FileWatcher`, install-type detection, registry-of-registries pattern, hot-reload pipeline
-4. `docs/architecture/library-manager/library-manager-arch.md` — studio's package-manager UI internals: install pipeline, marketplace feed mechanism, source viewer, doc rendering
+4. `docs/haybale/marketplace/haybale-marketplace-arch.md` — studio's package-manager UI internals: catalog lifecycle, install pipeline, marketplace feed mechanism, recovery
+
+Read `docs/haybale/metadata-flow.md` as well for any task touching publishing or metadata: it maps `haybale.toml` → `pyproject.toml` → `marketstall.toml` → a consumer's cache.
 
 Note on the **five meanings of "library"** in haywire (see `docs/reference/glossary.md` "Library — five distinct meanings"):
-1 = `BaseLibrary` (authoring) → file 1; 2 = Library System (runtime) → file 3; 3 = Haybale package (distribution) → file 2; 4 = Library Manager (studio UI) → file 4; 5 = LibrarySettings/LibraryState → see `docs/components/{settings,states}/` canons.
+1 = `BaseLibrary` (authoring) → file 1; 2 = Library System (runtime) → file 3; 3 = Haybale package (distribution) → file 1, same page; 4 = Library Manager (studio UI) → file 4; 5 = LibrarySettings/LibraryState → see `docs/components/{settings,states}/` canons.
 
 ## After reading
 

@@ -105,8 +105,8 @@ nav:
       - States: components/states/state-canon.md
 
   - Haybale:
-      - Library: haybale/library-canon.md
-      - Haybale package: haybale/haybale-package-canon.md
+      - Authoring a haybale: haybale/haybale-canon.md
+      - Metadata flow: haybale/metadata-flow.md
       - Marketplace: haybale/marketplace/marketplace-canon.md
       - Marketplace — architecture: haybale/marketplace/haybale-marketplace-arch.md
 
@@ -132,7 +132,6 @@ nav:
           - Lazy evaluation: architecture/execution/lazy-evaluation/lazy-evaluation-arch.md
           - Callbacks: architecture/execution/callbacks/callbacks-arch.md
       - Library system: architecture/library-system/library-system-arch.md
-      - Sharing — philosophy: architecture/sharing/sharing-arch.md
       - Sharing — pipeline: architecture/sharing/share-pipeline-arch.md
       - Hot-reload: architecture/hot-reload/hot-reload-arch.md
       - Settings: architecture/settings/settings-arch.md
@@ -148,6 +147,11 @@ nav:
       - Index: reference/index.md
       - Glossary: reference/glossary.md
       - Design guide: reference/design-guide.md
+      - File formats:
+          - haybale.toml: reference/files/haybale-toml.md
+          - pyproject.toml: reference/files/pyproject-toml.md
+          - marketstall.toml: reference/files/marketstall-toml.md
+          - marketplace.toml: reference/files/marketplace-toml.md
 
   - Archive:
       - Whitepaper: archive/whitepaper/Haywire_design.md
