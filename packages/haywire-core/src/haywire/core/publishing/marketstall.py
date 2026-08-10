@@ -98,7 +98,7 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
     declared = read_haybale(module_dir) if module_dir else Haybale(name="")
 
     name = declared.name or lib_dir.name
-    version = project.get("version", "0.0.0")
+    version = declared.version or project.get("version", "0.0.0")
     description = declared.description
     tags = list(declared.tags)
     authors = list(declared.authors)

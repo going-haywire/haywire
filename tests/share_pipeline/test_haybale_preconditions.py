@@ -184,14 +184,14 @@ def test_sync_preserves_hand_authored_fields(project: Path) -> None:
     assert 'description = "d"' in text
 
 
-def test_version_is_never_generated(project: Path) -> None:
-    """The release machinery owns it; haybale.toml's copy is written from the
-    bump, not read into pyproject."""
+def test_version_is_now_generated_from_haybale_toml(project: Path) -> None:
+    """haybale.toml is canon for version (D6/D7): pyproject carries a generated
+    copy, since pip/uv/PyPI read that file and cannot read haybale.toml."""
     _declared_file(project).write_text(_DECLARED + 'version = "9.9.9"\n')
 
     sync_pyproject_from_haybale(_lib(project))
 
-    assert 'version = "0.1.0"' in (_lib(project) / "pyproject.toml").read_text()
+    assert 'version = "9.9.9"' in (_lib(project) / "pyproject.toml").read_text()
 
 
 def test_a_deprecated_block_projects_into_a_classifier(project: Path) -> None:

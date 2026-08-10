@@ -390,3 +390,13 @@ def test_write_authors_preserves_comments_elsewhere_in_the_file(tmp_path: Path) 
     write_haybale_fields(d, {"authors": [("alice", "")]})
 
     assert "# hand-written note" in (d / HAYBALE_TOML).read_text()
+
+
+# ── version is projected into pyproject.toml ─────────────────────────────────
+
+
+@pytest.mark.unit
+def test_version_is_projected_into_pyproject():
+    from haywire.core.publishing.generate import PROJECT_FIELDS
+
+    assert PROJECT_FIELDS["version"] == "version"

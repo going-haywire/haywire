@@ -1,14 +1,14 @@
 """Generating ``[project]`` metadata from a library's ``haybale.toml``.
 
-``haybale.toml`` is canon for everything descriptive. The PEP 621 fields exist
-so the wheel is a well-formed package — PyPI, ``uv`` and ``pip`` read them, and
-Haywire does not — so they are *projected* out of it rather than authored twice.
+``haybale.toml`` is canon for everything descriptive, including ``name`` and
+``version``. The PEP 621 fields exist so the wheel is a well-formed package —
+PyPI, ``uv`` and ``pip`` read them, and Haywire does not — so they are
+*projected* out of it rather than authored twice.
 
-``pyproject.toml`` keeps two canonical fields of its own — ``[project]
-dependencies`` and ``[project] version`` (the release machinery's; its
-``haybale.toml`` copy is synced *from* here, not read into it) — plus the
-packaging machinery no other file can own (``build-system``, ``entry-points``,
-``[tool.hatch]``). None of that is touched here.
+``pyproject.toml`` keeps one canonical field of its own — ``[project]
+dependencies`` — plus the packaging machinery no other file can own
+(``build-system``, ``entry-points``, ``[tool.hatch]``). None of that is
+touched here.
 """
 
 from __future__ import annotations
@@ -24,11 +24,12 @@ from haywire.core.tomlio import edit_toml, read_toml
 __all__ = ["PROJECT_FIELDS", "pyproject_drift", "sync_pyproject_from_haybale"]
 
 #: ``[project]`` keys generated from haybale.toml, and where each comes from.
-#: ``version`` is absent deliberately: the release machinery owns it, and it is
-#: the one field that flows the other way (haybale.toml's copy is written from
-#: the bump, not read into it).
+#: ``haybale.toml`` is canon for all of these; ``pyproject.toml`` carries the
+#: generated copy because pip, uv and PyPI read that file and cannot read this
+#: one. Drift is therefore reported against pyproject, never the other way.
 PROJECT_FIELDS = {
     "name": "name",
+    "version": "version",
     "description": "description",
     "keywords": "tags",
 }

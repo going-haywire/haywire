@@ -23,7 +23,9 @@ def _add_lib(repo: Path, name: str = "haybale-alpha") -> Path:
     module = lib / name.replace("-", "_")
     module.mkdir(parents=True)
     (module / "__init__.py").write_text('@library(id="alpha")\nclass Library: pass\n')
-    (module / "haybale.toml").write_text(f'name = "{name}"\nid = "alpha"\nlabel = "Alpha"\n')
+    (module / "haybale.toml").write_text(
+        f'name = "{name}"\nid = "alpha"\nlabel = "Alpha"\nversion = "0.1.0"\n'
+    )
     (lib / "pyproject.toml").write_text(f'[project]\nname = "{name}"\nversion = "0.1.0"\n')
     return lib
 

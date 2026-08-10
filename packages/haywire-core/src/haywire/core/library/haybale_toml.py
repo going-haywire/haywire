@@ -212,9 +212,9 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
         raise HaybaleTomlError(f"{source}: `id` is required — it prefixes every component's registry key.")
     if not fields.get("version"):
         raise HaybaleTomlError(
-            f"{source}: `version` is required. It is synced from pyproject.toml by "
-            f"scripts/bump_version.py and the share wizard — run one of those rather "
-            f"than authoring it by hand."
+            f"{source}: `version` is required and is canon here — "
+            f"`pyproject.toml` carries a generated copy. Bump with "
+            f"scripts/bump_version.py or the share wizard rather than by hand."
         )
     return fields
 
