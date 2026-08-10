@@ -14,6 +14,7 @@ from haywire.core.library.dep_edit import norm_dep
 from haywire.core.library.dep_detect import (
     DetectedDeps,
     EntryPointLibrarySource,
+    HaywireLibrarySource,
     detect_deps,
     find_module_dir,
 )
@@ -29,7 +30,7 @@ from haywire.core.publishing.manifest.reader import read_manifest_lenient
 _norm_dep = norm_dep
 
 
-def detect_share_drift(lib_dir: Path) -> DepDrift:
+def detect_share_drift(lib_dir: Path, *, libraries: HaywireLibrarySource | None = None) -> DepDrift:
     """Compute the drift between detected and declared dependencies for one library.
 
     Drift surfaces only ``missing`` entries — items that detect_deps found in
@@ -40,9 +41,13 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     correctness for consumers, which means "everything imported must be
     declared," not "everything declared must be imported."
 
-    Uses :class:`EntryPointLibrarySource` so the gate works without a live
-    haywire registry — any installed dist with a ``haywire.libraries`` entry
-    point counts as a haywire library.
+    ``libraries`` decides "is this distribution a registered haywire library"
+    for the ``linked_libraries`` side of the comparison. Defaults to
+    :class:`EntryPointLibrarySource`, so the gate works without a live haywire
+    registry — any installed dist with a ``haywire.libraries`` entry point
+    counts. A caller that already holds a live ``LibraryRegistry`` — the
+    marketplace editor's Refresh button — should pass it instead, since it
+    reflects installed/enabled state more accurately than entry-point metadata.
 
     Returns an empty :class:`DepDrift` when no module dir is found (the
     library has no inspectable source). Callers should still treat that as
@@ -53,7 +58,8 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
     declaration in ``haybale.toml``, since both go through
     :func:`read_manifest_lenient`.
     """
-    libraries = EntryPointLibrarySource()
+    if libraries is None:
+        libraries = EntryPointLibrarySource()
     detected: DetectedDeps = detect_deps(lib_dir, libraries=libraries)
 
     # Read current declarations. Lenient: a malformed or unreadable manifest
@@ -100,7 +106,7 @@ def detect_share_drift(lib_dir: Path) -> DepDrift:
 def _detect_pyproject_version_lag(
     declared: list[str],
     *,
-    libraries: EntryPointLibrarySource,
+    libraries: HaywireLibrarySource,
 ) -> list[tuple[str, str, str]]:
     """Report declared haybale-* deps whose floor sits below the installed version.
 

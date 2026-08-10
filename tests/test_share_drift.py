@@ -236,6 +236,32 @@ def test_format_drift_report_groups_pyproject_decorator_unresolved(tmp_path: Pat
 
 
 @pytest.mark.unit
+def test_detect_share_drift_accepts_injected_library_source(tmp_path: Path, monkeypatch) -> None:
+    """A caller holding a live registry — the marketplace editor — can inject it
+    instead of relying on EntryPointLibrarySource, same as detect_deps already
+    allows via its own `libraries` param.
+
+    Proof the param is honored rather than ignored: haybale_core IS installed
+    and resolves to the dist haybale-core, so the default source classifies the
+    import as a registered haywire library. A source that lists nothing must
+    classify the same import as an ordinary pyproject dep, leaving
+    linked_missing empty.
+    """
+    import importlib.metadata as _meta
+
+    monkeypatch.setattr(_meta, "version", lambda dist: "0.0.1")
+    lib = _make_library(
+        tmp_path,
+        pyproject_deps=[],
+        linked_libraries=[],
+        init_body_imports="import haybale_core\n",
+    )
+
+    assert "haybale_core" in detect_share_drift(lib).linked_missing
+    assert detect_share_drift(lib, libraries=_FakeLibrarySource([])).linked_missing == []
+
+
+@pytest.mark.unit
 def test_entry_point_source_finds_dev_workspace_libraries() -> None:
     """In the dev venv, EntryPointLibrarySource should resolve haybale-core
     and haybale-studio (their entry points are registered)."""
