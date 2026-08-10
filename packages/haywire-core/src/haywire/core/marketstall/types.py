@@ -11,6 +11,33 @@ from dataclasses import dataclass, field
 from typing import ClassVar
 
 
+@dataclass(frozen=True)
+class Deprecation:
+    """An author's notice that a library is being retired.
+
+    ``since`` is required because deprecation is a historical fact, not a
+    current state: without it a user on 0.0.30 cannot be told whether their
+    version predates the notice.
+
+    Informational only — it never blocks an install, an enable, or an update.
+    ``os`` remains the only field that gates installation.
+    """
+
+    since: str
+    reason: str = ""
+    successor: str = ""
+    """A distribution name the user can install instead, when one exists."""
+
+    def to_dict(self) -> dict:
+        """TOML-serializable dict; omits the two optional fields when empty."""
+        out = {"since": self.since}
+        if self.reason:
+            out["reason"] = self.reason
+        if self.successor:
+            out["successor"] = self.successor
+        return out
+
+
 @dataclass
 class Haybale:
     """One entry from a [[haybales]] section."""
@@ -61,6 +88,15 @@ class Haybale:
     human-readable page. Not the front page: label/description/tags already
     carry that. Replaces ``docs_path``, which held the *module directory* and
     to which both consumers appended something."""
+
+    deprecated: "Deprecation | None" = None
+    """The author's retirement notice, or None.
+
+    Travels in the row so a consumer sees it *before* installing. The
+    ``[project] classifiers`` projection cannot serve that: it carries neither
+    ``reason`` nor ``successor``, and the studio never reads PyPI metadata —
+    which would leave the notice invisible to exactly the already-installed
+    users who most need it."""
 
     homepage_url: str = ""
     documentation_url: str = ""
@@ -116,6 +152,9 @@ class Haybale:
         "via",
         "last_seen",
         "stale",
+        # Serializes to a TOML table, so it MUST stay last: every bare key
+        # written after a table header is parsed into that table.
+        "deprecated",
     )
 
     def to_dict(self) -> dict:
@@ -123,8 +162,9 @@ class Haybale:
         result: dict = {}
         for f in self._TOML_FIELDS:
             val = getattr(self, f)
-            if val:
-                result[f] = val
+            if not val:
+                continue
+            result[f] = val.to_dict() if isinstance(val, Deprecation) else val
         return result
 
 

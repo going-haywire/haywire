@@ -23,7 +23,37 @@ from pathlib import Path
 import toml
 
 from haywire.core.marketstall.errors import MalformedMarketplaceError
-from haywire.core.marketstall.types import Haybale, MarketplaceFile, ProjectMarketplaceFile, Subscription
+from haywire.core.marketstall.types import (
+    Deprecation,
+    Haybale,
+    MarketplaceFile,
+    ProjectMarketplaceFile,
+    Subscription,
+)
+
+
+def _parse_deprecation(raw: dict) -> Deprecation | None:
+    """Parse a `[deprecated]` block, or None when absent or unusable.
+
+    Deliberately lenient where the rest of this module is strict: a deprecation
+    notice is advisory, so a malformed one must not cost the user the whole
+    catalog entry — the library still installs and runs. ``since`` is the one
+    load-bearing field (it decides whether a user's version predates the
+    notice), so a block without it is dropped rather than half-shown.
+    """
+    block = raw.get("deprecated")
+    if not isinstance(block, dict):
+        return None
+    since = block.get("since")
+    if not isinstance(since, str) or not since:
+        return None
+    reason = block.get("reason")
+    successor = block.get("successor")
+    return Deprecation(
+        since=since,
+        reason=reason if isinstance(reason, str) else "",
+        successor=successor if isinstance(successor, str) else "",
+    )
 
 
 def _parse_haybale_entry(raw: dict) -> Haybale:
@@ -60,6 +90,7 @@ def _parse_haybale_entry(raw: dict) -> Haybale:
         issues_url=raw.get("issues_url", ""),
         examples_path=raw.get("examples_path", ""),
         tests_path=raw.get("tests_path", ""),
+        deprecated=_parse_deprecation(raw),
         via=raw.get("via", ""),
         last_seen=raw.get("last_seen", ""),
         stale=bool(raw.get("stale", False)),

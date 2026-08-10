@@ -17,7 +17,7 @@ from haywire.core.library.haybale_toml import (
     read_haybale_toml_lenient,
     read_raw,
 )
-from haywire.core.marketstall import Haybale
+from haywire.core.marketstall import Deprecation, Haybale
 from urllib.parse import urlparse
 
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
@@ -30,6 +30,35 @@ from haywire.core.publishing.url import (
     _find_git_root,
     _get_remote_url,
 )
+
+
+def _declared_deprecation(declared_raw: dict) -> Deprecation | None:
+    """The library's `[deprecated]` block as a :class:`Deprecation`, or None.
+
+    Strict where the consumer-side parser is lenient: a block the publisher
+    cannot serialize is an authoring mistake, and failing here shows it to the
+    one person who can fix it. Dropping it silently would publish a library
+    whose retirement notice exists locally and nowhere else.
+    """
+    block = declared_raw.get("deprecated")
+    if block is None:
+        return None
+    if not isinstance(block, dict):
+        raise ValueError(f"[deprecated] must be a table, got {type(block).__name__}")
+    since = block.get("since")
+    if not isinstance(since, str) or not since:
+        raise ValueError(
+            "[deprecated] requires `since` — the version the notice landed in. "
+            "Without it a user cannot be told whether their version predates it."
+        )
+    # str(...) on every field: read_raw returns tomlkit types, whose String is
+    # a str subclass that `toml.dumps` serializes as a *sequence of
+    # characters*. Normalising here keeps that out of the published row.
+    return Deprecation(
+        since=str(since),
+        reason=str(block.get("reason", "")),
+        successor=str(block.get("successor", "")),
+    )
 
 
 def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict | None:
@@ -155,6 +184,11 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         issues_url=declared.issues_url,
         examples_path=declared_raw.get("examples_path", ""),
         tests_path=declared_raw.get("tests_path", ""),
+        # Carried into the row so a consumer sees the notice before installing.
+        # The [project] classifiers projection cannot serve that: it drops both
+        # `reason` and `successor`, and nothing in the studio reads PyPI
+        # metadata.
+        deprecated=_declared_deprecation(declared_raw),
     ).to_dict()
 
 
