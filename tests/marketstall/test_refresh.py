@@ -7,8 +7,8 @@ from unittest.mock import patch
 
 import pytest
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import cache as marketstall_cache
-from haywire.core.marketstall.types import Haybale
 
 
 def _h(name: str, **kw) -> Haybale:

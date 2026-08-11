@@ -21,7 +21,7 @@ from nicegui.testing.user_simulation import user_simulation
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 
 
 @pytest.fixture

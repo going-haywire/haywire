@@ -14,7 +14,7 @@ from __future__ import annotations
 
 import pytest
 
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 
 pytestmark = pytest.mark.unit
 

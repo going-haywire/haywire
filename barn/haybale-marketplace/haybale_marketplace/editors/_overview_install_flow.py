@@ -16,7 +16,7 @@ from typing import TYPE_CHECKING
 from nicegui import background_tasks, ui
 from nicegui.elements.button import Button
 
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 
 from haybale_marketplace.editors._overview_actions import (
     find_installed_by_dist_name,

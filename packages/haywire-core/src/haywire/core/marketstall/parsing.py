@@ -22,10 +22,9 @@ from pathlib import Path
 
 import toml
 
+from haywire.core.library.haybale import Deprecation, Haybale
 from haywire.core.marketstall.errors import MalformedMarketplaceError
 from haywire.core.marketstall.types import (
-    Deprecation,
-    Haybale,
     MarketplaceFile,
     ProjectMarketplaceFile,
     Subscription,

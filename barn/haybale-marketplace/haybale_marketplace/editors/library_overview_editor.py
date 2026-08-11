@@ -53,7 +53,7 @@ from haywire.core.session.handlers import redraw_on
 from haywire.core.session.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.locate import link_form, module_dir_path, resolve_row_path
 from haywire.ui.modals import info_modal
 

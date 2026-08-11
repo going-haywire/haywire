@@ -26,7 +26,7 @@ from haywire.core.library.haybale_toml import (
     read_haybale,
     write_haybale_fields,
 )
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 from haywire.ui.modals.install_progress_modal import PostInstallHints
 
 

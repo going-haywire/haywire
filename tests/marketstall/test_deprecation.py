@@ -17,8 +17,8 @@ from __future__ import annotations
 import pytest
 import toml
 
+from haywire.core.library.haybale import Deprecation, Haybale
 from haywire.core.marketstall.parsing import _parse_deprecation, _parse_haybale_entry
-from haywire.core.marketstall.types import Deprecation, Haybale
 from haywire.core.publishing.marketstall import _declared_deprecation
 
 

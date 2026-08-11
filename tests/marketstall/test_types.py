@@ -1,5 +1,5 @@
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.parsing import parse_marketstall_body
-from haywire.core.marketstall.types import Haybale
 
 
 def test_haybale_round_trips_examples_and_tests_path():

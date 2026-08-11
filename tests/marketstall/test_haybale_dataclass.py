@@ -7,7 +7,7 @@ import pytest
 
 @pytest.mark.unit
 def test_haybale_minimal_construction() -> None:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="haybale-foo", version="0.1.0")
     assert h.name == "haybale-foo"
@@ -18,7 +18,7 @@ def test_haybale_minimal_construction() -> None:
 
 @pytest.mark.unit
 def test_haybale_full_construction() -> None:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     h = Haybale(
         name="haybale-vision",
@@ -40,7 +40,7 @@ def test_haybale_full_construction() -> None:
 
 @pytest.mark.unit
 def test_haybale_cache_fields_default_empty() -> None:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="x", version="0.0.1")
     assert h.via == ""
@@ -56,7 +56,7 @@ def test_haybale_to_dict_omits_empty_fields() -> None:
     are still included — `to_dict()` uses a simple `if val:` falsy check,
     matching the legacy MarketplaceEntry.to_dict() semantics.
     """
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="haybale-foo", version="0.1.0")
     d = h.to_dict()
@@ -74,7 +74,7 @@ def test_haybale_to_dict_omits_empty_fields() -> None:
 
 @pytest.mark.unit
 def test_haybale_to_dict_includes_os_when_present() -> None:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     h = Haybale(name="haybale-foo", version="0.1.0", os=["macos", "linux"])
     d = h.to_dict()
@@ -84,7 +84,7 @@ def test_haybale_to_dict_includes_os_when_present() -> None:
 @pytest.mark.unit
 def test_haybale_field_order_in_toml_fields() -> None:
     """Spec §2 sets the canonical order; `os` lives between tags and linked_libraries."""
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     fields = Haybale._TOML_FIELDS
     assert "os" in fields
@@ -204,8 +204,8 @@ def test_public_surface_imports_from_marketstall_package() -> None:
     naming the symbol, and mypy checks the names statically too.
     """
     from haywire.core.marketstall import (  # noqa: F401
-        # Dataclasses
-        Haybale,
+        # Dataclasses (Haybale/Deprecation live in haywire.core.library.haybale
+        # and are no longer re-exported here — see the layering test)
         Subscription,
         MarketplaceFile,
         ProjectMarketplaceFile,
@@ -248,7 +248,7 @@ def test_public_surface_imports_from_marketstall_package() -> None:
 def test_requires_haywire_defaults_empty_and_round_trips():
     """require holds a FULL PEP 440 specifier, not a bare version —
     the author picks the operator. Absent means no declared requirement."""
-    from haywire.core.marketstall import Haybale
+    from haywire.core.library.haybale import Haybale
 
     bare = Haybale(name="haybale-foo", version="0.1.0")
     assert bare.require == ""
@@ -259,7 +259,7 @@ def test_requires_haywire_defaults_empty_and_round_trips():
 
 
 def test_authors_round_trip_as_table_array():
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     row = Haybale(
         name="haybale-x",
@@ -274,7 +274,7 @@ def test_authors_round_trip_as_table_array():
 
 
 def test_authors_and_deprecated_are_serialized_last():
-    from haywire.core.marketstall.types import Deprecation, Haybale
+    from haywire.core.library.haybale import Deprecation, Haybale
 
     row = Haybale(
         name="haybale-x",
@@ -288,14 +288,14 @@ def test_authors_and_deprecated_are_serialized_last():
 
 
 def test_id_is_carried_on_the_row():
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     row = Haybale(name="haybale-x", version="1.0.0", id="x")
     assert row.to_dict()["id"] == "x"
 
 
 def test_empty_authors_is_omitted():
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
     row = Haybale(name="haybale-x", version="1.0.0")
     assert "authors" not in row.to_dict()

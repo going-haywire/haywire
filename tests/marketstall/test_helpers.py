@@ -115,12 +115,13 @@ def test_add_heap_to_project_raises_on_duplicate(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_remove_stale_haybale_removes_entry(tmp_path: Path) -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.helpers import remove_stale_haybale_from_project
     from haywire.core.marketstall.parsing import (
         parse_project_marketplace,
         serialize_project_marketplace,
     )
-    from haywire.core.marketstall.types import Haybale, ProjectMarketplaceFile
+    from haywire.core.marketstall.types import ProjectMarketplaceFile
 
     f = tmp_path / "project.toml"
     pm = ProjectMarketplaceFile(caches=[Haybale(name="haybale-gone", version="0.1.0", stale=True)])
@@ -135,9 +136,10 @@ def test_remove_stale_haybale_removes_entry(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_remove_stale_haybale_refuses_non_stale(tmp_path: Path) -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.helpers import remove_stale_haybale_from_project
     from haywire.core.marketstall.parsing import serialize_project_marketplace
-    from haywire.core.marketstall.types import Haybale, ProjectMarketplaceFile
+    from haywire.core.marketstall.types import ProjectMarketplaceFile
 
     f = tmp_path / "project.toml"
     pm = ProjectMarketplaceFile(caches=[Haybale(name="haybale-foo", version="0.1.0", stale=False)])
@@ -237,8 +239,8 @@ def test_record_block_works_on_market_subscription(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_detect_subscription_conflicts_finds_name_collisions() -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.helpers import detect_subscription_conflicts
-    from haywire.core.marketstall.types import Haybale
 
     existing = [
         Haybale(name="haybale-foo", version="0.1.0", source_origin="https://a.example/m.toml"),
@@ -257,8 +259,8 @@ def test_detect_subscription_conflicts_finds_name_collisions() -> None:
 
 @pytest.mark.unit
 def test_detect_subscription_conflicts_no_collisions() -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.helpers import detect_subscription_conflicts
-    from haywire.core.marketstall.types import Haybale
 
     existing = [Haybale(name="haybale-a", version="0.1.0")]
     new = [Haybale(name="haybale-b", version="0.1.0")]

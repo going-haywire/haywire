@@ -11,7 +11,7 @@ import subprocess
 from pathlib import Path
 from typing import cast
 
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.locate import module_dir_path, resolve_row_path
 from haywire.core.publishing import _build_entry_for_library
 

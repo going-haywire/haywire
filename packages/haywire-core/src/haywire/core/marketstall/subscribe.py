@@ -15,6 +15,7 @@ from typing import Literal
 
 import toml
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.cache import fetch_with_cache_fallback
 from haywire.core.marketstall.errors import RemoteFetchError
 from haywire.core.marketstall.helpers import (
@@ -25,7 +26,6 @@ from haywire.core.marketstall.parsing import (
     parse_marketstall_body,
     parse_remote_marketplace_body,
 )
-from haywire.core.marketstall.types import Haybale
 from haywire.core.marketstall.url_resolution import (
     InputForm,
     classify_input,

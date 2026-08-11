@@ -9,7 +9,8 @@ from __future__ import annotations
 
 import pytest
 
-from haywire.core.marketstall import Haybale, RefreshReport, ResolvedSource
+from haywire.core.library.haybale import Haybale
+from haywire.core.marketstall import RefreshReport, ResolvedSource
 
 pytestmark = pytest.mark.unit
 

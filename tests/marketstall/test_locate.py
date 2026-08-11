@@ -2,8 +2,8 @@
 
 import pytest
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.locate import module_dir_path, resolve_row_path
-from haywire.core.marketstall.types import Haybale
 
 GH = Haybale(
     name="haybale-core",

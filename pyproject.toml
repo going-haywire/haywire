@@ -97,26 +97,12 @@ exclude = ["playground/"]
 # PT (flake8-pytest-style) and B (bugbear) catch problems neither mypy nor the
 # default rules see: blind `pytest.raises(Exception)`, composite asserts that
 # hide which half failed, mutable argument defaults, unchained re-raises.
-# B applies repo-wide; PT is scoped to tests/ below. TID251 (flake8-tidy-imports
-# banned-api) enforces the banned-api list below; the sibling rule TID252
-# (relative-imports) is NOT selected — it has 198 pre-existing, unrelated
-# violations repo-wide.
-extend-select = ["E501", "PT", "B", "TID251"]
-
-[tool.ruff.lint.flake8-tidy-imports.banned-api]
-# Haybale is re-exported from the package root, and only that path is stable:
-# the type is expected to move to haywire.core.library eventually, and a deep
-# import turns that one-file move into an archaeology exercise.
-"haywire.core.marketstall.types.Haybale".msg = "Import from haywire.core.marketstall instead."
+# B applies repo-wide; PT is scoped to tests/ below.
+extend-select = ["E501", "PT", "B"]
 
 [tool.ruff.lint.per-file-ignores]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
-
-# The module's own siblings and its dedicated tests legitimately reach for the
-# deep path — they move with the file.
-"packages/haywire-core/src/haywire/core/marketstall/*" = ["TID251"]
-"tests/marketstall/*" = ["TID251"]
 
 # B027 — empty non-abstract methods in an ABC. The four files below are the
 # framework's public authoring surfaces, and every flagged method there is a

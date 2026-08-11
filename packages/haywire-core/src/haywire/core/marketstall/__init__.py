@@ -63,10 +63,8 @@ from haywire.core.marketstall.refresh import (
     resolve as resolve_catalog,
 )
 from haywire.core.marketstall.types import (
-    Deprecation,
     FetchedSources,
     FetchResult,
-    Haybale,
     MarketplaceFile,
     ProjectMarketplaceFile,
     RefreshOutcome,
@@ -93,11 +91,9 @@ from haywire.core.marketstall.url_resolution import (
 
 __all__ = [
     # Dataclasses / enums
-    "Deprecation",
     "FetchedSources",
     "FetchResult",
     "FrameworkVerdict",
-    "Haybale",
     "MarketplaceFile",
     "ProjectMarketplaceFile",
     "RefreshOutcome",

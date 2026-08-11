@@ -3,7 +3,7 @@
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 
 
 def test_installed_info_carries_the_row():

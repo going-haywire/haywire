@@ -6,7 +6,7 @@ from typing import Callable, Optional
 
 from nicegui import ui
 
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 from haywire.ui.components.stepper import Panel, show_step_flow
 
 from ._state import InstallFlow, InstallSource, resolve_current_version

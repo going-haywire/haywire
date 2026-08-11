@@ -11,6 +11,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.errors import DuplicateHeapNameError
 from haywire.core.marketstall.parsing import (
     parse_global_marketplace,
@@ -18,7 +19,7 @@ from haywire.core.marketstall.parsing import (
     serialize_global_marketplace,
     serialize_project_marketplace,
 )
-from haywire.core.marketstall.types import Haybale, ProjectMarketplaceFile, Subscription
+from haywire.core.marketstall.types import ProjectMarketplaceFile, Subscription
 
 
 def add_market_subscription_to_global(global_path: Path, url: str) -> None:

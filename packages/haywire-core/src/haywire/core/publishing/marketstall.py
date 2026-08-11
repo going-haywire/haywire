@@ -10,15 +10,15 @@ from pathlib import Path
 
 import toml
 
+from urllib.parse import urlparse
+
 from haywire.core.library.dep_detect import find_module_dir
+from haywire.core.library.haybale import Deprecation, Haybale
 from haywire.core.library.haybale_toml import (
     read_haybale,
     read_haybale_toml_lenient,
     read_raw,
 )
-from haywire.core.marketstall import Deprecation, Haybale
-from urllib.parse import urlparse
-
 from haywire.core.marketstall.host_providers import resolve_host, ssh_to_https
 from haywire.core.marketstall.requirement import haywire_core_requirement
 from haywire.core.publishing.barn import barn_library_dirs

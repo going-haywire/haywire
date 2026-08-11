@@ -19,7 +19,7 @@ from urllib.parse import urlparse
 from haywire.core.marketstall.host_providers import resolve_host
 
 if TYPE_CHECKING:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.library.haybale import Haybale
 
 
 def _ref_from_install_spec(install_spec: str) -> str | None:

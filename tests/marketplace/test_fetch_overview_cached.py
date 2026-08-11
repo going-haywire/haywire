@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import pytest
 
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import cache as cache_mod
 from haywire.core.marketstall.cache import docs_cache_dir
 

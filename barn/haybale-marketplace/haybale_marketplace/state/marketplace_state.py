@@ -4,9 +4,9 @@ import logging
 from pathlib import Path
 from typing import Optional
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import (
     FetchedSources,
-    Haybale,
     MalformedMarketplaceError,
     MarketplaceFile,
     RefreshReport,

@@ -28,7 +28,8 @@ import logging
 import time
 from typing import Optional, Protocol
 
-from haywire.core.marketstall import Haybale, check_require
+from haywire.core.library.haybale import Haybale
+from haywire.core.marketstall import check_require
 from haywire.ui.components.popup import Popup
 from haywire.ui.components.stepper import StepFlow
 

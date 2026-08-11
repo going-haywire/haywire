@@ -15,7 +15,7 @@ from urllib.parse import urlsplit
 from nicegui import ui
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName

@@ -26,8 +26,9 @@ from typing import Any
 
 import toml
 
-from haywire.core.marketstall import Deprecation, Haybale
 from haywire.core.tomlio import edit_toml, read_toml
+
+from .haybale import Deprecation, Haybale
 
 __all__ = [
     "HaybaleTomlError",

@@ -26,6 +26,7 @@ import datetime as _dt
 from dataclasses import replace
 from pathlib import Path
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.cache import (
     fetch_with_cache_fallback,
     gc_doc_dirs,
@@ -41,7 +42,6 @@ from haywire.core.marketstall.parsing import (
 )
 from haywire.core.marketstall.types import (
     FetchedSources,
-    Haybale,
     ProjectMarketplaceFile,
     RefreshOutcome,
     RefreshReport,

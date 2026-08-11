@@ -362,11 +362,12 @@ def test_serialize_global_marketplace_emits_blocked_field() -> None:
 
 @pytest.mark.unit
 def test_serialize_global_marketplace_roundtrip(tmp_path: Path) -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.parsing import (
         parse_global_marketplace,
         serialize_global_marketplace,
     )
-    from haywire.core.marketstall.types import Haybale, MarketplaceFile, Subscription
+    from haywire.core.marketstall.types import MarketplaceFile, Subscription
 
     original = MarketplaceFile(
         markets=[Subscription(url="https://agg.example/marketplace.toml")],
@@ -390,11 +391,12 @@ def test_serialize_global_marketplace_roundtrip(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_serialize_project_marketplace_roundtrip(tmp_path: Path) -> None:
+    from haywire.core.library.haybale import Haybale
     from haywire.core.marketstall.parsing import (
         parse_project_marketplace,
         serialize_project_marketplace,
     )
-    from haywire.core.marketstall.types import Haybale, ProjectMarketplaceFile
+    from haywire.core.marketstall.types import ProjectMarketplaceFile
 
     original = ProjectMarketplaceFile(
         heaps=[{"name": "haybale-x", "path": "/abs/path/x"}],

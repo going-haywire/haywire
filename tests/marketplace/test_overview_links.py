@@ -1,5 +1,5 @@
 from haybale_marketplace.editors.library_overview_editor import collect_overview_links
-from haywire.core.marketstall import Haybale
+from haywire.core.library.haybale import Haybale
 
 _SPEC = "lib @ git+https://github.com/me/repo.git@v1.2.3#subdirectory=barn/lib"
 
@@ -93,7 +93,7 @@ def test_no_examples_link_when_path_absent():
 
 def test_issues_url_is_surfaced():
     from haybale_marketplace.editors.library_overview_editor import collect_overview_links
-    from haywire.core.marketstall import Haybale
+    from haywire.core.library.haybale import Haybale
 
     links = collect_overview_links(
         Haybale(name="haybale-x", version="1.0.0", issues_url="https://issues.test")
@@ -104,7 +104,7 @@ def test_issues_url_is_surfaced():
 def test_links_render_for_a_project_local_row():
     """A library with no feed row still surfaces what its haybale.toml declares."""
     from haybale_marketplace.editors.library_overview_editor import collect_overview_links
-    from haywire.core.marketstall import Haybale
+    from haywire.core.library.haybale import Haybale
 
     links = collect_overview_links(
         Haybale(
@@ -123,6 +123,6 @@ def test_links_render_for_a_project_local_row():
 
 def test_no_links_when_nothing_declared():
     from haybale_marketplace.editors.library_overview_editor import collect_overview_links
-    from haywire.core.marketstall import Haybale
+    from haywire.core.library.haybale import Haybale
 
     assert collect_overview_links(Haybale(name="haybale-x", version="1.0.0")) == []

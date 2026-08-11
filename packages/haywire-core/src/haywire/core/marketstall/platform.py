@@ -11,7 +11,7 @@ from __future__ import annotations
 import platform
 from typing import Literal
 
-from haywire.core.marketstall.types import Haybale
+from haywire.core.library.haybale import Haybale
 
 OsName = Literal["macos", "windows", "linux", "other"]
 

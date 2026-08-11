@@ -26,9 +26,9 @@ import asyncio
 import logging
 from typing import Optional, Protocol
 
+from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall import (
     BareRepoUrlRejectedError,
-    Haybale,
     RefreshReport,
     ResolvedSource,
     SubscribeError,
