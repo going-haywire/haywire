@@ -25,6 +25,7 @@ from nicegui import background_tasks
 
 from haywire.ui import elements as hui
 from haywire.core.adapter.registry import AdapterRegistry
+from haywire.core.farmhand.registry import FarmhandRegistry
 from haywire.core.node.registry import NodeRegistry
 from haywire.core.settings import SettingsRegistry
 from haywire.core.state import LibraryStateRegistry
@@ -32,6 +33,7 @@ from haywire.core.types.registry import TypeRegistry
 from haywire.core.library.utils import (
     ADAPTER,
     EDITOR,
+    FARMHAND,
     NODE,
     PANEL,
     SETTING,
@@ -102,6 +104,7 @@ _CFG_STATES = TabConfig("states", STATE)
 _CFG_THEMES = TabConfig("themes", THEME)
 _CFG_PANELS = TabConfig("panels", PANEL)
 _CFG_EDITORS = TabConfig("editors", EDITOR)
+_CFG_FARMHANDS = TabConfig("farmhands", FARMHAND)
 
 
 def should_block_install_for_os(haybale) -> str | None:
@@ -350,6 +353,7 @@ class LibraryOverviewEditor(BaseEditor):
         panel_registry: PanelRegistry = svc.get_panel_registry()
         editor_registry: EditorTypeRegistry = svc.get_editor_registry()
         state_registry: LibraryStateRegistry = svc.get_state_registry()
+        farmhand_registry: FarmhandRegistry = svc.get_farmhand_registry()
 
         marketplace_path = str(Path(app.workspace_root) / ".haywire" / "marketplace.toml")
 
@@ -388,7 +392,7 @@ class LibraryOverviewEditor(BaseEditor):
         # Tab references — created in fixed section, used in scroll section
         tabs = t_overview = t_nodes = t_widgets = None
         t_types = t_adapters = t_skins = None
-        t_settings = t_states = t_themes = t_panels = t_editors = None
+        t_settings = t_states = t_themes = t_panels = t_editors = t_farmhands = None
 
         # Pre-compute component counts (for tab disable state)
         def _count(registry, prefix: str) -> int:
@@ -691,6 +695,7 @@ class LibraryOverviewEditor(BaseEditor):
                     n_panels = _count(panel_registry, f"{lib_id}:{PANEL}:")
                     n_editors = _count(editor_registry, f"{lib_id}:{EDITOR}:")
                     n_states = _count(state_registry, f"{lib_id}:{STATE}:")
+                    n_farmhands = _count(farmhand_registry, f"{lib_id}:{FARMHAND}:")
 
                     ui.separator().classes("mt-4")
                     with ui.tabs().classes("w-full hw-tabs").props("dense no-caps") as tabs:
@@ -701,10 +706,11 @@ class LibraryOverviewEditor(BaseEditor):
                         t_adapters = ui.tab("Adapters", icon=hui.icon.adapter) if n_adapters else None
                         t_skins = ui.tab("Skins", icon=hui.icon.skin) if n_skins else None
                         t_settings = ui.tab("Settings", icon=hui.icon.node_settings) if n_settings else None
-                        t_states = ui.tab("States", icon="data_object") if n_states else None
+                        t_states = ui.tab("States", icon=hui.icon.state) if n_states else None
                         t_themes = ui.tab("Themes", icon=hui.icon.theme) if n_themes else None
                         t_panels = ui.tab("Panels", icon=hui.icon.panel) if n_panels else None
                         t_editors = ui.tab("Editors", icon=hui.icon.editor) if n_editors else None
+                        t_farmhands = ui.tab("Farmhands", icon=hui.icon.farmhand) if n_farmhands else None
 
         # ── Scrollable section: tab panels / placeholder ──────────────────────
         self._scroll.clear()
@@ -723,6 +729,7 @@ class LibraryOverviewEditor(BaseEditor):
                         (t_themes, theme_registry, _CFG_THEMES),
                         (t_panels, panel_registry, _CFG_PANELS),
                         (t_editors, editor_registry, _CFG_EDITORS),
+                        (t_farmhands, farmhand_registry, _CFG_FARMHANDS),
                     ]
                     for tab, registry, cfg in _tab_configs:
                         if tab:
@@ -860,7 +867,6 @@ class LibraryOverviewEditor(BaseEditor):
         # LibraryInfo is frozen and info.row is a snapshot, not a live view —
         # reload_installed() re-fetches
         context.active_library = reload_installed(lib.identity.id, manager)
-
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)

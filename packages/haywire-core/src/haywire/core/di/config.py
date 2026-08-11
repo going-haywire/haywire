@@ -29,6 +29,7 @@ from ..library.registry import LibraryRegistry
 from ..library.utils import (
     ADAPTER,
     EDITOR,
+    FARMHAND,
     NODE,
     PANEL,
     SETTING,
@@ -573,6 +574,7 @@ class LibrarySystemService:
         editor_registry = self.injector.get(EditorTypeRegistry)
         panel_registry = self.injector.get(PanelRegistry)
         theme_registry = self.injector.get(ThemeRegistry)
+        farmhand_registry = self.injector.get(FarmhandRegistry)
         self.injector.get(SettingsRegistry)
         library_registry = self.injector.get(LibraryRegistry)
 
@@ -645,12 +647,19 @@ class LibrarySystemService:
         for theme_key in all_node_themes:
             print(f"   • {theme_key} (node)")
 
+        # Print registered farmhands (MCP tools)
+        print("\n🚜 Registered Farmhands:")
+        all_farmhands = farmhand_registry.list_names()
+        for farmhand_key in all_farmhands:
+            print(f"   • {farmhand_key}")
+
         print(
             f"\nTotal: {len(all_libraries)} libraries, {len(all_nodes)} nodes, "
             f"{len(all_types)} types, {len(all_adapters)} adapters, "
             f"{len(all_widgets)} widgets, {len(all_skins)} skins, "
             f"{len(all_editors)} editors, {len(all_panels)} panels, "
-            f"{len(all_workbench_themes) + len(all_node_themes)} themes "
+            f"{len(all_workbench_themes) + len(all_node_themes)} themes, "
+            f"{len(all_farmhands)} farmhands"
         )
 
     # =========================================================================
@@ -717,6 +726,10 @@ class LibrarySystemService:
         """Get the library state registry."""
         return self.injector.get(LibraryStateRegistry)
 
+    def get_farmhand_registry(self) -> FarmhandRegistry:
+        """Get the farmhand (MCP tool) registry."""
+        return self.injector.get(FarmhandRegistry)
+
     # =========================================================================
     # Component lookup by registry_key
     # =========================================================================
@@ -734,6 +747,7 @@ class LibrarySystemService:
         STATE: "get_state_registry",
         PANEL: "get_panel_registry",
         EDITOR: "get_editor_registry",
+        FARMHAND: "get_farmhand_registry",
     }
 
     def get_registry_for_key(self, registry_key: str) -> Optional["BaseRegistry"]:

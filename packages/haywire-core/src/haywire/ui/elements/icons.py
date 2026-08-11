@@ -74,6 +74,10 @@ class AppIcon:
     """Editors main icon."""
     theme: Final[str] = "style"
     """Theme and appearance main icon."""
+    state: Final[str] = "data_object"
+    """Library state main icon."""
+    farmhand: Final[str] = "agriculture"
+    """Farmhand (MCP tool) main icon."""
 
     # ── Canvas sub-panels ────────────────────────────────────────────────────
     canvas_grid: Final[str] = "grid_4x4"

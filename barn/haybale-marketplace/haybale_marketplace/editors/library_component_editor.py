@@ -64,16 +64,17 @@ class LibraryComponentEditor(BaseEditor):
         self._rebuild(context)
 
     _COMP_ICONS = {
-        "nodes": "account_tree",
-        "widgets": "widgets",
-        "types": "category",
-        "adapters": "swap_horiz",
-        "skins": "brush",
-        "settings": "tune",
-        "states": "data_object",
-        "themes": "palette",
-        "panels": "view_sidebar",
-        "editors": "tab",
+        "nodes": hui.icon.node,
+        "widgets": hui.icon.widget,
+        "types": hui.icon.type,
+        "adapters": hui.icon.adapter,
+        "skins": hui.icon.skin,
+        "settings": hui.icon.node_settings,
+        "states": hui.icon.state,
+        "themes": hui.icon.theme,
+        "panels": hui.icon.panel,
+        "editors": hui.icon.editor,
+        "farmhands": hui.icon.farmhand,
     }
 
     def _rebuild(self, context: "SessionContext") -> None:
