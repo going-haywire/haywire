@@ -7,17 +7,14 @@ id = "graph_editor"
 version = "0.1.0"
 label = "Graph Editor"
 description = "Visual graph editor library — host-agnostic"
-tags = ["graph-editor"]
+tags = ["graph", "editor", "visualize", "render", "edit", "patching"]
 
 on_reload = "refresh"
 homepage_url = "https://github.com/going-haywire/haywire"
 issues_url = "https://github.com/going-haywire/haywire/issues"
 documentation_url = "https://going-haywire.github.io/haywire/docs/"
+notes = "notes.md"
 
 [[authors]]
 name = "maybites"
 url = "https://maybites.ch"
-
-[[authors]]
-name = "test"
-url = "http://test.com"

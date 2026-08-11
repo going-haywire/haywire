@@ -18,7 +18,7 @@ import dataclasses
 import logging
 from functools import partial
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Callable
 
 from nicegui import ui
 from nicegui import background_tasks
@@ -63,6 +63,8 @@ from haybale_marketplace.editors._overview_actions import (
     confirm_uninstall,
     disable_library,
     enable_library,
+    notify_library_changed,
+    reload_installed,
 )
 from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog
 from haybale_marketplace.library_origin import LibraryOrigin, compute_library_origin
@@ -142,7 +144,7 @@ def collect_overview_links(pkg) -> list[tuple[str, str]]:
     if pkg.origin:
         links.append(("Source", pkg.origin))
     if getattr(pkg, "documentation_url", ""):
-        links.append(("Documentation", pkg.documentation_url))
+        links.append(("Docs", pkg.documentation_url))
     if pkg.issues_url:
         links.append(("Issues", pkg.issues_url))
     notes_dir = module_dir_path(pkg)
@@ -287,6 +289,30 @@ class LibraryOverviewEditor(BaseEditor):
             ).props(props)
         else:
             ui.button(label, icon=icon, on_click=on_click).props(props)
+
+    def _notes_click_target(
+        self,
+        installed_lib: "LibraryInfo | None",
+        row: Haybale,
+        context: "SessionContext",
+    ) -> tuple[Callable[[], None], str] | None:
+        """Clicking a local "Notes"  opened an editable in the
+        studio's CodeEditor rather than linked out to a remote blob.
+
+        The file need not exist yet: CodeEditor opens a nonexistent path in a new tab
+
+        Returns ``(on_click, icon)`` or None
+        """
+        if installed_lib is None or not row.notes or not installed_lib.identity.folder_path:
+            return None
+        notes_path = Path(installed_lib.identity.folder_path) / row.notes
+
+        def _open() -> None:
+            from haybale_studio.editors.error_navigation import open_file_in_studio
+
+            open_file_in_studio(str(notes_path), None, context)
+
+        return _open, hui.icon.edit_document
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -628,14 +654,26 @@ class LibraryOverviewEditor(BaseEditor):
                             else:
                                 ui.label(_name).classes("text-xs hw-text-dim")
 
-                # Collect relevant links
-                _links = collect_overview_links(row)
-                if _links:
+                # Collect relevant links. Notes gets special handling
+                _links = [(_lbl, _href) for _lbl, _href in collect_overview_links(row) if _lbl != "Notes"]
+                _notes_click = self._notes_click_target(installed_lib, row, context)
+                if _links or _notes_click:
                     with ui.row().classes("items-center gap-3 mt-1 flex-wrap"):
+                        if _notes_click:
+                            _open_notes, _icon = _notes_click
+                            with ui.row().classes("items-center gap-1"):
+                                ui.label("Notes").classes("text-xs hw-text-dim")
+                                # the target is a studio-side navigation action (open in CodeEditor)
+                                ui.icon(_icon, size="14px").classes("hw-text-accent cursor-pointer").on(
+                                    "click", _open_notes
+                                ).tooltip("Open in CodeEditor")
                         for _lbl, _href in _links:
-                            with ui.row().classes("items-center gap-0.5"):
-                                ui.link(_lbl, _href, new_tab=True).classes("text-xs hw-text-accent")
-                                ui.icon("open_in_new", size="10px").classes("hw-text-accent opacity-70")
+                            with ui.row().classes("items-center gap-1"):
+                                ui.label(_lbl).classes("text-xs hw-text-dim")
+                                with ui.link(target=_href, new_tab=True):
+                                    ui.icon(hui.icon.open_external, size="14px").classes(
+                                        "hw-text-accent"
+                                    ).tooltip(_href)
                 if tags:
                     with ui.row().classes("gap-1 mt-2 flex-wrap"):
                         for tag in tags:
@@ -819,11 +857,10 @@ class LibraryOverviewEditor(BaseEditor):
         # cannot be read on demand. Re-rendering is enough to show it.
         ui.notify(f"Saved: {identity.get('label', lib.identity.label)}", type="positive")
 
-        # _do_update_identity is wired from a button drawn during draw(),
-        # so _container has been set by then.
-        assert self._container is not None
-        self._container.clear()
-        self._rebuild(context)
+        # LibraryInfo is frozen and info.row is a snapshot, not a live view —
+        # reload_installed() re-fetches
+        context.active_library = reload_installed(lib.identity.id, manager)
+
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)

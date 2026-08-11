@@ -26,6 +26,7 @@ def notify_library_changed(context: "SessionContext") -> None:
 
 
 def reload_installed(library_id: str, manager: "LibraryManager") -> LibraryInfo | None:
+    """Reload the installed library with the given ID from the manager."""
     try:
         libs = manager.list_installed()
         return next((lib for lib in libs if lib.identity.id == library_id), None)

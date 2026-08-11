@@ -166,6 +166,8 @@ class AppIcon:
     """Persist to disk action."""
     edit: Final[str] = "edit"
     """Open for editing action."""
+    edit_document: Final[str] = "edit_note"
+    """Open a document for editing (distinct from `edit`'s bare pencil)."""
     reset: Final[str] = "restart_alt"
     """Reset to default / restart action."""
     promote: Final[str] = "upgrade"

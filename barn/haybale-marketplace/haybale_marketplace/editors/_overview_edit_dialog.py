@@ -209,6 +209,22 @@ def build_edit_dialog(
             label="Tags (comma-separated)",
             value=", ".join(haybale_row.tags),
         )
+        examples_path_input = hui.input_field(
+            label="Examples path", value=haybale_row.examples_path
+        ).tooltip(
+            "Project-relative path to a directory of example graphs."
+            " Trailing slash marks a directory."
+        )
+        tests_path_input = hui.input_field(label="Tests path", value=haybale_row.tests_path).tooltip(
+            "Project-relative path to a directory of test graphs. Trailing slash marks a directory."
+        )
+        notes_input = (
+            hui.input_field(label="Notes", value=haybale_row.notes)
+            .props("dense autogrow")
+            .tooltip(
+                "library-relative path to a file containing notes about this library."
+            )
+        )
 
         # Authors — positional, whole-value replace on save (like every other
         # field here except linked_libraries). `_author_rows` holds one
@@ -331,6 +347,9 @@ def build_edit_dialog(
                 "documentation_url": docs_url_input.value.strip(),
                 "issues_url": issues_url_input.value.strip(),
                 "tags": [t.strip() for t in tags_input.value.split(",") if t.strip()],
+                "examples_path": examples_path_input.value.strip(),
+                "tests_path": tests_path_input.value.strip(),
+                "notes": notes_input.value.strip(),
                 "on_reload": on_reload_select.value or LibraryReloadAction.NONE.value,
                 "authors": authors,
             }
