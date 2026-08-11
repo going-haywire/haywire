@@ -1,8 +1,0 @@
-{
-  "mcpServers": {
-    "farmhand": {
-      "command": "npx",
-      "args": ["-y", "@going-haywire/farmhand4claude@latest"]
-    }
-  }
-}
