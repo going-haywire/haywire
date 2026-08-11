@@ -36,7 +36,7 @@ def reload_installed(library_id: str, manager: "LibraryManager") -> LibraryInfo 
 def find_installed_by_dist_name(dist_name: str, manager: "LibraryManager") -> LibraryInfo | None:
     try:
         libs = manager.list_installed()
-        return next((lib for lib in libs if lib.distribution_name == dist_name), None)
+        return next((lib for lib in libs if lib.row.name == dist_name), None)
     except Exception:
         return None
 

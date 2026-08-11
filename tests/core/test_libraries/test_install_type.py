@@ -42,7 +42,6 @@ def test_not_installed_is_not_framework_origin():
         identity=LibraryIdentity(id="x"),
         enabled=False,
         install_type=InstallType.NOT_INSTALLED,
-        distribution_name="haybale-x",
     )
     origin = compute_library_origin(info, None, catalog_entry=info.row)
     assert origin is LibraryOrigin.PYPI

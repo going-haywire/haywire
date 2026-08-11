@@ -694,11 +694,17 @@ class LibraryManager:
         identity = self.registry.get_library_identity(library_id)
         install_type = self.registry.get_library_install_type(library_id)
         enabled = self.registry.is_library_enabled(library_id)
-        dist_name = self.registry.get_library_distribution_name(library_id)
 
         # Metadata comes off haybale.toml at the point of use, not off the
         # identity built at import — that is what makes an edit visible without
         # a reload.
+        #
+        # Not guarded against a corrupt file: a library whose haybale.toml does
+        # not parse never loads at all (@library reads it strictly, so discovery
+        # drops the library and no LibraryInfo is built), and one corrupted while
+        # running keeps its previous identity by BaseLibrary's reload contract.
+        # An empty row here therefore means the window between a write and the
+        # next render, which heals itself.
         row = read_haybale(Path(identity.folder_path)) if identity.folder_path else Haybale(name="")
 
         return LibraryInfo(
@@ -706,7 +712,6 @@ class LibraryManager:
             identity=identity,
             enabled=enabled,
             install_type=install_type or InstallType.FOLDER,
-            distribution_name=dist_name or "",
         )
 
     @staticmethod
@@ -722,7 +727,6 @@ class LibraryManager:
             identity=LibraryIdentity(),
             enabled=False,
             install_type=InstallType.NOT_INSTALLED,
-            distribution_name=pkg.name,
         )
 
     def is_installed(self, library_id: str) -> bool:

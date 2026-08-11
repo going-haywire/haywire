@@ -469,7 +469,7 @@ class LibraryBrowserEditor(BaseEditor):
                 pass
 
         def _catalog_entry_for(info: LibraryInfo):
-            return _catalog_by_dist_name.get(info.distribution_name)
+            return _catalog_by_dist_name.get(info.row.name)
 
         def is_required(lib: LibraryInfo) -> bool:
             # Required if origin.is_protected (framework-owned or this
@@ -508,7 +508,7 @@ class LibraryBrowserEditor(BaseEditor):
 
         # installed_names is needed both for available-package filtering and for
         # _library_item to decide whether a stale entry is user-removable.
-        installed_names = {lib.distribution_name for lib in libraries if lib.distribution_name}
+        installed_names = {lib.row.name for lib in libraries if lib.row.name}
 
         # Parse marketplace.toml once to build both `available` (packages not yet
         # installed) and `updates_available` (dist names with newer cached versions).
@@ -526,7 +526,7 @@ class LibraryBrowserEditor(BaseEditor):
                 for entry in pm.caches:
                     if not entry.version or not entry.name:
                         continue
-                    lib = next((x for x in libraries if x.distribution_name == entry.name), None)
+                    lib = next((x for x in libraries if x.row.name == entry.name), None)
                     if lib and lib.row.version:
                         try:
                             if Version(entry.version) > Version(lib.row.version):
@@ -558,7 +558,7 @@ class LibraryBrowserEditor(BaseEditor):
                     available = [
                         info
                         for info in (manager.entry_for_haybale(e) for e in candidates)
-                        if info.distribution_name not in installed_names and matches(info)
+                        if info.row.name not in installed_names and matches(info)
                     ]
                     available.sort(key=_label)
             except Exception as e:
@@ -573,7 +573,7 @@ class LibraryBrowserEditor(BaseEditor):
                         "purple",
                         context,
                         installed_names,
-                        has_update=lib.distribution_name in updates_available,
+                        has_update=lib.row.name in updates_available,
                     )
 
             if enabled:
@@ -584,7 +584,7 @@ class LibraryBrowserEditor(BaseEditor):
                         "green",
                         context,
                         installed_names,
-                        has_update=lib.distribution_name in updates_available,
+                        has_update=lib.row.name in updates_available,
                     )
 
             if disabled:
@@ -595,7 +595,7 @@ class LibraryBrowserEditor(BaseEditor):
                         "orange",
                         context,
                         installed_names,
-                        has_update=lib.distribution_name in updates_available,
+                        has_update=lib.row.name in updates_available,
                     )
 
             if available:
@@ -643,7 +643,7 @@ class LibraryBrowserEditor(BaseEditor):
                 ).tooltip("Update available")
         if is_stale:
             last_seen = haybale_row.last_seen or "unknown"
-            entry_name = haybale_row.name or lib.distribution_name
+            entry_name = haybale_row.name
             is_uninstalled = bool(entry_name) and entry_name not in installed_names
             with row:
                 stale_dot = ui.element("div").classes("w-2 h-2 rounded-full bg-red-500 flex-shrink-0")

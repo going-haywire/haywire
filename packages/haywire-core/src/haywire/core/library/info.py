@@ -22,23 +22,27 @@ if TYPE_CHECKING:
 class LibraryInfo:
     """A library and, when it is installed here, its install state.
 
+    The pip distribution name is ``row.name`` — canon, per ADR 0025. There is no
+    separate field for it: the entry point's ``dist.name`` is a runtime echo of
+    ``pyproject.toml``'s ``[project] name``, which is itself generated from
+    ``haybale.toml``. Reading the echo would also lose folder installs, which
+    have no entry point but do have a name (``builtin`` is ``haywire-core``).
+
     Attributes:
-        row:               Declared metadata. The same shape whether it came from
-                           the library's ``haybale.toml`` or from a feed.
-        identity:          Runtime handles (``folder_path``, ``module_name``,
-                           ``linked_libraries``). Empty when not installed.
-        enabled:           Whether the library is currently enabled. ``False``
-                           when not installed.
-        install_type:      How the library reached this environment, or
-                           ``NOT_INSTALLED``.
-        distribution_name: Pip package name. Empty for folder installs.
+        row:          Declared metadata. The same shape whether it came from
+                      the library's ``haybale.toml`` or from a feed.
+        identity:     Runtime handles (``folder_path``, ``module_name``,
+                      ``linked_libraries``). Empty when not installed.
+        enabled:      Whether the library is currently enabled. ``False``
+                      when not installed.
+        install_type: How the library reached this environment, or
+                      ``NOT_INSTALLED``.
     """
 
     row: "Haybale"
     identity: LibraryIdentity = field(default_factory=LibraryIdentity)
     enabled: bool = False
     install_type: InstallType = InstallType.NOT_INSTALLED
-    distribution_name: str = ""
 
     @property
     def installed(self) -> bool:

@@ -143,43 +143,44 @@ Every field this file may declare, and which file each one reaches.
 - **pyproject** — projected into the generated `[project]` block of
   [`pyproject.toml`](pyproject-toml.md) at publish, naming the key it becomes.
 
-| Field | Type | Required | haybale | marketstall | pyproject | Meaning |
-| --- | --- | --- | :-: | :-: | :-: | --- |
-| `name` | string | yes | ● | ● | `name` | Pip distribution name. Canon here; pyproject carries the generated copy. Immutable |
-| `id` | string | yes | ● | ● | | Prefixes every component's registry key (`core:node:Add`). Immutable |
-| `version` | string | yes | ● | ● | `version` | PEP 440, no `v`. Canon here; pyproject carries the generated copy. The git tag is derived from it |
-| `label` | string | yes | ● | ● | | Human display name |
-| `description` | string | no | ● | ● | `description` | One line |
-| `tags` | list[str] | no | ● | ● | `keywords` | Filter tags in the library browser |
-| `os` | list[str] | no | ● | ● | | `macos`/`linux`/`windows`. Empty = everywhere. The only field that blocks installation |
-| `on_reload` | string | no | ● | ● | | `none` (default) / `refresh` / `restart` |
-| `linked_libraries` | list[str] | no | ● | ● | | **Module** names. Hot-reload scope, and enable/uninstall gating |
-| `origin` | string | no | ● | ● | `urls.Source` | The repository this publishes from. Every declared path resolves against it |
-| `origin_provider` | string | no | ● | ● | | `github` / `gitlab`. Lets a consumer build URLs with no local host config |
-| `notes` | string | no | ● | ● | | A bare filename in this directory — one supplementary page |
-| `examples_path` | string | no | ● | ● | | Project-relative path. Trailing slash marks a directory |
-| `tests_path` | string | no | ● | ● | | Project-relative path. Not surfaced in the UI |
-| `homepage_url` | string | no | ● | ● | `urls.Homepage` | Absolute URL, verbatim |
-| `documentation_url` | string | no | ● | ● | `urls.Documentation` | Absolute URL, verbatim |
-| `issues_url` | string | no | ● | ● | `urls.Issues` | Absolute URL, verbatim |
-| `[[authors]]` | table[] | no | ● | ● | `authors` | Repeatable `name` + optional `url`, copied verbatim to the marketstall row; no pyproject slot |
-| `[deprecated]` | table | no | ● | ● | `classifiers` | `since` (required), `reason`, optional `successor`. Informs; never blocks |
+| Field                          | Type      | Required | haybale | marketstall | pyproject                  | Meaning                                                                                           |
+| ------------------------------ | --------- | -------- |:-------:|:-----------:|:--------------------------:| ------------------------------------------------------------------------------------------------- |
+| `name`                         | string    | yes      | ●       | ●           | `name`                     | Pip distribution name. Canon here; pyproject carries the generated copy. Immutable                |
+| `id`                           | string    | yes      | ●       | ●           |                            | Prefixes every component's registry key (`core:node:Add`). Immutable                              |
+| `version`                      | string    | yes      | ●       | ●           | `version`                  | PEP 440, no `v`. Canon here; pyproject carries the generated copy. The git tag is derived from it |
+| `label`                        | string    | yes      | ●       | ●           |                            | Human display name                                                                                |
+| `description`                  | string    | no       | ●       | ●           | `description`              | One line                                                                                          |
+| `tags`                         | list[str] | no       | ●       | ●           | `keywords`                 | Filter tags in the library browser                                                                |
+| `os`                           | list[str] | no       | ●       | ●           |                            | `macos`/`linux`/`windows`. Empty = everywhere. The only field that blocks installation            |
+| `on_reload`                    | string    | no       | ●       | ●           |                            | `none` (default) / `refresh` / `restart`                                                          |
+| `linked_libraries`             | list[str] | no       | ●       | ●           |                            | **Module** names. Hot-reload scope, and enable/uninstall gating                                   |
+| `origin`                       | string    | no       | ●       | ●           | `urls.Source`              | The repository this publishes from. Every declared path resolves against it                       |
+| `origin_provider`              | string    | no       | ●       | ●           |                            | `github` / `gitlab`. Lets a consumer build URLs with no local host config                         |
+| `notes`                        | string    | no       | ●       | ●           |                            | A bare filename in this directory — one supplementary page                                        |
+| `examples_path`                | string    | no       | ●       | ●           |                            | Project-relative path. Trailing slash marks a directory                                           |
+| `tests_path`                   | string    | no       | ●       | ●           |                            | Project-relative path. Not surfaced in the UI                                                     |
+| `homepage_url`                 | string    | no       | ●       | ●           | `urls.Homepage`            | Absolute URL, verbatim                                                                            |
+| `documentation_url`            | string    | no       | ●       | ●           | `urls.Documentation`       | Absolute URL, verbatim                                                                            |
+| `issues_url`                   | string    | no       | ●       | ●           | `urls.Issues`              | Absolute URL, verbatim                                                                            |
+| `[[authors]]`                  | table[]   | no       | ●       | ●           | `authors`                  | Repeatable `name` + optional `url`, copied verbatim to the marketstall row; no pyproject slot     |
+| `[deprecated]`                 | table     | no       | ●       | ●           | `classifiers`              | `since` (required), `reason`, optional `successor`. Informs; never blocks                         |
+| **fields in marketstall.toml** | ---       | ----     | ---     | ---         | ---                        | ---                                                                                               |
+| install_spec                   | string    | yes      |         | ●           |                            | pip install string                                                                                |
+| source                         | string    | no       |         | ●           |                            | generated                                                                                         |
+| require                        | string    | yes      |         | ●           | `dependency[haywire-core]` | projected from pyproject                                                                          |
 
-Nothing else is read from this file. `install_spec`, `require` and `source` are
-generated at publish and exist only in
-[`marketstall.toml`](marketstall-toml.md#field-inheritance); pip requirements
-and the entry point live in [`pyproject.toml`](pyproject-toml.md).
+pip requirements (projected into require) and the entry point live in [`pyproject.toml`](pyproject-toml.md).
 
 ## Who writes what
 
-| Written by | Fields |
-| --- | --- |
-| `haywire init` (scaffold) | `name`, `id`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template |
-| The author, by hand or in the edit modal | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
-| The author, by hand only | `[deprecated]` |
-| `scripts/bump_version.py` and the share wizard | `version` — canon here; the generated copy is synced into `pyproject.toml` |
-| The share wizard | `origin`, `origin_provider`, and drift-detected `linked_libraries` additions |
-| Nothing — immutable | `name`, `id` |
+| Written by                                     | Fields                                                                                                                                                                          |
+| ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `haywire init` (scaffold)                      | `name`, `id`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template                                              |
+| The author, by hand or in the edit modal       | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
+| The author, by hand only                       | `[deprecated]`                                                                                                                                                                  |
+| `scripts/bump_version.py` and the share wizard | `version` — canon here; the generated copy is synced into `pyproject.toml`                                                                                                      |
+| The share wizard                               | `origin`, `origin_provider`, and drift-detected `linked_libraries` additions                                                                                                    |
+| Nothing — immutable                            | `name`, `id`                                                                                                                                                                    |
 
 The edit modal accepts exactly the thirteen author-editable fields above
 (`EDITABLE_FIELDS`); passing any other raises rather than silently dropping the
@@ -317,25 +318,56 @@ order:
 
 ## Not in this file
 
-| | Lives in |
-| --- | --- |
-| `id`, `file_watcher` kwargs | `@library(...)` — see [haybale-canon](../../haybale/haybale-canon.md#4-the-library-class) |
-| Pip requirements (`dependencies`) | [`pyproject.toml`](pyproject-toml.md) |
-| The entry point and build config | [`pyproject.toml`](pyproject-toml.md) |
-| `install_spec`, `require`, `source` | [`marketstall.toml`](marketstall-toml.md) — generated at publish |
+|                                     | Lives in                                                                                  |
+| ----------------------------------- | ----------------------------------------------------------------------------------------- |
+| `id`, `file_watcher` kwargs         | `@library(...)` — see [haybale-canon](../../haybale/haybale-canon.md#4-the-library-class) |
+| Pip requirements (`dependencies`)   | [`pyproject.toml`](pyproject-toml.md)                                                     |
+| The entry point and build config    | [`pyproject.toml`](pyproject-toml.md)                                                     |
+| `install_spec`, `require`, `source` | [`marketstall.toml`](marketstall-toml.md) — generated at publish                          |
 
 ## Reading it in code
 
-| Reader | Use | Behaviour on a bad file |
-| --- | --- | --- |
-| `read_haybale_toml(package_dir)` | Decoration time; returns `LibraryIdentity` kwargs | Raises `HaybaleTomlError` — fatal for that library alone |
-| `read_haybale_toml_lenient(package_dir)` | Report-only callers | Returns `{}` |
-| `read_haybale(package_dir)` | Rendering; returns a `Haybale` | Never raises — returns an empty row; cached on mtime |
-| `read_raw(package_dir)` | The publisher, which needs keys the runtime never loads | Returns `{}` |
-| `write_haybale_fields(package_dir, fields)` | The edit modal | Raises on a non-editable field |
+| Reader                                      | Use                                                     | Behaviour on a bad file                                  |
+| ------------------------------------------- | ------------------------------------------------------- | -------------------------------------------------------- |
+| `read_haybale_toml(package_dir)`            | Decoration time; returns `LibraryIdentity` kwargs       | Raises `HaybaleTomlError` — fatal for that library alone |
+| `read_haybale_toml_lenient(package_dir)`    | Report-only callers                                     | Returns `{}`                                             |
+| `read_haybale(package_dir)`                 | Rendering; returns a `Haybale`                          | Never raises — returns an empty row; cached on mtime     |
+| `read_raw(package_dir)`                     | The publisher, which needs keys the runtime never loads | Returns `{}`                                             |
+| `write_haybale_fields(package_dir, fields)` | The edit modal                                          | Raises on a non-editable field                           |
 
-Rendering deliberately reads the file rather than `LibraryIdentity`: the
-identity is built once at import, so a value served through it is only as fresh
-as the last reload.
+
 
 All five live in `haywire.core.library.haybale_toml`.
+
+## The distribution name
+
+`name` is canon. Nothing else stores the distribution name as a fact of its own:
+
+- `pyproject.toml`'s `[project] name` is generated from it (`PROJECT_FIELDS`),
+  and `pyproject_drift()` reports the copy against canon, never the reverse.
+- The installed distribution's entry-point metadata (`ep.dist.name`) is that
+  generated copy, observed at runtime. `LibraryRegistry` caches it per library
+  id for the install/uninstall paths, which need the string pip accepts.
+- `LibraryInfo` has **no** distribution-name field. Readers use `info.row.name`.
+
+Reading the entry point in preference to canon would also lose the folder
+installs, which have no entry point at all: `builtin` ships inside
+`haywire-core` and declares `name = "haywire-core"` here, which is the only
+place that name exists for it.
+
+The `haybale-` prefix is a convention, not a rule — `builtin` disproves it — so
+a distribution name is displayed as declared, never reconstructed from an `id`.
+
+Nothing falls back to the identity when a row reads empty, because there is no
+state in which that helps:
+
+- **Corrupt at load** — `@library` reads this file strictly, so the library
+  never loads and no `LibraryInfo` is built for it. Discovery logs the failure
+  and moves on.
+- **Corrupted while running** — `BaseLibrary.update_identity_from_toml()` keeps
+  the previous values ("the author is mid-keystroke and a half-written file is
+  expected"), and the next render re-reads the file.
+
+An empty row therefore means the sub-render window between a write and the next
+read, which heals itself. A render that reaches for `LibraryIdentity` to cover
+it is a stale read buying nothing.

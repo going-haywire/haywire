@@ -24,13 +24,12 @@ def _identity(folder_path: str) -> LibraryIdentity:
     )
 
 
-def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "") -> LibraryInfo:
+def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "haybale-x") -> LibraryInfo:
     return LibraryInfo(
-        row=Haybale(name="haybale-x", version="1.0.0"),
+        row=Haybale(name=distribution_name, version="1.0.0"),
         identity=_identity(folder_path),
         enabled=True,
         install_type=install_type,
-        distribution_name=distribution_name,
     )
 
 
@@ -89,7 +88,6 @@ class TestIsProjectLibrary:
             identity=_identity(""),
             enabled=True,
             install_type=InstallType.EDITABLE,
-            distribution_name="",
         )
         marketplace_path = str(tmp_path / ".haywire" / "marketplace.toml")
         assert is_project_library(lib, marketplace_path) is False

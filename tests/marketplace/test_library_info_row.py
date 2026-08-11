@@ -12,10 +12,11 @@ def test_installed_info_carries_the_row():
         identity=LibraryIdentity(id="x", label="X", version="1.0.0"),
         enabled=True,
         install_type=InstallType.EDITABLE,
-        distribution_name="haybale-x",
     )
     assert info.installed is True
     assert info.row.label == "X"
+    # The distribution name is the row's name — there is no second field.
+    assert info.row.name == "haybale-x"
 
 
 def test_not_installed_info_has_empty_install_state():
@@ -24,7 +25,6 @@ def test_not_installed_info_has_empty_install_state():
         identity=LibraryIdentity(),
         enabled=False,
         install_type=InstallType.NOT_INSTALLED,
-        distribution_name="",
     )
     assert info.installed is False
     assert info.enabled is False
@@ -39,4 +39,4 @@ def test_entry_for_haybale_builds_a_not_installed_info():
     assert info.installed is False
     assert info.install_type is InstallType.NOT_INSTALLED
     assert info.row is pkg
-    assert info.distribution_name == "haybale-x"
+    assert info.row.name == "haybale-x"

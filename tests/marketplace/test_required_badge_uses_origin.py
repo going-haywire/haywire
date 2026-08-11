@@ -20,11 +20,10 @@ def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "
         id="testlib",
     )
     return LibraryInfo(
-        row=Haybale(name="haybale-x", version="1.0.0"),
+        row=Haybale(name=distribution_name or "haybale-x", version="1.0.0"),
         identity=identity,
         enabled=True,
         install_type=install_type,
-        distribution_name=distribution_name,
     )
 
 

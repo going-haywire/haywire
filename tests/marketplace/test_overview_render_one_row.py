@@ -98,7 +98,6 @@ def _installed(tmp_path) -> LibraryInfo:
         identity=LibraryIdentity(id="x", label="Ex", version="1.0.0", folder_path=str(folder)),
         enabled=True,
         install_type=InstallType.REGULAR,
-        distribution_name="haybale-x",
     )
 
 

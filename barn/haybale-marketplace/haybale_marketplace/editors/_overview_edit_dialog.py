@@ -120,26 +120,28 @@ def build_edit_dialog(
     grown past what a fixed-height Quasar dialog can show without squishing
     content unreadably; ``Popup``'s card caps at ``90vh`` and scrolls.
     """
-    old_name_part = (
-        lib.distribution_name.removeprefix("haybale-") if lib.distribution_name else lib.identity.id
-    )
-
-    edit_popup = Popup(
-        title=f"Edit Library — haybale-{old_name_part}",
-        width="480px",
-        closable=True,
-        backdrop_click_close=False,
-        escape_close=True,
-    )
     # Read the file, not the identity: the identity carries only what the
     # runtime needs, and reading it here would show pre-edit values for
     # anything a previous save changed.
     haybale_row = read_haybale(Path(lib.identity.folder_path))
 
+    # The distribution name as declared, not reconstructed: not every library is
+    # named `haybale-<id>` — the builtin is `haywire-core`. Also feeds the rename
+    # command below, where a synthesized name would be worse than none.
+    dist_name = haybale_row.name
+
+    edit_popup = Popup(
+        title=f"Edit Library — {dist_name}",
+        width="480px",
+        closable=True,
+        backdrop_click_close=False,
+        escape_close=True,
+    )
+
     with edit_popup:
         # Version is not editable here — it's set by Share/publish (lockstep bump),
         # which overwrites this on the next publish regardless of what's typed here.
-        ui.label(f"Version: {lib.identity.version or '0.1.0'} (set via Share/publish)").classes(
+        ui.label(f"Version: {haybale_row.version or '?'} (set via Share/publish)").classes(
             "text-xs hw-text-dim"
         )
         # Still a label, not an input: the author has nothing to decide here.
@@ -278,10 +280,10 @@ def build_edit_dialog(
             in_popup=True,
         ).classes("w-full")
 
-        name_input = hui.input_field(value=old_name_part).props("readonly")
-        with name_input.add_slot("prepend"):
-            ui.label("haybale-").classes("text-sm font-mono hw-text-muted")
-        _cur = f"haybale-{old_name_part}"
+        # The full distribution name, not a stem with a "haybale-" prepend slot:
+        # the prefix is a convention, not a rule (the builtin is "haywire-core").
+        name_input = hui.input_field(value=dist_name).props("readonly")
+        _cur = dist_name
         with name_input.add_slot("append"):
             hui.icon_action(
                 "info",

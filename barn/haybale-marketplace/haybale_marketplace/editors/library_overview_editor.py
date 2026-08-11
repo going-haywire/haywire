@@ -235,7 +235,7 @@ class LibraryOverviewEditor(BaseEditor):
         :class:`LibraryOrigin` as pypi vs git. A not-installed library's catalog
         row *is* ``info.row``, so this is only consulted for installed ones.
 
-        Matching by distribution_name mirrors the LibraryBrowser update-arrow logic
+        Matching by distribution name mirrors the LibraryBrowser update-arrow logic
         so the same packages flagged in the list also expose an Update button here.
         """
         from haybale_marketplace.state.marketplace_state import MarketplaceState
@@ -243,7 +243,7 @@ class LibraryOverviewEditor(BaseEditor):
         if context.app_data is None or MarketplaceState not in context.app_data:
             return None
         state = context.app_data[MarketplaceState]
-        dist_name = info.distribution_name
+        dist_name = info.row.name
         if not dist_name:
             return None
         try:
@@ -332,13 +332,14 @@ class LibraryOverviewEditor(BaseEditor):
         # edit shows without a reload, or the marketstall row for a library that
         # has no files on disk yet. Both carry the same fields.
         row = info.row
-        # The identity is the fallback, not the source: it is built at import, so
-        # it is stale after an edit. But `read_haybale` degrades to an empty row
-        # rather than raising, and a library that loaded successfully still has a
-        # good label and version on its identity — so a corrupt file mid-session
-        # names the library instead of rendering a blank header.
-        name = row.label or row.name or info.identity.label
-        version = row.version or info.identity.version
+        # The file, never the identity: the identity is built at import and is
+        # stale after an edit. There is nothing to fall back to — a library whose
+        # haybale.toml does not parse never loads (so no LibraryInfo exists for
+        # it), and one corrupted while running keeps its previous identity by
+        # BaseLibrary's reload contract. An empty row is the sub-render window
+        # between a write and the next read.
+        name = row.label or row.name
+        version = row.version
         description = row.description
         tags = list(row.tags)
         installed_lib = info if info.installed else None
@@ -389,9 +390,8 @@ class LibraryOverviewEditor(BaseEditor):
 
                         with ui.row().classes("items-center gap-2 mt-1 flex-wrap"):
                             ui.label(f"v{version}").classes("text-sm hw-text-muted")
-                            _dist_name = info.distribution_name or row.name
-                            if _dist_name:
-                                ui.label(_dist_name).classes("text-xs hw-text-muted font-mono")
+                            if row.name:
+                                ui.label(row.name).classes("text-xs hw-text-muted font-mono")
                             if update_available and catalog_row:
                                 hui.tag(f"v{catalog_row.version} available", color="orange")
 
