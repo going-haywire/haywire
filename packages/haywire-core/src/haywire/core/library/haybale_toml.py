@@ -22,17 +22,12 @@ from __future__ import annotations
 
 import re
 from pathlib import Path
-from typing import TYPE_CHECKING, Any
+from typing import Any
 
 import toml
 
+from haywire.core.marketstall import Deprecation, Haybale
 from haywire.core.tomlio import edit_toml, read_toml
-
-if TYPE_CHECKING:
-    # Only for the string annotations below; the real import stays inside the
-    # function bodies (see read_haybale) to avoid a haybale_toml <-> marketstall
-    # import cycle at module load time.
-    from haywire.core.marketstall import Haybale
 
 __all__ = [
     "HaybaleTomlError",
@@ -223,7 +218,7 @@ _row_cache: dict[Path, tuple[int, "Haybale"]] = {}
 def read_haybale(package_dir: Path) -> "Haybale":
     """The library's declared metadata, read from *package_dir*'s ``haybale.toml``.
 
-    The same :class:`~haywire.core.marketstall.types.Haybale` a marketstall feed
+    The same :class:`~haywire.core.library.haybale.Haybale` a marketstall feed
     yields — the two files carry the same fields, so a renderer takes one row and
     never asks which source it came from.
 
@@ -236,8 +231,6 @@ def read_haybale(package_dir: Path) -> "Haybale":
     ``source`` is ``"local"`` and the publish/transport fields are empty: this row
     was read off disk, not fetched from a feed.
     """
-    from haywire.core.marketstall import Haybale
-
     source = package_dir / HAYBALE_TOML
     try:
         mtime = source.stat().st_mtime_ns
@@ -266,7 +259,6 @@ def _row_from(data: dict) -> "Haybale":
     Wrong-typed values are dropped rather than raised on — see
     :func:`read_haybale`: rendering degrades, it does not fail.
     """
-    from haywire.core.marketstall import Deprecation, Haybale
 
     def _str(key: str) -> str:
         value = data.get(key)
@@ -371,7 +363,7 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
     indistinguishable from one an author wrote by hand.
 
     ``authors`` is the one non-scalar/non-string-list field: it takes
-    ``(name, url)`` tuples — matching :attr:`~haywire.core.marketstall.types.Haybale.authors`
+    ``(name, url)`` tuples — matching :attr:`~haywire.core.library.haybale.Haybale.authors`
     — and is converted to ``[[authors]]`` tables here, dropping ``url`` when it is
     ``""`` rather than writing an empty key. A tuple with a blank ``name`` is
     the caller's problem, not this function's: nothing downstream of a bare
