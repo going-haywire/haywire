@@ -4,7 +4,6 @@ from haywire.core.library.haybale import Haybale
 _SPEC = "lib @ git+https://github.com/me/repo.git@v1.2.3#subdirectory=barn/lib"
 
 
-
 def test_directory_paths_link_to_the_tree_form():
     """A trailing slash is a directory; /blob/ on a directory 404s."""
     pkg = Haybale(
@@ -55,8 +54,6 @@ def test_links_resolve_against_the_install_spec_ref():
     assert dict(collect_overview_links(pkg))["Examples"] == (
         "https://github.com/me/repo/blob/v1.2.3/barn/lib/examples/OVERVIEW.md"
     )
-
-
 
 
 def test_no_links_when_nothing_declared():

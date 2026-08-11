@@ -65,7 +65,6 @@ from haybale_marketplace.editors._overview_actions import (
     confirm_uninstall,
     disable_library,
     enable_library,
-    notify_library_changed,
     reload_installed,
 )
 from haybale_marketplace.editors._overview_edit_dialog import build_edit_dialog

@@ -212,8 +212,7 @@ def build_edit_dialog(
         examples_path_input = hui.input_field(
             label="Examples path", value=haybale_row.examples_path
         ).tooltip(
-            "Project-relative path to a directory of example graphs."
-            " Trailing slash marks a directory."
+            "Project-relative path to a directory of example graphs. Trailing slash marks a directory."
         )
         tests_path_input = hui.input_field(label="Tests path", value=haybale_row.tests_path).tooltip(
             "Project-relative path to a directory of test graphs. Trailing slash marks a directory."
@@ -221,9 +220,7 @@ def build_edit_dialog(
         notes_input = (
             hui.input_field(label="Notes", value=haybale_row.notes)
             .props("dense autogrow")
-            .tooltip(
-                "library-relative path to a file containing notes about this library."
-            )
+            .tooltip("library-relative path to a file containing notes about this library.")
         )
 
         # Authors — positional, whole-value replace on save (like every other
