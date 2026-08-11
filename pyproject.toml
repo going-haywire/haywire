@@ -177,18 +177,13 @@ lockstep_unpublished = [
 [tool.haywire.marketstall]
 # Configuration for scripts/generate_marketstall.py.
 # Consumed by the marketplace generator and the CI publish workflow.
-
-# Repo URL used as the `source_url` for every generated [[haybales]] entry.
-# Also forms the base for the `docs_url` raw-githubusercontent URL.
+#
+# source_url/docs_branch are read but currently unconsumed by the generator:
+# each entry's `origin` now comes from haybale.toml / the git remote via the
+# shared marketstall builder, not from this repo-level URL. Left here (not
+# deleted) since they still describe this repo's canonical remote.
 source_url = "https://github.com/going-haywire/haywire"
-
-# Default branch used in the raw-githubusercontent docs_url.
 docs_branch = "master"
-
-# Default author and tags applied when a package's @library decorator
-# doesn't set them. Per-package values from the decorator always win.
-default_author = "Haywire Team"
-default_tags = []
 
 # Base URL where the deployed feed lives. The generator composes the per-stall
 # subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml".

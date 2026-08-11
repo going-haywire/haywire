@@ -21,8 +21,6 @@ lockstep_unpublished = [
 [tool.haywire.marketstall]
 source_url = "https://github.com/example/fake-workspace"
 docs_branch = "main"
-default_author = "Fake Team"
-default_tags = []
 marketplace = [
     "haybale-alpha",
     "haybale-beta",
