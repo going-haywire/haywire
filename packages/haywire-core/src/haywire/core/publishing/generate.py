@@ -1,14 +1,14 @@
 """Generating ``[project]`` metadata from a library's ``haybale.toml``.
 
-``haybale.toml`` is canon for everything descriptive. The PEP 621 fields exist
-so the wheel is a well-formed package — PyPI, ``uv`` and ``pip`` read them, and
-Haywire does not — so they are *projected* out of it rather than authored twice.
+``haybale.toml`` is canon for everything descriptive, including ``name`` and
+``version``. The PEP 621 fields exist so the wheel is a well-formed package —
+PyPI, ``uv`` and ``pip`` read them, and Haywire does not — so they are
+*projected* out of it rather than authored twice.
 
-``pyproject.toml`` keeps two canonical fields of its own — ``[project]
-dependencies`` and ``[project] version`` (the release machinery's; its
-``haybale.toml`` copy is synced *from* here, not read into it) — plus the
-packaging machinery no other file can own (``build-system``, ``entry-points``,
-``[tool.hatch]``). None of that is touched here.
+``pyproject.toml`` keeps one canonical field of its own — ``[project]
+dependencies`` — plus the packaging machinery no other file can own
+(``build-system``, ``entry-points``, ``[tool.hatch]``). None of that is
+touched here.
 """
 
 from __future__ import annotations
@@ -24,11 +24,12 @@ from haywire.core.tomlio import edit_toml, read_toml
 __all__ = ["PROJECT_FIELDS", "pyproject_drift", "sync_pyproject_from_haybale"]
 
 #: ``[project]`` keys generated from haybale.toml, and where each comes from.
-#: ``version`` is absent deliberately: the release machinery owns it, and it is
-#: the one field that flows the other way (haybale.toml's copy is written from
-#: the bump, not read into it).
+#: ``haybale.toml`` is canon for all of these; ``pyproject.toml`` carries the
+#: generated copy because pip, uv and PyPI read that file and cannot read this
+#: one. Drift is therefore reported against pyproject, never the other way.
 PROJECT_FIELDS = {
     "name": "name",
+    "version": "version",
     "description": "description",
     "keywords": "tags",
 }
@@ -120,6 +121,12 @@ def pyproject_drift(lib_dir: Path) -> dict[str, tuple[Any, Any]]:
     for key in (*PROJECT_FIELDS, "authors", "classifiers"):
         have = project.get(key)
         want_value = want.get(key)
+        if key == "version" and not want_value:
+            # A sync never removes an existing literal version (pip reads it
+            # and cannot read haybale.toml), so an absent declared version is
+            # not drift against one already on disk — reporting it would flag
+            # something sync can never resolve.
+            continue
         # tomlkit containers compare unequal to plain lists/dicts of the same
         # content, so normalise both sides before comparing.
         if _plain(have) != _plain(want_value):
@@ -161,7 +168,11 @@ def sync_pyproject_from_haybale(lib_dir: Path) -> list[str]:
             value = want.get(key)
             if value:
                 project[key] = value
-            else:
+            elif key != "version":
+                # Every other generated field may legitimately vanish, but pip
+                # reads `version` out of this file and cannot read haybale.toml.
+                # Removing it would leave an unbuildable package, so an absent
+                # or empty declared version leaves the existing literal alone.
                 project.pop(key, None)
 
         urls = want.get("urls") or {}

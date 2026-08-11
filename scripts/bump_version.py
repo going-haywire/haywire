@@ -6,9 +6,9 @@ then surgically edits every listed package's pyproject.toml:
   - rewrites every `"<sibling>>=A.B.C"` dep on a known sibling to
     `"<sibling>>=<new>"`.
 
-`pyproject.toml` is canon for `version`. Any package that also carries a
-`haybale.toml` (its runtime-read copy, consumed by `LibraryIdentity`) gets
-that file's `version` line rewritten too, so the two never disagree after a
+`haybale.toml` is canon for `version`. Any package that carries one gets that
+file's `version` line rewritten, and the generated copy is synced into
+`pyproject.toml`'s `[project] version`, so the two never disagree after a
 release. This mirrors the share wizard's per-library version write
 (`write_barn_versions`), minus the commit/tag/push that skill handles
 separately.

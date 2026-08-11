@@ -10,10 +10,12 @@ Output layout written under ``--out-dir``:
         └── ...                 # one per publish_order entry
 
 Reads [tool.haywire.release] (publish_order) and [tool.haywire.marketstall]
-(source_url, docs_branch, defaults, feed_base_url) from the workspace
-root pyproject, walks each publishable package's pyproject + __init__.py,
-and emits the two-tier layout. Source = "pypi" for every entry. Deployed
-by the publish CI workflow (T4) to GitHub Pages.
+(source_url, docs_branch, feed_base_url) from the workspace root pyproject,
+builds each publishable package's row with the same builder the share
+pipeline uses (``haybale.toml`` is canon — see ADR 0025), and emits the
+two-tier layout. Source is "pypi" for packages in pip_publish_order and
+"git" for packages in git_publish_order. Deployed by the publish CI
+workflow (T4) to GitHub Pages.
 
 Used by:
   - .github/workflows/publish.yml (job 4 — deploy marketstall)
@@ -23,76 +25,12 @@ Used by:
 from __future__ import annotations
 
 import argparse
-import ast
 import sys
 import tomllib
 from dataclasses import dataclass
 from pathlib import Path
 
-from haywire.core.marketstall.requirement import haywire_core_requirement
-
-
-@dataclass(frozen=True)
-class LibraryMetadata:
-    """Subset of @library(...) decorator fields we use in the marketstall.
-
-    None means "not authored on the decorator" — caller should fall back
-    to pyproject description or [tool.haywire.marketstall] defaults.
-    """
-
-    label: str | None
-    description: str | None
-    author: str | None
-    tags: list[str] | None
-
-
-def extract_library_metadata(init_py: Path) -> LibraryMetadata:
-    """Parse an __init__.py for an @library(...) decorator and lift label/description/author/tags.
-
-    Returns all-None if the file doesn't exist or has no @library decorator.
-    Framework packages without a Library class (e.g., haywire-core, haywire-studio)
-    have no decorator and are expected to fall through to pyproject + config defaults.
-    """
-    if not init_py.is_file():
-        return LibraryMetadata(label=None, description=None, author=None, tags=None)
-    tree = ast.parse(init_py.read_text(encoding="utf-8"))
-    for node in ast.walk(tree):
-        if not isinstance(node, ast.ClassDef):
-            continue
-        for dec in node.decorator_list:
-            if not isinstance(dec, ast.Call):
-                continue
-            func = dec.func
-            if not (isinstance(func, ast.Name) and func.id == "library"):
-                continue
-            kwargs = {kw.arg: kw.value for kw in dec.keywords if kw.arg is not None}
-            return LibraryMetadata(
-                label=_as_str(kwargs.get("label")),
-                description=_as_str(kwargs.get("description")),
-                author=_as_str(kwargs.get("author")),
-                tags=_as_str_list(kwargs.get("tags")),
-            )
-    return LibraryMetadata(label=None, description=None, author=None, tags=None)
-
-
-def _as_str(node: ast.expr | None) -> str | None:
-    """Return the string literal value of an AST node, or None for any non-string."""
-    if isinstance(node, ast.Constant) and isinstance(node.value, str):
-        return node.value
-    return None
-
-
-def _as_str_list(node: ast.expr | None) -> list[str] | None:
-    """Return a list of string literals from an AST list, or None for any non-list-of-strings."""
-    if not isinstance(node, ast.List):
-        return None
-    out: list[str] = []
-    for elt in node.elts:
-        s = _as_str(elt)
-        if s is None:
-            return None
-        out.append(s)
-    return out
+from haywire.core.publishing.marketstall import _build_entry_for_library
 
 
 @dataclass(frozen=True)
@@ -108,8 +46,6 @@ class MarketstallConfig:
 
     source_url: str
     docs_branch: str
-    default_author: str
-    default_tags: list[str]
     feed_base_url: str
     marketplace: list[str]
 
@@ -120,112 +56,69 @@ def read_marketstall_config(root_pyproject: Path) -> MarketstallConfig:
     return MarketstallConfig(
         source_url=block["source_url"],
         docs_branch=block.get("docs_branch", "main"),
-        default_author=block.get("default_author", ""),
-        default_tags=list(block.get("default_tags", [])),
         feed_base_url=block.get("feed_base_url", "").rstrip("/"),
         marketplace=list(block.get("marketplace", [])),
     )
 
 
 def build_entry(
-    pyproject_path: Path,
-    init_py: Path,
-    config: MarketstallConfig,
-    subdirectory: str,
-    module_name: str,
+    pkg_dir: Path,
     source: str = "pypi",
 ) -> dict[str, object]:
-    """Build one [[packages]] dict for a package.
+    """Build one [[haybales]] dict for a package, via the shared marketstall builder.
 
-    `subdirectory` is the package directory relative to the repo root (e.g. "barn/haybale-foo").
-    `module_name` is the importable module dir name (e.g. "haybale_foo") inside that subdirectory.
-    `source` is "pypi" (default; install_spec is the bare dist name) or "git"
-    (install_spec is a git+subdirectory VCS URL pointing into the monorepo).
+    `pkg_dir` is the package directory (holding pyproject.toml and the module
+    dir with haybale.toml). `source` is "pypi" (default; install_spec becomes
+    the bare dist name, overriding the builder's git-URL default) or "git"
+    (the builder's own git+subdirectory VCS install_spec is kept as-is).
+
+    Everything descriptive (label, description, tags, authors, id, os, ...)
+    comes from haybale.toml via `_build_entry_for_library` — the same
+    function the git-publishing share pipeline uses, so the two publishers
+    cannot drift apart again.
     """
-    pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    project = pyproject["project"]
-    name = project["name"]
-    version = project["version"]
-    pyproject_description = project.get("description", "")
-    pyproject_deps: list[str] = list(project.get("dependencies", []))
+    entry = _build_entry_for_library(pkg_dir)
+    if entry is None:
+        raise ValueError(f"{pkg_dir} has no pyproject.toml — cannot build a marketstall entry")
 
-    meta = extract_library_metadata(init_py)
-
-    sibling_haybale = _filter_haybale_siblings(pyproject_deps)
-    # Derived from the library's own floor, never authored beside it — see
-    # haywire.core.marketstall.requirement. The wizard emits this same token
-    # for the libraries it publishes, so both producers agree by construction
-    # rather than by convention.
-    require = haywire_core_requirement(pyproject_deps)
-    docs_url = (
-        f"https://raw.githubusercontent.com/{_strip_github_prefix(config.source_url)}/"
-        f"{config.docs_branch}/{subdirectory}/{module_name}/"
-    )
-
-    if source == "git":
-        install_spec = f"{name} @ git+{config.source_url}.git#subdirectory={subdirectory}"
-    else:
-        install_spec = name
-
-    entry: dict[str, object] = {
-        "name": name,
-        "label": meta.label or name,
-        "version": version,
-        "description": meta.description or pyproject_description,
-        "author": meta.author or config.default_author,
-        "source": source,
-        "install_spec": install_spec,
-        "tags": meta.tags if meta.tags is not None else list(config.default_tags),
-        "dependencies": sibling_haybale,
-        "source_url": config.source_url,
-        "docs_url": docs_url,
-    }
-    # Omitted rather than emitted empty when undeclared — an absent field means
-    # "no requirement", which is exactly how the parser and the gate read it.
-    # A bare "haywire-core" is NOT that case: it means the author declared the
-    # dependency with no floor, and it is emitted.
-    if require is not None:
-        entry["require"] = require
+    if source == "pypi":
+        entry["source"] = "pypi"
+        entry["install_spec"] = entry["name"]
+    # else "git": _build_entry_for_library already emitted source="git" and a
+    # git+subdirectory install_spec pointing into the monorepo — keep both.
     return entry
 
 
-def _filter_haybale_siblings(deps: list[str]) -> list[str]:
-    """Return the bare haybale-* distribution names from a list of PEP 508 dep strings.
-
-    Marketstall `dependencies` is sibling haybale-* only (per spec §7) — framework
-    haywire-* packages and external deps are excluded.
-    """
-    out: list[str] = []
-    for dep in deps:
-        # Strip any version/marker suffix: "haybale-foo~=0.0.1" → "haybale-foo".
-        name = (
-            dep.split("~")[0].split(">")[0].split("<")[0].split("=")[0].split(";")[0].split("[")[0].strip()
-        )
-        if name.startswith("haybale-"):
-            out.append(name)
-    return out
-
-
-def _strip_github_prefix(url: str) -> str:
-    """Turn 'https://github.com/user/repo' into 'user/repo'. Used to build raw URLs."""
-    return url.rstrip("/").removeprefix("https://github.com/")
-
-
-# Order of fields in every [[haybales]] entry. Matches the new spec vocabulary
-# (Haybale._TOML_FIELDS) used by the runtime parsers.
+# Order of fields in every [[haybales]] entry. Matches Haybale._TOML_FIELDS —
+# the same order the runtime parsers and the share pipeline emit, so a
+# generated stall and a wizard-published marketstall.toml are byte-shape
+# compatible.
 _ENTRY_FIELD_ORDER: tuple[str, ...] = (
     "name",
+    "id",
     "label",
     "version",
     "require",
     "description",
-    "author",
     "source",
     "install_spec",
     "tags",
-    "dependencies",
-    "source_url",
-    "docs_url",
+    "os",
+    "on_reload",
+    "linked_libraries",
+    "origin",
+    "origin_provider",
+    "notes",
+    "homepage_url",
+    "documentation_url",
+    "issues_url",
+    "examples_path",
+    "tests_path",
+    "via",
+    "last_seen",
+    "stale",
+    "authors",
+    "deprecated",
 )
 
 _MARKETPLACE_HEADER = """\
@@ -242,7 +135,7 @@ _MARKETPLACE_HEADER = """\
 
 _STALL_HEADER = """\
 # Marketstall for {name} (auto-generated; spec §2)
-# Source of truth: the package's pyproject.toml in the haywire monorepo.
+# Source of truth: the package's haybale.toml in the haywire monorepo.
 # Re-generated on every release tag by scripts/generate_marketstall.py.
 """
 
@@ -280,11 +173,27 @@ def emit_marketplace_toml(stall_urls: list[str]) -> str:
 def _format_value(value: object) -> str:
     if isinstance(value, str):
         return _format_string(value)
+    if isinstance(value, bool):
+        return "true" if value else "false"
+    if isinstance(value, dict):
+        return _format_inline_table(value)
     if isinstance(value, list):
         if not value:
             return "[]"
         return "[" + ", ".join(_format_value(v) for v in value) + "]"
     raise TypeError(f"unsupported marketstall value type: {type(value).__name__}")
+
+
+def _format_inline_table(value: dict) -> str:
+    """Format a dict as a TOML inline table: ``{ key = value, ... }``.
+
+    Used for ``authors`` entries (``{name, url}``) and ``deprecated``
+    (``{since, reason, successor}``) — both TOML-serializable dicts on
+    ``Haybale.to_dict()`` that stay inside their parent bare key rather than
+    opening a ``[[authors]]`` / ``[deprecated]`` section, so field order in
+    ``_ENTRY_FIELD_ORDER`` is preserved regardless of where these fall.
+    """
+    return "{ " + ", ".join(f"{k} = {_format_value(v)}" for k, v in value.items()) + " }"
 
 
 def _format_string(value: str) -> str:
@@ -319,7 +228,7 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
     Reads:
       - [tool.haywire.release] pip_publish_order, git_publish_order
       - [tool.haywire.marketstall] marketplace (explicit allowlist), plus URL/defaults
-      - each marketplace package's pyproject + __init__.py
+      - each marketplace package's haybale.toml (via the shared builder)
 
     Validates:
       - Every marketplace entry appears in exactly one of pip_publish_order or
@@ -335,7 +244,6 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
 
     release = read_release_config(root_pyproject)
     config = read_marketstall_config(root_pyproject)
-    root_dir = root_pyproject.parent
 
     base_url = (feed_base_url or config.feed_base_url).rstrip("/")
     if not base_url:
@@ -372,20 +280,12 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
 
     for pkg_name in config.marketplace:
         source = "pypi" if pkg_name in pip_set else "git"
-        pyproject_path = located[pkg_name]
-        pkg_dir = pyproject_path.parent
-        module_path = _resolve_module_path(pyproject_path, pkg_dir)
-        init_py = pkg_dir / module_path / "__init__.py"
-        module_name = Path(module_path).name
-        subdirectory = pkg_dir.relative_to(root_dir).as_posix()
-        entry = build_entry(
-            pyproject_path=pyproject_path,
-            init_py=init_py,
-            config=config,
-            subdirectory=subdirectory,
-            module_name=module_name,
-            source=source,
-        )
+        # Resolved to absolute: _build_entry_for_library walks up from pkg_dir
+        # to find the git root (`lib_dir.relative_to(git_root)`), which raises
+        # ValueError if pkg_dir is relative while the discovered git root is
+        # absolute — as it always is, since `_find_git_root` resolves.
+        pkg_dir = located[pkg_name].parent.resolve()
+        entry = build_entry(pkg_dir, source=source)
         dist_name = str(entry["name"])
         stalls.append((dist_name, emit_stall_toml(entry)))
         stall_urls.append(f"{base_url}/stalls/{dist_name}.toml")
@@ -394,39 +294,6 @@ def generate(root_pyproject: Path, *, feed_base_url: str | None = None) -> Gener
         marketplace_toml=emit_marketplace_toml(stall_urls),
         stalls=stalls,
     )
-
-
-def _resolve_module_path(pyproject_path: Path, pkg_dir: Path) -> str:
-    """Find the module path relative to pkg_dir.
-
-    Priority:
-      1. [tool.hatch.build.targets.wheel].packages — first entry. This is the
-         authoritative source hatchling uses to find the module at build time,
-         and it correctly handles both flat (`haybale_foo`) and src-layout
-         (`src/haywire`) packages.
-      2. [project.entry-points."haywire.libraries"] — first value before `:`.
-         Returned as a bare name (no `src/` prefix) — only useful for flat
-         layouts.
-      3. The package directory name with hyphens converted to underscores.
-
-    Returns a path string (may contain `/` for src-layouts).
-    """
-    data = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    hatch_packages = (
-        data.get("tool", {})
-        .get("hatch", {})
-        .get("build", {})
-        .get("targets", {})
-        .get("wheel", {})
-        .get("packages", [])
-    )
-    if hatch_packages:
-        return hatch_packages[0]
-    entry_points = data.get("project", {}).get("entry-points", {}).get("haywire.libraries", {})
-    if entry_points:
-        first_target = next(iter(entry_points.values()))
-        return first_target.split(":")[0]
-    return pkg_dir.name.replace("-", "_")
 
 
 def main(argv: list[str] | None = None) -> int:

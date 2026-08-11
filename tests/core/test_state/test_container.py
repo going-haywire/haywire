@@ -16,12 +16,7 @@ def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
         id=lib_id,
         label=lib_id.capitalize(),
         version="0.0.1",
-        description="",
-        url="",
-        author="",
-        author_url="",
         linked_libraries=[],
-        tags=[],
         module_name=f"haybale_{lib_id}",
         folder_path="",
     )

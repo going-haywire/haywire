@@ -21,20 +21,24 @@ The same split ``read_manifest`` / ``read_manifest_lenient`` already draws for
 from __future__ import annotations
 
 import re
-from dataclasses import dataclass
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import toml
 
 from haywire.core.tomlio import edit_toml, read_toml
 
+if TYPE_CHECKING:
+    # Only for the string annotations below; the real import stays inside the
+    # function bodies (see read_haybale) to avoid a haybale_toml <-> marketstall
+    # import cycle at module load time.
+    from haywire.core.marketstall import Haybale
+
 __all__ = [
     "HaybaleTomlError",
     "HAYBALE_TOML",
-    "LibraryDisplay",
     "module_of",
-    "read_display",
+    "read_haybale",
     "tag_for",
     "read_haybale_toml",
     "read_haybale_toml_lenient",
@@ -52,10 +56,10 @@ HAYBALE_TOML = "haybale.toml"
 #: ``distribution_fields()`` established for the reader this replaces.
 #:
 #: ``version`` is here too, but unlike the others its absence is fatal — see
-#: the check in :func:`read_haybale_toml`. ``pyproject.toml`` is canon for the
-#: value (release tooling and the share wizard both bump it there first); this
-#: file carries the synced copy so ``LibraryIdentity`` never needs an installed
-#: distribution to answer "what version is this".
+#: the check in :func:`read_haybale_toml`. This file is canon for the value;
+#: ``pyproject.toml`` carries the generated copy because pip reads version out
+#: of that file and cannot read this one. The value is written here by
+#: ``scripts/bump_version.py`` and the share wizard rather than by hand.
 _STR_FIELDS = ("id", "label", "on_reload", "description", "version")
 _LIST_FIELDS = ("linked_libraries", "tags", "os")
 
@@ -149,28 +153,6 @@ def _fields_from(data: dict, source: Path) -> dict[str, Any]:
             _validate_linked_libraries(value, source)
         fields[key] = list(value)
 
-    # Two fields whose file spelling differs from the identity's, both
-    # transitional: the identity carries one author and one URL, while the file
-    # is already shaped for the marketstall row (repeatable [[authors]], and
-    # url split into homepage/documentation/issues). Project the first author
-    # and the homepage so nothing regresses while call sites migrate to reading
-    # the file directly.
-    homepage = data.get("homepage_url")
-    if isinstance(homepage, str) and homepage:
-        fields["url"] = homepage
-
-    authors = data.get("authors")
-    if isinstance(authors, list) and authors:
-        first = authors[0]
-        if not isinstance(first, dict):
-            raise HaybaleTomlError(f"{source}: [[authors]] entries must be tables with a `name`")
-        name = first.get("name")
-        if isinstance(name, str) and name:
-            fields["author"] = name
-        url = first.get("url")
-        if isinstance(url, str) and url:
-            fields["author_url"] = url
-
     return fields
 
 
@@ -208,9 +190,9 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
         raise HaybaleTomlError(f"{source}: `id` is required — it prefixes every component's registry key.")
     if not fields.get("version"):
         raise HaybaleTomlError(
-            f"{source}: `version` is required. It is synced from pyproject.toml by "
-            f"scripts/bump_version.py and the share wizard — run one of those rather "
-            f"than authoring it by hand."
+            f"{source}: `version` is required and is canon here — "
+            f"`pyproject.toml` carries a generated copy. Bump with "
+            f"scripts/bump_version.py or the share wizard rather than by hand."
         )
     return fields
 
@@ -232,87 +214,67 @@ def read_haybale_toml_lenient(package_dir: Path) -> dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-@dataclass(frozen=True)
-class LibraryDisplay:
-    """The descriptive fields, read from disk at the moment they are rendered.
+#: (path, mtime_ns) -> parsed row. The overview re-renders on every panel redraw,
+#: so a parse per render is waste; a stat per render is not. Keyed on mtime so an
+#: edit invalidates the entry without anyone having to remember to.
+_row_cache: dict[Path, tuple[int, "Haybale"]] = {}
 
-    Deliberately *not* served off ``LibraryIdentity``. The identity is built once
-    at import, so a value read through it is only as fresh as the last reload —
-    the same staleness the installed distribution's ``METADATA`` had, with a
-    shorter cache. Reading the file at the point of use is what makes an edit
-    visible immediately, which is the whole reason the metadata moved into the
-    package directory.
 
-    Every field defaults, so a library whose file is missing or unreadable
-    renders blank rather than raising. That is the opposite of the import-time
-    rule, and correct here: a renderer has a frame to draw, and a caller
-    displaying a half-known library is better than a panel that cannot draw.
+def read_haybale(package_dir: Path) -> "Haybale":
+    """The library's declared metadata, read from *package_dir*'s ``haybale.toml``.
+
+    The same :class:`~haywire.core.marketstall.types.Haybale` a marketstall feed
+    yields — the two files carry the same fields, so a renderer takes one row and
+    never asks which source it came from.
+
+    Never raises: an unreadable or malformed file yields an empty row. That is the
+    opposite of :func:`read_haybale_toml`'s import-time rule, and correct here — a
+    renderer has a frame to draw, and a caller displaying a half-known library is
+    better than a panel that cannot draw. Cached on the file's mtime, so repeated
+    renders cost one ``stat``.
+
+    ``source`` is ``"local"`` and the publish/transport fields are empty: this row
+    was read off disk, not fetched from a feed.
     """
+    from haywire.core.marketstall import Haybale
 
-    id: str = ""
-    label: str = ""
-    description: str = ""
-    tags: tuple[str, ...] = ()
-    homepage_url: str = ""
-    documentation_url: str = ""
-    issues_url: str = ""
-    authors: tuple[tuple[str, str], ...] = ()
-    """``(name, url)`` pairs; url is "" when the author declared none."""
-
-    @property
-    def author_names(self) -> str:
-        """The authors as one display string — ``"Alice, Bob"``."""
-        return ", ".join(name for name, _ in self.authors if name)
-
-
-#: (path, mtime_ns) -> parsed display. The overview re-renders on every panel
-#: redraw, so a parse per render is waste; a stat per render is not. Keyed on
-#: mtime so an edit invalidates the entry without anyone having to remember to.
-_display_cache: dict[Path, tuple[int, "LibraryDisplay"]] = {}
-
-
-def read_display(package_dir: Path) -> LibraryDisplay:
-    """The descriptive fields declared in *package_dir*'s ``haybale.toml``.
-
-    Never raises: an unreadable or malformed file yields an empty
-    :class:`LibraryDisplay`. Cached on the file's mtime, so repeated renders cost
-    one ``stat``.
-    """
     source = package_dir / HAYBALE_TOML
     try:
         mtime = source.stat().st_mtime_ns
     except OSError:
-        _display_cache.pop(package_dir, None)
-        return LibraryDisplay()
+        _row_cache.pop(package_dir, None)
+        return Haybale(name="", source="local")
 
-    cached = _display_cache.get(package_dir)
+    cached = _row_cache.get(package_dir)
     if cached is not None and cached[0] == mtime:
         return cached[1]
 
     try:
         data = read_toml(source)
     except (toml.TomlDecodeError, OSError):
-        display = LibraryDisplay()
+        row = Haybale(name="", source="local")
     else:
-        display = _display_from(dict(data) if isinstance(data, dict) else {})
+        row = _row_from(dict(data) if isinstance(data, dict) else {})
 
-    _display_cache[package_dir] = (mtime, display)
-    return display
+    _row_cache[package_dir] = (mtime, row)
+    return row
 
 
-def _display_from(data: dict) -> LibraryDisplay:
-    """Project a parsed document onto :class:`LibraryDisplay`, ignoring junk.
+def _row_from(data: dict) -> "Haybale":
+    """Project a parsed document onto :class:`Haybale`, ignoring junk.
 
-    Wrong-typed values are dropped rather than raised on — see the class
-    docstring: rendering degrades, it does not fail.
+    Wrong-typed values are dropped rather than raised on — see
+    :func:`read_haybale`: rendering degrades, it does not fail.
     """
+    from haywire.core.marketstall import Deprecation, Haybale
 
     def _str(key: str) -> str:
         value = data.get(key)
         return value if isinstance(value, str) else ""
 
-    raw_tags = data.get("tags")
-    tags = tuple(t for t in raw_tags if isinstance(t, str)) if isinstance(raw_tags, list) else ()
+    def _list(key: str) -> list[str]:
+        value = data.get(key)
+        return [v for v in value if isinstance(v, str)] if isinstance(value, list) else []
 
     authors: list[tuple[str, str]] = []
     raw_authors = data.get("authors")
@@ -326,15 +288,41 @@ def _display_from(data: dict) -> LibraryDisplay:
             url = entry.get("url")
             authors.append((name, url if isinstance(url, str) else ""))
 
-    return LibraryDisplay(
+    deprecated = None
+    raw_dep = data.get("deprecated")
+    if isinstance(raw_dep, dict):
+        since = raw_dep.get("since")
+        if isinstance(since, str) and since:
+            reason = raw_dep.get("reason")
+            successor = raw_dep.get("successor")
+            deprecated = Deprecation(
+                since=since,
+                reason=reason if isinstance(reason, str) else "",
+                successor=successor if isinstance(successor, str) else "",
+            )
+
+    return Haybale(
+        name=_str("name"),
         id=_str("id"),
+        version=_str("version"),
         label=_str("label"),
         description=_str("description"),
-        tags=tags,
+        tags=_list("tags"),
+        os=_list("os"),
+        on_reload=_str("on_reload") or "none",
+        linked_libraries=_list("linked_libraries"),
+        origin=_str("origin"),
+        origin_provider=_str("origin_provider"),
+        notes=_str("notes"),
+        examples_path=_str("examples_path"),
+        tests_path=_str("tests_path"),
         homepage_url=_str("homepage_url"),
         documentation_url=_str("documentation_url"),
         issues_url=_str("issues_url"),
-        authors=tuple(authors),
+        authors=authors,
+        deprecated=deprecated,
+        # Read off disk, not fetched: this row has no feed coordinates.
+        source="local",
     )
 
 
@@ -344,11 +332,11 @@ def _display_from(data: dict) -> LibraryDisplay:
 
 #: What :func:`write_haybale_fields` will set. Everything else in the file is
 #: off-limits to the editor: `name` and `id` are immutable (renaming rewrites
-#: registry keys and every consumer's install_spec), `version` is synced from
-#: `pyproject.toml` (canon) by `scripts/bump_version.py` and the share wizard,
-#: `origin` and `origin_provider` are written by the share wizard from facts it
-#: observes, and `[deprecated]` is hand-edited because retiring a library is
-#: rare and deliberate.
+#: registry keys and every consumer's install_spec), `version` is canon here and
+#: is written by `scripts/bump_version.py` and the share wizard, which sync the
+#: generated copy into `pyproject.toml`, `origin` and `origin_provider` are
+#: written by the share wizard from facts it observes, and `[deprecated]` is
+#: hand-edited because retiring a library is rare and deliberate.
 EDITABLE_FIELDS = (
     "label",
     "os",
@@ -375,15 +363,16 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
 
     Only :data:`EDITABLE_FIELDS` are writable; anything else raises rather than
     being silently dropped, so a caller passing ``version`` learns that
-    ``pyproject.toml`` owns it instead of wondering why the write did nothing.
+    ``scripts/bump_version.py`` / the share wizard own it instead of wondering
+    why the write did nothing.
 
     An empty value removes the key rather than writing ``""``. Absent and empty
     then mean the same thing, which keeps a file edited through the UI
     indistinguishable from one an author wrote by hand.
 
     ``authors`` is the one non-scalar/non-string-list field: it takes
-    ``(name, url)`` tuples — matching :attr:`LibraryDisplay.authors` — and is
-    converted to ``[[authors]]`` tables here, dropping ``url`` when it is
+    ``(name, url)`` tuples — matching :attr:`~haywire.core.marketstall.types.Haybale.authors`
+    — and is converted to ``[[authors]]`` tables here, dropping ``url`` when it is
     ``""`` rather than writing an empty key. A tuple with a blank ``name`` is
     the caller's problem, not this function's: nothing downstream of a bare
     ``[[authors]]`` table treats a missing ``name`` as a landmine the way a
@@ -395,7 +384,8 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
         raise HaybaleTomlError(
             f"{package_dir / HAYBALE_TOML}: {', '.join(sorted(unknown))} "
             f"{'is' if len(unknown) == 1 else 'are'} not editable here. "
-            f"name/id are immutable, version is synced from pyproject.toml, "
+            f"name/id are immutable, version is canon here but written by "
+            f"scripts/bump_version.py or the share wizard rather than by hand, "
             f"origin is set by the share wizard, and [deprecated] is hand-edited."
         )
 

@@ -18,10 +18,6 @@ from .node_theme import NodeTheme
 _FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
     label="haywire-core",
     version="0.0.0",
-    description="Haywire built-in themes",
-    url="",
-    author="Haywire",
-    author_url="",
     id="haywire-core",
     module_name="haywire",
     folder_path="",

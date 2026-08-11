@@ -17,11 +17,13 @@ from typing import Any
 
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.tomlio import edit_toml
+from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
 from haywire.core.library.haybale_toml import (
     HAYBALE_TOML,
     HaybaleTomlError,
+    read_haybale,
     write_haybale_fields,
 )
 from haywire.core.marketstall import Haybale
@@ -694,11 +696,33 @@ class LibraryManager:
         enabled = self.registry.is_library_enabled(library_id)
         dist_name = self.registry.get_library_distribution_name(library_id)
 
+        # Metadata comes off haybale.toml at the point of use, not off the
+        # identity built at import — that is what makes an edit visible without
+        # a reload.
+        row = read_haybale(Path(identity.folder_path)) if identity.folder_path else Haybale(name="")
+
         return LibraryInfo(
+            row=row,
             identity=identity,
             enabled=enabled,
             install_type=install_type or InstallType.FOLDER,
             distribution_name=dist_name or "",
+        )
+
+    @staticmethod
+    def entry_for_haybale(pkg: "Haybale") -> LibraryInfo:
+        """Wrap a catalog row as a not-installed :class:`LibraryInfo`.
+
+        The counterpart to :meth:`get_installed_library` for libraries that
+        exist only in a feed, so the browser and the detail editor consume one
+        type regardless of install state.
+        """
+        return LibraryInfo(
+            row=pkg,
+            identity=LibraryIdentity(),
+            enabled=False,
+            install_type=InstallType.NOT_INSTALLED,
+            distribution_name=pkg.name,
         )
 
     def is_installed(self, library_id: str) -> bool:

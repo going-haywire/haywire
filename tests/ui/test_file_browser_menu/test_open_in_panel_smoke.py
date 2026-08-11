@@ -11,10 +11,6 @@ from tests.conftest import attach_stub_session
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     label="fake",
     version="0.1",
-    description="test",
-    url="",
-    author="",
-    author_url="",
     folder_path="/tmp/fake",
     module_name="fake",
     id="fake",

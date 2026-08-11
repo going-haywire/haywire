@@ -26,7 +26,7 @@ from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
 
 if TYPE_CHECKING:
-    from haywire.core.marketstall.types import Haybale
+    from haywire.core.marketstall import Haybale
 
 
 class LibraryOrigin(enum.Enum):
@@ -89,7 +89,7 @@ def compute_library_origin(
 
     ``catalog_entry`` is the caller-resolved Haybale row matching lib's
     distribution_name (or None). Callers already have this lookup
-    (LibraryOverviewEditor._lookup_marketplace_pkg, or a scan over
+    (LibraryOverviewEditor._catalog_row_for, or a scan over
     MarketplaceState.get_project_haybales() / parse_project_marketplace(...).caches)
     — resolving it here would couple this module to SessionContext/
     MarketplaceState, which it deliberately stays free of.

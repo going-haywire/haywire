@@ -98,17 +98,12 @@ documentation only; if it ever disagrees with this section, the section wins.
 
 ```toml
 [tool.haywire.marketstall]
-# Repo URL used as the source_url for every generated [[haybales]] entry.
-# Also forms the base for the docs_url raw-githubusercontent URL.
+# source_url/docs_branch describe this repo's canonical remote. Currently
+# read but unconsumed by the generator: each entry's `origin` now comes
+# from haybale.toml / the git remote via the shared marketstall builder
+# (haywire.core.publishing.marketstall), not from these repo-level values.
 source_url = "https://github.com/going-haywire/haywire"
-
-# Default branch used in the raw-githubusercontent docs_url.
 docs_branch = "main"
-
-# Default author and tags applied when a package's @library decorator
-# doesn't set them. Per-package values from the decorator always win.
-default_author = "Haywire Team"
-default_tags = []
 ```
 
 ## Release procedure

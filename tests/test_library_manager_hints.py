@@ -21,10 +21,6 @@ def _identity(lib_id: str, *, on_reload: LibraryReloadAction = LibraryReloadActi
     return LibraryIdentity(
         label=lib_id,
         version="0.0.1",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path=f"/tmp/{lib_id}",
         module_name=lib_id,
         id=lib_id,

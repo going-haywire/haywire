@@ -104,7 +104,7 @@ Beside `__init__.py`, inside the package:
 ```toml
 name = "haybale-image"
 id = "image"
-version = "0.1.0"   # synced from pyproject.toml — see §5, don't hand-edit
+version = "0.1.0"   # canon here; generated copy synced into pyproject.toml — see §5, don't hand-edit
 label = "Image Processing"
 description = "Image processing nodes for haywire — resize, filter, convert."
 tags = ["image", "vision"]

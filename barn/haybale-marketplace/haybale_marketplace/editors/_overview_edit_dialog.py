@@ -36,7 +36,7 @@ from typing import TYPE_CHECKING, Any, Callable, Coroutine
 from nicegui import ui
 
 from haywire.core.library.dep_detect import HaywireLibrarySource, find_module_dir
-from haywire.core.library.haybale_toml import read_display, read_haybale_toml_lenient
+from haywire.core.library.haybale_toml import read_haybale, read_haybale_toml_lenient
 from haywire.core.library.identity import LibraryReloadAction
 from haywire.core.library.info import LibraryInfo
 from haywire.core.publishing.drift.detect import detect_share_drift
@@ -134,7 +134,7 @@ def build_edit_dialog(
     # Read the file, not the identity: the identity carries only what the
     # runtime needs, and reading it here would show pre-edit values for
     # anything a previous save changed.
-    display = read_display(Path(lib.identity.folder_path))
+    haybale_row = read_haybale(Path(lib.identity.folder_path))
 
     with edit_popup:
         # Version is not editable here — it's set by Share/publish (lockstep bump),
@@ -198,14 +198,14 @@ def build_edit_dialog(
                 else:
                     _refresh_button.tooltip("Detect imported haywire libraries and add any missing.")
 
-        label_input = hui.input_field(label="Label", value=display.label)
-        desc_input = hui.input_field(label="Description", value=display.description)
-        url_input = hui.input_field(label="Homepage URL", value=display.homepage_url)
-        docs_url_input = hui.input_field(label="Documentation URL", value=display.documentation_url)
-        issues_url_input = hui.input_field(label="Issues URL", value=display.issues_url)
+        label_input = hui.input_field(label="Label", value=haybale_row.label)
+        desc_input = hui.input_field(label="Description", value=haybale_row.description)
+        url_input = hui.input_field(label="Homepage URL", value=haybale_row.homepage_url)
+        docs_url_input = hui.input_field(label="Documentation URL", value=haybale_row.documentation_url)
+        issues_url_input = hui.input_field(label="Issues URL", value=haybale_row.issues_url)
         tags_input = hui.input_field(
             label="Tags (comma-separated)",
-            value=", ".join(display.tags),
+            value=", ".join(haybale_row.tags),
         )
 
         # Authors — positional, whole-value replace on save (like every other
@@ -232,7 +232,7 @@ def build_edit_dialog(
                     )
             _author_rows.append((row, name_in, url_in))
 
-        for _name, _url in display.authors:
+        for _name, _url in haybale_row.authors:
             _add_author_row(_name, _url)
 
         with ui.row().classes("items-center"):

@@ -15,7 +15,7 @@ from haywire.core.farmhand import (
     farmhand,
     truncation_note,
 )
-from haywire.core.library.haybale_toml import read_display
+from haywire.core.library.haybale_toml import read_haybale
 from haywire.core.library.registry import LibraryRegistry
 
 from ._helpers import kind_registry_map, page, resolve_component_class
@@ -63,9 +63,9 @@ class StudioListLibrariesTool(Farmhand):
                 # to inspect needs the id first and the blurb only sometimes.
                 # Read from haybale.toml, not the identity: an agent asking twice
                 # across an edit should see the edit.
-                display = read_display(Path(identity.folder_path))
-                row["description"] = display.description
-                row["tags"] = list(display.tags)
+                haybale_row = read_haybale(Path(identity.folder_path))
+                row["description"] = haybale_row.description
+                row["tags"] = list(haybale_row.tags)
             rows.append(row)
         rows, total = page(rows, limit, offset)
         result = {

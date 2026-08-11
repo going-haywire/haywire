@@ -13,10 +13,6 @@ def _studio_identity():
     return LibraryIdentity(
         label="Studio",
         version="0.1",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path="/tmp/studio",
         module_name="studio",
         id="studio",

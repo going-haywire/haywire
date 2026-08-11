@@ -12,8 +12,7 @@ import toml
 
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import (
-    LibraryDisplay,
-    read_display,
+    read_haybale,
     read_haybale_toml_lenient,
     read_raw,
 )
@@ -93,16 +92,16 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
 
     module_dir = find_module_dir(lib_dir)
 
-    # haybale.toml is canon for everything descriptive. Only two fields are read
-    # from pyproject: `version`, which the release machinery owns, and `require`
-    # below, which is a projection of [project] dependencies.
-    declared = read_display(module_dir) if module_dir else LibraryDisplay()
+    # haybale.toml is canon for everything descriptive AND for name/version.
+    # Only `require` below is derived from pyproject — it is a projection of
+    # [project] dependencies, which pyproject does own.
+    declared = read_haybale(module_dir) if module_dir else Haybale(name="")
 
-    name = project.get("name", lib_dir.name)
-    version = project.get("version", "0.0.0")
+    name = declared.name or lib_dir.name
+    version = declared.version or project.get("version", "0.0.0")
     description = declared.description
     tags = list(declared.tags)
-    author = declared.author_names
+    authors = list(declared.authors)
 
     # Derived, never passed in: the library's own floor IS the requirement, and
     # the entry is its projection. None (undeclared) omits the key entirely;
@@ -166,11 +165,12 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
 
     return Haybale(
         name=name,
+        id=declared.id,
         label=label,
         version=version,
         require=require or "",
         description=description,
-        author=author,
+        authors=authors,
         source="git",
         install_spec=install_spec,
         tags=tags,

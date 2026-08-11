@@ -17,12 +17,7 @@ def make_lib_identity() -> LibraryIdentity:
         id="midi",
         label="Midi",
         version="0.0.1",
-        description="",
-        url="",
-        author="",
-        author_url="",
         linked_libraries=[],
-        tags=[],
         module_name="haybale_midi",
         folder_path="",
     )

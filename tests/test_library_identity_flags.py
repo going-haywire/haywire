@@ -14,10 +14,6 @@ def _make_identity(**overrides) -> LibraryIdentity:
     base = dict(
         label="test",
         version="1.0.0",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path="/tmp/test",
         module_name="test_module",
         id="test",

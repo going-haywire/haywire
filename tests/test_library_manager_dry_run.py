@@ -32,10 +32,6 @@ def _make_manager():
     registry.get_library_identity.side_effect = lambda lid: LibraryIdentity(
         label=lid,
         version="0.0.1",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path=f"/tmp/{lid}",
         module_name=lid,
         id=lid,

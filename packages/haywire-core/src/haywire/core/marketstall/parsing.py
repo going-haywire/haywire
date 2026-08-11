@@ -56,6 +56,29 @@ def _parse_deprecation(raw: dict) -> Deprecation | None:
     )
 
 
+def _parse_authors(raw: dict) -> list[tuple[str, str]]:
+    """``[[authors]]`` tables as ``(name, url)`` pairs.
+
+    A nameless entry is not an author and is dropped, matching
+    ``haybale.toml``'s own read rule. Junk entries are skipped rather than
+    raised on: a feed is untrusted input, and one malformed author must not
+    cost the consumer the whole row.
+    """
+    entries = raw.get("authors")
+    if not isinstance(entries, list):
+        return []
+    authors: list[tuple[str, str]] = []
+    for entry in entries:
+        if not isinstance(entry, dict):
+            continue
+        name = entry.get("name")
+        if not isinstance(name, str) or not name:
+            continue
+        url = entry.get("url")
+        authors.append((name, url if isinstance(url, str) else ""))
+    return authors
+
+
 def _parse_haybale_entry(raw: dict) -> Haybale:
     """Parse one [[haybales]] (or [[caches]]) TOML entry into a Haybale.
 
@@ -75,7 +98,8 @@ def _parse_haybale_entry(raw: dict) -> Haybale:
         require=raw.get("require", ""),
         label=raw.get("label", ""),
         description=raw.get("description", ""),
-        author=raw.get("author", ""),
+        id=raw.get("id", ""),
+        authors=_parse_authors(raw),
         source=raw.get("source", "pypi"),
         install_spec=raw.get("install_spec", name),
         tags=list(raw.get("tags", [])),

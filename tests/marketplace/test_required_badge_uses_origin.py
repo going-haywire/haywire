@@ -8,22 +8,23 @@ from haybale_marketplace.library_origin import LibraryOrigin, compute_library_or
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
+from haywire.core.marketstall import Haybale
 
 
 def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "") -> LibraryInfo:
     identity = LibraryIdentity(
         label="Test Lib",
         version="0.1.0",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path=folder_path,
         module_name="testlib",
         id="testlib",
     )
     return LibraryInfo(
-        identity=identity, enabled=True, install_type=install_type, distribution_name=distribution_name
+        row=Haybale(name="haybale-x", version="1.0.0"),
+        identity=identity,
+        enabled=True,
+        install_type=install_type,
+        distribution_name=distribution_name,
     )
 
 

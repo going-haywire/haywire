@@ -9,12 +9,12 @@ Selecting a library updates context.active_library and fires LIBRARY_STATE_CHANG
 import logging
 
 from pathlib import Path
-from typing import TYPE_CHECKING, NamedTuple
+from typing import TYPE_CHECKING
 from urllib.parse import urlsplit
 
 from nicegui import ui
 
-from haywire.core.library.haybale_toml import read_display
+from haywire.core.library.info import LibraryInfo
 from haywire.core.marketstall import Haybale
 from haywire.ui import elements as hui
 from haywire.ui.editor.decorator import editor
@@ -33,48 +33,6 @@ if TYPE_CHECKING:
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
-
-
-class _LibView(NamedTuple):
-    """Normalised view of a LibraryInfo or Haybale for filter/display logic."""
-
-    raw: object
-    label: str
-    version: str
-    description: str
-    tags: list
-    enabled: bool
-    dist_name: object  # str | None
-    is_installed: bool
-
-
-def _lib_view(lib) -> "_LibView":
-    """Normalise a LibraryInfo or Haybale into a _LibView."""
-    if hasattr(lib, "identity"):
-        # Description and tags come off haybale.toml rather than the identity:
-        # the identity is built at import, so a value read through it is stale
-        # until the next reload — the staleness this design exists to remove.
-        display = read_display(Path(lib.identity.folder_path))
-        return _LibView(
-            raw=lib,
-            label=lib.identity.label or "",
-            version=lib.identity.version or "",
-            description=display.description,
-            tags=list(display.tags),
-            enabled=lib.enabled,
-            dist_name=lib.distribution_name,
-            is_installed=True,
-        )
-    return _LibView(
-        raw=lib,
-        label=getattr(lib, "label", "") or getattr(lib, "name", ""),
-        version=getattr(lib, "version", "") or "",
-        description=getattr(lib, "description", "") or "",
-        tags=getattr(lib, "tags", []) or [],
-        enabled=getattr(lib, "enabled", True),
-        dist_name=getattr(lib, "name", None),
-        is_installed=False,
-    )
 
 
 def derive_provenance_label(haybale, mf) -> str | None:
@@ -480,20 +438,20 @@ class LibraryBrowserEditor(BaseEditor):
         workspace_root = getattr(context.app, "workspace_root", None)
         marketplace_path = Path(workspace_root) / ".haywire" / "marketplace.toml" if workspace_root else None
 
-        def _label(lib) -> str:
-            return _lib_view(lib).label
+        def _label(info: LibraryInfo) -> str:
+            return info.row.label or info.row.name
 
-        def _enabled(lib) -> bool:
-            return _lib_view(lib).enabled
+        def _enabled(info: LibraryInfo) -> bool:
+            return info.enabled
 
-        def matches(lib) -> bool:
+        def matches(info: LibraryInfo) -> bool:
             if not q:
                 return True
-            v = _lib_view(lib)
+            row = info.row
             return (
-                q in v.label.lower()
-                or bool(v.description and q in v.description.lower())
-                or any(q in t.lower() for t in v.tags)
+                q in (row.label or row.name).lower()
+                or bool(row.description and q in row.description.lower())
+                or any(q in t.lower() for t in row.tags)
             )
 
         # Built once per render, reused by is_required() below — matches the
@@ -510,18 +468,17 @@ class LibraryBrowserEditor(BaseEditor):
             except Exception:
                 pass
 
-        def _catalog_entry_for(lib):
-            dist_name = getattr(lib, "distribution_name", "") or ""
-            return _catalog_by_dist_name.get(dist_name)
+        def _catalog_entry_for(info: LibraryInfo):
+            return _catalog_by_dist_name.get(info.distribution_name)
 
-        def is_required(lib) -> bool:
+        def is_required(lib: LibraryInfo) -> bool:
             # Required if origin.is_protected (framework-owned or this
             # workspace's own project-local library) OR some other installed
             # library declares this one in its haybale.toml's
             # linked_libraries. These are independent reasons for the same
             # badge — see LibraryOrigin.is_protected's docstring and the
             # glossary entry "required" vs "dependent".
-            if not hasattr(lib, "identity"):
+            if not lib.installed:
                 return False
             origin = compute_library_origin(
                 lib,
@@ -556,7 +513,7 @@ class LibraryBrowserEditor(BaseEditor):
         # Parse marketplace.toml once to build both `available` (packages not yet
         # installed) and `updates_available` (dist names with newer cached versions).
         # workspace_root / marketplace_path computed earlier, above is_required().
-        available: list = []
+        available: list[LibraryInfo] = []
         updates_available: set[str] = set()
         if marketplace_path and marketplace_path.exists():
             try:
@@ -570,16 +527,16 @@ class LibraryBrowserEditor(BaseEditor):
                     if not entry.version or not entry.name:
                         continue
                     lib = next((x for x in libraries if x.distribution_name == entry.name), None)
-                    if lib and lib.identity.version:
+                    if lib and lib.row.version:
                         try:
-                            if Version(entry.version) > Version(lib.identity.version):
+                            if Version(entry.version) > Version(lib.row.version):
                                 updates_available.add(entry.name)
                         except Exception:
                             pass
 
                 # Available (not yet installed) — both [[caches]] and [[heaps]].
                 if self._filter_available:
-                    candidates: list = list(pm.caches)
+                    candidates: list[Haybale] = list(pm.caches)
                     # Surface [[heaps]] not already loaded as installed libraries.
                     for raw in pm.heaps:
                         name = raw.get("name")
@@ -596,8 +553,14 @@ class LibraryBrowserEditor(BaseEditor):
                                 linked_libraries=list(raw.get("linked_libraries", [])),
                             )
                         )
-                    available = [e for e in candidates if e.name not in installed_names and matches(e)]
-                    available.sort(key=lambda x: x.label or x.name)
+                    # Wrapped as not-installed LibraryInfos so every list below
+                    # holds one type and the item renderer needs no probing.
+                    available = [
+                        info
+                        for info in (manager.entry_for_haybale(e) for e in candidates)
+                        if info.distribution_name not in installed_names and matches(info)
+                    ]
+                    available.sort(key=_label)
             except Exception as e:
                 logger.warning(f"LibraryBrowser: failed to load marketplace: {e}")
 
@@ -637,28 +600,27 @@ class LibraryBrowserEditor(BaseEditor):
 
             if available:
                 hui.section_label("AVAILABLE")
-                for entry in available:
-                    self._library_item(entry, "gray", context, installed_names)
+                for info in available:
+                    self._library_item(info, "gray", context, installed_names)
 
             if not required and not enabled and not disabled and not available:
                 hui.empty_state("No libraries found", icon=hui.icon.empty_no_results)
 
     def _library_item(
         self,
-        lib,
+        lib: LibraryInfo,
         dot_color: str,
         context: "SessionContext",
         installed_names: set[str],
         has_update: bool = False,
     ):
-        if hasattr(lib, "identity"):
-            label = lib.identity.label or "?"
-            version = lib.identity.version or ""
-        else:
-            label = getattr(lib, "label", None) or getattr(lib, "name", "?")
-            version = getattr(lib, "version", "")
+        # ``haybale_row`` rather than ``row``: the list-item element below already
+        # owns that name in this scope.
+        haybale_row = lib.row
+        label = haybale_row.label or haybale_row.name or "?"
+        version = haybale_row.version
 
-        is_stale = bool(getattr(lib, "stale", False))
+        is_stale = haybale_row.stale
         sublabel = f"v{version}" if version else None
         if is_stale:
             sublabel = f"{sublabel} (stale)" if sublabel else "(stale)"
@@ -680,8 +642,8 @@ class LibraryBrowserEditor(BaseEditor):
                     "hw-use-props-color hw-text-warning ml-auto flex-shrink-0"
                 ).tooltip("Update available")
         if is_stale:
-            last_seen = getattr(lib, "last_seen", "") or "unknown"
-            entry_name = getattr(lib, "name", "") or getattr(lib, "distribution_name", "")
+            last_seen = haybale_row.last_seen or "unknown"
+            entry_name = haybale_row.name or lib.distribution_name
             is_uninstalled = bool(entry_name) and entry_name not in installed_names
             with row:
                 stale_dot = ui.element("div").classes("w-2 h-2 rounded-full bg-red-500 flex-shrink-0")
@@ -699,7 +661,7 @@ class LibraryBrowserEditor(BaseEditor):
                         lambda name=entry_name, ctx=context: self._on_remove_stale_click(name, ctx),
                     )
 
-    def _provenance_label_for(self, lib, context: "SessionContext") -> str | None:
+    def _provenance_label_for(self, lib: LibraryInfo, context: "SessionContext") -> str | None:
         """Look up the user's [[stalls]] list to derive 'from {host}' vs 'via {host}'."""
         from haybale_marketplace.state.marketplace_state import MarketplaceState
 
@@ -709,7 +671,7 @@ class LibraryBrowserEditor(BaseEditor):
         mf = state.get_global()
         if mf is None:
             return None
-        return derive_provenance_label(lib, mf)
+        return derive_provenance_label(lib.row, mf)
 
     def _on_remove_stale_click(self, name: str, context: "SessionContext") -> None:
         """Drop a stale [[caches]] entry from the project marketplace, then re-render."""
@@ -733,7 +695,7 @@ class LibraryBrowserEditor(BaseEditor):
             ui.notify(f"{name} was already gone from cache", type="info")
         self._render_list(context)
 
-    def _select_library(self, lib, context: "SessionContext"):
+    def _select_library(self, lib: LibraryInfo, context: "SessionContext"):
         # Assigning emits SessionContext.active_library / .active_component
         # synthetically on the bus; no manual signal emit needed.
         context.active_library = lib

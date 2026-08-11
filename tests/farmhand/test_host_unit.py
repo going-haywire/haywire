@@ -103,10 +103,6 @@ def test_tool_table_seed_and_evict():
     PingTool.class_library = LibraryIdentity(
         label="Studio",
         version="0.1",
-        description="",
-        url="",
-        author="",
-        author_url="",
         folder_path="/tmp/studio",
         module_name="studio",
         id="studio",

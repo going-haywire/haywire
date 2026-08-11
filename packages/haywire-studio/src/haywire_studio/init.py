@@ -213,7 +213,7 @@ name = "haybale-{lib_base}"  # pip distribution name
 id = "{lib_base}"  # prefixes every component's registry key, e.g. {lib_base}:node:Add
 
 # ── written by scripts/bump_version.py / the share wizard, not by hand ──────
-version = "0.0.1"  # PEP 440, no "v" — pyproject.toml is canon, this is the synced copy
+version = "0.0.1"  # PEP 440, no "v" — canon here; pyproject.toml carries the synced copy
 
 # ── display ───────────────────────────────────────────────────────────────
 label = "{label}"  # human display name

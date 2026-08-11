@@ -1,5 +1,5 @@
 from haybale_marketplace.editors.library_overview_editor import collect_overview_links
-from haywire.core.marketstall.types import Haybale
+from haywire.core.marketstall import Haybale
 
 _SPEC = "lib @ git+https://github.com/me/repo.git@v1.2.3#subdirectory=barn/lib"
 
@@ -89,3 +89,40 @@ def test_unresolvable_path_is_dropped_rather_than_guessed():
 def test_no_examples_link_when_path_absent():
     pkg = Haybale(name="lib", version="1.0.0", origin="https://github.com/me/repo")
     assert "Examples" not in [lbl for lbl, _ in collect_overview_links(pkg)]
+
+
+def test_issues_url_is_surfaced():
+    from haybale_marketplace.editors.library_overview_editor import collect_overview_links
+    from haywire.core.marketstall import Haybale
+
+    links = collect_overview_links(
+        Haybale(name="haybale-x", version="1.0.0", issues_url="https://issues.test")
+    )
+    assert ("Issues", "https://issues.test") in links
+
+
+def test_links_render_for_a_project_local_row():
+    """A library with no feed row still surfaces what its haybale.toml declares."""
+    from haybale_marketplace.editors.library_overview_editor import collect_overview_links
+    from haywire.core.marketstall import Haybale
+
+    links = collect_overview_links(
+        Haybale(
+            name="haybale-x",
+            version="1.0.0",
+            source="local",
+            origin="https://github.test/o/r",
+            homepage_url="https://home.test",
+            documentation_url="https://docs.test",
+            issues_url="https://issues.test",
+        )
+    )
+    labels = [label for label, _ in links]
+    assert labels == ["Source", "Documentation", "Issues"]
+
+
+def test_no_links_when_nothing_declared():
+    from haybale_marketplace.editors.library_overview_editor import collect_overview_links
+    from haywire.core.marketstall import Haybale
+
+    assert collect_overview_links(Haybale(name="haybale-x", version="1.0.0")) == []

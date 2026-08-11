@@ -145,24 +145,24 @@ Every field this file may declare, and which file each one reaches.
 
 | Field | Type | Required | haybale | marketstall | pyproject | Meaning |
 | --- | --- | --- | :-: | :-: | :-: | --- |
-| `name` | string | yes | | ● | `name` | Pip distribution name. Immutable |
-| `id` | string | yes | ● | | | Prefixes every component's registry key (`core:node:Add`). Immutable |
-| `version` | string | yes | ● | ● | `version` | PEP 440, no `v`. The git tag is derived from it |
+| `name` | string | yes | ● | ● | `name` | Pip distribution name. Canon here; pyproject carries the generated copy. Immutable |
+| `id` | string | yes | ● | ● | | Prefixes every component's registry key (`core:node:Add`). Immutable |
+| `version` | string | yes | ● | ● | `version` | PEP 440, no `v`. Canon here; pyproject carries the generated copy. The git tag is derived from it |
 | `label` | string | yes | ● | ● | | Human display name |
 | `description` | string | no | ● | ● | `description` | One line |
 | `tags` | list[str] | no | ● | ● | `keywords` | Filter tags in the library browser |
-| `os` | list[str] | no | | ● | | `macos`/`linux`/`windows`. Empty = everywhere. The only field that blocks installation |
+| `os` | list[str] | no | ● | ● | | `macos`/`linux`/`windows`. Empty = everywhere. The only field that blocks installation |
 | `on_reload` | string | no | ● | ● | | `none` (default) / `refresh` / `restart` |
 | `linked_libraries` | list[str] | no | ● | ● | | **Module** names. Hot-reload scope, and enable/uninstall gating |
 | `origin` | string | no | ● | ● | `urls.Source` | The repository this publishes from. Every declared path resolves against it |
 | `origin_provider` | string | no | ● | ● | | `github` / `gitlab`. Lets a consumer build URLs with no local host config |
 | `notes` | string | no | ● | ● | | A bare filename in this directory — one supplementary page |
 | `examples_path` | string | no | ● | ● | | Project-relative path. Trailing slash marks a directory |
-| `tests_path` | string | no | | ● | | Project-relative path. Not surfaced in the UI |
+| `tests_path` | string | no | ● | ● | | Project-relative path. Not surfaced in the UI |
 | `homepage_url` | string | no | ● | ● | `urls.Homepage` | Absolute URL, verbatim |
 | `documentation_url` | string | no | ● | ● | `urls.Documentation` | Absolute URL, verbatim |
 | `issues_url` | string | no | ● | ● | `urls.Issues` | Absolute URL, verbatim |
-| `[[authors]]` | table[] | no | ● | ● | `authors` | Repeatable `name` + optional `url`. The url reaches the marketstall but not pyproject |
+| `[[authors]]` | table[] | no | ● | ● | `authors` | Repeatable `name` + optional `url`, copied verbatim to the marketstall row; no pyproject slot |
 | `[deprecated]` | table | no | ● | ● | `classifiers` | `since` (required), `reason`, optional `successor`. Informs; never blocks |
 
 Nothing else is read from this file. `install_spec`, `require` and `source` are
@@ -177,7 +177,7 @@ and the entry point live in [`pyproject.toml`](pyproject-toml.md).
 | `haywire init` (scaffold) | `name`, `id`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template |
 | The author, by hand or in the edit modal | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
 | The author, by hand only | `[deprecated]` |
-| `scripts/bump_version.py` and the share wizard | `version`, synced from `pyproject.toml` (canon) |
+| `scripts/bump_version.py` and the share wizard | `version` — canon here; the generated copy is synced into `pyproject.toml` |
 | The share wizard | `origin`, `origin_provider`, and drift-detected `linked_libraries` additions |
 | Nothing — immutable | `name`, `id` |
 
@@ -211,7 +211,9 @@ PEP 440, no `v` prefix. The `v` belongs to the git tag, which is derived —
 `tag_for("0.0.40")` → `v0.0.40`, one definition for the commit step, the tag
 step, and `install_spec`.
 
-`pyproject.toml`'s `[project] version` is canon; haybale.toml `version` is the synced, runtime-read copy from which `LibraryIdentity.version` loads at decoration time.
+haybale.toml's `version` is canon and is what `LibraryIdentity.version` loads at decoration
+time; `pyproject.toml`'s `[project] version` is the generated copy, written because pip reads
+that file and cannot read this one.
 
 `scripts/bump_version.py` writes both files together for the monorepo's own lockstep release;
 the share wizard's `write_barn_versions()` does the same for a per-library publish. Required:
@@ -328,7 +330,7 @@ order:
 | --- | --- | --- |
 | `read_haybale_toml(package_dir)` | Decoration time; returns `LibraryIdentity` kwargs | Raises `HaybaleTomlError` — fatal for that library alone |
 | `read_haybale_toml_lenient(package_dir)` | Report-only callers | Returns `{}` |
-| `read_display(package_dir)` | Rendering; returns `LibraryDisplay` | Returns an empty display; cached on mtime |
+| `read_haybale(package_dir)` | Rendering; returns a `Haybale` | Never raises — returns an empty row; cached on mtime |
 | `read_raw(package_dir)` | The publisher, which needs keys the runtime never loads | Returns `{}` |
 | `write_haybale_fields(package_dir, fields)` | The edit modal | Raises on a non-editable field |
 

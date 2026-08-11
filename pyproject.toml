@@ -97,12 +97,26 @@ exclude = ["playground/"]
 # PT (flake8-pytest-style) and B (bugbear) catch problems neither mypy nor the
 # default rules see: blind `pytest.raises(Exception)`, composite asserts that
 # hide which half failed, mutable argument defaults, unchained re-raises.
-# B applies repo-wide; PT is scoped to tests/ below.
-extend-select = ["E501", "PT", "B"]
+# B applies repo-wide; PT is scoped to tests/ below. TID251 (flake8-tidy-imports
+# banned-api) enforces the banned-api list below; the sibling rule TID252
+# (relative-imports) is NOT selected — it has 198 pre-existing, unrelated
+# violations repo-wide.
+extend-select = ["E501", "PT", "B", "TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# Haybale is re-exported from the package root, and only that path is stable:
+# the type is expected to move to haywire.core.library eventually, and a deep
+# import turns that one-file move into an archaeology exercise.
+"haywire.core.marketstall.types.Haybale".msg = "Import from haywire.core.marketstall instead."
 
 [tool.ruff.lint.per-file-ignores]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
+
+# The module's own siblings and its dedicated tests legitimately reach for the
+# deep path — they move with the file.
+"packages/haywire-core/src/haywire/core/marketstall/*" = ["TID251"]
+"tests/marketstall/*" = ["TID251"]
 
 # B027 — empty non-abstract methods in an ABC. The four files below are the
 # framework's public authoring surfaces, and every flagged method there is a
@@ -163,18 +177,13 @@ lockstep_unpublished = [
 [tool.haywire.marketstall]
 # Configuration for scripts/generate_marketstall.py.
 # Consumed by the marketplace generator and the CI publish workflow.
-
-# Repo URL used as the `source_url` for every generated [[haybales]] entry.
-# Also forms the base for the `docs_url` raw-githubusercontent URL.
+#
+# source_url/docs_branch are read but currently unconsumed by the generator:
+# each entry's `origin` now comes from haybale.toml / the git remote via the
+# shared marketstall builder, not from this repo-level URL. Left here (not
+# deleted) since they still describe this repo's canonical remote.
 source_url = "https://github.com/going-haywire/haywire"
-
-# Default branch used in the raw-githubusercontent docs_url.
 docs_branch = "master"
-
-# Default author and tags applied when a package's @library decorator
-# doesn't set them. Per-package values from the decorator always win.
-default_author = "Haywire Team"
-default_tags = []
 
 # Base URL where the deployed feed lives. The generator composes the per-stall
 # subscription URLs as "{feed_base_url}/stalls/{dist-name}.toml".

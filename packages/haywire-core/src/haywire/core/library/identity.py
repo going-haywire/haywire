@@ -68,23 +68,16 @@ class LibraryIdentity:
     ``file_watcher`` from the call itself, the rest — including ``version`` —
     read out of ``haybale.toml``.
 
-    The descriptive fields below (``description``, ``url``, ``author``,
-    ``author_url``, ``tags``) are **transitional**. The design has consumers read
-    them from ``haybale.toml`` at the point of use instead, so an edit is visible
-    without a reload; they are still carried here while ~30 call sites are
-    migrated. What must stay on the identity is only what cannot do a file read:
-    ``label`` (logged and rendered from inside the registry), ``linked_libraries``
-    (read during module registration, inside the import machinery), and
-    ``on_reload`` (read by ``_hints_for_library`` *after* a library is evicted,
-    when its files may already be gone).
+    Carries only what cannot be answered by a file read: ``label`` (logged and
+    rendered from inside the registry), ``linked_libraries`` (read during module
+    registration, inside the import machinery), and ``on_reload`` (read by
+    ``_hints_for_library`` *after* a library is evicted, when its files may
+    already be gone). Everything descriptive is read at the point of use with
+    ``read_haybale()``, so an edit is visible without a reload.
     """
 
     label: str = ""
     version: str = ""
-    description: str = ""
-    url: str = ""
-    author: str = ""
-    author_url: str = ""
     folder_path: str = ""  # Path to the library folder
     module_name: str = ""  # Python module name
     id: str = ""  # Unique identifier for the library
@@ -95,7 +88,6 @@ class LibraryIdentity:
 
     Renamed from ``dependencies``, which collided with ``[project]
     dependencies`` — pip requirements, a different concept entirely."""
-    tags: list[str] | None = None  # Searchable tags for marketplace/discovery
     file_watcher: bool = False  # Whether to watch for file changes
     on_reload: str = LibraryReloadAction.NONE.value
     """What the user must do after this library is installed, updated, or
@@ -106,8 +98,6 @@ class LibraryIdentity:
     def __post_init__(self):
         if self.linked_libraries is None:
             self.linked_libraries = []
-        if self.tags is None:
-            self.tags = []
         # Validate and normalise to the wire form. Accepts the enum or any
         # case/whitespace variant of its value; an unknown value raises here
         # rather than at the next library import.
