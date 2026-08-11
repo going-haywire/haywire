@@ -1,18 +1,18 @@
 # Marketstall for haybale-marketplace (auto-generated; spec §2)
-# Source of truth: the package's pyproject.toml in the haywire monorepo.
+# Source of truth: the package's haybale.toml in the haywire monorepo.
 # Re-generated on every release tag by scripts/generate_marketstall.py.
 
 
 [[haybales]]
 name = "haybale-marketplace"
-label = "haybale-marketplace"
-version = "0.1.0"
-require = "haywire-core>=0.1.0"
+id = "marketplace"
+label = "Marketplace"
+version = "0.1.1"
+require = "haywire-core>=0.1.1"
 description = "Library installer + browser editors"
-author = "Haywire Team"
 source = "pypi"
 install_spec = "haybale-marketplace"
-tags = []
-dependencies = ["haybale-studio"]
-source_url = "https://github.com/going-haywire/haywire"
-docs_url = "https://raw.githubusercontent.com/going-haywire/haywire/master/barn/haybale-marketplace/haybale_marketplace/"
+tags = ["marketplace"]
+on_reload = "none"
+origin = "https://github.com/going-haywire/haywire"
+origin_provider = "github"
