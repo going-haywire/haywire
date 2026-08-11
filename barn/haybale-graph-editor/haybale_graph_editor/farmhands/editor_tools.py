@@ -496,7 +496,8 @@ def _edge_row(edge, detail: bool = False) -> dict:
 
 @farmhand(
     label="Query graph",
-    description=(
+    description="Nodes (with ports) and edges of an open graph.",
+    instructions=(
         "Nodes (with ports) and edges of an open graph. Pass detail=true for the full "
         "per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, "
         "promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, "
@@ -550,7 +551,8 @@ _DIRECTIONS = ("inlet", "outlet", "config")
 
 @farmhand(
     label="Inspect node",
-    description="Drill down on ONE node in three steps — name only the sections and depth you "
+    description="One node's ports, settings, and health, at a chosen depth.",
+    instructions="Drill down on ONE node in three steps — name only the sections and depth you "
     "need, because a node can carry 30+ settings fields and an unfocused call wastes most of "
     "what it returns. The read counterpart to graph_editor_set_property: a row's 'name' is "
     "exactly what you pass back as name=, and it joins a row across all depths.\n"
@@ -752,6 +754,11 @@ class GraphEditorInspectNodeTool(Farmhand):
 @farmhand(
     label="Add node",
     description="Add a node by registry key. Call studio_describe_component first to learn its ports.",
+    instructions="Add a node instance to an open graph by registry_key, at an optional (x, y) "
+    "canvas position (defaults near the origin). Call studio_describe_component or "
+    "studio_list_components first to find a valid registry_key. Opens one undo fence and "
+    "broadcasts to open studio UIs. Follow up with graph_editor_inspect_node to see the new "
+    "node's ports/settings before wiring or setting them.",
     registry_id="add_node",
     annotations=_MUTATING,
 )
@@ -789,6 +796,10 @@ class GraphEditorAddNodeTool(Farmhand):
 @farmhand(
     label="Connect",
     description="Connect an outlet to an inlet.",
+    instructions="Create an edge from one node's outlet to another node's inlet, by exact pin "
+    "id. Use graph_editor_inspect_node get=['ports'] on both endpoints first to find valid pin "
+    "ids and confirm type compatibility — a bad id or an incompatible pair raises "
+    "connect_failed. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="connect",
     annotations=_MUTATING,
 )
@@ -835,6 +846,10 @@ class GraphEditorConnectTool(Farmhand):
 @farmhand(
     label="Remove elements",
     description="Remove nodes and/or edges (also the way to disconnect).",
+    instructions="Remove nodes and/or edges from an open graph by id, in one call — pass "
+    "nodes=[...] and/or edges=[...] (either or both, each defaults to empty). This is also how "
+    "to disconnect two nodes: pass the edge_id under edges=. Removing a node also removes its "
+    "own edges. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="remove_elements",
     annotations=_MUTATING,
 )
@@ -866,6 +881,10 @@ class GraphEditorRemoveElementsTool(Farmhand):
 @farmhand(
     label="Move nodes",
     description="Move nodes to absolute positions ({node_id: {x, y}}).",
+    instructions="Move one or more nodes to absolute canvas positions in a single call: "
+    "positions={node_id: {x, y}, ...}. Positions are absolute, not deltas — read current "
+    "positions with graph_editor_query_graph first if you need a relative move. Opens one undo "
+    "fence and broadcasts to open studio UIs on success.",
     registry_id="move_nodes",
     annotations=_MUTATING,
 )
@@ -899,7 +918,8 @@ def _read_property(node, name: str):
 
 @farmhand(
     label="Set property",
-    description="Set a node property (port value or settings field) by name. Undo-recorded. "
+    description="Set a node property (port value or settings field) by name. Undo-recorded.",
+    instructions="Set a node property (port value or settings field) by name. Undo-recorded. "
     "'name' resolves to a port id first, then a settings field — use the exact 'name' from a "
     "graph_editor_inspect_node row. The write is verified by reading the value back: a value "
     "rejected by the field's validator raises set_rejected rather than reporting a success that "
@@ -946,6 +966,12 @@ class GraphEditorSetPropertyTool(Farmhand):
 @farmhand(
     label="Promote setting",
     description="Promote a settings field to a data port. Not undo-routed (UI parity; later work).",
+    instructions="Promote a settings field to a live data port, so it can be wired instead of "
+    "just set directly. accessor is the settings-bag accessor (e.g. 'depth') and field the "
+    "field name within it — both come from a graph_editor_inspect_node settings row. direction "
+    "is one of inlet/outlet/config (default inlet); an invalid direction raises bad_direction, "
+    "and a field that can't be promoted raises not_promotable. NOT undo-routed — this does not "
+    "join the undo timeline (UI parity gap, tracked for later work).",
     registry_id="promote_setting",
     annotations=_MUTATING,
 )
@@ -982,6 +1008,9 @@ class GraphEditorPromoteSettingTool(Farmhand):
 @farmhand(
     label="Demote setting",
     description="Remove a promoted port, returning the field to a plain setting.",
+    instructions="Reverse graph_editor_promote_setting: remove a promoted port by its port_id, "
+    "returning the underlying field to a plain (non-port) setting. Any edges on that port are "
+    "removed along with it. Broadcasts to open studio UIs on success.",
     registry_id="demote_setting",
     annotations=_MUTATING,
 )
@@ -997,6 +1026,10 @@ class GraphEditorDemoteSettingTool(Farmhand):
 @farmhand(
     label="Undo",
     description="Undo the last change on this graph's SHARED human+agent timeline.",
+    instructions="Undo the last change on this graph's undo timeline — SHARED between the human "
+    "editing in the studio UI and any agent calling these tools, so this can undo a change "
+    "either one made. Returns performed=false with no error when there is nothing to undo. "
+    "Broadcasts to open studio UIs only when a change was actually undone.",
     registry_id="undo",
     annotations=_MUTATING,
 )
@@ -1015,6 +1048,10 @@ class GraphEditorUndoTool(Farmhand):
 @farmhand(
     label="Redo",
     description="Redo the last undone change on this graph's SHARED human+agent timeline.",
+    instructions="Redo the last undone change on this graph's undo timeline — SHARED between "
+    "the human editing in the studio UI and any agent calling these tools. Returns "
+    "performed=false with no error when there is nothing to redo. Broadcasts to open studio "
+    "UIs only when a change was actually redone.",
     registry_id="redo",
     annotations=_MUTATING,
 )

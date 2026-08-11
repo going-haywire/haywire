@@ -35,6 +35,7 @@ def _library_tool(lib_id: str = "testing", name: str = "echo"):
         class_name="EchoTool",
         module=__name__,
         annotations=ToolAnnotations(read_only_hint=True),
+        instructions="Echo text back.",
     )
     EchoTool.class_library = _lib_identity(lib_id)
     return EchoTool

@@ -90,6 +90,9 @@ def render_component(rec: ComponentRecord) -> str:
         lines += [rec.description, ""]
     if rec.deprecation:
         lines += [f"> **Deprecated:** {rec.deprecation}", ""]
+    if rec.instructions:
+        # Prose, not a scalar — own section instead of the ## Details dump.
+        lines += ["## Agent Instructions", "", rec.instructions, ""]
     if rec.kind == "node" and rec.ports:
         lines += [
             "## Ports",

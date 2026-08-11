@@ -46,15 +46,16 @@ Farmhand tools are **not** the same as MCP *resources*. Tools are actions the ag
 Author declares                Library registers               MCP host serves
 ────────────────               ─────────────────                ───────────────
 @farmhand(                     @library(...):                   list_tools()
-    label='...',                 register_components(self):       → name, description,
-    description='...',             self.add_folder_to_               inputSchema (derived
-)                                     registry(                       from run()'s signature
-class MyTool(Farmhand):                folder='farmhands',            or input_schema_override)
-    async def run(self, ctx,           registry_cls=
-        arg: str) -> dict:              FarmhandRegistry)          call_tool(name, args)
-        ...                                                          → FarmhandContext() built,
-                                  FarmhandRegistry                     MyTool().run(ctx, **args)
-                                  (BaseRegistry subclass)              awaited, result JSON-
+    label='...',                 register_components(self):       → name, description
+    description='...',             self.add_folder_to_               (from instructions=),
+    instructions='...',              registry(                       inputSchema (derived
+)                                     folder='farmhands',              from run()'s signature
+class MyTool(Farmhand):                registry_cls=                  or input_schema_override)
+    async def run(self, ctx,           FarmhandRegistry)
+        arg: str) -> dict:                                       call_tool(name, args)
+        ...                       FarmhandRegistry                  → FarmhandContext() built,
+                                  (BaseRegistry subclass)              MyTool().run(ctx, **args)
+                                                                        awaited, result JSON-
                                                                         encoded back to the agent
 ```
 
@@ -69,7 +70,8 @@ The MCP host (`haywire_studio.farmhand.host`) is the one place that talks the wi
 | Parameter | Required | Purpose |
 |---|---|---|
 | `label` | no | Human-readable display name. Defaults to `registry_id`. |
-| `description` | no | Shown to the MCP client as the tool's description — this is the *only* text the agent sees before deciding whether/how to call the tool, since derived input schemas carry no per-parameter descriptions (see below). Write it to teach valid argument values, not just restate the label. |
+| `description` | no | Short human-facing blurb — shown in generated docs and the `studio_list_components` catalog. Not sent to MCP clients. |
+| `instructions` | **yes** | Sent to the MCP client as the tool's description — this is the *only* text the agent sees before deciding whether/how to call the tool, since derived input schemas carry no per-parameter descriptions (see below). Write it for an LLM: what the tool does, when to use it, valid argument values, gotchas — not just a restated label. Omitting it raises `TypeError` at class-definition time. |
 | `registry_id` | no | Unique id within the library. Defaults to the class name. The MCP-visible tool name is `{lib_id}_{registry_id}` — pass a snake_case id (e.g. `registry_id="save_graph"` → `mylib_save_graph`). |
 | `annotations` | no | A `ToolAnnotations` instance: `read_only_hint`, `destructive_hint`, `idempotent_hint`, `open_world_hint` — MCP consent hints surfaced to the client/user before a mutating call. Defaults to all-`False`. |
 | `hidden` | no | Exclude from author-facing selection UIs (inherited from `BaseIdentity`; unrelated to MCP visibility — a hidden Farmhand is still callable). |
@@ -242,7 +244,7 @@ What we took, and what changed in translation:
 | §6 structured errors with an actionable suggestion | §3 `FarmhandError(code, message, ids, help)` |
 | §1 emit TOON on stdout | **Not adopted.** MCP negotiates its own typing: the client owns the parse, and the protocol already carries a real object in `structuredContent`. Emitting TOON inside `content[].text` would hand every client a format it has no contract for. Measured on a real payload, TOON saved ~40% on uniform tabular rows but was *larger* than JSON on nested count maps, and has no representation for the multi-line source strings some tools return. Schema trimming (§4.1) delivered ~12× more on the same payload with no new dependency — do that first, and revisit the format question only against an already-trimmed baseline. |
 | §6 exit codes 0/1/2, errors to stdout | **N/A.** MCP has `isError`; there is no exit code and no stdout. |
-| §7 session hooks, §10 `--help` and bin path | **N/A.** `list_tools` and the `description=` field do this job — which is why `description=` is worth writing carefully (§3). |
+| §7 session hooks, §10 `--help` and bin path | **N/A.** `list_tools` and the `instructions=` field do this job — which is why `instructions=` is worth writing carefully (§3). |
 | §8 no-args shows live content | Closest equivalent is `studio_status`, not a per-tool behaviour. |
 
 The numbers cited above are reproducible: [`measurements/2026-08-07-farmhand-axi-measure_payload.py`](measurements/2026-08-07-farmhand-axi-measure_payload.py) carries the captured payload and prints every figure, including the two-lever comparison behind the TOON decision. Re-run it before revisiting that call.
@@ -279,7 +281,7 @@ What these examples exercise:
 
 | Concept | Where |
 |---|---|
-| `@farmhand(label=, description=, registry_id=, annotations=)` | every example |
+| `@farmhand(label=, description=, instructions=, registry_id=, annotations=)` | every example |
 | `ToolAnnotations(read_only_hint=True)` for a non-mutating tool | `EchoTool`, `StudioListLibrariesTool` |
 | `ToolAnnotations(destructive_hint=True, idempotent_hint=True)` | `StudioDismissErrorsTool` |
 | Raising `FarmhandError(code, message, ids=)` | `FailTool`, `StudioDismissErrorsTool` |
@@ -300,10 +302,10 @@ For the MCP wire protocol, session tracking, and how resources (`farmhand://docs
 
 Mechanics (§3):
 
-- [ ] `@farmhand(label=, description=, registry_id=, annotations=)` decorator
+- [ ] `@farmhand(label=, description=, instructions=, registry_id=, annotations=)` decorator
 - [ ] Inherit from `Farmhand`
 - [ ] Implement `async def run(self, ctx: FarmhandContext, ...) -> dict` — must be `async`
-- [ ] Write `description=` to teach valid arguments — it's the only text the agent sees before calling
+- [ ] Write `instructions=` to teach valid arguments — it's the only text the agent sees before calling; keep `description=` short and human-facing
 - [ ] Set `input_schema_override` if you need an `enum` or other schema constraint the derived schema can't express
 - [ ] Raise `FarmhandError(code, message, ids=)` for expected failures, not bare exceptions
 - [ ] Pass `help=` on any failure whose fix is knowable at the throw site
@@ -345,6 +347,8 @@ from haywire.core.farmhand import (
 | Pitfall | Why it matters |
 |---|---|
 | `def run(...)` without `async` | `TypeError` at decoration time — the MCP SDK thread-offloads sync functions, breaking loop affinity |
+| Omitting `instructions=` | `TypeError` at decoration time — required, no fallback to `description` |
+| Writing `instructions=` as a restated `label` | Agent gets no signal on when to call the tool or how to shape arguments — write it as usage guidance, not a title |
 | Assuming type hints alone can express an `enum` | Derived schemas only map primitive types; use `input_schema_override` |
 | Raising a bare `ValueError`/`KeyError` for an expected failure | Agent sees an unstructured error instead of a stable `code` it can branch on |
 | Returning a list without `limit`/`offset` | No way for a caller to scope a large result — the exact problem `studio_list_components` had before it grew filters |

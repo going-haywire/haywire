@@ -17,7 +17,8 @@ def _version(dist: str) -> str:
 
 @farmhand(
     label="Studio status",
-    description="Versions, workspace root, enabled-library counts, docs manifest "
+    description="Versions, workspace root, enabled-library counts, docs manifest URI.",
+    instructions="Versions, workspace root, enabled-library counts, docs manifest "
     "URI. Call this first when connecting — the summary points at how to find documentation.",
     registry_id="status",
     annotations=ToolAnnotations(read_only_hint=True),

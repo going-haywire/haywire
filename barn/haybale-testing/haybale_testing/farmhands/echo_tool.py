@@ -7,6 +7,8 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, fa
 @farmhand(
     label="Echo",
     description="Echo text back (canned read tool).",
+    instructions="Echo the given text back unchanged. Read-only, no side effects — used to "
+    "exercise the Farmhand call path in tests, not a real capability.",
     registry_id="echo",
     annotations=ToolAnnotations(read_only_hint=True),
 )

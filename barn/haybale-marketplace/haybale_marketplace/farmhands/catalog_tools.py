@@ -71,7 +71,8 @@ def _haybale_row(haybale, detail: bool) -> dict:
 
 @farmhand(
     label="List available",
-    description="Merged AVAILABLE catalog (not-installed libraries) from the marketplace cache. "
+    description="Merged AVAILABLE catalog (not-installed libraries) from the marketplace cache.",
+    instructions="Merged AVAILABLE catalog (not-installed libraries) from the marketplace cache. "
     "Returns name/version/label/install_spec per row; pass detail=true for the full record "
     "(description, author, tags, dependencies, source_url, docs_url, ...).",
     registry_id="list_available",
@@ -99,6 +100,9 @@ class MarketplaceListAvailableTool(Farmhand):
 @farmhand(
     label="Refresh catalog",
     description="Re-fetch all subscribed markets/stalls (network; rewrites the project cache).",
+    instructions="Re-fetch all subscribed markets/stalls over the network and rewrite the "
+    "project's marketplace cache. Call this when marketplace_list_available looks stale — "
+    "otherwise the cache is used as-is. Returns how many haybales were resolved.",
     registry_id="refresh",
     annotations=ToolAnnotations(open_world_hint=True),
 )
@@ -136,7 +140,8 @@ def _doc_result(summary: str, text: str, full: bool, **extra: object) -> dict:
 
 @farmhand(
     label="Get library docs",
-    description="Docs for an installed library (OVERVIEW/QUICKREF/README from its folder) or an "
+    description="Docs for an installed library (OVERVIEW/QUICKREF/README) or an available one.",
+    instructions="Docs for an installed library (OVERVIEW/QUICKREF/README from its folder) or an "
     "available one (network fetch of its docs_url). Pass component=<registry_key> to fetch one "
     "component's deep doc (installed: wheel; available: docs_url). Long documents are truncated "
     f"at {_DOC_CHAR_CAP} chars with total_chars reported; pass full=true for everything.",

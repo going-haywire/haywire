@@ -16,7 +16,8 @@ from haywire.core.session.signals import ErrorLedgerChanged
 
 @farmhand(
     label="Get errors",
-    description="Query the studio's error ledger (since_seq/library/registry_key filters); "
+    description="Query the studio's error ledger.",
+    instructions="Query the studio's error ledger (since_seq/library/registry_key filters); "
     "results carry the current cursor for incremental polling and first_retained_seq "
     "so a client can detect when older history was evicted or deleted.",
     registry_id="get_errors",
@@ -56,7 +57,8 @@ class StudioGetErrorsTool(Farmhand):
 # --8<-- [start:dismiss_errors_tool]
 @farmhand(
     label="Dismiss errors",
-    description="Dismiss ledger entries: pass seq=<n> to remove one, or all=true to clear every "
+    description="Dismiss one or all ledger entries.",
+    instructions="Dismiss ledger entries: pass seq=<n> to remove one, or all=true to clear every "
     "retained entry. Removal is permanent for that entry but leaves the monotonic cursor "
     "untouched, so incremental since_seq polling stays correct. Broadcasts so open studio "
     "Errors editors refresh. Dismissing an absent seq is a no-op (idempotent).",

@@ -96,6 +96,7 @@ def test_tool_table_seed_and_evict():
         registry_key="studio:farmhand:ping",
         label="Ping",
         description="",
+        instructions="Ping.",
         class_name="PingTool",
         module=__name__,
         annotations=ToolAnnotations(),

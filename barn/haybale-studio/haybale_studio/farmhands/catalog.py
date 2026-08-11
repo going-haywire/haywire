@@ -31,7 +31,8 @@ def _is_synthetic_library(lib_id: str) -> bool:
 # --8<-- [start:list_libraries_tool]
 @farmhand(
     label="List libraries",
-    description="Installed libraries: id, label, version, enabled. Pass detail=true to add "
+    description="List installed libraries.",
+    instructions="Installed libraries: id, label, version, enabled. Pass detail=true to add "
     "description and tags. Synthetic libraries (dunder ids like '__system__') are excluded "
     "unless include_system=true.",
     registry_id="list_libraries",
@@ -118,7 +119,8 @@ def _matches_search(identity: Any, query_lower: str) -> bool:
 
 @farmhand(
     label="List components",
-    description="ALWAYS pass at least one of kind=/library=/search= — omitting all three "
+    description="Component catalog, filterable and searchable.",
+    instructions="ALWAYS pass at least one of kind=/library=/search= — omitting all three "
     "returns every installed component (100+) and is slow and almost never what you want. "
     "Component catalog, filterable and searchable.\n"
     "Start with count_only=true to see totals per library/kind before listing rows — the "
@@ -231,7 +233,8 @@ class StudioListComponentsTool(Farmhand):
 
 @farmhand(
     label="Describe component",
-    description="One component's identity and docstring, plus the canon_doc_uri for its kind's "
+    description="One component's identity, docstring, and authoring-guide link.",
+    instructions="One component's identity and docstring, plus the canon_doc_uri for its kind's "
     "authoring guide. For nodes: read before graph_editor_add_node.",
     registry_id="describe_component",
     annotations=_READ_ONLY,

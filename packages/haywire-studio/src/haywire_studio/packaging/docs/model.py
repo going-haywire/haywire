@@ -18,6 +18,7 @@ class ComponentRecord:
     search_tags: list[str] = field(default_factory=list)
     menu: str = ""
     docstring: str = ""
+    instructions: str = ""
     ports: list[PortInfo] = field(default_factory=list)
     settings: list[SettingInfo] = field(default_factory=list)
     extra: dict[str, Any] = field(default_factory=dict)

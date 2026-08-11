@@ -29,6 +29,15 @@ class ToolAnnotations:
 @dataclass
 class FarmhandIdentity(BaseIdentity):
     """Inherits registry_id/registry_key/label/description/deprecation_warning/
-    hidden/class_name/module from BaseIdentity; adds the MCP consent annotations."""
+    hidden/class_name/module from BaseIdentity; adds MCP consent annotations
+    and agent-facing instructions.
+
+    ``description`` (inherited): short human-facing blurb (docs, catalog).
+    ``instructions``: required, sent verbatim as MCP ``Tool.description`` —
+    see ``@farmhand`` decorator docstring for authoring guidance.
+    ``kw_only`` needed since BaseIdentity's fields all have defaults and
+    ``instructions`` doesn't; decorator only ever constructs via kwargs.
+    """
 
     annotations: ToolAnnotations = field(default_factory=ToolAnnotations)
+    instructions: str = field(kw_only=True)

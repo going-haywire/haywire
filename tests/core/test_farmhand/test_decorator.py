@@ -36,6 +36,7 @@ def _make_tool():
     @farmhand(
         label="Status",
         description="Report studio status.",
+        instructions="Report studio status.",
         registry_id="status",
         annotations=ToolAnnotations(read_only_hint=True),
     )
@@ -56,7 +57,7 @@ def test_identity_and_mcp_name():
 
 def test_registry_id_defaults_to_class_name():
     # Established pattern (@node/@state): verbatim class name, no transformation.
-    @farmhand()
+    @farmhand(instructions="List open graphs.")
     class ListOpenGraphs(Farmhand):
         async def run(self, ctx) -> dict:
             return {}
@@ -67,7 +68,7 @@ def test_registry_id_defaults_to_class_name():
 def test_sync_run_rejected():
     with pytest.raises(TypeError, match="async"):
 
-        @farmhand()
+        @farmhand(instructions="Bad tool.")
         class BadTool(Farmhand):
             def run(self, ctx) -> dict:  # type: ignore[override]
                 return {}
@@ -76,14 +77,14 @@ def test_sync_run_rejected():
 def test_non_subclass_rejected():
     with pytest.raises(TypeError):
 
-        @farmhand()
+        @farmhand(instructions="Not a tool.")
         class NotATool:
             async def run(self, ctx) -> dict:
                 return {}
 
 
 def test_input_schema_uses_override_when_present():
-    @farmhand()
+    @farmhand(instructions="Overridden schema.")
     class Overridden(Farmhand):
         input_schema_override = {"type": "object", "properties": {"q": {"type": "string"}}}
 
@@ -91,6 +92,15 @@ def test_input_schema_uses_override_when_present():
             return {}
 
     assert Overridden.input_schema() == Overridden.input_schema_override
+
+
+def test_instructions_required():
+    with pytest.raises(TypeError, match="instructions"):
+
+        @farmhand()
+        class NoInstructionsTool(Farmhand):
+            async def run(self, ctx) -> dict:
+                return {}
 
 
 def test_annotations_to_dict_camelcase():
@@ -105,7 +115,7 @@ def test_annotations_to_dict_camelcase():
 
 def test_inherited_baseidentity_field_passes_through():
     # @node's **kwargs shape means BaseIdentity fields flow through for free.
-    @farmhand(hidden=True)
+    @farmhand(hidden=True, instructions="Hidden tool.")
     class HiddenTool(Farmhand):
         async def run(self, ctx) -> dict:
             return {}

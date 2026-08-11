@@ -24,7 +24,19 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
 
     Identity Fields (metadata):
         label (str): Human-readable display name. Default: registry_id
-        description (str): Tool description shown to MCP clients. Default: ""
+        description (str): SHORT human-facing blurb — shown in generated docs
+            (OVERVIEW.md/QUICKREF.md) and the studio_list_components catalog,
+            same role it plays for every other component kind. NOT sent to
+            MCP clients — see instructions below. Default: ""
+        instructions (str): REQUIRED. The text sent verbatim as the MCP
+            Tool.description — the only thing an agent reads to decide
+            whether/how to call this tool, since derived input schemas carry
+            no per-parameter descriptions. Write it for an LLM, not a human:
+            cover what the tool does, when to use it (and when not to),
+            parameter semantics/gotchas, and worked examples where the
+            argument shape isn't obvious. Omitting it raises TypeError from
+            the FarmhandIdentity constructor — a farmhand tool with no
+            instructions is unusable to the agents it exists for.
         registry_id (str): Unique identifier within library. Default: class name.
             The MCP-visible tool name is {lib_id}_{registry_id}, so pass a
             snake_case registry_id (e.g. registry_id="save_graph").
@@ -43,7 +55,12 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
 
         @farmhand(
             label="Save graph",
-            description="Save an open graph; save_as writes to a new path.",
+            description="Save an open graph.",
+            instructions=(
+                "Save an open graph; save_as writes to a new path instead of "
+                "overwriting. Call haystack_list_graphs first if binding_id is "
+                "unknown — it is not the same as the graph's display name."
+            ),
             registry_id="save_graph",
             annotations=ToolAnnotations(),
         )

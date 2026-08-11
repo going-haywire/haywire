@@ -67,7 +67,8 @@ def _template(kind: str, name: str) -> str:
 
 @farmhand(
     label="Scaffold component",
-    description="Write a canon-conformant skeleton for any component kind into a project-local "
+    description="Write a canon-conformant skeleton for a new component into a project-local library.",
+    instructions="Write a canon-conformant skeleton for any component kind into a project-local "
     "library; returns the path and expected registry key. Read the kind's canon first — find it "
     "via the farmhand://docs/_manifest index (e.g. components/nodes/node-canon.md).",
     registry_id="scaffold_component",
@@ -111,7 +112,8 @@ numbering stays absolute, so a windowed read can be cited and edited directly.""
 
 @farmhand(
     label="Read component source",
-    description="Line-numbered source of any installed component. Returns the first "
+    description="Line-numbered source of any installed component.",
+    instructions="Line-numbered source of any installed component. Returns the first "
     f"{_SOURCE_LINE_CAP} lines by default; pass offset= to window further in, or full=true "
     "for the entire file. Truncated results say so in the summary and report total_lines.",
     registry_id="read_component_source",
@@ -156,7 +158,8 @@ class StudioReadComponentSourceTool(Farmhand):
 
 @farmhand(
     label="Write component source",
-    description="Full-source write into a project-local library only. Existing components are "
+    description="Full-source write into a project-local library only.",
+    instructions="Full-source write into a project-local library only. Existing components are "
     "hot-reloaded by the file watcher; follow with studio_verify_component.",
     registry_id="write_component_source",
     annotations=ToolAnnotations(destructive_hint=True),
@@ -204,7 +207,8 @@ class StudioWriteComponentSourceTool(Farmhand):
 
 @farmhand(
     label="Verify component",
-    description="Staged verification: registered -> (nodes) trial instantiation -> on_testrun(); "
+    description="Staged verification that a component registers and runs cleanly.",
+    instructions="Staged verification: registered -> (nodes) trial instantiation -> on_testrun(); "
     "error-ledger entries from the failing stage are attached.",
     registry_id="verify_component",
     annotations=ToolAnnotations(read_only_hint=True),

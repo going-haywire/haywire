@@ -153,7 +153,7 @@ class FarmhandHost:
             return [
                 types.Tool(
                     name=name,
-                    description=cls.class_identity.description or cls.class_identity.label,
+                    description=cls.class_identity.instructions,
                     inputSchema=cls.input_schema(),
                     annotations=types.ToolAnnotations(**cls.class_identity.annotations.to_dict()),
                 )

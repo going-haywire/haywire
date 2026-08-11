@@ -52,6 +52,10 @@ def _compile_row(result) -> dict:
 @farmhand(
     label="List graphs",
     description="Open haystack entries plus .haywire files on disk in the workspace.",
+    instructions="List open graph sessions (with their binding_id, needed by every other "
+    "haystack_*/graph_editor_* tool) plus every .haywire file found on disk under the workspace "
+    "root, whether open or not. Use this first to discover a binding_id, or to find a file path "
+    "to pass to haystack_open_graph.",
     registry_id="list_graphs",
     annotations=_READ_ONLY,
 )
@@ -90,6 +94,9 @@ class HaystackListGraphsTool(Farmhand):
 @farmhand(
     label="Create graph",
     description="Create a new untitled graph (appears in open browser sessions).",
+    instructions="Create a new untitled, unsaved graph and return its binding_id. The graph "
+    "appears in any open studio browser session immediately. It has no nodes yet — follow with "
+    "graph_editor_add_node, then haystack_save_graph (it stays unsaved until you do).",
     registry_id="create_graph",
     annotations=_MUTATING,
 )
@@ -110,6 +117,10 @@ class HaystackCreateGraphTool(Farmhand):
 @farmhand(
     label="Open graph",
     description="Open a .haywire file (idempotent per path).",
+    instructions="Open a .haywire file by path, relative to the workspace root, and return its "
+    "binding_id. Idempotent: opening an already-open path returns the same session rather than "
+    "duplicating it. Raises file_not_found if the path doesn't exist — run haystack_list_graphs "
+    "to see valid paths.",
     registry_id="open_graph",
     annotations=_MUTATING,
 )
@@ -130,6 +141,10 @@ class HaystackOpenGraphTool(Farmhand):
 @farmhand(
     label="Save graph",
     description="Save an open graph; save_as writes to a new path.",
+    instructions="Save an open graph (by binding_id) to its current path. Pass save_as=<path> "
+    "(relative to the workspace root) to write to a new path instead — e.g. to save an untitled "
+    "graph from haystack_create_graph for the first time. Raises graph_not_found for an unknown "
+    "binding_id, save_failed if the write itself fails.",
     registry_id="save_graph",
     annotations=_MUTATING,
 )
@@ -150,6 +165,9 @@ class HaystackSaveGraphTool(Farmhand):
 @farmhand(
     label="Rename graph",
     description="Rename an open graph's file on disk and rekey it.",
+    instructions="Rename an open graph: renames its file on disk to new_name and updates its "
+    "display_name. The binding_id itself does not change. Raises graph_not_found for an unknown "
+    "binding_id, rename_failed if the rename itself fails (e.g. name collision).",
     registry_id="rename_graph",
     annotations=_MUTATING,
 )
@@ -167,6 +185,9 @@ class HaystackRenameGraphTool(Farmhand):
 @farmhand(
     label="Close graph",
     description="Close an open graph entry. NEVER deletes the file on disk.",
+    instructions="Close an open graph session by binding_id, removing it from the open-entries "
+    "list. NEVER deletes the file on disk — the graph can be reopened later with "
+    "haystack_open_graph. Raises graph_not_found for an unknown binding_id.",
     registry_id="close_graph",
     annotations=_MUTATING,
 )
@@ -180,6 +201,10 @@ class HaystackCloseGraphTool(Farmhand):
 @farmhand(
     label="Compile graph",
     description="Compile without starting; returns compile diagnostics.",
+    instructions="Compile an open graph WITHOUT starting execution — use this to check for "
+    "compile errors before haystack_start_graph, since starting a broken graph wastes the "
+    "destructive-side-effects warning for nothing. Returns compile.ok and compile.error (null "
+    "when ok).",
     registry_id="compile_graph",
     annotations=_READ_ONLY,
 )
@@ -192,6 +217,10 @@ class HaystackCompileGraphTool(Farmhand):
 @farmhand(
     label="Start graph",
     description="Compile and start execution. Destructive: nodes perform real I/O.",
+    instructions="Compile and start executing an open graph. DESTRUCTIVE — nodes perform real "
+    "I/O once running (hardware, network, file writes), not a dry run. Consider "
+    "haystack_compile_graph first to catch compile errors without side effects. Follow with "
+    "haystack_stop_graph when done.",
     registry_id="start_graph",
     annotations=ToolAnnotations(destructive_hint=True),
 )
@@ -210,6 +239,9 @@ class HaystackStartGraphTool(Farmhand):
 @farmhand(
     label="Stop graph",
     description="Stop a running graph (bounded grace, then teardown).",
+    instructions="Stop a running graph by binding_id: gives nodes a bounded grace period to "
+    "shut down cleanly, then tears down execution. Safe to call on a graph that is not "
+    "currently running.",
     registry_id="stop_graph",
     annotations=_MUTATING,
 )
