@@ -3525,7 +3525,7 @@
 </tr>
 <tr>
 <td>Publish</td>
-<td><code>docs.py</code> → <code>commit.apply_marketstall()</code> → <code>push.verify_allowed()</code> → <code>commit.apply()</code> → <code>push.apply()</code> → <code>ShareFlow._hot_swap_bumped_libraries()</code></td>
+<td><code>docs.py</code> → <code>commit.apply_marketstall()</code> → <code>push.verify_allowed()</code> → <code>commit.apply()</code> → <code>push.apply()</code></td>
 </tr>
 </tbody>
 </table>
@@ -3583,13 +3583,7 @@
 <h3 id="27-step-7-push">2.7 Step 7 — Push<a class="headerlink" href="#27-step-7-push" title="Permanent link">&para;</a></h3>
 <p><code>verify_push_allowed()</code> runs <code>git push --dry-run</code> immediately <em>before</em> the commit step actually commits, closing the race window opened at step 1: someone else may have pushed to the same branch in the meantime, and discovering that after a commit and tag already exist would force the user to clean up. It mirrors the marketplace's <code>dry_run()</code> → <code>install()</code> pairing — pre-flight verification beats post-failure recovery when nothing needs undoing if nothing was mutated yet.</p>
 <p><code>apply_push()</code> pushes the commit and tag to <code>origin</code> via <code>git_remote_streaming()</code> (env-hardened — see §4). On failure it raises <code>PushError</code>, which carries the exact command to retry by hand; the step is safely retryable in place since nothing here mutates pipeline state.</p>
-<p><strong>The reload tail.</strong> After a successful push, the flow (<code>ShareFlow._hot_swap_bumped_libraries</code>, <code>haybale-share</code>, not the pipeline itself — the pipeline has no live library system to reload) evicts and rescans every barn library the bump touched. <code>@library(...)</code> reads <code>version</code> out of <code>haybale.toml</code> fresh off disk at decoration time (step 4 already wrote the bumped value there — see §2.4 and <code>write_barn_versions</code>), so the rescan picks up the new version with no environment sync in between.</p>
-<p><strong>Why after the push rather than beside the bump.</strong> Two reasons, both about the rollback boundary:</p>
-<ul>
-<li>The bump sits <em>inside</em> that boundary. Reloading there would strand the registry on a version the tree no longer holds if a later step failed and reverted the manifests.</li>
-<li>Evicting and re-importing libraries mid-flow strands the studio without them across the docs subprocess and the commit, for no benefit — nothing between the bump and the push reads the registry.</li>
-</ul>
-<p>The CLI (<code>haywire share --yes</code>) has no live library system, so it skips the reload entirely; only the flow performs it. <code>tests/share_flow/test_refresh_tail.py</code> covers the tail's placement and failure posture.</p>
+<p><strong>No registry reload after publish.</strong> The bump only rewrites <code>pyproject.toml</code>/<code>haybale.toml</code> on disk (step 4 — see §2.4 and <code>write_barn_versions</code>); it does not change the behaviour of an already-running, already-decorated library, so nothing needs evicting or re-importing when the push succeeds. <code>@library(...)</code> reads <code>version</code> out of <code>haybale.toml</code> fresh off disk at decoration time, which is what makes the bumped value visible the next time the library is imported at all — a hot-reload for an unrelated code change, or a studio restart — with no environment sync in between and no action required from the publish flow itself.</p>
 <h2 id="3-the-planapply-split">3. The plan/apply split<a class="headerlink" href="#3-the-planapply-split" title="Permanent link">&para;</a></h2>
 <p>Every step that can touch disk or the remote separates a read-only <strong>check/plan</strong> call from a mutating <strong>apply</strong> call:</p>
 <table>
@@ -3771,7 +3765,7 @@ the fix's scope.</p>
 <li><code>packages/haywire-core/src/haywire/core/publishing/barn.py</code> — <code>barn/</code> shape queries; leaf module.</li>
 <li><code>packages/haywire-studio/src/haywire_studio/packaging/deps.py</code> — <code>haywire deps check</code>, decoupled from <code>SharePipeline</code>.</li>
 <li><code>packages/haywire-studio/src/haywire_studio/packaging/share_cli.py</code> — <code>haywire share</code>'s single non-interactive mode plus <code>--dry-run</code>, a thin runner over <code>SharePipeline</code>. Lives in haywire-studio, not core: argument parsing and exit codes belong to the app package.</li>
-<li><code>barn/haybale-share/haybale_share/</code> — the Share editor (<code>editors/share_editor.py</code>, ACTION slot, status-only) and its three-screen flow (<code>_flow/</code>). Depends on <code>haywire-core</code> only: the post-bump hot-swap reads a <code>LibraryRegistry</code> from core's DI rather than a <code>LibraryManager</code>, so this library never reaches into haybale-marketplace.</li>
+<li><code>barn/haybale-share/haybale_share/</code> — the Share editor (<code>editors/share_editor.py</code>, ACTION slot, status-only) and its three-screen flow (<code>_flow/</code>). Depends on <code>haywire-core</code> only.</li>
 </ul>
 
 

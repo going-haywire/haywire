@@ -3734,11 +3734,11 @@
 <tr>
 <td>3</td>
 <td><strong><code>Haybale</code></strong> (dataclass)</td>
-<td>The runtime dataclass representing one entry from a <code>[[haybales]]</code> section. Renamed from <code>MarketplaceEntry</code>. Fields are documented in <a href="../files/marketstall-toml/">reference/files/marketstall.toml</a>; most are copied verbatim from the library's <code>haybale.toml</code>, with <code>install_spec</code>, <code>source</code> and <code>require</code> generated at publish and <code>via</code>/<code>last_seen</code>/<code>stale</code> written only by a consumer's refresh.</td>
+<td>The runtime dataclass holding <strong>a library's declared metadata</strong> — the one shape both files carry. Read from the library's own <code>haybale.toml</code> (the authoring surface) <em>and</em> parsed from a <code>[[haybales]]</code> section (the published copy); the fields are identical either way. Renamed from <code>MarketplaceEntry</code>. Fields are documented in <a href="../files/marketstall-toml/">reference/files/marketstall.toml</a>. <code>install_spec</code>, <code>require</code> and <code>source</code> are generated at publish, and <code>via</code>/<code>last_seen</code>/<code>stale</code> written only by a consumer's refresh — all empty (<code>source = "local"</code>) on a row read from disk. Deliberately <strong>not</strong> "one entry from a feed": that framing produced renderers that read half their fields from one source and half from the other.</td>
 </tr>
 </tbody>
 </table>
-<p>The three projections relate as: the <strong>dataclass</strong> (3) represents one entry in the <strong>TOML section</strong> (2), which catalogs the <strong>convention</strong> (1). Disambiguate when discussing schema vs. code vs. package names.</p>
+<p>The three projections relate as: the <strong>dataclass</strong> (3) is the metadata that a <strong>TOML section</strong> (2) publishes, cataloging the <strong>convention</strong> (1). Disambiguate when discussing schema vs. code vs. package names.</p>
 <hr />
 <h2 id="graph-structure">Graph &amp; Structure<a class="headerlink" href="#graph-structure" title="Permanent link">&para;</a></h2>
 <table>
@@ -4235,7 +4235,7 @@
 </tr>
 <tr>
 <td><strong>InstallType</strong></td>
-<td>The <strong>mechanism</strong> axis of how a library reached this Python environment: <code>REGULAR</code> (site-packages), <code>EDITABLE</code> (pip <code>-e</code>, source stays on disk and hot-reloads), or <code>FOLDER</code> (never pip-installed — discovered by scanning a folder path; today only <code>builtin</code>). Detected purely from a filesystem path, with no workspace context — <code>LibraryDiscovery._detect_install_type()</code> classifies REGULAR vs EDITABLE by whether the path sits inside site-packages; FOLDER libraries are discovered through a separate folder-scan path entirely. Distinct from <strong>Library Origin</strong>, the orthogonal "where did the code come from" axis. <em>(new)</em></td>
+<td>The <strong>mechanism</strong> axis of how a library reached this Python environment: <code>REGULAR</code> (site-packages), <code>EDITABLE</code> (pip <code>-e</code>, source stays on disk and hot-reloads), <code>FOLDER</code> (never pip-installed — discovered by scanning a folder path; today only <code>builtin</code>), or <code>NOT_INSTALLED</code> (not present in this environment at all — a catalog row the user could install; <strong>not</strong> "was removed", which leaves no <code>LibraryInfo</code>). Detected purely from a filesystem path, with no workspace context — <code>LibraryDiscovery._detect_install_type()</code> classifies REGULAR vs EDITABLE by whether the path sits inside site-packages; FOLDER libraries are discovered through a separate folder-scan path entirely. Distinct from <strong>Library Origin</strong>, the orthogonal "where did the code come from" axis. <em>(new)</em></td>
 <td>install type (as a stand-in for provenance — mechanism and origin are different questions)</td>
 </tr>
 <tr>
@@ -4252,6 +4252,31 @@
 <td><strong>project_writable_libraries()</strong></td>
 <td>Farmhand's write-target resolver (<code>haybale_studio/farmhands/_helpers.py</code>): every <code>EDITABLE</code>-mechanism install, regardless of whether its path sits under this workspace's <code>barn/</code> at all. Deliberately broader than <strong>Library Origin</strong>'s <code>project_local</code> — Farmhand's real need is "can I write this source," which any <code>-e</code> install satisfies, not "is this literally this workspace's own library." Renamed from <code>project_local_libraries()</code>, which implied the narrower, origin-axis meaning it never actually had.</td>
 <td>project_local_libraries (old name — collided in meaning with Library Origin's <code>project_local</code>, though the two diverge for a symlinked-in editable install of someone else's library)</td>
+</tr>
+<tr>
+<td><strong>Distribution name</strong></td>
+<td>The pip package name — <code>haybale-studio</code>, <code>haybale-visiongraph</code>, <code>haywire-core</code>. Authored as <code>name</code> in <a href="../files/haybale-toml/"><code>haybale.toml</code></a>, which is canon; <code>pyproject.toml</code>'s <code>[project] name</code> is a generated copy (<code>PROJECT_FIELDS</code>), and the installed distribution's metadata (<code>ep.dist.name</code>) is that copy observed at runtime. Read it as <code>Haybale.name</code> — never from the entry point, which is a copy of a copy and is absent entirely for <code>InstallType.FOLDER</code> libraries. What <code>uv pip install</code>/<code>uninstall</code> and every <code>install_spec</code> name. The <code>haybale-</code> prefix is a <strong>convention, not a rule</strong>: the framework-owned <code>builtin</code> library's distribution name is <code>haywire-core</code>, so a name must never be reconstructed as <code>f"haybale-{stem}"</code>. Immutable — no rename path until the rename wizard lands. <em>(new)</em></td>
+<td>package name (ambiguous — could mean the Python module); <code>LibraryInfo.distribution_name</code> (removed field); library id (a different, shorter name)</td>
+</tr>
+<tr>
+<td><strong>Library id</strong></td>
+<td>The short unprefixed identifier — <code>studio</code>, <code>core</code>, <code>builtin</code>. Authored as <code>id</code> in <code>haybale.toml</code>, also the <code>haywire.libraries</code> entry-point key, and prefixes every component's registry key (<code>core:node:Add</code>), so changing it orphans saved graphs. The only field whose absence is fatal: <code>@library</code> raises <code>HaybaleTomlError</code> at decoration time. <strong>Not derivable from the distribution name</strong> and vice versa — <code>haywire-core</code> ↔ <code>builtin</code>. Immutable. <em>(new)</em></td>
+<td>library name (say distribution name or label); registry key (that's the full <code>id:kind:Class</code> handle)</td>
+</tr>
+<tr>
+<td><strong>Module name</strong></td>
+<td>The importable top-level Python package — <code>haybale_studio</code>, <code>haywire_core</code>. Derived from the <strong>distribution name</strong> by <code>module_of()</code> (separators → <code>_</code>, lowercased), never authored separately; <code>haybale-TEST_A</code> → <code>haybale_test_a</code>. The canonical match key for <code>linked_libraries</code> and for hot-reload scope tracking (<code>_get_tracking_scopes</code>) — matching on distribution name or library id instead is a bug, since a hyphen yields a scope matching no module. <em>(new)</em></td>
+<td>package name (ambiguous); distribution name (hyphenated — the un-normalized sibling)</td>
+</tr>
+<tr>
+<td><strong><code>LibraryIdentity</code></strong></td>
+<td>A library <strong>as loaded in this process</strong>: only what cannot be answered by a file read — <code>id</code>, <code>folder_path</code>, <code>module_name</code>, <code>label</code> (logged from inside the registry), <code>linked_libraries</code> (read during module registration), <code>on_reload</code> (read <em>after</em> eviction, when the files may be gone), <code>file_watcher</code>, plus <code>version</code> (needed at decoration time, before any render — the one field deliberately duplicated, per <a href="../../adr/0025-haybale-toml-is-canon/">ADR-0025</a>, and kept in step by <code>bump_version.py</code> and <code>check_release_versions.py</code>). Eight fields in code. Built once at import from <code>haybale.toml</code>; refreshed in place on file change by <code>update_identity_from_toml()</code>, which keeps the previous values rather than raising when the file is mid-write. Everything descriptive is read at the point of use as a <strong><code>Haybale</code></strong> instead, so an edit is visible without a reload — and rendering that falls back to the identity is a <strong>stale read with nothing to buy</strong>: a library whose file does not parse never loads at all, so an empty row only ever means the sub-render window between a write and the next read.</td>
+<td>library metadata (that's <code>Haybale</code>); do not add descriptive fields here — they go stale until the next reload; identity fallbacks in render code</td>
+</tr>
+<tr>
+<td><strong><code>LibraryInfo</code></strong></td>
+<td>A library as the Library Manager sees it: its declared metadata (a <strong><code>Haybale</code></strong>, read from disk or from the catalog) plus install state — <code>row</code>, <code>identity</code>, <code>enabled</code>, <code>install_type</code>. Built for installed libraries <em>and</em> for catalog rows that are not installed here, where the install-state fields carry their empty values and <code>install_type</code> is <code>NOT_INSTALLED</code>. The single type the <strong>Library Browser</strong> and <strong>Library Overview Editor</strong> consume, so "installed or available" is discriminated once at construction rather than re-derived by <code>hasattr</code>/<code>isinstance</code>/<code>getattr</code> at each render site. Carries <strong>no</strong> distribution-name field: that is <code>row.name</code>, canon per <a href="../../adr/0025-haybale-toml-is-canon/">ADR-0025</a>. Constructed only in <code>haybale-marketplace</code>'s <code>LibraryManager</code>; the type itself lives in <code>haywire-core</code>.</td>
+<td><code>_LibView</code> (the earlier filter-only precursor it replaces); <code>LibraryInfo.distribution_name</code> (removed — it echoed the generated <code>[project] name</code> and was empty for folder installs)</td>
 </tr>
 </tbody>
 </table>
@@ -4383,7 +4408,7 @@
 </tr>
 <tr>
 <td><strong>Haybale (dataclass)</strong></td>
-<td>The canonical dataclass for one entry available to install. Fields are documented in <a href="../files/marketstall-toml/">reference/files/marketstall.toml</a>. Code: <code>haywire.core.marketstall.types</code>. Renamed from <code>MarketplaceEntry</code>.</td>
+<td>The canonical dataclass for one entry available to install. Fields are documented in <a href="../files/marketstall-toml/">reference/files/marketstall.toml</a>. Code: <code>haywire.core.library.haybale</code>. Renamed from <code>MarketplaceEntry</code>.</td>
 <td><code>MarketplaceEntry</code> (legacy name)</td>
 </tr>
 <tr>
