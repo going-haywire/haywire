@@ -6,6 +6,7 @@ from typing import Any, ClassVar, Dict, List, Tuple, Type, Optional
 
 from haywire.core.namespaces import CATEGORY_LIBRARY_LOG
 
+from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.library.compatibility import CompatibilityWarning
 from haywire.core.library.file_watcher import FileWatcher
 from haywire.core.library.haybale_toml import (
@@ -298,7 +299,15 @@ class BaseLibrary(ABC):
         try:
             fields = read_haybale_toml(Path(self.identity.folder_path))
         except HaybaleTomlError as exc:
-            logger.warning(f"Library '{self.identity.label}': keeping previous metadata — {exc}")
+            HaywireException.from_exception(
+                exception=exc,
+                message=f"Library '{self.identity.label}': keeping previous metadata — {exc}",
+                severity=ErrorSeverity.WARNING,
+                operation="Reload Library Metadata",
+            ).enrich(
+                library_identity=self.identity,
+                module_name=self.identity.module_name,
+            ).log(logger)
             return
 
         for key in ("label", "linked_libraries", "on_reload"):
