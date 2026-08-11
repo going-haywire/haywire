@@ -6,7 +6,7 @@
 
 name = "haywire-core"
 id = "builtin"
-version = "0.1.0"
+version = "0.1.1"
 label = "Builtin"
 description = "Framework-owned primitive types and adapters"
 tags = ["builtin", "types", "adapters", "nodes", "skins"]

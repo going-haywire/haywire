@@ -4,7 +4,7 @@
 
 name = "haybale-example"
 id = "example"
-version = "0.1.0"
+version = "0.1.1"
 label = "Example"
 description = "Example library for demonstrating multi-library support"
 tags = ["example", "demo", "tutorial"]

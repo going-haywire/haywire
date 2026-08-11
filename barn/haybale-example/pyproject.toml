@@ -1,6 +1,6 @@
 [project]
 name = "haybale-example"
-version = "0.1.0"
+version = "0.1.1"
 description = "Example library for demonstrating multi-library support"
 readme = "README.md"
 requires-python = ">=3.12"
@@ -8,9 +8,9 @@ license = {text = "MIT"}
 keywords = ["example", "demo", "tutorial"]
 
 dependencies = [
-    "haywire-core>=0.1.0",
-    "haybale-core>=0.1.0",
-    "haybale-studio>=0.1.0",
+    "haywire-core>=0.1.1",
+    "haybale-core>=0.1.1",
+    "haybale-studio>=0.1.1",
     "nicegui>=3.12.1",
     "typing_extensions"]
 
