@@ -1,4 +1,4 @@
-# graph_editor — component index (v0.0.30)
+# graph_editor — component index (v0.1.0)
 
 ## farmhand
 - `graph_editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.

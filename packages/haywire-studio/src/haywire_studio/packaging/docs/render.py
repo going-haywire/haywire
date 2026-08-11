@@ -72,7 +72,7 @@ def render_overview(doc: LibraryDoc) -> str:
             for n in sorted(by_cat[cat], key=lambda r: r.label):
                 lines.append(f"- **{n.label}** — {n.description}")
             lines.append("")
-    for kind in ("type", "widget", "adapter", "setting", "farmhand"):
+    for kind in (k for k in _KIND_ORDER if k != "node"):
         recs = [c for c in _visible(doc) if c.kind == kind]
         if not recs:
             continue

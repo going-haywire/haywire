@@ -1,5 +1,9 @@
 # Graph Editor
 
+# Notes
+
+The graph editor haybale library provides the editor functionality for the haywire framework. It includes various tools and components that are essential for building graphs with haywire.
+
 <!-- marketstall:share-url:start -->
 *Subscribe URL not yet published — run `haywire share --save`.*
 <!-- marketstall:share-url:end -->
@@ -36,3 +40,42 @@ Value notes: a port holding a non-JSON value (mesh, frame) reports value_omitted
 - **Remove elements** — Remove nodes and/or edges (also the way to disconnect).
 - **Set property** — Set a node property (port value or settings field) by name. Undo-recorded. 'name' resolves to a port id first, then a settings field — use the exact 'name' from a graph_editor_inspect_node row. The write is verified by reading the value back: a value rejected by the field's validator raises set_rejected rather than reporting a success that did not happen. Note min/max are UI hints only and are NOT enforced — an out-of-range write succeeds, so respect the bounds inspect_node reports.
 - **Undo** — Undo the last change on this graph's SHARED human+agent timeline.
+
+## States
+- **Edit State** — 
+
+## Panels
+- **Connection Errors** — 
+- **Connection Errors** — 
+- **Connection Path** — 
+- **Connection Warnings** — 
+- **Connection Warnings** — 
+- **Copy** — 
+- **Copy Selection** — 
+- **Create Node** — 
+- **Delete** — 
+- **Delete Connection** — 
+- **Delete Selection** — 
+- **Detach from setting** — 
+- **Dissolve Reroute** — 
+- **Execution Statistics** — 
+- **Graph Info** — 
+- **Graph Settings** — 
+- **Insert Reroute** — 
+- **More** — 
+- **Node Errors** — 
+- **Node Errors** — 
+- **Node Properties** — 
+- **Node Properties** — 
+- **Node Settings** — 
+- **Paste** — 
+- **Port Info** — 
+- **Ports** — 
+- **Reconnect Edge** — 
+- **Redraw Selection** — 
+- **Reset Selection** — 
+- **Revalidate Selection** — 
+- **Status** — 
+
+## Editors
+- **Graph Editor** — Visual node graph editor for wiring data processing pipelines.
