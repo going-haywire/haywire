@@ -4,6 +4,10 @@
 
 Echo text back (canned read tool).
 
+## Agent Instructions
+
+Echo the given text back unchanged. Read-only, no side effects — used to exercise the Farmhand call path in tests, not a real capability.
+
 ## Details
 
 - **input_schema**: `{'type': 'object', 'properties': {'text': {'type': 'string'}}, 'required': ['text']}`

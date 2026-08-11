@@ -4,6 +4,10 @@
 
 Report handler thread and loop.
 
+## Agent Instructions
+
+Report which thread and asyncio loop the handler ran on. Read-only, no side effects — used to verify Farmhand call-path threading behavior in tests, not a real capability.
+
 ## Details
 
 - **input_schema**: `{'type': 'object', 'properties': {}, 'required': []}`

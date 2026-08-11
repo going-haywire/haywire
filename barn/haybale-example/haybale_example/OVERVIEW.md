@@ -14,10 +14,13 @@ Example library for demonstrating multi-library support
 - **Simple Operations** — Simple mathematical operations for one or two float values
 - **Temperature** — Temperature data types
 
+## Adapters
+- **MapsString to Array** — Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])
+
 ## Widgets
 - **KnobWidget** — knob widget
 - **TemperatureWidget** — Temperature with unit conversion
 - **ValidatedNumberWidget** — Number widget with range clamping
 
-## Adapters
-- **MapsString to Array** — Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])
+## Skins
+- **ExampleNodeSkin** — Custom skin for nodes with special styling

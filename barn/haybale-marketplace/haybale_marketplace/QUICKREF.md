@@ -1,8 +1,8 @@
-# marketplace — component index (v0.0.31)
+# marketplace — component index (v0.1.0)
 
 ## farmhand
 - `marketplace:farmhand:dry_run_install` — Dry-run install — Resolve what an install would remove/upgrade, without installing (informational valve).
-- `marketplace:farmhand:get_library_docs` — Get library docs — Docs for an installed library (OVERVIEW/QUICKREF/README from its folder) or an available one (network fetch of its docs_url). Pass component=<registry_key> to fetch one component's deep doc (installed: wheel; available: docs_url).
+- `marketplace:farmhand:get_library_docs` — Get library docs — Docs for an installed library (OVERVIEW/QUICKREF/README) or an available one.
 - `marketplace:farmhand:install_library` — Install library — Install a library via uv pip (streams progress). Destructive: changes the venv. Run marketplace_dry_run_install first.
 - `marketplace:farmhand:list_available` — List available — Merged AVAILABLE catalog (not-installed libraries) from the marketplace cache.
 - `marketplace:farmhand:refresh` — Refresh catalog — Re-fetch all subscribed markets/stalls (network; rewrites the project cache).

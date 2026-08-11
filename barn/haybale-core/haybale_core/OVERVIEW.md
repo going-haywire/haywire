@@ -1,6 +1,6 @@
 # Core
 
-Fundamental components for hayire graphs
+Fundamental components for haywire graphs
 
 ## Nodes
 ### Core

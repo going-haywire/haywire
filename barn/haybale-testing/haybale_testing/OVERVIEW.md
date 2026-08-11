@@ -29,15 +29,15 @@ Test library for test support
 - **String** — Text data
 - **Temperature** — Temperature in Celsius
 
-## Widgets
-- **AspectBoxWidget** — Oversized content behind a declared width; height follows the content's aspect
-- **FixedBoxWidget** — Oversized content behind a fully declared box
-- **OversizedContentWidget** — Oversized content that sizes from its contents (no declared box)
-
 ## Adapters
 - **BoolToIntAdapter** — Convert bool to integer
 - **FloatToStringAdapter** — Convert float to string
 - **IntToFloatAdapter** — Convert integer to float
+
+## Widgets
+- **AspectBoxWidget** — Oversized content behind a declared width; height follows the content's aspect
+- **FixedBoxWidget** — Oversized content behind a fully declared box
+- **OversizedContentWidget** — Oversized content that sizes from its contents (no declared box)
 
 ## Settings
 - **Testing** — 
@@ -47,3 +47,22 @@ Test library for test support
 - **Block** — Sleep off-loop for `seconds`.
 - **Echo** — Echo text back (canned read tool).
 - **Fail** — Always fails with a stable code.
+
+## States
+- **Test Session State** — 
+
+## Panels
+- **Connection Errors** — 
+- **Connection Path** — 
+- **Connection Warnings** — 
+- **Copy Node** — 
+- **Copy Selection** — 
+- **Create Node** — 
+- **Delete Connection** — 
+- **Delete Node** — 
+- **Inspect Connection** — 
+- **Paste** — 
+- **Redraw Node** — 
+- **Reset Node** — 
+- **Revalidate Node** — 
+- **Test SessionState Panel** —

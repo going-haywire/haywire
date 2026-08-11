@@ -2,6 +2,10 @@
 
 `studio:farmhand:write_component_source` · kind: farmhand
 
+Full-source write into a project-local library only.
+
+## Agent Instructions
+
 Full-source write into a project-local library only. Existing components are hot-reloaded by the file watcher; follow with studio_verify_component.
 
 ## Details

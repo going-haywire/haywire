@@ -2,6 +2,10 @@
 
 `studio:farmhand:verify_component` · kind: farmhand
 
+Staged verification that a component registers and runs cleanly.
+
+## Agent Instructions
+
 Staged verification: registered -> (nodes) trial instantiation -> on_testrun(); error-ledger entries from the failing stage are attached.
 
 ## Details

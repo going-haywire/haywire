@@ -4,7 +4,7 @@
 *Subscribe URL not yet published — run `haywire share --save`.*
 <!-- marketstall:share-url:end -->
 
-Fundamental components for hayire graphs
+Fundamental components for haywire graphs
 
 ## Nodes
 ### Core

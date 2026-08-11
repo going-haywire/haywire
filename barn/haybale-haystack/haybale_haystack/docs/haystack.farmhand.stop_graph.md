@@ -4,6 +4,10 @@
 
 Stop a running graph (bounded grace, then teardown).
 
+## Agent Instructions
+
+Stop a running graph by binding_id: gives nodes a bounded grace period to shut down cleanly, then tears down execution. Safe to call on a graph that is not currently running.
+
 ## Details
 
 - **input_schema**: `{'type': 'object', 'properties': {'binding_id': {'type': 'string'}}, 'required': ['binding_id']}`

@@ -1,4 +1,4 @@
-# testing — component index (v0.0.30)
+# testing — component index (v0.1.0)
 
 ## node
 - `testing:node:BenchBareNode` — Bench Bare Node — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.  _tags: benchmark, frozen, bare, dispatch_

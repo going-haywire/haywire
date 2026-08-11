@@ -2,6 +2,10 @@
 
 `graph_editor:farmhand:query_graph` · kind: farmhand
 
+Nodes (with ports) and edges of an open graph.
+
+## Agent Instructions
+
 Nodes (with ports) and edges of an open graph. Pass detail=true for the full per-port setup (data_type, allow_multiple_links, is_linked, link_count, use_mode, promoted, has_widget, is_linked_lazy) AND per-edge health (is_functional, is_linked, is_lazy, adapter_chain, has_adapters, error); default returns the base id/direction/flow_type per port and id/topology/flow_type per edge.
 
 ## Details

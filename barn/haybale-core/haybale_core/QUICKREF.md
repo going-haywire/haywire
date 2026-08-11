@@ -1,4 +1,4 @@
-# core — component index (v0.0.30)
+# core — component index (v0.1.0)
 
 ## node
 - `core:node:BeginPlayNode` — Begin Player — Triggered once when execution starts  _tags: start, init, begin, event_

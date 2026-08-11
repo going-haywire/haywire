@@ -2,6 +2,10 @@
 
 `graph_editor:farmhand:inspect_node` · kind: farmhand
 
+One node's ports, settings, and health, at a chosen depth.
+
+## Agent Instructions
+
 Drill down on ONE node in three steps — name only the sections and depth you need, because a node can carry 30+ settings fields and an unfocused call wastes most of what it returns. The read counterpart to graph_editor_set_property: a row's 'name' is exactly what you pass back as name=, and it joins a row across all depths.
 Typical drill-down: get=['summary'] (returns setting_counts per bag, so you can see which bags are big) -> get=['settings'] by_bag=['the_relevant_bag'] at data='info' to learn what exists -> data='value' or 'all' with by_name=['the_one_field'].
 get: any of summary, node_id, ports, settings, props, state (required, non-empty)

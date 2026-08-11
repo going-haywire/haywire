@@ -19,3 +19,13 @@ File-centric multi-graph manager
 - **Save graph** — Save an open graph; save_as writes to a new path.
 - **Start graph** — Compile and start execution. Destructive: nodes perform real I/O.
 - **Stop graph** — Stop a running graph (bounded grace, then teardown).
+
+## States
+- **Haystack State** — 
+
+## Panels
+- **Open in Haystack** — 
+- **Run Settings** — 
+
+## Editors
+- **Haystack** — All open graphs. Click to switch; "+" to create a new graph.

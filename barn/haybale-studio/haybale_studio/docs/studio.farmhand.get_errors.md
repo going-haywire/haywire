@@ -2,6 +2,10 @@
 
 `studio:farmhand:get_errors` · kind: farmhand
 
+Query the studio's error ledger.
+
+## Agent Instructions
+
 Query the studio's error ledger (since_seq/library/registry_key filters); results carry the current cursor for incremental polling and first_retained_seq so a client can detect when older history was evicted or deleted.
 
 ## Details

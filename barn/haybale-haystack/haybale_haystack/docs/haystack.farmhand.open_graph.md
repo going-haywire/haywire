@@ -4,6 +4,10 @@
 
 Open a .haywire file (idempotent per path).
 
+## Agent Instructions
+
+Open a .haywire file by path, relative to the workspace root, and return its binding_id. Idempotent: opening an already-open path returns the same session rather than duplicating it. Raises file_not_found if the path doesn't exist — run haystack_list_graphs to see valid paths.
+
 ## Details
 
 - **input_schema**: `{'type': 'object', 'properties': {'path': {'type': 'string'}}, 'required': ['path']}`

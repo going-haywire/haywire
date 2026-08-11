@@ -4,6 +4,10 @@
 
 Always fails with a stable code.
 
+## Agent Instructions
+
+Always raises a FarmhandError with code 'testing_failure'. Used to exercise the structured error contract in tests — not a real capability. Never call this expecting a result.
+
 ## Details
 
 - **input_schema**: `{'type': 'object', 'properties': {}, 'required': []}`

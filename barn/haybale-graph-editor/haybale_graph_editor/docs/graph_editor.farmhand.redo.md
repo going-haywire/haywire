@@ -4,6 +4,10 @@
 
 Redo the last undone change on this graph's SHARED human+agent timeline.
 
+## Agent Instructions
+
+Redo the last undone change on this graph's undo timeline — SHARED between the human editing in the studio UI and any agent calling these tools. Returns performed=false with no error when there is nothing to redo. Broadcasts to open studio UIs only when a change was actually redone.
+
 ## Details
 
 - **input_schema**: `{'type': 'object', 'properties': {'binding_id': {'type': 'string'}}, 'required': ['binding_id']}`

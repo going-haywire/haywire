@@ -20,6 +20,13 @@ Framework-owned primitive types and adapters
 - **Vec4f** — 4D float vector
 - **Vec4i** — 4D integer vector
 
+## Adapters
+- **BoolToIntAdapter** — Convert bool to integer
+- **FloatToIntAdapter** — Convert float to integer
+- **FloatToStringAdapter** — Convert float to integer
+- **IntToFloatAdapter** — Convert integer to float
+- **StringToChoicesAdapter** — String into a choices slot
+
 ## Widgets
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
@@ -30,10 +37,3 @@ Framework-owned primitive types and adapters
 - **SwitchWidget** — switch widget
 - **TextWidget** — Fast text input widget
 - **VecWidget** — Vector component editor widget
-
-## Adapters
-- **BoolToIntAdapter** — Convert bool to integer
-- **FloatToIntAdapter** — Convert float to integer
-- **FloatToStringAdapter** — Convert float to integer
-- **IntToFloatAdapter** — Convert integer to float
-- **StringToChoicesAdapter** — String into a choices slot
