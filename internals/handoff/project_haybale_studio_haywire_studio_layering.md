@@ -2,7 +2,8 @@
 name: project_haybale_studio_haywire_studio_layering
 description: Handoff — investigate whether haybale-studio (barn library) should depend on haywire_studio (app package) for NetworkSettingsPanel
 metadata:
-  type: project
+type: project
+status: open
 ---
 
 # Handoff: haybale-studio → haywire_studio dependency

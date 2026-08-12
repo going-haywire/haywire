@@ -1,3 +1,11 @@
+---
+name: node-busy-highlight-from-is-executing
+description: Handoff — give a node a visible busy highlight while its worker runs, driven from NodeWrapper.is_executing, which is declared but never assigned anywhere
+metadata:
+  type: project
+  status: open
+---
+
 # Handoff — Node-busy visual highlight from the `is_executing` flag
 
 **Status:** not started — design idea only, surfaced as a follow-up during an

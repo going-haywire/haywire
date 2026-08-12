@@ -1,3 +1,11 @@
+---
+name: farmhand-validator-set-property-fix
+description: Handoff — Farmhand tool parameters with no type annotation emit an empty JSON Schema, which Claude Code stringifies, silently corrupting untyped numeric settings
+metadata:
+  type: project
+  status: open
+---
+
 # Haywire fix: Farmhand tool parameters must not emit an empty JSON Schema
 
 ## Why

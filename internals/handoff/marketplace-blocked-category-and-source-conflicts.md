@@ -1,3 +1,11 @@
+---
+name: marketplace-blocked-category-and-source-conflicts
+description: Handoff — whether Blocked should join the library category enum, and the silent cross-source winner when stall entries collide; conflict prompt now runs before write, core design question still open
+metadata:
+  type: project
+  status: open
+---
+
 # Blocked as a library category, and the silent cross-source winner
 
 Raised 2026-08-03 while designing the marketplace stepper flows. Scoped OUT of

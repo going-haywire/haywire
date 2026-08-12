@@ -1,3 +1,11 @@
+---
+name: deprecated-libraries-have-no-ui-surface
+description: Handoff — deprecation data path lands end-to-end but no UI renders it, for a browsing catalog visitor or an existing installer
+metadata:
+  type: project
+  status: partial
+---
+
 # Handoff: a deprecated library says so nowhere the user can see
 
 ## Why

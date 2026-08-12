@@ -1,3 +1,11 @@
+---
+name: install-writeback-breaks-the-dev-repo
+description: Handoff — installing a marketplace version over an editable install silently replaces it; landing site identified, fix not implemented
+metadata:
+  type: project
+  status: open
+---
+
 # Installing over an editable install silently replaces it
 
 Found 2026-08-03 while exercising the new install flow against the haywire
