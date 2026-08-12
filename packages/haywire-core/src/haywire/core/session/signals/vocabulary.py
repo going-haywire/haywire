@@ -231,8 +231,11 @@ __all__ = [
     # Observations
     "ActiveGraphMoved",
     "SelectionMoved",
+    "RevealGraphInstance",
     "GraphDataMutated",
     "LibraryCatalogChanged",
+    "ErrorLogged",
+    "ErrorLedgerChanged",
     # Imperative commands
     "Reveal",
     "Close",
