@@ -70,7 +70,7 @@ ui/
 ## 4. Rules & Boundaries
 
 - UI MUST NOT contain engine logic — keep graph/execution code in `core/`.
-- Do NOT use hardcoded colors, `box-shadow` on chrome, `truncate` on QBtn, or `ui.card()` inside `ui.dialog()` (see `.insights/project_ui_design_system.md`).
+- Do NOT use hardcoded colors, `box-shadow` on chrome, `truncate` on QBtn, or `ui.card()` inside `ui.dialog()` (see `docs/reference/design-guide.md`).
 - Use `hui.dialog_card()` (carries `hw-panel`) instead of `ui.card()` inside dialogs.
 - NiceGUI slot stack is **per asyncio-task**: never use `asyncio.ensure_future()` around `ui.notify()` (see `feedback_nicegui_async.md`).
 - Autofocus in dynamic popups needs `ui.timer(0.1, ...) + run_javascript`.

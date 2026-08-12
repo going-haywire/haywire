@@ -337,6 +337,10 @@ These labels are structural markers, not content — they should be the dimmest 
 **Rule:** Any text that can overflow its container must include `.truncate`.
 The parent flex container must include `.min-w-0` to allow truncation to work inside flex layouts.
 
+**Exception — `QBtn` labels:** Quasar renders a button's label inside an inner
+`<span>` that `.truncate` cannot reach. Use the `no-wrap` Quasar prop instead
+(`hui.button` already applies this). Do not add `.truncate` to a `ui.button`.
+
 For values that are programmatically too long, truncate in Python and provide the full value via `.tooltip()`:
 
 ```python
@@ -498,7 +502,19 @@ prop with `.hw-use-props-color`, or style it with a `--hw-*` token.
 
 ### 6.4 Standard Icon Vocabulary
 
-see hui.icon for the most current mappings between use and icon name 
+Icons are named via `AppIcon` (`haywire/ui/elements/icons.py`), exposed as the
+`hui.icon` alias. Each Material icon string appears at most once — one icon,
+one concept.
+
+```python
+hui.icon_action(hui.icon.refresh, on_click=self._refresh)
+```
+
+See `hui.icon` for the most current mappings between use and icon name.
+
+**Rule:** Never use a raw Material icon string (`icon="refresh"`) in editor or
+panel code. Always reference `hui.icon.<name>`. If the concept you need has no
+entry yet, add one to `AppIcon` rather than inlining the raw string.
 
 ---
 
@@ -555,6 +571,19 @@ Layout changes (panel show/hide, content rebuilds, scroll) are instant. No
 
 Each pattern below is defined as a `hui` wrapper function. The function
 signature, visual rules, and example usage are documented together.
+
+**Import convention:** `hui` is imported once at module level —
+`from haywire.ui import elements as hui` — never inside a method or function
+body. This matches the pattern used throughout `haywire/ui/panel/` and every
+editor in the barn.
+
+**Panels specifically** (as opposed to editors) receive a `PanelLayout`
+container in `draw(context, layout)` rather than a raw NiceGUI element. It is
+not a façade over `hui` — activate it with `with layout:` and call `hui.*`
+directly inside. See [components/panels/panel-canon.md](../components/panels/panel-canon.md)
+for the full `BasePanel` / `PanelLayout` authoring contract, including
+`layout.state_bag` for persisting panel UI state (collapsed sections, scroll
+position) across redraws.
 
 ### 8.1 `hui.panel_header(title, icon=None)`
 
@@ -1317,32 +1346,35 @@ not a CodeMirror host.
 
 ## 12. Anti-Patterns (Do Not Do)
 
-| Anti-pattern                                                   | Why it's wrong                                              | Correct approach                                                  |
-| -------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
-| `text-gray-400`, `text-gray-500`, `text-gray-600`              | Not theme-aware                                             | `.hw-text-muted` or `.hw-text-dim`                                |
-| `text-red-400` for errors                                      | Not theme-aware                                             | `hui.error_label()` or `color: var(--hw-danger)`                  |
-| `text-yellow-400` for warnings                                 | Not theme-aware                                             | `hui.warning_label()` or `color: var(--hw-warning)`               |
-| `text-blue-400` on links/icons                                 | Not theme-aware                                             | `color: var(--hw-accent)` or `var(--hw-info)`                     |
-| `text-purple-500` on icons                                     | Not theme-aware                                             | Quasar `color=` prop with `.hw-use-props-color`                   |
-| `text-amber-400` for unsaved/warning state                     | Not theme-aware                                             | `color: var(--hw-warning)`                                        |
-| `hover:bg-white/10`                                            | Breaks on light themes                                      | `hui.list_item()` or class `hw-list-item-hover`                   |
-| `bg-blue-900/40` for active rows                               | Hardcoded, dark-only                                        | `hui.list_item(is_active=True)` → `var(--hw-bg-active)`           |
-| `bg-green-500`, `bg-purple-500` as dots                        | Acceptable only via Quasar `bg-{color}-500` for status dots | Use Quasar named colours; document in `hui.list_item(dot_color=)` |
-| Hardcoded `#hex` in `.style()`                                 | Not theme-aware                                             | Use `var(--hw-*)` token                                           |
-| `rgba(0,0,0,0.5)` as modal backdrop                            | Dark-only                                                   | `var(--hw-bg-overlay)`                                            |
-| `rgba(128,128,128,…)` for ghost pins                           | Not theme-aware                                             | `var(--hw-ghost-pin)`                                             |
-| `#ef4444`, `#fef2f2` in error skins                            | Not theme-aware                                             | `var(--hw-danger)`, `var(--hw-danger-bg)`                         |
-| `box-shadow` on panels                                         | Reserved for canvas nodes                                   | Use elevation colours                                             |
-| `box-shadow` hardcoded on popups                               | Not theme-aware                                             | Use `var(--hw-node-shadow)` or add `--hw-popup-shadow`            |
-| `transition: all`                                              | Transitions unspecified properties                          | Name the specific property                                        |
-| `0.2s`/`0.3s` transitions in shell/panel code                  | Inconsistent with shell tier                                | `0.15s` for shell; `0.2–0.3s` only in canvas/skin code            |
-| `color=grey` on icon buttons                                   | Overrides theme cascade                                     | Remove; buttons inherit colour from `.hw-panel`                   |
-| `color=positive` on buttons                                    | Not theme-mapped — uses Quasar hardcoded green              | Use `.style("color: var(--hw-positive)")`                         |
-| `color=primary` on buttons                                     | Not mapped to Haywire theme                                 | Style via `--hw-accent`                                           |
-| `ui.card()` inside `ui.dialog()`                               | Missing themed chrome (bg, border, shadow)                  | Use `hui.dialog_card()`                                           |
-| `ui.expansion()` directly in settings panels                   | Inconsistent header styling                                 | Use `hui.category_group()`                                        |
-| `ui.input()` / `ui.number()` with `dense outlined`             | Duplicates hui config                                       | Use `hui.input_field()` / `hui.number_field()`                    |
-| Re-implementing panel_header from scratch                      | Drift and inconsistency                                     | Use `hui.panel_header()`                                          |
-| `min-height: 28px` vs `min-height: 32px` for similar bars      | Inconsistent                                                | Use `hui.info_bar()` (standardizes to 28px)                       |
-| Inline `padding: 80px 0` vs `padding: 60px 0` for empty states | Inconsistent                                                | Use `hui.empty_state()` (standardizes to 72px)                    |
-| `--hw-node-*` tokens used in panel/shell code                  | Wrong layer                                                 | Canvas tokens are for skins only; use `--hw-bg-*` in panels       |
+| Anti-pattern                                                      | Why it's wrong                                              | Correct approach                                                  |
+| ----------------------------------------------------------------- | ----------------------------------------------------------- | ----------------------------------------------------------------- |
+| `text-gray-400`, `text-gray-500`, `text-gray-600`                 | Not theme-aware                                             | `.hw-text-muted` or `.hw-text-dim`                                |
+| `text-red-400` for errors                                         | Not theme-aware                                             | `hui.error_label()` or `color: var(--hw-danger)`                  |
+| `text-yellow-400` for warnings                                    | Not theme-aware                                             | `hui.warning_label()` or `color: var(--hw-warning)`               |
+| `text-blue-400` on links/icons                                    | Not theme-aware                                             | `color: var(--hw-accent)` or `var(--hw-info)`                     |
+| `text-purple-500` on icons                                        | Not theme-aware                                             | Quasar `color=` prop with `.hw-use-props-color`                   |
+| `text-amber-400` for unsaved/warning state                        | Not theme-aware                                             | `color: var(--hw-warning)`                                        |
+| `hover:bg-white/10`                                               | Breaks on light themes                                      | `hui.list_item()` or class `hw-list-item-hover`                   |
+| `bg-blue-900/40` for active rows                                  | Hardcoded, dark-only                                        | `hui.list_item(is_active=True)` → `var(--hw-bg-active)`           |
+| `bg-green-500`, `bg-purple-500` as dots                           | Acceptable only via Quasar `bg-{color}-500` for status dots | Use Quasar named colours; document in `hui.list_item(dot_color=)` |
+| Hardcoded `#hex` in `.style()`                                    | Not theme-aware                                             | Use `var(--hw-*)` token                                           |
+| `rgba(0,0,0,0.5)` as modal backdrop                               | Dark-only                                                   | `var(--hw-bg-overlay)`                                            |
+| `rgba(128,128,128,…)` for ghost pins                              | Not theme-aware                                             | `var(--hw-ghost-pin)`                                             |
+| `#ef4444`, `#fef2f2` in error skins                               | Not theme-aware                                             | `var(--hw-danger)`, `var(--hw-danger-bg)`                         |
+| `box-shadow` on panels                                            | Reserved for canvas nodes                                   | Use elevation colours                                             |
+| `box-shadow` hardcoded on popups                                  | Not theme-aware                                             | Use `var(--hw-node-shadow)` or add `--hw-popup-shadow`            |
+| `transition: all`                                                 | Transitions unspecified properties                          | Name the specific property                                        |
+| `0.2s`/`0.3s` transitions in shell/panel code                     | Inconsistent with shell tier                                | `0.15s` for shell; `0.2–0.3s` only in canvas/skin code            |
+| `color=grey` on icon buttons                                      | Overrides theme cascade                                     | Remove; buttons inherit colour from `.hw-panel`                   |
+| `color=positive` on buttons                                       | Not theme-mapped — uses Quasar hardcoded green              | Use `.style("color: var(--hw-positive)")`                         |
+| `color=primary` on buttons                                        | Not mapped to Haywire theme                                 | Style via `--hw-accent`                                           |
+| `ui.card()` inside `ui.dialog()`                                  | Missing themed chrome (bg, border, shadow)                  | Use `hui.dialog_card()`                                           |
+| `ui.expansion()` directly in settings panels                      | Inconsistent header styling                                 | Use `hui.category_group()`                                        |
+| `ui.input()` / `ui.number()` with `dense outlined`                | Duplicates hui config                                       | Use `hui.input_field()` / `hui.number_field()`                    |
+| Re-implementing panel_header from scratch                         | Drift and inconsistency                                     | Use `hui.panel_header()`                                          |
+| `min-height: 28px` vs `min-height: 32px` for similar bars         | Inconsistent                                                | Use `hui.info_bar()` (standardizes to 28px)                       |
+| Inline `padding: 80px 0` vs `padding: 60px 0` for empty states    | Inconsistent                                                | Use `hui.empty_state()` (standardizes to 72px)                    |
+| `--hw-node-*` tokens used in panel/shell code                     | Wrong layer                                                 | Canvas tokens are for skins only; use `--hw-bg-*` in panels       |
+| `from haywire.ui import elements as hui` inside a method/function | Repeated import cost, inconsistent with codebase convention | Import once at module level                                       |
+| Raw Material icon string (`icon="refresh"`)                       | No semantic registry, drifts from `AppIcon`                 | `hui.icon.<name>`                                                 |
+| `.truncate` on a `ui.button` label                                | Class can't reach Quasar's inner `<span>`                   | `no-wrap` Quasar prop (`hui.button` already applies it)           |

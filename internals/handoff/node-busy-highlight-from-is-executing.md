@@ -73,8 +73,8 @@ node-state field that *does* reach the canvas. Follow it end to end:
   inquisition did *not* try to hand-roll a per-node spinner — see provenance.)
 - **Visual language.** What does "busy" look like — pulsing border, corner spinner,
   overlay? Must compose with the existing error ring and selection highlight, and
-  obey the design rules in `.insights/project_ui_design_system.md` (no box-shadow on
-  chrome, etc.) and `docs/reference/design-guide.md`.
+  obey the design rules in `docs/reference/design-guide.md` (no box-shadow on
+  chrome, etc.).
 - **Scope of v1.** Possibly ship just the flag-setting + a minimal CSS class first,
   defer the polished animation.
 

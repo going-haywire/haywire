@@ -4,5 +4,6 @@
 
 - [Glossary](glossary.md)
 - [Design guide](design-guide.md)
+- [Writing a doc page](doc-authoring.md)
 - [Publishing releases](publish_releases.md)
 - API reference (auto-generated, future)

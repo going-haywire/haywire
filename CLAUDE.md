@@ -22,13 +22,15 @@ When reporting to me, be extremly concise and sacrifice grammar for the sake of 
 
 When looking up how a system works (API, parameters, behaviour), check `docs/` first before reading source code. Layout:
 
-- `docs/components/<area>/<area>-canon.md` — extension-point authoring guides (nodes, types, ports, adapters, settings, widgets, themes, editors, panels, states, libraries, haybale-package).
-- `docs/architecture/<area>/<area>-arch.md` — framework internals (execution pipeline, library system, hot-reload, settings resolution, session/state, studio).
+- `docs/reference/doc-authoring.md` — how to write a page in this docs site: front matter, nav wiring, and linking to live source.
 - `docs/reference/glossary.md` — canonical vocabulary, including the five distinct meanings of "library".
 - `docs/reference/design-guide.md` — contains guidelines for UI design / UX rules and design tokens. Follow these when implementing new UI features or refactoring existing ones.
 
 Run `uv run mkdocs serve` to preview the published site at `http://127.0.0.1:8000`.
 
+### Design rules
+
+UI/UX visual rules, tokens, and anti-patterns are canonical in `docs/reference/design-guide.md` — see the Documentation section above. Do not create a second design-rules doc under `.insights/`.
 
 ## Testing
 
@@ -137,10 +139,6 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [project_settings_bags_include_props.md](.insights/project_settings_bags_include_props.md) — `_settings_bags` includes `props` (13 framework fields), so generic bag-walks need an explicit filter; a validator-rejected settings write is dropped silently (`min`/`max` are UI-only and NOT enforced), so writes must be verified by reading back.
 - [project_haybale_studio_haywire_studio_layering.md](internals/handoff/project_haybale_studio_haywire_studio_layering.md) — handoff: `NetworkSettingsPanel` in haybale-studio imports from haywire_studio (app package), the one place a barn library reaches "up" into the app; undeclared dep (DEP003), direction unresolved.
 - [project_stepper_flows.md](.insights/project_stepper_flows.md) — multi-step flows use `haywire.ui.components.stepper`; the plan/apply split must exist in the pipeline first (only the last step may write), and click handlers must RETURN the coroutine, never schedule it.
-
-### Design rules
-
-- [project_ui_design_system.md](.insights/project_ui_design_system.md) — anti-patterns with reasons: no hardcoded colors, no `box-shadow` on chrome, no `truncate` on QBtn, no `ui.card()` inside `ui.dialog()`.
 
 When you discover a new trap that isn't obvious from the code, add a file to `.insights/` and a one-line entry above. Keep this list under ~20 entries — if it gets longer, demote less-load-bearing ones to a subdir `CLAUDE.md`.
 
