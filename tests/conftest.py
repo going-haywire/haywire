@@ -147,13 +147,11 @@ def cached_packages_distributions():
 # ==============================================================================
 # Ambient settings registry for DI-less tests
 # ==============================================================================
-# Since ADR 0022, ``BaseGraph.__init__`` reads ``get_settings_registry()`` from
-# the ambient DI context (module-level globals in haywire.core.di.context — NOT
-# ContextVar, so they persist across tests). DI-less unit tests that construct a
-# bare ``BaseGraph()`` therefore need *some* ambient ``SettingsRegistry``, or they
-# raise "SettingsRegistry not set in ambient context". Previously they only passed
-# by accident, piggybacking on a registry an earlier integration test had leaked
-# into the globals — so the same test failed when run in isolation.
+# ``BaseGraph.__init__`` reads ``get_settings_registry()`` from the ambient DI
+# context (module-level globals in haywire.core.di.context — NOT ContextVar, so
+# they persist across tests). DI-less unit tests that construct a bare
+# ``BaseGraph()`` therefore need *some* ambient ``SettingsRegistry``, or they
+# raise "SettingsRegistry not set in ambient context".
 #
 # This autouse fixture makes DI-less tests deterministic without corrupting the
 # session-scoped integration registry.
@@ -163,8 +161,7 @@ def cached_packages_distributions():
 # ``FrameworkSettings._registry`` at itself and *drains* the module-level
 # ``_pending_global`` queue of framework schema classes. A naive throwaway registry
 # would therefore hijack where later-defined FrameworkSettings register and empty a
-# queue the real session registry still needs — which is exactly how a bare fallback
-# made ``ui.node.default.skin.studio_skin`` vanish from the session registry.
+# queue the real session registry still needs.
 #
 # So we snapshot ALL THREE pieces of global state a fallback would touch
 # (``di_context._settings_registry``, ``FrameworkSettings._registry``, and the

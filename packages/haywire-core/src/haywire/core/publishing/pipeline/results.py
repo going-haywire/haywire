@@ -62,8 +62,7 @@ class PreconditionsReport:
     — an earlier failure can invalidate the relevance of a later probe (a
     dirty tree makes every later check moot; an unrecognized host makes the
     reachability probe against it wasted). So ``failures`` never holds more
-    than one entry; ``failure`` is the primary accessor going forward.
-    ``failures`` is kept as a read-only view for callers not yet migrated.
+    than one entry; ``failure`` is the primary accessor.
     """
 
     failures: list[PreconditionFailure]
@@ -96,7 +95,7 @@ class VersionPlan:
     ``common_version`` is the shared version when every library agrees, else
     None. ``suggestions`` maps "patch"/"minor"/"major" to the resolved X.Y.Z
     and is EMPTY when the versions disagree — there is no honest arithmetic to
-    offer, so the user must name a target explicitly (ADR 0023).
+    offer, so the user must name a target explicitly.
     """
 
     current: list[LibraryVersion]
@@ -179,9 +178,7 @@ class CommitPlan:
     ``files`` is the pipeline's own accumulated write set. Nothing outside
     that write set can be dirty by the time this runs — step 1's clean-
     working-tree precondition guarantees it — so there is no separate
-    opt-in-extras mechanism here (there used to be one, for barn/ content
-    left uncommitted before the wizard started; that state is now
-    structurally impossible to reach).
+    opt-in-extras mechanism here.
     """
 
     files: list[Path]
@@ -230,7 +227,7 @@ class FrameworkPlan:
 
     ``declared`` is the ``haywire-core`` specifier the barn libraries carry
     today (empty when undeclared); ``installed`` is the running framework
-    version. One project-wide answer, matching lockstep versioning (ADR 0023).
+    version. One project-wide answer, matching lockstep versioning.
     """
 
     installed: str
@@ -256,8 +253,7 @@ class ShareDecisions:
 
     ``registrations`` is not a decision (see
     :attr:`DriftReport.linked_registrations`); it travels here only so
-    :meth:`apply_all` can write it in the same pass, at the same point in the
-    order the incremental path used.
+    :meth:`apply_all` can write it in the same pass.
     """
 
     framework: str | None = None

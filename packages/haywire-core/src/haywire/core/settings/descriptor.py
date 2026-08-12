@@ -55,7 +55,7 @@ class Promotable(Flag):
     path in.
 
     ``CONFIG`` promotes a field to a pinless ``PortType.CONFIG`` port (never
-    edge-drivable) — see ADR 0014's "Config direction (re)introduced" note.
+    edge-drivable).
     ``INPUT`` groups the two directions whose value flows INTO the setting
     from outside the panel widget (an edge, or nothing but the widget itself
     with no mirror-tracking guarantee) — INLET and CONFIG — as opposed to
@@ -73,8 +73,8 @@ class Promotable(Flag):
 class UiState(IntEnum):
     """Presentation state of a settings field in the properties panel.
 
-    Pure chrome (ADR 0020): a DISABLED or HIDDEN field stays fully
-    readable/writable from code, keeps its value, and serializes normally.
+    Pure chrome: a DISABLED or HIDDEN field stays fully readable/writable
+    from code, keeps its value, and serializes normally.
     Severity-ordered on purpose — ``effective_ui_state`` composes multiple
     sources by ``max()``: NORMAL < DISABLED < HIDDEN.
 
@@ -206,7 +206,7 @@ class setting(SettingDescriptor, Generic[T]):
         (``subscribe_ui_state``) — never on the value/cell channel. See
         also the ``enabled_when`` / ``visible_when`` metadata conventions
         for declarative, same-bag reactive gating (setting-canon.md) and
-        ``effective_ui_state`` for how all sources compose. ADR 0020.
+        ``effective_ui_state`` for how all sources compose.
 
     promotable : Promotable
         Which port directions this field may be promoted to (default
@@ -265,7 +265,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._attr_name: str = ""  # set by __set_name__
         self._setting_key: str = ""  # namespaced registry key, set at registration
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
-        self._graph_mirror: bool = False  # set True by the graph() factory (ADR 0022)
+        self._graph_mirror: bool = False  # set True by the graph() factory
 
         if self._validator is not None and default is not None and not self.validate(default):
             raise ValueError(f"Default value {default!r} fails validation for field '{label or '?'}'")
@@ -337,8 +337,7 @@ class setting(SettingDescriptor, Generic[T]):
 
         Wired cell-to-cell against the graph bag's live cell ('unset tracks,
         set ignores', per hop) — NOT through the registry-key channel
-        (``is_mirror`` is False for these: the src has no ``_setting_key``).
-        ADR 0022."""
+        (``is_mirror`` is False for these: the src has no ``_setting_key``)."""
         return self._graph_mirror
 
     def validate(self, value: Any) -> bool:
@@ -483,9 +482,7 @@ def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     greyed, non-interactive widget) and ``promotable=Promotable.OUTLET`` (the
     only direction that makes sense for a field whose value comes from
     elsewhere). Nothing prevents a direct Python write (``obj.field = x``) —
-    that guarantee was never load-bearing (no production code ever needed
-    it) and is now purely a naming/usage convention, same as any other field
-    a caller shouldn't mutate directly.
+    read-only is a naming/usage convention, not an enforced guarantee.
     """
     return setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)
 
@@ -498,7 +495,7 @@ def graph(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     graph's CURRENT value. Requires a graph-attached bag (node → wrapper →
     graph) to be live; a detached bag (tests, standalone construction) holds
     the descriptor default and does not track — there is no registry
-    fallback (ADR 0022).
+    fallback.
 
     Validates eagerly: *src* must be a field declared on a ``GraphSettings``
     subclass (e.g. ``GraphProperties.default_skin``). For framework/library

@@ -1,4 +1,4 @@
-"""Registry-owned cells — one live DataField per persistent definition (ADR 0016).
+"""Registry-owned cells — one live DataField per persistent definition.
 
 The registry, which already owns the tier values, also owns their single live
 cell: ``cell_for(key)`` lazily creates it seeded via ``resolve(key)``, every

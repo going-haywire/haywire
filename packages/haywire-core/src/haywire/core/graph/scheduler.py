@@ -1,7 +1,5 @@
 # haywire/core/graph/scheduler.py
-"""Injectable debounce strategy for the validation pipeline.
-See ADR 0002 for the scheduler-injection design.
-"""
+"""Injectable debounce strategy for the validation pipeline."""
 
 from __future__ import annotations
 
@@ -54,11 +52,9 @@ class SyncScheduler:
 
 
 class ThreadingTimerScheduler:
-    """Legacy debounce: a daemon ``threading.Timer`` per scheduled call.
+    """Debounce via a daemon ``threading.Timer`` per scheduled call.
 
-    ``ValidationManager``'s default, so callers that don't inject a scheduler
-    behave exactly as before this abstraction existed. See ADR 0002 for why
-    application wiring prefers a loop-based scheduler instead.
+    ``ValidationManager``'s default scheduler.
     """
 
     def schedule(self, delay_seconds: float, fn: Callable[[], object]) -> ScheduleHandle:

@@ -1,6 +1,5 @@
-"""watch() fields render as disabled (greyed) widgets, not label-only rows —
-mirror-ness no longer forces a bespoke rendering path (Task 7). ui_state=
-DISABLED is the general chrome mechanism (ADR 0020), applied uniformly."""
+"""watch() fields render as disabled (greyed) widgets, not label-only rows.
+ui_state=DISABLED is the general chrome mechanism, applied uniformly."""
 
 from typing import Any, cast
 
@@ -94,9 +93,8 @@ def test_watch_row_suppresses_dirty_glyph_while_disabled(make_node_with_setting)
 
 
 def test_unpromotable_watch_row_menu_has_reset_only(make_node_with_setting):
-    """Reset is offered for every field regardless of promotability (Task 7) —
-    it is no longer gated on _read_only, so an unpromotable watch() row still
-    gets a menu, just with no promote entries."""
+    """Reset is offered for every field regardless of promotability; an
+    unpromotable watch() row still gets a menu, just with no promote entries."""
     from haywire.core.settings.descriptor import Promotable
 
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)

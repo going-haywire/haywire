@@ -1,15 +1,12 @@
 """Characterization + single-cell tests for the Settings value store.
 
-Task 1 (P4): these pin the *observable* behaviour of a ``Settings`` bag through
-its PUBLIC API (getattr/setattr/to_dict/from_dict/reset/is_locally_set/subscribe)
-so the migration of the per-field value out of ``_local_store`` and into a
-per-field ``DataField`` cell is provably behaviour-preserving. They must pass
-against the current (_local_store-backed) code AND against the cell-backed code.
+These pin the *observable* behaviour of a ``Settings`` bag through its PUBLIC
+API (getattr/setattr/to_dict/from_dict/reset/is_locally_set/subscribe).
 
 No test in the "characterization" classes below touches ``_local_store`` or
 ``_cells`` — those are the implementation detail under test. The later
-``_cell_for`` tests DO reach into the internals; they are the unit tests for the
-new mechanism, added task-by-task.
+``_cell_for`` tests DO reach into the internals; they are the unit tests for
+the per-field ``DataField`` cell mechanism.
 """
 
 import pytest
@@ -93,12 +90,9 @@ class TestSimpleModeCharacterization:
         """A field set away from its default and then back is NOT serialized.
 
         ``to_dict`` gates on two independent conditions — ``_is_locally_set``
-        AND ``value != default``. Writing back to the default is the only input
-        that separates them: unlike ``reset()``, it leaves the field locally set
-        (see ``test_set_to_default_value_still_marks_locally_set`` for the
-        never-written echo-guard case), so ONLY the value comparison keeps it
-        out of ``values``. Without this case, dropping that comparison from
-        ``to_dict`` passes every other test in this file.
+        AND ``value != default``. Writing back to the default leaves the field
+        locally set (unlike ``reset()``), so only the value comparison keeps it
+        out of ``values``.
         """
         bag = SimpleBag()
         bag.strength = 0.9
@@ -108,9 +102,9 @@ class TestSimpleModeCharacterization:
         assert bag.to_dict() == {"values": {}, "promoted": {}}
 
     def test_from_dict_notifies_attached_subscribers(self):
-        # Subscription rides the cell event (ADR 0016): the restore writes the
-        # cell, so an already-attached subscriber sees it. Load-time restores
-        # happen before anything subscribes, so they stay unobserved.
+        # Subscription rides the cell event: the restore writes the cell, so
+        # an already-attached subscriber sees it. Load-time restores happen
+        # before anything subscribes, so they stay unobserved.
         bag = SimpleBag()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
@@ -145,9 +139,8 @@ class TestSimpleModeCharacterization:
 
     def test_set_to_default_value_still_marks_locally_set(self):
         """Setting a field to a value EQUAL to its default is a no-op (echo guard):
-        the value never changes, so no override is recorded. This is the pre-P4
-        contract and must survive — the cell always holds *a* value, so set-ness
-        can't be inferred from value!=default."""
+        the value never changes, so no override is recorded. The cell always
+        holds *a* value, so set-ness can't be inferred from value != default."""
         bag = SimpleBag()
         bag.strength = 0.5  # equal to default → echo-guarded no-op
         assert not bag.is_locally_set("strength")
@@ -242,7 +235,7 @@ class TestComplexITypeRoundTrip:
 
 
 # ---------------------------------------------------------------------------
-# _cell_for — the per-field DataField cell (Task 2 internals)
+# _cell_for — the per-field DataField cell
 # ---------------------------------------------------------------------------
 
 
@@ -280,7 +273,7 @@ class TestCellFor:
 
 
 # ---------------------------------------------------------------------------
-# Cell-backed serialization / introspection wire shape (Task 4)
+# Cell-backed serialization / introspection wire shape
 # ---------------------------------------------------------------------------
 
 
@@ -318,7 +311,7 @@ class TestCellBackedSerialization:
         descriptor = type(bag)._property_settings()["strength"]
         bag.reset("strength")
         assert not bag._is_locally_set(descriptor)
-        # Cell returned to default (never structurally removed — DECISIONS §C3)
+        # Cell returned to default (never structurally removed).
         assert bag._cells["strength"].get_value() == 0.5
 
     def test_vec2i_bag_round_trips_through_dict(self):
@@ -330,9 +323,8 @@ class TestCellBackedSerialization:
         assert list(bag2.offset) == [5, 9]
 
     def test_dict_value_stores_are_gone(self):
-        """P4 removed the general _local_store; the _plain object-typed fallback
-        followed once settings became IType-only — the per-field cell is the ONLY
-        local value store."""
+        """The per-field cell is the ONLY local value store — no _local_store,
+        no _plain object-typed fallback."""
         bag = SimpleBag()
         assert not hasattr(bag, "_local_store")
         assert not hasattr(bag, "_plain")

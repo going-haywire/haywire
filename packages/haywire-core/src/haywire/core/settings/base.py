@@ -33,7 +33,7 @@ class SettingDescriptor:
     _owner_cls: "type | None" = None
     """Class this descriptor was declared on, recorded by ``__set_name__``.
     Graph mirrors use it to locate 'the instance of that bag on my graph'
-    (``BaseGraph.settings_bag_for``). ADR 0022."""
+    (``BaseGraph.settings_bag_for``)."""
 
     # Set by constructor (subclass __init__)
     _default: Any = None
@@ -105,8 +105,7 @@ class SettingDescriptor:
         """A setting field must be typed with an IType (e.g. ``setting[FLOAT]``).
 
         Python types (``float``/``str``/...), ``object`` (no type resolved), and
-        unions are rejected — Python-type inference was removed in the
-        widget-unification cutover. ``shadow()``/``watch()`` mirrors inherit their
+        unions are rejected. ``shadow()``/``watch()`` mirrors inherit their
         IType from the source and so pass here once the source is an IType.
         """
         from haywire.core.types.interface import IType

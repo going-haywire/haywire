@@ -16,11 +16,10 @@ def make_string_port_with_config(widget_config: dict[str, Any], port_id: str = "
 
     ``promoted=True``: several tests in this module deliberately exercise a
     LIVE CALLABLE in ``widget_config`` (dynamic-options resolution at build
-    time). A plain (non-promoted) port now rejects a non-serializable
-    widget_config at construction (ADR 0019/0018) — a promoted port is exempt
-    because its widget_config is never serialized (it round-trips through the
-    owning descriptor instead), which is exactly the "safe" case for a live
-    callable this suite is testing.
+    time). A plain (non-promoted) port rejects a non-serializable widget_config
+    at construction — a promoted port is exempt because its widget_config is
+    never serialized (it round-trips through the owning descriptor instead),
+    which is exactly the "safe" case for a live callable this suite is testing.
     """
     port = DataPort(
         registry_id="string",

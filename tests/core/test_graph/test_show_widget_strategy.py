@@ -1,7 +1,7 @@
 """
 Tests for ShowWidgetStrategy — per-port widget visibility vs. link state.
 
-Covers (see ADR 0003):
+Covers:
 - Per-direction defaults injected by as_inlet/as_outlet/as_config.
 - should_show_widget() resolution for all four strategies against link state.
 - The dynamic behavior: an inlet's widget hides once an edge is linked.
@@ -116,7 +116,7 @@ class TestLinkChangeRequestsEndpointRedraw:
     """
     Linking/unlinking marks both endpoint nodes for redraw, so widget visibility
     re-resolves in the UI. The redraw is emitted by EdgeWrapper through the
-    validator's dirty-mark pipeline. See ADR 0003.
+    validator's dirty-mark pipeline.
     """
 
     def test_connecting_marks_both_endpoints_redraw(

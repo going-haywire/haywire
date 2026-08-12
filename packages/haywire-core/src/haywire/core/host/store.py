@@ -7,7 +7,7 @@ persistent state at moments when the ``SettingsRegistry`` is either not
 yet available or is the wrong tool — typically at startup, before any
 library has enabled.
 
-Two-mechanism design (recorded in ADR-0001):
+Two-mechanism design:
 
 * **HostStore** owns engine bootstrap config that the engine reads to
   decide *how* to start up (e.g. ``[libraries] disabled`` — which
@@ -22,8 +22,7 @@ Two-mechanism design (recorded in ADR-0001):
 The split honours a real boundary: ``HostStore`` is read *before* any
 library is loaded; ``SettingsRegistry`` extends as libraries load. Trying
 to use one for both creates a bidirectional dependency between the
-library registry and the settings registry (the cycle ADR-0001 §
-'Persistence' calls out).
+library registry and the settings registry.
 
 Optional by construction
 ------------------------

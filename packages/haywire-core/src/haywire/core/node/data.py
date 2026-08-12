@@ -915,7 +915,7 @@ class NodeData:
         """
         Serialize all NON-promoted ports to dictionary, optionally with data.
 
-        Promoted ports are deliberately omitted (ADR 0019): promotion is
+        Promoted ports are deliberately omitted: promotion is
         recorded in the owning settings bag's "promoted" block and the port is
         regenerated on load via regenerate_promoted_ports. Serializing it here
         too would be a second, drifting source of truth.
@@ -966,7 +966,7 @@ class NodeData:
 
     def _regenerate_promoted_ports(self) -> None:
         """Regenerate promoted ports from settings — delegates to
-        haywire.core.node.promotion (ADR 0019; replaces the old bind-only pass)."""
+        haywire.core.node.promotion."""
         from haywire.core.node.promotion import regenerate_promoted_ports
 
         regenerate_promoted_ports(self)

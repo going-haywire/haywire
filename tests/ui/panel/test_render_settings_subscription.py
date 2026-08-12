@@ -10,7 +10,7 @@ detached updaters (a leak that grows on every redraw).
 
 These run headless against a NiceGUI Client context (no browser): the invariant
 is pure callback bookkeeping on the model, observable on Settings._subscriptions
-(callback -> cell adapters, ADR 0016).
+(callback -> cell adapters).
 """
 
 from typing import Any, cast

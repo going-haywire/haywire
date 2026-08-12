@@ -170,8 +170,8 @@ def test_stale_lockfile_stays_out_of_the_write_set(project: Path) -> None:
 
 
 def test_disagreeing_versions_reject_a_keyword_bump(tmp_path: Path) -> None:
-    """No silent resolution — bump_version's 'first barn library' heuristic
-    would downgrade the higher-versioned sibling (ADR 0023)."""
+    """No silent resolution — a 'first barn library' heuristic would
+    downgrade the higher-versioned sibling."""
     repo = tmp_path / "mixed"
     subprocess.run(["git", "init", str(repo)], check=True, capture_output=True)
     for name, version in (("haybale-alpha", "0.3.1"), ("haybale-beta", "0.9.0")):

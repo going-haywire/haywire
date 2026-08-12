@@ -120,7 +120,7 @@ class FarmhandHost:
             self._apply_events(relevant)  # startup enable path: no live sessions yet
             return
         # Hot-reload/enable/disable events arrive on watchdog/timer threads —
-        # marshal onto the NiceGUI loop (ADR 0002 discipline).
+        # marshal onto the NiceGUI loop.
         self._loop.call_soon_threadsafe(lambda: asyncio.ensure_future(self._apply_and_notify(relevant)))
 
     def _apply_events(self, events: list[LifeCycleEvent]) -> None:

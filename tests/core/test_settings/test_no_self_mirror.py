@@ -1,6 +1,4 @@
-"""The self-mirror hack is gone (ADR 0016).
-
-``_mirror_key`` means only "mirrors ANOTHER setting". Persistent fields on
+"""``_mirror_key`` means only "mirrors ANOTHER setting". Persistent fields on
 FrameworkSettings/LibrarySettings no longer stamp ``_mirror_key`` to their own
 ``_setting_key`` — their machinery keys off ``_setting_key`` + the
 registry-owned cell. ``is_mirror`` collapses to ``bool(_mirror_key)``.

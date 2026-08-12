@@ -1,4 +1,4 @@
-"""Graph mirror: node field declared graph(src=<GraphSettings field>) (ADR 0022, ticket 02).
+"""Graph mirror: node field declared graph(src=<GraphSettings field>).
 
 Unit seam: public Settings/Graph API only. The node side is a minimal stub
 exposing exactly the path the wiring walks (node.wrapper.graph) — no
@@ -64,8 +64,7 @@ def _registry():
 def _make_chain():
     """Build a graph-attached chain. BaseGraph requires the DI context's
     registry (no constructor override), so set_settings_registry() runs
-    before construction — same pattern node-focused tests already use
-    (see tests/conftest.py's make_node_with_setting)."""
+    before construction."""
     from haywire.core.di.context import set_settings_registry
 
     registry = _registry()
@@ -118,7 +117,7 @@ def test_transitive_chain_framework_to_node():
 
 
 def test_detached_bag_holds_descriptor_default():
-    """No node / no graph → descriptor default, NOT live (ADR 0022).
+    """No node / no graph → descriptor default, NOT live.
 
     Deliberate contract: no production path constructs a detached bag (a
     NodeWrapper's graph is a non-optional constructor arg); an honest

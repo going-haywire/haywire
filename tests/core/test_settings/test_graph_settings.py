@@ -1,4 +1,4 @@
-"""GraphSettings flavour + GraphProperties bag + graph() factory (ADR 0022, ticket 01).
+"""GraphSettings flavour + GraphProperties bag + graph() factory.
 
 The graph→framework hop is the EXISTING registry-key mirror; these tests
 prove it works on a graph-owned bag (unset tracks, set wins, reset resumes)
@@ -35,12 +35,8 @@ def _isolate_di_settings_registry():
 
 def _make_bag():
     registry = create_test_settings_registry()
-    # NodeDefaultSkinSettings self-registers via the module-level
-    # _pending_global queue at IMPORT time; the test suite's autouse
-    # _reset_framework_settings_registry fixture (tests/core/test_settings/
-    # conftest.py) clears that queue before each test for isolation, so it
-    # is never in the queue by the time THIS registry is built. Register it
-    # explicitly — register_schema is idempotent.
+    # register_schema is idempotent, so registering explicitly here is safe
+    # even if NodeDefaultSkinSettings self-registered elsewhere.
     registry.register_schema(NodeDefaultSkinSettings)
     bag = GraphProperties(registry=registry, graph=None)
     bag._subscribe_settings()

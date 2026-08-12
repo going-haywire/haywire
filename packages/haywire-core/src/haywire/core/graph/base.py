@@ -100,8 +100,8 @@ class BaseGraph:
             name: Human-readable name for the graph
             validation_delay_ms: Debounce delay for validation (default 50ms)
             validation_scheduler: Strategy that runs the debounced validation
-                pass. Defaults to a background ``threading.Timer`` (legacy
-                behavior). See ``haywire.core.graph.scheduler`` and ADR 0002.
+                pass. Defaults to a background ``threading.Timer``. See
+                ``haywire.core.graph.scheduler``.
 
         """
         self.graph_id: str = graph_id
@@ -129,7 +129,7 @@ class BaseGraph:
         # Node-specific findings are written directly onto node state as NodeWarnings.
         self.library_compatibility_findings: list[str] = []
 
-        # Graph-owned settings bag — the graph tier (ADR 0022). The registry
+        # Graph-owned settings bag — the graph tier. The registry
         # comes from the DI context exactly like node bags (NodeData.__init__)
         # — DI must be configured; there is no separate constructor override.
         from haywire.core.di.context import get_settings_registry
@@ -871,7 +871,7 @@ class BaseGraph:
         """Return this graph's settings bag that is an instance of *owner_cls*.
 
         THE lookup seam for graph mirrors ("which bag on my graph does this
-        src descriptor live on?" — see Settings._graph_src_cell, ADR 0022).
+        src descriptor live on?" — see Settings._graph_src_cell).
         Plain class matching: haywire-core never hot-reloads, so class
         identity is stable. One framework bag today; a future registration
         path for library graph bags changes only this method.
@@ -942,8 +942,8 @@ class BaseGraph:
             self.clear()
 
             # Graph-tier settings restore BEFORE nodes: node-bag graph
-            # mirrors seed from the graph bag's cells at node construction
-            # (ADR 0022). reset_all first — load_from_dict may reuse a live
+            # mirrors seed from the graph bag's cells at node construction.
+            # reset_all first — load_from_dict may reuse a live
             # graph whose bag still carries the previous graph's opinions.
             self.props.reset_all()
             self.props.from_dict(data.get("props", {}))
@@ -1013,7 +1013,7 @@ class BaseGraph:
 
             # Apply author-declared Compatibility Warnings for nodes whose saved
             # library version predates a behavioural change. Advisory only — never
-            # mutates node data. See ADR 0005.
+            # mutates node data.
             self._apply_compatibility_warnings(data)
 
             return True

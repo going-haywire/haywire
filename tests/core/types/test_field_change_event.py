@@ -1,9 +1,8 @@
 """DataField.on_changed fires a FieldChange payload (value, old, field_id).
 
-Increment 1 of the cell-authoritative settings design (ADR 0016): the cell
-becomes the one change primitive, so its event must carry the old value and
-the field's identity — the (name, value, old) contract bag.subscribe promises
-rides on this payload.
+The cell is the one change primitive, so its event must carry the old value
+and the field's identity — the (name, value, old) contract bag.subscribe
+promises rides on this payload.
 """
 
 from haywire.barn.builtin.types import FLOAT

@@ -12,10 +12,10 @@ Output layout written under ``--out-dir``:
 Reads [tool.haywire.release] (publish_order) and [tool.haywire.marketstall]
 (source_url, docs_branch, feed_base_url) from the workspace root pyproject,
 builds each publishable package's row with the same builder the share
-pipeline uses (``haybale.toml`` is canon — see ADR 0025), and emits the
-two-tier layout. Source is "pypi" for packages in pip_publish_order and
-"git" for packages in git_publish_order. Deployed by the publish CI
-workflow (T4) to GitHub Pages.
+pipeline uses (``haybale.toml`` is canon), and emits the two-tier layout.
+Source is "pypi" for packages in pip_publish_order and "git" for packages
+in git_publish_order. Deployed by the publish CI workflow (T4) to GitHub
+Pages.
 
 Used by:
   - .github/workflows/publish.yml (job 4 — deploy marketstall)

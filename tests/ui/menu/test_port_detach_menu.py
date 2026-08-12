@@ -4,7 +4,7 @@ import pytest
 @pytest.mark.integration
 def test_detach_panel_identifies_promoted_port(make_node_with_setting):
     """The 'Detach from setting' panel targets a promoted port — identified by the
-    port being present with promoted=True at the setting's storage_key (ADR 0015)."""
+    port being present with promoted=True at the setting's storage_key."""
     from haywire.core.node.promotion import is_field_promoted, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")

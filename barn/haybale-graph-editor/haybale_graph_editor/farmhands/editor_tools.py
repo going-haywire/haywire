@@ -100,9 +100,9 @@ def _node_row(wrapper, detail: bool = False) -> dict:
 # both kinds. widget_config may legitimately hold a live zero-arg callable at
 # properties["options"] (resolved by SelectWidget at every build(), and only
 # reachable here on a PROMOTED port — DataPort.__post_init__ rejects a
-# non-serializable widget_config on a plain port, ADR 0018). We resolve it the
-# same way the widget does, and drop anything else that can't cross a JSON
-# boundary rather than leaking an object repr to the agent.
+# non-serializable widget_config on a plain port). We resolve it the same way
+# the widget does, and drop anything else that can't cross a JSON boundary
+# rather than leaking an object repr to the agent.
 # ---------------------------------------------------------------------------
 
 
@@ -250,10 +250,10 @@ def _inspect_setting_row(
     """
     row: dict = {"name": name, "accessor": accessor}
 
-    # ADR 0020: HIDDEN removes the row from the properties panel entirely (a
-    # category whose every field is hidden loses its header too), so these
-    # fields are inaccessible to the human sharing this graph. Report existence
-    # — the gate can flip and the field become live — but not schema the agent
+    # HIDDEN removes the row from the properties panel entirely (a category
+    # whose every field is hidden loses its header too), so these fields are
+    # inaccessible to the human sharing this graph. Report existence — the
+    # gate can flip and the field become live — but not schema the agent
     # cannot act on. Naming it in by_name expands it in full.
     if not expand and bag.effective_ui_state(name).name == "HIDDEN":
         row["ui_state"] = "hidden"
@@ -292,7 +292,7 @@ def _inspect_setting_row(
         if bag.is_promoted(name):
             direction = bag.get_promoted_direction(name)
             row["promoted_as"] = direction.value if direction is not None else None
-        # ADR 0020: composed presentation state (imperative seed + enabled_when /
+        # Composed presentation state (imperative seed + enabled_when /
         # visible_when gates), severity-max. watch() seeds DISABLED — read-only is
         # convention, not enforcement (a direct write still lands), so report the
         # state and let the agent decide rather than promising a guarantee.

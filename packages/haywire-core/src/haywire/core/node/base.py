@@ -379,13 +379,13 @@ class BaseNode(NodeData):
             try:
                 bag.from_dict(bag_data)
             except PromotedFormatError:
-                # Reset-and-continue (ADR 0019): the bag stays at descriptor
+                # Reset-and-continue: the bag stays at descriptor
                 # defaults (nothing restored), the node loads and stays fully
                 # functional, and the user is told via a WARNING that renders on
                 # the node card. They lose this node's individually-saved
-                # settings — the accepted price of the hard format cutover.
+                # settings.
                 logger.warning(
-                    "Node %r bag %r: incompatible (pre-ADR-0019) settings format; reset to defaults.",
+                    "Node %r bag %r: incompatible settings format; reset to defaults.",
                     self.node_id,
                     bag_name,
                 )
@@ -396,7 +396,7 @@ class BaseNode(NodeData):
                 )
 
         # Deserialize the NON-promoted ports (promoted ports are not in the
-        # ports block anymore — ADR 0019). Then regenerate promoted ports from
+        # ports block). Then regenerate promoted ports from
         # the already-restored settings bags. This runs before edges wire
         # (two-phase graph load), so a regenerated promoted inlet exists before
         # any edge resolves against it.

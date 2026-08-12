@@ -1,10 +1,7 @@
 """The marketplace's pyproject writers preserve the author's formatting.
 
-The ``os`` writer these tests were built around is gone: ``os`` moved to
-``haybale.toml`` (ADR 0025), because ``pyproject.toml`` does not ship inside
-the wheel and a consumer could never read it. What remains is the
-install/uninstall write-back path, whose comment-preservation guarantee is
-the regression these tests exist for.
+Covers the install/uninstall write-back path and its comment-preservation
+guarantee.
 """
 
 from __future__ import annotations
@@ -64,7 +61,7 @@ def test_install_writeback_preserves_comments(tmp_path: Path) -> None:
 
 
 def test_uninstall_writeback_preserves_comments(tmp_path: Path) -> None:
-    """And on the uninstall path — the one the bug was reported from."""
+    """And on the uninstall path."""
     from haybale_marketplace.library_manager import _remove_install_from_pyproject
 
     pyproject = tmp_path / "pyproject.toml"

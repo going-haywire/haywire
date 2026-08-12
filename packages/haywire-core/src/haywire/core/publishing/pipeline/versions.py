@@ -6,8 +6,7 @@ Deliberately narrower than the ``bump_version()`` it replaces:
   uv workspace root at a fixed version, depends on the library **unversioned**,
   and nothing reads its version.
 * When the barn versions disagree, no arithmetic is offered — the caller must
-  supply an explicit target. ``bump_version``'s "first barn library found"
-  heuristic silently downgraded higher-versioned siblings (ADR 0023).
+  supply an explicit target.
 * Committing and tagging live in the pipeline's step 5, not here.
 """
 

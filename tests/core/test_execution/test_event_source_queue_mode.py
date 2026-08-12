@@ -1,10 +1,9 @@
-"""Integration tests for per-event-node queue mode (ADR 0010).
+"""Integration tests for per-event-node queue mode.
 
 Exercises the realtime-drop wiring end to end through a real haybale-testing
 event node (``TestCustomCallback``): the node's ``queue_mode`` config feeds the
 ``CallbackEvent`` it builds, assembly turns it into a Flow, and ``_register_flow``
-builds the ``FlowScheduler`` from the subscription's fields — replacing the old
-hardcoded ``QueueMode.BLOCK``.
+builds the ``FlowScheduler`` from the subscription's fields.
 
 Driven entirely through library nodes + the Interpreter; no hand-built
 ``CallbackEvent``/``FlowScheduler``.

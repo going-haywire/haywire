@@ -57,11 +57,7 @@ def _make_library(
     """Scaffold a fake library with explicit pyproject + haybale.toml + imports.
 
     ``linked_libraries`` lands in ``haybale.toml``, which is where
-    ``_read_library_dependencies`` reads it (ADR 0025). It used to be written
-    into an ``@library(...)`` call in ``__init__.py`` — a kwarg that now raises
-    ``TypeError`` — where nothing under test ever read it, so every
-    declared-side assertion in this file compared against an empty list and
-    held for the wrong reason.
+    ``_read_library_dependencies`` reads it.
 
     Returns the library root path.
     """

@@ -1,7 +1,5 @@
 # barn/haybale-studio/haybale_studio/loop_scheduler.py
-"""Event-loop-based validation scheduler.
-See ADR 0002 for the design rationale.
-"""
+"""Event-loop-based validation scheduler."""
 
 from __future__ import annotations
 

@@ -1,19 +1,13 @@
 """The identity writer lands on ``haybale.toml``, and only on the fields it owns.
 
-Formerly a regression test for the decorator writers' single-quote-only
-regexes, which silently no-opped against ``ruff format`` output. Those writers
-are gone (ADR 0025: nothing writes the decorator), so what remains is the write
-path that replaced them.
+Nothing writes the `@library(...)` decorator — metadata saves go through this
+file-write path instead of a source edit.
 """
 
 
 def test_update_library_identity_writes_haybale_toml(tmp_path):
-    """End-to-end: the manager's write path lands on haybale.toml.
-
-    Replaces the decorator-writing end-to-end test. The metadata moved out of
-    `@library(...)` precisely so a save is a file write rather than a source
-    edit, so this asserts the file — and that the author's comments and the
-    fields the dialog does not own survive it.
+    """End-to-end: the manager's write path lands on haybale.toml, and the
+    author's comments and the fields the dialog does not own survive it.
     """
     from unittest.mock import MagicMock
 

@@ -1,10 +1,7 @@
-"""Promoted setting reads through the SHARED cell (ADR 0014).
+"""Promoted setting reads through the SHARED cell.
 
-Formerly ``test_promoted_read_tier.py`` — the read-tier *bridge*
-(``_promoted_port_id`` + a ``setting.__get__`` branch returning ``port.get_value()``)
-is retired. A promoted port now borrows the setting's DataField cell by reference,
-so the setting and the port return the same value *because they share the cell*,
-not because a bridge forwards the read.
+A promoted port borrows the setting's DataField cell by reference, so the
+setting and the port return the same value because they share the cell.
 """
 
 import pytest

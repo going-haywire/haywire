@@ -78,7 +78,7 @@ class ShowWidgetStrategy(Enum):
     widget shows in the linked state, the unlinked state, both, or neither. This
     is a plain ``Enum``, NOT an ``IntFlag`` like ``StoreStrategy``: visibility has
     no orthogonal dimension to combine (``ALWAYS`` already *is* linked-or-unlinked,
-    ``NEVER`` is the empty case). See ADR 0003.
+    ``NEVER`` is the empty case).
 
     - NEVER: widget never rendered on the node
     - NOT_LINKED: shown only when the pin is NOT linked (a connected inlet's

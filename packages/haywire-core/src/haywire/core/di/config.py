@@ -417,7 +417,7 @@ class LibrarySystemService:
         print("\n🔍 Scanning for libraries...")
         library_registry.scan_for_libraries()
 
-        # Skip user-disabled libraries before the enable loop (ADR-0001).
+        # Skip user-disabled libraries before the enable loop.
         library_registry.apply_persisted_disabled_state()
 
         # Subscribe BEFORE the enable loop so CLASS_ADDED events during each
@@ -425,8 +425,8 @@ class LibrarySystemService:
         # on_enable is deferred until after the loop.
         library_state_container.subscribe_to_lifecycle_events()
 
-        # AppState.on_enable resolves framework services from these globals
-        # (ADR-0001); publish before any on_enable runs.
+        # AppState.on_enable resolves framework services from these globals;
+        # publish before any on_enable runs.
         set_library_system(self)
         set_global_injector(self.injector)
 

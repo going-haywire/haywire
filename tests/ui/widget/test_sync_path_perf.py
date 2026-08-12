@@ -1,8 +1,8 @@
 """Microbenchmark of the unified BaseWidget model→view sync path.
 
-Times the default bind() path vs an explicit-converter path. Informational only:
-per ADR-0007 the base-class choice is performance-irrelevant (Finding B), so this
-records the numbers (the printed table is the deliverable) with no hard ratio gate.
+Times the default bind() path vs an explicit-converter path. Informational
+only — the base-class choice is performance-irrelevant, so this records the
+numbers (the printed table is the deliverable) with no hard ratio gate.
 Excluded from the default suite (``perf`` marker); run with::
 
     uv run pytest -m perf tests/ui/widget/test_sync_path_perf.py -s
@@ -45,9 +45,9 @@ def test_sync_to_view_cost():
         f"\n--- BaseWidget sync_to_view microbenchmark (N={_N}, median of {_REPEATS}) ---\n"
         f"  default bind    : {base_default:.4f}s\n"
         f"  explicit conv   : {base_converter:.4f}s  ({base_converter / base_default:.2f}x default)\n"
-        f"  (informational — perf is not a gate per ADR-0007 Finding B)\n"
+        f"  (informational — perf is not a gate)\n"
     )
-    # No ratio assertion: ADR-0007 establishes the base-class choice is perf-
-    # irrelevant. This test exists to surface the numbers, not to gate CI.
+    # No ratio assertion: the base-class choice is perf-irrelevant. This test
+    # exists to surface the numbers, not to gate CI.
     assert base_default > 0
     assert base_converter > 0

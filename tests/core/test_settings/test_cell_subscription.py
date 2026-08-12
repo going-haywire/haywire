@@ -1,4 +1,4 @@
-"""bag.subscribe rides the cell event — one change primitive (ADR 0016).
+"""bag.subscribe rides the cell event — one change primitive.
 
 ``subscribe(cb)`` attaches one adapter per field cell, so EVERY writer —
 descriptor set, registry write-through, edge drive into a shared cell —
@@ -46,8 +46,7 @@ def test_subscribe_hears_descriptor_writes():
 
 
 def test_subscribe_hears_raw_cell_writes():
-    """An edge drive writes the shared cell directly — subscribers must hear it.
-    (Previously silent: nothing called _on_property_change on that path.)"""
+    """An edge drive writes the shared cell directly — subscribers must hear it."""
     bag = _PlainBag()
     desc = _PlainBag.__dict__["threshold"]
     seen: list[tuple] = []

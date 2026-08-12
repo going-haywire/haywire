@@ -39,8 +39,8 @@ def test_promote_is_idempotent(make_node_with_setting):
 
 @pytest.mark.integration
 def test_promote_binding_is_the_port_id(make_node_with_setting):
-    """The port id + DataPort.promoted are the whole binding signal — there is no
-    descriptor flag (``_promoted_port_id`` retired, ADR 0014)."""
+    """The port id + DataPort.promoted are the whole binding signal — there is
+    no descriptor flag."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import (
         is_field_promoted,
@@ -58,12 +58,8 @@ def test_promote_binding_is_the_port_id(make_node_with_setting):
 def test_promoted_port_carries_the_settings_widget_config(library_system):
     """The promoted port's inline canvas widget (ui/skin/base.py, keyed off
     port.widget_key/widget_config) must render with the setting's own stamped
-    widget contract (ADR 0017) — a CHOICES field's options, or a numeric
-    field's min/max — not the IType's bare identity default with an empty
-    widget_config. Regression test: _metadata_to_port_kwargs previously
-    forwarded only label/description/order/type_cls, silently dropping every
-    per-setting widget override onto promotion (predates the Tier-2 plan,
-    caught during a later inspection of promotion.py)."""
+    widget contract — a CHOICES field's options, or a numeric field's min/max —
+    not the IType's bare identity default with an empty widget_config."""
     from unittest.mock import MagicMock
 
     from haywire.barn.builtin import widget_keys

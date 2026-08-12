@@ -1,13 +1,13 @@
 # tests/ui/widget/test_widget_config_serializable.py
 """
 Plain (non-promoted) ports reject a non-serializable widget_config at
-construction time (ADR 0019 / ADR 0018 plain-port half):
+construction time:
 
 - a callable (bound method / lambda) in widget_config on a PLAIN port raises
   TypeError at DataPort.__post_init__ (i.e. when node.add(...) runs), naming
   the port — not nine frames deep in json.dumps at save time
 - the SAME callable on a PROMOTED port does NOT raise (its widget_config is
-  never serialized; it round-trips through the descriptor, ADR 0019)
+  never serialized; it round-trips through the descriptor)
 - a serializable widget_config (list/dict options) constructs fine
 """
 

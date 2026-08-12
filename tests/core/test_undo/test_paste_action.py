@@ -132,8 +132,8 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
     edge_actions = [a for a in action.actions if isinstance(a, AddEdgeAction)]
     assert {a.registry_key for a in node_actions} == {"k"}
     # node_data carries the original "v" plus the overwritten paste position in
-    # props' "values" block — the ADR 0019 nested shape from_dict restores from
-    # (so build()'s _initialize_from_dict restore lands the paste point).
+    # props' "values" block (the nested shape from_dict restores from), so
+    # build()'s _initialize_from_dict restore lands the paste point.
     assert {cast(dict, a.node_data)["v"] for a in node_actions} == {1, 2}
     assert all(
         "posX" in cast(dict, a.node_data)["props"]["values"]
@@ -259,11 +259,10 @@ def test_paste_node_actions_carry_pre_minted_ids():
 
 
 def test_paste_execution_edge_connects_created_nodes():
-    """EXECUTION-level reproduction: run the composite against a recording fake
-    graph whose create_edge_wrapper raises KeyError if an endpoint id was never
-    registered by create_node_wrapper. Before the fix, AddNodeAction minted its
-    OWN id (ignoring the pre-minted one the edge points at) -> KeyError. After
-    the fix, the created node adopts the pre-minted id and the edge connects.
+    """EXECUTION-level test: run the composite against a recording fake graph
+    whose create_edge_wrapper raises KeyError if an endpoint id was never
+    registered by create_node_wrapper. The created node must adopt the
+    pre-minted id so the edge connects.
     """
     from haywire.core.undo.actions.graph_actions import PasteClipboardAction
 
@@ -300,8 +299,7 @@ def test_paste_execution_edge_connects_created_nodes():
             return f"minted_{self._counter}"
 
         def create_node_wrapper(self, registry_key, position, node_data=None, node_id=None):
-            # The real base.py mints its OWN id when node_id is None — replicate
-            # that so this test reproduces the pre-fix KeyError.
+            # The real base.py mints its OWN id when node_id is None.
             if node_id is None:
                 node_id = self.generate_unique_node_id(registry_key)
             wrapper = type("W", (), {"node_id": node_id})()
@@ -378,12 +376,9 @@ def test_editor_paste_clipboard_returns_none_on_error():
 
 @pytest.mark.integration
 class TestPasteExecutionIntegration:
-    """Execute a paste-with-edge against a REAL graph with real nodes/edges.
-
-    This is the category the prior tests missed: they only inspected
-    constructed actions. Here we run the whole composite end-to-end and prove
-    the pasted edge connects the two newly-created nodes (no KeyError).
-    """
+    """Execute a paste-with-edge against a REAL graph with real nodes/edges,
+    end-to-end, and confirm the pasted edge connects the two newly-created
+    nodes (no KeyError)."""
 
     def _two_connected_nodes(self, graph):
         # TestAddFloatNode has only FLOAT ports — serializes cleanly (the
@@ -415,7 +410,7 @@ class TestPasteExecutionIntegration:
         assert len(payload["edges"]) == 1  # both-endpoints edge retained
 
         action = PasteClipboardAction(graph=cast(Any, graph), payload=payload, paste_x=500.0, paste_y=500.0)
-        # EXECUTE the paste against the real graph (the missing test category).
+        # EXECUTE the paste against the real graph.
         action._execute_impl()
 
         # Two NEW nodes exist with ids distinct from the originals.
@@ -423,8 +418,7 @@ class TestPasteExecutionIntegration:
         new_node_ids = all_node_ids - original_ids
         assert len(new_node_ids) == 2
 
-        # An edge connects the two NEW nodes — remap + creation agreed
-        # (pre-fix this would have raised KeyError inside create_edge_wrapper).
+        # An edge connects the two NEW nodes — remap + creation agreed.
         pasted_edges = [
             e
             for e in graph.edge_wrappers.values()
@@ -445,12 +439,11 @@ class TestPasteExecutionIntegration:
         _initialize_from_dict restores props.posX/posY) must be the paste
         point, NOT the original position.
 
-        This exercises the build()-level overwrite the prior tests missed:
         AddNodeAction(position=) is applied early via set_position, but
         _initialize_from_dict() then restores the serialized posX/posY. Unless
         PasteClipboardAction overwrites those props, the pasted node lands on
-        top of its source (invisible paste). Single-node selection => bbox.min
-        == the node's own pos => offset lands the node AT the paste point.
+        top of its source. Single-node selection => bbox.min == the node's own
+        pos => offset lands the node AT the paste point.
         """
         from haybale_testing.nodes.testbed.math_op_node import TestAddFloatNode
         from haywire.core.graph.clipboard import build_clipboard_payload
@@ -490,7 +483,7 @@ class TestPasteExecutionIntegration:
         # FINAL position (post build()/from_dict restore) is the paste point...
         assert pasted.node.props.posX == paste_x
         assert pasted.node.props.posY == paste_y
-        # ...and NOT the original (the regression this fix addresses).
+        # ...and NOT the original.
         assert (pasted.node.props.posX, pasted.node.props.posY) != (orig_x, orig_y)
 
         action._undo_impl()

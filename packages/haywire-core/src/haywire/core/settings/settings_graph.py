@@ -2,7 +2,7 @@
 """
 GraphSettings — base class for graph-owned settings bags.
 
-The fourth Settings flavour (ADR 0022), parallel to NodeSettings:
+The fourth Settings flavour, parallel to NodeSettings:
 
 - Per-instance DataField cells; never registered with SettingsRegistry.
 - Owned by a BaseGraph (``graph.props``), serialized into the graph JSON

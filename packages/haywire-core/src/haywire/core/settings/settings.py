@@ -58,8 +58,7 @@ class PromotedFormatError(Exception):
     shape and cannot be restored by the current ``{"values", "promoted"}``
     loader. Raised by ``Settings.from_dict``; the node loader catches it,
     resets the bag to defaults, and attaches a WARNING to the node (see
-    ``BaseNode._initialize_from_dict``). Hard breaking change — no migration
-    (ADR 0019)."""
+    ``BaseNode._initialize_from_dict``). Hard breaking change — no migration."""
 
 
 @dataclass_transform(field_specifiers=(setting,))
@@ -104,7 +103,7 @@ class Settings:
         # setting(..., ui_state=...); changed later via set_ui_state(), which
         # announces transitions on the dedicated UI-state channel below.
         # Declarative same-bag gating (enabled_when/visible_when) composes
-        # with this via severity max — see effective_ui_state(). ADR 0020.
+        # with this via severity max — see effective_ui_state().
         self._ui_state: dict[str, UiState] = {}
         for _name, _descriptor in type(self)._property_settings().items():
             if _descriptor._ui_state is not UiState.NORMAL:
@@ -127,10 +126,10 @@ class Settings:
         # because a promoted port is regenerated from here on load rather than
         # persisted in the ports block. A field has at most one promoted port
         # (its id IS the storage_key), so this is a single direction per key,
-        # never a set. See ADR 0019 and haywire.core.node.promotion.
+        # never a set. See haywire.core.node.promotion.
         self._promoted_keys: dict[str, PortType] = {}
-        # Graph-mirror wiring (ADR 0022): storage_key -> (src cell, adapter)
-        # for fields synced cell-to-cell against the owning graph's bag.
+        # Graph-mirror wiring: storage_key -> (src cell, adapter) for fields
+        # synced cell-to-cell against the owning graph's bag.
         self._graph_mirror_adapters: dict[str, tuple["DataField", Callable]] = {}
 
     def _is_locally_set(self, descriptor: setting) -> bool:
@@ -243,7 +242,7 @@ class Settings:
         """The live cell of a graph mirror's src field on the owning graph's
         bag — or None when detached (standalone bag, node not in a graph,
         graph lacks the src bag). Detached fields hold the descriptor
-        default and are not live (ADR 0022)."""
+        default and are not live."""
         if not descriptor.is_graph_mirror:
             return None
         src = descriptor._mirror_descriptor
@@ -373,7 +372,7 @@ class Settings:
             raise TypeError(
                 f"setting field '{descriptor.storage_key}' on {type(self).__name__} shadows a "
                 f"field on a per-instance bag ({descriptor._mirror_descriptor!r}) — declare it "
-                f"with graph(src=...) instead of shadow() (ADR 0022)."
+                f"with graph(src=...) instead of shadow()."
             )
         if self._registry is None or not descriptor._mirror_key:
             return
@@ -385,13 +384,13 @@ class Settings:
         Attaches ONE adapter to the src field's cell on the owning graph's
         bag; the adapter writes changes into this field's own cell unless a
         local opinion suppresses it. Detached bag → no-op (descriptor
-        default, not live). Idempotent per field. ADR 0022."""
+        default, not live). Idempotent per field."""
         key = descriptor.storage_key
         if key in self._graph_mirror_adapters:
             return
         src_cell = self._graph_src_cell(descriptor)
         if src_cell is None:
-            return  # detached — seeded with the descriptor default (ADR 0022)
+            return  # detached — seeded with the descriptor default
         self._cell_for(descriptor)  # ensure own cell exists + is seeded first
 
         def _adapter(change: Any, _descriptor: setting = descriptor) -> None:
@@ -498,7 +497,7 @@ class Settings:
         under a key.
         ``promoted``: this bag's promotion records, ``storage_key → direction``
         (``"inlet"``/``"outlet"``). A promoted port is regenerated from this on
-        load — it is NOT persisted in the node's ports block (ADR 0019).
+        load — it is NOT persisted in the node's ports block.
         """
         fields = type(self)._property_settings()
         values: dict = {}
@@ -528,8 +527,8 @@ class Settings:
             raise PromotedFormatError(
                 f"{type(self).__name__}: settings dict is in the pre-promotion-refactor "
                 f"flat format (no 'values' key); expected {{'values', 'promoted'}}. "
-                f"This graph predates ADR 0019 and its settings for this bag cannot be "
-                f"restored; the node will load with default settings."
+                f"This graph's settings for this bag cannot be restored; the node will "
+                f"load with default settings."
             )
         fields = type(self)._property_settings()
         for attr_name, value in data.get("values", {}).items():
@@ -624,7 +623,7 @@ class Settings:
         UI-state listeners (``subscribe_ui_state``) on an actual transition
         only; idempotent calls are silent. Never touches the field's cell.
         Unknown *name*: logs a warning and ignores (catches typos in
-        hand-maintained field-name lists). ADR 0020.
+        hand-maintained field-name lists).
         """
         fields = type(self)._property_settings()
         if name not in fields:
@@ -696,7 +695,7 @@ class Settings:
         at build time). Consumed by the panel's row rendering AND the
         Setting-row menu, so panel and menu can never disagree. Reads controller
         values via plain ``getattr`` — never writes, never touches cells.
-        Unknown *name* returns ``UiState.NORMAL``. ADR 0020.
+        Unknown *name* returns ``UiState.NORMAL``.
         """
         fields = type(self)._property_settings()
         if name not in fields:

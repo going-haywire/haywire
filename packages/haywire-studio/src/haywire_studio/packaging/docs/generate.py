@@ -176,8 +176,8 @@ def generate_all_docs(repo_root: str | None, version: str | None = None) -> dict
     Returns {library_id: coverage_lines}, sorted by library id.
 
     ``version`` applies to EVERY library generated, which is correct precisely
-    because the barn is versioned in lockstep (ADR 0023) — the share pipeline
-    bumps all libraries to one version and passes that same value here.
+    because the barn is versioned in lockstep — the share pipeline bumps all
+    libraries to one version and passes that same value here.
     """
     root = Path(repo_root).resolve() if repo_root else Path.cwd()
 

@@ -9,8 +9,8 @@ The module reads top-to-bottom as a waterfall:
     2. Collect & group  sort fields, group by category, lay out the column
     3. Row rendering     one label + widget row (reactive instance / registry)
     4. Resolve widget   _resolve_widget_instance: resolve a shared BaseWidget
-                         by defn.widget_key (stamped once at __set_name__, ADR
-                         0017), build it against a SettingWidgetModel wired to
+                         by defn.widget_key (stamped once at __set_name__),
+                         build it against a SettingWidgetModel wired to
                          an on_edit closure; returns None for a real widget, or
                          the label fallback's apply(value) sync hook
     5. Write policy      on_edit closure factories (instance vs. registry tier)
@@ -65,7 +65,7 @@ def render_settings(obj: "Settings") -> None:
     - Any locally-set field shows a • dirty prefix and a reset button (unless a
       promoted inlet owns the value): "Reset to global default" for a ``mirrors=``
       field, "Reset to default" for a plain one.
-    - A field's ``ui_state`` (``NORMAL``/``DISABLED``/``HIDDEN``, ADR 0020)
+    - A field's ``ui_state`` (``NORMAL``/``DISABLED``/``HIDDEN``)
       controls its chrome: DISABLED renders the widget non-interactive,
       HIDDEN removes the row. ``watch()`` seeds DISABLED — a mirrored field
       renders as a greyed widget, same mechanism as any other disabled field.
@@ -92,9 +92,9 @@ def render_settings(obj: "Settings") -> None:
     # widget + override chrome in place. Populated by _render_reactive_field_row.
     updaters: dict[str, Callable[[], None]] = {}
 
-    # Category-group visibility (ADR 0020): a section whose rows are ALL
-    # effectively HIDDEN hides its wrapper (header included). Derived state
-    # only — recomputed from effective_ui_state, never stored per category.
+    # Category-group visibility: a section whose rows are ALL effectively
+    # HIDDEN hides its wrapper (header included). Derived state only —
+    # recomputed from effective_ui_state, never stored per category.
     group_wrappers: dict[str, Any] = {}
     fields_by_category: dict[str, list[str]] = {}
     for _name, _defn in sorted_fields:
@@ -260,7 +260,7 @@ def _render_grouped(
     section sits in a wrapper div stamped ``data-category-group`` so callers
     (and tests/CSS) can toggle a whole section; when *group_wrappers* is
     given it maps ``category -> wrapper`` for visibility recomputes — a
-    fully-hidden category hides header and all (ADR 0020).
+    fully-hidden category hides header and all.
     """
     column = ui.column().classes("w-full compact-fields sf-field-list").style(_COLUMN_STYLE)
     with column:
@@ -362,12 +362,12 @@ def _render_reactive_field_row(
 
     is_promoted = is_field_promoted(obj, attr_name)
 
-    # Direction- and link-aware promoted row (decision 7bA): an INLET means the
-    # graph now owns the value (an incoming edge, or simply having been promoted),
-    # so the row goes read-only; an OUTLET keeps the setting as source of truth,
-    # so the editable widget stays. Recomputed per render — link-state staleness
-    # until the next redraw is accepted (decision Q7), no reactive tracking beyond
-    # this per-render check.
+    # Direction- and link-aware promoted row: an INLET means the graph now owns
+    # the value (an incoming edge, or simply having been promoted), so the row
+    # goes read-only; an OUTLET keeps the setting as source of truth, so the
+    # editable widget stays. Recomputed per render — link-state staleness until
+    # the next redraw is accepted, no reactive tracking beyond this per-render
+    # check.
     port = obj._node.ports.get(defn.storage_key) if (is_promoted and obj._node is not None) else None
     is_promoted_input = False
     promoted_hint = ""
@@ -387,8 +387,8 @@ def _render_reactive_field_row(
 
     # Declarative same-bag gating (enabled_when / visible_when metadata
     # conventions — see setting-canon.md). The CHECK lives on the bag
-    # (effective_ui_state, severity max with the imperative state, ADR 0020);
-    # only the warn-once-per-row-build for a typo'd controller and the live
+    # (effective_ui_state, severity max with the imperative state); only the
+    # warn-once-per-row-build for a typo'd controller and the live
     # subscription wiring belong here. A controller-VALUE change is a genuine
     # cell event (subscribe_field below); the imperative state arrives on the
     # bag's UI-state channel subscribed in render_settings.
@@ -418,9 +418,8 @@ def _render_reactive_field_row(
     # opinion (_set_keys membership) AND the graph doesn't own its value through a
     # promoted INLET. A promoted OUTLET keeps the setting as source of truth (its
     # widget stays editable), so its chrome stays; an inlet-driven or inlet-promoted
-    # row is read-only, so resetting there is meaningless. The mirror gate is gone
-    # (decision Q1): plain fields get the same affordance, only the tooltip/meaning
-    # differs by field kind.
+    # row is read-only, so resetting there is meaningless. Plain fields get the
+    # same affordance as mirrors, only the tooltip/meaning differs by field kind.
     def _has_local_opinion() -> bool:
         return obj.is_locally_set(attr_name) and not is_promoted_input
 
@@ -480,8 +479,8 @@ def _render_reactive_field_row(
     reset_item: Any = None
 
     def _refresh_reset_item() -> None:
-        # Q4/Q5: Reset is the menu's one transient entry — listed permanently,
-        # greyed while the row is clean OR while UiState locks the row's
+        # Reset is the menu's one transient entry — listed permanently, greyed
+        # while the row is clean OR while UiState locks the row's
         # value-editing chrome (DISABLED). Promote/Demote are structural and
         # per-render constants: promotion changes rebuild the whole panel.
         if reset_item is not None:
@@ -529,9 +528,9 @@ def _render_reactive_field_row(
             _build_row_menu()
 
     # Every field — scalars, vectors, color — resolves a shared BaseWidget by its
-    # widget_key, stamped once at __set_name__ (see _resolve_widget_instance, ADR
-    # 0017). VecWidget handles vec types via widget_config['vec_meta']; the panel
-    # no longer special-cases them.
+    # widget_key, stamped once at __set_name__ (see _resolve_widget_instance).
+    # VecWidget handles vec types via widget_config['vec_meta']; the panel does
+    # not special-case them.
     error_container = ui.element("div").classes("w-full")
 
     # A column-oriented widget (e.g. VecWidget in row-per-component mode) renders
@@ -594,15 +593,15 @@ def _render_reactive_field_row(
 
     def _refresh_chrome():
         # Real widgets bind the shared cell directly (on_changed), so
-        # re-pushing their value here would be a structural no-op — verified:
+        # re-pushing their value here would be a structural no-op:
         # value_apply is None for every case except the unknown-widget label
         # fallback, which owns no cell subscription of its own and needs this
         # to reflect external changes at all. Everything else in this callback
         # is pure override chrome: the • prefix, the menu's Reset enabled-state,
         # and the ui-disabled marker.
         #
-        # Applies to plain fields too (decision Q1): editing a plain field's widget
-        # writes its cell, and the • / reset must appear live rather than waiting
+        # Applies to plain fields too: editing a plain field's widget writes
+        # its cell, and the • / reset must appear live rather than waiting
         # for the next full panel redraw. is_promoted_input is a per-render constant
         # (structural, needs a redraw to change), so a cell-value change only flips
         # the is_locally_set half — recomputed here.
@@ -612,7 +611,6 @@ def _render_reactive_field_row(
         if label is not None:
             label.set_text(_label_text(dirty))
         _refresh_reset_item()
-        # Re-applies the ui-state marker (was: "the ui-disabled marker").
         _refresh_row_ui_state()
 
     updaters[attr_name] = _refresh_chrome
@@ -687,8 +685,8 @@ def _resolve_widget_instance(
     anchor_cleanup_to_element(widget_cell, widget.cleanup)
 
     # get_widget_class()'s declared return type is Type[IWidget] (the minimal
-    # interface), but set_enabled is a BaseWidget addition (Task 2) — every
-    # widget actually resolved here subclasses BaseWidget (module docstring),
+    # interface), but set_enabled is a BaseWidget addition — every widget
+    # actually resolved here subclasses BaseWidget (module docstring),
     # so this is always present in practice. Fail soft rather than assert:
     # an IWidget implemented directly against the interface (no BaseWidget)
     # simply can't be disabled, which degrades to "always enabled" instead
@@ -777,9 +775,9 @@ def _bag_on_edit(obj: "Settings", attr_name: str, error_container) -> Callable[[
 def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -> Callable[[Any], None]:
     """Write policy for the registry path: set_global → debounced save → error chrome.
 
-    Surfaces failures instead of swallowing them (review finding #6):
-    set_global raises ValueError on validator rejection and KeyError on a
-    dropped definition (hot-reload race)."""
+    Surfaces failures instead of swallowing them: set_global raises
+    ValueError on validator rejection and KeyError on a dropped definition
+    (hot-reload race)."""
 
     def on_edit(value: Any) -> None:
         try:

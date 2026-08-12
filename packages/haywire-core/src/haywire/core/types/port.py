@@ -154,7 +154,7 @@ class DataPort(DataTypeIdentity):
     show_widget: ShowWidgetStrategy = ShowWidgetStrategy.NOT_LINKED
     """When the inline widget is rendered relative to link state. Per-direction
     defaults (inlet NOT_LINKED, outlet NEVER, config ALWAYS) are injected by
-    as_inlet/as_outlet/as_config; override per-port via kwargs. See ADR 0003."""
+    as_inlet/as_outlet/as_config; override per-port via kwargs."""
 
     # Runtime reference (not serialized)
     _wrapper: Optional["NodeWrapper"] = field(default=None, repr=False, metadata={"serialize": False})
@@ -195,12 +195,12 @@ class DataPort(DataTypeIdentity):
         # A live callable in widget_config (e.g. {"options": self.method} for a
         # dynamic dropdown) is intentional and works at render time, but it
         # cannot survive JSON serialization. A promoted port never serializes
-        # its widget_config (it round-trips through the descriptor — ADR 0019),
-        # so a callable there is always safe. A plain port IS its own only copy,
-        # so a callable would crash json.dumps at save time, nine frames deep.
-        # Fail here instead — at construction (node.add during init()), naming
-        # the port and key. Reuses the same serializability check
-        # normalize_and_validate_default uses for default= values.
+        # its widget_config (it round-trips through the descriptor), so a
+        # callable there is always safe. A plain port IS its own only copy,
+        # so a callable would crash json.dumps at save time. Fail here instead —
+        # at construction (node.add during init()), naming the port and key.
+        # Reuses the same serializability check normalize_and_validate_default
+        # uses for default= values.
         if not self.promoted and self.widget_config:
             from haywire.core.types.utils import is_cattrs_serializable
 
@@ -438,7 +438,7 @@ class DataPort(DataTypeIdentity):
     def should_show_widget(self) -> bool:
         """
         Resolve whether this port's inline widget should be rendered, given its
-        ``show_widget`` strategy and current link state. See ADR 0003.
+        ``show_widget`` strategy and current link state.
 
         Note: this does NOT check ``widget_key`` — a caller must still confirm the
         port has a widget to render. It answers only the strategy-vs-link question.

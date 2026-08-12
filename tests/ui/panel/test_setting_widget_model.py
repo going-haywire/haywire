@@ -4,11 +4,11 @@ from haywire.ui.panel.setting_widget_model import SettingWidgetModel
 
 
 def _make_model(initial=1.0):
-    """A model bound to its (always-required, ADR 0016) shared cell.
+    """A model bound to its (always-required) shared cell.
 
-    ``on_edit`` is a plain callback collecting calls — no setter-factory
-    indirection (Task 9): the model forwards raw values, it never decides
-    write policy (validate/coerce/error-chrome live in the caller's closure).
+    ``on_edit`` is a plain callback collecting calls: the model forwards raw
+    values, it never decides write policy (validate/coerce/error-chrome live
+    in the caller's closure).
     """
     edits: list = []
     cell = FLOAT.create_field(default_override={"value": initial})
@@ -35,8 +35,8 @@ def test_get_value_reflects_seed():
 
 def test_set_value_forwards_raw_value_to_on_edit_only():
     # Widget -> model writes forward the RAW value to on_edit; the model never
-    # writes the cell itself (ADR 0016 — a raw write would bypass whatever
-    # write policy on_edit implements: validate/setattr or set_global/save).
+    # writes the cell itself — a raw write would bypass whatever write policy
+    # on_edit implements: validate/setattr or set_global/save.
     model, cell, edits = _make_model(1.0)
     model.set_value(3.0)
     assert edits == [3.0]

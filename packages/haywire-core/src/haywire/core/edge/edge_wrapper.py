@@ -279,7 +279,7 @@ class EdgeWrapper:
         Request a visual redraw of both endpoint nodes.
 
         Linking/unlinking changes a port's link state, which port-level rendering
-        depends on (widget visibility via ShowWidgetStrategy — see ADR 0003). The
+        depends on (widget visibility via ShowWidgetStrategy). The
         node redraw is routed through ``mark_node_dirty`` so the priority system
         lets a stronger node reason already in the batch (NODE_ADDED on paste,
         NODE_REMOVED on clear) win over this NODE_REDRAW_REQUESTED. The endpoint

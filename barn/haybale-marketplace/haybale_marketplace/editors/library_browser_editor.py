@@ -262,10 +262,8 @@ class LibraryBrowserEditor(BaseEditor):
         show_add_source_flow(target, on_done=lambda: self._after_refresh_flow(context))
 
     # Publishing lives in haybale-share's ShareEditor, not here. This editor
-    # CONSUMES feeds; producing one is a different concern, and the
-    # marketplace's own architecture doc has always said so. Project-scoped
-    # publishing (ADR 0023) also has nothing to do with the per-library view
-    # this browser presents.
+    # CONSUMES feeds; producing one is a different concern from the
+    # per-library view this browser presents.
 
     def _do_refresh(self, context: "SessionContext", *, missing_state_severity: str) -> None:
         """Refresh the marketplace in one shot and re-render.

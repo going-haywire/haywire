@@ -129,7 +129,7 @@ def test_plan_versions_offers_suggestions_when_all_agree(repo_agreeing: Path) ->
 
 
 def test_plan_versions_offers_no_suggestions_when_they_disagree(repo_disagreeing: Path) -> None:
-    """A silent resolution would downgrade the higher-versioned sibling (ADR 0023)."""
+    """A silent resolution would downgrade the higher-versioned sibling."""
     plan = plan_versions(repo_disagreeing)
     assert plan.versions_agree is False
     assert plan.common_version is None
@@ -149,8 +149,7 @@ def test_write_barn_versions_writes_every_library(repo_disagreeing: Path) -> Non
 
 def test_write_barn_versions_leaves_the_root_pyproject_untouched(repo_agreeing: Path) -> None:
     """The workspace root sits at a fixed version and depends on the library
-    unversioned — nothing reads it, and bumping it is what the old
-    bump_version() got wrong."""
+    unversioned — nothing reads it, so it must not be bumped."""
     root = repo_agreeing / "pyproject.toml"
     before = root.read_text()
     written = write_barn_versions(repo_agreeing, "0.4.0")
@@ -181,7 +180,7 @@ def test_refresh_lockfile_noop_without_a_lockfile(repo_agreeing: Path) -> None:
 
 
 def test_refresh_lockfile_warns_but_never_raises(repo_agreeing: Path, monkeypatch) -> None:
-    """uv lock failing is a warning, not a blocker — matches bump_version's posture."""
+    """uv lock failing is a warning, not a blocker."""
     (repo_agreeing / "uv.lock").write_text("")
 
     def _fail(*_a, **_kw):
@@ -232,8 +231,7 @@ def test_refresh_lockfile_warns_on_timeout(repo_agreeing: Path, monkeypatch) -> 
 def test_refresh_lockfile_warns_but_never_raises_on_permission_error(
     repo_agreeing: Path, monkeypatch
 ) -> None:
-    """A sibling OSError (e.g. PermissionError on the uv binary) must not propagate —
-    this is the gap fixed by routing through gitcmd's broad except OSError handling."""
+    """A sibling OSError (e.g. PermissionError on the uv binary) must not propagate."""
     (repo_agreeing / "uv.lock").write_text("")
 
     def _boom(*_a, **_kw):

@@ -24,8 +24,8 @@ logger = logging.getLogger(__name__)
 def is_field_promoted(bag: "Settings", field: str) -> bool:
     """True if ``<bag>.<field>`` is currently promoted to a port.
 
-    Consults the bag's ``_promoted_keys`` — the single source of truth (ADR
-    0019). False for a field that is not promoted or does not exist."""
+    Consults the bag's ``_promoted_keys`` — the single source of truth.
+    False for a field that is not promoted or does not exist."""
     return bag.is_promoted(field)
 
 
@@ -141,7 +141,7 @@ def _bind_port(port, bag: "Settings", desc: "setting") -> None:
 
 def regenerate_promoted_ports(node: "NodeData") -> None:
     """Regenerate every promoted port on *node* from its bag's ``_promoted_keys``
-    (load-time pass, ADR 0019).
+    (load-time pass).
 
     Settings bags are already restored (BaseNode._initialize_from_dict runs
     settings before this), so each bag's ``_promoted_keys`` holds the loaded
@@ -198,13 +198,13 @@ def promote_setting(
     A promoted outlet is always ``is_linked_lazy`` (the link-time force +
     ``on_changed → propagate``) — holds for plain, shadow, watch alike, because
     a promoted outlet is never worker-``out()``-driven. A promoted CONFIG port
-    is pinless (``flow_type=NONE``, ADR 0014) — never linked, never lazy.
+    is pinless (``flow_type=NONE``) — never linked, never lazy.
 
     Direction selects the factory (``as_inlet``/``as_outlet``/``as_config``) and
     thus the per-direction ``ShowWidgetStrategy`` default (inlet NOT_LINKED →
     widget shows while unlinked; outlet NEVER; config ALWAYS — though the
     Properties-panel row hides a promoted CONFIG's widget the same way it hides
-    a promoted INLET's, per ADR 0014; the port's own live widget still renders
+    a promoted INLET's; the port's own live widget still renders
     wherever a CONFIG port's widget renders today, e.g. the Ports Panel).
     Do NOT pass ``show_widget`` explicitly.
     """
@@ -261,8 +261,8 @@ def demote_setting(node: "NodeData", port_id: str) -> None:
     the settings-side promotion record.
 
     Mirror of ``promote_setting``: promote writes ``_promoted_keys``, demote
-    clears it (ADR 0019 — the port is no longer the promotion signal, so the
-    record must be maintained explicitly)."""
+    clears it — the port is no longer the promotion signal, so the
+    record must be maintained explicitly."""
     if port_id not in node.ports:
         return
     try:

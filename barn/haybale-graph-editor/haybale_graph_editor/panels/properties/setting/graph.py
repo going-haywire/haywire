@@ -2,11 +2,10 @@
 """
 GraphSettingsPanel — renders the active graph's settings bag (graph.props).
 
-The graph-scope section of the properties editor (ADR 0022): shown under
-GraphFocus (graph itself in focus, no node selected). Reuses the generic
-bag renderer; the setting-row menu offers no promote entries because a
-GraphSettings bag has ``_node is None`` (structural guard in
-``_build_row_menu``).
+The graph-scope section of the properties editor: shown under GraphFocus
+(graph itself in focus, no node selected). Reuses the generic bag renderer;
+the setting-row menu offers no promote entries because a GraphSettings bag
+has ``_node is None`` (structural guard in ``_build_row_menu``).
 """
 
 from __future__ import annotations

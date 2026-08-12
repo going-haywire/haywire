@@ -51,7 +51,7 @@ class ValidationManager:
         self._debounce_ms = debounce_ms
 
         # Injected debounce strategy; defaults to the threading.Timer scheduler.
-        # See scheduler.py and ADR 0002.
+        # See scheduler.py.
         self._scheduler: ValidationScheduler = scheduler or ThreadingTimerScheduler()
 
         self._dirty_graph: ChangeReason | None = None

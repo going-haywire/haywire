@@ -2,7 +2,6 @@
 
 Distinct from errors (which make a node invalid). A warning is informational;
 the first writer is the Compatibility Warning feature (kind="compatibility").
-See ADR 0005.
 """
 
 from __future__ import annotations

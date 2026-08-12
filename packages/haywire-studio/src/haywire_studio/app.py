@@ -115,9 +115,9 @@ class HaywireApp:
     def on_disconnect(self, client):
         """Handle client disconnect.
 
-        Shell-upstream model (Q7A): tear down the AppShell first, then
-        detach the session. SessionManager.remove_session does only state
-        cleanup now — UI cleanup is the shell's responsibility.
+        Tears down the AppShell first, then detaches the session.
+        SessionManager.remove_session does only state cleanup — UI cleanup
+        is the shell's responsibility.
         """
         if self._is_shutting_down:
             return
@@ -189,9 +189,9 @@ class HaywireApp:
 
         self.workspace_manager = WorkspaceManager(project_path=Path(self.workspace_root))
 
-        # LibraryManager is now published by haybale-marketplace as
+        # LibraryManager is published by haybale-marketplace as
         # LibraryManagerState. Persisted disabled-state is applied by the
-        # library system during create_library_system_service. See ADR-0001.
+        # library system during create_library_system_service.
 
         print("Shared services configured successfully.")
 
@@ -313,11 +313,8 @@ class HaywireApp:
 def run_app() -> int:
     """Launch the Haywire application. Returns the process exit code.
 
-    Subcommands already propagate a code (`raise SystemExit(handler(args))`);
-    the app path did not, so every exit looked identical from outside. A
-    supervisor distinguishes "user quit" from "restart me" by a sentinel code,
-    so the app path returns one too. Nothing reads it today — this is the seam
-    that keeps a supervisor additive.
+    Nothing reads the code today — it is the seam a future supervisor uses
+    to distinguish "user quit" from "restart me".
     """
     # logging.getLogger("haywire.ui.editor.graph_canvas_manager").setLevel(logging.DEBUG)
     # use DebugSettings.log_ui instead

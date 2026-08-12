@@ -1,4 +1,4 @@
-"""Cell-authoritative reads — setting.__get__ is a pure cell read (ADR 0016).
+"""Cell-authoritative reads — setting.__get__ is a pure cell read.
 
 The resolution chain runs at write/seed time only; a read never walks it.
 A wired persistent field borrows THE registry-owned cell (one cell, N views);

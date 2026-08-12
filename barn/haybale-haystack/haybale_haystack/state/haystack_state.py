@@ -65,8 +65,8 @@ class HaystackState(AppState):
         self._library_state_container = get_library_state_container()
 
         # Acquire the shared graph registry. Order is safe: graph_editor
-        # library is listed in our dependencies (after Task 14), so its
-        # AppState is instantiated before ours.
+        # library is listed in our dependencies, so its AppState is
+        # instantiated before ours.
         self._graph_app_state = self._library_state_container.get(GraphAppState)
 
         # Rehydrate from last_haystack_name (best-effort).
@@ -191,7 +191,7 @@ class HaystackState(AppState):
 
         Injects ``LoopScheduler`` so the debounced validation pass — and the
         ``GraphDataMutated`` broadcast it triggers — runs on the NiceGUI main
-        thread rather than a background timer thread (ADR 0002).
+        thread rather than a background timer thread.
         """
         from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
@@ -348,7 +348,7 @@ class HaystackState(AppState):
             if self._graph_app_state is not None:
                 self._graph_app_state.unregister(entry.binding_id)
             if hasattr(entry.graph, "cleanup"):
-                entry.graph.cleanup()  # releases props bag's registry subscriptions (ADR 0022)
+                entry.graph.cleanup()  # releases props bag's registry subscriptions
             del self._entries[entry.binding_id]
             self._broadcast_data_mutated()
             self._mark_haystack_dirty()

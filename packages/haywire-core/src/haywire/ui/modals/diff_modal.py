@@ -11,10 +11,8 @@ Designed for any "here are the changes I would make — apply how?" surface:
   - Migration previews
   - any future "review changes before applying" UI
 
-Currently unused. Its original caller, the Edit dialog's Detect Dependencies
-button, was removed with the decorator writers (ADR 0025) — the component is
-kept because it encodes the layout and theming rules for this shape of
-surface, not because anything depends on it today.
+Currently unused — kept because it encodes the layout and theming rules for
+this shape of surface, not because anything depends on it today.
 
 When every section is empty (no additions, no removals), the action buttons
 are disabled and an ``empty_message`` is shown — the caller doesn't need to

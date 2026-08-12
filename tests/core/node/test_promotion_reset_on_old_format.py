@@ -1,6 +1,6 @@
 # tests/core/node/test_promotion_reset_on_old_format.py
 """
-Old-format (pre-ADR-0019) settings dict on load = reset-and-continue:
+Old-format settings dict on load = reset-and-continue:
 
 - the bag is left at descriptor defaults (not restored from the incompatible dict)
 - the node still loads and is fully functional

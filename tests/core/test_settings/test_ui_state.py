@@ -1,5 +1,5 @@
 """
-Tests for the UiState mechanism on Settings/setting() (ADR 0020):
+Tests for the UiState mechanism on Settings/setting():
 
 - ui_state= kwarg seeds initial state (sparse: NORMAL entries are not stored)
 - set_ui_state()/set_ui_state_all()/ui_state() runtime API, incl. the
@@ -190,11 +190,8 @@ class TestUiStateChannel:
 
 
 class TestCellIsNeverTouched:
-    """THE rev-2 invariant, carried over unchanged: UiState must not leak onto
-    the value channel. Rev 1 signalled the panel via cell.set_value(...); that
-    echo reached every cell subscriber (e.g. OakDCameraNode's live-control
-    handlers, which push straight to camera hardware) and set is_dirty on
-    cells that promoted ports share. These tests pin the fix."""
+    """UiState must not leak onto the value channel: no cell event, no
+    is_dirty side effect."""
 
     def test_set_ui_state_fires_no_cell_event(self):
         bag = UiStateSettings()

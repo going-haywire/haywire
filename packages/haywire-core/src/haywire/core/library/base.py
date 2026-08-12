@@ -125,7 +125,7 @@ class BaseLibrary(ABC):
         Override in a library subclass to advise users when a graph saved by an
         older version of this library may not reflect a later behavioural change.
         Entries are NEVER removed or re-dated — a graph saved at any past version
-        must still trigger the right historical entries. See ADR 0005.
+        must still trigger the right historical entries.
 
         Example::
 

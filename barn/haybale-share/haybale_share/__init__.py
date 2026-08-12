@@ -1,10 +1,8 @@
 """Project publishing — the Share editor and its flow.
 
-Publishing is PROJECT-scoped, not library-scoped (ADR 0023): a haywire project
-is one uv workspace root with one marketstall feed and one git remote, and
-every ``barn/*`` library versions in lockstep. That is why this is its own
-library rather than an editor inside haybale-marketplace, whose job is
-*consuming* feeds — its own architecture doc says it is "not a publisher".
+Publishing is PROJECT-scoped, not library-scoped: a haywire project is one uv
+workspace root with one marketstall feed and one git remote, and every
+``barn/*`` library versions in lockstep.
 
 The engine lives in :mod:`haywire.core.publishing`; everything here is UI.
 """

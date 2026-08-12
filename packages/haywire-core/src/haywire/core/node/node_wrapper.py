@@ -60,7 +60,7 @@ class NodeWrapperState:
     """Last transform() execution time"""
     warnings: list[NodeWarning] = field(default_factory=list)
     """Advisory, non-fatal notices (e.g. compatibility warnings). Does NOT
-    affect is_valid() — these are informational only. See ADR 0005."""
+    affect is_valid() — these are informational only."""
 
     def is_valid(self) -> bool:
         """Check if node is in valid state (initialized and tested)"""

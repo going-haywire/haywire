@@ -43,7 +43,7 @@ class LibraryRegistry:
     path is ``apply_persisted_disabled_state()`` — called once between
     ``scan_for_libraries()`` and ``enable_all_libraries()`` and explicitly
     suppresses the write-through (the values being applied came *from* the
-    store; re-writing them would be a no-op churn). See ADR-0001.
+    store; re-writing them would be a no-op churn).
 
     If the host supplied no ``HostStore``, the in-memory default returned by
     ``HostStore.in_memory()`` is used: reads return defaults, writes are

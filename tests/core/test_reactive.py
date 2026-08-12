@@ -9,7 +9,7 @@ Coverage:
 - from_dict() restores values (trusted-restore path)
 - from_dict() notifies subscribers already attached before the restore
 - reset() / reset_all() return to defaults
-- widget_config["properties"]["options"] resolves callable option providers (ADR 0017)
+- widget_config["properties"]["options"] resolves callable option providers
 - _prop_fields() walks MRO correctly
 - Inheritance: subclass adds fields, parent fields preserved
 - SettingDescriptor is the base class of setting
@@ -97,7 +97,7 @@ class TestSettingDescriptor:
         assert _WithChoices.algorithm.widget_config["properties"]["options"] == ["fast", "accurate"]
 
     def test_choices_callable_stored_unresolved(self):
-        # Callable options are stored as-is (ADR 0017) — resolved by SelectWidget at build time,
+        # Callable options are stored as-is — resolved by SelectWidget at build time,
         # never eagerly here.
         options = _WithChoices.dynamic.widget_config["properties"]["options"]
         assert callable(options)
@@ -217,9 +217,9 @@ class TestFromDict:
         assert s.threshold == 0.3
 
     def test_from_dict_notifies_attached_subscribers(self):
-        # Subscription rides the cell event (ADR 0016): the restore writes the
-        # cell, so an already-attached subscriber sees it. Load-time restores
-        # happen before anything subscribes, so they stay unobserved.
+        # Subscription rides the cell event: the restore writes the cell, so an
+        # already-attached subscriber sees it. Load-time restores happen before
+        # anything subscribes, so they stay unobserved.
         s = _Simple()
         received = []
         s.subscribe(lambda n, v, o: received.append(v))

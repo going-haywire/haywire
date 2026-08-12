@@ -3,7 +3,6 @@
 Composition over inheritance: the manager is a plain class; this AppState
 exists purely as the publishing vehicle so other libraries' editors can
 reach the manager via ``ctx.app_data[LibraryManagerState].manager.X``.
-See ADR-0001 (decision Q3/C).
 
 Dependencies (registry, workspace root) are resolved from the ambient DI
 context in ``on_enable``, mirroring the pattern HaystackState and

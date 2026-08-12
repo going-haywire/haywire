@@ -9,7 +9,7 @@ a framework setting (registry-key mirror), and node-bag fields may declare
 node.
 
 Serialized under the ``'props'`` key in graph JSON; restored before nodes
-on load. ADR 0022.
+on load.
 """
 
 from haywire.core.settings.descriptor import shadow

@@ -1,6 +1,6 @@
 # tests/ui/panel/test_ui_state_row_state.py
 """
-Reactive panel UiState (ADR 0020): a row rendered by _render_reactive_field_row
+Reactive panel UiState: a row rendered by _render_reactive_field_row
 must reflect Settings.effective_ui_state() — the imperative state (delivered
 over the dedicated UI-state channel, NOT a cell event) composed with the
 enabled_when / visible_when metadata conventions (declarative, same-bag,
@@ -152,8 +152,8 @@ class TestImperativeUiState:
         assert not _widget_is_disabled(row)
 
     def test_live_toggle_fires_no_cell_event(self):
-        """The rev-2 invariant, asserted at panel level: toggling UiState
-        while a panel is live must not echo through the value channel."""
+        """Toggling UiState while a panel is live must not echo through the
+        value channel."""
         bag = ImperativeSettings()
         _render(bag)
         events: list[str] = []

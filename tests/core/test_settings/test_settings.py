@@ -112,10 +112,10 @@ class TestSerialization:
         assert d == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_from_dict_notifies_attached_subscribers(self):
-        # Subscription rides the cell event (ADR 0016): any cell write —
-        # restore included — notifies already-attached subscribers. Graph
-        # load restores bags before anything subscribes, so load-time
-        # restores stay unobserved in practice.
+        # Subscription rides the cell event: any cell write — restore
+        # included — notifies already-attached subscribers. Graph load
+        # restores bags before anything subscribes, so load-time restores
+        # stay unobserved in practice.
         bag = SimpleSettings()
         calls = []
         bag.subscribe(lambda *a: calls.append(a))
@@ -149,8 +149,7 @@ class TestSerialization:
 
 
 # ---------------------------------------------------------------------------
-# Change notification — subscribe() rides the cell event (ADR 0016; replaces
-# the deleted on_change='method' string dispatch)
+# Change notification — subscribe() rides the cell event
 # ---------------------------------------------------------------------------
 
 
@@ -177,9 +176,9 @@ class TestSubscribeNotification:
 
     def test_from_dict_notifies_attached_subscribers(self):
         # Subscription rides the cell event, so ANY cell write — including a
-        # from_dict restore — notifies subscribers that are already attached
-        # (ADR 0016). Graph load restores bags before anything subscribes, so
-        # load-time restores stay unobserved in practice.
+        # from_dict restore — notifies subscribers that are already attached.
+        # Graph load restores bags before anything subscribes, so load-time
+        # restores stay unobserved in practice.
         bag, log = self._bag_with_log()
         bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert log == [("strength", 0.9, 0.5)]
@@ -277,11 +276,8 @@ class TestMirrorCallbackSuppression:
         assert calls == [], "callback must be suppressed when local override exists"
 
     def test_global_change_ignored_when_local_set_no_override_escape(self):
-        """Post-P2: with a local override, ANY global change is suppressed.
-
-        The pre-P2 OVERRIDE escape hatch (a forced global re-firing the callback
-        despite a local override) is gone — there is no OVERRIDE strength anymore.
-        """
+        """With a local override, ANY global change is suppressed — there is
+        no OVERRIDE strength that can force a re-fire."""
         registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
         calls = []
         bag.subscribe(lambda name, val, old: calls.append((name, val)))
@@ -291,14 +287,8 @@ class TestMirrorCallbackSuppression:
         assert calls == [], "a local override suppresses every global change post-P2"
 
     def test_redundant_write_of_resolved_value_creates_no_override(self):
-        """Writing a mirror field the value it already resolves to is a no-op.
-
-        Regression: __set__ compared the incoming value against the descriptor
-        _default (None for a mirror), not the resolved global, so writing the
-        resolved value back created a phantom local override that
-        is_locally_set() reported as an override — defeating reset. This is the
-        model-layer fix that let the settings-panel setter drop its echo guard.
-        """
+        """Writing a mirror field the value it already resolves to is a no-op:
+        no phantom local override, so reset still works."""
         registry, bag, key = _make_mirror_bag()
         assert not bag.is_locally_set("color")
         resolved = bag.color  # the mirrored global, "#ffffff"

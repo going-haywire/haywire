@@ -22,7 +22,7 @@ if TYPE_CHECKING:
 class LibraryInfo:
     """A library and, when it is installed here, its install state.
 
-    The pip distribution name is ``row.name`` — canon, per ADR 0025. There is no
+    The pip distribution name is ``row.name`` — canon. There is no
     separate field for it: the entry point's ``dist.name`` is a runtime echo of
     ``pyproject.toml``'s ``[project] name``, which is itself generated from
     ``haybale.toml``. Reading the echo would also lose folder installs, which

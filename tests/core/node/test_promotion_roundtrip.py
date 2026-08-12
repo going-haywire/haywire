@@ -6,8 +6,8 @@ pytestmark = pytest.mark.integration
 def test_promoted_inlet_survives_full_roundtrip(graph_with_library_system, library_system):
     """promote -> serialize -> fresh node from dict -> promoted port regenerated + rebound to cell.
 
-    ADR 0019: the promoted port is ABSENT from the serialized ports block —
-    its promotion is recorded in the settings bag instead and the port is
+    The promoted port is ABSENT from the serialized ports block — its
+    promotion is recorded in the settings bag instead and the port is
     regenerated on load via regenerate_promoted_ports."""
     from haywire.core.node.promotion import promote_setting
 
@@ -48,12 +48,12 @@ def test_promoted_outlet_rebinds_and_is_lazy(graph_with_library_system, library_
 
 def test_stale_promoted_key_skips_regeneration(graph_with_library_system, library_system, caplog):
     """A _promoted_keys entry whose storage_key matches no setting must not kill
-    node load (Q2=A).
+    node load.
 
-    ADR 0019: simulates a library that renamed/removed the setting — the
-    "promoted" record in the settings block no longer matches any descriptor
-    storage_key. The node must load, no port is regenerated for the stale key
-    (there is nothing to bind), and a warning must be logged.
+    Simulates a library that renamed/removed the setting — the "promoted"
+    record in the settings block no longer matches any descriptor storage_key.
+    The node must load, no port is regenerated for the stale key (there is
+    nothing to bind), and a warning must be logged.
     """
     import logging
 

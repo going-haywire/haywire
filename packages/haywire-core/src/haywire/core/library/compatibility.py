@@ -3,7 +3,7 @@ saved by an older library version may not reflect a later behavioural change.
 
 This module is pure logic: the dataclass an author writes, semver parsing,
 and the CompatibilityChecker that decides which warnings fire for a saved
-graph. It never mutates graph data — see ADR 0005.
+graph. It never mutates graph data.
 """
 
 from __future__ import annotations

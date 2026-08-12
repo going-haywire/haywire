@@ -1,4 +1,4 @@
-"""Graph props block round-trip (ADR 0022, ticket 01).
+"""Graph props block round-trip.
 
 Only locally-set values serialize; an opinion-less graph emits an empty
 values block; a dict WITHOUT the block (pre-feature graph) loads clean.

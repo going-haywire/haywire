@@ -167,8 +167,8 @@ class TestRegistryReadsPropFields:
             os.unlink(path)
 
     def test_auto_define_with_choices_speaks_choices_type(self):
-        """A settings-file entry with 'choices' auto-defines as setting[CHOICES]
-        (ADR 0017) — widget_key is SELECT_WIDGET and options land in widget_config."""
+        """A settings-file entry with 'choices' auto-defines as setting[CHOICES] —
+        widget_key is SELECT_WIDGET and options land in widget_config."""
         import json
         import tempfile
         import os

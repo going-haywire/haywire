@@ -262,8 +262,7 @@ def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_se
     """Promote-then-demote leaves the field locally-set even if its value never
     changed (freeze-on-disconnect): the row shows • + an enabled Reset item. reset()
     then discards the local opinion — even though value == default and no cell event
-    fires — so a re-render shows no chrome. This is the state behind the 'reset does
-    nothing' report; the fix refreshes chrome directly from the click handler."""
+    fires — so a re-render shows no chrome."""
     from haywire.core.node.promotion import demote_setting, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -294,10 +293,10 @@ def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_se
 
 
 def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_setting):
-    """The live regression: for a locally-set field whose value already equals the
-    default, clicking reset fires NO cell event (old == new), so the ONLY thing that
-    clears the • / reset item is the handler refreshing its own row. Render once,
-    click the reset menu item in place, assert the same elements clear — no re-render."""
+    """For a locally-set field whose value already equals the default, clicking
+    reset fires NO cell event (old == new), so the ONLY thing that clears the
+    • / reset item is the handler refreshing its own row. Render once, click
+    the reset menu item in place, assert the same elements clear — no re-render."""
     from haywire.core.node.promotion import demote_setting, promote_setting
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -409,7 +408,7 @@ def test_nodeless_bag_menu_has_reset_only(make_node_with_setting):
 
 
 def test_disabled_row_greys_reset_but_keeps_promote_active(make_node_with_setting):
-    """ADR 0020: chrome-locked, not value-locked — promote stays, reset follows the lock."""
+    """Chrome-locked, not value-locked — promote stays, reset follows the lock."""
     from haywire.core.settings import UiState
 
     node = make_node_with_setting(accessor="filter", field="threshold")

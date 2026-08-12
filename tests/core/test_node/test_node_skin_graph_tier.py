@@ -1,4 +1,4 @@
-"""framework < graph < node skin chain on real nodes (ADR 0022, ticket 03)."""
+"""framework < graph < node skin chain on real nodes."""
 
 import pytest
 
