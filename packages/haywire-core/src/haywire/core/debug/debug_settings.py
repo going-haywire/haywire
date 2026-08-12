@@ -11,6 +11,8 @@ _GROUP_CHOICES = {"": "inherit", "DEBUG": "DEBUG", "INFO": "INFO", "WARNING": "W
 
 GLOBAL_BASELINE_LOG_LEVEL_KEY = "log_level"
 
+# --8<-- [start:debug-settings-choices-example]
+
 
 class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
     """Global preferences for debug features."""
@@ -23,6 +25,7 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         category=CATEGORY_LOG_LEVEL,
         widget_config={"options": _LEVEL_CHOICES},
     )
+    # --8<-- [end:debug-settings-choices-example]
 
     # Per-subsystem overrides ("" = inherit from log_level)
     log_execution = setting[CHOICES](

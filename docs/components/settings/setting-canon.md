@@ -149,17 +149,7 @@ theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registr
 A real example from the codebase (`haywire/core/debug/debug_settings.py`):
 
 ```python
-from haywire.barn.builtin.types import BOOL, CHOICES
-
-_LEVEL_CHOICES = ["DEBUG", "INFO", "WARNING", "ERROR"]
-
-class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
-    log_level = setting[CHOICES](
-        "INFO",
-        label="Global Log Level",
-        description="Minimum log level for the haywire root logger",
-        widget_config={"options": _LEVEL_CHOICES},
-    )
+--8<-- "packages/haywire-core/src/haywire/core/debug/debug_settings.py:debug-settings-choices-example"
 ```
 
 Because `CHOICES` carries identity STRING↔CHOICES adapters (both directions,
