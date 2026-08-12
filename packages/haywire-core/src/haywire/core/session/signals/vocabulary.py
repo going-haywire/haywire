@@ -54,6 +54,7 @@ class ActiveGraphMoved(Signal):
 # ---------------------------------------------------------------------------
 
 
+# --8<-- [start:selection_moved]
 @dataclass(frozen=True)
 class SelectionMoved(Signal):
     """
@@ -63,6 +64,9 @@ class SelectionMoved(Signal):
     SessionState (e.g. ``ctx.data[MyLibState].selected_nodes`` /
     ``active_node``).
     """
+
+
+# --8<-- [end:selection_moved]
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -90,6 +94,7 @@ class GraphDataMutated(Signal):
     cross_session: ClassVar[bool] = True
 
 
+# --8<-- [start:library_catalog_changed]
 @dataclass(frozen=True)
 class LibraryCatalogChanged(Signal):
     """
@@ -106,6 +111,9 @@ class LibraryCatalogChanged(Signal):
     """
 
     cross_session: ClassVar[bool] = True
+
+
+# --8<-- [end:library_catalog_changed]
 
 
 @dataclass(frozen=True)
@@ -152,6 +160,7 @@ class ErrorLedgerChanged(Signal):
 # ---------------------------------------------------------------------------
 
 
+# --8<-- [start:reveal]
 @dataclass(frozen=True, kw_only=True)
 class Reveal(CommandSignal):
     """Bring an editor to the front in its default slot.
@@ -175,6 +184,9 @@ class Reveal(CommandSignal):
     editor: "type[BaseEditor]"
     binding_id: Optional[str] = None
     label: Optional[str] = None
+
+
+# --8<-- [end:reveal]
 
 
 @dataclass(frozen=True, kw_only=True)

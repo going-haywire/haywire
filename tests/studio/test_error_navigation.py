@@ -40,6 +40,44 @@ def test_open_component_noop_without_registry_key():
     assert open_component(err, ctx) is False
 
 
+def test_open_component_source_sets_active_component_and_reveals():
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+    from haybale_studio.editors.error_navigation import open_component_source
+
+    ctx = MagicMock()
+    open_component_source("lib:node:Foo", ctx)
+
+    assert ctx.active_component == "lib:node:Foo"
+    ctx.session.publish.assert_called_once()
+    assert ctx.session.publish.call_args[0][0].editor is ComponentSourceEditor
+
+
+def test_open_component_docs_sets_active_component_and_reveals():
+    from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
+    from haybale_studio.editors.error_navigation import open_component_docs
+
+    ctx = MagicMock()
+    open_component_docs("lib:widget:Bar", ctx)
+
+    assert ctx.active_component == "lib:widget:Bar"
+    ctx.session.publish.assert_called_once()
+    assert ctx.session.publish.call_args[0][0].editor is ComponentDocsEditor
+
+
+def test_open_component_docs_and_source_reveal_different_editors():
+    """The two shortcuts must not collapse onto the same editor — that is the
+    whole point of offering both on a component row."""
+    from haybale_studio.editors.error_navigation import open_component_docs, open_component_source
+
+    docs_ctx, source_ctx = MagicMock(), MagicMock()
+    open_component_docs("lib:node:Foo", docs_ctx)
+    open_component_source("lib:node:Foo", source_ctx)
+
+    docs_editor = docs_ctx.session.publish.call_args[0][0].editor
+    source_editor = source_ctx.session.publish.call_args[0][0].editor
+    assert docs_editor is not source_editor
+
+
 def test_open_file_in_studio_reveals_code_editor():
     from haybale_studio.editors.error_navigation import open_file_in_studio
 

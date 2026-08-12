@@ -1,10 +1,15 @@
-"""Navigation helpers: error → component definition / involved file / graph instance.
+"""Navigation helpers: component / file / graph instance → the studio surface showing it.
 
 open_component/open_file_in_studio translate a HaywireException's string
 locators into direct studio navigation (active_component + Reveal(
 ComponentSourceEditor) for the CONTEXT-slot source viewer; Reveal(CodeEditor)
 for a file in the MAIN slot). Both publish Reveal so a collapsed slot pops
 open rather than only updating content the user isn't looking at.
+
+open_component_source/open_component_docs are the same navigation keyed by a
+plain registry key rather than an error, for callers that already know which
+component they mean (e.g. a component row in the library overview).
+open_component delegates to the former.
 reveal_instance
 publishes a session-local RevealGraphInstance signal instead — the actual
 resolve-and-select logic lives in GraphEditor (each open tab in this session
@@ -37,12 +42,40 @@ def open_component(error: "HaywireException", context: "SessionContext") -> bool
     if not error.can_open_component():
         return False
 
+    assert error.registry_key is not None  # can_open_component guarantees it
+    open_component_source(error.registry_key, context)
+    return True
+
+
+def open_component_docs(registry_key: str, context: "SessionContext") -> None:
+    """Point the CONTEXT-slot docs editor at ``registry_key`` and force it into view.
+
+    The docs counterpart to :func:`open_component_source`. Both take a registry
+    key rather than a HaywireException because they serve plain navigation (a
+    component row in the library overview), not error triage.
+    """
+    from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
+    from haywire.core.session.signals import Reveal
+
+    context.active_component = registry_key
+    context.session.publish(Reveal(editor=ComponentDocsEditor))
+
+
+# --8<-- [start:open_component_source]
+def open_component_source(registry_key: str, context: "SessionContext") -> None:
+    """Point the CONTEXT-slot source viewer at ``registry_key`` and force it into view.
+
+    The key-taking form of :func:`open_component`, which does the same for a
+    HaywireException's ``registry_key``.
+    """
     from haybale_studio.editors.component_source_editor import ComponentSourceEditor
     from haywire.core.session.signals import Reveal
 
-    context.active_component = error.registry_key
+    context.active_component = registry_key
     context.session.publish(Reveal(editor=ComponentSourceEditor))
-    return True
+
+
+# --8<-- [end:open_component_source]
 
 
 def open_file_in_studio(filepath: str, line_number: "int | None", context: "SessionContext") -> None:

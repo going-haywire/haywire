@@ -170,34 +170,22 @@ edit.selected_nodes = new_set
 
 Inherit `Signal` for observations or `CommandSignal` for imperatives. Both are frozen dataclasses with `kw_only=True`:
 
+An observation carries only what a subscriber cannot look up for itself. `SelectionMoved` deliberately carries **no** payload — subscribers read the current selection off the owning library's `SessionState`, so the signal cannot go stale relative to the state it announces:
+
 ```python
-from dataclasses import dataclass
-from typing import ClassVar
-from haywire.core.session.signals import Signal, CommandSignal
+--8<-- "packages/haywire-core/src/haywire/core/session/signals/vocabulary.py:selection_moved"
+```
 
+An imperative names its target. `Reveal` takes the **editor class**, not a string key — so a typo is a `NameError` at import rather than a silently dropped command, and the AppShell can read `class_identity.default_slot` straight off it:
 
-@dataclass(frozen=True, kw_only=True)
-class SelectionMoved(Signal):
-    """Fires when the selection changes. Payload is the new selection
-    identifier set."""
-    selected_nodes: frozenset[str]
-    selected_edges: frozenset[str]
-
-
-@dataclass(frozen=True, kw_only=True)
-class Reveal(CommandSignal):
-    """Imperative: open this editor in its default slot."""
-    editor_key: str
-    binding_id: str
+```python
+--8<-- "packages/haywire-core/src/haywire/core/session/signals/vocabulary.py:reveal"
 ```
 
 `Signal` and `CommandSignal` both carry the `cross_session: ClassVar[bool] = False` flag from `Signal`. Override on a subclass to opt into cross-session broadcast:
 
 ```python
-@dataclass(frozen=True, kw_only=True)
-class LibraryCatalogChanged(Signal):
-    cross_session: ClassVar[bool] = True   # every session sees this
-    library_id: str
+--8<-- "packages/haywire-core/src/haywire/core/session/signals/vocabulary.py:library_catalog_changed"
 ```
 
 ### Emitting
@@ -205,16 +193,58 @@ class LibraryCatalogChanged(Signal):
 Publish through the session bus:
 
 ```python
-# Inside an editor / panel / handler with a Session reference:
-ctx.session.publish(SelectionMoved(
-    selected_nodes=frozenset({"node-1"}),
-    selected_edges=frozenset(),
-))
+# Inside an editor / panel / handler with a Session reference.
+# Write the state first, then announce it — SelectionMoved carries no
+# payload, so subscribers read ctx.data[...] to see what changed.
+ctx.data[EditState].active_node = node_wrapper
+ctx.session.publish(SelectionMoved())
 ```
 
 `Session.publish` routes the signal based on the class's `cross_session` flag — local signals go to this session's bus, cross-session signals delegate to `SessionManager.broadcast` which dispatches to every session (including the originator).
 
 `CommandSignal` subclasses travel the same way. The AppShell subscribes to each command type and routes it (e.g. `Reveal` opens the editor in its default slot).
+
+### Before you declare one: the framework vocabulary
+
+Check this list first. It is **not** a catalogue of every signal in a running app — any library may declare its own, and most do. It is the set defined by the framework in `haywire.core.session.signals.vocabulary`, which is the set every library can rely on being present. Reaching for one of these instead of inventing a near-duplicate is what keeps subscribers from having to listen for two signals that mean the same thing.
+
+**Observations** — "X happened"; fan-out, anyone may subscribe:
+
+| Signal | Means | Cross-session |
+| --- | --- | --- |
+| `ActiveGraphMoved` | The active graph moved | — |
+| `SelectionMoved` | Node/edge selection moved on the canvas | — |
+| `RevealGraphInstance` | "Is this graph yours? If so, select this node/edge." Every open subscriber self-matches | — |
+| `GraphDataMutated` | Graph contents changed (nodes, edges, props) | ✅ |
+| `LibraryCatalogChanged` | Installed-library set/state changed | ✅ |
+| `ErrorLogged` | A new error was recorded in the process-wide ledger | ✅ |
+| `ErrorLedgerChanged` | A ledger entry's triage state changed (seen/deleted) | ✅ |
+
+**Imperatives** — "do Y"; conventionally one subscriber (the AppShell):
+
+| Signal | Means | Cross-session |
+| --- | --- | --- |
+| `Reveal` | Bring an editor to the front in its default slot | — |
+| `Close` | Close every tab bound to `binding_id`, this session | — |
+| `BroadcastClose` | Same, but every session — for facts, not clicks | ✅ |
+
+Two pairs look similar and are not interchangeable:
+
+- **`ErrorLogged` vs `ErrorLedgerChanged`** — the first fires only when a *new* error arrives (so it drives toasts and unseen badges); the second fires on triage mutations. Keying a "new error" indicator off the second makes it flash when the user marks something as read.
+- **`Close` vs `BroadcastClose`** — use `Close` for a session-local decision (this user dismissed a dialog) and `BroadcastClose` only when the underlying entity is gone for *everyone*.
+
+!!! note "Three of these are not exported from the package root"
+    `RevealGraphInstance`, `ErrorLogged`, and `ErrorLedgerChanged` are absent from `vocabulary.__all__` despite being used across the codebase. Import them from `haywire.core.session.signals` as usual — the omission is in `__all__`, not the module.
+
+### Navigating the studio with `Reveal`
+
+The most common `Reveal` use is not "open an editor" on its own — it is **point an editor at something and make sure the user is looking at it**. Those are two steps, and doing only the first is a common bug: the panel updates correctly while collapsed, and the user sees nothing happen.
+
+```python
+--8<-- "barn/haybale-studio/haybale_studio/editors/error_navigation.py:open_component_source"
+```
+
+Set the context field the editor follows, then publish `Reveal` so a collapsed slot pops open. `haybale_studio.editors.error_navigation` collects these helpers — prefer calling one over re-implementing the pair at each call site.
 
 ### Hot-reload dependency rule
 

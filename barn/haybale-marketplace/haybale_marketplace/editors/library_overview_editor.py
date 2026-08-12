@@ -768,17 +768,70 @@ class LibraryOverviewEditor(BaseEditor):
             return []
         return [(k, registry.get(k)) for k in registry.list_names() if k.startswith(prefix)]
 
-    def _component_row(self, key: str, label: str, description: str, handler):
+    def _component_row(
+        self,
+        key: str,
+        label: str,
+        description: str,
+        handler,
+        context: "SessionContext",
+    ):
+        """One clickable component row, plus two shortcut buttons.
+
+        Clicking the row keeps doing exactly one thing — set active_component,
+        which every CONTEXT-slot component editor already follows. The two
+        buttons do that *and* publish a Reveal, so the slot they target pops
+        open instead of updating a panel the user may not be looking at. They
+        are convenience only: neither reaches anywhere the row click doesn't.
+
+        ``click.stop`` keeps a button press off the row's own handler — the
+        duplicate write would be swallowed by signal_field's identity check,
+        but relying on that would be accidental.
+        """
         with (
             ui.row()
-            .classes("w-full px-3 py-2 rounded hw-list-item-hover cursor-pointer")
+            .classes("w-full px-3 py-2 rounded hw-list-item-hover cursor-pointer items-center")
             .on("click", handler)
         ):
-            with ui.column().classes("gap-0 min-w-0"):
+            with ui.column().classes("gap-0 min-w-0 flex-1"):
                 ui.label(label).classes("text-sm font-medium")
                 if description:
                     ui.label(description).classes("text-xs hw-text-dim truncate")
                 ui.label(key).classes("text-xs hw-text-dim font-mono")
+
+            # Lazy, matching _notes_click_target: haybale_studio is a declared
+            # dependency, but editor modules are imported during registration
+            # scans and a top-level import would widen that ordering.
+            from haybale_studio.editors.error_navigation import (
+                open_component_docs,
+                open_component_source,
+            )
+
+            with ui.row().classes("gap-0.5 flex-shrink-0 items-center"):
+                self._component_shortcut(
+                    hui.icon.library_component, "Open docs", open_component_docs, key, context
+                )
+                self._component_shortcut(
+                    hui.icon.node_source, "Open source", open_component_source, key, context
+                )
+
+    @staticmethod
+    def _component_shortcut(
+        icon: str,
+        tooltip: str,
+        action: Callable[[str, "SessionContext"], None],
+        key: str,
+        context: "SessionContext",
+    ) -> None:
+        """An icon button that navigates without also firing the row click.
+
+        Mirrors ``hui.icon_action``'s props, but binds ``click.stop`` rather
+        than ``click`` — the same substitution the Library Browser's stale-row
+        trash button makes, and for the same reason.
+        """
+        btn = ui.button(icon=icon).props("flat round dense size=xs")
+        btn.tooltip(tooltip)
+        btn.on("click.stop", lambda _e=None, k=key, ctx=context: action(k, ctx))
 
     def _render_overview(self, lib: LibraryInfo):
         """Render OVERVIEW.md from lib.identity.folder_path or show a fallback."""
@@ -819,6 +872,7 @@ class LibraryOverviewEditor(BaseEditor):
                 cls.class_identity.label,
                 cls.class_identity.description or "",
                 partial(self._select_component, key, context),
+                context,
             )
 
     # ─────────────────────────────────────────────────────────────────────────
