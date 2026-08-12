@@ -1,3 +1,9 @@
+---
+name: _settings_bags contains props, and settings writes fail silently
+description: NodeProperties extends NodeSettings so every node's _settings_bags includes 13 framework fields under 'props' — generic bag-walks must filter it explicitly. Also, a validator-rejected settings write is dropped with no exception; min/max are UI-only hints, not enforced.
+type: project
+---
+
 # `_settings_bags` contains `props` — and settings writes fail silently
 
 Two traps that bite anything walking a node's settings generically (Farmhand

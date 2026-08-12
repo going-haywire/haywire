@@ -1,3 +1,9 @@
+---
+name: ui.input emits update:value, not update:modelValue
+description: PropertyBinding/BaseWidget.bind() default to target_event="update:modelValue", correct for checkbox/switch/select/color_input, but ui.input emits update:value — binding to the wrong event silently drops every keystroke.
+type: project
+---
+
 # `ui.input` emits `update:value`, not `update:modelValue`
 
 ## Symptom

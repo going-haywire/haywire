@@ -1,3 +1,9 @@
+---
+name: Slow tests — the two shapes that actually cost minutes
+description: A multi-second test in a suite that otherwise runs tens of milliseconds each is almost always an accidental network call paid as a timeout, or serial subprocess spawns — not real work. Also covers sys.modules.pop() teardown bugs and the historical BaseRegistry force-reload duplicate-class bug, both producing the same 'assert Foo is Foo' signature.
+type: project
+---
+
 # Slow tests: the two shapes that actually cost minutes
 
 The non-browser suite is ~2.5 min for ~2985 tests, i.e. tens of milliseconds
@@ -79,5 +85,22 @@ Two details make it hard to find:
 Whenever a test mutates `sys.modules`, snapshot and restore — same discipline
 the DI context and settings registry already require. `assert Foo is Foo`
 failing with two identical reprs is the signature; see also
-[project_registry_force_reload_bug.md](project_registry_force_reload_bug.md) and
 [feedback_barn_module_reload_test_trap.md](feedback_barn_module_reload_test_trap.md).
+
+### Historical case of the same signature: `BaseRegistry` force-reload (fixed)
+
+**Fixed in commit `7b7d86e` (2026-05-06).** `_on_creation`
+(`packages/haywire-core/src/haywire/core/registry/base.py`) used to pass
+`force_reload=True` to `module_scan_for_classes` on the *initial* scan. If the
+module was already in `sys.modules` (some earlier import path loaded it
+first), the registry deleted and re-imported it, producing a fresh class
+object — anyone holding a reference to the pre-scan class was left dangling
+with the exact `assert Foo is Foo` signature above. The fix dropped the `True`
+so `force_reload` defaults to `False` on initial scan; hot-reload of an
+actually-changed file still passes `force_reload=True` via
+`_reload_managed_module`, correctly.
+
+Regression test:
+`tests/core/test_libraries/test_registries.py::TestBaseRegistryClassIdentity::test_panel_pre_imported_class_matches_registered_class`.
+If this signature ever recurs, check first whether a new call site passes
+`force_reload=True` on an initial (non-hot-reload) scan.

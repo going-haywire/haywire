@@ -5,7 +5,7 @@ is on disk. Evicting a library from the registry does not evict the module
 objects that mounted nodes, registered types, and DI singletons still hold, so
 the pre-operation classes and the post-operation classes coexist (the
 ``assert Foo is Foo`` failure documented in
-``.insights/project_registry_force_reload_bug.md``). Rescanning refreshes the
+``.insights/project_slow_test_outliers.md``). Rescanning refreshes the
 metadata, not the live objects.
 
 Restarting is the only reliable remedy, so every such path ends by *offering*

@@ -1,3 +1,9 @@
+---
+name: Multi-step flows use the shared stepper, and only the last step may write
+description: haywire.ui.components.stepper requires the underlying operation be split into read-only phases plus one terminal mutating phase before a stepper UI can be built over it. Click handlers must RETURN the coroutine, never schedule it.
+type: project
+---
+
 # Multi-step flows use the shared stepper, and only the last step may write
 
 `haywire.ui.components.stepper` is the shell behind the Share Project wizard

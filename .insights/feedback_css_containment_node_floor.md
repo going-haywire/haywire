@@ -1,3 +1,9 @@
+---
+name: A node's size floor is CSS, and contain:size is not the whole answer
+description: Nothing in Python computes a node's minimum size — it's whatever CSS intrinsic sizing produces from widget content. Percentages evaporate during intrinsic sizing, contain:size kills aspect-driven growth, use contain:inline-size instead.
+type: feedback
+---
+
 # A node's size floor is CSS, and `contain: size` is not the whole answer
 
 ## The floor is not computed anywhere in Haywire

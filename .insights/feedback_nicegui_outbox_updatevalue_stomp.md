@@ -1,9 +1,12 @@
 ---
-name: NiceGUI outbox flush stomps early user input after page load
-description: updateValue messages queued during server-side render flush only after the websocket connects; an edit typed before the flush arrives is reverted to the server value, which re-emits the old value and silently undoes the edit server-side too
+name: NiceGUI client-side timing races — outbox flush stomps early input, and autofocus into a not-yet-mounted element
+description: Two distinct client-side timing gotchas that both look like flakiness — updateValue messages queued during server-side render flush only after websocket connect and can revert a user's edit; and autofocus attributes silently no-op on elements that don't exist at DOM-ready time
 type: feedback
 originSessionId: 94f4387e-a8ba-47b9-ac0e-5199af2d3a6f
 ---
+
+## 1. Outbox flush stomps early user input after page load
+
 When a NiceGUI page assigns values to value-elements (`ui.input` etc.) during
 server-side render, each assignment queues a `run_method('updateValue')`
 message in the client's outbox. Those messages can only be delivered once the
@@ -44,3 +47,30 @@ not eliminate the failures, frame capture found the real mechanism.
 3. This is a real (if tiny-window) product race too: a user who types within
    the connect-flush window loses the edit. If it ever bites in the studio,
    the same ordered-marker technique applies.
+
+## 2. Autofocus into a dynamically-shown container silently no-ops
+
+HTML `autofocus` and `.props("autofocus")` do NOT work for inputs inside
+dynamically shown containers (popups, dialogs) because the element is not
+present/visible at DOM-ready time — a different mechanism from the outbox
+race above (no server message involved), but the same family of "the client
+wasn't ready when the naive approach ran."
+
+**Working solution** — implemented as `autofocus=True` on `hui.input_field()`:
+
+```python
+def _focus_search():
+    ui.run_javascript(f'document.getElementById("c{search_input.id}")?.focus();')
+ui.timer(0.1, _focus_search, once=True)
+```
+
+The 0.1s timer lets the popup finish rendering before the JS focus call. The
+`?.` null-safe operator prevents the "can't access property focus" error that
+fires if the timer runs before the element is mounted.
+
+**Gotcha:** the element ID is `c{element.id}` (NiceGUI prefixes the numeric id
+with `c`) — `document.getElementById(str(el.id))` won't find it.
+
+**How to apply:** use `hui.input_field(autofocus=True, ...)` for any
+search/input that should auto-focus when a popup opens. Implemented in
+`hui.input_field()` in `haywire/ui/elements/elements.py`.

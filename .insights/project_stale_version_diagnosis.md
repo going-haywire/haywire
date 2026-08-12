@@ -1,3 +1,9 @@
+---
+name: "Package X shows the old version" — where to look
+description: The version the studio reports can come from three disagreeing places (site-packages, pyproject.toml, uv.lock) and the report never says which. Checklist for where to look first, plus why a permissive specifier doesn't unstick a dist the lock already froze.
+type: project
+---
+
 # "Package X shows the old version" — where to look
 
 A version the studio reports can come from three places that disagree with each

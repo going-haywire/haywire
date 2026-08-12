@@ -46,8 +46,7 @@ def add_pin_tooltip(pin_el: ui.element, pin: DataPort) -> None:
         if tooltip is None:
             # Build inside the (stable) pin element. pin_el is not torn down by
             # this handler, so its slot is safe to populate — unlike the
-            # redraw-during-handler case in
-            # .insights/feedback_nicegui_redraw_deletes_handler_slot.md.
+            # redraw-during-handler case in .insights/feedback_nicegui_async.md.
             with pin_el:
                 # no-parent-event: we are the sole show/hide controller.
                 tooltip = ui.tooltip().classes("text-xs").props("no-parent-event")

@@ -44,7 +44,7 @@ So the work has **two halves**:
 can run on a producer/capture thread (see the camera nodes in haybale-visiongraph),
 so the flag write + the skin push must be safe from a non-UI thread (the
 `ui.context.client` / `with client:` discipline — see
-`.insights/feedback_nicegui_redraw_deletes_handler_slot.md`).
+`.insights/feedback_nicegui_async.md`).
 
 **Half 2 — pushing to the skin.** The proven precedent is `error_runtime`: a
 node-state field that *does* reach the canvas. Follow it end to end:

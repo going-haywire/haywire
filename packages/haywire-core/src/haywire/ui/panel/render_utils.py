@@ -736,7 +736,7 @@ def _request_canvas_redraw(node: "NodeData") -> None:
     this row with its new promotion state. Deliberately NO synchronous
     publish here — a redraw of the emitting panel from inside its own click
     handler deletes the handler's slot mid-flight (see
-    .insights/feedback_nicegui_redraw_deletes_handler_slot.md).
+    .insights/feedback_nicegui_async.md).
 
     Headless tests build nodes on stub wrappers without a graph, hence the
     getattr guard.

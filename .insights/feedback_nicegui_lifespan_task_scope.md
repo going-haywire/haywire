@@ -1,3 +1,9 @@
+---
+name: NiceGUI startup/shutdown handlers run in different tasks — anyio contexts must not span them
+description: Entering an anyio-task-group-backed async context manager in app.on_startup and exiting it in app.on_shutdown crashes shutdown with a cancel-scope error. Use a single long-lived runner task instead.
+type: feedback
+---
+
 # NiceGUI startup/shutdown handlers run in different tasks — anyio contexts must not span them
 
 ## The trap

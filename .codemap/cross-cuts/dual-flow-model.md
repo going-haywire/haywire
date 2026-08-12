@@ -49,7 +49,7 @@ Signal bus  (core/session/signals/bus.py) → UI updates
 
 ## Gotchas
 
-- `pin.flow_type.value` returns `'data'` / `'control'`; `str(pin.flow_type)` returns `'FlowType.DATA'`. Canvas connection logic depends on the string form — be deliberate (see `.insights/project_graph_canvas_connection.md`).
+- `pin.flow_type.value` returns `'data'` / `'control'`; `str(pin.flow_type)` returns `'FlowType.DATA'`. Canvas connection logic depends on the string form — be deliberate (see `node_skin.py`).
 - Data edges are lazy: a data node may not run on every control tick. Be careful when relying on side effects from data nodes.
 - After modifying nodes/edges in tests, call `force_immediate_validation()` to flush the dirty queue.
 - Resume-without-coords on the canvas relies on a `lastMousePos` workaround in `components/graph/canvas.vue`.

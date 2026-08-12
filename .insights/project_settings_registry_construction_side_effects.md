@@ -1,3 +1,9 @@
+---
+name: Constructing a SettingsRegistry() mutates global FrameworkSettings state
+description: SettingsRegistry.__init__ is not side-effect-free — every construction repoints FrameworkSettings._registry and drains the module-level _pending_global queue into itself, so a throwaway registry silently steals framework-schema registration from the real one.
+type: project
+---
+
 # Constructing a `SettingsRegistry()` mutates global FrameworkSettings state
 
 **TL;DR:** `SettingsRegistry.__init__` is *not* side-effect-free. Every construction
