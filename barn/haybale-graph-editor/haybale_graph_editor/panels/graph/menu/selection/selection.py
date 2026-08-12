@@ -77,7 +77,6 @@ class CopySelectionMenuPanel(BasePanel):
             )
 
 
-# --8<-- [start:delete_selection_menu_panel]
 @panel(
     actions=SelectionContextActions,
     focus=SelectionFocus,
@@ -109,7 +108,6 @@ class DeleteSelectionMenuPanel(BasePanel):
             )
 
 
-# --8<-- [end:delete_selection_menu_panel]
 
 
 @panel(

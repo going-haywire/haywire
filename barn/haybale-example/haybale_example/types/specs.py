@@ -3,7 +3,6 @@ from haywire.core.types.decorator import type
 from haywire.barn.builtin.types import FLOAT
 
 
-# --8<-- [start:temperature_type]
 @type(
     label="Temperature",
     description="Temperature data types",
@@ -34,4 +33,3 @@ class Temperature(FLOAT):
     pass
 
 
-# --8<-- [end:temperature_type]

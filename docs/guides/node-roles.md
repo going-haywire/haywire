@@ -22,7 +22,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 `TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `PooledType[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:test_emit_callback_node"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:6:84"
 ```
 
 **Role-specific:** EXEC inlet (`execute`) + EXEC outlet (`exec`) makes this CONTROL. The worker returns the outlet ID `"exec"` to continue control flow. `context.emit_callback(event_name=..., payload=...)` dispatches to listener nodes by name. `PooledType[CALLBACK].as_inlet(...)` collects all connected listener IDs into a dict.
@@ -36,7 +36,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py`
 `TestAddFloatNode` is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns `None`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:test_add_float_node"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:6:27"
 ```
 
 **Role-specific:** no EXEC ports, returns `None`, runs lazily on demand from downstream.
@@ -52,7 +52,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 `TestBeginPlayNode` fires once when execution starts, emitting the current timestamp:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:test_begin_play_node"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:7:33"
 ```
 
 **Role-specific:** `event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)` in `post_init()`. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID `"exec"` to trigger control flow.
@@ -66,7 +66,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 `CustomCallbackNode` listens for named callbacks from other flows. It broadcasts its own ID via a `CALLBACK` outlet so emitters can wire to it, and updates its `event_subscription` dynamically when the config changes:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:custom_callback_node"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:8:97"
 ```
 
 **Emitter** — source: `barn/haybale-example/haybale_example/nodes/emits/emit_callback.py`
@@ -74,7 +74,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 `EmitCallbackNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
 
 ```python
---8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:emit_callback_node"
+--8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:6:102"
 ```
 
 **What the pair shows:**
@@ -96,7 +96,7 @@ Source: `barn/haybale-core/haybale_core/nodes/for_loop.py`
 `ForLoopNode` iterates from `start` to `end` with a configurable `step`. A second EXEC inlet (`break_loop`) provides early exit:
 
 ```python
---8<-- "barn/haybale-core/haybale_core/nodes/for_loop.py:for_loop_node"
+--8<-- "barn/haybale-core/haybale_core/nodes/for_loop.py:12:144"
 ```
 
 **Role-specific:**

@@ -241,7 +241,7 @@ Two pairs look similar and are not interchangeable:
 The most common `Reveal` use is not "open an editor" on its own — it is **point an editor at something and make sure the user is looking at it**. Those are two steps, and doing only the first is a common bug: the panel updates correctly while collapsed, and the user sees nothing happen.
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/editors/error_navigation.py:open_component_source"
+--8<-- "barn/haybale-studio/haybale_studio/editors/error_navigation.py:65:77"
 ```
 
 Set the context field the editor follows, then publish `Reveal` so a collapsed slot pops open. `haybale_studio.editors.error_navigation` collects these helpers — prefer calling one over re-implementing the pair at each call site.

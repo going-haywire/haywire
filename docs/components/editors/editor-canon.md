@@ -190,7 +190,7 @@ This pattern only applies to host editors with third-party panel content. Most e
 The salient excerpts:
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:editor_example"
+--8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:28:300"
 ```
 
 _rebuild_toolbar / _rebuild_content omitted for brevity — see source.

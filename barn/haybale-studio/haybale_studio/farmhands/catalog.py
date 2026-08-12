@@ -28,7 +28,6 @@ def _is_synthetic_library(lib_id: str) -> bool:
     return lib_id.startswith("__") and lib_id.endswith("__")
 
 
-# --8<-- [start:list_libraries_tool]
 @farmhand(
     label="List libraries",
     description="List installed libraries.",
@@ -84,7 +83,6 @@ class StudioListLibrariesTool(Farmhand):
         return result
 
 
-# --8<-- [end:list_libraries_tool]
 
 
 _KIND_ENUM = sorted(kind_registry_map())

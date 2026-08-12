@@ -21,7 +21,6 @@ from haywire.ui.themes.registry import ThemeRegistry
 from haywire.ui.widget.registry import WidgetRegistry
 
 
-# --8<-- [start:testing_library]
 @library(
     id="testing",
     file_watcher=True,
@@ -86,7 +85,6 @@ class Library(BaseLibrary):
         return True
 
 
-# --8<-- [end:testing_library]
 
 
 # Export for entry point discovery

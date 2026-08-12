@@ -399,7 +399,7 @@ Source: `barn/haybale-testing/haybale_testing/__init__.py`
 the codebase. Pulled in live, so it cannot drift:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/__init__.py:testing_library"
+--8<-- "barn/haybale-testing/haybale_testing/__init__.py:25:88"
 ```
 
 | Concept | Where |

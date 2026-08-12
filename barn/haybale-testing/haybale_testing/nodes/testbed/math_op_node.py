@@ -2,7 +2,6 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
-# --8<-- [start:test_add_float_node]
 @node(
     label="Test Add Float",
     description="Test arithmetic node — adds two float values",
@@ -25,4 +24,3 @@ class TestAddFloatNode(BaseNode):
         return None
 
 
-# --8<-- [end:test_add_float_node]

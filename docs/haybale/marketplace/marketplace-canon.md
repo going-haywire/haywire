@@ -115,7 +115,7 @@ Source: `barn/haybale-marketplace/haybale_marketplace/__init__.py` — pulled in
 live, so it cannot drift from the code:
 
 ```python
---8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:marketplace_library"
+--8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:12:50"
 ```
 
 It registers like any other haybale, and its descriptive metadata lives beside

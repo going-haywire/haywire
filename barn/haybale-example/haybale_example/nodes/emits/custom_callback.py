@@ -4,7 +4,6 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
-# --8<-- [start:custom_callback_node]
 @node(
     label="Custom Callback",
     description="Listens for custom callbacks from other flows",
@@ -95,4 +94,3 @@ class CustomCallbackNode(BaseNode):
         return "triggered"
 
 
-# --8<-- [end:custom_callback_node]

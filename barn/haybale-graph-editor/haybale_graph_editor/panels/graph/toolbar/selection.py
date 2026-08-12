@@ -26,7 +26,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
-# --8<-- [start:copy_toolbar_panel]
 @panel(
     actions=SelectionContextActions,
     focus=ToolbarFocus,
@@ -47,7 +46,6 @@ class CopyToolbarPanel(BasePanel):
             hui.icon_action(hui.icon.copy, tooltip="Copy", on_click=self.actions.copy_selection)
 
 
-# --8<-- [end:copy_toolbar_panel]
 
 
 @panel(

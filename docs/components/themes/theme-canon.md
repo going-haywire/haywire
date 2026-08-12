@@ -146,17 +146,17 @@ Source: [`barn/haybale-testing/haybale_testing/themes/`](../../../barn/haybale-t
 **WorkbenchTheme** — `TestDarkTheme` sets every token category (backgrounds, borders, text, accents, status, node chrome, edges, canvas, topbar, sidebars, panels, statusbar, console). `TestLightTheme` inherits from `WorkbenchTheme` directly and overrides only the values that differ from a light palette — demonstrating partial subclassing:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:test_dark_theme"
+--8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:12:68"
 ```
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:test_light_theme"
+--8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:73:129"
 ```
 
 **NodeTheme** — `TestNodeTheme` sets all node-specific tokens. Independent of workbench themes; users mix freely:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/themes/node.py:test_node_theme"
+--8<-- "barn/haybale-testing/haybale_testing/themes/node.py:10:28"
 ```
 
 What these examples exercise:

@@ -7,7 +7,6 @@ from nicegui import ui
 from typing import Any
 
 
-# --8<-- [start:knob_widget]
 @widget(description="knob widget")
 class KnobWidget(BaseWidget):
     """
@@ -44,4 +43,3 @@ class KnobWidget(BaseWidget):
         )
 
 
-# --8<-- [end:knob_widget]

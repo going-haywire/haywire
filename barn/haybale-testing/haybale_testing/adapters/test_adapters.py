@@ -11,7 +11,6 @@ from haywire.core.adapter.base import adapter
 from ..types.test_types import TEST_BOOL, TEST_FLOAT, TEST_INT, TEST_STRING
 
 
-# --8<-- [start:bool_to_int_adapter]
 @adapter(description="Convert bool to integer", converts_from=TEST_BOOL, converts_to=TEST_INT)
 class BoolToIntAdapter(BaseAdapter):
     """Convert bool to integer"""
@@ -24,10 +23,8 @@ class BoolToIntAdapter(BaseAdapter):
         return random.choice([True, False])
 
 
-# --8<-- [end:bool_to_int_adapter]
 
 
-# --8<-- [start:int_to_float_adapter]
 @adapter(description="Convert integer to float", converts_from=TEST_INT, converts_to=TEST_FLOAT)
 class IntToFloatAdapter(BaseAdapter):
     @override
@@ -38,10 +35,8 @@ class IntToFloatAdapter(BaseAdapter):
         return int(random.randrange(0, 100))
 
 
-# --8<-- [end:int_to_float_adapter]
 
 
-# --8<-- [start:float_to_string_adapter]
 @adapter(description="Convert float to string", converts_from=TEST_FLOAT, converts_to=TEST_STRING)
 class FloatToStringAdapter(BaseAdapter):
     """Convert float to string"""
@@ -54,12 +49,9 @@ class FloatToStringAdapter(BaseAdapter):
         return float(random.randrange(0, 100))
 
 
-# --8<-- [end:float_to_string_adapter]
 
 
-# --8<-- [start:all_adapters]
 # BoolToIntAdapter, IntToFloatAdapter, FloatToStringAdapter — see above.
 # Together they form a chain: TEST_BOOL → TEST_INT → TEST_FLOAT → TEST_STRING.
 # The framework assembles multi-hop chains automatically; no explicit chain
 # adapter is needed for TEST_BOOL → TEST_STRING.
-# --8<-- [end:all_adapters]

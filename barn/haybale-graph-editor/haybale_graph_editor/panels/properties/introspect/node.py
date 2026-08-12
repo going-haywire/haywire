@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
-# --8<-- [start:node_info_panel]
 @panel(
     focus=NodeFocus,
     label="Node Properties",
@@ -54,7 +53,6 @@ class NodeInfoPanel(BasePanel):
             hui.info_row("ID", str(node_id))
 
 
-# --8<-- [end:node_info_panel]
 
 
 @panel(

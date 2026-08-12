@@ -63,7 +63,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intros
 `NodeInfoPanel` shows the selected node's label, class name, and node ID:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py:node_info_panel"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py:23:56"
 ```
 
 **Type-specific:** no `actions=` on `@panel` — introspect panels are display-only. `poll()` gates on `ctx.data[EditState].active_node`, so the panel appears only while a node is selected. `with layout:` places all rows inside the panel's container.
@@ -77,7 +77,7 @@ Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 `CanvasSettingsPanel` renders the entire `CanvasSettings` schema into the panel:
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:canvas_settings_panel"
+--8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:35:53"
 ```
 
 **Type-specific:** no `actions=`, no `poll()` override — settings panels are always visible for their focus. `render_schema(SettingsClass, registry)` renders every field in the schema as a labelled input widget.
@@ -91,7 +91,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas
 `CreateNodeMenuPanel` renders the full node-creation menu with search:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py:create_node_menu_panel"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py:27:70"
 ```
 
 **Type-specific:** `actions=CanvasContextActions` wires the panel to the canvas action protocol. `poll()` returns `True` unconditionally — the canvas menu always has at least "Create Node". `self.actions.create_node_at_click(registry_key)` dispatches via the action protocol; the host resolves the concrete implementation.
@@ -105,7 +105,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/select
 `DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:delete_selection_menu_panel"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:81:111"
 ```
 
 **Type-specific:** `poll()` gates on `edit.selected_nodes or edit.selected_edges` — the panel is hidden when nothing is selected. `selection_label()` (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").
@@ -119,7 +119,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/sel
 `CopyToolbarPanel` renders a single copy icon:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:copy_toolbar_panel"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:30:49"
 ```
 
 **Type-specific:** `draw()` renders exactly one `hui.icon_action(...)`. The toolbar host owns the `ui.row` container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.
@@ -140,7 +140,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/p
 `PortInfoMenuPanel` shows port metadata (id, description, flow type, data type) in the port context menu:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:port_info_menu_panel"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:27:57"
 ```
 
 **Type-specific:** `actions=PortContextActions` is an empty marker — there are no methods to dispatch; the panel only reads `ctx.data[EditState].active_port`. `layout.container` (not `with layout:`) is used here to render directly into the bare container without an extra wrapper.
@@ -154,7 +154,7 @@ Source: `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py
 `OpenInHaystackMenuPanel` opens a `.haywire` graph file in the GraphEditor:
 
 ```python
---8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:open_in_haystack_menu_panel"
+--8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:36:76"
 ```
 
 **Type-specific:** `poll()` checks the file extension via `ctx.data[FileBrowserState].right_clicked_file`. `self.actions.reveal(EditorClass, binding_id, label)` tells the studio to open or focus the named editor bound to that file. The panel lives in haybale-haystack (not haybale-studio) because it depends on `HaystackState`, which is owned by that library.

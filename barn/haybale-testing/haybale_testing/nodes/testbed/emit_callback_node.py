@@ -2,7 +2,6 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
-# --8<-- [start:test_emit_callback_node]
 @node(
     label="Test Emit Callback",
     description="Test version of EmitCallback — emits a callback to trigger event nodes",
@@ -82,4 +81,3 @@ class TestEmitCallbackNode(BaseNode):
         return "exec"
 
 
-# --8<-- [end:test_emit_callback_node]

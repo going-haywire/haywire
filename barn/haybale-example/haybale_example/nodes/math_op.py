@@ -9,7 +9,6 @@ from haywire.core.node import node, BaseNode, NodeType
 from haybale_example.types.math import MathOPs
 
 
-# --8<-- [start:math_op_class]
 @node(
     label="Math Operation",
     search_tags=["math", "value", "single", "basic", "operation"],
@@ -62,4 +61,3 @@ class MathOP(BaseNode):
     # --8<-- [end:math_op_worker]
 
 
-# --8<-- [end:math_op_class]

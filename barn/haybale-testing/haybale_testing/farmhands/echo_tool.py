@@ -3,7 +3,6 @@
 from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
 
 
-# --8<-- [start:echo_tool]
 @farmhand(
     label="Echo",
     description="Echo text back (canned read tool).",
@@ -17,4 +16,3 @@ class EchoTool(Farmhand):
         return {"echo": text}
 
 
-# --8<-- [end:echo_tool]

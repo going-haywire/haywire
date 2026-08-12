@@ -145,7 +145,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py`
 `EdgeLinkTestNode` exercises every port shape in `init()`: primitive inlets and outlets, `ArrayType[T]` outlets, `PooledType[T]` inlets, and `EXEC` for control flow. It is purpose-built as a connection testbed, so its `worker` is intentionally empty:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py:edge_link_test_node"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py:11:122"
 ```
 
 What this example covers for port shapes:
@@ -167,7 +167,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 `TestEmitCallbackNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `GROUP.as_config` for a collapsible config section:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:test_emit_callback_node"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:6:84"
 ```
 
 What this example covers for worker access:

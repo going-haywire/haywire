@@ -61,7 +61,6 @@ def open_component_docs(registry_key: str, context: "SessionContext") -> None:
     context.session.publish(Reveal(editor=ComponentDocsEditor))
 
 
-# --8<-- [start:open_component_source]
 def open_component_source(registry_key: str, context: "SessionContext") -> None:
     """Point the CONTEXT-slot source viewer at ``registry_key`` and force it into view.
 
@@ -75,7 +74,6 @@ def open_component_source(registry_key: str, context: "SessionContext") -> None:
     context.session.publish(Reveal(editor=ComponentSourceEditor))
 
 
-# --8<-- [end:open_component_source]
 
 
 def open_file_in_studio(filepath: str, line_number: "int | None", context: "SessionContext") -> None:

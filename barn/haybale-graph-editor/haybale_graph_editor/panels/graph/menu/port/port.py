@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
-# --8<-- [start:port_info_menu_panel]
 @panel(
     actions=PortContextActions,
     focus=PinFocus,
@@ -55,7 +54,6 @@ class PortInfoMenuPanel(BasePanel):
             hui.info_label(f"Type: {type_key}")
 
 
-# --8<-- [end:port_info_menu_panel]
 
 
 @panel(

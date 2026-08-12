@@ -11,7 +11,6 @@ T = TypeVar("T")
 # ============================================================================
 
 
-# --8<-- [start:maps_string_type]
 @type(
     flow_type=FlowType.DATA,
     label="Array",
@@ -53,7 +52,6 @@ class MapsStringType(CompoundType[T]):
         raise NotImplementedError("MapsStringType is a type descriptor, not instantiable")
 
 
-# --8<-- [end:maps_string_type]
 
 # ============================================================================
 # FIELD DEFINITION

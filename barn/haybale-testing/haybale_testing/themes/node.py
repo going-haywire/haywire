@@ -6,7 +6,6 @@ from haywire.ui.themes.node_theme import NodeTheme
 from haywire.ui.themes.decorator import theme
 
 
-# --8<-- [start:test_node_theme]
 @theme(label="Test Node", hidden=True)
 class TestNodeTheme(NodeTheme):
     """Minimal node theme for tests."""
@@ -26,4 +25,3 @@ class TestNodeTheme(NodeTheme):
     muted_opacity = "0.4"
 
 
-# --8<-- [end:test_node_theme]

@@ -23,7 +23,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
-# --8<-- [start:create_node_menu_panel]
 @panel(
     actions=CanvasContextActions,
     focus=CanvasFocus,
@@ -68,7 +67,6 @@ class CreateNodeMenuPanel(BasePanel):
             builder.create_node_menu(recent_nodes=[], show_search=True)
 
 
-# --8<-- [end:create_node_menu_panel]
 
 
 @panel(

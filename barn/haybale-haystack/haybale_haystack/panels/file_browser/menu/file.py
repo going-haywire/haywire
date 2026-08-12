@@ -32,7 +32,6 @@ if TYPE_CHECKING:
 _GRAPH_EXTS = frozenset({".haywire"})
 
 
-# --8<-- [start:open_in_haystack_menu_panel]
 @panel(
     actions=FileBrowserActions,
     focus=FileFocus,
@@ -74,4 +73,3 @@ class OpenInHaystackMenuPanel(BasePanel):
             )
 
 
-# --8<-- [end:open_in_haystack_menu_panel]

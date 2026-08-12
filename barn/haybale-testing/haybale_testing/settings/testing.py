@@ -7,7 +7,6 @@ from haywire.core.settings.decorator import settings
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F
 
 
-# --8<-- [start:testing_settings]
 @settings(namespace="testing", label="Testing")
 class TestingSettings(LibrarySettings):
     """Global defaults for the testing library."""
@@ -67,4 +66,3 @@ class TestingSettings(LibrarySettings):
     )
 
 
-# --8<-- [end:testing_settings]

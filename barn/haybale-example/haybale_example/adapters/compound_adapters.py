@@ -7,7 +7,6 @@ from haybale_core.types import ArrayType
 from ..types.maps_string_type import MapsStringType
 
 
-# --8<-- [start:maps_string_array_adapter]
 @adapter(
     label="MapsString to Array",
     description="Transform MapsString elements (MapsStringType[str, X] → ArrayType[Y])",
@@ -49,4 +48,3 @@ class MapsStringArrayAdapter(BaseAdapter):
         return 2
 
 
-# --8<-- [end:maps_string_array_adapter]

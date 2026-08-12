@@ -31,7 +31,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
-# --8<-- [start:canvas_settings_panel]
 @panel(
     focus=CanvasFocus,
     label="Canvas",
@@ -51,7 +50,6 @@ class CanvasSettingsPanel(BasePanel):
         render_schema(CanvasSettings, registry)
 
 
-# --8<-- [end:canvas_settings_panel]
 
 
 @panel(

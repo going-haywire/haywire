@@ -19,7 +19,6 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
-# --8<-- [start:test_delete_node_panel]
 @panel(
     actions=TestNodeContextActions,
     focus=TestNodeFocus,
@@ -51,7 +50,6 @@ class TestDeleteNodeMenuPanel(BasePanel):
             )
 
 
-# --8<-- [end:test_delete_node_panel]
 
 
 @panel(

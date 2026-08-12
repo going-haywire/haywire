@@ -54,7 +54,6 @@ class StudioGetErrorsTool(Farmhand):
         }
 
 
-# --8<-- [start:dismiss_errors_tool]
 @farmhand(
     label="Dismiss errors",
     description="Dismiss one or all ledger entries.",
@@ -107,4 +106,3 @@ class StudioDismissErrorsTool(Farmhand):
         return {"summary": summary, "cursor": ledger.current_seq}
 
 
-# --8<-- [end:dismiss_errors_tool]

@@ -54,7 +54,6 @@ class TestCreateNodeMenuPanel(BasePanel):
             builder.create_node_menu(recent_nodes=[], show_search=True)
 
 
-# --8<-- [start:test_session_state_panel]
 @panel(
     actions=TestCanvasContextActions,
     focus=TestCanvasFocus,
@@ -80,4 +79,3 @@ class TestSessionStateMenuPanel(BasePanel):
             hui.label(f"counter: {counter}")
 
 
-# --8<-- [end:test_session_state_panel]

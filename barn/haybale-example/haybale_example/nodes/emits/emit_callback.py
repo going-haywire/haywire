@@ -2,7 +2,6 @@ from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
 
 
-# --8<-- [start:emit_callback_node]
 @node(
     label="Emit Callback",
     description="Emits a callback to trigger event nodes in other flows",
@@ -100,4 +99,3 @@ class EmitCallbackNode(BaseNode):
         return "exec"
 
 
-# --8<-- [end:emit_callback_node]

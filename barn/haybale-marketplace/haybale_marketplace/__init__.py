@@ -8,7 +8,6 @@ from haywire.core.state import LibraryStateRegistry
 from haywire.ui.editor.registry import EditorTypeRegistry
 
 
-# --8<-- [start:marketplace_library]
 @library(
     id="marketplace",
     file_watcher=True,
@@ -48,4 +47,3 @@ class Library(BaseLibrary):
         return True
 
 
-# --8<-- [end:marketplace_library]

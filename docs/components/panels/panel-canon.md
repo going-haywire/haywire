@@ -275,13 +275,13 @@ Source: [`barn/haybale-testing/haybale_testing/panels/graph/menu/`](../../../bar
 **Simple action panel** — `TestDeleteNodeMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py`. Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeContextActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.button(...)` and dispatching through `self.actions`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:test_delete_node_panel"
+--8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:23:53"
 ```
 
 **SessionState-reading panel** — `TestSessionStateMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py`. Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `with layout: hui.label(...)`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py:test_session_state_panel"
+--8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py:58:82"
 ```
 
 What these examples exercise:

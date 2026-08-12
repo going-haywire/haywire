@@ -430,7 +430,7 @@ The callback fires on any change — local writes, global writes from other plac
 `TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `FLOAT`, `INT`, `STRING`, `BOOL`, `CHOICES`, `COLOR`, `VEC2I`, `VEC3F` field types, `min`/`max`, `widget_config`, `category`:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:testing_settings"
+--8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:11:69"
 ```
 
 **NodeSettings with every descriptor** — source: `barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`
@@ -438,7 +438,7 @@ The callback fires on any change — local writes, global writes from other plac
 `SettingsNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:settings_node_class"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:20:148"
 ```
 
 What these examples exercise:
