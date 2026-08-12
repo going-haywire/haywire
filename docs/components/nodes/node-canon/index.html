@@ -2602,6 +2602,8 @@
       
         
       
+        
+      
     
     
     
@@ -2734,6 +2736,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2760,10 +2797,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2781,8 +2818,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3271,7 +3308,7 @@
 <p><strong>Node size — the host slot owns it; skins are size-agnostic.</strong> Every node carries three size props on <code>self.props</code>: <code>width</code> and <code>height</code> (both default <code>200.0</code>), and <code>size_adapt</code> (<code>"auto"</code> · <code>"manual_width"</code> · <code>"manual_height"</code> · <code>"manual"</code>, default <code>"auto"</code>). <code>size_adapt</code> decides, <strong>per axis</strong>, whether the card size is <em>measured from render</em> (an <code>auto</code> axis — a <code>ResizeObserver</code> on the host slot writes the measured offset back into <code>props</code>) or <em>set by the user</em> (a <code>manual</code> axis — set by dragging the resize gadget). A manual size is a <strong>minimum</strong>: the node draws at the user size, but content needing more space (e.g. widgets revealed on selection) expands the node — nothing is ever clipped, so pins, widgets, and attached edges stay intact. The size is applied to the node's <strong>host slot</strong> (<code>.ui-node-slot</code>, one <code>ui.column</code> per node owned by the graph-editor) as a style-write of <code>min-width</code>/<code>min-height</code> on manual axes — never as a card rebuild, so the measure→write loop cannot form. Under a manual mode the card-fill CSS in <code>canvas.vue</code> (keyed off the slot's <code>data-size-adapt</code> stamp) releases the skin's own clamps (<code>min-w-64 max-w-sm</code>) so the card tracks the slot in both directions. <strong>A skin never sets card width/height</strong>: size and measurement live on the host slot, not in skin code. Changing <code>size_adapt</code> back to <code>"auto"</code> clears the inline minimum and the observer re-populates props from content. <code>width</code>/<code>height</code>/<code>size_adapt</code> are deliberately <strong>outside</strong> <code>REDRAW_FIELDS</code> — a size change restyles the slot, it does not redraw the card.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p><strong>DATA node — <code>MathOP</code></strong> from <code>barn/haybale-example/haybale_example/nodes/math_op.py</code>. Demonstrates the minimal node skeleton: <code>@node</code> decorator, <code>init()</code> declaring ports, and <code>worker()</code> reading named inlet parameters and writing an outlet:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@node</span><span class="p">(</span>
+<p><div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@node</span><span class="p">(</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Math Operation&quot;</span><span class="p">,</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;math&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="s2">&quot;basic&quot;</span><span class="p">,</span> <span class="s2">&quot;operation&quot;</span><span class="p">],</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">deprecation_warning</span><span class="o">=</span><span class="s2">&quot;This node will be moved to the math library&quot;</span><span class="p">,</span>
@@ -3319,8 +3356,9 @@
 </span><span id="__span-3-46"><a id="__codelineno-3-46" name="__codelineno-3-46" href="#__codelineno-3-46"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">result</span><span class="p">)</span>
 </span><span id="__span-3-47"><a id="__codelineno-3-47" name="__codelineno-3-47" href="#__codelineno-3-47"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
+from: <code>MathOP</code> — registry_key: <code>example:node:MathOP</code></p>
 <p><strong>Dynamic ports — <code>DynamicPortTestNode</code></strong> from <code>barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py</code>. Demonstrates <code>on_change</code> triggering a <code>hb_*</code> helper, <code>with self.rejig(include=...)</code> for pattern-matched port replacement, and building dynamic port sets in a helper method:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@node</span><span class="p">(</span>
+<p><div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@node</span><span class="p">(</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Dynamic Port TestNode&quot;</span><span class="p">,</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span> <span class="s2">&quot;dynamic&quot;</span><span class="p">,</span> <span class="s2">&quot;push&quot;</span><span class="p">,</span> <span class="s2">&quot;pop&quot;</span><span class="p">,</span> <span class="s2">&quot;reconfigure&quot;</span><span class="p">],</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;testing/testbed&quot;</span><span class="p">,</span>
@@ -3374,6 +3412,7 @@
 </span><span id="__span-4-52"><a id="__codelineno-4-52" name="__codelineno-4-52" href="#__codelineno-4-52"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">worker</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="n">ExecutionContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">str</span> <span class="o">|</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-4-53"><a id="__codelineno-4-53" name="__codelineno-4-53" href="#__codelineno-4-53"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
+from:<code>DynamicPortTestNode</code> — registry_key: <code>testing:node:DynamicPortTestNode</code></p>
 <p>What these examples exercise:</p>
 <table>
 <thead>

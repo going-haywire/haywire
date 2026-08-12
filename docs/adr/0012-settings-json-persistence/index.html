@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Settings persistence switches from TOML to JSON, serializing each tier value through its declared IType's to_dict/from_dict at the disk edge">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2999,7 +3036,6 @@
 
 
 <h1 id="persist-settings-as-json-serialize-each-tier-value-through-its-itype-at-the-disk-edge">Persist settings as JSON; serialize each tier value through its IType at the disk edge<a class="headerlink" href="#persist-settings-as-json-serialize-each-tier-value-through-its-itype-at-the-disk-edge" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
 <p>The settings registry used to persist both tiers as TOML, writing the raw Python value per key with <code>toml.dump</code>. This ADR records swapping that persistence to <strong>JSON</strong> and serializing each tier value through its declared IType's <code>to_dict</code>/<code>from_dict</code> <strong>at the disk edge</strong>, so complex ITypes (<code>COLOR</code>, the six <code>VEC*</code> types) round-trip losslessly instead of being mangled or silently reset. This is plan <strong>P3</strong> of the settings↔DataField unification arc (canonical-key → tier-collapse → <strong>TOML→JSON</strong> → single-cell → promotion-as-direction).</p>
 <h2 id="context-toml-wrote-raw-values-and-complex-types-lost-their-type">Context — TOML wrote raw values, and complex types lost their type<a class="headerlink" href="#context-toml-wrote-raw-values-and-complex-types-lost-their-type" title="Permanent link">&para;</a></h2>
 <p>TOML was originally chosen for hand-editability. But <code>LibrarySettings</code> already declares typed fields — <code>setting[COLOR]</code>, <code>setting[VEC2I]</code>, <code>setting[VEC3F]</code> — and the registry persisted them by writing <code>sv.value</code> raw via <code>toml.dump</code>. Two failures followed:</p>
@@ -3033,6 +3069,9 @@
 
 
 
+
+  
+  
 
 
 

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="A fourth Settings flavour, GraphSettings, adds a graph-scoped tier between framework and node, resolved through a chained mirror">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2988,15 +3025,14 @@
 
 
 <h1 id="graphs-own-a-settings-tier-graphsettings-chained-mirrors-framework-graph-node">Graphs own a settings tier: GraphSettings, chained mirrors, framework &lt; graph &lt; node<a class="headerlink" href="#graphs-own-a-settings-tier-graphsettings-chained-mirrors-framework-graph-node" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
 <p>Settings came in three flavours — <code>FrameworkSettings</code>/<code>LibrarySettings</code> (persistent, resolved through the registry's workspace/global tiers) and <code>NodeSettings</code> (per-node-instance, serialized with the graph). A graph author who wanted every node in one graph to default to a particular skin had no graph-scoped place to say so: either change the framework default (affects every graph) or override the skin on each node individually. <code>settings-arch.md</code> §10 listed a "per-graph settings tier" as an open question. This ADR records the fourth flavour that answers it, plus the mirror mechanism the interposed field needed.</p>
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
 <p><strong><code>GraphSettings</code></strong> is a fourth <code>Settings</code> subclass, parallel to <code>NodeSettings</code>: per-instance <code>DataField</code> cells, never registered with <code>SettingsRegistry</code>, a <code>_graph</code> backref instead of <code>_node</code>. <code>_node</code> stays <code>None</code> unconditionally, which structurally disables every node-only surface (promotion, the setting-row menu's promote entries) without a special case in those surfaces — they already gate on <code>obj._node is not None</code>.</p>
 <p><strong><code>GraphProperties</code></strong> is the one framework-provided bag, instantiated by <code>BaseGraph.__init__</code> as <code>graph.props</code>, wired to the registry from <code>get_settings_registry()</code> — called unconditionally, the same precondition <code>NodeData.__init__</code> already has. There is deliberately no constructor-level override (an earlier draft added a <code>settings_registry=</code> parameter for test convenience and a try/except tolerating no-DI construction; both were removed — see "Rejected alternatives" below). Tests that need an isolated registry call <code>set_settings_registry(...)</code> on the ambient DI context before constructing a graph, exactly as existing node-focused tests already do. Its <code>default_skin</code> field shadows the framework studio-skin setting via the <strong>existing</strong> registry-key mirror (<code>shadow()</code>) — the graph→framework hop needed no new machinery.</p>
-<p><strong>Chained mirrors realize the tier.</strong> A node field mirrors a <code>GraphSettings</code> field via a new factory, <strong><code>graph(src=...)</code></strong>, parallel to <code>shadow()</code>/<code>watch()</code>. <code>graph()</code> validates eagerly — <code>TypeError</code> unless <code>src._owner_cls</code> is a <code>GraphSettings</code> subclass — and marks the descriptor via an explicit <code>is_graph_mirror</code> flag, rather than inferring "which mirror mechanism applies" from the shape of <code>src</code>. This was a deliberate correction mid-design: the first draft inferred graph-mirror-ness from "<code>src</code> has no registry key," which is correct but non-local (a reader must know <code>GraphProperties</code> happens to be a per-instance flavour to predict the field's behavior) and un-typo-safe (a plain <code>shadow()</code> pointed at the same field would silently do the wrong thing). The explicit factory fails at class-definition time instead of at some later, harder-to-attribute moment.</p>
+<p><strong>Chained mirrors realize the tier.</strong> A node field mirrors a <code>GraphSettings</code> field via a new factory, <strong><code>graph(src=...)</code></strong>, parallel to <code>shadow()</code>/<code>watch()</code>. <code>graph()</code> validates eagerly — <code>TypeError</code> unless <code>src._owner_cls</code> is a <code>GraphSettings</code> subclass — and marks the descriptor via an explicit <code>is_graph_mirror</code> flag, rather than inferring "which mirror mechanism applies" from the shape of <code>src</code>: inferring it from "<code>src</code> has no registry key" is correct but non-local (a reader must know <code>GraphProperties</code> happens to be a per-instance flavour to predict the field's behavior) and un-typo-safe (a plain <code>shadow()</code> pointed at the same field would silently do the wrong thing). The explicit factory fails at class-definition time instead of at some later, harder-to-attribute moment.</p>
 <p><strong>The graph mirror's runtime mechanism</strong> (<code>Settings._graph_src_cell</code>, <code>_owning_graph</code>, <code>_subscribe_graph_mirror</code> in <code>settings.py</code>) keeps the node field's <strong>own</strong> cell and <em>listens</em> to the src field's cell on the owning graph's bag — it never borrows the graph's cell. "Unset tracks, set ignores" applies at seed (<code>_cell_for</code>), subscribe, reset, and cleanup, composing transitively with the registry-key hop below it: a framework change reaches an unset node only by passing through an unset graph bag first.</p>
 <p><strong>The lookup seam</strong> is <code>BaseGraph.settings_bag_for(owner_cls)</code> — "which of my bags is an instance of this class." A node field's mirror walks <code>node → wrapper → graph → settings_bag_for(src's owner class)</code>. Plain class matching is safe here because <code>GraphProperties</code> lives in haywire-core, which never hot-reloads (unlike <code>LibrarySettings</code> schemas, where class objects are replaced on reload and object-identity matching would silently break).</p>
-<p><strong>Detachment contract.</strong> A <code>graph()</code> field on a bag with no reachable graph — no node, node not in a graph, graph lacking the src bag — holds its descriptor default and is <strong>not live</strong>. There is no registry fallback. This was also a mid-design correction: the original design (and the shipped spec/tickets) called for a headless bag to fall back to live-tracking the <em>terminal</em> registry key, "byte-for-byte" matching a direct framework shadow. That fallback was cut once grep confirmed it defended a scenario with zero consumers — no test, no UI harness route, and no production code path constructs a detached <code>NodeProperties</code> (a <code>NodeWrapper</code>'s graph is a non-optional constructor argument). The fallback would have added a second subscription channel into <code>_on_field_change</code>, doubling that method's branching and creating exactly the kind of two-channel-driving-one-field bug surface a reviewer would need to reason about for a case that cannot occur. An honest descriptor default on a detached bag is also easier to debug than a plausible-looking value that happens to be stale — it surfaces the detachment instead of masking it.</p>
+<p><strong>Detachment contract.</strong> A <code>graph()</code> field on a bag with no reachable graph — no node, node not in a graph, graph lacking the src bag — holds its descriptor default and is <strong>not live</strong>. There is no registry fallback. An earlier draft (matching the shipped spec/tickets) had a headless bag fall back to live-tracking the <em>terminal</em> registry key, "byte-for-byte" matching a direct framework shadow; that was cut once grep confirmed it defended a scenario with zero consumers — no test, no UI harness route, and no production code path constructs a detached <code>NodeProperties</code> (a <code>NodeWrapper</code>'s graph is a non-optional constructor argument). The fallback would also have added a second subscription channel into <code>_on_field_change</code>, doubling that method's branching for a case that cannot occur. An honest descriptor default on a detached bag is also easier to debug than a plausible-looking value that happens to be stale — it surfaces the detachment instead of masking it.</p>
 <p><strong><code>_on_field_change</code> is untouched.</strong> Graph mirrors never ride the registry notification channel; only the pre-existing registry-key mirror path uses it. This is a direct consequence of dropping the terminal-key fallback above, and it is the reason the feature could land without touching the highest-risk existing method in the file.</p>
 <p><strong>A plain <code>shadow()</code> pointed at a <code>GraphSettings</code> field fails loudly.</strong> If a <code>_mirror_descriptor</code> exists but carries no registry key and the descriptor was not built via <code>graph()</code> (so <code>is_graph_mirror</code> is <code>False</code>), <code>_subscribe_setting</code> raises <code>TypeError</code> naming the fix. Without this guard, the mistake would silently produce a field that never tracks anything — never fires, never resolves, sits at whatever its cell happened to seed with.</p>
 <p><strong>Serialization.</strong> <code>BaseGraph.to_dict()</code> gains a <code>"props"</code> key (the bag's existing <code>to_dict()</code> — locally-set values only). <code>load_from_dict</code> restores it immediately after <code>clear()</code> and <em>before</em> the nodes loop, so node-bag graph mirrors seed correctly at node-construction time. Absence of the key (pre-feature graphs) is valid and restores nothing (<code>reset_all()</code> runs first for the reused-live-graph case).</p>
@@ -3023,6 +3059,9 @@
 
 
 
+
+  
+  
 
 
 

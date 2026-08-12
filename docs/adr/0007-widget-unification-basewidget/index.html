@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Collapse SimpleWidget and BaseWidget into one canonical BaseWidget with a build() floor and bind() sugar every widget author extends">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3023,12 +3060,8 @@ no longer justified.</p>
 the floor is a genuine need, not speculation.</p>
 <h2 id="key-sub-decisions-and-their-reasons">Key sub-decisions and their reasons<a class="headerlink" href="#key-sub-decisions-and-their-reasons" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>No fast-path.</strong> Measurement (<code>docs/plans/widget-unification-perf-verification.md</code>,
-  Finding B) showed the <code>SimpleWidget</code>-vs-<code>BaseWidget</code> sync delta is
-  perf-irrelevant: <code>render_widget</code> is ~13% of render and the sync delta is a
-  fraction of that. The verification plan's YELLOW fast-path was contingent on a
-  regression measurement did not find, so the unified base has a single sync path
-  with no special-casing.</li>
+<li><strong>No fast-path</strong> — see "Keep both base classes" below for why measurement
+  ruled this out.</li>
 <li><strong>Nested-property navigation is kept</strong> (<code>source_property != "value"</code>). A prior
   audit filed it as dead "Pile B", correct under its zero-roadmap premise; the
   Vector/Matrix roadmap flips that premise — it is the binding spine for
@@ -3050,8 +3083,12 @@ the floor is a genuine need, not speculation.</p>
 </ul>
 <h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Keep both base classes.</strong> <code>SimpleWidget</code> as a deliberate fast path — rejected:
-  measurement retired the perf justification, leaving only duplication.</li>
+<li><strong>Keep both base classes</strong>, <code>SimpleWidget</code> as a deliberate fast path —
+  rejected: measurement (<code>docs/plans/widget-unification-perf-verification.md</code>,
+  Finding B) showed the <code>SimpleWidget</code>-vs-<code>BaseWidget</code> sync delta is
+  perf-irrelevant (<code>render_widget</code> is ~13% of render; the sync delta is a
+  fraction of that), retiring the only justification and leaving pure
+  duplication. The unified base has one sync path with no special-casing.</li>
 <li><strong>Field-map (<code>FIELDS = {...}</code>) authoring instead of <code>bind()</code>.</strong> Shortest for
   uniform grids (Vector3) but forces a second paradigm plus a spec mini-language
   the moment a widget is irregular (ColorRGBA = swatch + channels + hex, labeled

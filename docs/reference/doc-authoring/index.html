@@ -6,13 +6,17 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="queue_mode/max_queue_size move onto EventSource so an EVENT node can opt into DROP semantics instead of the hardcoded BLOCK scheduler queue">
+        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0010-event-source-queue-mode/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/reference/doc-authoring/">
       
       
+        <link rel="prev" href="../design-guide/">
+      
+      
+        <link rel="next" href="../files/haybale-toml/">
       
       
         
@@ -23,7 +27,7 @@
     
     
       
-        <title>Carry queue mode on the EventSource so a flow can drop stale triggers (realtime) - Haywire Documentation</title>
+        <title>Writing a doc page - Haywire Documentation</title>
       
     
     
@@ -74,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#carry-queue-mode-on-the-eventsource-so-a-flow-can-drop-stale-triggers-realtime" class="md-skip">
+        <a href="#writing-a-doc-page" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Carry queue mode on the EventSource so a flow can drop stale triggers (realtime)
+              Writing a doc page
             
           </span>
         </div>
@@ -332,11 +336,13 @@
   
   
   
+    
+  
   
     
     
-      <li class="md-tabs__item">
-        <a href="../../reference/" class="md-tabs__link">
+      <li class="md-tabs__item md-tabs__item--active">
+        <a href="../" class="md-tabs__link">
           
   
   
@@ -2458,6 +2464,8 @@
       
   
   
+    
+  
   
   
     
@@ -2479,22 +2487,23 @@
     
     
       
+        
+        
+      
       
         
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--active md-nav__item--section md-nav__item--nested">
       
         
         
-          
-        
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7" >
+        <input class="md-nav__toggle md-toggle " type="checkbox" id="__nav_7" checked>
         
           
           <div class="md-nav__link md-nav__container">
-            <a href="../../reference/" class="md-nav__link ">
+            <a href="../" class="md-nav__link ">
               
   
   
@@ -2512,13 +2521,13 @@
             </a>
             
               
-              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="0">
+              <label class="md-nav__link " for="__nav_7" id="__nav_7_label" tabindex="">
                 <span class="md-nav__icon md-icon"></span>
               </label>
             
           </div>
         
-        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="false">
+        <nav class="md-nav" data-md-level="1" aria-labelledby="__nav_7_label" aria-expanded="true">
           <label class="md-nav__title" for="__nav_7">
             <span class="md-nav__icon md-icon"></span>
             
@@ -2538,7 +2547,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/glossary/" class="md-nav__link">
+      <a href="../glossary/" class="md-nav__link">
         
   
   
@@ -2573,7 +2582,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/design-guide/" class="md-nav__link">
+      <a href="../design-guide/" class="md-nav__link">
         
   
   
@@ -2605,10 +2614,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../../reference/doc-authoring/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -2631,6 +2674,137 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-where-a-page-lives" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Where a page lives
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-front-matter" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. Front matter
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-linking-to-live-source-code" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. Linking to live source code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Linking to live source code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3a-section-embed-pymdownxsnippets-for-code-you-want-to-show-verbatim-and-keep-in-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3a. Section-embed (pymdownx.snippets) — for code you want to show verbatim and keep in sync
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3a. Section-embed (pymdownx.snippets) — for code you want to show verbatim and keep in sync">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#library-components-nodes-types-panels-must-also-print-the-registry-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library components (nodes, types, panels, …) must also print the registry key
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3b-plain-markdown-links-for-pointing-at-a-filesymbol-without-embedding-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3b. Plain markdown links — for pointing at a file/symbol without embedding it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3c-cross-doc-links" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3c. Cross-doc links
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3d-verify-dont-eyeball-the-relative-path" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3d. Verify, don't eyeball, the relative path
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-style" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Style
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -2659,10 +2833,13 @@
       
       
         
+          
+          
+        
       
     
     
-    <li class="md-nav__item md-nav__item--nested">
+    <li class="md-nav__item md-nav__item--section md-nav__item--nested">
       
         
         
@@ -2671,7 +2848,7 @@
         <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="">
             
   
   
@@ -2707,7 +2884,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/files/haybale-toml/" class="md-nav__link">
+      <a href="../files/haybale-toml/" class="md-nav__link">
         
   
   
@@ -2742,7 +2919,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/files/pyproject-toml/" class="md-nav__link">
+      <a href="../files/pyproject-toml/" class="md-nav__link">
         
   
   
@@ -2777,7 +2954,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/files/marketstall-toml/" class="md-nav__link">
+      <a href="../files/marketstall-toml/" class="md-nav__link">
         
   
   
@@ -2812,7 +2989,7 @@
   
   
     <li class="md-nav__item">
-      <a href="../../reference/files/marketplace-toml/" class="md-nav__link">
+      <a href="../files/marketplace-toml/" class="md-nav__link">
         
   
   
@@ -2975,10 +3152,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-the-hardcoded-block-caused" class="md-nav__link">
+  <a href="#1-where-a-page-lives" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem the hardcoded BLOCK caused
+        1. Where a page lives
       
     </span>
   </a>
@@ -2986,10 +3163,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-the-decision-lives-on-the-event-node-not-the-graph-run-or-the-emit-node" class="md-nav__link">
+  <a href="#2-front-matter" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the decision lives on the EVENT node, not the graph run or the EMIT node
+        2. Front matter
       
     </span>
   </a>
@@ -2997,76 +3174,88 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-the-value-rides-on-eventsource-not-a-separate-node-config-surface" class="md-nav__link">
+  <a href="#3-linking-to-live-source-code" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the value rides on EventSource, not a separate node config surface
+        3. Linking to live source code
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3. Linking to live source code">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#3a-section-embed-pymdownxsnippets-for-code-you-want-to-show-verbatim-and-keep-in-sync" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3a. Section-embed (pymdownx.snippets) — for code you want to show verbatim and keep in sync
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="3a. Section-embed (pymdownx.snippets) — for code you want to show verbatim and keep in sync">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#library-components-nodes-types-panels-must-also-print-the-registry-key" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Library components (nodes, types, panels, …) must also print the registry key
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#why-drop-carries-max_queue_size-and-why-the-author-sets-the-pair" class="md-nav__link">
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#3b-plain-markdown-links-for-pointing-at-a-filesymbol-without-embedding-it" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why DROP carries max_queue_size, and why the author sets the pair
+        3b. Plain markdown links — for pointing at a file/symbol without embedding it
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#why-block-is-left-exactly-as-is-and-is-not-made-lossless" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#3c-cross-doc-links" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why BLOCK is left exactly as-is (and is not made lossless)
+        3c. Cross-doc links
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#why-the-camera-frame-event-node-defaults-to-drop" class="md-nav__link">
+        
+          <li class="md-nav__item">
+  <a href="#3d-verify-dont-eyeball-the-relative-path" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why the camera Frame Event node defaults to DROP
+        3d. Verify, don't eyeball, the relative path
       
     </span>
   </a>
   
 </li>
-      
-        <li class="md-nav__item">
-  <a href="#when-and-by-whom-the-value-is-read" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        When and by whom the value is read
-      
-    </span>
-  </a>
+        
+      </ul>
+    </nav>
   
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-and-rejected" class="md-nav__link">
+  <a href="#4-style" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered and rejected
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#consequences" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Consequences
+        4. Style
       
     </span>
   </a>
@@ -3090,56 +3279,206 @@
 
 
 
-<h1 id="carry-queue-mode-on-the-eventsource-so-a-flow-can-drop-stale-triggers-realtime">Carry queue mode on the EventSource so a flow can drop stale triggers (realtime)<a class="headerlink" href="#carry-queue-mode-on-the-eventsource-so-a-flow-can-drop-stale-triggers-realtime" title="Permanent link">&para;</a></h1>
-<p>A live <code>camera → estimator → annotate</code> pipeline lags behind realtime: the camera emits frames faster than synchronous inference consumes them, and the displayed frame falls progressively behind. The frames are not buffered in any node — they queue in the <strong>flow scheduler's</strong> trigger queue. The scheduler already supports two queue modes (<code>QueueMode.BLOCK</code>, <code>QueueMode.DROP</code>), but <code>queue_mode</code> was <strong>hardcoded to <code>BLOCK</code></strong> at the one place schedulers are built (<code>Interpreter._register_flow</code>, <code>interpreter.py:218</code>), so no node, library, or setting could select DROP. This ADR makes the mode selectable <strong>per EVENT node</strong>, carried on the node's <code>EventSource</code>, defaulting to <code>BLOCK</code> everywhere except the camera <code>Frame Event</code> node.</p>
-<h2 id="the-problem-the-hardcoded-block-caused">The problem the hardcoded BLOCK caused<a class="headerlink" href="#the-problem-the-hardcoded-block-caused" title="Permanent link">&para;</a></h2>
-<p>Per emitted frame: the producer (an EMIT node's capture thread) calls <code>context.emit_callback(name, payload)</code> → <code>CallbackManager.emit_callback</code> builds a <code>Trigger</code> and enqueues it into the subscribing flow's scheduler (<code>callback_manager.py:98</code>). In <code>BLOCK</code> mode the scheduler's <code>enqueue_trigger</code> does <code>put(block=True, timeout=5.0)</code> against a <code>Queue(maxsize=100)</code> (<code>scheduler.py:72,118</code>). So while inference is mid-frame, up to 100 frames pile up and are processed in order — the displayed frame is whatever was captured up to 100 frames ago. That backlog <em>is</em> the lag.</p>
-<p><code>QueueMode.DROP</code> already does the desired thing — when the flow is executing, an incoming trigger is dropped instead of queued (<code>scheduler.py:111-113</code>) — it was simply unreachable.</p>
-<h2 id="why-the-decision-lives-on-the-event-node-not-the-graph-run-or-the-emit-node">Why the decision lives on the EVENT node, not the graph run or the EMIT node<a class="headerlink" href="#why-the-decision-lives-on-the-event-node-not-the-graph-run-or-the-emit-node" title="Permanent link">&para;</a></h2>
-<p>A scheduler is owned by exactly one <strong>Flow</strong>, and a Flow is assembled from exactly one <strong>EVENT node</strong> (<code>flow_assembly_manager.py:190-214</code>). Queue mode is a property of <em>that scheduler's</em> relationship to its triggers, so the EVENT node is where ownership naturally sits — the resource owner decides. A graph-wide toggle can't express "camera flow wants DROP, batch flow must keep BLOCK" in one graph; an EMIT node can't own it either, since one EMIT node fans out to many EVENT nodes (<code>tick_emit.py:116-121</code>) and "emit decides" means a producer reaching across to set N consumers' scheduler modes. Both are detailed in Considered-and-rejected, below.</p>
-<h2 id="why-the-value-rides-on-eventsource-not-a-separate-node-config-surface">Why the value rides on <code>EventSource</code>, not a separate node config surface<a class="headerlink" href="#why-the-value-rides-on-eventsource-not-a-separate-node-config-surface" title="Permanent link">&para;</a></h2>
-<p><code>_assemble_flow</code> already reads <code>event_node.event_subscription</code> (an <code>EventSource</code>) and that object already governs scheduler wiring through <code>get_subscription_key()</code>. Queue mode is the <em>same category of fact</em> — "how the scheduler should treat this subscription" — so co-locating it on <code>EventSource</code> means the assembly path reads <strong>one</strong> object for everything scheduler-related, rather than reading the subscription for the key and a separate config port for the mode.</p>
-<p>This also cleanly separates two roles:</p>
+<h1 id="writing-a-doc-page">Writing a doc page<a class="headerlink" href="#writing-a-doc-page" title="Permanent link">&para;</a></h1>
+<p>This page describes how to write a page <em>in this mkdocs site</em> (<code>docs/</code>, built by <code>mkdocs.yml</code> at the repo root). It is not about <code>uv run haywire docs</code> — that command generates per-library README/OVERVIEW/QUICKREF files from code and is a separate, deterministic pipeline (see <code>docs/superpowers/plans/2026-07-29-*</code>).</p>
+<h2 id="1-where-a-page-lives">1. Where a page lives<a class="headerlink" href="#1-where-a-page-lives" title="Permanent link">&para;</a></h2>
+<p>Directory meaning, per the comment above <code>nav:</code> in <code>mkdocs.yml</code>:</p>
 <ul>
-<li><strong>The node author</strong> decides <em>how the value is set</em> — a <code>SwitchWidget</code>/<code>SelectWidget</code> config port, a <code>NodeSettings</code> field, a fixed literal, or computed state — and writes the result into the <code>EventSource</code> it constructs in <code>post_init</code>.</li>
-<li><strong>The framework</strong> only ever reads typed fields off <code>EventSource</code>. It does not care how the author decided. Assembly becomes a dumb passthrough: <code>EventSource</code> → <code>Flow</code> → <code>FlowScheduler</code>.</li>
+<li><code>components/&lt;area&gt;/&lt;area&gt;-canon.md</code> — extension-point authoring guides (nodes, types, ports, adapters, settings, widgets, themes, editors, panels, states, farmhands).</li>
+<li><code>architecture/&lt;area&gt;/&lt;area&gt;-arch.md</code> — framework internals (execution pipeline, library system, hot-reload, settings resolution, session/state, studio).</li>
+<li><code>haybale/</code> — the library/package/marketplace story (authoring, packaging, distribution).</li>
+<li><code>guides/</code> — cross-component patterns and worked examples that don't belong to a single extension point.</li>
+<li><code>reference/</code> — shared truth: glossary, design guide, file-format specs.</li>
+<li><code>welcome/</code> — the three perspective entry points (user / advanced / core).</li>
+<li><code>archive/</code> — historical record, excluded from normal maintenance.</li>
 </ul>
-<p>The fields are declared on the base <strong><code>EventSource</code></strong>, <code>kw_only=True</code> so they don't collide with a subclass's own non-default fields (e.g. <code>CallbackEvent.event_name</code>), and every subscription type inherits them uniformly rather than only the callback-driven ones:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">queue_mode</span><span class="p">:</span> <span class="n">QueueMode</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="n">QueueMode</span><span class="o">.</span><span class="n">BLOCK</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">max_queue_size</span><span class="p">:</span> <span class="nb">int</span> <span class="o">=</span> <span class="n">field</span><span class="p">(</span><span class="n">default</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">compare</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<p>Filename convention follows the directory: <code>&lt;area&gt;-canon.md</code> under <code>components/</code>, <code>&lt;area&gt;-arch.md</code> under <code>architecture/</code>. Reference and guide pages just use a descriptive slug (<code>ports.md</code>, <code>design-guide.md</code>).</p>
+<p>A new page must also be added to the <code>nav:</code> tree in <code>mkdocs.yml</code> — a file that exists under <code>docs/</code> but isn't listed there won't appear in the site navigation.</p>
+<h2 id="2-front-matter">2. Front matter<a class="headerlink" href="#2-front-matter" title="Permanent link">&para;</a></h2>
+<p>Every substantive page opens with YAML front matter:</p>
+<div class="language-yaml highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="nn">---</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="nt">status</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">draft</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="nt">doc_template</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">canonical-example</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="nt">scope</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">One-line description of what this page covers</span>
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a><span class="nt">see-also</span><span class="p">:</span>
+</span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../guides/ports.md</span>
+</span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a><span class="w">  </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">../../reference/glossary.md</span>
+</span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a><span class="nn">---</span>
 </span></code></pre></div>
-<p><code>compare=False</code> so backpressure is <em>carried</em> by the frozen <code>EventSource</code> without participating in its identity/hash — two Frame Event nodes differing only in queue mode must still produce key-stable, hashable subscriptions (the subscription key is <code>callback:{node_id}</code>, already unique, so routing is unaffected).</p>
-<h2 id="why-drop-carries-max_queue_size-and-why-the-author-sets-the-pair">Why DROP carries <code>max_queue_size</code>, and why the author sets the pair<a class="headerlink" href="#why-drop-carries-max_queue_size-and-why-the-author-sets-the-pair" title="Permanent link">&para;</a></h2>
-<p><code>_is_executing</code> is set <em>inside</em> <code>_execute_flow</code>, after the thread pulls from the queue. DROP therefore drops triggers only <em>while a frame is mid-execution</em>; in the gap between finishing frame N and the next blocking <code>get()</code>, <code>_is_executing</code> is briefly clear and DROP's <code>put(block=False)</code> will enqueue into a queue of <code>max_queue_size</code> (default 100). <strong>DROP alone does not guarantee "always newest"</strong> — it needs a shallow queue too, so the camera node ships <code>DROP</code> with <code>max_queue_size=1</code>.</p>
-<p>Both fields are carried independently (mirroring <code>FlowScheduler.__init__</code>, <code>scheduler.py:54-55</code>) rather than the framework deriving size from mode, and set as one pair by the <em>node author</em> in <code>post_init</code> — the operator never sees <code>max_queue_size</code>. This closes the footgun of picking <code>DROP</code> + the 100 default and silently reconstructing the lag, keeps assembly a pure passthrough, and lets a different node choose <code>DROP</code> + a deeper jitter buffer without fighting a hardcoded rule.</p>
-<h2 id="why-block-is-left-exactly-as-is-and-is-not-made-lossless">Why BLOCK is left exactly as-is (and is not made lossless)<a class="headerlink" href="#why-block-is-left-exactly-as-is-and-is-not-made-lossless" title="Permanent link">&para;</a></h2>
-<p>Today's <code>BLOCK</code> is <em>block up to 5 s, then drop and warn</em> (<code>scheduler.py:118,128-130</code> — <code>queue.Full</code> after the timeout returns <code>False</code>). It is <strong>not</strong> a lossless "process every frame" guarantee. The temptation was to redefine <code>BLOCK</code> as unbounded backpressure (no timeout) so it never drops, giving offline pipelines a completeness guarantee.</p>
-<p>Rejected. True offline completeness is met by a <strong>separate, demand-driven pattern</strong> — the EVENT flow's completion signal (<code>trigger.payload["_on_complete"]</code>, <code>scheduler.py:251-258</code>) triggers the EMIT node to produce the next frame: one frame in flight, no queue, lossless by construction. That is a <em>node behavior</em>, not a scheduler queue mode, and it is out of scope here. Consequently <code>BLOCK</code> and its 5 s timeout are untouched, and this change defines exactly two modes with honest meanings: <strong>DROP</strong> = newest-only, lossy by design; <strong>BLOCK</strong> = best-effort, 5 s-then-drop.</p>
-<h2 id="why-the-camera-frame-event-node-defaults-to-drop">Why the camera <code>Frame Event</code> node defaults to DROP<a class="headerlink" href="#why-the-camera-frame-event-node-defaults-to-drop" title="Permanent link">&para;</a></h2>
-<p><code>BLOCK</code> remains the default for <em>every other</em> event source — flipping the global default to DROP would silently start dropping triggers in every batch/data flow, which is unacceptable. The exception is <code>NumpyFrameEventNode</code> (<code>Frame Event</code>), whose entire reason to exist is realtime camera work; its author default is <code>DROP</code> + <code>max_queue_size=1</code>. The every-frame camera case (recording/capture) is explicitly redirected to the demand-driven pattern above, not to BLOCK on this node.</p>
-<p>This means existing graphs using <code>NumpyFrameEventNode</code> change behavior on upgrade (they begin dropping). That is the intended fix for the node's primary use; graphs that need every frame move to the demand-driven pattern.</p>
-<h2 id="when-and-by-whom-the-value-is-read">When and by whom the value is read<a class="headerlink" href="#when-and-by-whom-the-value-is-read" title="Permanent link">&para;</a></h2>
-<p>Once, at <strong>graph-assembly time</strong> — not per frame. <code>Interpreter.load_and_assemble_graph</code> calls <code>assemble_graph</code> (→ <code>_assemble_flow</code> per event node, <code>flow_assembly_manager.py:190</code>) and <em>then</em> <code>_register_flow</code> per flow (<code>interpreter.py:126-132</code>):</p>
 <ul>
-<li><code>_assemble_flow</code> reads <code>getattr(event_node.event_subscription, "queue_mode", QueueMode.BLOCK)</code> (and <code>max_queue_size</code>) and stores them on the <code>Flow</code> it builds.</li>
-<li><code>_register_flow</code> passes <code>flow.queue_mode</code> / <code>flow.max_queue_size</code> into <code>FlowScheduler(...)</code>, replacing the hardcoded <code>QueueMode.BLOCK</code> / implicit 100.</li>
+<li>
+<p><strong><code>status</code></strong> — one of <code>placeholder</code> (not written yet), <code>draft</code> (written, not reviewed), <code>accepted</code> / <code>stable</code> / <code>current</code> (settled), <code>superseded-in-part by ADR-NNNN</code> (partially replaced — cite the ADR). Placeholder pages should say so plainly in the body too (see <code>execution-arch.md</code> for the pattern) rather than presenting empty sections as finished.</p>
+</li>
+<li>
+<p><strong><code>doc_template</code></strong> — names the shape this page follows, so a reader (or writer, or agent) can tell what's expected before reading the body. Existing values and where to copy the shape from:</p>
+</li>
 </ul>
-<p>The scheduler never reads the node; nothing reads the value per-frame. Changing the mode in the UI takes effect on the next assembly (graph restart / reassembly), which is correct — a scheduler's queue mode is fixed for its lifetime.</p>
-<h2 id="considered-and-rejected">Considered and rejected<a class="headerlink" href="#considered-and-rejected" title="Permanent link">&para;</a></h2>
+<table>
+<thead>
+<tr>
+<th>Template</th>
+<th>Shape</th>
+<th>Example</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>canonical-example</code></td>
+<td>extension-point authoring guide: what it solves → how it fits → worked example → pitfalls</td>
+<td><code>components/nodes/node-canon.md</code></td>
+</tr>
+<tr>
+<td><code>system-reference</code></td>
+<td>framework-internals deep dive: overview → lifecycle → key types → extension points</td>
+<td><code>architecture/design/design-arch.md</code></td>
+</tr>
+<tr>
+<td><code>guide</code></td>
+<td>cross-cutting how-to, not tied to one extension point</td>
+<td><code>guides/panels.md</code></td>
+</tr>
+<tr>
+<td><code>impl-spec</code></td>
+<td>implementation-level spec (data flow, file formats, internal contracts)</td>
+<td><code>haybale/metadata-flow.md</code></td>
+</tr>
+<tr>
+<td><code>reference</code></td>
+<td>lookup table / field-by-field spec</td>
+<td><code>reference/files/marketstall-toml.md</code></td>
+</tr>
+<tr>
+<td><code>perspective-index</code></td>
+<td>landing page for one of the three welcome perspectives</td>
+<td><code>welcome/advanced/index.md</code></td>
+</tr>
+<tr>
+<td><code>design-guide</code></td>
+<td>the one design-tokens page</td>
+<td><code>reference/design-guide.md</code></td>
+</tr>
+<tr>
+<td><code>glossary</code></td>
+<td>the one term-definitions page</td>
+<td><code>reference/glossary.md</code></td>
+</tr>
+</tbody>
+</table>
+<p>Don't invent a new <code>doc_template</code> value casually — check whether an existing one already fits before adding one, since each value is a promise about structure that other pages of that type keep.</p>
 <ul>
-<li><strong>Per-graph-run toggle on <code>GraphRunSettings</code>.</strong> Too coarse for mixed camera+batch graphs (see above).</li>
-<li><strong>EMIT node owns the mode.</strong> Producer→N-consumer fan-out creates conflicting opinions over a scheduler the producer does not own.</li>
-<li><strong>A config port / <code>NodeSettings</code> field as the storage of record.</strong> Workable, but scatters scheduler config across the node surface; <code>EventSource</code> already owns the scheduler relationship. The config/settings surface remains the author's <em>choice of input mechanism</em>, feeding the <code>EventSource</code>, not the canonical store.</li>
-<li><strong>Derive <code>max_queue_size</code> from mode in the framework.</strong> Bakes one node's tuning into core and forbids legitimate variants (DROP + a deeper jitter buffer).</li>
-<li><strong>Redefine BLOCK as unbounded/lossless.</strong> Offline completeness belongs to the demand-driven emit↔event handshake (see above), not to a queue mode.</li>
-<li><strong>A latest-wins / coalescing queue</strong> (new queue type that overwrites the pending trigger). Strictly correct "always newest," but the largest blast radius in the hottest concurrency path; <code>DROP</code> + <code>max_queue_size=1</code> is close enough without a new queue type. Deferred, not rejected.</li>
+<li>
+<p><strong><code>scope</code></strong> — one sentence, third person, says what the page covers (and implicitly, what it doesn't). Used to disambiguate at a glance when several pages touch related territory.</p>
+</li>
+<li>
+<p><strong><code>see-also</code></strong> — relative paths (not bare doc_template names) to related pages. Keep it short — the pages a reader would plausibly bounce to next, not everything tangentially related.</p>
+</li>
 </ul>
-<h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<h2 id="3-linking-to-live-source-code">3. Linking to live source code<a class="headerlink" href="#3-linking-to-live-source-code" title="Permanent link">&para;</a></h2>
+<p>Two different mechanisms exist for pulling code into a doc page. Use the right one for the job — don't hand-copy a snippet that either mechanism already covers, since a hand-copy silently drifts from the code the moment it changes.</p>
+<h3 id="3a-section-embed-pymdownxsnippets-for-code-you-want-to-show-verbatim-and-keep-in-sync">3a. Section-embed (<code>pymdownx.snippets</code>) — for code you want to <em>show verbatim and keep in sync</em><a class="headerlink" href="#3a-section-embed-pymdownxsnippets-for-code-you-want-to-show-verbatim-and-keep-in-sync" title="Permanent link">&para;</a></h3>
+<p><code>pymdownx.snippets</code> supports two forms of embed. Which one to use depends on where the source file lives:</p>
 <ul>
-<li><code>EventSource</code> gains <code>queue_mode</code> and <code>max_queue_size</code> (both <code>compare=False, kw_only=True</code>); omitting them preserves prior behavior (<code>BLOCK</code> / 100) exactly. Subscription keys and hashing are unchanged.</li>
-<li><code>Flow</code> carries <code>queue_mode</code> / <code>max_queue_size</code>; <code>_assemble_flow</code> populates them, <code>_register_flow</code> consumes them. The hardcoded <code>QueueMode.BLOCK</code> at <code>interpreter.py:218</code> is removed.</li>
-<li><code>NumpyFrameEventNode</code> now defaults to realtime DROP; existing graphs using it drop stale frames after upgrade.</li>
-<li>BLOCK semantics (5 s-then-drop) are unchanged; true offline completeness remains a future demand-driven pattern, out of scope.</li>
+<li><strong><code>barn/</code> code (component/library examples — nodes, widgets, settings, etc.) → line-range form.</strong> Barn example files are small and stable; a line range is quick to write and read without needing to annotate the source.</li>
+<li><strong>Everything else (<code>packages/</code>, framework internals) → tag form.</strong> Framework files change shape more often — lines get inserted above an untagged range — so pin the region with an explicit tag instead of numbers that can silently drift out of alignment.</li>
+</ul>
+<p><strong>Line-range form</strong>, <code>path:start:end</code> (1-indexed !!!, inclusive):</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>@node(
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>    label=&quot;Math Operation&quot;,
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    search_tags=[&quot;math&quot;, &quot;value&quot;, &quot;single&quot;, &quot;basic&quot;, &quot;operation&quot;],
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    deprecation_warning=&quot;This node will be moved to the math library&quot;,
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>    menu=&quot;examples/math/basic&quot;,
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    node_type=NodeType.DATA,
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>)
+</span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>class MathOP(BaseNode):
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>    &quot;&quot;&quot;Node that outputs a constant value&quot;&quot;&quot;
+</span></code></pre></div>
+<p>No markup needed in the source file — just point at the lines. Because a barn example can still be edited later, re-check the range after any edit to the source file (see §3d) — nothing fails the build if the numbers drift, it will just silently embed the wrong lines.</p>
+<p><strong>Tag form</strong>, <code>path:tag</code> — mark a region in the source file with matched start/end tags:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">configure</span><span class="p">(</span><span class="o">...</span><span class="p">):</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="o">...</span>
+</span></code></pre></div>
+<p>then reference it by tag name:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="c1"># Startup wiring for the LibraryStateContainer&#39;s two-phase lifecycle.</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">🔍 Scanning for libraries...&quot;</span><span class="p">)</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">library_registry</span><span class="o">.</span><span class="n">scan_for_libraries</span><span class="p">()</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="c1"># Skip user-disabled libraries before the enable loop.</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="n">library_registry</span><span class="o">.</span><span class="n">apply_persisted_disabled_state</span><span class="p">()</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="c1"># Subscribe BEFORE the enable loop so CLASS_ADDED events during each</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># library&#39;s enable() instantiate its state classes immediately.</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="c1"># on_enable is deferred until after the loop.</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="n">library_state_container</span><span class="o">.</span><span class="n">subscribe_to_lifecycle_events</span><span class="p">()</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a><span class="c1"># AppState.on_enable resolves framework services from these globals;</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a><span class="c1"># publish before any on_enable runs.</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a><span class="n">set_library_system</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a><span class="n">set_global_injector</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">injector</span><span class="p">)</span>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a><span class="nb">print</span><span class="p">(</span><span class="s2">&quot;</span><span class="se">\n</span><span class="s2">⚡ Enabling libraries...&quot;</span><span class="p">)</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a><span class="n">library_registry</span><span class="o">.</span><span class="n">enable_all_libraries</span><span class="p">()</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="c1"># Subscribe AFTER the enable loop, then catch up on every library that</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a><span class="c1"># was enabled. Filter on library.enabled so persisted-disabled libraries</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a><span class="c1"># (skipped above) aren&#39;t falsely marked enabled.</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a><span class="n">library_state_container</span><span class="o">.</span><span class="n">subscribe_to_library_callbacks</span><span class="p">(</span><span class="n">library_registry</span><span class="p">)</span>
+</span><span id="__span-3-25"><a id="__codelineno-3-25" name="__codelineno-3-25" href="#__codelineno-3-25"></a><span class="k">for</span> <span class="n">library</span> <span class="ow">in</span> <span class="n">library_registry</span><span class="o">.</span><span class="n">_libraries</span><span class="o">.</span><span class="n">values</span><span class="p">():</span>
+</span><span id="__span-3-26"><a id="__codelineno-3-26" name="__codelineno-3-26" href="#__codelineno-3-26"></a>    <span class="k">if</span> <span class="n">library</span><span class="o">.</span><span class="n">enabled</span><span class="p">:</span>
+</span><span id="__span-3-27"><a id="__codelineno-3-27" name="__codelineno-3-27" href="#__codelineno-3-27"></a>        <span class="n">library_state_container</span><span class="o">.</span><span class="n">on_library_enabled</span><span class="p">(</span><span class="n">library</span><span class="p">)</span>
+</span></code></pre></div>
+<p>The tag moves with the code it wraps, and <code>check_paths: true</code> in <code>mkdocs.yml</code> fails the build if the tag is ever deleted — so drift is caught loudly instead of silently. Tag names must be unique per file; pick a name that describes the concept being shown (<code>startup-state-wiring</code>), not the file it's in.</p>
+<p>At build time mkdocs inlines either form as a real, syntax-highlighted code block. This is the mechanism to reach for whenever a canon/arch page shows a "here's what this looks like in practice" example — see <code>node-canon.md</code>, <code>setting-canon.md</code>, <code>haybale-canon.md</code> for the existing (tag-based, pre-dating this split) pattern.</p>
+<h4 id="library-components-nodes-types-panels-must-also-print-the-registry-key">Library components (nodes, types, panels, …) must also print the registry key<a class="headerlink" href="#library-components-nodes-types-panels-must-also-print-the-registry-key" title="Permanent link">&para;</a></h4>
+<p>A library component isn't just its source location — at runtime it's addressed by its <strong>registry key</strong>, <code>&lt;library_id&gt;:&lt;component_type&gt;:&lt;registry_id&gt;</code> (built by <code>reg_key()</code>; see <code>reference/glossary.md</code>). </p>
+<blockquote>
+<p><strong>Worked example — linking to a node's source</strong></p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">--</span><span class="mi">8</span><span class="o">&lt;--</span> <span class="s2">&quot;barn/haybale-example/haybale_example/nodes/math_op.py:11:20&quot;</span>
+</span></code></pre></div>
+<p>from: <code>MathOP</code> — registry_key: <code>example:node:MathOP</code></p>
+</blockquote>
+<p>which renders as:</p>
+<blockquote>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@node</span><span class="p">(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Math Operation&quot;</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">search_tags</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;math&quot;</span><span class="p">,</span> <span class="s2">&quot;value&quot;</span><span class="p">,</span> <span class="s2">&quot;single&quot;</span><span class="p">,</span> <span class="s2">&quot;basic&quot;</span><span class="p">,</span> <span class="s2">&quot;operation&quot;</span><span class="p">],</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">deprecation_warning</span><span class="o">=</span><span class="s2">&quot;This node will be moved to the math library&quot;</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">menu</span><span class="o">=</span><span class="s2">&quot;examples/math/basic&quot;</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">node_type</span><span class="o">=</span><span class="n">NodeType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOP</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
+</span></code></pre></div>
+<p>from <code>MathOP</code> — registry_key: <code>example:node:MathOP</code></p>
+</blockquote>
+<p>Assemble the key from source:<code>&lt;library_id&gt;:&lt;component_type&gt;:&lt;class_name&gt;</code>, unless the component's decorator sets an explicit <code>registry_id</code>/<code>id</code>, in which case that replaces <code>&lt;class_name&gt;</code>:</p>
+<ol>
+<li><strong><code>&lt;library_id&gt;</code></strong> — the <code>id=</code> argument on that package's <code>@library(...)</code> decorator (in <code>&lt;package&gt;/__init__.py</code>). Not the package or directory name - they differ.</li>
+<li><strong><code>&lt;component_type&gt;</code></strong> — the fixed string for the kind of component (<code>node</code>, <code>type</code>, <code>panel</code>, <code>widget</code>, <code>setting</code>, <code>adapter</code>, <code>editor</code>, <code>theme</code>, <code>skin</code>, <code>state</code>; see <code>NODE</code>/<code>WIDGET</code>/<code>TYPE</code>/… in <code>packages/haywire-core/src/haywire/core/library/utils.py</code>).</li>
+<li><strong><code>&lt;class_name-or-registry_id&gt;</code></strong> — check the component's own decorator (<code>@node(...)</code>, <code>@panel(...)</code>, etc.) for an explicit `registry_id=`` kwarg. If present, use it. If absent, it defaults to the class name.</li>
+</ol>
+<p>Grep both files rather than trusting memory — a library's <code>id=</code> and a component's <code>registry_id=</code> are each set in exactly one place, and neither has to match what its surrounding path or class name suggests.</p>
+<h3 id="3b-plain-markdown-links-for-pointing-at-a-filesymbol-without-embedding-it">3b. Plain markdown links — for pointing at a file/symbol without embedding it<a class="headerlink" href="#3b-plain-markdown-links-for-pointing-at-a-filesymbol-without-embedding-it" title="Permanent link">&para;</a></h3>
+<p>Source files live outside <code>docs_dir</code>, so they can't be linked as markdown doc-links (mkdocs' strict mode treats any link target that isn't a file under <code>docs/</code> as unresolved). Point at source with plain text — a code-styled path, optionally a GitHub blob URL with a <code>#L&lt;n&gt;</code> anchor when the repo is browsed there:</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>See <span class="sb">`packages/haywire-core/src/haywire/core/execution/execution_context.py`</span> for the full class.
+</span></code></pre></div>
+<p>Use this for "go look at this" pointers where reproducing the code in the doc would be redundant or would go stale (whole files, or things too large to embed a section of). Prefer 3a whenever the point is to show the reader actual code inline — it's the only one of the two that mkdocs can verify.</p>
+<h3 id="3c-cross-doc-links">3c. Cross-doc links<a class="headerlink" href="#3c-cross-doc-links" title="Permanent link">&para;</a></h3>
+<p>Link between doc pages with relative <code>.md</code> paths (as in <code>see-also</code>, and inline: <code>[reference/glossary](../../reference/glossary.md)</code>). Don't link to a doc page's built URL — the site can be reorganized under mkdocs' instant-navigation without breaking relative links, but a hardcoded <code>site_url</code> path would need every reference updated by hand.</p>
+<h3 id="3d-verify-dont-eyeball-the-relative-path">3d. Verify, don't eyeball, the relative path<a class="headerlink" href="#3d-verify-dont-eyeball-the-relative-path" title="Permanent link">&para;</a></h3>
+<p>Two mistakes are easy to make and easy to miss by inspection:</p>
+<ul>
+<li>Copying a <code>../../</code> depth from a page that lives <em>two</em> directories under <code>docs/</code> (e.g. <code>components/nodes/</code>) into a page that lives <em>one</em> directory under <code>docs/</code> (e.g. <code>reference/</code>) — the correct prefix depends on where <strong>this</strong> file sits, not on what nearby pages happen to use.</li>
+<li>Linking to something outside <code>docs_dir</code> (<code>mkdocs.yml</code>, anything under <code>packages/</code>, <code>barn/</code>, <code>tests/</code>) as if it were a doc-link. It never resolves, no matter the <code>../</code> count — only §3a/§3b's plain-text or snippet forms apply there.</li>
+</ul>
+<p>Both are invisible from reading the Markdown — the link <em>looks</em> fine. The only reliable check is building the site:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>mkdocs<span class="w"> </span>build<span class="w"> </span>--strict
+</span></code></pre></div>
+<p><code>check_paths: true</code> (for snippet embeds) and strict mode (for doc-links) turn a bad path into a build failure instead of a silent dead link or blank block. Run this after adding or editing any link, not just at the end of a larger change.</p>
+<h2 id="4-style">4. Style<a class="headerlink" href="#4-style" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Second person for the reader, present tense: "you define a Python class... you decorate it..." (see <code>node-canon.md</code> §1).</li>
+<li>Lead each page with what it solves before how it works — a reader deciding whether to keep reading needs the "why" first.</li>
+<li>ASCII-art diagrams (<code>```text</code> fenced) are used freely for lifecycle/flow shapes where a picture beats a paragraph — see <code>node-canon.md</code> §2 for the shape.</li>
+<li>Keep <code>docs/</code> self-consistent with the <code>.insights/</code> traps list and ADRs it documents — if behavior changes, update the doc in the same change, not as a follow-up.</li>
 </ul>
 
 

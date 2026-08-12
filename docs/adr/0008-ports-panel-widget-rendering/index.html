@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Ports Panel becomes an always-on secondary surface rendering live port Widgets, mirroring the same visibility predicate the node skin uses">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3019,9 +3056,7 @@ the panel keeps those ports editable.</p>
   <code>client.remove_all_elements()</code> (page close), so cleanup runs exactly when the
   DOM is torn down, regardless of which transient panel instance built it. This
   is contained in the panel; the shared panel framework gained no new teardown
-  hook. (An earlier instance-owned design — dispose the prior batch at the top
-  of <code>draw()</code> plus a client-disconnect sweep — was abandoned once the
-  fresh-instance-per-redraw behaviour was confirmed; it never actually ran.)</li>
+  hook.</li>
 <li><strong>Namespaced factory tracking key.</strong> The singleton <code>WidgetFactory</code> tracks
   <code>widget_key -&gt; {node_ids}</code> for hot-reload and purges by <code>node_id</code> in
   <code>unregister_widget_for_node</code>. The panel registers its widgets under

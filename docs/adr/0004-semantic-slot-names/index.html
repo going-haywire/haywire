@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Replace positional-string AppShell slot identifiers with the semantic SlotName StrEnum as a clean break, no migration shim">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3018,7 +3055,7 @@
 <h2 id="why-a-clean-break-not-a-migration-shim">Why a clean break, not a migration shim<a class="headerlink" href="#why-a-clean-break-not-a-migration-shim" title="Permanent link">&para;</a></h2>
 <p>We considered (a) an old→new alias map applied on snapshot load, and (b) <code>SlotName._missing_</code> coercing legacy strings transparently. Both were rejected. The project is pre-1.0 (v0.0.x); the only persisted artifact is <code>workspace_state.json</code>, which already re-derives its editor roster from the registry on load — a workspace keyed by the old names simply falls back to defaults, costing a user at most one re-arrange. A shim would have been permanent surface area (every future reader would wonder whether the old names are still "real") guarding against a one-time, low-cost event. Instead the <code>@editor</code> decorator now <strong>raises <code>ValueError</code> at class-definition time</strong> on an unknown <code>default_slot</code>, so a stale <code>default_slot="main"</code> fails loudly at import rather than silently landing an editor in no slot. The guardrail replaces the shim.</p>
 <h2 id="why-the-python-311-bump-rides-along">Why the Python 3.11 bump rides along<a class="headerlink" href="#why-the-python-311-bump-rides-along" title="Permanent link">&para;</a></h2>
-<p><code>StrEnum</code> landed in the stdlib in 3.11. The repo previously floored at <code>&gt;=3.10</code> (some barn packages at <code>&gt;=3.9</code>). Rather than subclass <code>(str, Enum)</code> to emulate <code>StrEnum</code> on 3.10, we raised every package's <code>requires-python</code> to <code>&gt;=3.11</code> (and the mypy <code>python_version</code>). This is the surprising part of the diff — a slot rename touching eleven <code>pyproject.toml</code> files and re-resolving <code>uv.lock</code> — hence its mention here.</p>
+<p><code>StrEnum</code> landed in the stdlib in 3.11. The repo previously floored at <code>&gt;=3.10</code> (some barn packages at <code>&gt;=3.9</code>). Rather than subclass <code>(str, Enum)</code> to emulate <code>StrEnum</code> on 3.10, we raised every package's <code>requires-python</code> to <code>&gt;=3.11</code> (and the mypy <code>python_version</code>) — touching eleven <code>pyproject.toml</code> files and re-resolving <code>uv.lock</code>. The floor has since moved to <code>&gt;=3.12</code> for unrelated reasons; this ADR's contribution was the 3.10→3.11 step.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Third-party libraries still passing <code>default_slot="main"</code> (or any old name) break at import with a clear <code>ValueError</code>. This is intentional and the reason no deprecation window exists.</li>
@@ -3032,6 +3069,9 @@
 
 
 
+
+  
+  
 
 
 

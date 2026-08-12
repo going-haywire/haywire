@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Every piece of descriptive library metadata is authored in one haybale.toml file inside the package directory, read from disk at the point of use">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3043,22 +3080,27 @@ sits inside the Python package and ships in the wheel:</p>
 <p><code>@library(...)</code> keeps only what must be known before any file is read: <code>id</code>,
 <code>version</code>, <code>file_watcher</code>.</p>
 <h2 id="why-the-previous-split-could-not-work">Why the previous split could not work<a class="headerlink" href="#why-the-previous-split-could-not-work" title="Permanent link">&para;</a></h2>
-<p><a href="../0024-library-metadata-single-source/">ADR 0024</a> put the PEP 621 fields in
-<code>[project]</code> and had the decorator read them back through <code>importlib.metadata</code>.
-That removed the duplication, but inherited a defect it could not fix:</p>
+<p>An earlier design put the PEP 621 fields in <code>[project]</code> and had the decorator
+read them back through <code>importlib.metadata</code>, splitting metadata across two
+files by whether hatchling's standard packaging machinery already covered a
+field or it was Haywire-specific (<code>id</code>, <code>label</code>, <code>linked_libraries</code>,
+<code>on_reload</code>, <code>file_watcher</code>, <code>os</code>, <code>examples_path</code>, <code>tests_path</code>). That removed
+an even earlier duplication (the same field authored separately in
+<code>pyproject.toml</code> and the <code>@library(...)</code> decorator, which had already drifted
+in-tree between the two) but inherited a defect it could not fix:</p>
 <p><strong>Distribution metadata is written once, at install time.</strong>
 <code>site-packages/&lt;dist&gt;.dist-info/METADATA</code> does not change when
-<code>pyproject.toml</code> changes — not even for an editable install. Verified 2026-08-08
-by editing a pyproject in place and re-reading in a fresh interpreter: version
-and description both reported pre-edit values until <code>pip install -e</code> was re-run.</p>
+<code>pyproject.toml</code> changes — not even for an editable install (confirmed by
+editing a pyproject in place and re-reading in a fresh interpreter: stale
+until <code>pip install -e</code> was re-run).</p>
 <p>So every metadata edit required <code>uv sync</code> plus a registry reload before it
 became visible. That is what forced editing out of a modal and into the Share
 wizard, and why the library overview's Edit dialog was deleted. The cost was
 paid to work around the <em>read path</em>, not to solve the duplication.</p>
-<p><code>[tool.haywire]</code> cannot substitute: it does not survive into an installed wheel
-either, which is why ADR 0024 rejected it. A file inside the package directory
-does survive — verified by building <code>haybale-testing</code> and unzipping the wheel —
-and can be read from disk at runtime.</p>
+<p>A file inside the package directory survives into the installed wheel
+(confirmed by building <code>haybale-testing</code> and unzipping it) and can be read
+from disk at runtime — see "Alternatives considered" for why <code>[tool.haywire]</code>
+doesn't clear the same bar.</p>
 <h2 id="what-this-buys">What this buys<a class="headerlink" href="#what-this-buys" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>An edit is a file write.</strong> No <code>uv sync</code>, no module eviction, no restart
@@ -3138,18 +3180,18 @@ built once, so a value read through it is only as fresh as the last reload.</p>
   every saved graph's node references and every consumer's <code>install_spec</code>.</li>
 </ul>
 <h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
-<p><strong>Keep ADR 0024 and accept the reload.</strong> Rejected: the reload is the cost, not a
-side effect. Every consequence 0024 accepted — editing moved into the wizard,
-the Edit dialog deleted, a restart offer after each save — followed from it.</p>
-<p><strong><code>[tool.haywire]</code> in pyproject.</strong> Rejected by 0024 and still correct: it does
-not reach an installed wheel, so the fields would be publish-time only.</p>
+<p><strong>Keep the <code>[project]</code>/decorator split and accept the reload.</strong> Rejected: the
+reload is the cost, not a side effect. Editing moved into the wizard, the Edit
+dialog deleted, a restart offer after each save — all followed from accepting
+it.</p>
+<p><strong><code>[tool.haywire]</code> in pyproject.</strong> Rejected: it does not reach an installed
+wheel, so the fields would be publish-time only.</p>
 <p><strong>A file outside the package directory.</strong> Rejected: only what is inside the
 package ships in the wheel, which is the entire mechanism.</p>
 <h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <ul>
 <li>Design: <code>internals/plans/2026-08-09-haybale-toml-field-canon.md</code></li>
 <li>Implementation plan: <code>internals/plans/2026-08-09-haybale-toml-implementation.md</code></li>
-<li>Supersedes: <a href="../0024-library-metadata-single-source/">ADR 0024</a></li>
 </ul>
 
 
@@ -3157,6 +3199,9 @@ package ships in the wheel, which is the entire mechanism.</p>
 
 
 
+
+  
+  
 
 
 

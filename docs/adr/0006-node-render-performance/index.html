@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Authoritative record of large-graph rendering perf work — measured root causes, upstream constraints, shipped optimizations, and declined levers">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3074,10 +3111,11 @@ against the installed <code>nicegui/static/nicegui.js</code> (3.12.1): NO vnode 
 <code>renderRecursively</code> rebuilds unconditionally. <strong>Upgrading NiceGUI does not fix
 this.</strong> No open upstream issue tracks a clean re-implementation. Implication: any
 Axis-B fix must be Haywire-side (reduce element count, or isolate the graph
-subtree from the root render). Separately, <code>helpers.expects_arguments</code> (an
-Axis-A hot spot, below) is also not cached on NiceGUI <code>main</code> as of 2026-06;
-upstream's guidance for large UIs is "render fewer elements," not per-element
-optimization (zauberzeug/nicegui#338, discussion #2876).</p>
+subtree from the root render). Upstream's general guidance for large UIs is
+"render fewer elements," not per-element optimization (zauberzeug/nicegui#338,
+discussion #2876) — <code>expects_arguments</code> (Axis A, decision 2 below) was the one
+exception: it was fixed upstream in NiceGUI 3.15, after being uncached on
+<code>main</code> as of 2026-06.</p>
 <h2 id="diagnosis-measurements">Diagnosis &amp; measurements<a class="headerlink" href="#diagnosis-measurements" title="Permanent link">&para;</a></h2>
 <p>Instruments are kept as <code>@pytest.mark.perf</code> tests (excluded from the default
 suite; <code>uv run pytest -m perf tests/ui/widget/ -s</code>). See
@@ -3137,59 +3175,47 @@ Vue↔Python ownership boundary.</p>
    validation of the element-count → cost thesis.</p>
 </li>
 <li>
-<p><strong><code>expects_arguments</code> cached at startup</strong> (this session;
-   <code>haywire.ui.nicegui_patches</code>, applied from <code>HaywireApp.__init__</code> before any
-   render). A <strong>bounded</strong> <code>functools.lru_cache(maxsize=1024)</code> over the pure
-   introspection. Guarded: raises at startup if the NiceGUI internal moves/
-   renames, rather than silently reverting. Measured: real-app render 2.72 s →
-   2.18 s (~1.25×). Attacks Axis A CPU.</p>
+<p><strong><del><code>expects_arguments</code> cached at startup</del> — removed, fixed upstream (2026-08-12).</strong>
+   Shipped as a bounded <code>functools.lru_cache(maxsize=1024)</code> monkeypatch
+   (<code>haywire.ui.nicegui_patches</code>) over <code>helpers.expects_arguments</code>, worth
+   ~1.25× on Axis A CPU. NiceGUI 3.15 resolved <code>expects_arguments</code> once at
+   handler-registration time instead of per-fire — the exact upstream fix
+   anticipated below — making the local patch redundant. Removed in
+   <code>843b218d</code>; the module and its <code>HaywireApp.__init__</code> hookup are gone. Kept
+   here only as a pointer: if a future NiceGUI regression reopens this cost,
+   the bounded-cache approach and its leak pitfall (below) are the known-good
+   shape to reach for again.</p>
 </li>
-</ol>
-<p><em>Bounded, not unbounded — corrected after maintainer review.</em> The first
-   version used <code>maxsize=None</code>. The NiceGUI maintainer pointed out (reviewing our
-   upstream proposal) that this leaks: the cache key is the handler object, and
-   the handlers are NOT a small fixed set — the observable <code>_update</code> handlers are
-   bound methods (one per Props/Style/Classes instance → one key per element per
-   collection), and <code>handle_event</code> also dispatches every user <code>on_click</code>/
-   <code>on_change</code> lambda. An unbounded cache pins each handler, and through bound
-   methods their elements, for the process lifetime → unbounded growth on a
-   long-running server. A <code>WeakKeyDictionary</code> does not help (bound methods are
-   recreated per access, so weak keys evict before they hit). A bounded cache is
-   leak-free and loses nothing: per-element fires are consecutive, so a small
-   bound captures them — measured, every <code>maxsize</code> from 4 to None gave the same
-   73% hit rate and ~1.4× speedup on the 200-node graph.</p>
-<ol>
-<li><strong>Lazy pin tooltips</strong> (this session; <code>NodeSkin._add_pin_tooltip</code>). The tooltip
+<li>
+<p><strong>Lazy pin tooltips</strong> (this session; <code>NodeSkin._add_pin_tooltip</code>). The tooltip
    (3 elements) is built on the pin's first <code>mouseenter</code> rather than at render,
    with visibility driven explicitly (<code>mouseenter</code>→build+show, <code>mouseleave</code>→hide)
    and <code>no-parent-event</code> on the QTooltip so our handlers are the SOLE controller.
    Measured: elements/node 155 → 86; render ~1.46× faster. Attacks both axes
-   (fewer elements built AND fewer in the re-walk).</li>
+   (fewer elements built AND fewer in the re-walk).</p>
+</li>
 </ol>
 <p>Combined, graph-open dropped from ~2.7 s toward ~1.4 s.</p>
 <h2 id="rationale-for-the-tricky-choices">Rationale for the tricky choices<a class="headerlink" href="#rationale-for-the-tricky-choices" title="Permanent link">&para;</a></h2>
-<p><strong>Patching a vendored internal (<code>expects_arguments</code>).</strong> Not cached upstream; the
-win is unavailable any other way short of forking. Bounded (see decision 2) to
-avoid the handler-pinning leak. The guard keeps it safe across version bumps.
-The long-term fix is NOT a cache at all: the NiceGUI maintainer's preferred
-resolution (on review of our proposal) is to resolve <code>expects_arguments</code> ONCE at
-handler-registration time and store the bool on the handler — mirroring
-<code>Callback.expect_args</code> in <code>nicegui/event.py</code>, which the Event system already
-does — so <code>_handle_change</code> reads a stored flag with no per-fire introspection.
-That is leak-free and the right upstream home. Our bounded cache is the local
-bridge until that lands; remove it then.</p>
-<p><strong><code>no-parent-event</code> + explicit show/hide for tooltips.</strong> A tooltip built on
+<p><strong>Why the (now-removed) <code>expects_arguments</code> patch was bounded, not unbounded.</strong>
+The cache key was the handler object, and handlers are bound methods recreated
+per element/collection, so an unbounded cache (the first version, using
+<code>maxsize=None</code>) pinned every handler and its element for the process lifetime.
+A <code>WeakKeyDictionary</code> did not help (bound methods are recreated per access, so
+weak keys evict before they hit); a bounded cache lost nothing since
+per-element fires are consecutive (measured: every <code>maxsize</code> from 4 to <code>None</code>
+gave the same 73% hit rate and ~1.4× speedup). Kept as a footnote per decision
+2's note: this is the known-good shape to reach for if the cost ever reopens.</p>
+<p><strong>Why tooltips need sole-controller show/hide.</strong> A tooltip built on
 <code>mouseenter</code> mounts <em>after</em> the event fired, so Quasar's hover listener misses
 the first hover (appears only on the second). Manually <code>show()</code>-ing while leaving
 Quasar's hide active then orphans tooltips on screen (two controllers disagree).
-Sole-controller (<code>no-parent-event</code> + our handlers) is the only deterministic
-option; mirrors how <code>node_menu_builder</code> drives flyouts explicitly on hover.</p>
+<code>no-parent-event</code> + our own handlers is the only deterministic option; mirrors
+how <code>node_menu_builder</code> drives flyouts explicitly on hover.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
 <li>First hover of a given pin pays a server round-trip to build+show its tooltip
   (subsequent hovers instant). Consistent with existing hover-built UI. Accepted.</li>
-<li>The <code>expects_arguments</code> patch is a startup monkeypatch of a third-party
-  internal — flagged in code with a guard and a removal condition.</li>
 <li>Measurement instruments retained as <code>perf</code> tests for re-measuring future
   changes against the same reference graph.</li>
 <li>Mount lifecycle facts for any future culling work: nodes mount in
@@ -3238,6 +3264,9 @@ deferred, not forgotten.</p>
 
 
 
+
+  
+  
 
 
 

@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Settings resolution collapses from a six-case mode chain to highest-priority-set-tier-wins; SettingMode and OVERRIDE are removed">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -2988,10 +3025,9 @@
 
 
 <h1 id="collapse-the-settings-resolution-model-to-highest-priority-set-wins-drop-override-settingmode">Collapse the settings resolution model to highest-priority-set-wins; drop OVERRIDE / SettingMode<a class="headerlink" href="#collapse-the-settings-resolution-model-to-highest-priority-set-wins-drop-override-settingmode" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
-<p>The settings resolver used to evaluate a six-case chain with two <em>strengths</em> per tier. Each tier value was a <code>SettingValue(mode, value)</code> where <code>mode ∈ {INHERIT, EXPLICIT, OVERRIDE}</code>: <code>INHERIT</code> meant "unset," <code>EXPLICIT</code> meant "set," and <code>OVERRIDE</code> meant "forced — beats everything below, including a per-node local value." This ADR records collapsing that model down to <strong>highest-priority <em>set</em> tier wins</strong>: <code>OVERRIDE</code> and the <code>SettingMode</code> enum are removed, and a tier value is now simply <em>set</em> or <em>unset</em> (<code>SettingValue.is_set</code>). This is plan <strong>P2</strong> of the settings↔DataField unification arc (canonical-key → <strong>tier-collapse</strong> → TOML→JSON → single-cell → promotion-as-direction).</p>
+<p>The settings resolver used to evaluate a six-case chain with two <em>strengths</em> per tier. This ADR records collapsing that model down to <strong>highest-priority <em>set</em> tier wins</strong>: <code>OVERRIDE</code> and the <code>SettingMode</code> enum are removed, and a tier value is now simply <em>set</em> or <em>unset</em> (<code>SettingValue.is_set</code>). This is plan <strong>P2</strong> of the settings↔DataField unification arc (canonical-key → <strong>tier-collapse</strong> → TOML→JSON → single-cell → promotion-as-direction).</p>
 <h2 id="context-the-pre-p2-six-case-two-strength-chain">Context — the pre-P2 six-case / two-strength chain<a class="headerlink" href="#context-the-pre-p2-six-case-two-strength-chain" title="Permanent link">&para;</a></h2>
-<p><code>resolve(name, local=None)</code> walked six cases and returned a <code>source</code> drawn from <code>{'global_override', 'workspace_override', 'local', 'workspace', 'global', 'default'}</code>:</p>
+<p>Each tier value was a <code>SettingValue(mode, value)</code> where <code>mode ∈ {INHERIT, EXPLICIT, OVERRIDE}</code>: <code>INHERIT</code> meant "unset," <code>EXPLICIT</code> meant "set," and <code>OVERRIDE</code> meant "forced — beats everything below, including a per-node local value." <code>resolve(name, local=None)</code> walked six cases and returned a <code>source</code> drawn from <code>{'global_override', 'workspace_override', 'local', 'workspace', 'global', 'default'}</code>:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>1. global tier OVERRIDE      → forced (admin policy)
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>2. workspace tier OVERRIDE   → forced (workspace-wide policy)
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>3. local SET                 → per-node/per-instance override
@@ -3016,7 +3052,7 @@
 <p>Below the (now-removed) force tier, the relative order of local vs workspace vs global is unchanged: old steps 3/4/5/6 become new 1/2/3/4. A graph with no OVERRIDE on disk resolves <strong>identically</strong> before and after this change.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Lost capability:</strong> an admin can no longer force a value that beats per-node overrides. The workspace and global tiers are "defaults," never "forces"; the per-node local override always wins over both. This is a deliberate reversal of a documented decision, hence this ADR.</li>
+<li><strong>Lost capability:</strong> an admin can no longer force a value that beats per-node overrides (deliberate reversal of the documented capability above, hence this ADR).</li>
 <li><strong>Forward compatibility:</strong> a legacy <code>{ override = true, value = X }</code> TOML inline-table left over from a pre-collapse file still loads — <code>_parse_config_dict</code> reads it as a plain <em>set</em> of <code>X</code> and ignores the <code>override</code> flag (<code>registry.py</code>). <code>save_to_toml</code> now writes bare values only.</li>
 <li><strong>Simpler everywhere:</strong> resolution drops from six cases to four; the TOML format loses its inline-table variant; every consumer reasons about set-or-unset instead of a three-way mode. <code>SettingsTestContext</code> loses <code>set_override</code> (an OVERRIDE no longer differs from a set).</li>
 <li><strong>Supersedes</strong> the six-tier model previously documented in <code>architecture/settings/settings-arch.md</code> §1–4 (rewritten to the collapsed model).</li>
@@ -3028,6 +3064,9 @@
 
 
 
+
+  
+  
 
 
 

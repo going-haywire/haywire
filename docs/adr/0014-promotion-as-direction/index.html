@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Promotion is a field plus a PortType direction; a setting and its promoted port share one cell as two views (superseded in part by ADR 0019)">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3021,7 +3058,6 @@
 
 
 <h1 id="promotion-is-a-field-a-direction-a-setting-and-a-promoted-port-are-one-cell-two-views">Promotion is a field + a direction; a setting and a promoted port are one cell, two views<a class="headerlink" href="#promotion-is-a-field-a-direction-a-setting-and-a-promoted-port-are-one-cell-two-views" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
 <blockquote>
 <p>The binding-signal <em>mechanism</em> originally recorded here (synthetic <code>setting__…</code> port id,
 id-as-binding-key, per-write <code>_set_keys</code> marking) was later replaced. The current mechanism
@@ -3034,7 +3070,7 @@ superseded by <a href="../0019-settings-owned-promotion/">ADR 0019</a></strong> 
 promotion state now lives in <code>Settings._promoted_keys</code>, and a promoted port is no longer
 serialized in the ports block at all.</p>
 </blockquote>
-<p>Promoting a setting used to mean "create a separate DATA inlet and bridge reads back to it." The inlet owned its own <code>DataField</code>; the setting descriptor carried a <code>_promoted_port_id</code> back-reference; and <code>setting.__get__</code> had a <em>read-tier branch</em> that, when the named port was linked, returned <code>port.get_value()</code> instead of resolving the setting. That is a <strong>two-value</strong> design — the port has one value, the setting resolves another, and a bridge forwards reads. This ADR records replacing it with <strong>reference-sharing</strong>: a promoted port borrows the setting's <a href="../0013-settings-single-cell/">P4 cell</a> <em>by reference</em> (via a new <code>DataPort.bind_field</code>), so a setting and its promoted port are <strong>one cell, two views</strong> — there is no second value, no <code>_promoted_port_id</code>, and no read-tier bridge. It is plan <strong>P5</strong>, the final plan of the settings↔DataField unification arc (canonical-key → tier-collapse → JSON → single-cell → <strong>promotion-as-direction</strong>), and it completes the arc.</p>
+<p>Promoting a setting used to mean "create a separate DATA inlet and bridge reads back to it" — a <strong>two-value</strong> design where the port has one value, the setting resolves another, and a bridge forwards reads. This ADR records replacing it with <strong>reference-sharing</strong>: a promoted port borrows the setting's <a href="../0013-settings-single-cell/">P4 cell</a> <em>by reference</em> (via a new <code>DataPort.bind_field</code>), so a setting and its promoted port are <strong>one cell, two views</strong> — there is no second value, no <code>_promoted_port_id</code>, and no read-tier bridge. It is plan <strong>P5</strong>, the final plan of the settings↔DataField unification arc (canonical-key → tier-collapse → JSON → single-cell → <strong>promotion-as-direction</strong>), and it completes the arc.</p>
 <h2 id="context-a-second-cell-and-a-read-tier-bridge">Context — a second cell and a read-tier bridge<a class="headerlink" href="#context-a-second-cell-and-a-read-tier-bridge" title="Permanent link">&para;</a></h2>
 <p>The Plan-3 (P4-era) promotion design carried the value in two places:</p>
 <ul>
@@ -3086,6 +3122,9 @@ serialized in the ports block at all.</p>
 
 
 
+
+  
+  
 
 
 

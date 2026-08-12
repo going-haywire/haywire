@@ -73,19 +73,11 @@
          <lastmod>2026-08-12</lastmod>
     </url>
     <url>
-         <loc>https://going-haywire.github.io/haywire/docs/adr/0021-watch-as-shadow-preset/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0022-graph-settings-tier/</loc>
          <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0023-project-scoped-lockstep-sharing/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
-         <loc>https://going-haywire.github.io/haywire/docs/adr/0024-library-metadata-single-source/</loc>
          <lastmod>2026-08-12</lastmod>
     </url>
     <url>
@@ -281,6 +273,10 @@
          <lastmod>2026-08-12</lastmod>
     </url>
     <url>
+         <loc>https://going-haywire.github.io/haywire/docs/reference/doc-authoring/</loc>
+         <lastmod>2026-08-12</lastmod>
+    </url>
+    <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/glossary/</loc>
          <lastmod>2026-08-12</lastmod>
     </url>
@@ -302,26 +298,6 @@
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/files/pyproject-toml/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
-         <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-08-library-metadata-foundation/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
-         <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-09-filewatcher-extension-filter-to-dispatcher/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
-         <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-10-haybale-one-metadata-record-decisions/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
-         <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-10-haybale-one-metadata-record/</loc>
-         <lastmod>2026-08-12</lastmod>
-    </url>
-    <url>
-         <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-10-linked-libraries-detect-at-edit-time/</loc>
          <lastmod>2026-08-12</lastmod>
     </url>
     <url>

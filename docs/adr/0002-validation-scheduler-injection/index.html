@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3040,16 +3077,10 @@
 <li><code>HaystackState._on_entry_validation</code>, which sets <code>entry.unsaved = True</code> and <strong>broadcasts <code>GraphDataMutated</code></strong> through the session signal bus.</li>
 </ul>
 <p>The signal bus is documented as main-thread-only (<em>"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"</em>). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.</p>
-<p>In practice NiceGUI tolerates this: building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s. So the canvas visibly updated and nothing crashed — which is exactly why the off-thread-ness went unnoticed. But the tolerance is fragile and adds up to ~1 s of latency, because the cross-thread <code>asyncio.Event.set()</code> that <em>should</em> wake the outbox immediately is not called thread-safely.</p>
+<p>In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread <code>asyncio.Event.set()</code> that should wake the outbox immediately is not called thread-safely.</p>
 <p>The key realization: <strong>the timer was never a concurrency mechanism — it was only a debounce.</strong> <code>_validate_batch</code> is pure synchronous CPU work (<code>build()</code>, <code>link()</code>, <code>_housekeeping()</code>) with no <code>await</code>, no I/O, and no concurrency requirement. Validation is triggered <em>only</em> by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.</p>
 <h2 id="why-injection-not-just-marshal-the-broadcast">Why injection, not "just marshal the broadcast"<a class="headerlink" href="#why-injection-not-just-marshal-the-broadcast" title="Permanent link">&para;</a></h2>
-<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as the primary fix because it treats a symptom:</p>
-<ul>
-<li>it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug;</li>
-<li>it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops;</li>
-<li>it fixes the signal path but not the canvas path.</li>
-</ul>
-<p>Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
+<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
 <h2 id="why-inject-not-import-nicegui-into-core">Why inject, not import NiceGUI into core<a class="headerlink" href="#why-inject-not-import-nicegui-into-core" title="Permanent link">&para;</a></h2>
 <p><code>ValidationManager</code> lives in <code>haywire-core</code>, which is deliberately framework-free — it has <strong>zero</strong> NiceGUI imports today. The alternative of importing <code>nicegui.core</code> directly into <code>ValidationManager</code> (to call <code>call_soon_threadsafe</code> / <code>ui.timer</code>) would invert that dependency: pure graph-validation logic would depend on the web UI framework.</p>
 <p>Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:</p>
@@ -3070,8 +3101,8 @@
 <p><code>SyncScheduler.schedule</code> runs <code>_validate_batch</code> <em>inside</em> the <code>schedule()</code> call, re-entrant under the manager's <code>RLock</code>. That batch clears <code>_pending_handle</code>, but then <code>_schedule_validation</code> would overwrite it with the (inert) handle the scheduler returned — leaving <code>pending_validation</code> reporting <code>True</code> when nothing is pending. <code>ValidationManager</code> guards this with a monotonic <code>_batch_generation</code> counter: it snapshots the generation before scheduling and only adopts the returned handle if the generation did not advance during <code>schedule()</code> (i.e. no inline batch ran). This keeps the synchronous path honest without special-casing scheduler types.</p>
 <h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
 <ul>
-<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level — see "Why injection, not just marshal the broadcast" above.</li>
-<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports). Rejected.</li>
+<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level: it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops.</li>
+<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).</li>
 <li><strong>Replace the debounce with a loop-native <code>ui.timer</code> everywhere, no abstraction.</strong> Forces a NiceGUI dependency on every <code>BaseGraph</code> construction, breaking headless/test/CI use that has no running loop.</li>
 <li><strong>Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.</strong> Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.</li>
 </ul>
@@ -3088,6 +3119,9 @@
 
 
 
+
+  
+  
 
 
 

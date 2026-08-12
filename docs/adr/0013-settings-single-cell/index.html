@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="A setting's per-instance value moves from an untyped local-store dict into a per-field DataField cell, the same cell model a port uses">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3021,7 +3058,6 @@
 
 
 <h1 id="a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model">A setting's per-instance value lives in a per-field DataField cell (single-cell model)<a class="headerlink" href="#a-settings-per-instance-value-lives-in-a-per-field-datafield-cell-single-cell-model" title="Permanent link">&para;</a></h1>
-<p><strong>Status:</strong> Accepted.</p>
 <p>A <code>Settings</code> instance's per-field value used to live in an untyped <code>_local_store: dict[str, Any]</code>, and the <code>setting</code> descriptor ran in one of two modes: a <em>simple</em> mode that read/wrote <code>_local_store</code> by attribute name, and an <em>extended</em> mode (registry injected) that walked the resolution chain and, for a local override, recomputed the resolved value on every read. The UI bridged this with a throwaway <code>DataField</code> in <code>SettingWidgetModel</code> that it copied values into and out of. This ADR records replacing <code>_local_store</code> with a per-field <strong><code>DataField</code> cell</strong> — the same cell a port uses — so a setting and a port become two views of one value. It is plan <strong>P4</strong> of the settings↔DataField unification arc (canonical-key → tier-collapse → TOML→JSON → <strong>single-cell</strong> → promotion-as-direction). P1 (canonical <code>storage_key</code>), P2 (tier collapse to set-or-unset), and P3 (<a href="../0012-settings-json-persistence/">ADR 0012</a>, TOML→JSON + the IType <code>to_dict</code>/<code>from_dict</code> seam) all landed first, and P4 builds on them.</p>
 <h2 id="context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read">Context — an untyped dict, a dual mode, and a recompute-on-read<a class="headerlink" href="#context-an-untyped-dict-a-dual-mode-and-a-recompute-on-read" title="Permanent link">&para;</a></h2>
 <p>Three things sat in the way of the "settings and ports are the same value" model:</p>
@@ -3034,12 +3070,12 @@
 <h2 id="decision">Decision<a class="headerlink" href="#decision" title="Permanent link">&para;</a></h2>
 <p>A setting's per-instance value lives in a per-field <code>DataField</code> cell on the bag, built lazily from the field's IType by <code>Settings._cell_for(descriptor)</code> and cached in <code>self._cells</code> keyed by <code>storage_key</code>.</p>
 <ul>
-<li><strong><code>cell ?? default</code> resolution.</strong> <code>setting.__get__</code> returns the cell value when the field is locally set, else the per-kind default (a plain literal, or <code>registry.resolve(...)</code> for a shadow/watch/extended field). The dual <code>_registry is None</code> mode collapses to one question — "is this field locally set?" — and the local-override case returns the cell's held value instead of re-resolving (recompute-on-read gone).</li>
+<li><strong><code>cell ?? default</code> resolution.</strong> <code>setting.__get__</code> returns the cell value when the field is locally set, else the per-kind default (a plain literal, or <code>registry.resolve(...)</code> for a shadow/watch/extended field) — one question ("is this field locally set?") replaces the dual mode, and the local-override case returns the cell's held value instead of re-resolving (recompute-on-read gone).</li>
 <li><strong><code>_set_keys</code> carries the opinion.</strong> A <code>DataField</code> always holds <em>a</em> value (its default), so cell membership can't encode "overridden" the way dict membership did. <code>Settings._set_keys: set[str]</code> records the set-or-unset opinion explicitly — the same set-or-unset shape P2 gave the registry tiers. <code>__set__</code>/<code>from_dict</code> add the <code>storage_key</code>; <code>reset</code> discards it; <code>is_locally_set(name)</code> ⇔ membership. Set-ness is never inferred from <code>cell.get_value() != default</code> (that would misread "set to the default on purpose" and re-introduce the phantom-override bug P2 fixed at the tier level).</li>
 <li><strong>The cell-mutation spine.</strong> No <em>structural</em> action resets a cell. Its <strong>value</strong> returns to default only on an explicit <code>reset()</code> (or, in P5, an edge-drive); <code>reset</code> clears <code>_set_keys</code> and calls <code>cell.reset()</code> but never removes the cell. This stable identity is what a future port binds to.</li>
 <li><strong>Registry tiers unchanged.</strong> The global/workspace tiers, <code>save_to_json</code>/<code>load_from_json</code>, and <code>persistent_setting</code>'s registry write are untouched (P2/P3). Only the <em>instance-local</em> store changed.</li>
 <li><strong>Wire shape preserved.</strong> <code>bag.to_dict()</code> still emits <code>{attr_name: bare_value}</code> per locally-set field (via <code>cell.get_value()</code>, not the IType <code>to_dict</code> dict), and <code>from_dict</code> writes each value back into the cell. Existing saved graphs load unchanged; complex ITypes round-trip losslessly because the <em>cell</em> guarantees the IType round-trip.</li>
-<li><strong>Object-typed escape hatch.</strong> A field with no IType (<code>_type is object</code>) can't build a cell, so <code>_cell_for</code> returns <code>None</code> and those fields fall back to a narrow <code>_plain: dict</code>. <code>SettingDescriptor.__set_name__</code> enforces an IType on every declared field, so <code>_plain</code> stays empty in practice — it is defensive, not a revived general store. <em>(Since removed: settings were committed to as IType-only, <code>_plain</code> was deleted, and <code>_cell_for</code> now raises for a non-IType descriptor.)</em></li>
+<li><strong>Object-typed escape hatch — since removed.</strong> A field with no IType (<code>_type is object</code>) originally fell back to a narrow <code>_plain: dict</code> when <code>_cell_for</code> couldn't build a cell; <code>SettingDescriptor.__set_name__</code> enforced an IType on every declared field, so <code>_plain</code> stayed empty in practice. Settings were then committed to as IType-only: <code>_plain</code> was deleted, and <code>_cell_for</code> now raises for a non-IType descriptor (confirmed current — <code>settings.py:280-286</code>).</li>
 </ul>
 <h2 id="coordination-with-decisionsmd-d">Coordination with DECISIONS.md §D<a class="headerlink" href="#coordination-with-decisionsmd-d" title="Permanent link">&para;</a></h2>
 <p><code>settings-datafield-unification-DECISIONS.md</code> §D-A says a tier should store the IType's <code>to_dict</code>, <code>resolve()</code> should return the <strong>raw serialized form</strong>, and the consuming <strong>field rehydrates via <code>from_dict</code></strong> into its cell. P3 deliberately deviated (<a href="../0012-settings-json-persistence/">ADR 0012</a>): the in-memory tier holds the <strong>live</strong> Python value and <code>resolve()</code> returns it live, with <code>to_dict</code>/<code>from_dict</code> only at the disk edge.</p>
@@ -3078,6 +3114,9 @@
 
 
 
+
+  
+  
 
 
 

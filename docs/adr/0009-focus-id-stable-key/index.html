@@ -6,7 +6,7 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="A Blueprint-inspired visual programming system — dual-flow control + data, library plugin model, hot-reload-first development.">
+        <meta name="description" content="Focus-related state keys on the stable Focus.id string, not the class object, to survive hot-reload class identity churn">
       
       
       
@@ -2473,6 +2473,8 @@
       
         
       
+        
+      
     
     
     
@@ -2605,6 +2607,41 @@
   
   
   
+    <li class="md-nav__item">
+      <a href="../../reference/doc-authoring/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Writing a doc page
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
     
     
       
@@ -2631,10 +2668,10 @@
         
           
         
-        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_4" >
+        <input class="md-nav__toggle md-toggle md-toggle--indeterminate" type="checkbox" id="__nav_7_5" >
         
           
-          <label class="md-nav__link" for="__nav_7_4" id="__nav_7_4_label" tabindex="0">
+          <label class="md-nav__link" for="__nav_7_5" id="__nav_7_5_label" tabindex="0">
             
   
   
@@ -2652,8 +2689,8 @@
             <span class="md-nav__icon md-icon"></span>
           </label>
         
-        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_4_label" aria-expanded="false">
-          <label class="md-nav__title" for="__nav_7_4">
+        <nav class="md-nav" data-md-level="2" aria-labelledby="__nav_7_5_label" aria-expanded="false">
+          <label class="md-nav__title" for="__nav_7_5">
             <span class="md-nav__icon md-icon"></span>
             
   
@@ -3025,15 +3062,13 @@ same id on hot-reload.</p>
 <h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
 <ul>
 <li><strong>Store <code>self._active_focus: type[Focus]</code> (hold the class object directly).</strong>
-  Rejected — this is the reload hazard above made concrete: after a hot-reload
-  of the focus-declaring library, the editor's held class no longer matches the
-  superseded class from the registry, so <code>_active_focus</code> resolves to "no match"
-  and the active tab silently resets to the default focus on every such reload.
-  The marginal IDE-navigation / refactor-rename upside does not justify
-  reintroducing a stale-class-reference bug — the same failure class that
-  <code>LibraryIdentity.dependencies</code> and the <code>_FOCUS_BY_ID</code> supersede logic exist to
-  prevent. (This was proposed as a "Phase 3" follow-up in the panel-system
-  handoff doc and rejected on review against the code.)</li>
+  Rejected — triggers the reload hazard above directly: the active tab silently
+  resets to the default focus on every hot-reload of the focus-declaring
+  library, since the held class never matches the superseded one the registry
+  now hands out. The marginal IDE-navigation / refactor-rename upside does not
+  justify reintroducing a stale-class-reference bug — the same failure class
+  that <code>LibraryIdentity.dependencies</code> and the <code>_FOCUS_BY_ID</code> supersede logic
+  exist to prevent.</li>
 <li><strong><code>NewType("FocusId", str)</code> for compile-time protection.</strong> Not adopted — the
   id flows only through three private methods in a single file, all already
   typed <code>str</code>; the wrapper buys little over the current typing and adds
