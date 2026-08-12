@@ -1,3 +1,10 @@
+---
+name: compatibility-warnings
+description: Compatibility warnings are a durable, append-only, node-keyed extension contract that flags version drift without ever failing is_valid()
+status: accepted
+level: architectural
+---
+
 # Compatibility Warnings are advisory-only, append-only, and node-keyed
 
 **Context.** Graphs are deserialized purely from the saved spec; node `init()`

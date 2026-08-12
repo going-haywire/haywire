@@ -1,6 +1,11 @@
-# Persist settings as JSON; serialize each tier value through its IType at the disk edge
+---
+name: settings-json-persistence
+description: Settings persistence switches from TOML to JSON, serializing each tier value through its declared IType's to_dict/from_dict at the disk edge
+status: accepted
+level: architectural
+---
 
-**Status:** Accepted.
+# Persist settings as JSON; serialize each tier value through its IType at the disk edge
 
 The settings registry used to persist both tiers as TOML, writing the raw Python value per key with `toml.dump`. This ADR records swapping that persistence to **JSON** and serializing each tier value through its declared IType's `to_dict`/`from_dict` **at the disk edge**, so complex ITypes (`COLOR`, the six `VEC*` types) round-trip losslessly instead of being mangled or silently reset. This is plan **P3** of the settings↔DataField unification arc (canonical-key → tier-collapse → **TOML→JSON** → single-cell → promotion-as-direction).
 

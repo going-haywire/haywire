@@ -1,3 +1,10 @@
+---
+name: semantic-slot-names
+description: Replace positional-string AppShell slot identifiers with the semantic SlotName StrEnum as a clean break, no migration shim
+status: accepted
+level: architectural
+---
+
 # Rename workspace slots to semantic `SlotName` members, clean break
 
 The four AppShell slots were identified by positional strings — `left`, `right`, `main`, `bottom` — scattered as bare literals across the `@editor(default_slot=...)` decorator, `EditorIdentity`, the workspace JSON persistence, the drag-resize JS bridge, and the docs. We replaced them with a semantic `StrEnum`, `SlotName` (`ACTION` / `CONTEXT` / `EDIT` / `INFO`), made it the single source of truth for both the wire value and the human label, and did so as a **clean break with no migration shim**. This required raising the repo's Python floor to 3.11.

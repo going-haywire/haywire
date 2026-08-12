@@ -1,6 +1,12 @@
-# Promotion is a field + a direction; a setting and a promoted port are one cell, two views
+---
+name: promotion-as-direction
+description: Promotion is a field plus a PortType direction; a setting and its promoted port share one cell as two views (superseded in part by ADR 0019)
+status: accepted
+see-also: ADR-0018, ADR-0019
+level: architectural
+---
 
-**Status:** Accepted.
+# Promotion is a field + a direction; a setting and a promoted port are one cell, two views
 
 > The binding-signal *mechanism* originally recorded here (synthetic `setting__…` port id,
 > id-as-binding-key, per-write `_set_keys` marking) was later replaced. The current mechanism

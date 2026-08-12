@@ -1,3 +1,10 @@
+---
+name: haybale-marketplace-carveout
+description: Library install/uninstall/enable/disable orchestrator and its editors move out of haywire-studio/haybale-studio into an optional haybale-marketplace library
+status: accepted
+level: architectural
+---
+
 # Carve out the library manager into `haybale-marketplace`
 
 The library install/uninstall/enable/disable orchestrator (`LibraryManager`) and its four editors (`library_browser_editor`, `library_overview_editor`, `library_component_editor`, `library_marketplace_dialog`) move out of `haywire-studio` + `haybale-studio` into a new optional library `haybale-marketplace`. The carve-out closes a loop the marketstall spec (§3.1, §17) already anticipated: `haywire.core.marketstall` is the runtime, `haybale-marketplace` will be the consumer-facing plugin that drives it.

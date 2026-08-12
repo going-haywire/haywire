@@ -1,3 +1,10 @@
+---
+name: show-widget-strategy
+description: ShowWidgetStrategy enum gives each DataPort explicit per-direction control over inline widget visibility vs. link state, replacing one hardcoded rule
+status: accepted
+level: architectural
+---
+
 # `ShowWidgetStrategy` — per-port control of widget visibility vs. link state
 
 A `DataPort` may carry an inline editing **widget** (a slider, a text field, a dict editor). Until now the node skin decided whether to render that widget with one hardcoded rule:

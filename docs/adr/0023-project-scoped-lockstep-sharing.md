@@ -1,3 +1,10 @@
+---
+name: project-scoped-lockstep-sharing
+description: The share wizard publishes a project, not a single library — every barn/* library is versioned in lockstep and tagged together
+status: accepted
+level: architectural
+---
+
 # Project-scoped lockstep sharing
 
 The share wizard publishes a **project**, not a library: it versions every

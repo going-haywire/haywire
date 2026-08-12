@@ -1,3 +1,11 @@
+---
+name: haybale-toml-is-canon
+description: Every piece of descriptive library metadata is authored in one haybale.toml file inside the package directory, read from disk at the point of use
+status: accepted
+supersedes: ADR-0024 (removed; content folded in above)
+level: architectural
+---
+
 # `haybale.toml` is canon for library metadata
 
 Every piece of descriptive library metadata is authored in **one** file, which
@@ -17,9 +25,14 @@ barn/haybale-core/haybale_core/haybale.toml
 
 ## Why the previous split could not work
 
-[ADR 0024](0024-library-metadata-single-source.md) put the PEP 621 fields in
-`[project]` and had the decorator read them back through `importlib.metadata`.
-That removed the duplication, but inherited a defect it could not fix:
+An earlier design put the PEP 621 fields in `[project]` and had the decorator
+read them back through `importlib.metadata`, splitting metadata across two
+files by whether hatchling's standard packaging machinery already covered a
+field or it was Haywire-specific (`id`, `label`, `linked_libraries`,
+`on_reload`, `file_watcher`, `os`, `examples_path`, `tests_path`). That removed
+an even earlier duplication (the same field authored separately in
+`pyproject.toml` and the `@library(...)` decorator, which had already drifted
+in-tree between the two) but inherited a defect it could not fix:
 
 **Distribution metadata is written once, at install time.**
 `site-packages/<dist>.dist-info/METADATA` does not change when
@@ -32,10 +45,11 @@ became visible. That is what forced editing out of a modal and into the Share
 wizard, and why the library overview's Edit dialog was deleted. The cost was
 paid to work around the *read path*, not to solve the duplication.
 
-`[tool.haywire]` cannot substitute: it does not survive into an installed wheel
-either, which is why ADR 0024 rejected it. A file inside the package directory
-does survive — verified by building `haybale-testing` and unzipping the wheel —
-and can be read from disk at runtime.
+`[tool.haywire]` cannot substitute: it does not survive into an installed
+wheel either — no barn library force-includes `pyproject.toml`, so
+`dist.files` for an installed haybale contains none. A file inside the
+package directory does survive — verified by building `haybale-testing` and
+unzipping the wheel — and can be read from disk at runtime.
 
 ## What this buys
 
@@ -105,12 +119,13 @@ built once, so a value read through it is only as fresh as the last reload.
 
 ## Alternatives considered
 
-**Keep ADR 0024 and accept the reload.** Rejected: the reload is the cost, not a
-side effect. Every consequence 0024 accepted — editing moved into the wizard,
-the Edit dialog deleted, a restart offer after each save — followed from it.
+**Keep the `[project]`/decorator split and accept the reload.** Rejected: the
+reload is the cost, not a side effect. Editing moved into the wizard, the Edit
+dialog deleted, a restart offer after each save — all followed from accepting
+it.
 
-**`[tool.haywire]` in pyproject.** Rejected by 0024 and still correct: it does
-not reach an installed wheel, so the fields would be publish-time only.
+**`[tool.haywire]` in pyproject.** Rejected: it does not reach an installed
+wheel, so the fields would be publish-time only.
 
 **A file outside the package directory.** Rejected: only what is inside the
 package ships in the wheel, which is the entire mechanism.
@@ -119,4 +134,3 @@ package ships in the wheel, which is the entire mechanism.
 
 - Design: `internals/plans/2026-08-09-haybale-toml-field-canon.md`
 - Implementation plan: `internals/plans/2026-08-09-haybale-toml-implementation.md`
-- Supersedes: [ADR 0024](0024-library-metadata-single-source.md)

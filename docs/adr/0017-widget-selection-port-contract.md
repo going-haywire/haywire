@@ -1,6 +1,9 @@
 ---
+name: widget-selection-port-contract
+description: A setting field's widget_key/widget_config is stamped once at descriptor-creation time and read identically by every rendering surface
 status: accepted
 see-also: ADR-0013, ADR-0014
+level: architectural
 ---
 
 # Widget selection is a port contract: one stamped `widget_key`/`widget_config`, options per-use

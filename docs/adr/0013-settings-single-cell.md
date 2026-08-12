@@ -1,6 +1,11 @@
-# A setting's per-instance value lives in a per-field DataField cell (single-cell model)
+---
+name: settings-single-cell
+description: A setting's per-instance value moves from an untyped local-store dict into a per-field DataField cell, the same cell model a port uses
+status: accepted
+level: architectural
+---
 
-**Status:** Accepted.
+# A setting's per-instance value lives in a per-field DataField cell (single-cell model)
 
 A `Settings` instance's per-field value used to live in an untyped `_local_store: dict[str, Any]`, and the `setting` descriptor ran in one of two modes: a *simple* mode that read/wrote `_local_store` by attribute name, and an *extended* mode (registry injected) that walked the resolution chain and, for a local override, recomputed the resolved value on every read. The UI bridged this with a throwaway `DataField` in `SettingWidgetModel` that it copied values into and out of. This ADR records replacing `_local_store` with a per-field **`DataField` cell** — the same cell a port uses — so a setting and a port become two views of one value. It is plan **P4** of the settings↔DataField unification arc (canonical-key → tier-collapse → TOML→JSON → **single-cell** → promotion-as-direction). P1 (canonical `storage_key`), P2 (tier collapse to set-or-unset), and P3 ([ADR 0012](0012-settings-json-persistence.md), TOML→JSON + the IType `to_dict`/`from_dict` seam) all landed first, and P4 builds on them.
 

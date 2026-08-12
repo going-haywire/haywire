@@ -1,5 +1,8 @@
 ---
+name: widget-unification-basewidget
+description: Collapse SimpleWidget and BaseWidget into one canonical BaseWidget with a build() floor and bind() sugar every widget author extends
 status: accepted
+level: architectural
 ---
 
 # Widget unification — one canonical `BaseWidget` with a floor + `bind()` sugar

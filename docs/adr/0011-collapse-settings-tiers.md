@@ -1,6 +1,11 @@
-# Collapse the settings resolution model to highest-priority-set-wins; drop OVERRIDE / SettingMode
+---
+name: collapse-settings-tiers
+description: Settings resolution collapses from a six-case mode chain to highest-priority-set-tier-wins; SettingMode and OVERRIDE are removed
+status: accepted
+level: architectural
+---
 
-**Status:** Accepted.
+# Collapse the settings resolution model to highest-priority-set-wins; drop OVERRIDE / SettingMode
 
 The settings resolver used to evaluate a six-case chain with two *strengths* per tier. Each tier value was a `SettingValue(mode, value)` where `mode ∈ {INHERIT, EXPLICIT, OVERRIDE}`: `INHERIT` meant "unset," `EXPLICIT` meant "set," and `OVERRIDE` meant "forced — beats everything below, including a per-node local value." This ADR records collapsing that model down to **highest-priority *set* tier wins**: `OVERRIDE` and the `SettingMode` enum are removed, and a tier value is now simply *set* or *unset* (`SettingValue.is_set`). This is plan **P2** of the settings↔DataField unification arc (canonical-key → **tier-collapse** → TOML→JSON → single-cell → promotion-as-direction).
 

@@ -1,6 +1,9 @@
 ---
+name: settings-owned-promotion
+description: Promotion state lives in Settings._promoted_keys, not on the port; promoted ports are regenerated on load and never serialized
 status: accepted
 see-also: ADR-0014, ADR-0018
+level: architectural
 ---
 
 # Promotion state lives in Settings; promoted ports are regenerated on load, never serialized

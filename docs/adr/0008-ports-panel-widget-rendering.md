@@ -1,5 +1,8 @@
 ---
+name: ports-panel-widget-rendering
+description: Ports Panel becomes an always-on secondary surface rendering live port Widgets, mirroring the same visibility predicate the node skin uses
 status: accepted
+level: architectural
 ---
 
 # Ports Panel renders live port Widgets as an always-on secondary surface

@@ -1,5 +1,8 @@
 ---
+name: focus-id-stable-key
+description: Focus-related state keys on the stable Focus.id string, not the class object, to survive hot-reload class identity churn
 status: accepted
+level: architectural
 ---
 
 # Focus routing keys on the stable `Focus.id` string, not the class object

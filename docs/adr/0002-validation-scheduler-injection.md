@@ -1,3 +1,10 @@
+---
+name: validation-scheduler-injection
+description: Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread
+status: accepted
+level: architectural
+---
+
 # Inject the validation debounce scheduler instead of hardcoding `threading.Timer`
 
 `ValidationManager` (haywire-core) debounces graph validation: a burst of `mark_*_dirty` calls (a drag emitting many `NODE_MOVED`, a multi-node delete) is coalesced into a single `_validate_batch` pass. That debounce was implemented with a raw `threading.Timer`. This ADR replaces the hardcoded timer with an injected `ValidationScheduler`, so the *application* — not pure core — decides which thread the validation pass runs on. The default stays the legacy timer; the studio injects an event-loop scheduler.

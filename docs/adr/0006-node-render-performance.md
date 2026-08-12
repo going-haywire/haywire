@@ -1,3 +1,10 @@
+---
+name: node-render-performance
+description: Authoritative record of large-graph rendering perf work — measured root causes, upstream constraints, shipped optimizations, and declined levers
+status: accepted
+level: tactical
+---
+
 # Large-graph rendering & interaction performance
 
 Authoritative record of the graph-editor performance work: the measured root
@@ -50,10 +57,11 @@ against the installed `nicegui/static/nicegui.js` (3.12.1): NO vnode cache;
 `renderRecursively` rebuilds unconditionally. **Upgrading NiceGUI does not fix
 this.** No open upstream issue tracks a clean re-implementation. Implication: any
 Axis-B fix must be Haywire-side (reduce element count, or isolate the graph
-subtree from the root render). Separately, `helpers.expects_arguments` (an
-Axis-A hot spot, below) is also not cached on NiceGUI `main` as of 2026-06;
-upstream's guidance for large UIs is "render fewer elements," not per-element
-optimization (zauberzeug/nicegui#338, discussion #2876).
+subtree from the root render). Upstream's general guidance for large UIs is
+"render fewer elements," not per-element optimization (zauberzeug/nicegui#338,
+discussion #2876) — `expects_arguments` (Axis A, decision 2 below) was the one
+exception: it was fixed upstream in NiceGUI 3.15, after being uncached on
+`main` as of 2026-06.
 
 ## Diagnosis & measurements
 
@@ -118,26 +126,16 @@ Vue↔Python ownership boundary.
    200-node graph (~12 %). User-confirmed felt improvement — first practical
    validation of the element-count → cost thesis.
 
-2. **`expects_arguments` cached at startup** (this session;
-   `haywire.ui.nicegui_patches`, applied from `HaywireApp.__init__` before any
-   render). A **bounded** `functools.lru_cache(maxsize=1024)` over the pure
-   introspection. Guarded: raises at startup if the NiceGUI internal moves/
-   renames, rather than silently reverting. Measured: real-app render 2.72 s →
-   2.18 s (~1.25×). Attacks Axis A CPU.
-
-   *Bounded, not unbounded — corrected after maintainer review.* The first
-   version used `maxsize=None`. The NiceGUI maintainer pointed out (reviewing our
-   upstream proposal) that this leaks: the cache key is the handler object, and
-   the handlers are NOT a small fixed set — the observable `_update` handlers are
-   bound methods (one per Props/Style/Classes instance → one key per element per
-   collection), and `handle_event` also dispatches every user `on_click`/
-   `on_change` lambda. An unbounded cache pins each handler, and through bound
-   methods their elements, for the process lifetime → unbounded growth on a
-   long-running server. A `WeakKeyDictionary` does not help (bound methods are
-   recreated per access, so weak keys evict before they hit). A bounded cache is
-   leak-free and loses nothing: per-element fires are consecutive, so a small
-   bound captures them — measured, every `maxsize` from 4 to None gave the same
-   73% hit rate and ~1.4× speedup on the 200-node graph.
+2. **~~`expects_arguments` cached at startup~~ — removed, fixed upstream (2026-08-12).**
+   Shipped as a bounded `functools.lru_cache(maxsize=1024)` monkeypatch
+   (`haywire.ui.nicegui_patches`) over `helpers.expects_arguments`, worth
+   ~1.25× on Axis A CPU. NiceGUI 3.15 resolved `expects_arguments` once at
+   handler-registration time instead of per-fire — the exact upstream fix
+   anticipated below — making the local patch redundant. Removed in
+   `843b218d`; the module and its `HaywireApp.__init__` hookup are gone. Kept
+   here only as a pointer: if a future NiceGUI regression reopens this cost,
+   the bounded-cache approach and its leak pitfall (below) are the known-good
+   shape to reach for again.
 
 3. **Lazy pin tooltips** (this session; `NodeSkin._add_pin_tooltip`). The tooltip
    (3 elements) is built on the pin's first `mouseenter` rather than at render,
@@ -150,16 +148,19 @@ Combined, graph-open dropped from ~2.7 s toward ~1.4 s.
 
 ## Rationale for the tricky choices
 
-**Patching a vendored internal (`expects_arguments`).** Not cached upstream; the
-win is unavailable any other way short of forking. Bounded (see decision 2) to
-avoid the handler-pinning leak. The guard keeps it safe across version bumps.
-The long-term fix is NOT a cache at all: the NiceGUI maintainer's preferred
-resolution (on review of our proposal) is to resolve `expects_arguments` ONCE at
-handler-registration time and store the bool on the handler — mirroring
-`Callback.expect_args` in `nicegui/event.py`, which the Event system already
-does — so `_handle_change` reads a stored flag with no per-fire introspection.
-That is leak-free and the right upstream home. Our bounded cache is the local
-bridge until that lands; remove it then.
+**Patching a vendored internal (`expects_arguments`), while it was live.** Not
+cached upstream at the time; the win was unavailable any other way short of
+forking. Bounded to avoid a handler-pinning leak — the cache key is the
+handler object, and handlers are bound methods recreated per element/
+collection, so an unbounded cache (the first version, using `maxsize=None`)
+pinned every handler and its element for the process lifetime. A
+`WeakKeyDictionary` did not help (bound methods are recreated per access, so
+weak keys evict before they hit); a bounded cache lost nothing since
+per-element fires are consecutive (measured: every `maxsize` from 4 to `None`
+gave the same 73% hit rate and ~1.4× speedup). The guard raised at startup if
+the NiceGUI internal moved/renamed, rather than silently reverting. This was
+always framed as a bridge, not a destination — see decision 2 above for the
+upstream fix that made it removable.
 
 **`no-parent-event` + explicit show/hide for tooltips.** A tooltip built on
 `mouseenter` mounts *after* the event fired, so Quasar's hover listener misses
@@ -172,8 +173,6 @@ option; mirrors how `node_menu_builder` drives flyouts explicitly on hover.
 
 - First hover of a given pin pays a server round-trip to build+show its tooltip
   (subsequent hovers instant). Consistent with existing hover-built UI. Accepted.
-- The `expects_arguments` patch is a startup monkeypatch of a third-party
-  internal — flagged in code with a guard and a removal condition.
 - Measurement instruments retained as `perf` tests for re-measuring future
   changes against the same reference graph.
 - Mount lifecycle facts for any future culling work: nodes mount in

@@ -1,3 +1,10 @@
+---
+name: event-source-queue-mode
+description: queue_mode/max_queue_size move onto EventSource so an EVENT node can opt into DROP semantics instead of the hardcoded BLOCK scheduler queue
+status: accepted
+level: architectural
+---
+
 # Carry queue mode on the EventSource so a flow can drop stale triggers (realtime)
 
 A live `camera → estimator → annotate` pipeline lags behind realtime: the camera emits frames faster than synchronous inference consumes them, and the displayed frame falls progressively behind. The frames are not buffered in any node — they queue in the **flow scheduler's** trigger queue. The scheduler already supports two queue modes (`QueueMode.BLOCK`, `QueueMode.DROP`), but `queue_mode` was **hardcoded to `BLOCK`** at the one place schedulers are built (`Interpreter._register_flow`, `interpreter.py:218`), so no node, library, or setting could select DROP. This ADR makes the mode selectable **per EVENT node**, carried on the node's `EventSource`, defaulting to `BLOCK` everywhere except the camera `Frame Event` node.

@@ -1,6 +1,11 @@
-# Graphs own a settings tier: GraphSettings, chained mirrors, framework < graph < node
+---
+name: graph-settings-tier
+description: A fourth Settings flavour, GraphSettings, adds a graph-scoped tier between framework and node, resolved through a chained mirror
+status: accepted
+level: architectural
+---
 
-**Status:** Accepted.
+# Graphs own a settings tier: GraphSettings, chained mirrors, framework < graph < node
 
 Settings came in three flavours — `FrameworkSettings`/`LibrarySettings` (persistent, resolved through the registry's workspace/global tiers) and `NodeSettings` (per-node-instance, serialized with the graph). A graph author who wanted every node in one graph to default to a particular skin had no graph-scoped place to say so: either change the framework default (affects every graph) or override the skin on each node individually. `settings-arch.md` §10 listed a "per-graph settings tier" as an open question. This ADR records the fourth flavour that answers it, plus the mirror mechanism the interposed field needed.
 

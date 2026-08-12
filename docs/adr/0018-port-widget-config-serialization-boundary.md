@@ -1,6 +1,9 @@
 ---
+name: port-widget-config-serialization-boundary
+description: widget_config callables are safe on a setting() (never serialized) but unsafe on a plain port, enforced by a construction-time cattrs check
 status: superseded-in-part by ADR-0019
 see-also: ADR-0014, ADR-0017, ADR-0019
+level: architectural
 ---
 
 # `widget_config` callables are safe on a `setting()`, unsafe on a plain port
