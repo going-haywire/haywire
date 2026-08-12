@@ -111,6 +111,8 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
             "requires-python": ">=3.12",
             "dependencies": [
                 f"haywire-studio{pin}",
+                # this makes sure the studio comes with a baseline set of haybale libraries
+                f"haybale-studio{pin}",
                 f"haybale-marketplace{pin}",
                 lib_name,
             ],
@@ -126,7 +128,7 @@ def _generate_project_pyproject(name: str, dev_repo: str | None = None) -> str:
     }
 
     if dev_repo:
-        data["project"]["dependencies"] += ["haybale-core", "haybale-studio"]
+        data["project"]["dependencies"] += ["haybale-core"]
         sources.update(
             {
                 "haywire-studio": {"path": f"{dev_repo}/packages/haywire-studio", "editable": True},

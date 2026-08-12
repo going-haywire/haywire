@@ -23,6 +23,9 @@ from haywire.ui.prefs.editor import EditorSettings
 
 from haywire.barn.builtin.focuses import AppFocus
 
+from haywire_studio.farmhand.settings import FarmhandSettings
+from haywire_studio.network.settings import NetworkSettings
+
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
@@ -100,9 +103,6 @@ class NetworkSettingsPanel(BasePanel):
         ctx: "SessionContext",
         layout: PanelLayout,
     ) -> None:
-        from haywire_studio.farmhand.settings import FarmhandSettings
-        from haywire_studio.network.settings import NetworkSettings
-
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(NetworkSettings, registry)
         render_schema(FarmhandSettings, registry)

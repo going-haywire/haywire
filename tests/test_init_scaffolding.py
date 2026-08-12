@@ -143,6 +143,20 @@ class TestProjectPyproject:
         assert f"haywire-studio{_release_pin()}" in deps
         assert "haybale-core>=1.0.0" not in deps
 
+    def test_studio_baseline_dependency(self, scaffold_project):
+        """The scaffold is the ONLY thing that guarantees a working studio.
+
+        haywire-studio deliberately does not depend on haybale-studio (that
+        edge closed a cycle — see .insights/project_app_library_dependency_direction.md),
+        so the studio_* farmhand baseline and the AppFocus settings panels
+        reach an install through this line alone. Drop it and a scaffolded
+        project starts with no settings panels and no MCP tools.
+        """
+        from haywire_studio.init import _release_pin
+
+        data = toml.loads((scaffold_project / "pyproject.toml").read_text())
+        assert f"haybale-studio{_release_pin()}" in data["project"]["dependencies"]
+
     def test_workspace_members(self, scaffold_project):
         data = toml.loads((scaffold_project / "pyproject.toml").read_text())
         assert data["tool"]["uv"]["workspace"]["members"] == ["barn/*"]

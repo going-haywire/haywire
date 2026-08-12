@@ -953,12 +953,14 @@ version = "0.1.1"
 source = { editable = "barn/haybale-studio" }
 dependencies = [
     { name = "haywire-core" },
+    { name = "haywire-studio" },
     { name = "nicegui" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "haywire-core", editable = "packages/haywire-core" },
+    { name = "haywire-studio", editable = "packages/haywire-studio" },
     { name = "nicegui", specifier = ">=3.12.1" },
 ]
 
@@ -1035,7 +1037,6 @@ version = "0.1.1"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
     { name = "fastapi" },
-    { name = "haybale-studio" },
     { name = "haywire-core" },
     { name = "jedi" },
     { name = "mcp" },
@@ -1047,7 +1048,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "fastapi" },
-    { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "jedi", specifier = ">=0.19" },
     { name = "mcp", specifier = ">=1.28,<2" },
