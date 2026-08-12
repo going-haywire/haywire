@@ -115,13 +115,13 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 
 ## 4. Live examples from the codebase
 
-**DATA node — `MathOP`** from [`example:node:MathOP`](../../../barn/haybale-example/haybale_example/nodes/math_op.py). Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:
+**DATA node — `MathOP`** from `barn/haybale-example/haybale_example/nodes/math_op.py`. Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:
 
 ```python
 --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:math_op_class"
 ```
 
-**Dynamic ports — `DynamicPortTestNode`** from [`testing:node:DynamicPortTestNode`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py). Demonstrates `on_change` triggering a `hb_*` helper, `with self.rejig(include=...)` for pattern-matched port replacement, and building dynamic port sets in a helper method:
+**Dynamic ports — `DynamicPortTestNode`** from `barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py`. Demonstrates `on_change` triggering a `hb_*` helper, `with self.rejig(include=...)` for pattern-matched port replacement, and building dynamic port sets in a helper method:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:dynamic_port_test_node"

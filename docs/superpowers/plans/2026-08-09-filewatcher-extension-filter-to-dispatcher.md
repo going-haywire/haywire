@@ -22,7 +22,7 @@ the router; (3) replace the callback with an adapter registry.
 
 ## Source Documents
 
-- Handoff: [filewatcher-extension-filter-belongs-in-the-dispatcher.md](../../../internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md)
+- Handoff: filewatcher-extension-filter-belongs-in-the-dispatcher.md
 - The handoff's design A (per-mapping `extensions=` tuple) was considered and
   rejected there; this plan does not revisit it.
 
@@ -43,18 +43,18 @@ plan depends on the correction. Both must be fixed in the note itself (Task 0).
 **1. `event_dispatcher` does NOT already guard itself.** The note says
 `_validate_python_file` makes the handler's `.py` test "a cheap pre-filter, not a
 correctness guarantee." It is not. At
-[folder_scan.py:194-206](../../../packages/haywire-core/src/haywire/core/registry/folder_scan.py#L194-L206)
+`folder_scan.py:194-206`
 the `try` wraps only the `open()`/`read()` for `OSError`. `ast.parse` sits **outside**
 it. Given a `.toml` or a `.png`, `ast.parse` raises, the exception propagates into
 `event_dispatcher`'s `except Exception` at
-[registry/base.py:437](../../../packages/haywire-core/src/haywire/core/registry/base.py#L437),
+`registry/base.py:437`,
 and that branch **manufactures a `CLASS_RELOAD_FAILED` lifecycle event** and pushes it
 to subscribers. A non-`.py` file reaching a registry today surfaces as a fake reload
 failure in the error ledger, not a quiet rejection.
 
 **2. `resolve_module_name` does not reliably yield an absent module.** The note claims
 a non-module "yields something absent from `sys.modules`." It strips the suffix via
-`.stem` ([folder_scan.py:186](../../../packages/haywire-core/src/haywire/core/registry/folder_scan.py#L186)),
+`.stem` (`folder_scan.py:186`),
 so `foo/nodes.toml` resolves to `pkg.foo.nodes` — colliding with the real `nodes.py`,
 which *is* in `sys.modules`. That is a live mis-reload of the wrong module.
 
@@ -72,7 +72,7 @@ sail into `_on_delete("pkg.haybale")`. The guard must sit at the **top** of
 **4. No import cycle; skip the `HotReloadRegistry` extraction.** The note hedges about
 moving `HotReloadRegistry` into `core/registry/hot_reload.py` to avoid a
 `library.base` → `registry.base` cycle. There is no cycle:
-[library/base.py:9-12](../../../packages/haywire-core/src/haywire/core/library/base.py#L9-L12)
+`library/base.py:9-12`
 already imports `BaseRegistry` and `FileEventType` from `registry.base`, and nothing in
 `registry/base.py` imports `library.base`. Subclass it in place. No module move, no
 compatibility re-export.
@@ -80,11 +80,11 @@ compatibility re-export.
 **5. Root fallback is the correct home for the adapter** (confirming the note, against
 an early doubt). `_get_matching_registries` gives folder mappings priority and
 exclusivity — if any folder mapping matches, root fallbacks are never consulted
-([file_watcher.py:124-125](../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L124-L125)).
+(`file_watcher.py:124-125`).
 That would starve a root-fallback adapter *if* a library registered its own root as a
 component folder. None do: every `register_components()` registers **subfolders**
 (`base_path / "nodes"`, `base_path / "types"`, …) — see
-[haybale_testing/__init__.py:34-78](../../../barn/haybale-testing/haybale_testing/__init__.py#L34-L78).
+`haybale_testing/__init__.py:34-78`.
 `haybale.toml` sits at the root, matches no folder mapping, and reaches the fallback.
 
 > **Invariant this introduces:** a library must never register its own root via
@@ -106,7 +106,7 @@ component folder. None do: every `register_components()` registers **subfolders*
 
 - [x] Rewrite the "Why it is still not right" and "B — drop the filter entirely"
       sections of
-      [internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md](../../../internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md)
+      internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md
       to carry corrections 1–5 above.
 - [x] Add a `**Superseded by:** docs/superpowers/plans/2026-08-09-filewatcher-extension-filter-to-dispatcher.md`
       line under **Status**.
@@ -122,7 +122,7 @@ Standalone bug fix. Green on its own, with the handler untouched.
 
 ### Task 1: `_validate_python_file` rejects instead of raising
 
-- [x] In [folder_scan.py:194](../../../packages/haywire-core/src/haywire/core/registry/folder_scan.py#L194),
+- [x] In `folder_scan.py:194`,
       return `False` for a non-`.py` suffix before reading, and wrap `ast.parse` in
       `except SyntaxError: return False`.
 
@@ -167,7 +167,7 @@ an author saving a broken file now gets a logged skip rather than a
 ### Task 2: Guard the top of `event_dispatcher`
 
 - [x] At the top of
-      [registry/base.py:366](../../../packages/haywire-core/src/haywire/core/registry/base.py#L366),
+      `registry/base.py:366`,
       before the `logger.info` and before `resolve_module_name`:
 
 ```python
@@ -208,7 +208,7 @@ Placement is not free choice — see correction 3. Before `resolve_module_name`,
 ### Task 5: Assert the root-is-not-a-component-folder invariant
 
 - [x] In `BaseLibrary.add_folder_to_registry`
-      ([library/base.py:197](../../../packages/haywire-core/src/haywire/core/library/base.py#L197)),
+      (`library/base.py:197`),
       raise if `Path(folder_path).resolve() == Path(self.identity.folder_path).resolve()`.
 
 Correction 5 shows the adapter's delivery depends on this holding. It holds today by
@@ -219,7 +219,7 @@ metadata refresh quietly never firing — into an error at registration.
 
 ### Task 6: Delete `.py` from the four callbacks
 
-- [x] [file_watcher.py:158](../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L158)
+- [x] `file_watcher.py:158`
       (`on_modified`), `:171` (`on_created`), `:184` (`on_deleted`), `:216-217`
       (`on_moved`) — remove the `endswith(".py")` tests.
 - [x] `on_moved` loses the `src_is_py`/`dest_is_py` split. The two branches are now
@@ -234,7 +234,7 @@ metadata refresh quietly never firing — into an error at registration.
 
 ### Task 7: Seed `_known_files` for all files, with exclusions
 
-- [x] [file_watcher.py:75](../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L75)
+- [x] `file_watcher.py:75`
       — `rglob("*.py")` becomes `rglob("*")`, filtered to files.
 
 `rglob("*")` on a library containing `.venv/`, `node_modules/`, or `__pycache__/`
@@ -254,7 +254,7 @@ _UNWALKED_DIRS = frozenset({"__pycache__", ".venv", "venv", "node_modules", ".gi
 
 ### Task 8: Quiet the downgrade log
 
-- [x] [file_watcher.py:178](../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L178)
+- [x] `file_watcher.py:178`
       — demote the CREATE→MODIFIED downgrade from `logger.info` to `logger.debug`.
 
 The handoff (line 135) suggests a filtered-extension list to log selectively. Prefer
@@ -290,7 +290,7 @@ non-Python events and must tolerate them. Note it in the commit body.
 
 ### Task 11: Add `_HaybaleTomlWatcher`
 
-- [x] In [library/base.py](../../../packages/haywire-core/src/haywire/core/library/base.py),
+- [x] In `library/base.py`,
       above `BaseLibrary`:
 
 ```python
@@ -324,7 +324,7 @@ class _HaybaleTomlWatcher(HotReloadRegistry):
 ### Task 12: Register it on the root fallback
 
 - [x] `_attach_to_registries`
-      ([library/base.py:303-309](../../../packages/haywire-core/src/haywire/core/library/base.py#L303-L309))
+      (`library/base.py:303-309`)
       — append `self._toml_watcher` to the registries list passed to `add_root_fallback`.
 
 DELETED events must keep the previous values (there is an existing test). The adapter
@@ -333,11 +333,11 @@ via `HaybaleTomlError` → warn → keep previous. Verify rather than assume.
 
 ### Task 13: Delete the callback mechanism
 
-- [x] `FileEventCallback` ([file_watcher.py:17-25](../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L17-L25))
+- [x] `FileEventCallback` (`file_watcher.py:17-25`)
 - [x] `LibraryFileHandler._claimed` (`:134-151`) and `self._on_file_event` (`:41`)
 - [x] the `_claimed` calls in `on_modified` (`:156`), `on_created` (`:169`), `on_moved` (`:213`)
 - [x] the `on_file_event` parameter on `LibraryFileHandler.__init__` and `FileWatcher.__init__` (`:315`)
-- [x] `BaseLibrary._on_watched_file` ([library/base.py:237-255](../../../packages/haywire-core/src/haywire/core/library/base.py#L237-L255))
+- [x] `BaseLibrary._on_watched_file` (`library/base.py:237-255`)
       and the `on_file_event=` argument at `:61`
 - [x] `FileEventType` import in `library/base.py` if now unused
 

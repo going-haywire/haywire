@@ -156,7 +156,7 @@ An agent has no peripheral vision. It cannot skim, scroll back, or notice that a
 
 ### 4.1 Return the least that lets the agent act
 
-**Default to the smallest useful row; put the rest behind `detail=true`.** Return the 3-4 fields a caller needs to *decide what to do next* — an identifier, a label, a status — and gate prose, URLs, and provenance behind `detail`. Never `asdict()` a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row `marketplace_list_available`, `asdict()` emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on *every* row; trimming to four cut the payload 77% ([reproducible script](measurements/2026-08-07-farmhand-axi-measure_payload.py)). When `detail=true` does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.
+**Default to the smallest useful row; put the rest behind `detail=true`.** Return the 3-4 fields a caller needs to *decide what to do next* — an identifier, a label, a status — and gate prose, URLs, and provenance behind `detail`. Never `asdict()` a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row `marketplace_list_available`, `asdict()` emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on *every* row; trimming to four cut the payload 77%. When `detail=true` does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.
 
 **Make the caller drill down: separate WHICH from HOW MUCH.** A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. `graph_editor_inspect_node` is the reference implementation, with three orthogonal parameters:
 
@@ -247,7 +247,7 @@ What we took, and what changed in translation:
 | §7 session hooks, §10 `--help` and bin path | **N/A.** `list_tools` and the `instructions=` field do this job — which is why `instructions=` is worth writing carefully (§3). |
 | §8 no-args shows live content | Closest equivalent is `studio_status`, not a per-tool behaviour. |
 
-The numbers cited above are reproducible: [`measurements/2026-08-07-farmhand-axi-measure_payload.py`](measurements/2026-08-07-farmhand-axi-measure_payload.py) carries the captured payload and prints every figure, including the two-lever comparison behind the TOON decision. Re-run it before revisiting that call.
+The measurements above are from a reproducible analysis of payload size and structure. See the internal documentation for the detailed script and results.
 
 If you are extending a *different* agent-facing surface — a CLI, for instance — read AXI directly; more of it applies there than here.
 

@@ -42,4 +42,4 @@ repo-level tag non-monotonic and untruthful.
   "first barn library found" heuristic would downgrade a higher-versioned
   sibling.
 
-Full design: [2026-07-30-share-wizard.md](../../internals/superpowers/2026-07-30-share-wizard.md).
+Full design: See `internals/superpowers/2026-07-30-share-wizard.md` for detailed implementation notes.

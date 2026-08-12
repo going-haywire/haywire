@@ -360,4 +360,4 @@ real case; a per-author map stays additive if co-authors ever want one.
 keep working. `source_url` is likewise accepted as a deprecated alias for
 `origin`.
 
-Full design: [2026-08-08-library-metadata-consolidation.md](../../internals/superpowers/2026-08-08-library-metadata-consolidation.md).
+Full design: See `internals/superpowers/2026-08-08-library-metadata-consolidation.md` for detailed implementation notes.

@@ -176,7 +176,7 @@ from haywire.core.session.signals import (
 
 ## 4. One comprehensive example
 
-The studio's `PropertiesEditor` ([studio:editor:PropertiesEditor](../../../barn/haybale-studio/haybale_studio/editors/properties_editor.py)) is the validation case for the panel-driven bus subscription model: it has **no** `@redraw_on` / `@react_on` decorators of its own. Instead, the framework unions the `redraw_on=` declarations from every **display** panel registered for each focus the editor exposes, and subscribes the editor's wrapper to that effective set. When any of those signals publishes, the wrapper redraws and the registered panels re-mount with fresh state. The editor *also* subscribes to the panel registry's batch lifecycle channel so it can reconcile its subscriptions when the catalog changes (library install / uninstall / panel hot-reload).
+The studio's `PropertiesEditor` (`barn/haybale-studio/haybale_studio/editors/properties_editor.py:PropertiesEditor`) is the validation case for the panel-driven bus subscription model: it has **no** `@redraw_on` / `@react_on` decorators of its own. Instead, the framework unions the `redraw_on=` declarations from every **display** panel registered for each focus the editor exposes, and subscribes the editor's wrapper to that effective set. When any of those signals publishes, the wrapper redraws and the registered panels re-mount with fresh state. The editor *also* subscribes to the panel registry's batch lifecycle channel so it can reconcile its subscriptions when the catalog changes (library install / uninstall / panel hot-reload).
 
 **Two-surface split.** The panel registry exposes two distinct query surfaces:
 

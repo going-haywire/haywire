@@ -229,7 +229,7 @@ The scale above governs haywire's own elements. Quasar brings its own layers tha
 
 **Do not lift unconditionally.** The QMenu teleports to `<body>`, so a lifted dropdown escapes its parent's stacking context entirely. A panel or node widget sitting *behind* a popup would have its dropdown float above that popup. Panels and widgets keep the default; only in-popup selects opt in.
 
-See [.insights/feedback_nicegui_nested_menu_flyouts.md](../../.insights/feedback_nicegui_nested_menu_flyouts.md) (#2) for the original diagnosis.
+See .insights/feedback_nicegui_nested_menu_flyouts.md (#2) for the original diagnosis.
 
 **Note:** NiceGUI's `ui.scroll_area()` creates a stacking context. Any `position: absolute` child inside a scroll area is clipped to it — this is expected behaviour.
 

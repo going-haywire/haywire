@@ -118,7 +118,7 @@ Haywire is a Blueprint-inspired visual programming system that combines **execut
 
 **Execution Flow vs Data Flow**
 
-Unlike pure dataflow systems ([ComfyUI](https://github.com/comfyanonymous/ComfyUI), [Langflow](https://github.com/langflow-ai/langflow), [ChaiNNer](https://github.com/chaiNNer-org/chaiNNer), [Ryven](https://github.com/leon-thomm/Ryven), [etc.](../research/nodes/_Execution_Classification.md)) that primarily pass data between nodes, Haywire uses an execution flow model in combination with a data flow model:
+Unlike pure dataflow systems ([ComfyUI](https://github.com/comfyanonymous/ComfyUI), [Langflow](https://github.com/langflow-ai/langflow), [ChaiNNer](https://github.com/chaiNNer-org/chaiNNer), [Ryven](https://github.com/leon-thomm/Ryven), etc.) that primarily pass data between nodes, Haywire uses an execution flow model in combination with a data flow model:
 
 - Connections between [Control-pins](#pin-system) specify the order of operations
 - Connections between [Data-pins](#pin-system) pass values between nodes
@@ -627,7 +627,7 @@ loading nodes from filesystem: [ComfyUI/nodes.py at 78672d0ee6d20d8269f324474643
 
 ## Loading Graphs from JSON and instantiating required Nodes
 
-this example shows a first approach on how to load a graph from json, find, version check and instantiate the required nodes from a central registry: [node_discovery_system.py](../../playground/node_API/node_discovery_system.py)
+See the playground examples for approaches to loading a graph from JSON, finding, version checking and instantiating required nodes from a central registry.
 
 ---
 
@@ -933,7 +933,7 @@ This recipe-based approach enables:
 
 ### Complete Node Definition Template
 
-see [Haywire_node_definition.md](./Haywire_node_definition.md)
+see the Haywire node definition documentation
 
 ### Complete Node Initialization Sequence
 

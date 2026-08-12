@@ -27,7 +27,7 @@ Verified by reading the source and by running it, not by inference.
 
 ### The rule, and where it lives
 
-Detection is shared and pure: [`pipeline/steps/detect.py::check()`](../../../packages/haywire-core/src/haywire/core/publishing/pipeline/steps/detect.py) loops barn libraries through `detect_share_drift()` and writes nothing.
+Detection is shared and pure: ``pipeline/steps/detect.py::check()`` loops barn libraries through `detect_share_drift()` and writes nothing.
 
 The single writer is `apply_linked_registrations()` in `pipeline/steps/dependencies.py`:
 

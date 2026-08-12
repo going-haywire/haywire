@@ -35,7 +35,7 @@ than leaving a field whose name contradicts its contents.
 ## Source Documents
 
 - Decision record: [ADR 0024](../../adr/0024-library-metadata-single-source.md)
-- Design + full 10-step migration: [2026-08-08-library-metadata-consolidation.md](../../../internals/superpowers/2026-08-08-library-metadata-consolidation.md)
+- Design + full 10-step migration: 2026-08-08-library-metadata-consolidation.md
 
 This plan implements migration **steps 1–5**: the metadata shape and the
 coordinate-based marketstall row. Steps 6–10 follow in separate plans — see

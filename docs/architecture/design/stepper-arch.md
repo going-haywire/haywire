@@ -98,7 +98,7 @@ def _panel_sources(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
   and `busy_advance` both return rather than call `background_tasks.create`.
   NiceGUI wraps a returned Awaitable with the parent slot before scheduling,
   which is what keeps `ui.notify()` and element creation working inside the
-  step. See [feedback_nicegui_async.md](../../../.insights/feedback_nicegui_async.md).
+  step. See feedback_nicegui_async.md.
 - **`busy_advance` for anything that can take a second**, `advance` for
   in-memory transitions. Without the loading state a threaded step looks dead.
 - **Keep the state machine free of NiceGUI imports.** Every flow's tests drive

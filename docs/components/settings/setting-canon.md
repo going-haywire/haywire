@@ -99,7 +99,7 @@ You never hand-write these — they are what TOML and the registry use under the
 | `widget` | Explicit widget contract — a `{"key", "config"}` dict from `WidgetCls.config(...)`. Wins outright over the field IType's declared default widget |
 | `widget_config` | Bare property overrides layered on top of whichever widget was selected (IType default or explicit `widget=`) — e.g. `{"options": [...]}` for a `CHOICES` field |
 | `mirrors` | Source descriptor or full key, on a DIFFERENT class — same effect as `shadow()` directly |
-| `ui_state` | Initial `UiState` (`NORMAL`/`DISABLED`/`HIDDEN`) seed — see ADR 0020 |
+| `ui_state` | Initial `UiState` (`NORMAL`/`DISABLED`/`HIDDEN`) seed — controls widget presentation and rendering |
 | `promotable` | Which port directions this field may be promoted to (default `ALL`) |
 | `validator` | `Callable(value) -> bool`; return `False` to reject. Checked before `setattr` |
 | `metadata` | Arbitrary dict attached to the descriptor as `._metadata` |
@@ -181,7 +181,7 @@ def _on_scale(self, value: float, old: float):
 **Panel rendering rules.** When the properties panel calls `render_settings(node.filter)`:
 
 - Every field renders a row, sorted by `(category, order, attr_name)` and grouped under collapsible category headers.
-- A field's `effective_ui_state()` (ADR 0020) controls chrome: `DISABLED` renders the widget non-interactive (greyed), `HIDDEN` removes the row entirely. `watch()` seeds `DISABLED`.
+- A field's `effective_ui_state()` controls chrome: `DISABLED` renders the widget non-interactive (greyed), `HIDDEN` removes the row entirely. `watch()` seeds `DISABLED`.
 - Mirror fields (`shadow()` / `watch()`) that are locally overridden show a `•` prefix and a reset button (`restart_alt` icon) that calls `obj.reset(attr_name)`.
 - Each row produces this DOM structure (useful for tests):
 
@@ -258,7 +258,7 @@ class depth(NodeSettings):
 
 `Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `ALL` (default). Effective eligibility is purely the declared flag — `watch()` seeds `Promotable.OUTLET` itself, so there's no separate structural rule to intersect with. The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
 
-**Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted. See [ADR 0020](../../adr/0020-ui-state-three-valued-chrome.md).
+**Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted.
 
 Three composable sources, combined by **severity max** (`NORMAL < DISABLED < HIDDEN` — `UiState` is an `IntEnum` in that order):
 
@@ -308,7 +308,7 @@ bag.set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category on
 
 `enabled_when` and `visible_when` are `(field_name, expected_value)` tuples stored in `metadata` — string field references, not validated at class-definition time. If the referenced field doesn't exist on the same bag, the panel logs a warning at row build and the field renders normally (never auto-gated) rather than raising; `effective_ui_state` skips the broken gate silently. Both only ever express a same-bag relationship; cross-bag or cross-node gating (e.g. one node's callback-edge wiring determining another's field state) uses `set_ui_state` from whatever code owns that external state.
 
-**Promotion interplay (ADR 0020).** The Setting-row menu never renders for HIDDEN rows (the row itself isn't rendered); DISABLED fields stay promotable. Structural eligibility (`promotable=`, `eligible_promotion_directions()`) and load-time port regeneration ignore UiState entirely — hiding never unpromotes, and a linked inlet on a hidden field keeps driving the value (the port stays visible on the canvas).
+**Promotion interplay with `UiState`.** The Setting-row menu never renders for HIDDEN rows (the row itself isn't rendered); DISABLED fields stay promotable. Structural eligibility (`promotable=`, `eligible_promotion_directions()`) and load-time port regeneration ignore UiState entirely — hiding never unpromotes, and a linked inlet on a hidden field keeps driving the value (the port stays visible on the canvas).
 
 No part of this mechanism is persisted — presentation state is always transient, recomputed at construction (`ui_state=` seed) or by whatever runtime code calls `set_ui_state`.
 
@@ -435,7 +435,7 @@ The callback fires on any change — local writes, global writes from other plac
 
 ## 4. Live examples from the codebase
 
-**LibrarySettings** — source: [`testing:setting:TestingSettings`](../../../barn/haybale-testing/haybale_testing/settings/testing.py)
+**LibrarySettings** — source: `barn/haybale-testing/haybale_testing/settings/testing.py`
 
 `TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `FLOAT`, `INT`, `STRING`, `BOOL`, `CHOICES`, `COLOR`, `VEC2I`, `VEC3F` field types, `min`/`max`, `widget_config`, `category`:
 
@@ -443,7 +443,7 @@ The callback fires on any change — local writes, global writes from other plac
 --8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:testing_settings"
 ```
 
-**NodeSettings with every descriptor** — source: [`testing:node:SettingsNode`](../../../barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py)
+**NodeSettings with every descriptor** — source: `barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`
 
 `SettingsNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
 
