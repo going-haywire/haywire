@@ -1,16 +1,13 @@
-# packages/haywire-app/src/haywire_studio/editors/component_detail_editor.py
 """
-ComponentDetailEditor — shows detail info for the selected node component.
+ComponentDocsEditor — shows detail info for the selected component.
 
 Renders in the right area and reacts to ACTIVE_COMPONENT_CHANGED events.
 Displays identifiers with copy buttons, usage snippets, and a Docs tab (markdown).
 """
 
 import inspect
-from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haywire.core.library.info import LibraryInfo
 from haywire.core.library.utils import split_reg_key
 from nicegui import ui
 
@@ -38,12 +35,12 @@ class _WidgetPreviewPort:
     label="Component Detail",
     icon=hui.icon.library_component,
     default_slot=SlotName.CONTEXT,
-    description="Detailed documentation for the selected node component.",
+    description="Detailed documentation for the selected component.",
     order=30,
 )
-class LibraryComponentEditor(BaseEditor):
+class ComponentDocsEditor(BaseEditor):
     """
-    Displays documentation and port information for the selected library component.
+    Displays documentation and port information for the selected component.
     Rebuilds on ACTIVE_COMPONENT_CHANGED context events.
     """
 
@@ -90,14 +87,9 @@ class LibraryComponentEditor(BaseEditor):
                 )
                 return
 
-            from haybale_marketplace.state.library_manager_state import LibraryManagerState
-
             app = context.app
             lib_id, comp_singular, class_name = split_reg_key(registry_key)
             comp_type = f"{comp_singular}s"
-            manager_state = context.app_data.get(LibraryManagerState)
-            manager = manager_state.manager if manager_state is not None else None
-            lib: LibraryInfo | None = manager.get_installed_library(lib_id) if manager is not None else None
 
             cls = app.library_service.lookup_component_class(registry_key)
             identity = getattr(cls, "class_identity", None) if cls else None
@@ -111,12 +103,8 @@ class LibraryComponentEditor(BaseEditor):
             module_path = getattr(cls, "__module__", None) if cls else None
             menu = getattr(identity, "menu", None) if identity else None
 
-            # Resolve docs file
-            _source_path = (lib.identity.folder_path if lib and hasattr(lib, "identity") else None) or (
-                getattr(lib, "source_path", None) if lib else None
-            )
-            source = Path(_source_path) if _source_path else None
-            doc_file = source / "docs" / comp_type / f"{class_name}.md" if source else None
+            # Resolve docs file via library service
+            doc_file = app.library_service.get_component_doc_path(registry_key)
 
             # height:100% + flex column so tab_panels can fill remaining space
             with ui.column().classes("w-full p-4 gap-0").style("height: 100%;"):

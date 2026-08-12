@@ -1,4 +1,5 @@
 from .code_editor import CodeEditor
+from .component_docs_editor import ComponentDocsEditor
 from .component_source_editor import ComponentSourceEditor
 from .file_browser import LazyFileBrowserEditor
 from .file_viewer import FileViewerEditor
@@ -8,6 +9,7 @@ from .log_editor import LogEditor
 
 __all__ = [
     "CodeEditor",
+    "ComponentDocsEditor",
     "ComponentSourceEditor",
     "FileViewerEditor",
     "LazyFileBrowserEditor",

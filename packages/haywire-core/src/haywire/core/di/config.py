@@ -781,6 +781,46 @@ class LibrarySystemService:
             return None
         return registry.get(registry_key)
 
+    def get_component_doc_path(self, registry_key: str) -> Optional["Path"]:
+        """Return the path to a component's documentation file, or None.
+
+        Looks up the library that owns this component and returns the path to its
+        docs file (e.g. ``~/.haywire/db/lib_id/docs/nodes/ClassName.md``).
+
+        Returns None if:
+        - The registry_key is malformed
+        - The owning library is not installed
+        - The library has no source path (built-in/system library)
+
+        Args:
+            registry_key: Component registry key (e.g. 'lib_id:node:ClassName')
+
+        Returns:
+            Path to the docs file, or None if unavailable
+        """
+        from pathlib import Path
+
+        try:
+            lib_id, comp_singular, class_name = split_reg_key(registry_key)
+        except ValueError:
+            return None
+
+        # Get the source path of the owning library
+        library_registry = self.get_library_registry()
+        if library_registry is None:
+            return None
+
+        source_path = library_registry.get_library_source(lib_id)
+        if not source_path:
+            return None
+
+        source = Path(source_path)
+        comp_type = f"{comp_singular}s"
+        doc_file = source / "docs" / comp_type / f"{class_name}.md"
+
+        # Only return path if file exists
+        return doc_file if doc_file.exists() else None
+
     # =========================================================================
     # Settings convenience methods
     # =========================================================================
