@@ -146,24 +146,24 @@ Source: [`barn/haybale-testing/haybale_testing/themes/`](../../../barn/haybale-t
 **WorkbenchTheme** — `TestDarkTheme` sets every token category (backgrounds, borders, text, accents, status, node chrome, edges, canvas, topbar, sidebars, panels, statusbar, console). `TestLightTheme` inherits from `WorkbenchTheme` directly and overrides only the values that differ from a light palette — demonstrating partial subclassing:
 
 ```python
-`TestDarkTheme` — registry_key: `testing:theme:TestDarkTheme`
-
---8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:12:68"
+--8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:11:68"
 ```
+
+from: `TestDarkTheme` — registry_key: `testing:theme:TestDarkTheme`
 
 ```python
-`TestLightTheme` — registry_key: `testing:theme:TestLightTheme`
-
---8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:73:129"
+--8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:70:129"
 ```
+
+from: `TestLightTheme` — registry_key: `testing:theme:TestLightTheme`
 
 **NodeTheme** — `TestNodeTheme` sets all node-specific tokens. Independent of workbench themes; users mix freely:
 
 ```python
-`TestNodeTheme` — registry_key: `testing:theme:TestNodeTheme`
-
---8<-- "barn/haybale-testing/haybale_testing/themes/node.py:10:28"
+--8<-- "barn/haybale-testing/haybale_testing/themes/node.py:9:28"
 ```
+
+from: `TestNodeTheme` — registry_key: `testing:theme:TestNodeTheme`
 
 What these examples exercise:
 

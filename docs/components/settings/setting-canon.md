@@ -430,20 +430,20 @@ The callback fires on any change — local writes, global writes from other plac
 `TestingSettings` demonstrates the full `@settings` / `LibrarySettings` surface: `FLOAT`, `INT`, `STRING`, `BOOL`, `CHOICES`, `COLOR`, `VEC2I`, `VEC3F` field types, `min`/`max`, `widget_config`, `category`:
 
 ```python
-`TestingSettings` — registry_key: `testing:setting:TestingSettings`
-
---8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:11:69"
+--8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:10:69"
 ```
+
+from: `TestingSettings` — registry_key: `testing:setting:TestingSettings`
 
 **NodeSettings with every descriptor** — source: `barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`
 
 `SettingsNode.example` exercises every `setting()` type, `shadow()`, `watch()`, and `validator` in one inner class:
 
 ```python
-`SettingsNode` — registry_key: `testing:node:SettingsNode`
-
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:20:148"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:9:148"
 ```
+
+from: `SettingsNode` — registry_key: `testing:node:SettingsNode`
 
 What these examples exercise:
 

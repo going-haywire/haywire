@@ -22,10 +22,10 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 `TestEmitCallbackNode` is a CONTROL node with one EXEC inlet (`execute`) and one EXEC outlet (`exec`). It also demonstrates `PooledType[CALLBACK]` as an inlet, `post_init()` for non-serializable state, and dispatching via `context.emit_callback`:
 
 ```python
-`TestEmitCallbackNode` — registry_key: `testing:node:TestEmitCallbackNode`
-
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:6:84"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:5:84"
 ```
+
+from: `TestEmitCallbackNode` — registry_key: `testing:node:TestEmitCallbackNode`
 
 **Role-specific:** EXEC inlet (`execute`) + EXEC outlet (`exec`) makes this CONTROL. The worker returns the outlet ID `"exec"` to continue control flow. `context.emit_callback(event_name=..., payload=...)` dispatches to listener nodes by name. `PooledType[CALLBACK].as_inlet(...)` collects all connected listener IDs into a dict.
 
@@ -38,12 +38,12 @@ A DATA node has **no EXEC ports**. It runs only when a downstream CONTROL node d
 Source: `barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py`
 
 `TestAddFloatNode` is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns `None`:
-`TestBeginPlayNode` — registry_key: `testing:node:TestBeginPlayNode`
-
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:6:27"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:5:27"
 ```
+
+from: `TestBeginPlayNode` — registry_key: `testing:node:TestBeginPlayNode`
 
 **Role-specific:** no EXEC ports, returns `None`, runs lazily on demand from downstream.
 `CustomCallbackNode` — registry_key: `example:node:CustomCallbackNode`
@@ -62,10 +62,10 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 `TestBeginPlayNode` fires once when execution starts, emitting the current timestamp:
 
 ```python
-`ForLoopNode` — registry_key: `core:node:ForLoopNode`
-
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:7:33"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:6:33"
 ```
+
+from: `ForLoopNode` — registry_key: `core:node:ForLoopNode`
 
 **Role-specific:** `event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)` in `post_init()`. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID `"exec"` to trigger control flow.
 

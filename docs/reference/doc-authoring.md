@@ -74,7 +74,7 @@ Two different mechanisms exist for pulling code into a doc page. Use the right o
 - **`barn/` code (component/library examples — nodes, widgets, settings, etc.) → line-range form.** Barn example files are small and stable; a line range is quick to write and read without needing to annotate the source.
 - **Everything else (`packages/`, framework internals) → tag form.** Framework files change shape more often — lines get inserted above an untagged range — so pin the region with an explicit tag instead of numbers that can silently drift out of alignment.
 
-**Line-range form**, `path:start:end` (1-indexed, inclusive):
+**Line-range form**, `path:start:end` (1-indexed !!!, inclusive):
 
 ```text
 --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:20"
@@ -93,7 +93,7 @@ def configure(...):
 
 then reference it by tag name:
 
-```text
+```python
 --8<-- "packages/haywire-core/src/haywire/core/di/config.py:startup-state-wiring"
 ```
 
@@ -107,18 +107,14 @@ A library component isn't just its source location — at runtime it's addressed
 
 > **Worked example — linking to a node's source**
 > 
-> ```markdown
-> `MathOP` — registry_key: `example:node:MathOP`
-> 
-> ```text
-> --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:20"
+> ```python
+> --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:20"
 > ```
-> ```
-> 
-> which renders as:
-> 
-> `MathOP` — registry_key: `example:node:MathOP`
-> 
+>
+> from: `MathOP` — registry_key: `example:node:MathOP`
+
+which renders as:
+
 > ```python
 > @node(
 >     label="Math Operation",
@@ -129,6 +125,9 @@ A library component isn't just its source location — at runtime it's addressed
 > )
 > class MathOP(BaseNode):
 > ```
+>
+> from `MathOP` — registry_key: `example:node:MathOP`
+
 
 Assemble the key from source:`<library_id>:<component_type>:<class_name>`, unless the component's decorator sets an explicit `registry_id`/`id`, in which case that replaces `<class_name>`:
 
