@@ -10,12 +10,18 @@ barn/haybale-marketplace/haybale_marketplace/editors/library_overview_editor.py.
 from __future__ import annotations
 
 import pytest
+from unittest.mock import Mock
 
 from haywire.core.library.haybale import Haybale
 from haywire.core.library.identity import LibraryIdentity
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.install_type import InstallType
 from haywire.ui import elements as hui
+
+
+def _make_context():
+    """Create a minimal mock SessionContext for testing."""
+    return Mock()
 
 
 def _installed(tmp_path, **row_kwargs) -> LibraryInfo:
@@ -36,8 +42,9 @@ def test_none_when_not_installed():
 
     editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
     row = Haybale(name="haybale-x", version="1.0.0", notes="notes.md")
+    context = _make_context()
 
-    assert editor._notes_click_target(None, row, context=None) is None
+    assert editor._notes_click_target(None, row, context=context) is None
 
 
 @pytest.mark.unit
@@ -47,8 +54,9 @@ def test_none_when_notes_not_declared(tmp_path):
     editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
     info = _installed(tmp_path)
     assert not info.row.notes
+    context = _make_context()
 
-    assert editor._notes_click_target(info, info.row, context=None) is None
+    assert editor._notes_click_target(info, info.row, context=context) is None
 
 
 @pytest.mark.unit
@@ -57,8 +65,9 @@ def test_installed_with_notes_yields_a_click_target_and_edit_icon(tmp_path):
 
     editor = LibraryOverviewEditor(wrapper=None)  # type: ignore[arg-type]
     info = _installed(tmp_path, notes="notes.md")
+    context = _make_context()
 
-    result = editor._notes_click_target(info, info.row, context=None)
+    result = editor._notes_click_target(info, info.row, context=context)
 
     assert result is not None
     click, icon = result
@@ -76,20 +85,23 @@ def test_click_target_opens_the_file_even_when_it_does_not_exist_yet(tmp_path, m
     info = _installed(tmp_path, notes="notes.md")
     notes_path = tmp_path / "barn" / "haybale-x" / "haybale_x" / "notes.md"
     assert not notes_path.exists()
+    context = _make_context()
 
     seen: dict = {}
 
-    def _fake_open_file_in_studio(filepath, line_number, context):
+    def _fake_open_file_in_studio(filepath, line_number, ctx):
         seen["filepath"] = filepath
         seen["line_number"] = line_number
-        seen["context"] = context
+        seen["context"] = ctx
 
     monkeypatch.setattr(
         "haybale_studio.editors.error_navigation.open_file_in_studio",
         _fake_open_file_in_studio,
     )
 
-    click, _icon = editor._notes_click_target(info, info.row, context="ctx")
+    result = editor._notes_click_target(info, info.row, context=context)
+    assert result is not None
+    click, _icon = result
     click()
 
-    assert seen == {"filepath": str(notes_path), "line_number": None, "context": "ctx"}
+    assert seen == {"filepath": str(notes_path), "line_number": None, "context": context}
