@@ -18,19 +18,13 @@ level: architectural
 
 The signal bus is documented as main-thread-only (*"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"*). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.
 
-In practice NiceGUI tolerates this: building elements off-loop lands in the no-task slot stack (`Slot.stacks[0]`), and `element.update()` enqueues into the outbox, which the main-loop poll flushes within ≤1 s. So the canvas visibly updated and nothing crashed — which is exactly why the off-thread-ness went unnoticed. But the tolerance is fragile and adds up to ~1 s of latency, because the cross-thread `asyncio.Event.set()` that *should* wake the outbox immediately is not called thread-safely.
+In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (`Slot.stacks[0]`), and `element.update()` enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread `asyncio.Event.set()` that should wake the outbox immediately is not called thread-safely.
 
 The key realization: **the timer was never a concurrency mechanism — it was only a debounce.** `_validate_batch` is pure synchronous CPU work (`build()`, `link()`, `_housekeeping()`) with no `await`, no I/O, and no concurrency requirement. Validation is triggered *only* by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.
 
 ## Why injection, not "just marshal the broadcast"
 
-The narrow fix would have been to wrap the one off-thread emitter (`HaystackState._broadcast_data_mutated`) in `loop.call_soon_threadsafe`. Rejected as the primary fix because it treats a symptom:
-
-- it leaves `_validate_batch` and the canvas redraw on the timer thread, so the *next* off-thread subscriber re-introduces the same class of bug;
-- it scatters event-loop awareness into `HaystackState`, which has no business knowing about asyncio loops;
-- it fixes the signal path but not the canvas path.
-
-Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.
+The narrow fix would have been to wrap the one off-thread emitter (`HaystackState._broadcast_data_mutated`) in `loop.call_soon_threadsafe`. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.
 
 ## Why inject, not import NiceGUI into core
 
@@ -58,8 +52,8 @@ It needs `nicegui.core.loop`, so it cannot live in core. `haybale-haystack` (whi
 
 ## Considered alternatives
 
-- **Marshal only `_broadcast_data_mutated` with `call_soon_threadsafe`.** Smallest diff, but symptom-level — see "Why injection, not just marshal the broadcast" above.
-- **Import `nicegui.core` directly into `ValidationManager`.** Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports). Rejected.
+- **Marshal only `_broadcast_data_mutated` with `call_soon_threadsafe`.** Smallest diff, but symptom-level: it leaves `_validate_batch` and the canvas redraw on the timer thread, so the *next* off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into `HaystackState`, which has no business knowing about asyncio loops.
+- **Import `nicegui.core` directly into `ValidationManager`.** Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).
 - **Replace the debounce with a loop-native `ui.timer` everywhere, no abstraction.** Forces a NiceGUI dependency on every `BaseGraph` construction, breaking headless/test/CI use that has no running loop.
 - **Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.** Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.
 

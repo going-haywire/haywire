@@ -45,15 +45,13 @@ same id on hot-reload.
 ## Considered alternatives
 
 - **Store `self._active_focus: type[Focus]` (hold the class object directly).**
-  Rejected — this is the reload hazard above made concrete: after a hot-reload
-  of the focus-declaring library, the editor's held class no longer matches the
-  superseded class from the registry, so `_active_focus` resolves to "no match"
-  and the active tab silently resets to the default focus on every such reload.
-  The marginal IDE-navigation / refactor-rename upside does not justify
-  reintroducing a stale-class-reference bug — the same failure class that
-  `LibraryIdentity.dependencies` and the `_FOCUS_BY_ID` supersede logic exist to
-  prevent. (This was proposed as a "Phase 3" follow-up in the panel-system
-  handoff doc and rejected on review against the code.)
+  Rejected — triggers the reload hazard above directly: the active tab silently
+  resets to the default focus on every hot-reload of the focus-declaring
+  library, since the held class never matches the superseded one the registry
+  now hands out. The marginal IDE-navigation / refactor-rename upside does not
+  justify reintroducing a stale-class-reference bug — the same failure class
+  that `LibraryIdentity.dependencies` and the `_FOCUS_BY_ID` supersede logic
+  exist to prevent.
 - **`NewType("FocusId", str)` for compile-time protection.** Not adopted — the
   id flows only through three private methods in a single file, all already
   typed `str`; the wrapper buys little over the current typing and adds

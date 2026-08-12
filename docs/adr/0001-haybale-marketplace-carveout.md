@@ -60,11 +60,11 @@ Its single use of the manager (`ctx.app.library_manager.is_installed(...)` in `c
 
 ## Considered alternatives
 
-- **Move only the editors, leave the manager in `haywire-studio`.** Smaller change, but defeats the goal: the manager would remain a hard-wired studio singleton accessible via `IProjectState`, and `haybale-marketplace` becomes a thin UI wrapper around a service it doesn't own. The optionality property (Q7) wouldn't be reachable.
+- **Move only the editors, leave the manager in `haywire-studio`.** Smaller change, but defeats the goal: the manager would remain a hard-wired studio singleton accessible via `IProjectState`, and `haybale-marketplace` becomes a thin UI wrapper around a service it doesn't own. The optionality property wouldn't be reachable.
 - **Move the manager into `haywire-core` alongside `marketstall`.** Conceptually clean (the manager *is* the runtime arm of marketstall), but pulls `uv` subprocess invocation, `toml` writing, and venv detection into the engine. Core has stayed product-opinion-free; this would break that.
-- **Make `LibraryManager` inherit `AppState` directly.** See "composition, not inheritance" above. Constructor-shape mismatch + responsibility conflation.
-- **Keep persistence on the manager, time it differently with a "bootstrap complete" signal.** Preserves the architectural muddle ("manager owns persistence") that future readers would re-question. The whole point of recording this decision is to prevent that re-question.
-- **Use `FrameworkSettings` (`LibraryEnableSettings`) for the disabled list.** Initially shipped, then reverted — see "Why HostStore and not FrameworkSettings" above. The single-mechanism appeal didn't survive the architectural smell: it would have required `LibraryRegistry` to read from `SettingsRegistry` at bootstrap, while libraries enabling later extended that same registry. Two distinct concerns sharing one mechanism produced a bidirectional dependency that the two-mechanism `HostStore` design cleanly avoids.
+- **Make `LibraryManager` inherit `AppState` directly.** See "composition, not inheritance" above.
+- **Keep persistence on the manager, time it differently with a "bootstrap complete" signal.** Preserves the architectural muddle ("manager owns persistence") that future readers would re-question.
+- **Use `FrameworkSettings` (`LibraryEnableSettings`) for the disabled list.** See "Why HostStore and not FrameworkSettings" above.
 
 ## Consequences
 

@@ -35,12 +35,8 @@ the floor is a genuine need, not speculation.
 
 ## Key sub-decisions and their reasons
 
-- **No fast-path.** Measurement (`docs/plans/widget-unification-perf-verification.md`,
-  Finding B) showed the `SimpleWidget`-vs-`BaseWidget` sync delta is
-  perf-irrelevant: `render_widget` is ~13% of render and the sync delta is a
-  fraction of that. The verification plan's YELLOW fast-path was contingent on a
-  regression measurement did not find, so the unified base has a single sync path
-  with no special-casing.
+- **No fast-path** — see "Keep both base classes" below for why measurement
+  ruled this out.
 - **Nested-property navigation is kept** (`source_property != "value"`). A prior
   audit filed it as dead "Pile B", correct under its zero-roadmap premise; the
   Vector/Matrix roadmap flips that premise — it is the binding spine for
@@ -62,8 +58,12 @@ the floor is a genuine need, not speculation.
 
 ## Considered alternatives
 
-- **Keep both base classes.** `SimpleWidget` as a deliberate fast path — rejected:
-  measurement retired the perf justification, leaving only duplication.
+- **Keep both base classes**, `SimpleWidget` as a deliberate fast path —
+  rejected: measurement (`docs/plans/widget-unification-perf-verification.md`,
+  Finding B) showed the `SimpleWidget`-vs-`BaseWidget` sync delta is
+  perf-irrelevant (`render_widget` is ~13% of render; the sync delta is a
+  fraction of that), retiring the only justification and leaving pure
+  duplication. The unified base has one sync path with no special-casing.
 - **Field-map (`FIELDS = {...}`) authoring instead of `bind()`.** Shortest for
   uniform grids (Vector3) but forces a second paradigm plus a spec mini-language
   the moment a widget is irregular (ColorRGBA = swatch + channels + hex, labeled

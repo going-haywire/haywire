@@ -91,12 +91,6 @@ Why `EdgeWrapper`, not the visual layer or the graph mutation API:
 - Routing through `mark_node_dirty` → `_set_reason` means a stronger node reason already in the batch wins: paste (`NODE_ADDED`) and `clear()` (`NODE_REMOVED`) both outrank `NODE_REDRAW_REQUESTED`, so the redraw never downgrades a structural change.
 - It covers **every** link path, including the validator's internal relink (`ValidationManager._validate_batch` calls `edge_wrapper.link()` during a batch). Re-entrant dirty marks are safe by design — the batch snapshots and clears the dirty dicts up front under its `RLock`, so a mark added during validation is carried to the next batch (see ADR 0002). Worst case on relink is a one-batch-deferred redraw, irrelevant to user connect/disconnect.
 
-Considered and rejected for reactivity:
-
-- **Refresh endpoint nodes from `visual_layer.on_validated` on `EDGE_ADDED`/`EDGE_REMOVED`** (the first working version): the UI re-derives "edge change → endpoint nodes dirty," duplicating inference every subscriber would have to repeat, and the `EDGE_REMOVED` case must capture the wrapper before the graph drops it. Moved into `EdgeWrapper` so the `ValidationResult` reports the node impact honestly, once, for all subscribers.
-- **CSS-only toggle in Vue** (always render the widget, flip `display:none` on a `data-linked` attribute): keeps a dead widget instance alive and splits visibility policy across Python and Vue.
-- **Hook the `on_connect`/`on_disconnect` port callbacks** to request a redraw: those are author-facing node-method callbacks, not a framework redraw channel; hijacking them collides with user-defined callbacks.
-
 ## Considered alternatives
 
 - **Keep five members (`NONE` + `NEVER`).** Carries a member that can never differ in behavior — see "plain `Enum`, not `IntFlag`."
@@ -104,6 +98,9 @@ Considered and rejected for reactivity:
 - **Type-level visibility override (`_resolve_show_widget`).** The type assigns the `widget_key`; visibility stays a per-direction default, overridden per-port. A central visibility override was deemed unnecessary surface.
 - **Default `ALWAYS` everywhere** (zero migration). Preserves old behavior but never delivers the motivating hide-on-connect; the direction defaults were chosen instead, accepting the documented inlet migration.
 - **Refresh only the inlet-side node on connect.** Cheaper, but silently breaks an author-set `WHEN_LINKED` outlet — the exact "looks broken" bug class this design exists to kill.
+- **Refresh endpoint nodes from `visual_layer.on_validated` on `EDGE_ADDED`/`EDGE_REMOVED`** (the first working version). The UI re-derives "edge change → endpoint nodes dirty," duplicating inference every subscriber would have to repeat, and the `EDGE_REMOVED` case must capture the wrapper before the graph drops it. Moved into `EdgeWrapper` so the `ValidationResult` reports the node impact honestly, once, for all subscribers.
+- **CSS-only toggle in Vue** (always render the widget, flip `display:none` on a `data-linked` attribute). Keeps a dead widget instance alive and splits visibility policy across Python and Vue.
+- **Hook the `on_connect`/`on_disconnect` port callbacks** to request a redraw. Those are author-facing node-method callbacks, not a framework redraw channel; hijacking them collides with user-defined callbacks.
 
 ## Consequences
 

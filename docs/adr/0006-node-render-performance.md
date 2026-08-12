@@ -148,26 +148,22 @@ Combined, graph-open dropped from ~2.7 s toward ~1.4 s.
 
 ## Rationale for the tricky choices
 
-**Patching a vendored internal (`expects_arguments`), while it was live.** Not
-cached upstream at the time; the win was unavailable any other way short of
-forking. Bounded to avoid a handler-pinning leak — the cache key is the
-handler object, and handlers are bound methods recreated per element/
-collection, so an unbounded cache (the first version, using `maxsize=None`)
-pinned every handler and its element for the process lifetime. A
-`WeakKeyDictionary` did not help (bound methods are recreated per access, so
+**Why the (now-removed) `expects_arguments` patch was bounded, not unbounded.**
+The cache key was the handler object, and handlers are bound methods recreated
+per element/collection, so an unbounded cache (the first version, using
+`maxsize=None`) pinned every handler and its element for the process lifetime.
+A `WeakKeyDictionary` did not help (bound methods are recreated per access, so
 weak keys evict before they hit); a bounded cache lost nothing since
 per-element fires are consecutive (measured: every `maxsize` from 4 to `None`
-gave the same 73% hit rate and ~1.4× speedup). The guard raised at startup if
-the NiceGUI internal moved/renamed, rather than silently reverting. This was
-always framed as a bridge, not a destination — see decision 2 above for the
-upstream fix that made it removable.
+gave the same 73% hit rate and ~1.4× speedup). Kept as a footnote per decision
+2's note: this is the known-good shape to reach for if the cost ever reopens.
 
-**`no-parent-event` + explicit show/hide for tooltips.** A tooltip built on
+**Why tooltips need sole-controller show/hide.** A tooltip built on
 `mouseenter` mounts *after* the event fired, so Quasar's hover listener misses
 the first hover (appears only on the second). Manually `show()`-ing while leaving
 Quasar's hide active then orphans tooltips on screen (two controllers disagree).
-Sole-controller (`no-parent-event` + our handlers) is the only deterministic
-option; mirrors how `node_menu_builder` drives flyouts explicitly on hover.
+`no-parent-event` + our own handlers is the only deterministic option; mirrors
+how `node_menu_builder` drives flyouts explicitly on hover.
 
 ## Consequences
 

@@ -36,20 +36,19 @@ in-tree between the two) but inherited a defect it could not fix:
 
 **Distribution metadata is written once, at install time.**
 `site-packages/<dist>.dist-info/METADATA` does not change when
-`pyproject.toml` changes — not even for an editable install. Verified 2026-08-08
-by editing a pyproject in place and re-reading in a fresh interpreter: version
-and description both reported pre-edit values until `pip install -e` was re-run.
+`pyproject.toml` changes — not even for an editable install (confirmed by
+editing a pyproject in place and re-reading in a fresh interpreter: stale
+until `pip install -e` was re-run).
 
 So every metadata edit required `uv sync` plus a registry reload before it
 became visible. That is what forced editing out of a modal and into the Share
 wizard, and why the library overview's Edit dialog was deleted. The cost was
 paid to work around the *read path*, not to solve the duplication.
 
-`[tool.haywire]` cannot substitute: it does not survive into an installed
-wheel either — no barn library force-includes `pyproject.toml`, so
-`dist.files` for an installed haybale contains none. A file inside the
-package directory does survive — verified by building `haybale-testing` and
-unzipping the wheel — and can be read from disk at runtime.
+A file inside the package directory survives into the installed wheel
+(confirmed by building `haybale-testing` and unzipping it) and can be read
+from disk at runtime — see "Alternatives considered" for why `[tool.haywire]`
+doesn't clear the same bar.
 
 ## What this buys
 

@@ -100,8 +100,7 @@ Two other options were considered and rejected for the plain-port case:
 - A promoted port's `widget_config` is never independently inspectable from
   its own serialized `to_dict()` output — tests asserting on a promoted
   port's widget contract must read it off the live `DataPort` instance
-  in-memory (as `test_promoted_port_carries_the_settings_widget_config`
-  already does), not from a round-tripped save file.
+  in-memory, not from a round-tripped save file.
 - Any future node author who reaches for the same "live callable in
   `widget_config`" pattern on a plain port gets a `TypeError` at the exact
   `node.add(...)` call site, in development, instead of a cryptic

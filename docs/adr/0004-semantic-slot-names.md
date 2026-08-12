@@ -23,7 +23,7 @@ We considered (a) an old→new alias map applied on snapshot load, and (b) `Slot
 
 ## Why the Python 3.11 bump rides along
 
-`StrEnum` landed in the stdlib in 3.11. The repo previously floored at `>=3.10` (some barn packages at `>=3.9`). Rather than subclass `(str, Enum)` to emulate `StrEnum` on 3.10, we raised every package's `requires-python` to `>=3.11` (and the mypy `python_version`). This is the surprising part of the diff — a slot rename touching eleven `pyproject.toml` files and re-resolving `uv.lock` — hence its mention here.
+`StrEnum` landed in the stdlib in 3.11. The repo previously floored at `>=3.10` (some barn packages at `>=3.9`). Rather than subclass `(str, Enum)` to emulate `StrEnum` on 3.10, we raised every package's `requires-python` to `>=3.11` (and the mypy `python_version`) — touching eleven `pyproject.toml` files and re-resolving `uv.lock`. The floor has since moved to `>=3.12` for unrelated reasons; this ADR's contribution was the 3.10→3.11 step.
 
 ## Consequences
 

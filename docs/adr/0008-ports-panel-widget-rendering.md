@@ -39,9 +39,7 @@ the panel keeps those ports editable.
   `client.remove_all_elements()` (page close), so cleanup runs exactly when the
   DOM is torn down, regardless of which transient panel instance built it. This
   is contained in the panel; the shared panel framework gained no new teardown
-  hook. (An earlier instance-owned design — dispose the prior batch at the top
-  of `draw()` plus a client-disconnect sweep — was abandoned once the
-  fresh-instance-per-redraw behaviour was confirmed; it never actually ran.)
+  hook.
 - **Namespaced factory tracking key.** The singleton `WidgetFactory` tracks
   `widget_key -> {node_ids}` for hot-reload and purges by `node_id` in
   `unregister_widget_for_node`. The panel registers its widgets under

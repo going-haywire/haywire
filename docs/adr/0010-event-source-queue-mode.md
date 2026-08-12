@@ -17,12 +17,7 @@ Per emitted frame: the producer (an EMIT node's capture thread) calls `context.e
 
 ## Why the decision lives on the EVENT node, not the graph run or the EMIT node
 
-A scheduler is owned by exactly one **Flow**, and a Flow is assembled from exactly one **EVENT node** (`flow_assembly_manager.py:190-214`). Queue mode is a property of *that scheduler's* relationship to its triggers, so the EVENT node is where ownership naturally sits — the resource owner decides.
-
-Two alternatives were rejected:
-
-- **Per-graph-run** (a single toggle on `GraphRunSettings`, threaded through `GraphEntry.build()`). Too coarse: one graph can hold both a camera flow (wants DROP) and a batch/data flow (must keep BLOCK — every trigger matters). A graph-wide switch cannot express that.
-- **EMIT node owns it** (the producer declares "my frames are droppable"). The intuition is real — a camera *knows* its frames are stale-able — but one EMIT node fans out to many EVENT nodes (`tick_emit.py:116-121`), so "emit decides" means a producer reaching across to set N consumers' scheduler modes, with conflicts when two emitters target one event node. Ownership must follow the resource (the scheduler), which is the EVENT node.
+A scheduler is owned by exactly one **Flow**, and a Flow is assembled from exactly one **EVENT node** (`flow_assembly_manager.py:190-214`). Queue mode is a property of *that scheduler's* relationship to its triggers, so the EVENT node is where ownership naturally sits — the resource owner decides. A graph-wide toggle can't express "camera flow wants DROP, batch flow must keep BLOCK" in one graph; an EMIT node can't own it either, since one EMIT node fans out to many EVENT nodes (`tick_emit.py:116-121`) and "emit decides" means a producer reaching across to set N consumers' scheduler modes. Both are detailed in Considered-and-rejected, below.
 
 ## Why the value rides on `EventSource`, not a separate node config surface
 
@@ -33,23 +28,20 @@ This also cleanly separates two roles:
 - **The node author** decides *how the value is set* — a `SwitchWidget`/`SelectWidget` config port, a `NodeSettings` field, a fixed literal, or computed state — and writes the result into the `EventSource` it constructs in `post_init`.
 - **The framework** only ever reads typed fields off `EventSource`. It does not care how the author decided. Assembly becomes a dumb passthrough: `EventSource` → `Flow` → `FlowScheduler`.
 
-The fields are declared on **`CallbackEvent`** (the callback-driven subscription cameras/ticks use), **not** the base `EventSource`. Putting defaulted fields on the base would force the base to become a `@dataclass` and collide with `CallbackEvent.event_name`, which has no default (Python forbids a non-default field after a defaulted one without `kw_only`). On `CallbackEvent` the field ordering is naturally legal. `SystemEvent`/`ExternalEvent` do not carry the fields; `_assemble_flow` reads them with a `getattr(..., QueueMode.BLOCK)` fallback, which is exactly the safe default for `shutdown`/`begin_play`.
+The fields are declared on the base **`EventSource`**, `kw_only=True` so they don't collide with a subclass's own non-default fields (e.g. `CallbackEvent.event_name`), and every subscription type inherits them uniformly rather than only the callback-driven ones:
 
 ```python
-@dataclass(frozen=True)
-class CallbackEvent(EventSource):
-    event_name: str
-    queue_mode: QueueMode = field(default=QueueMode.BLOCK, compare=False)
-    max_queue_size: int = field(default=100, compare=False)
+queue_mode: QueueMode = field(default=QueueMode.BLOCK, compare=False, kw_only=True)
+max_queue_size: int = field(default=100, compare=False, kw_only=True)
 ```
 
-The fields are `compare=False` so backpressure is *carried* by the frozen `EventSource` without participating in its identity/hash — two Frame Event nodes differing only in queue mode must still produce key-stable, hashable subscriptions (the subscription key is `callback:{node_id}`, already unique, so routing is unaffected).
+`compare=False` so backpressure is *carried* by the frozen `EventSource` without participating in its identity/hash — two Frame Event nodes differing only in queue mode must still produce key-stable, hashable subscriptions (the subscription key is `callback:{node_id}`, already unique, so routing is unaffected).
 
 ## Why DROP carries `max_queue_size`, and why the author sets the pair
 
-`_is_executing` is set *inside* `_execute_flow`, after the thread pulls from the queue. DROP therefore drops triggers only *while a frame is mid-execution*; in the gap between finishing frame N and the next blocking `get()`, `_is_executing` is briefly clear and DROP's `put(block=False)` will enqueue into a queue of `max_queue_size` (default 100). **DROP alone does not guarantee "always newest"** — it needs a shallow queue. So the camera node ships `DROP` with `max_queue_size=1`.
+`_is_executing` is set *inside* `_execute_flow`, after the thread pulls from the queue. DROP therefore drops triggers only *while a frame is mid-execution*; in the gap between finishing frame N and the next blocking `get()`, `_is_executing` is briefly clear and DROP's `put(block=False)` will enqueue into a queue of `max_queue_size` (default 100). **DROP alone does not guarantee "always newest"** — it needs a shallow queue too, so the camera node ships `DROP` with `max_queue_size=1`.
 
-Both `queue_mode` and `max_queue_size` are carried as independent fields (mirroring `FlowScheduler.__init__`, `scheduler.py:54-55`) rather than the framework *deriving* size from mode. The footgun of two independent knobs (an operator picking `DROP` + `100` and reconstructing the lag) is closed by **who sets them**: the *node author* sets the pair in `post_init` as one deliberate, tested combination; the operator never sees `max_queue_size`. This keeps assembly a pure passthrough and lets a different node legitimately choose `DROP` + a 2-deep jitter buffer without fighting a hardcoded rule.
+Both fields are carried independently (mirroring `FlowScheduler.__init__`, `scheduler.py:54-55`) rather than the framework deriving size from mode, and set as one pair by the *node author* in `post_init` — the operator never sees `max_queue_size`. This closes the footgun of picking `DROP` + the 100 default and silently reconstructing the lag, keeps assembly a pure passthrough, and lets a different node choose `DROP` + a deeper jitter buffer without fighting a hardcoded rule.
 
 ## Why BLOCK is left exactly as-is (and is not made lossless)
 
@@ -72,19 +64,18 @@ Once, at **graph-assembly time** — not per frame. `Interpreter.load_and_assemb
 
 The scheduler never reads the node; nothing reads the value per-frame. Changing the mode in the UI takes effect on the next assembly (graph restart / reassembly), which is correct — a scheduler's queue mode is fixed for its lifetime.
 
-## Considered alternatives
+## Considered and rejected
 
-- **Per-graph-run toggle on `GraphRunSettings`.** Too coarse for mixed camera+batch graphs. Rejected (see above).
-- **EMIT node owns the mode.** Producer→N-consumer fan-out creates conflicting opinions over a scheduler the producer does not own. Rejected.
+- **Per-graph-run toggle on `GraphRunSettings`.** Too coarse for mixed camera+batch graphs (see above).
+- **EMIT node owns the mode.** Producer→N-consumer fan-out creates conflicting opinions over a scheduler the producer does not own.
 - **A config port / `NodeSettings` field as the storage of record.** Workable, but scatters scheduler config across the node surface; `EventSource` already owns the scheduler relationship. The config/settings surface remains the author's *choice of input mechanism*, feeding the `EventSource`, not the canonical store.
-- **Derive `max_queue_size` from mode in the framework.** Bakes one node's tuning into core and forbids legitimate variants (DROP + small jitter buffer). Rejected in favor of author-set pairs.
-- **Redefine BLOCK as unbounded/lossless.** Offline completeness belongs to the demand-driven emit↔event handshake, not to a queue mode. Rejected; BLOCK untouched.
-- **A latest-wins / coalescing queue** (new queue type that overwrites the pending trigger). Strictly correct "always newest," but the largest blast radius in the hottest concurrency path; `DROP` + `max_queue_size=1` is close enough without a new queue type. Deferred.
+- **Derive `max_queue_size` from mode in the framework.** Bakes one node's tuning into core and forbids legitimate variants (DROP + a deeper jitter buffer).
+- **Redefine BLOCK as unbounded/lossless.** Offline completeness belongs to the demand-driven emit↔event handshake (see above), not to a queue mode.
+- **A latest-wins / coalescing queue** (new queue type that overwrites the pending trigger). Strictly correct "always newest," but the largest blast radius in the hottest concurrency path; `DROP` + `max_queue_size=1` is close enough without a new queue type. Deferred, not rejected.
 
 ## Consequences
 
-- `CallbackEvent` gains `queue_mode` and `max_queue_size` (both `compare=False`); omitting them preserves prior behavior (`BLOCK` / 100) exactly. Subscription keys and hashing are unchanged.
+- `EventSource` gains `queue_mode` and `max_queue_size` (both `compare=False, kw_only=True`); omitting them preserves prior behavior (`BLOCK` / 100) exactly. Subscription keys and hashing are unchanged.
 - `Flow` carries `queue_mode` / `max_queue_size`; `_assemble_flow` populates them, `_register_flow` consumes them. The hardcoded `QueueMode.BLOCK` at `interpreter.py:218` is removed.
 - `NumpyFrameEventNode` now defaults to realtime DROP; existing graphs using it drop stale frames after upgrade.
 - BLOCK semantics (5 s-then-drop) are unchanged; true offline completeness remains a future demand-driven pattern, out of scope.
-- `QueueMode` stays where it is (`scheduler.py:31`); `event_source.py` imports it directly. **Verified no import cycle**: `scheduler.py`'s only haywire imports are `TYPE_CHECKING`-only (no runtime edge back to `event_source`), and the package `__init__.py` imports `scheduler` *before* `event_source`, so `QueueMode` is fully defined by the time `event_source` loads. (Confirmed empirically by adding the real top-level import and loading the module — clean.) No neutral-module relocation needed.

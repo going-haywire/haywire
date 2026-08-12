@@ -7,11 +7,11 @@ level: architectural
 
 # Collapse the settings resolution model to highest-priority-set-wins; drop OVERRIDE / SettingMode
 
-The settings resolver used to evaluate a six-case chain with two *strengths* per tier. Each tier value was a `SettingValue(mode, value)` where `mode ∈ {INHERIT, EXPLICIT, OVERRIDE}`: `INHERIT` meant "unset," `EXPLICIT` meant "set," and `OVERRIDE` meant "forced — beats everything below, including a per-node local value." This ADR records collapsing that model down to **highest-priority *set* tier wins**: `OVERRIDE` and the `SettingMode` enum are removed, and a tier value is now simply *set* or *unset* (`SettingValue.is_set`). This is plan **P2** of the settings↔DataField unification arc (canonical-key → **tier-collapse** → TOML→JSON → single-cell → promotion-as-direction).
+The settings resolver used to evaluate a six-case chain with two *strengths* per tier. This ADR records collapsing that model down to **highest-priority *set* tier wins**: `OVERRIDE` and the `SettingMode` enum are removed, and a tier value is now simply *set* or *unset* (`SettingValue.is_set`). This is plan **P2** of the settings↔DataField unification arc (canonical-key → **tier-collapse** → TOML→JSON → single-cell → promotion-as-direction).
 
 ## Context — the pre-P2 six-case / two-strength chain
 
-`resolve(name, local=None)` walked six cases and returned a `source` drawn from `{'global_override', 'workspace_override', 'local', 'workspace', 'global', 'default'}`:
+Each tier value was a `SettingValue(mode, value)` where `mode ∈ {INHERIT, EXPLICIT, OVERRIDE}`: `INHERIT` meant "unset," `EXPLICIT` meant "set," and `OVERRIDE` meant "forced — beats everything below, including a per-node local value." `resolve(name, local=None)` walked six cases and returned a `source` drawn from `{'global_override', 'workspace_override', 'local', 'workspace', 'global', 'default'}`:
 
 ```text
 1. global tier OVERRIDE      → forced (admin policy)
@@ -45,7 +45,7 @@ Below the (now-removed) force tier, the relative order of local vs workspace vs 
 
 ## Consequences
 
-- **Lost capability:** an admin can no longer force a value that beats per-node overrides. The workspace and global tiers are "defaults," never "forces"; the per-node local override always wins over both. This is a deliberate reversal of a documented decision, hence this ADR.
+- **Lost capability:** an admin can no longer force a value that beats per-node overrides (deliberate reversal of the documented capability above, hence this ADR).
 - **Forward compatibility:** a legacy `{ override = true, value = X }` TOML inline-table left over from a pre-collapse file still loads — `_parse_config_dict` reads it as a plain *set* of `X` and ignores the `override` flag (`registry.py`). `save_to_toml` now writes bare values only.
 - **Simpler everywhere:** resolution drops from six cases to four; the TOML format loses its inline-table variant; every consumer reasons about set-or-unset instead of a three-way mode. `SettingsTestContext` loses `set_override` (an OVERRIDE no longer differs from a set).
 - **Supersedes** the six-tier model previously documented in `architecture/settings/settings-arch.md` §1–4 (rewritten to the collapsed model).
