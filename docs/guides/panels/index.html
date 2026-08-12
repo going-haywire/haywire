@@ -3078,7 +3078,7 @@
 <p><strong>Important:</strong> The folder labels above indicate the <em>focus type</em> and <em>context</em>. The folder location itself does not determine appearance — the <code>@panel</code> decorator's <code>actions=</code> parameter and <code>poll()</code> method are what actually wire the panel to the right place.</p>
 <h2 id="properties-introspect-panel">Properties / introspect panel<a class="headerlink" href="#properties-introspect-panel" title="Permanent link">&para;</a></h2>
 <p>Introspect panels register against focus objects (e.g. <code>NodeFocus</code>, <code>EdgeFocus</code>) and render read-only identity or state information in the PropertiesEditor.</p>
-<p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py"><code>graph_editor:panel:NodeInfoPanel</code></a></p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py</code></p>
 <p><code>NodeInfoPanel</code> shows the selected node's label, class name, and node ID:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">NodeFocus</span><span class="p">,</span>
@@ -3116,7 +3116,7 @@
 <p><strong>Type-specific:</strong> no <code>actions=</code> on <code>@panel</code> — introspect panels are display-only. <code>poll()</code> gates on <code>ctx.data[EditState].active_node</code>, so the panel appears only while a node is selected. <code>with layout:</code> places all rows inside the panel's container.</p>
 <h2 id="properties-settings-panel">Properties / settings panel<a class="headerlink" href="#properties-settings-panel" title="Permanent link">&para;</a></h2>
 <p>Settings panels register against settings-scope focuses (<code>CanvasFocus</code>, <code>AppFocus</code>, <code>ExecutionFocus</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
-<p>Source: <a href="../../barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py"><code>studio:panel:CanvasSettingsPanel</code></a></p>
+<p>Source: <code>barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py</code></p>
 <p><code>CanvasSettingsPanel</code> renders the entire <code>CanvasSettings</code> schema into the panel:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">CanvasFocus</span><span class="p">,</span>
@@ -3139,7 +3139,7 @@
 <p><strong>Type-specific:</strong> no <code>actions=</code>, no <code>poll()</code> override — settings panels are always visible for their focus. <code>render_schema(SettingsClass, registry)</code> renders every field in the schema as a labelled input widget.</p>
 <h2 id="graph-menu-canvas-panel">Graph menu / canvas panel<a class="headerlink" href="#graph-menu-canvas-panel" title="Permanent link">&para;</a></h2>
 <p>Canvas menu panels register against <code>CanvasFocus</code> with <code>actions=CanvasContextActions</code> and surface on right-click on empty canvas space.</p>
-<p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py"><code>graph_editor:panel:CreateNodeMenuPanel</code></a></p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py</code></p>
 <p><code>CreateNodeMenuPanel</code> renders the full node-creation menu with search:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">CanvasContextActions</span><span class="p">,</span>
@@ -3187,7 +3187,7 @@
 <p><strong>Type-specific:</strong> <code>actions=CanvasContextActions</code> wires the panel to the canvas action protocol. <code>poll()</code> returns <code>True</code> unconditionally — the canvas menu always has at least "Create Node". <code>self.actions.create_node_at_click(registry_key)</code> dispatches via the action protocol; the host resolves the concrete implementation.</p>
 <h2 id="graph-menu-selection-panel">Graph menu / selection panel<a class="headerlink" href="#graph-menu-selection-panel" title="Permanent link">&para;</a></h2>
 <p>Selection menu panels register against <code>SelectionFocus</code> and surface when one or more nodes or edges are selected.</p>
-<p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py"><code>graph_editor:panel:DeleteSelectionMenuPanel</code></a></p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py</code></p>
 <p><code>DeleteSelectionMenuPanel</code> deletes every selected node and edge in one undo step:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">SelectionContextActions</span><span class="p">,</span>
@@ -3222,7 +3222,7 @@
 <p><strong>Type-specific:</strong> <code>poll()</code> gates on <code>edit.selected_nodes or edit.selected_edges</code> — the panel is hidden when nothing is selected. <code>selection_label()</code> (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").</p>
 <h2 id="graph-toolbar-panel">Graph toolbar panel<a class="headerlink" href="#graph-toolbar-panel" title="Permanent link">&para;</a></h2>
 <p>Toolbar panels register against <code>ToolbarFocus</code> and contribute a single icon button to the floating toolbar that appears over a canvas selection.</p>
-<p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py"><code>graph_editor:panel:CopyToolbarPanel</code></a></p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py</code></p>
 <p><code>CopyToolbarPanel</code> renders a single copy icon:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">SelectionContextActions</span><span class="p">,</span>
@@ -3252,7 +3252,7 @@
 </ul>
 <p>The skin writes these attributes on the rendered node card or pin element. The framework reads them on right-click and fires the focus object named by the attribute value. Panels registering against that focus appear in the context menu.</p>
 <p><code>NodeContextActions</code> (an empty marker protocol in <code>context_menu_actions.py</code>) is the skin extension point for <code>data-hw-custom-menu-focus-id</code>. <code>PortContextActions</code> is the equivalent for <code>data-hw-port-menu-focus-id</code>.</p>
-<p>Source: <a href="../../barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py"><code>graph_editor:panel:PortInfoMenuPanel</code></a></p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py</code></p>
 <p><code>PortInfoMenuPanel</code> shows port metadata (id, description, flow type, data type) in the port context menu:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">PortContextActions</span><span class="p">,</span>
@@ -3287,7 +3287,7 @@
 <p><strong>Type-specific:</strong> <code>actions=PortContextActions</code> is an empty marker — there are no methods to dispatch; the panel only reads <code>ctx.data[EditState].active_port</code>. <code>layout.container</code> (not <code>with layout:</code>) is used here to render directly into the bare container without an extra wrapper.</p>
 <h2 id="file-browser-menu-panel">File browser menu panel<a class="headerlink" href="#file-browser-menu-panel" title="Permanent link">&para;</a></h2>
 <p>File browser menu panels register against <code>FileFocus</code> (from haybale-studio) and surface in the FileBrowser's right-click menu.</p>
-<p>Source: <a href="../../barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py"><code>haystack:panel:OpenInHaystackMenuPanel</code></a></p>
+<p>Source: <code>barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py</code></p>
 <p><code>OpenInHaystackMenuPanel</code> opens a <code>.haywire</code> graph file in the GraphEditor:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@panel</span><span class="p">(</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">FileBrowserActions</span><span class="p">,</span>

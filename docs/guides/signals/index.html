@@ -1585,6 +1585,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#before-you-declare-one-the-framework-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you declare one: the framework vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigating-the-studio-with-reveal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigating the studio with Reveal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#hot-reload-dependency-rule" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3395,6 +3417,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#before-you-declare-one-the-framework-vocabulary" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Before you declare one: the framework vocabulary
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#navigating-the-studio-with-reveal" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Navigating the studio with Reveal
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#hot-reload-dependency-rule" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3688,139 +3732,268 @@
 <h2 id="path-2-hand-authored-signal-subclass">Path 2: Hand-authored <code>Signal</code> subclass<a class="headerlink" href="#path-2-hand-authored-signal-subclass" title="Permanent link">&para;</a></h2>
 <h3 id="declaring_1">Declaring<a class="headerlink" href="#declaring_1" title="Permanent link">&para;</a></h3>
 <p>Inherit <code>Signal</code> for observations or <code>CommandSignal</code> for imperatives. Both are frozen dataclasses with <code>kw_only=True</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">dataclasses</span><span class="w"> </span><span class="kn">import</span> <span class="n">dataclass</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">typing</span><span class="w"> </span><span class="kn">import</span> <span class="n">ClassVar</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Signal</span><span class="p">,</span> <span class="n">CommandSignal</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>
+<p>An observation carries only what a subscriber cannot look up for itself. <code>SelectionMoved</code> deliberately carries <strong>no</strong> payload — subscribers read the current selection off the owning library's <code>SessionState</code>, so the signal cannot go stale relative to the state it announces:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMoved</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a><span class="sd">    Node/edge selection moved on the canvas.</span>
 </span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMoved</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Fires when the selection changes. Payload is the new selection</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="sd">    identifier set.&quot;&quot;&quot;</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="n">selected_nodes</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="n">selected_edges</span><span class="p">:</span> <span class="nb">frozenset</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span>
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>
-</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a><span class="k">class</span><span class="w"> </span><span class="nc">Reveal</span><span class="p">(</span><span class="n">CommandSignal</span><span class="p">):</span>
-</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Imperative: open this editor in its default slot.&quot;&quot;&quot;</span>
-</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="n">editor_key</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="n">binding_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="sd">    Carries no binding_id: subscribers read the selection from the library&#39;s</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="sd">    SessionState (e.g. ``ctx.data[MyLibState].selected_nodes`` /</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="sd">    ``active_node``).</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span></code></pre></div>
+<p>An imperative names its target. <code>Reveal</code> takes the <strong>editor class</strong>, not a string key — so a typo is a <code>NameError</code> at import rather than a silently dropped command, and the AppShell can read <code>class_identity.default_slot</code> straight off it:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">Reveal</span><span class="p">(</span><span class="n">CommandSignal</span><span class="p">):</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Bring an editor to the front in its default slot.</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="sd">    Routed point-to-point: the AppShell resolves</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="sd">    ``editor.class_identity.default_slot`` and dispatches to that slot.</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="sd">    If the slot is not hostable in the active workspace, the reveal is</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="sd">    dropped with a warning.</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a><span class="sd">    Attributes:</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a><span class="sd">        editor: The editor class to reveal.</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a><span class="sd">        binding_id: Optional disambiguator for multi-instance editors</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a><span class="sd">            (e.g. a graph entry id). The orchestrator switches to the</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a><span class="sd">            specific ``(editor_key, binding_id)`` tab rather than the first</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a><span class="sd">            binding matching ``editor_key``.</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a><span class="sd">        label: Optional display label for the revealed tab. Used only</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a><span class="sd">            when the reveal creates a new tab; falls back to</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a><span class="sd">            ``editor.class_identity.label`` if omitted.</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>    <span class="n">editor</span><span class="p">:</span> <span class="s2">&quot;type[BaseEditor]&quot;</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>    <span class="n">binding_id</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>    <span class="n">label</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="nb">str</span><span class="p">]</span> <span class="o">=</span> <span class="kc">None</span>
 </span></code></pre></div>
 <p><code>Signal</code> and <code>CommandSignal</code> both carry the <code>cross_session: ClassVar[bool] = False</code> flag from <code>Signal</code>. Override on a subclass to opt into cross-session broadcast:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">LibraryCatalogChanged</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">cross_session</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>   <span class="c1"># every session sees this</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">library_id</span><span class="p">:</span> <span class="nb">str</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">LibraryCatalogChanged</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="sd">    The set / state of installed libraries changed (install, uninstall,</span>
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="sd">    enable, disable). Cross-session — peer sessions need to refresh their</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="sd">    library views.</span>
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="sd">    Distinct from per-session active-library selection which lives as a</span>
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="sd">    ``signal_field`` on ``SessionContext`` (``SessionContext.active_library``).</span>
+</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a>
+</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="sd">    Note: ``SessionContext.active_library`` IS itself usable as a subscription</span>
+</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="sd">    key — ``@redraw_on(SessionContext.active_library)`` is the canonical</span>
+</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a><span class="sd">    pattern for per-session active-library handlers.</span>
+</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
+</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a>    <span class="n">cross_session</span><span class="p">:</span> <span class="n">ClassVar</span><span class="p">[</span><span class="nb">bool</span><span class="p">]</span> <span class="o">=</span> <span class="kc">True</span>
 </span></code></pre></div>
 <h3 id="emitting">Emitting<a class="headerlink" href="#emitting" title="Permanent link">&para;</a></h3>
 <p>Publish through the session bus:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="c1"># Inside an editor / panel / handler with a Session reference:</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">(</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>    <span class="n">selected_nodes</span><span class="o">=</span><span class="nb">frozenset</span><span class="p">({</span><span class="s2">&quot;node-1&quot;</span><span class="p">}),</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>    <span class="n">selected_edges</span><span class="o">=</span><span class="nb">frozenset</span><span class="p">(),</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># Inside an editor / panel / handler with a Session reference.</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="c1"># Write the state first, then announce it — SelectionMoved carries no</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="c1"># payload, so subscribers read ctx.data[...] to see what changed.</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span> <span class="o">=</span> <span class="n">node_wrapper</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">())</span>
 </span></code></pre></div>
 <p><code>Session.publish</code> routes the signal based on the class's <code>cross_session</code> flag — local signals go to this session's bus, cross-session signals delegate to <code>SessionManager.broadcast</code> which dispatches to every session (including the originator).</p>
 <p><code>CommandSignal</code> subclasses travel the same way. The AppShell subscribes to each command type and routes it (e.g. <code>Reveal</code> opens the editor in its default slot).</p>
+<h3 id="before-you-declare-one-the-framework-vocabulary">Before you declare one: the framework vocabulary<a class="headerlink" href="#before-you-declare-one-the-framework-vocabulary" title="Permanent link">&para;</a></h3>
+<p>Check this list first. It is <strong>not</strong> a catalogue of every signal in a running app — any library may declare its own, and most do. It is the set defined by the framework in <code>haywire.core.session.signals.vocabulary</code>, which is the set every library can rely on being present. Reaching for one of these instead of inventing a near-duplicate is what keeps subscribers from having to listen for two signals that mean the same thing.</p>
+<p><strong>Observations</strong> — "X happened"; fan-out, anyone may subscribe:</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Means</th>
+<th>Cross-session</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ActiveGraphMoved</code></td>
+<td>The active graph moved</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>SelectionMoved</code></td>
+<td>Node/edge selection moved on the canvas</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>RevealGraphInstance</code></td>
+<td>"Is this graph yours? If so, select this node/edge." Every open subscriber self-matches</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>GraphDataMutated</code></td>
+<td>Graph contents changed (nodes, edges, props)</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>LibraryCatalogChanged</code></td>
+<td>Installed-library set/state changed</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>ErrorLogged</code></td>
+<td>A new error was recorded in the process-wide ledger</td>
+<td>✅</td>
+</tr>
+<tr>
+<td><code>ErrorLedgerChanged</code></td>
+<td>A ledger entry's triage state changed (seen/deleted)</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Imperatives</strong> — "do Y"; conventionally one subscriber (the AppShell):</p>
+<table>
+<thead>
+<tr>
+<th>Signal</th>
+<th>Means</th>
+<th>Cross-session</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>Reveal</code></td>
+<td>Bring an editor to the front in its default slot</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>Close</code></td>
+<td>Close every tab bound to <code>binding_id</code>, this session</td>
+<td>—</td>
+</tr>
+<tr>
+<td><code>BroadcastClose</code></td>
+<td>Same, but every session — for facts, not clicks</td>
+<td>✅</td>
+</tr>
+</tbody>
+</table>
+<p>Two pairs look similar and are not interchangeable:</p>
+<ul>
+<li><strong><code>ErrorLogged</code> vs <code>ErrorLedgerChanged</code></strong> — the first fires only when a <em>new</em> error arrives (so it drives toasts and unseen badges); the second fires on triage mutations. Keying a "new error" indicator off the second makes it flash when the user marks something as read.</li>
+<li><strong><code>Close</code> vs <code>BroadcastClose</code></strong> — use <code>Close</code> for a session-local decision (this user dismissed a dialog) and <code>BroadcastClose</code> only when the underlying entity is gone for <em>everyone</em>.</li>
+</ul>
+<div class="admonition note">
+<p class="admonition-title">Three of these are not exported from the package root</p>
+<p><code>RevealGraphInstance</code>, <code>ErrorLogged</code>, and <code>ErrorLedgerChanged</code> are absent from <code>vocabulary.__all__</code> despite being used across the codebase. Import them from <code>haywire.core.session.signals</code> as usual — the omission is in <code>__all__</code>, not the module.</p>
+</div>
+<h3 id="navigating-the-studio-with-reveal">Navigating the studio with <code>Reveal</code><a class="headerlink" href="#navigating-the-studio-with-reveal" title="Permanent link">&para;</a></h3>
+<p>The most common <code>Reveal</code> use is not "open an editor" on its own — it is <strong>point an editor at something and make sure the user is looking at it</strong>. Those are two steps, and doing only the first is a common bug: the panel updates correctly while collapsed, and the user sees nothing happen.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">open_component_source</span><span class="p">(</span><span class="n">registry_key</span><span class="p">:</span> <span class="nb">str</span><span class="p">,</span> <span class="n">context</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Point the CONTEXT-slot source viewer at ``registry_key`` and force it into view.</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="sd">    The key-taking form of :func:`open_component`, which does the same for a</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="sd">    HaywireException&#39;s ``registry_key``.</span>
+</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.editors.component_source_editor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSourceEditor</span>
+</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reveal</span>
+</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>
+</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="n">context</span><span class="o">.</span><span class="n">active_component</span> <span class="o">=</span> <span class="n">registry_key</span>
+</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>    <span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">Reveal</span><span class="p">(</span><span class="n">editor</span><span class="o">=</span><span class="n">ComponentSourceEditor</span><span class="p">))</span>
+</span></code></pre></div>
+<p>Set the context field the editor follows, then publish <code>Reveal</code> so a collapsed slot pops open. <code>haybale_studio.editors.error_navigation</code> collects these helpers — prefer calling one over re-implementing the pair at each call site.</p>
 <h3 id="hot-reload-dependency-rule">Hot-reload dependency rule<a class="headerlink" href="#hot-reload-dependency-rule" title="Permanent link">&para;</a></h3>
 <p>When your library defines a <code>Signal</code> subclass that <strong>another</strong> library subscribes to, declare your library in the subscriber's <code>LibraryIdentity.dependencies</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="c1"># In the subscriber library&#39;s identity:</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="n">LIBRARY</span> <span class="o">=</span> <span class="n">LibraryIdentity</span><span class="p">(</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;haybale_studio&quot;</span><span class="p">,</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Studio&quot;</span><span class="p">,</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>    <span class="c1"># linked_libraries = [&quot;haybale_haystack&quot;] in haybale.toml —</span>
-</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a>    <span class="c1"># we subscribe to its signals, so hot-reload must track it</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="c1"># ...</span>
-</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># In the subscriber library&#39;s identity:</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="n">LIBRARY</span> <span class="o">=</span> <span class="n">LibraryIdentity</span><span class="p">(</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;haybale_studio&quot;</span><span class="p">,</span>
+</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Studio&quot;</span><span class="p">,</span>
+</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a>    <span class="c1"># linked_libraries = [&quot;haybale_haystack&quot;] in haybale.toml —</span>
+</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>    <span class="c1"># we subscribe to its signals, so hot-reload must track it</span>
+</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a>    <span class="c1"># ...</span>
+</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="p">)</span>
 </span></code></pre></div>
 <p>Without this, hot-reload of the signal-declaring library can leave the subscriber holding a stale class reference, causing <code>isinstance</code> checks to spuriously return <code>False</code>. Synthetic signals from <code>signal_field</code> follow the same rule: if you <code>@redraw_on(OtherLibState.some_field)</code>, declare <code>OtherLibState</code>'s library in your dependencies.</p>
 <h2 id="subscribing-uniform-across-both-paths">Subscribing — uniform across both paths<a class="headerlink" href="#subscribing-uniform-across-both-paths" title="Permanent link">&para;</a></h2>
 <p>The decorators don't care which authoring path produced the signal:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">redraw_on</span><span class="p">,</span> <span class="n">react_on</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionContext</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>
-</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>
-</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">FileViewerEditor</span><span class="p">(</span><span class="n">BaseEditor</span><span class="p">):</span>
-</span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="c1"># signal_field signal — the field reference IS the subscription key:</span>
-</span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>    <span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">)</span>
-</span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_file_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
-</span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>        <span class="n">path</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span>
-</span><span id="__span-13-11"><a id="__codelineno-13-11" name="__codelineno-13-11" href="#__codelineno-13-11"></a>        <span class="o">...</span>
-</span><span id="__span-13-12"><a id="__codelineno-13-12" name="__codelineno-13-12" href="#__codelineno-13-12"></a>
-</span><span id="__span-13-13"><a id="__codelineno-13-13" name="__codelineno-13-13" href="#__codelineno-13-13"></a>    <span class="c1"># Hand-authored signal — the class is the subscription key:</span>
-</span><span id="__span-13-14"><a id="__codelineno-13-14" name="__codelineno-13-14" href="#__codelineno-13-14"></a>    <span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">)</span>
-</span><span id="__span-13-15"><a id="__codelineno-13-15" name="__codelineno-13-15" href="#__codelineno-13-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
-</span><span id="__span-13-16"><a id="__codelineno-13-16" name="__codelineno-13-16" href="#__codelineno-13-16"></a>        <span class="o">...</span>   <span class="c1"># signal.selected_nodes carries the payload</span>
-</span><span id="__span-13-17"><a id="__codelineno-13-17" name="__codelineno-13-17" href="#__codelineno-13-17"></a>
-</span><span id="__span-13-18"><a id="__codelineno-13-18" name="__codelineno-13-18" href="#__codelineno-13-18"></a>    <span class="c1"># Mix freely:</span>
-</span><span id="__span-13-19"><a id="__codelineno-13-19" name="__codelineno-13-19" href="#__codelineno-13-19"></a>    <span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">,</span> <span class="n">SelectionMoved</span><span class="p">)</span>
-</span><span id="__span-13-20"><a id="__codelineno-13-20" name="__codelineno-13-20" href="#__codelineno-13-20"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
-</span><span id="__span-13-21"><a id="__codelineno-13-21" name="__codelineno-13-21" href="#__codelineno-13-21"></a>        <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.handlers</span><span class="w"> </span><span class="kn">import</span> <span class="n">redraw_on</span><span class="p">,</span> <span class="n">react_on</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.context</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionContext</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">FileViewerEditor</span><span class="p">(</span><span class="n">BaseEditor</span><span class="p">):</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a>    <span class="c1"># signal_field signal — the field reference IS the subscription key:</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a>    <span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">)</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_file_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>        <span class="n">path</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>        <span class="o">...</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a>
+</span><span id="__span-15-13"><a id="__codelineno-15-13" name="__codelineno-15-13" href="#__codelineno-15-13"></a>    <span class="c1"># Hand-authored signal — the class is the subscription key:</span>
+</span><span id="__span-15-14"><a id="__codelineno-15-14" name="__codelineno-15-14" href="#__codelineno-15-14"></a>    <span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">)</span>
+</span><span id="__span-15-15"><a id="__codelineno-15-15" name="__codelineno-15-15" href="#__codelineno-15-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+</span><span id="__span-15-16"><a id="__codelineno-15-16" name="__codelineno-15-16" href="#__codelineno-15-16"></a>        <span class="o">...</span>   <span class="c1"># signal.selected_nodes carries the payload</span>
+</span><span id="__span-15-17"><a id="__codelineno-15-17" name="__codelineno-15-17" href="#__codelineno-15-17"></a>
+</span><span id="__span-15-18"><a id="__codelineno-15-18" name="__codelineno-15-18" href="#__codelineno-15-18"></a>    <span class="c1"># Mix freely:</span>
+</span><span id="__span-15-19"><a id="__codelineno-15-19" name="__codelineno-15-19" href="#__codelineno-15-19"></a>    <span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">,</span> <span class="n">SelectionMoved</span><span class="p">)</span>
+</span><span id="__span-15-20"><a id="__codelineno-15-20" name="__codelineno-15-20" href="#__codelineno-15-20"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">_refresh</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+</span><span id="__span-15-21"><a id="__codelineno-15-21" name="__codelineno-15-21" href="#__codelineno-15-21"></a>        <span class="o">...</span>
 </span></code></pre></div>
 <p><code>@redraw_on</code> triggers <code>wrapper.redraw()</code> after the handler returns — exactly once per dispatch pass even if several <code>@redraw_on</code> handlers on this editor match the same signal. <code>@react_on</code> is for pure side-effects without redraw.</p>
 <h3 id="inside-the-handler">Inside the handler<a class="headerlink" href="#inside-the-handler" title="Permanent link">&para;</a></h3>
 <p><strong>For <code>signal_field</code> signals</strong>, the payload is empty. Read the field back:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">)</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_file_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="n">path</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span>        <span class="c1"># current value</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="c1"># signal.old / signal.new do NOT exist</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">)</span>
+</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_file_changed</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="n">path</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span>        <span class="c1"># current value</span>
+</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>    <span class="c1"># signal.old / signal.new do NOT exist</span>
 </span></code></pre></div>
 <p>This matches the framework convention that subscribers always read the source of truth at handler time, not from a cached event payload.</p>
 <p><strong>For hand-authored signals</strong>, the payload is whatever you declared:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">)</span>
-</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
-</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="n">nodes</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">selected_nodes</span>
-</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">edges</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">selected_edges</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="nd">@redraw_on</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">)</span>
+</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_on_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>    <span class="n">nodes</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">selected_nodes</span>
+</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>    <span class="n">edges</span> <span class="o">=</span> <span class="n">signal</span><span class="o">.</span><span class="n">selected_edges</span>
 </span></code></pre></div>
 <h3 id="re-entrant-writes">Re-entrant writes<a class="headerlink" href="#re-entrant-writes" title="Permanent link">&para;</a></h3>
 <p>A handler that writes back to a signal field re-enters the dispatch depth-first — the inner emit completes before the outer dispatch resumes.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-16-1"><a id="__codelineno-16-1" name="__codelineno-16-1" href="#__codelineno-16-1"></a><span class="nd">@react_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">)</span>
-</span><span id="__span-16-2"><a id="__codelineno-16-2" name="__codelineno-16-2" href="#__codelineno-16-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
-</span><span id="__span-16-3"><a id="__codelineno-16-3" name="__codelineno-16-3" href="#__codelineno-16-3"></a>    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.bak&quot;</span><span class="p">:</span>
-</span><span id="__span-16-4"><a id="__codelineno-16-4" name="__codelineno-16-4" href="#__codelineno-16-4"></a>        <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">)</span>  <span class="c1"># re-entrant</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nd">@react_on</span><span class="p">(</span><span class="n">SessionContext</span><span class="o">.</span><span class="n">active_file</span><span class="p">)</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">_normalize</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">signal</span><span class="p">):</span>
+</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="k">if</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span><span class="o">.</span><span class="n">suffix</span> <span class="o">==</span> <span class="s2">&quot;.bak&quot;</span><span class="p">:</span>
+</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>        <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">active_file</span><span class="o">.</span><span class="n">with_suffix</span><span class="p">(</span><span class="s2">&quot;.txt&quot;</span><span class="p">)</span>  <span class="c1"># re-entrant</span>
 </span></code></pre></div>
 <p>Trivial loops (writing back the same value) self-terminate via the identity short-circuit. Cross-field ping-pong is an author bug; the bus does not guard against it.</p>
 <h2 id="common-patterns">Common patterns<a class="headerlink" href="#common-patterns" title="Permanent link">&para;</a></h2>
 <h3 id="i-want-to-add-reactive-state-to-my-library">"I want to add reactive state to my library"<a class="headerlink" href="#i-want-to-add-reactive-state-to-my-library" title="Permanent link">&para;</a></h3>
 <p>Use <code>signal_field</code> on a <code>SessionState</code> or <code>AppState</code> subclass:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionState</span>
-</span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_field</span>
-</span><span id="__span-17-3"><a id="__codelineno-17-3" name="__codelineno-17-3" href="#__codelineno-17-3"></a>
-</span><span id="__span-17-4"><a id="__codelineno-17-4" name="__codelineno-17-4" href="#__codelineno-17-4"></a>
-</span><span id="__span-17-5"><a id="__codelineno-17-5" name="__codelineno-17-5" href="#__codelineno-17-5"></a><span class="nd">@state</span>
-</span><span id="__span-17-6"><a id="__codelineno-17-6" name="__codelineno-17-6" href="#__codelineno-17-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyLibState</span><span class="p">(</span><span class="n">SessionState</span><span class="p">):</span>
-</span><span id="__span-17-7"><a id="__codelineno-17-7" name="__codelineno-17-7" href="#__codelineno-17-7"></a>    <span class="n">active_device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DeviceInfo</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal_field</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
-</span><span id="__span-17-8"><a id="__codelineno-17-8" name="__codelineno-17-8" href="#__codelineno-17-8"></a>    <span class="n">selected_channels</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal_field</span><span class="p">(</span><span class="nb">set</span><span class="p">())</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionState</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_field</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="nd">@state</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">MyLibState</span><span class="p">(</span><span class="n">SessionState</span><span class="p">):</span>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a>    <span class="n">active_device</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">DeviceInfo</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal_field</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="n">selected_channels</span><span class="p">:</span> <span class="nb">set</span><span class="p">[</span><span class="nb">int</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal_field</span><span class="p">(</span><span class="nb">set</span><span class="p">())</span>
 </span></code></pre></div>
 <p>Subscribers reference the field directly: <code>@redraw_on(MyLibState.active_device)</code>.</p>
 <h3 id="i-want-to-emit-a-coarse-grained-event-with-payload">"I want to emit a coarse-grained event with payload"<a class="headerlink" href="#i-want-to-emit-a-coarse-grained-event-with-payload" title="Permanent link">&para;</a></h3>
 <p>Author a <code>Signal</code> subclass:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">CalibrationCompleted</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
-</span><span id="__span-18-3"><a id="__codelineno-18-3" name="__codelineno-18-3" href="#__codelineno-18-3"></a>    <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-18-4"><a id="__codelineno-18-4" name="__codelineno-18-4" href="#__codelineno-18-4"></a>    <span class="n">quality</span><span class="p">:</span> <span class="nb">float</span>
-</span><span id="__span-18-5"><a id="__codelineno-18-5" name="__codelineno-18-5" href="#__codelineno-18-5"></a>    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">int</span>
-</span><span id="__span-18-6"><a id="__codelineno-18-6" name="__codelineno-18-6" href="#__codelineno-18-6"></a>
-</span><span id="__span-18-7"><a id="__codelineno-18-7" name="__codelineno-18-7" href="#__codelineno-18-7"></a>
-</span><span id="__span-18-8"><a id="__codelineno-18-8" name="__codelineno-18-8" href="#__codelineno-18-8"></a><span class="c1"># Somewhere in the calibration worker:</span>
-</span><span id="__span-18-9"><a id="__codelineno-18-9" name="__codelineno-18-9" href="#__codelineno-18-9"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">CalibrationCompleted</span><span class="p">(</span>
-</span><span id="__span-18-10"><a id="__codelineno-18-10" name="__codelineno-18-10" href="#__codelineno-18-10"></a>    <span class="n">device_id</span><span class="o">=</span><span class="n">dev</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
-</span><span id="__span-18-11"><a id="__codelineno-18-11" name="__codelineno-18-11" href="#__codelineno-18-11"></a>    <span class="n">quality</span><span class="o">=</span><span class="mf">0.92</span><span class="p">,</span>
-</span><span id="__span-18-12"><a id="__codelineno-18-12" name="__codelineno-18-12" href="#__codelineno-18-12"></a>    <span class="n">duration_ms</span><span class="o">=</span><span class="mi">1340</span><span class="p">,</span>
-</span><span id="__span-18-13"><a id="__codelineno-18-13" name="__codelineno-18-13" href="#__codelineno-18-13"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">CalibrationCompleted</span><span class="p">(</span><span class="n">Signal</span><span class="p">):</span>
+</span><span id="__span-20-3"><a id="__codelineno-20-3" name="__codelineno-20-3" href="#__codelineno-20-3"></a>    <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-20-4"><a id="__codelineno-20-4" name="__codelineno-20-4" href="#__codelineno-20-4"></a>    <span class="n">quality</span><span class="p">:</span> <span class="nb">float</span>
+</span><span id="__span-20-5"><a id="__codelineno-20-5" name="__codelineno-20-5" href="#__codelineno-20-5"></a>    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-20-6"><a id="__codelineno-20-6" name="__codelineno-20-6" href="#__codelineno-20-6"></a>
+</span><span id="__span-20-7"><a id="__codelineno-20-7" name="__codelineno-20-7" href="#__codelineno-20-7"></a>
+</span><span id="__span-20-8"><a id="__codelineno-20-8" name="__codelineno-20-8" href="#__codelineno-20-8"></a><span class="c1"># Somewhere in the calibration worker:</span>
+</span><span id="__span-20-9"><a id="__codelineno-20-9" name="__codelineno-20-9" href="#__codelineno-20-9"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">CalibrationCompleted</span><span class="p">(</span>
+</span><span id="__span-20-10"><a id="__codelineno-20-10" name="__codelineno-20-10" href="#__codelineno-20-10"></a>    <span class="n">device_id</span><span class="o">=</span><span class="n">dev</span><span class="o">.</span><span class="n">id</span><span class="p">,</span>
+</span><span id="__span-20-11"><a id="__codelineno-20-11" name="__codelineno-20-11" href="#__codelineno-20-11"></a>    <span class="n">quality</span><span class="o">=</span><span class="mf">0.92</span><span class="p">,</span>
+</span><span id="__span-20-12"><a id="__codelineno-20-12" name="__codelineno-20-12" href="#__codelineno-20-12"></a>    <span class="n">duration_ms</span><span class="o">=</span><span class="mi">1340</span><span class="p">,</span>
+</span><span id="__span-20-13"><a id="__codelineno-20-13" name="__codelineno-20-13" href="#__codelineno-20-13"></a><span class="p">))</span>
 </span></code></pre></div>
 <h3 id="i-want-to-model-an-imperative">"I want to model an imperative"<a class="headerlink" href="#i-want-to-model-an-imperative" title="Permanent link">&para;</a></h3>
 <p>Use <code>CommandSignal</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlashLed</span><span class="p">(</span><span class="n">CommandSignal</span><span class="p">):</span>
-</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>    <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span>
-</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">int</span>
-</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>
-</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
-</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="c1"># Emit from anywhere with a Session reference:</span>
-</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">FlashLed</span><span class="p">(</span><span class="n">device_id</span><span class="o">=</span><span class="s2">&quot;dev-1&quot;</span><span class="p">,</span> <span class="n">duration_ms</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="nd">@dataclass</span><span class="p">(</span><span class="n">frozen</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">kw_only</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-21-2"><a id="__codelineno-21-2" name="__codelineno-21-2" href="#__codelineno-21-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">FlashLed</span><span class="p">(</span><span class="n">CommandSignal</span><span class="p">):</span>
+</span><span id="__span-21-3"><a id="__codelineno-21-3" name="__codelineno-21-3" href="#__codelineno-21-3"></a>    <span class="n">device_id</span><span class="p">:</span> <span class="nb">str</span>
+</span><span id="__span-21-4"><a id="__codelineno-21-4" name="__codelineno-21-4" href="#__codelineno-21-4"></a>    <span class="n">duration_ms</span><span class="p">:</span> <span class="nb">int</span>
+</span><span id="__span-21-5"><a id="__codelineno-21-5" name="__codelineno-21-5" href="#__codelineno-21-5"></a>
+</span><span id="__span-21-6"><a id="__codelineno-21-6" name="__codelineno-21-6" href="#__codelineno-21-6"></a>
+</span><span id="__span-21-7"><a id="__codelineno-21-7" name="__codelineno-21-7" href="#__codelineno-21-7"></a><span class="c1"># Emit from anywhere with a Session reference:</span>
+</span><span id="__span-21-8"><a id="__codelineno-21-8" name="__codelineno-21-8" href="#__codelineno-21-8"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">FlashLed</span><span class="p">(</span><span class="n">device_id</span><span class="o">=</span><span class="s2">&quot;dev-1&quot;</span><span class="p">,</span> <span class="n">duration_ms</span><span class="o">=</span><span class="mi">200</span><span class="p">))</span>
 </span></code></pre></div>
 <p>A single subscriber (typically a device driver editor) handles it. Convention is one subscriber per <code>CommandSignal</code> type, but the bus does not enforce that.</p>
 <h2 id="constraints">Constraints<a class="headerlink" href="#constraints" title="Permanent link">&para;</a></h2>

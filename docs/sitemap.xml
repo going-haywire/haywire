@@ -2,338 +2,338 @@
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0001-haybale-marketplace-carveout/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0002-validation-scheduler-injection/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0003-show-widget-strategy/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0004-semantic-slot-names/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0005-compatibility-warnings/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0006-node-render-performance/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0007-widget-unification-basewidget/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0008-ports-panel-widget-rendering/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0009-focus-id-stable-key/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0010-event-source-queue-mode/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0011-collapse-settings-tiers/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0012-settings-json-persistence/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0013-settings-single-cell/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0014-promotion-as-direction/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0017-widget-selection-port-contract/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0018-port-widget-config-serialization-boundary/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0019-settings-owned-promotion/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0021-watch-as-shadow-preset/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0022-graph-settings-tier/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0023-project-scoped-lockstep-sharing/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0024-library-metadata-single-source/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0025-haybale-toml-is-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/design/design-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/design/stepper-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/execution-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/assembly/assembly-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/callbacks/callbacks-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/edges/edges-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/flow/flow-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/lazy-evaluation/lazy-evaluation-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/execution/virtual-machine/virtual-machine-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/graph/graph-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/hot-reload/hot-reload-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/library-system/library-system-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/overview/overview-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/session-and-state/session-and-state-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/settings/settings-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/sharing/share-pipeline-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/studio/studio-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/studio/app-shell/app-shell-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/studio/canvas/canvas-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/studio/rendering/rendering-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/architecture/studio/workspace/workspace-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/archive/whitepaper/Haywire_design/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/adapters/adapter-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/datatypes/datatype-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/editors/editor-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/farmhands/farmhand-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/nodes/node-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/panels/panel-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/settings/setting-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/skins/skin-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/states/state-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/themes/theme-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/components/widgets/widget-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/node-roles/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/panels/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/ports/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/publish-to-pypi/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/signals/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/guides/subscribing-to-marketplaces/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/haybale/haybale-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/haybale/metadata-flow/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/haybale/marketplace/haybale-marketplace-arch/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/haybale/marketplace/marketplace-canon/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/dependency-report/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/design-guide/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/glossary/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/publish_releases/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/files/haybale-toml/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/files/marketplace-toml/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/files/marketstall-toml/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/reference/files/pyproject-toml/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-08-library-metadata-foundation/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-09-filewatcher-extension-filter-to-dispatcher/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-10-haybale-one-metadata-record-decisions/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-10-haybale-one-metadata-record/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/superpowers/plans/2026-08-10-linked-libraries-detect-at-edit-time/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/welcome/advanced/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/welcome/core/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/welcome/user/</loc>
-         <lastmod>2026-08-11</lastmod>
+         <lastmod>2026-08-12</lastmod>
     </url>
 </urlset>

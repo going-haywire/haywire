@@ -3185,7 +3185,7 @@ Released under <a href="https://creativecommons.org/licenses/by-nc-sa/4.0/">CC-B
 <li><a href="https://cables.gl/">CablesGL</a> (JavaScript-based)</li>
 </ul>
 <p><strong>Execution Flow vs Data Flow</strong></p>
-<p>Unlike pure dataflow systems (<a href="https://github.com/comfyanonymous/ComfyUI">ComfyUI</a>, <a href="https://github.com/langflow-ai/langflow">Langflow</a>, <a href="https://github.com/chaiNNer-org/chaiNNer">ChaiNNer</a>, <a href="https://github.com/leon-thomm/Ryven">Ryven</a>, <a href="../research/nodes/_Execution_Classification.md">etc.</a>) that primarily pass data between nodes, Haywire uses an execution flow model in combination with a data flow model:</p>
+<p>Unlike pure dataflow systems (<a href="https://github.com/comfyanonymous/ComfyUI">ComfyUI</a>, <a href="https://github.com/langflow-ai/langflow">Langflow</a>, <a href="https://github.com/chaiNNer-org/chaiNNer">ChaiNNer</a>, <a href="https://github.com/leon-thomm/Ryven">Ryven</a>, etc.) that primarily pass data between nodes, Haywire uses an execution flow model in combination with a data flow model:</p>
 <ul>
 <li>Connections between <a href="#pin-system">Control-pins</a> specify the order of operations</li>
 <li>Connections between <a href="#pin-system">Data-pins</a> pass values between nodes</li>
@@ -3702,7 +3702,7 @@ The Data-category include <code>scalar</code>, <code>list</code>, <code>tuple</c
 <h2 id="finding-and-loading-available-node-libraries">Finding and Loading available Node Libraries<a class="headerlink" href="#finding-and-loading-available-node-libraries" title="Permanent link">&para;</a></h2>
 <p>loading nodes from filesystem: <a href="https://github.com/comfyanonymous/ComfyUI/blob/78672d0ee6d20d8269f324474643e5cc00f1c348/nodes.py#L2168">ComfyUI/nodes.py at 78672d0ee6d20d8269f324474643e5cc00f1c348 ? comfyanonymous/ComfyUI ? GitHub</a></p>
 <h2 id="loading-graphs-from-json-and-instantiating-required-nodes">Loading Graphs from JSON and instantiating required Nodes<a class="headerlink" href="#loading-graphs-from-json-and-instantiating-required-nodes" title="Permanent link">&para;</a></h2>
-<p>this example shows a first approach on how to load a graph from json, find, version check and instantiate the required nodes from a central registry: <a href="../../playground/node_API/node_discovery_system.py">node_discovery_system.py</a></p>
+<p>See the playground examples for approaches to loading a graph from JSON, finding, version checking and instantiating required nodes from a central registry.</p>
 <hr />
 <h1 id="assembly">Assembly<a class="headerlink" href="#assembly" title="Permanent link">&para;</a></h1>
 <h2 id="overview_2">Overview<a class="headerlink" href="#overview_2" title="Permanent link">&para;</a></h2>
@@ -4020,7 +4020,7 @@ The Data-category include <code>scalar</code>, <code>list</code>, <code>tuple</c
 - Version migration: Recipes can be transformed during graph loading
 - Minimal storage: Only essential creation parameters are saved</p>
 <h3 id="complete-node-definition-template">Complete Node Definition Template<a class="headerlink" href="#complete-node-definition-template" title="Permanent link">&para;</a></h3>
-<p>see <a href="./Haywire_node_definition.md">Haywire_node_definition.md</a></p>
+<p>see the Haywire node definition documentation</p>
 <h3 id="complete-node-initialization-sequence">Complete Node Initialization Sequence<a class="headerlink" href="#complete-node-initialization-sequence" title="Permanent link">&para;</a></h3>
 <div class="language-console highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="gp"># </span>Initialization
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="go">1. first the node is initialized, calling __init__</span>

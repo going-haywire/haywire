@@ -3330,7 +3330,7 @@
 </ul>
 <p>An agent has no peripheral vision. It cannot skim, scroll back, or notice that a list looked short. Whatever your response does not say, it does not know.</p>
 <h3 id="41-return-the-least-that-lets-the-agent-act">4.1 Return the least that lets the agent act<a class="headerlink" href="#41-return-the-least-that-lets-the-agent-act" title="Permanent link">&para;</a></h3>
-<p><strong>Default to the smallest useful row; put the rest behind <code>detail=true</code>.</strong> Return the 3-4 fields a caller needs to <em>decide what to do next</em> — an identifier, a label, a status — and gate prose, URLs, and provenance behind <code>detail</code>. Never <code>asdict()</code> a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row <code>marketplace_list_available</code>, <code>asdict()</code> emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on <em>every</em> row; trimming to four cut the payload 77% (<a href="measurements/2026-08-07-farmhand-axi-measure_payload.py">reproducible script</a>). When <code>detail=true</code> does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.</p>
+<p><strong>Default to the smallest useful row; put the rest behind <code>detail=true</code>.</strong> Return the 3-4 fields a caller needs to <em>decide what to do next</em> — an identifier, a label, a status — and gate prose, URLs, and provenance behind <code>detail</code>. Never <code>asdict()</code> a domain dataclass straight into a row: it ships whatever the class happens to hold, including fields that are empty for every row. Measured on a real 5-row <code>marketplace_list_available</code>, <code>asdict()</code> emitted 21 fields per row of which 41% of all values were empty, and 8 fields were empty on <em>every</em> row; trimming to four cut the payload 77%. When <code>detail=true</code> does return the full record, still drop empty values and runtime-only internals — an absent value says nothing worth a token.</p>
 <p><strong>Make the caller drill down: separate WHICH from HOW MUCH.</strong> A tool whose full response is expensive should force the caller to choose, on each independent axis, rather than defaulting to everything. <code>graph_editor_inspect_node</code> is the reference implementation, with three orthogonal parameters:</p>
 <table>
 <thead>
@@ -3456,7 +3456,7 @@
 </tr>
 </tbody>
 </table>
-<p>The numbers cited above are reproducible: <a href="measurements/2026-08-07-farmhand-axi-measure_payload.py"><code>measurements/2026-08-07-farmhand-axi-measure_payload.py</code></a> carries the captured payload and prints every figure, including the two-lever comparison behind the TOON decision. Re-run it before revisiting that call.</p>
+<p>The measurements above are from a reproducible analysis of payload size and structure. See the internal documentation for the detailed script and results.</p>
 <p>If you are extending a <em>different</em> agent-facing surface — a CLI, for instance — read AXI directly; more of it applies there than here.</p>
 <h2 id="5-live-examples-from-the-codebase">5. Live examples from the codebase<a class="headerlink" href="#5-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p><strong>Minimal read-only tool</strong> — no arguments beyond a single required string, <code>read_only_hint</code> annotation:</p>

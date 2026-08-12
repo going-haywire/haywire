@@ -5553,7 +5553,7 @@ used in the error node skin. It should resolve to a low-saturation tint of
 </table>
 <p><strong>Rule:</strong> a <code>ui.select</code> inside a <code>Popup</code> must lift its dropdown, or the option list renders <em>behind</em> the card — invisible and unclickable, so the select looks empty. Use <code>hui.select_field(in_popup=True)</code>.</p>
 <p><strong>Do not lift unconditionally.</strong> The QMenu teleports to <code>&lt;body&gt;</code>, so a lifted dropdown escapes its parent's stacking context entirely. A panel or node widget sitting <em>behind</em> a popup would have its dropdown float above that popup. Panels and widgets keep the default; only in-popup selects opt in.</p>
-<p>See <a href="../../.insights/feedback_nicegui_nested_menu_flyouts.md">.insights/feedback_nicegui_nested_menu_flyouts.md</a> (#2) for the original diagnosis.</p>
+<p>See .insights/feedback_nicegui_nested_menu_flyouts.md (#2) for the original diagnosis.</p>
 <p><strong>Note:</strong> NiceGUI's <code>ui.scroll_area()</code> creates a stacking context. Any <code>position: absolute</code> child inside a scroll area is clipped to it — this is expected behaviour.</p>
 <h3 id="210-hover-and-selection">2.10 Hover and Selection<a class="headerlink" href="#210-hover-and-selection" title="Permanent link">&para;</a></h3>
 <p>Interactive list items and rows use a <strong>theme-derived token</strong> for hover, not a

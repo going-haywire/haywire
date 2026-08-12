@@ -3267,7 +3267,7 @@ the router; (3) replace the callback with an adapter registry.</p>
 <p><strong>Tech Stack:</strong> Python 3.12, watchdog, threading.Timer debounce, pytest.</p>
 <h2 id="source-documents">Source Documents<a class="headerlink" href="#source-documents" title="Permanent link">&para;</a></h2>
 <ul>
-<li>Handoff: <a href="../../../internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md">filewatcher-extension-filter-belongs-in-the-dispatcher.md</a></li>
+<li>Handoff: filewatcher-extension-filter-belongs-in-the-dispatcher.md</li>
 <li>The handoff's design A (per-mapping <code>extensions=</code> tuple) was considered and
   rejected there; this plan does not revisit it.</li>
 </ul>
@@ -3286,17 +3286,17 @@ plan depends on the correction. Both must be fixed in the note itself (Task 0).<
 <p><strong>1. <code>event_dispatcher</code> does NOT already guard itself.</strong> The note says
 <code>_validate_python_file</code> makes the handler's <code>.py</code> test "a cheap pre-filter, not a
 correctness guarantee." It is not. At
-<a href="../../../packages/haywire-core/src/haywire/core/registry/folder_scan.py#L194-L206">folder_scan.py:194-206</a>
+<code>folder_scan.py:194-206</code>
 the <code>try</code> wraps only the <code>open()</code>/<code>read()</code> for <code>OSError</code>. <code>ast.parse</code> sits <strong>outside</strong>
 it. Given a <code>.toml</code> or a <code>.png</code>, <code>ast.parse</code> raises, the exception propagates into
 <code>event_dispatcher</code>'s <code>except Exception</code> at
-<a href="../../../packages/haywire-core/src/haywire/core/registry/base.py#L437">registry/base.py:437</a>,
+<code>registry/base.py:437</code>,
 and that branch <strong>manufactures a <code>CLASS_RELOAD_FAILED</code> lifecycle event</strong> and pushes it
 to subscribers. A non-<code>.py</code> file reaching a registry today surfaces as a fake reload
 failure in the error ledger, not a quiet rejection.</p>
 <p><strong>2. <code>resolve_module_name</code> does not reliably yield an absent module.</strong> The note claims
 a non-module "yields something absent from <code>sys.modules</code>." It strips the suffix via
-<code>.stem</code> (<a href="../../../packages/haywire-core/src/haywire/core/registry/folder_scan.py#L186">folder_scan.py:186</a>),
+<code>.stem</code> (<code>folder_scan.py:186</code>),
 so <code>foo/nodes.toml</code> resolves to <code>pkg.foo.nodes</code> — colliding with the real <code>nodes.py</code>,
 which <em>is</em> in <code>sys.modules</code>. That is a live mis-reload of the wrong module.</p>
 <p><strong>Consequence for sequencing:</strong> step 2 of the handoff (the explicit guard) is
@@ -3311,18 +3311,18 @@ sail into <code>_on_delete("pkg.haybale")</code>. The guard must sit at the <str
 <p><strong>4. No import cycle; skip the <code>HotReloadRegistry</code> extraction.</strong> The note hedges about
 moving <code>HotReloadRegistry</code> into <code>core/registry/hot_reload.py</code> to avoid a
 <code>library.base</code> → <code>registry.base</code> cycle. There is no cycle:
-<a href="../../../packages/haywire-core/src/haywire/core/library/base.py#L9-L12">library/base.py:9-12</a>
+<code>library/base.py:9-12</code>
 already imports <code>BaseRegistry</code> and <code>FileEventType</code> from <code>registry.base</code>, and nothing in
 <code>registry/base.py</code> imports <code>library.base</code>. Subclass it in place. No module move, no
 compatibility re-export.</p>
 <p><strong>5. Root fallback is the correct home for the adapter</strong> (confirming the note, against
 an early doubt). <code>_get_matching_registries</code> gives folder mappings priority and
 exclusivity — if any folder mapping matches, root fallbacks are never consulted
-(<a href="../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L124-L125">file_watcher.py:124-125</a>).
+(<code>file_watcher.py:124-125</code>).
 That would starve a root-fallback adapter <em>if</em> a library registered its own root as a
 component folder. None do: every <code>register_components()</code> registers <strong>subfolders</strong>
 (<code>base_path / "nodes"</code>, <code>base_path / "types"</code>, …) — see
-<a href="../../../barn/haybale-testing/haybale_testing/__init__.py#L34-L78">haybale_testing/<strong>init</strong>.py:34-78</a>.
+<code>haybale_testing/__init__.py:34-78</code>.
 <code>haybale.toml</code> sits at the root, matches no folder mapping, and reaches the fallback.</p>
 <blockquote>
 <p><strong>Invariant this introduces:</strong> a library must never register its own root via
@@ -3343,7 +3343,7 @@ than tacit.</p>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Rewrite the "Why it is still not right" and "B — drop the filter entirely"
       sections of
-      <a href="../../../internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md">internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md</a>
+      internals/handoff/filewatcher-extension-filter-belongs-in-the-dispatcher.md
       to carry corrections 1–5 above.</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> Add a <code>**Superseded by:** docs/superpowers/plans/2026-08-09-filewatcher-extension-filter-to-dispatcher.md</code>
       line under <strong>Status</strong>.</li>
@@ -3355,7 +3355,7 @@ in it invites the exact wrong sequencing on the next read.</p>
 <p>Standalone bug fix. Green on its own, with the handler untouched.</p>
 <h3 id="task-1-_validate_python_file-rejects-instead-of-raising">Task 1: <code>_validate_python_file</code> rejects instead of raising<a class="headerlink" href="#task-1-_validate_python_file-rejects-instead-of-raising" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> In <a href="../../../packages/haywire-core/src/haywire/core/registry/folder_scan.py#L194">folder_scan.py:194</a>,
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> In <code>folder_scan.py:194</code>,
       return <code>False</code> for a non-<code>.py</code> suffix before reading, and wrap <code>ast.parse</code> in
       <code>except SyntaxError: return False</code>.</li>
 </ul>
@@ -3399,7 +3399,7 @@ an author saving a broken file now gets a logged skip rather than a
 <h3 id="task-2-guard-the-top-of-event_dispatcher">Task 2: Guard the top of <code>event_dispatcher</code><a class="headerlink" href="#task-2-guard-the-top-of-event_dispatcher" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> At the top of
-      <a href="../../../packages/haywire-core/src/haywire/core/registry/base.py#L366">registry/base.py:366</a>,
+      <code>registry/base.py:366</code>,
       before the <code>logger.info</code> and before <code>resolve_module_name</code>:</li>
 </ul>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">if</span> <span class="ow">not</span> <span class="n">event</span><span class="o">.</span><span class="n">file_path</span><span class="o">.</span><span class="n">endswith</span><span class="p">(</span><span class="s2">&quot;.py&quot;</span><span class="p">):</span>
@@ -3435,7 +3435,7 @@ an author saving a broken file now gets a logged skip rather than a
 <h3 id="task-5-assert-the-root-is-not-a-component-folder-invariant">Task 5: Assert the root-is-not-a-component-folder invariant<a class="headerlink" href="#task-5-assert-the-root-is-not-a-component-folder-invariant" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> In <code>BaseLibrary.add_folder_to_registry</code>
-      (<a href="../../../packages/haywire-core/src/haywire/core/library/base.py#L197">library/base.py:197</a>),
+      (<code>library/base.py:197</code>),
       raise if <code>Path(folder_path).resolve() == Path(self.identity.folder_path).resolve()</code>.</li>
 </ul>
 <p>Correction 5 shows the adapter's delivery depends on this holding. It holds today by
@@ -3446,7 +3446,7 @@ metadata refresh quietly never firing — into an error at registration.</p>
 </ul>
 <h3 id="task-6-delete-py-from-the-four-callbacks">Task 6: Delete <code>.py</code> from the four callbacks<a class="headerlink" href="#task-6-delete-py-from-the-four-callbacks" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <a href="../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L158">file_watcher.py:158</a>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>file_watcher.py:158</code>
       (<code>on_modified</code>), <code>:171</code> (<code>on_created</code>), <code>:184</code> (<code>on_deleted</code>), <code>:216-217</code>
       (<code>on_moved</code>) — remove the <code>endswith(".py")</code> tests.</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>on_moved</code> loses the <code>src_is_py</code>/<code>dest_is_py</code> split. The two branches are now
@@ -3460,7 +3460,7 @@ metadata refresh quietly never firing — into an error at registration.</p>
 - [x] Update the class docstring: the handler routes <strong>every</strong> non-directory event.</p>
 <h3 id="task-7-seed-_known_files-for-all-files-with-exclusions">Task 7: Seed <code>_known_files</code> for all files, with exclusions<a class="headerlink" href="#task-7-seed-_known_files-for-all-files-with-exclusions" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <a href="../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L75">file_watcher.py:75</a>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>file_watcher.py:75</code>
       — <code>rglob("*.py")</code> becomes <code>rglob("*")</code>, filtered to files.</li>
 </ul>
 <p><code>rglob("*")</code> on a library containing <code>.venv/</code>, <code>node_modules/</code>, or <code>__pycache__/</code>
@@ -3478,7 +3478,7 @@ walks the whole tree on every <code>add_folder_mapping</code>. Add a module-leve
 </ul>
 <h3 id="task-8-quiet-the-downgrade-log">Task 8: Quiet the downgrade log<a class="headerlink" href="#task-8-quiet-the-downgrade-log" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <a href="../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L178">file_watcher.py:178</a>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>file_watcher.py:178</code>
       — demote the CREATE→MODIFIED downgrade from <code>logger.info</code> to <code>logger.debug</code>.</li>
 </ul>
 <p>The handoff (line 135) suggests a filtered-extension list to log selectively. Prefer
@@ -3510,7 +3510,7 @@ non-Python events and must tolerate them. Note it in the commit body.</p>
 <h2 id="commit-3-the-metadata-refresh-becomes-a-registry">Commit 3 — The metadata refresh becomes a registry<a class="headerlink" href="#commit-3-the-metadata-refresh-becomes-a-registry" title="Permanent link">&para;</a></h2>
 <h3 id="task-11-add-_haybaletomlwatcher">Task 11: Add <code>_HaybaleTomlWatcher</code><a class="headerlink" href="#task-11-add-_haybaletomlwatcher" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> In <a href="../../../packages/haywire-core/src/haywire/core/library/base.py">library/base.py</a>,
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> In <code>library/base.py</code>,
       above <code>BaseLibrary</code>:</li>
 </ul>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">_HaybaleTomlWatcher</span><span class="p">(</span><span class="n">HotReloadRegistry</span><span class="p">):</span>
@@ -3543,7 +3543,7 @@ non-Python events and must tolerate them. Note it in the commit body.</p>
 <h3 id="task-12-register-it-on-the-root-fallback">Task 12: Register it on the root fallback<a class="headerlink" href="#task-12-register-it-on-the-root-fallback" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>_attach_to_registries</code>
-      (<a href="../../../packages/haywire-core/src/haywire/core/library/base.py#L303-L309">library/base.py:303-309</a>)
+      (<code>library/base.py:303-309</code>)
       — append <code>self._toml_watcher</code> to the registries list passed to <code>add_root_fallback</code>.</li>
 </ul>
 <p>DELETED events must keep the previous values (there is an existing test). The adapter
@@ -3551,11 +3551,11 @@ gets DELETED like any other event; <code>_reload_metadata</code> already handles
 via <code>HaybaleTomlError</code> → warn → keep previous. Verify rather than assume.</p>
 <h3 id="task-13-delete-the-callback-mechanism">Task 13: Delete the callback mechanism<a class="headerlink" href="#task-13-delete-the-callback-mechanism" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>FileEventCallback</code> (<a href="../../../packages/haywire-core/src/haywire/core/library/file_watcher.py#L17-L25">file_watcher.py:17-25</a>)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>FileEventCallback</code> (<code>file_watcher.py:17-25</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>LibraryFileHandler._claimed</code> (<code>:134-151</code>) and <code>self._on_file_event</code> (<code>:41</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> the <code>_claimed</code> calls in <code>on_modified</code> (<code>:156</code>), <code>on_created</code> (<code>:169</code>), <code>on_moved</code> (<code>:213</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> the <code>on_file_event</code> parameter on <code>LibraryFileHandler.__init__</code> and <code>FileWatcher.__init__</code> (<code>:315</code>)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>BaseLibrary._on_watched_file</code> (<a href="../../../packages/haywire-core/src/haywire/core/library/base.py#L237-L255">library/base.py:237-255</a>)
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>BaseLibrary._on_watched_file</code> (<code>library/base.py:237-255</code>)
       and the <code>on_file_event=</code> argument at <code>:61</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled checked/><span class="task-list-indicator"></span></label> <code>FileEventType</code> import in <code>library/base.py</code> if now unused</li>
 </ul>

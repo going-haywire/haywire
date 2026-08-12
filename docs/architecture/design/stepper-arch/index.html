@@ -3294,7 +3294,7 @@ holding the step vocabulary.</p>
   and <code>busy_advance</code> both return rather than call <code>background_tasks.create</code>.
   NiceGUI wraps a returned Awaitable with the parent slot before scheduling,
   which is what keeps <code>ui.notify()</code> and element creation working inside the
-  step. See <a href="../../../.insights/feedback_nicegui_async.md">feedback_nicegui_async.md</a>.</li>
+  step. See feedback_nicegui_async.md.</li>
 <li><strong><code>busy_advance</code> for anything that can take a second</strong>, <code>advance</code> for
   in-memory transitions. Without the loading state a threaded step looks dead.</li>
 <li><strong>Keep the state machine free of NiceGUI imports.</strong> Every flow's tests drive

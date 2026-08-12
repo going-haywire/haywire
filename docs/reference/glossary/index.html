@@ -5145,7 +5145,7 @@
 <tbody>
 <tr>
 <td><strong>Signal</strong></td>
-<td>The base class for everything dispatched on the per-session bus. Frozen dataclass with <code>kw_only=True</code>; <code>cross_session: ClassVar[bool] = False</code> controls broadcast routing. See <a href="../../packages/haywire-core/src/haywire/core/session/signals/signal.py"><code>session/signals/signal.py</code></a></td>
+<td>The base class for everything dispatched on the per-session bus. Frozen dataclass with <code>kw_only=True</code>; <code>cross_session: ClassVar[bool] = False</code> controls broadcast routing. See <code>session/signals/signal.py</code></td>
 <td>Event (deprecated; was the old base class), message</td>
 </tr>
 <tr>
@@ -5155,7 +5155,7 @@
 </tr>
 <tr>
 <td><strong>SignalBus</strong></td>
-<td>Per-session typed pub/sub. One instance per <strong>Session</strong>; subscribers register a handler for an exact <code>Signal</code> subclass; publishes fan out by <code>type(signal)</code> exact match. See <a href="../../packages/haywire-core/src/haywire/core/session/signals/bus.py"><code>session/signals/bus.py</code></a></td>
+<td>Per-session typed pub/sub. One instance per <strong>Session</strong>; subscribers register a handler for an exact <code>Signal</code> subclass; publishes fan out by <code>type(signal)</code> exact match. See <code>session/signals/bus.py</code></td>
 <td>EventBus (deprecated)</td>
 </tr>
 <tr>
@@ -5165,7 +5165,7 @@
 </tr>
 <tr>
 <td><strong>signal_field</strong></td>
-<td>Descriptor declaring a reactive field on a <code>SignalSource</code> subclass. Writes emit a synthetic <code>Signal</code> subclass keyed by the field reference; reads return the stored value via bare attribute access. See <a href="../../packages/haywire-core/src/haywire/core/session/signals/descriptor.py"><code>session/signals/descriptor.py</code></a></td>
+<td>Descriptor declaring a reactive field on a <code>SignalSource</code> subclass. Writes emit a synthetic <code>Signal</code> subclass keyed by the field reference; reads return the stored value via bare attribute access. See <code>session/signals/descriptor.py</code></td>
 <td>reactive_field (deprecated)</td>
 </tr>
 <tr>
