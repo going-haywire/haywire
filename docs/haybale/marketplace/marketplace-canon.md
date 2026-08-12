@@ -114,6 +114,8 @@ URL would lock subscribers to whatever version they first subscribed to.
 Source: `barn/haybale-marketplace/haybale_marketplace/__init__.py` — pulled in
 live, so it cannot drift from the code:
 
+`Library` — registry_key: `marketplace:library:Library`
+
 ```python
 --8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:12:50"
 ```

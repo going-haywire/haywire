@@ -256,24 +256,32 @@ If you are extending a *different* agent-facing surface — a CLI, for instance 
 **Minimal read-only tool** — no arguments beyond a single required string, `read_only_hint` annotation:
 
 ```python
+`echo_tool` — registry_key: `testing:farmhand:echo_tool`
+
 --8<-- "barn/haybale-testing/haybale_testing/farmhands/echo_tool.py:7:19"
 ```
 
 **The `FarmhandError` contract** — a tool that always fails, to exercise the structured-error path in tests:
 
 ```python
+`fail_tool` — registry_key: `testing:farmhand:fail_tool`
+
 --8<-- "barn/haybale-testing/haybale_testing/farmhands/fail_tool.py:7:19"
 ```
 
 **Pagination + filtering** — `ctx.registry()`, the `page()`/`truncation_note()` convention, and an `include_*` opt-out pattern for rows excluded by default:
 
 ```python
+`list_libraries_tool` — registry_key: `studio:farmhand:list_libraries_tool`
+
 --8<-- "barn/haybale-studio/haybale_studio/farmhands/catalog.py:32:86"
 ```
 
 **Mutually-exclusive arguments, idempotent delete, and `ctx.broadcast`** — validates exactly one of two optional arguments is set before doing anything, and notifies open studio UIs after a mutation:
 
 ```python
+`dismiss_errors_tool` — registry_key: `studio:farmhand:dismiss_errors_tool`
+
 --8<-- "barn/haybale-studio/haybale_studio/farmhands/errors.py:58:109"
 ```
 

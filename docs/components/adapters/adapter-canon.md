@@ -114,24 +114,32 @@ Three single-step adapters that form a chain: `TEST_BOOL → TEST_INT → TEST_F
 **Bool → Int:**
 
 ```python
+`BoolToIntAdapter` — registry_key: `testing:adapter:BoolToIntAdapter`
+
 --8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:15:26"
 ```
 
 **Int → Float:**
 
 ```python
+`IntToFloatAdapter` — registry_key: `testing:adapter:IntToFloatAdapter`
+
 --8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:31:40"
 ```
 
 **Float → String:**
 
 ```python
+`FloatToStringAdapter` — registry_key: `testing:adapter:FloatToStringAdapter`
+
 --8<-- "barn/haybale-testing/haybale_testing/adapters/test_adapters.py:45:56"
 ```
 
 **Compound type adapter** — `MapsStringType → ArrayType` from `barn/haybale-example/haybale_example/adapters/compound_adapters.py:MapsStringArrayAdapter`. Demonstrates a cross-category conversion with `get_test_value()` delegating to the chain and `get_test_repetitions()` set above 1:
 
 ```python
+`MapsStringArrayAdapter` — registry_key: `example:adapter:MapsStringArrayAdapter`
+
 --8<-- "barn/haybale-example/haybale_example/adapters/compound_adapters.py:11:51"
 ```
 

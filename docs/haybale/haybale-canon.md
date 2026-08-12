@@ -398,6 +398,8 @@ Source: `barn/haybale-testing/haybale_testing/__init__.py`
 — the framework's own test library, and the most complete `Library` subclass in
 the codebase. Pulled in live, so it cannot drift:
 
+`Library` — registry_key: `testing:library:Library`
+
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/__init__.py:25:88"
 ```

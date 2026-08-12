@@ -201,6 +201,8 @@ Source: `barn/haybale-example/haybale_example/widgets/knob_widget.py`
 `KnobWidget` is a `BaseWidget` that binds a `ui.knob` to `FLOAT` or `INT` ports. It shows the common single-value path: `build()` reads `self._config`, constructs the element, and returns it through `self.bind()` with a default-bearing converter.
 
 ```python
+`KnobWidget` — registry_key: `example:widget:KnobWidget`
+
 --8<-- "barn/haybale-example/haybale_example/widgets/knob_widget.py:11:46"
 ```
 

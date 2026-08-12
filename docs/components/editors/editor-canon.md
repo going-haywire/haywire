@@ -189,6 +189,8 @@ This pattern only applies to host editors with third-party panel content. Most e
 
 The salient excerpts:
 
+`PropertiesEditor` — registry_key: `studio:editor:PropertiesEditor`
+
 ```python
 --8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:28:300"
 ```

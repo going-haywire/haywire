@@ -62,6 +62,8 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intros
 
 `NodeInfoPanel` shows the selected node's label, class name, and node ID:
 
+`NodeInfoPanel` — registry_key: `graph_editor:panel:NodeInfoPanel`
+
 ```python
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py:23:56"
 ```
@@ -75,6 +77,8 @@ Settings panels register against settings-scope focuses (`CanvasFocus`, `AppFocu
 Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 
 `CanvasSettingsPanel` renders the entire `CanvasSettings` schema into the panel:
+
+`CanvasSettingsPanel` — registry_key: `studio:panel:CanvasSettingsPanel`
 
 ```python
 --8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:35:53"
@@ -90,6 +94,8 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas
 
 `CreateNodeMenuPanel` renders the full node-creation menu with search:
 
+`CreateNodeMenuPanel` — registry_key: `graph_editor:panel:CreateNodeMenuPanel`
+
 ```python
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py:27:70"
 ```
@@ -104,6 +110,8 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/select
 
 `DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step:
 
+`DeleteSelectionMenuPanel` — registry_key: `graph_editor:panel:DeleteSelectionMenuPanel`
+
 ```python
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:81:111"
 ```
@@ -117,6 +125,8 @@ Toolbar panels register against `ToolbarFocus` and contribute a single icon butt
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py`
 
 `CopyToolbarPanel` renders a single copy icon:
+
+`CopyToolbarPanel` — registry_key: `graph_editor:panel:CopyToolbarPanel`
 
 ```python
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:30:49"
@@ -139,6 +149,8 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/p
 
 `PortInfoMenuPanel` shows port metadata (id, description, flow type, data type) in the port context menu:
 
+`PortInfoMenuPanel` — registry_key: `graph_editor:panel:PortInfoMenuPanel`
+
 ```python
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:27:57"
 ```
@@ -152,6 +164,8 @@ File browser menu panels register against `FileFocus` (from haybale-studio) and 
 Source: `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py`
 
 `OpenInHaystackMenuPanel` opens a `.haywire` graph file in the GraphEditor:
+
+`OpenInHaystackMenuPanel` — registry_key: `haystack:panel:OpenInHaystackMenuPanel`
 
 ```python
 --8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:36:76"

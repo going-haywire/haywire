@@ -118,12 +118,16 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 **DATA node — `MathOP`** from `barn/haybale-example/haybale_example/nodes/math_op.py`. Demonstrates the minimal node skeleton: `@node` decorator, `init()` declaring ports, and `worker()` reading named inlet parameters and writing an outlet:
 
 ```python
+`MathOP` — registry_key: `example:node:MathOP`
+
 --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:13:64"
 ```
 
 **Dynamic ports — `DynamicPortTestNode`** from `barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py`. Demonstrates `on_change` triggering a `hb_*` helper, `with self.rejig(include=...)` for pattern-matched port replacement, and building dynamic port sets in a helper method:
 
 ```python
+`DynamicPortTestNode` — registry_key: `testing:node:DynamicPortTestNode`
+
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:14:68"
 ```
 

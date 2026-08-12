@@ -240,6 +240,8 @@ Two pairs look similar and are not interchangeable:
 
 The most common `Reveal` use is not "open an editor" on its own — it is **point an editor at something and make sure the user is looking at it**. Those are two steps, and doing only the first is a common bug: the panel updates correctly while collapsed, and the user sees nothing happen.
 
+`open_component_source` — function in `studio:editor:error_navigation`
+
 ```python
 --8<-- "barn/haybale-studio/haybale_studio/editors/error_navigation.py:65:77"
 ```
