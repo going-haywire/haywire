@@ -20,6 +20,23 @@ _PRIMITIVES: dict[Any, dict] = {
     list: {"type": "array"},
 }
 
+# Explicit "accepts any JSON type" schema. Claude Code stringifies any MCP
+# tool argument whose schema is empty ({}) — a bare {} silently corrupts
+# untyped values (e.g. int -> "8"). anyOf with every JSON type round-trips
+# correctly and is otherwise equivalent to "no constraint" (spec §5).
+# See internals/handoff/farmhand-validator-set-property-fix.md.
+_ANY_TYPE: dict = {
+    "anyOf": [
+        {"type": "string"},
+        {"type": "number"},
+        {"type": "integer"},
+        {"type": "boolean"},
+        {"type": "object"},
+        {"type": "array"},
+        {"type": "null"},
+    ]
+}
+
 
 def derive_input_schema(fn) -> dict:
     sig = inspect.signature(fn)
@@ -45,7 +62,7 @@ def derive_input_schema(fn) -> dict:
 
 def _annotation_to_schema(annotation: Any) -> dict:
     if annotation is None or annotation is inspect.Parameter.empty:
-        return {}
+        return _ANY_TYPE
     if annotation in _PRIMITIVES:
         return _PRIMITIVES[annotation]
 
@@ -57,10 +74,10 @@ def _annotation_to_schema(annotation: Any) -> dict:
         non_none = [a for a in args if a is not type(None)]
         if len(non_none) == 1:
             return _annotation_to_schema(non_none[0])
-        return {}
+        return {"anyOf": [_annotation_to_schema(a) for a in non_none]}
     if origin is list:
         item = _annotation_to_schema(args[0]) if args else {}
         return {"type": "array", "items": item}
     if origin is dict:
         return {"type": "object"}
-    return {}  # unknown types: accept anything (schema evolution convention, spec §5)
+    return _ANY_TYPE  # unknown types: accept anything (schema evolution convention, spec §5)

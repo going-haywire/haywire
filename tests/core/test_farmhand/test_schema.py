@@ -2,7 +2,7 @@
 
 import pytest
 
-from haywire.core.farmhand.schema import derive_input_schema
+from haywire.core.farmhand.schema import _ANY_TYPE, derive_input_schema
 
 pytestmark = pytest.mark.unit
 
@@ -37,4 +37,27 @@ def test_float_and_unannotated():
 
     schema = derive_input_schema(run)
     assert schema["properties"]["x"] == {"type": "number"}
-    assert schema["properties"]["anything"] == {"default": None}
+    assert schema["properties"]["anything"] == {**_ANY_TYPE, "default": None}
+    # No property may ever be a bare {} — that shape gets stringified by
+    # Claude Code, silently corrupting untyped values.
+    assert schema["properties"]["anything"] != {"default": None}
+
+
+def test_multi_arm_union_yields_anyof_not_empty():
+    async def run(self, ctx, value: int | str | bool = None): ...
+
+    schema = derive_input_schema(run)
+    prop = schema["properties"]["value"]
+    assert "anyOf" in prop
+    assert {"type": "integer"} in prop["anyOf"]
+    assert {"type": "string"} in prop["anyOf"]
+    assert {"type": "boolean"} in prop["anyOf"]
+
+
+def test_unknown_type_yields_anyof_not_empty():
+    class Unrecognized: ...
+
+    async def run(self, ctx, value: Unrecognized): ...
+
+    schema = derive_input_schema(run)
+    assert schema["properties"]["value"] == _ANY_TYPE

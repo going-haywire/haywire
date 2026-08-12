@@ -3,7 +3,7 @@ name: farmhand-validator-set-property-fix
 description: Handoff — Farmhand tool parameters with no type annotation emit an empty JSON Schema, which Claude Code stringifies, silently corrupting untyped numeric settings
 metadata:
   type: project
-  status: open
+  status: landed
 ---
 
 # Haywire fix: Farmhand tool parameters must not emit an empty JSON Schema
@@ -190,3 +190,47 @@ Only the `anyOf` form has been verified against Claude Code. The alternative
 JSON Schema spelling for "any type" — a type array,
 `{"type": ["string","number",...]}` — was **not** tested and may behave
 differently. Prefer `anyOf` unless someone re-runs the probe.
+
+## Landed
+
+Option A implemented as specified:
+
+- `packages/haywire-core/src/haywire/core/farmhand/schema.py` —
+  `_ANY_TYPE` added; the three `{}` returns in `_annotation_to_schema`
+  replaced (unannotated, unknown type); multi-arm unions now return
+  `{"anyOf": [...]}` of their arms instead of `{}`.
+- `barn/haybale-graph-editor/haybale_graph_editor/farmhands/editor_tools.py`
+  — `GraphEditorSetPropertyTool.run`'s `value` param annotated `Any`
+  (cosmetic, per the doc).
+- `tests/core/test_farmhand/test_schema.py` — `test_float_and_unannotated`
+  updated to expect `anyOf` (plus an explicit assert it is not `{}`); new
+  `test_multi_arm_union_yields_anyof_not_empty` and
+  `test_unknown_type_yields_anyof_not_empty`.
+
+Verification:
+
+- ruff + mypy clean on all touched files.
+- `tests/core/test_farmhand/` (23/23), and
+  `tests/farmhand/test_graph_editor_tools.py` +
+  `tests/core/test_undo/test_set_property_action.py` (38/38) pass.
+- Full pre-commit gate (`-m "not browser and not perf"`): 3265 passed, 1
+  pre-existing unrelated failure (`test_doc_source_keys_exist`, confirmed
+  via `git stash` to fail identically on master before this change).
+- Live verification against a running studio via the real MCP path: the
+  served `graph_editor_set_property` schema now shows `anyOf` for `value`
+  (not `{}`); wrote `42` to `testing:node:SettingsNode.example_int` (INT,
+  no validator — the silent-corruption case) and `8` to `even_int` (INT,
+  validated — the original visible-failure case) via
+  `graph_editor_set_property`; both succeeded with no `set_rejected`, and
+  read-back confirmed real JSON integers (`42`, `8`), not quoted strings.
+
+Not done, left for follow-up (all explicitly out of scope per this doc):
+
+- Audit of the other 48 `Farmhand` subclasses for unannotated/multi-arm-union
+  parameters.
+- Whether `setting.validate()` should enforce the declared type when no
+  explicit validator is supplied.
+- Migration/audit of already-saved `.haywire` graphs for values corrupted
+  to strings before this fix landed.
+- Eyeballing `haywire docs --all` / generated-docs output for shape changes
+  on previously-`{}` parameters.

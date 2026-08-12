@@ -13,6 +13,8 @@ promote_setting takes.
 
 from __future__ import annotations
 
+from typing import Any
+
 from haywire.core.farmhand import (
     Farmhand,
     FarmhandContext,
@@ -929,7 +931,9 @@ def _read_property(node, name: str):
     annotations=_MUTATING,
 )
 class GraphEditorSetPropertyTool(Farmhand):
-    async def run(self, ctx: FarmhandContext, binding_id: str, node_id: str, name: str, value=None) -> dict:
+    async def run(
+        self, ctx: FarmhandContext, binding_id: str, node_id: str, name: str, value: Any = None
+    ) -> dict:
         editor = _editor(ctx, binding_id)
         ctx.fence(editor)
         ok = editor.set_property(node_id, name, value)
