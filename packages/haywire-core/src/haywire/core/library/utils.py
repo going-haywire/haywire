@@ -89,9 +89,9 @@ def find_repo_root():
     return current.parent
 
 
-def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str:
+def reg_key(library_registry_name: str, module: str, node_registry_id: str) -> str:
     """Generate the registry key from the library and class name."""
-    return f"{library_registry_id}:{module}:{node_registry_id}"
+    return f"{library_registry_name}:{module}:{node_registry_id}"
 
 
 def get_registry_id_from_key(registry_key: str) -> str:

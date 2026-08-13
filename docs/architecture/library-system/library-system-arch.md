@@ -89,13 +89,13 @@ Frozen dataclass attached as `class_library` on every component class. Carries t
 Every registry-tracked component — `@node`, `@type`, `@adapter`, `@widget`, `@settings`, skins, themes, panels, editors, state classes — gets a **registry key** of the same universal shape, built by one shared helper:
 
 ```python
-def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str:
-    return f"{library_registry_id}:{module}:{node_registry_id}"
+def reg_key(library_registry_name: str, module: str, node_registry_id: str) -> str:
+    return f"{library_registry_name}:{module}:{node_registry_id}"
 ```
 
 producing keys like `haywire-core:node:RerouteNode`, `haywire-core:skin:RerouteSkin`, `haybale-core:widget:NumberWidget`. The middle segment is one of the constants in the same module (`NODE`, `WIDGET`, `TYPE`, `ADAPTER`, `SKIN`, `SETTING`, `STATE`, `THEME`, `PANEL`, `EDITOR`) — use these instead of a bare string to avoid a silent key mismatch. `split_reg_key()` / `get_registry_id_from_key()` invert the format.
 
-**The `library_registry_id` segment is never author-supplied.** Each decorator (`@node`, `@skin`, …) calls `derive_library_identity(cls)` at decoration time, which walks up `cls.__module__` looking for the nearest ancestor module that defines a `Library` class with `class_identity` set, and uses that library's `name` — its sole identifier, the pip distribution name declared in `haybale.toml`. A class that isn't parented under any `Library` falls back to the synthetic `__system__` identity rather than raising.
+**The `library_registry_name` segment is never author-supplied.** Each decorator (`@node`, `@skin`, …) calls `derive_library_identity(cls)` at decoration time, which walks up `cls.__module__` looking for the nearest ancestor module that defines a `Library` class with `class_identity` set, and uses that library's `name` — its sole identifier, the pip distribution name declared in `haybale.toml`. A class that isn't parented under any `Library` falls back to the synthetic `__system__` identity rather than raising.
 
 The practical consequence: **a component's registry key is determined entirely by which library's source tree the file lives in** — not by anything written in the file itself. Moving a node or skin's `.py` file from one library's folder to another's changes its registry key automatically, with no code change required at the call site.
 

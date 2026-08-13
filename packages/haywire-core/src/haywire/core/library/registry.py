@@ -53,7 +53,7 @@ class LibraryRegistry:
     def __init__(self, host_store: Optional[HostStore] = None):
         # Registry functionality moved from BaseRegistry
         self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
-        """key is library_registry_id (e.g. 'visiongraph'), value is the instantiated library object"""
+        """key is library_registry_name (e.g. 'visiongraph'), value is the instantiated library object"""
         # registry_cls -> registry instance
         self._class_registries: Dict[Type[BaseRegistry], BaseRegistry] = {}
 
@@ -73,7 +73,7 @@ class LibraryRegistry:
         # supplies no store, a detached in-memory one is used so the registry
         # still has a uniform write interface.
         self._host_store: HostStore = host_store if host_store is not None else HostStore.in_memory()
-        # Set of library_registry_ids the user has explicitly disabled. Honored
+        # Set of library_registry_names the user has explicitly disabled. Honored
         # by enable_all_libraries() (skipped during bootstrap) and by
         # _fire_library_enabled paths. Populated from HostStore by
         # apply_persisted_disabled_state() and mutated by
@@ -104,12 +104,12 @@ class LibraryRegistry:
 
     def _register(self, library_instance: Any):
         """Register a library instance with its path"""
-        library_registry_id = library_instance.identity.name
+        library_registry_name = library_instance.identity.name
 
-        self._libraries[library_registry_id] = library_instance
+        self._libraries[library_registry_name] = library_instance
 
-        if library_registry_id not in self._load_order:
-            self._load_order.append(library_registry_id)
+        if library_registry_name not in self._load_order:
+            self._load_order.append(library_registry_name)
 
     def _unregister(self, registry_id: str) -> BaseLibrary | None:
         """Remove a library from the registry"""
@@ -236,19 +236,19 @@ class LibraryRegistry:
             library.enable()
             self._fire_library_enabled(library)
 
-    def enable_library(self, library_registry_id: str) -> bool:
+    def enable_library(self, library_registry_name: str) -> bool:
         """Enable a specific library. Removes it from the persisted-disabled set."""
-        library = self._libraries.get(library_registry_id)
+        library = self._libraries.get(library_registry_name)
         if not library:
             return False
-        self._user_disabled.discard(library_registry_id)
+        self._user_disabled.discard(library_registry_name)
         self._persist_disabled_set()
         library.enable()
         logger.info(f"Library '{library.identity.label}': Enabled")
         self._fire_library_enabled(library)
         return True
 
-    def disable_library(self, library_registry_id: str) -> bool:
+    def disable_library(self, library_registry_name: str) -> bool:
         """Disable a specific library. Adds it to the persisted-disabled set.
 
         Refuses (returns False) for InstallType.FOLDER libraries — today
@@ -260,12 +260,12 @@ class LibraryRegistry:
         enforced at the marketplace UI layer only. See
         internals/handoff/library-origin-and-required-classification.md.
         """
-        library = self._libraries.get(library_registry_id)
+        library = self._libraries.get(library_registry_name)
         if not library:
             return False
-        if self._library_install_types.get(library_registry_id) is InstallType.FOLDER:
+        if self._library_install_types.get(library_registry_name) is InstallType.FOLDER:
             return False
-        self._user_disabled.add(library_registry_id)
+        self._user_disabled.add(library_registry_name)
         self._persist_disabled_set()
         library.disable()
         logger.info(f"Library '{library.identity.label}': Disabled")
@@ -307,21 +307,21 @@ class LibraryRegistry:
             sorted(self._user_disabled),
         )
 
-    def remove_library(self, library_registry_id: str) -> bool:
+    def remove_library(self, library_registry_name: str) -> bool:
         """Disable, unregister, and fully remove a library from all tracking dicts.
 
         After calling this, a subsequent scan_for_libraries() will rediscover
         and reimport the library from scratch, picking up any changes made to
         its source files (e.g. updated @library decorator values).
         """
-        library = self._libraries.get(library_registry_id)
+        library = self._libraries.get(library_registry_name)
         if not library:
             return False
         library.disable()
-        self._unregister(library_registry_id)
-        source_path = self._library_sources.pop(library_registry_id, None)
-        self._library_install_types.pop(library_registry_id, None)
-        self._library_distribution_names.pop(library_registry_id, None)
+        self._unregister(library_registry_name)
+        source_path = self._library_sources.pop(library_registry_name, None)
+        self._library_install_types.pop(library_registry_name, None)
+        self._library_distribution_names.pop(library_registry_name, None)
 
         # Eject stale module objects so scan_for_libraries() does a fresh import
         # rather than returning the cached pre-upgrade module from sys.modules.
@@ -331,12 +331,12 @@ class LibraryRegistry:
             for k in to_remove:
                 del sys.modules[k]
 
-        logger.info(f"Library '{library_registry_id}': Fully removed (ready for reload)")
+        logger.info(f"Library '{library_registry_name}': Fully removed (ready for reload)")
         return True
 
-    def is_library_enabled(self, library_registry_id: str) -> bool:
+    def is_library_enabled(self, library_registry_name: str) -> bool:
         """Check if a library is enabled"""
-        library = self._libraries.get(library_registry_id)
+        library = self._libraries.get(library_registry_name)
         return library.enabled if library else False
 
     def scan_for_libraries(self):
@@ -756,13 +756,13 @@ class LibraryRegistry:
         """Get the order in which libraries were loaded"""
         return self._load_order.copy()
 
-    def get_library_identity(self, library_registry_id: str) -> LibraryIdentity:
+    def get_library_identity(self, library_registry_name: str) -> LibraryIdentity:
         """Get metadata for a library.
 
         Raises:
             KeyError: If no library is registered under this id.
         """
-        return self._libraries[library_registry_id].class_identity
+        return self._libraries[library_registry_name].class_identity
 
     def get_library_source(self, library_id: str) -> str | None:
         """Get the source path for a library"""
