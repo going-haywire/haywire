@@ -3,6 +3,7 @@ to change nothing, including temp probe files."""
 
 from __future__ import annotations
 
+import os
 from importlib.metadata import distributions
 from pathlib import Path
 
@@ -127,3 +128,77 @@ def check_collisions(
                 )
 
     return blockers, warnings
+
+
+def check_clean_tree(workspace_root: Path) -> list[Blocker]:
+    """A clean tree is a hard precondition — there is no override flag.
+
+    This is what makes ``git checkout . && git clean -fd`` a complete
+    rollback: if the tree is proven clean before the rename writes anything,
+    everything dirty afterwards is provably the rename's own work. Same
+    reasoning as the share pipeline (steps/preconditions.py:115).
+    """
+    from haywire.core.publishing.git import git
+
+    if not git(["--version"], cwd=workspace_root, timeout=10.0).ok:
+        return [
+            Blocker(
+                message="git is not available.",
+                remedy="Install git — the rename relies on it for rollback.",
+            )
+        ]
+
+    if not git(["rev-parse", "--is-inside-work-tree"], cwd=workspace_root, timeout=10.0).ok:
+        return [
+            Blocker(
+                message=f"{workspace_root} is not a git repository.",
+                remedy=(
+                    "Initialise one first — a rename is only safely reversible with git:\n"
+                    "  git init && git add -A && git commit -m 'initial'"
+                ),
+            )
+        ]
+
+    status = git(["status", "--porcelain"], cwd=workspace_root, timeout=10.0)
+    if status.ok and status.stdout.strip():
+        files = [line[3:].strip() for line in status.stdout.splitlines() if line.strip()]
+        listed = "\n".join(f"  {f}" for f in files)
+        return [
+            Blocker(
+                message=f"Working tree is not clean:\n{listed}",
+                remedy=(
+                    "A rename rewrites files across the whole project, and git is its only\n"
+                    "undo. Commit or stash first:\n"
+                    '  git add -A && git commit -m "wip before rename"\n'
+                    "  # or\n"
+                    "  git stash --include-untracked"
+                ),
+            )
+        ]
+    return []
+
+
+def check_write_access(paths: list[Path], dir_renames: list[Path]) -> list[Blocker]:
+    """Verify every planned write is permitted, without writing anything.
+
+    Renaming a directory requires write+execute on its PARENT — the entry
+    being renamed lives there. Checking the directory itself passes while the
+    rename still fails, which is the easy bug here.
+    """
+    blockers: list[Blocker] = []
+
+    for path in paths:
+        if path.exists() and not os.access(path, os.W_OK):
+            blockers.append(Blocker(message=f"No write permission: {path}"))
+
+    for target in dir_renames:
+        parent = target.parent
+        if parent.exists() and not os.access(parent, os.W_OK | os.X_OK):
+            blockers.append(
+                Blocker(
+                    message=f"No write permission on {parent} (needed to rename {target.name}).",
+                    remedy=f"chmod u+wx {parent}",
+                )
+            )
+
+    return blockers
