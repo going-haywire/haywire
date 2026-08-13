@@ -39,7 +39,7 @@ class _SizeBoxNode(BaseNode):
     node_type=NodeType.DATA,
 )
 class SizeBoxContentNode(_SizeBoxNode):
-    WIDGET_KEY = "testing:widget:OversizedContentWidget"
+    WIDGET_KEY = "haybale-testing:widget:OversizedContentWidget"
 
 
 @node(
@@ -50,7 +50,7 @@ class SizeBoxContentNode(_SizeBoxNode):
     node_type=NodeType.DATA,
 )
 class SizeBoxAspectNode(_SizeBoxNode):
-    WIDGET_KEY = "testing:widget:AspectBoxWidget"
+    WIDGET_KEY = "haybale-testing:widget:AspectBoxWidget"
 
 
 @node(
@@ -61,4 +61,4 @@ class SizeBoxAspectNode(_SizeBoxNode):
     node_type=NodeType.DATA,
 )
 class SizeBoxFixedNode(_SizeBoxNode):
-    WIDGET_KEY = "testing:widget:FixedBoxWidget"
+    WIDGET_KEY = "haybale-testing:widget:FixedBoxWidget"
