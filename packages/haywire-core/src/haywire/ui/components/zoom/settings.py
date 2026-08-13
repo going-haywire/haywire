@@ -49,6 +49,16 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         min=0.5,
         max=5.0,
     )
+    lod_enabled = setting[BOOL](
+        True,
+        label="Level of Detail",
+        description=(
+            "Hide node detail (labels, widgets) as you zoom out. Turn off to keep every "
+            "node at full detail at all zoom levels — useful for isolating whether a "
+            "zoom stutter comes from LOD switching or from the graph's raw element count."
+        ),
+        category=CATEGORY_EDITOR_PAN_ZOOM,
+    )
 
     # --- Hover magnifier -----------------------------------------------------
     # Readability aid: when zoomed out, dwelling on a node scales it up so its

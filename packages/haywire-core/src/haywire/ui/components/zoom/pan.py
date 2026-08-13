@@ -90,6 +90,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         self._props["min-zoom"] = pz.min_zoom
         self._props["zoom-sensitivity"] = pz.zoom_sensitivity
         self._props["pan-sensitivity"] = pz.pan_sensitivity
+        self._props["lod-enabled"] = pz.lod_enabled
 
     def _on_setting_changed(self, name: str, value, old) -> None:
         """Propagate a pan/zoom settings change to the Vue component immediately."""
@@ -98,6 +99,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
             "min_zoom": "min-zoom",
             "zoom_sensitivity": "zoom-sensitivity",
             "pan_sensitivity": "pan-sensitivity",
+            "lod_enabled": "lod-enabled",
         }
         if name in prop_map:
             self._props[prop_map[name]] = value
