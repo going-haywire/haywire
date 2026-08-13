@@ -18,7 +18,7 @@ from .node_theme import NodeTheme
 _FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
     label="haywire-core",
     version="0.0.0",
-    id="haywire-core",
+    name="haywire-core",
     module_name="haywire",
     folder_path="",
 )

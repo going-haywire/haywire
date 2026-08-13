@@ -22,7 +22,6 @@ from haywire.ui.skin.registry import SkinRegistry
 
 
 @library(
-    id="core",
     file_watcher=False,
 )
 class Library(BaseLibrary):

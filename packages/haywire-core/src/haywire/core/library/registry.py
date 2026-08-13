@@ -104,7 +104,7 @@ class LibraryRegistry:
 
     def _register(self, library_instance: Any):
         """Register a library instance with its path"""
-        library_registry_id = library_instance.identity.id
+        library_registry_id = library_instance.identity.name
 
         self._libraries[library_registry_id] = library_instance
 
@@ -361,8 +361,8 @@ class LibraryRegistry:
             logger.info("\n📦 Priority 1: Loading core libraries...")
             core_libs = self._discover_core_libraries()
             for lib in core_libs:
-                all_discovered[lib.identity.id] = lib
-                logger.info(f"  ✓ Found core library: {lib.identity.label} ({lib.identity.id})")
+                all_discovered[lib.identity.name] = lib
+                logger.info(f"  ✓ Found core library: {lib.identity.label} ({lib.identity.name})")
 
         # Priority 2 & 3: Pip installed packages (if enabled)
         if self.load_pip_packages:
@@ -371,18 +371,18 @@ class LibraryRegistry:
 
             for lib in pip_libs:
                 # Skip if already loaded (e.g., core library already handled)
-                if lib.identity.id in all_discovered:
+                if lib.identity.name in all_discovered:
                     logger.info(
                         f"  ⊘ Skipping {lib.identity.label} - already loaded as "
-                        f"{all_discovered[lib.identity.id].install_type.value}"
+                        f"{all_discovered[lib.identity.name].install_type.value}"
                     )
                     continue
 
-                all_discovered[lib.identity.id] = lib
+                all_discovered[lib.identity.name] = lib
                 install_type_label = (
                     "regular install" if lib.install_type == InstallType.REGULAR else "editable install"
                 )
-                logger.info(f"  ✓ Found {install_type_label}: {lib.identity.label} ({lib.identity.id})")
+                logger.info(f"  ✓ Found {install_type_label}: {lib.identity.label} ({lib.identity.name})")
 
         # Priority 4: Manual folder paths
         if self._library_root_paths:
@@ -391,15 +391,15 @@ class LibraryRegistry:
 
             for lib in folder_libs:
                 # Skip if already loaded from pip or core
-                if lib.identity.id in all_discovered:
+                if lib.identity.name in all_discovered:
                     logger.info(
                         f"  ⊘ Skipping {lib.identity.label} - already loaded as "
-                        f"{all_discovered[lib.identity.id].install_type.value}"
+                        f"{all_discovered[lib.identity.name].install_type.value}"
                     )
                     continue
 
-                all_discovered[lib.identity.id] = lib
-                logger.info(f"  ✓ Found folder library: {lib.identity.label} ({lib.identity.id})")
+                all_discovered[lib.identity.name] = lib
+                logger.info(f"  ✓ Found folder library: {lib.identity.label} ({lib.identity.name})")
 
         # Instantiate and load all discovered libraries
         logger.info("\n🔨 Instantiating and loading libraries...")

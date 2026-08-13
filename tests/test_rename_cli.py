@@ -65,10 +65,12 @@ def test_run_rename_cli_dry_run_does_not_write(tmp_path, capsys):
     import json
     from haywire_studio.packaging.rename import run_rename_cli
 
-    # minimal workspace: graphs/ with one referencing graph
+    # minimal workspace: graphs/ with one referencing graph. The registry-key
+    # prefix is the library's distribution name (its sole identifier), not a
+    # short id.
     (tmp_path / "graphs").mkdir()
     g = tmp_path / "graphs" / "g.json"
-    g.write_text(json.dumps({"nodes": [{"type": "foo:node:x"}]}))
+    g.write_text(json.dumps({"nodes": [{"type": "haybale-foo:node:x"}]}))
 
     # bundle: rename + patch, but dry-run (apply=False) skips package rename + writes
     code = run_rename_cli(
@@ -80,6 +82,6 @@ def test_run_rename_cli_dry_run_does_not_write(tmp_path, capsys):
 
     assert code == 0
     # dry-run printed the plan and left the graph untouched
-    assert json.loads(g.read_text())["nodes"][0]["type"] == "foo:node:x"
+    assert json.loads(g.read_text())["nodes"][0]["type"] == "haybale-foo:node:x"
     out = capsys.readouterr().out
     assert "1 file" in out  # reports the would-be change

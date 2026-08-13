@@ -288,7 +288,7 @@ def info_row(
 
     Usage::
 
-        hui.info_row("Key", "visiongraph:node:WebcamFrame", copy_value=full_key)
+        hui.info_row("Key", "haybale-visiongraph:node:WebcamFrame", copy_value=full_key)
     """
     effective_copy = copy_value if copy_value is not None else value
     row = ui.row().classes("w-full items-center gap-1 py-0.5 min-w-0")

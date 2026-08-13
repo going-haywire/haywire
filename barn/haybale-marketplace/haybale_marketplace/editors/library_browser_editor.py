@@ -485,7 +485,7 @@ class LibraryBrowserEditor(BaseEditor):
             )
             if origin.is_protected:
                 return True
-            return bool(manager.get_installed_dependents(lib.identity.id))
+            return bool(manager.get_installed_dependents(lib.identity.name))
 
         # Always compute the exclusion set so required libs never bleed into ENABLED,
         # even when the required filter toggle is off.

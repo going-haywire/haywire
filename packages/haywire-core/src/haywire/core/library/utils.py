@@ -69,7 +69,7 @@ def derive_library_identity(cls: Type) -> LibraryIdentity:
     return LibraryIdentity(
         label="System",
         version="0.0.0",
-        id="__system__",
+        name="__system__",
         linked_libraries=[],
         folder_path="auto-generated",
         module_name="haywire",

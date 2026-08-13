@@ -57,7 +57,7 @@ class RerouteNode(BaseNode):
         # skin class lazily at render time (UI-only path). post_init runs on both
         # fresh creation and load, so the binding is self-contained and survives
         # reload without being persisted.
-        self.props.skin = "builtin:skin:RerouteSkin"
+        self.props.skin = "haywire-core:skin:RerouteSkin"
 
     def on_startup(self, context: ExecutionContext) -> None:
         # The split action stamps exactly one inlet + one outlet. Resolve the

@@ -23,7 +23,7 @@ def test_initialize_advertises_list_changed(farmhand_call):
 
 def test_tool_round_trip_structured_json(farmhand_call):
     async def scenario(session, init):
-        return await session.call_tool("testing_echo", {"text": "hi"})
+        return await session.call_tool("haybale-testing_echo", {"text": "hi"})
 
     result = farmhand_call(scenario)
     payload = call_tool_json(result)
@@ -36,7 +36,7 @@ def test_tool_result_carries_structured_content_alongside_text(farmhand_call):
     structuredContent so a structure-aware one skips the string parse."""
 
     async def scenario(session, init):
-        return await session.call_tool("testing_echo", {"text": "hi"})
+        return await session.call_tool("haybale-testing_echo", {"text": "hi"})
 
     result = farmhand_call(scenario)
     assert result.structuredContent is not None
@@ -47,7 +47,7 @@ def test_tool_result_carries_structured_content_alongside_text(farmhand_call):
 
 def test_error_contract_stable_code_no_traceback(farmhand_call):
     async def scenario(session, init):
-        return await session.call_tool("testing_fail", {})
+        return await session.call_tool("haybale-testing_fail", {})
 
     result = farmhand_call(scenario)
     assert result.isError is True
@@ -59,7 +59,7 @@ def test_error_contract_stable_code_no_traceback(farmhand_call):
 
 def test_mutating_tool_runs_on_event_loop(farmhand_call):
     async def scenario(session, init):
-        return await session.call_tool("testing_affinity", {})
+        return await session.call_tool("haybale-testing_affinity", {})
 
     payload = call_tool_json(farmhand_call(scenario))
     assert payload["on_event_loop"] is True
@@ -70,10 +70,10 @@ def test_blocking_tool_does_not_stall_concurrent_request(farmhand_call):
         started = time.monotonic()
 
         async def timed_echo():
-            await session.call_tool("testing_echo", {"text": "quick"})
+            await session.call_tool("haybale-testing_echo", {"text": "quick"})
             return time.monotonic() - started
 
-        block = asyncio.create_task(session.call_tool("testing_block", {"seconds": 1.5}))
+        block = asyncio.create_task(session.call_tool("haybale-testing_block", {"seconds": 1.5}))
         echo_elapsed = await timed_echo()
         await block
         return echo_elapsed
@@ -88,22 +88,22 @@ def test_disable_enable_shrinks_and_grows_tool_list(farmhand_server, farmhand_ca
 
     async def scenario(session, init):
         names = {t.name for t in (await session.list_tools()).tools}
-        assert "testing_echo" in names
-        registry.disable_library("testing")
+        assert "haybale-testing_echo" in names
+        registry.disable_library("haybale-testing")
         try:
             deadline = time.monotonic() + 10
             while time.monotonic() < deadline:
                 names = {t.name for t in (await session.list_tools()).tools}
-                if "testing_echo" not in names:
+                if "haybale-testing_echo" not in names:
                     break
                 await asyncio.sleep(0.1)
-            assert "testing_echo" not in names
+            assert "haybale-testing_echo" not in names
         finally:
-            registry.enable_library("testing")
+            registry.enable_library("haybale-testing")
         deadline = time.monotonic() + 10
         while time.monotonic() < deadline:
             names = {t.name for t in (await session.list_tools()).tools}
-            if "testing_echo" in names:
+            if "haybale-testing_echo" in names:
                 return True
             await asyncio.sleep(0.1)
         return False

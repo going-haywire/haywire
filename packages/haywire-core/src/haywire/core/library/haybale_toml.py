@@ -56,7 +56,7 @@ HAYBALE_TOML = "haybale.toml"
 #: ``pyproject.toml`` carries the generated copy because pip reads version out
 #: of that file and cannot read this one. The value is written here by
 #: ``scripts/bump_version.py`` and the share wizard rather than by hand.
-_STR_FIELDS = ("id", "label", "on_reload", "description", "version")
+_STR_FIELDS = ("name", "label", "on_reload", "description", "version")
 _LIST_FIELDS = ("linked_libraries", "tags", "os")
 
 #: A Python module name: identifier characters only, no hyphens, no dots. The
@@ -160,7 +160,7 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
         kwargs.update(read_haybale_toml(package_dir))
 
     Raises :class:`HaybaleTomlError` when the file is missing, malformed, or
-    declares no ``id`` — each of which leaves the library unable to name itself
+    declares no ``name`` — each of which leaves the library unable to name itself
     or to be found in a registry.
     """
     source = package_dir / HAYBALE_TOML
@@ -182,8 +182,8 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
         raise HaybaleTomlError(f"{source}: expected a table at the top level")
 
     fields = _fields_from(dict(data), source)
-    if not fields.get("id"):
-        raise HaybaleTomlError(f"{source}: `id` is required — it prefixes every component's registry key.")
+    if not fields.get("name"):
+        raise HaybaleTomlError(f"{source}: `name` is required — it prefixes every component's registry key.")
     if not fields.get("version"):
         raise HaybaleTomlError(
             f"{source}: `version` is required and is canon here — "
@@ -296,7 +296,6 @@ def _row_from(data: dict) -> "Haybale":
 
     return Haybale(
         name=_str("name"),
-        id=_str("id"),
         version=_str("version"),
         label=_str("label"),
         description=_str("description"),

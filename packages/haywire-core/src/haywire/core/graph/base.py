@@ -1066,7 +1066,7 @@ class BaseGraph:
                 SavedNode(
                     node_id=node_id,
                     registry_key=registry_key,
-                    library_id=library_block.get("id", ""),
+                    library_id=library_block.get("name", ""),
                     saved_version=library_block.get("version"),
                 )
             )

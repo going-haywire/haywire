@@ -15,7 +15,7 @@ def _studio_identity():
         version="0.1",
         folder_path="/tmp/studio",
         module_name="studio",
-        id="studio",
+        name="haybale-studio",
     )
 
 
@@ -49,9 +49,9 @@ def _make_tool():
 
 def test_identity_and_mcp_name():
     tool = _make_tool()
-    assert tool.class_identity.registry_key == "studio:farmhand:status"
-    assert tool.class_library.id == "studio"
-    assert tool.mcp_name() == "studio_status"
+    assert tool.class_identity.registry_key == "haybale-studio:farmhand:status"
+    assert tool.class_library.name == "haybale-studio"
+    assert tool.mcp_name() == "haybale-studio_status"
     assert tool.class_identity.annotations.read_only_hint is True
 
 
@@ -62,7 +62,7 @@ def test_registry_id_defaults_to_class_name():
         async def run(self, ctx) -> dict:
             return {}
 
-    assert ListOpenGraphs.class_identity.registry_key == "studio:farmhand:ListOpenGraphs"
+    assert ListOpenGraphs.class_identity.registry_key == "haybale-studio:farmhand:ListOpenGraphs"
 
 
 def test_sync_run_rejected():

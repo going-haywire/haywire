@@ -9,7 +9,7 @@ from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, Setting
 @pytest.mark.core
 def test_ports_returns_portinfo_with_schema_shape(graph_with_library_system):
     graph = graph_with_library_system
-    wrapper = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
+    wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
     inspector = NodeInstanceInspector(wrapper.node)
 
     ports = inspector.ports()
@@ -33,7 +33,7 @@ def test_ports_report_config_direction_distinctly(graph_with_library_system):
     trigger (outlet) — one of each direction.
     """
     graph = graph_with_library_system
-    wrapper = graph.create_node_wrapper("testing:node:PerformanceTester", position=(0, 0))
+    wrapper = graph.create_node_wrapper("haybale-testing:node:PerformanceTester", position=(0, 0))
     inspector = NodeInstanceInspector(wrapper.node)
 
     by_id = {p.id: p.direction for p in inspector.ports()}
@@ -46,7 +46,7 @@ def test_ports_report_config_direction_distinctly(graph_with_library_system):
 @pytest.mark.core
 def test_settings_returns_settinginfo_with_resolved_defaults(graph_with_library_system):
     graph = graph_with_library_system
-    wrapper = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
+    wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
     inspector = NodeInstanceInspector(wrapper.node)
 
     settings = inspector.settings()

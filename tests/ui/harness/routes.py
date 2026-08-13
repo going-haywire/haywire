@@ -55,8 +55,8 @@ def _stamp_synced() -> None:
 # inlet). Built programmatically and round-tripped through a .haywire file at
 # request time so the fixture can never drift from the current serialization
 # format — if save_to_file/load_from_file break, the route (and its test) fail.
-_RECONNECT_SOURCE_KEY = "testing:node:TestBeginPlayNode"
-_RECONNECT_SINK_KEY = "testing:node:TestPrintNode"
+_RECONNECT_SOURCE_KEY = "haybale-testing:node:TestBeginPlayNode"
+_RECONNECT_SINK_KEY = "haybale-testing:node:TestPrintNode"
 _RECONNECT_OUTLET = "exec"
 _RECONNECT_INLET = "exec"
 
@@ -104,8 +104,8 @@ def _build_connect_graph(node_factory):
     return graph, editor
 
 
-_DYNAMIC_KEY = "testing:node:DynamicPortTestNode"
-_EDGE_LINK_KEY = "testing:node:EdgeLinkTestNode"
+_DYNAMIC_KEY = "haybale-testing:node:DynamicPortTestNode"
+_EDGE_LINK_KEY = "haybale-testing:node:EdgeLinkTestNode"
 _DYNAMIC_OUTLET = "dynamic_outlet_0"
 _EDGE_LINK_INLET = "int_inlet"
 
@@ -529,9 +529,13 @@ def register_routes(library_service) -> None:
         graph = BaseGraph("widget_box_fixture", "Widget Box Fixture")
         editor = Editor(graph, library_service.get_node_factory())
 
-        content = graph.create_node_wrapper("testing:node:SizeBoxContentNode", position=(3600.0, 3700.0))
-        aspect = graph.create_node_wrapper("testing:node:SizeBoxAspectNode", position=(4100.0, 3700.0))
-        fixed = graph.create_node_wrapper("testing:node:SizeBoxFixedNode", position=(4600.0, 3700.0))
+        content = graph.create_node_wrapper(
+            "haybale-testing:node:SizeBoxContentNode", position=(3600.0, 3700.0)
+        )
+        aspect = graph.create_node_wrapper(
+            "haybale-testing:node:SizeBoxAspectNode", position=(4100.0, 3700.0)
+        )
+        fixed = graph.create_node_wrapper("haybale-testing:node:SizeBoxFixedNode", position=(4600.0, 3700.0))
         # Individually asserted so mypy narrows each one (a tuple membership
         # test does not); a failure also names the node that could not be built.
         assert content is not None, "could not create SizeBoxContentNode"

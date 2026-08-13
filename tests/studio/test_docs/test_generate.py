@@ -171,8 +171,8 @@ def test_generate_all_docs_scoped_to_one_library(clean_haybale_testing):
     lib_root = repo / "barn" / "haybale-testing"
 
     results = generate_all_docs(str(lib_root))
-    assert "testing" in results
-    assert isinstance(results["testing"], list)  # coverage lines
+    assert "haybale-testing" in results
+    assert isinstance(results["haybale-testing"], list)  # coverage lines
     assert (lib_root / "haybale_testing" / "QUICKREF.md").exists()
 
 
@@ -204,7 +204,7 @@ def _make_identity(lib_id: str, folder_path: Path) -> LibraryIdentity:
         version="1.0.0",
         folder_path=str(folder_path),
         module_name=lib_id,
-        id=lib_id,
+        name=lib_id,
     )
 
 

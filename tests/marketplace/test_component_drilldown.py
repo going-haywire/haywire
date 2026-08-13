@@ -38,14 +38,14 @@ def test_installed_component_doc_read_from_wheel():
 
     ctx = FarmhandContext()
     registry = ctx.registry(LibraryRegistry)
-    folder = registry.get_library_identity("testing").folder_path
+    folder = registry.get_library_identity("haybale-testing").folder_path
     docs_dir = Path(folder) / "docs"
     docs_dir.mkdir(parents=True, exist_ok=True)
-    key = "testing:node:drilldown_probe"
+    key = "haybale-testing:node:drilldown_probe"
     doc_path = docs_dir / doc_filename(key)
     doc_path.write_text("# Resize\n\nports...", encoding="utf-8")
     try:
-        result = run_tool(MarketplaceGetLibraryDocsTool, library="testing", component=key)
+        result = run_tool(MarketplaceGetLibraryDocsTool, library="haybale-testing", component=key)
         assert "Resize" in result["text"]
         assert result["source"] == "installed"
     finally:

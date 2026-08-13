@@ -20,14 +20,16 @@ def _call(farmhand_call, tool: str, args: dict):
 
 
 def test_list_available_returns_paginated_catalog(farmhand_call):
-    result = call_tool_json(_call(farmhand_call, "marketplace_list_available", {"limit": 10, "offset": 0}))
+    result = call_tool_json(
+        _call(farmhand_call, "haybale-marketplace_list_available", {"limit": 10, "offset": 0})
+    )
     assert "total" in result
     assert "haybales" in result
 
 
 def test_get_library_docs_for_installed_library(farmhand_call):
     # haybale-marketplace itself is installed in the barn; any doc file counts.
-    result = _call(farmhand_call, "marketplace_get_library_docs", {"library": "testing"})
+    result = _call(farmhand_call, "haybale-marketplace_get_library_docs", {"library": "haybale-testing"})
     if result.isError:
         # acceptable if the test lib ships no docs
         assert "[docs_not_found]" in result.content[0].text
@@ -38,7 +40,7 @@ def test_get_library_docs_for_installed_library(farmhand_call):
 
 
 def test_get_library_docs_unknown_library_is_stable_error(farmhand_call):
-    result = _call(farmhand_call, "marketplace_get_library_docs", {"library": "does_not_exist"})
+    result = _call(farmhand_call, "haybale-marketplace_get_library_docs", {"library": "does_not_exist"})
     assert result.isError is True
     assert "[library_not_found]" in result.content[0].text
     # The error carries the command that resolves it, not just the failure.

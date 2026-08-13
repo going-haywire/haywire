@@ -97,5 +97,3 @@ class EmitCallbackNode(BaseNode):
                     context.emit_callback(event_name=edge_callback, payload=payload_dict)
 
         return "exec"
-
-

@@ -15,7 +15,7 @@ from haywire.core.library.install_type import InstallType
 
 def _make_lib_mock(library_id: str) -> MagicMock:
     lib = MagicMock()
-    lib.identity.id = library_id
+    lib.identity.name = library_id
     lib.identity.label = library_id
     lib.enabled = True
     return lib

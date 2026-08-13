@@ -18,16 +18,16 @@ from tests.farmhand.conftest import make_caller
 pytestmark = pytest.mark.integration
 
 _BASELINE = {
-    "studio_status",
-    "studio_list_libraries",
-    "studio_list_components",
-    "studio_describe_component",
-    "studio_scaffold_component",
-    "studio_read_component_source",
-    "studio_write_component_source",
-    "studio_verify_component",
-    "studio_get_errors",
-    "studio_dismiss_errors",
+    "haybale-studio_status",
+    "haybale-studio_list_libraries",
+    "haybale-studio_list_components",
+    "haybale-studio_describe_component",
+    "haybale-studio_scaffold_component",
+    "haybale-studio_read_component_source",
+    "haybale-studio_write_component_source",
+    "haybale-studio_verify_component",
+    "haybale-studio_get_errors",
+    "haybale-studio_dismiss_errors",
 }
 
 
@@ -40,4 +40,4 @@ def test_studio_baseline_always_served(farmhand_bare_server):
     names = farmhand_call(scenario)
     assert _BASELINE <= names, f"missing baseline tools: {_BASELINE - names}"
     # Every studio_* tool present is one of the ten baseline tools.
-    assert {n for n in names if n.startswith("studio_")} == _BASELINE
+    assert {n for n in names if n.startswith("haybale-studio_")} == _BASELINE

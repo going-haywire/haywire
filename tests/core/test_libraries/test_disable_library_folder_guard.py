@@ -16,7 +16,7 @@ from haywire.core.library.registry import LibraryRegistry
 
 def make_library_mock(library_id: str = "builtin") -> MagicMock:
     lib = MagicMock()
-    lib.identity.id = library_id
+    lib.identity.name = library_id
     lib.identity.label = library_id.capitalize()
     return lib
 

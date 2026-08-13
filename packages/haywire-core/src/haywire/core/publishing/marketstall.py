@@ -165,7 +165,6 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
 
     return Haybale(
         name=name,
-        id=declared.id,
         label=label,
         version=version,
         require=require or "",

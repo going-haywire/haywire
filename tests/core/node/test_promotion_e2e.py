@@ -17,8 +17,8 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
     # SettingsNode.example.example_float is a plain setting[FLOAT] (default 5 → clamped
     # to its 0..1 range is irrelevant here; we read the resolved default and the driven
     # value). MathOP.result is a FLOAT outlet we can drive.
-    settings_wrapper = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
-    math_wrapper = graph.create_node_wrapper("example:node:MathOP", position=(200, 0))
+    settings_wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
+    math_wrapper = graph.create_node_wrapper("haybale-example:node:MathOP", position=(200, 0))
 
     node = settings_wrapper.node
     default_value = node.example.example_float
@@ -57,8 +57,8 @@ def test_promoted_outlet_drives_consumer_lazily(graph_with_library_system, libra
     from haywire.core.types.enums import PortType
 
     graph = graph_with_library_system
-    settings_wrapper = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
-    math_wrapper = graph.create_node_wrapper("example:node:MathOP", position=(200, 0))
+    settings_wrapper = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
+    math_wrapper = graph.create_node_wrapper("haybale-example:node:MathOP", position=(200, 0))
     src = settings_wrapper.node
 
     # 1. promote example.example_float -> OUTLET

@@ -23,7 +23,7 @@ def _identity(lib_id: str, *, on_reload: LibraryReloadAction = LibraryReloadActi
         version="0.0.1",
         folder_path=f"/tmp/{lib_id}",
         module_name=lib_id,
-        id=lib_id,
+        name=lib_id,
         on_reload=on_reload,
     )
 

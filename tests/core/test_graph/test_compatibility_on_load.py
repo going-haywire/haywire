@@ -19,12 +19,12 @@ def _wrapper(graph, node_id):
 @pytest.mark.integration
 def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
 
     # Author a warning on the testing library, landing in a FUTURE version
     # relative to whatever the live library is, so a saved-below-version node fires.
     lib_registry = library_system.get_library_registry()
-    testing_lib = lib_registry._libraries["testing"]
+    testing_lib = lib_registry._libraries["haybale-testing"]
     live_version = testing_lib.identity.version
 
     # Pick a warning version strictly ABOVE the saved version we will fake below.
@@ -54,9 +54,9 @@ def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
 @pytest.mark.integration
 def test_load_does_not_warn_when_saved_version_current(library_system, monkeypatch):
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
     lib_registry = library_system.get_library_registry()
-    testing_lib = lib_registry._libraries["testing"]
+    testing_lib = lib_registry._libraries["haybale-testing"]
 
     warning = CompatibilityWarning(version="0.0.2", component=disp_key, message="x")
     monkeypatch.setattr(type(testing_lib), "compatibility_warnings", lambda self: [warning], raising=False)
@@ -74,9 +74,9 @@ def test_load_does_not_warn_when_saved_version_current(library_system, monkeypat
 @pytest.mark.integration
 def test_library_wide_finding_lands_on_graph(library_system, monkeypatch):
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
     lib_registry = library_system.get_library_registry()
-    testing_lib = lib_registry._libraries["testing"]
+    testing_lib = lib_registry._libraries["haybale-testing"]
 
     warning = CompatibilityWarning(
         version="999.0.0", component=None, message="A library-wide convention changed."
@@ -101,9 +101,9 @@ def test_reset_clears_compatibility_warning(library_system, monkeypatch):
     """Resetting a node rebuilds it from current code, so the advisory
     compatibility warning (derived from the saved file) must clear."""
     reg = library_system.get_node_registry()
-    disp_key = next(k for k in reg.list_names() if k == "testing:node:DisplayNode")
+    disp_key = next(k for k in reg.list_names() if k == "haybale-testing:node:DisplayNode")
     lib_registry = library_system.get_library_registry()
-    testing_lib = lib_registry._libraries["testing"]
+    testing_lib = lib_registry._libraries["haybale-testing"]
 
     warning = CompatibilityWarning(
         version="999.0.0", component=disp_key, message="frame inlet widget strategy changed"

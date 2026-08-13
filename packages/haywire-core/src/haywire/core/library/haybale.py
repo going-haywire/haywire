@@ -45,6 +45,9 @@ class Haybale:
     """One entry from a [[haybales]] section."""
 
     name: str
+    """The library's distribution (pip package) name, e.g. ``haybale-core``.
+    Also the library's sole identifier: it prefixes every component's
+    registry key (``haybale-core:node:Add``)."""
     version: str = ""
     """The version the publisher advertised. Defaulted so a row can be built
     field-by-field in tests and fixtures; an absent version in a real feed is
@@ -60,9 +63,6 @@ class Haybale:
     require: str = ""
     label: str = ""
     description: str = ""
-    id: str = ""
-    """The library's registry-key prefix (``core`` in ``core:node:Add``). Published
-    so a consumer can resolve a component key before installing."""
     source: str = "pypi"
     install_spec: str = ""
     tags: list[str] = field(default_factory=list)
@@ -140,7 +140,6 @@ class Haybale:
 
     _TOML_FIELDS: ClassVar[tuple[str, ...]] = (
         "name",
-        "id",
         "label",
         "version",
         "require",

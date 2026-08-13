@@ -287,13 +287,6 @@ def test_authors_and_deprecated_are_serialized_last():
     assert keys[-2:] == ["authors", "deprecated"]
 
 
-def test_id_is_carried_on_the_row():
-    from haywire.core.library.haybale import Haybale
-
-    row = Haybale(name="haybale-x", version="1.0.0", id="x")
-    assert row.to_dict()["id"] == "x"
-
-
 def test_empty_authors_is_omitted():
     from haywire.core.library.haybale import Haybale
 
@@ -308,7 +301,6 @@ def test_parse_reads_authors_table_array():
         {
             "name": "haybale-x",
             "version": "1.0.0",
-            "id": "x",
             "authors": [
                 {"name": "maybites", "url": "https://maybites.ch"},
                 {"name": "cansik"},
@@ -316,7 +308,6 @@ def test_parse_reads_authors_table_array():
         }
     )
     assert row.authors == [("maybites", "https://maybites.ch"), ("cansik", "")]
-    assert row.id == "x"
 
 
 def test_parse_ignores_legacy_author_string():

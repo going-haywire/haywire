@@ -53,8 +53,6 @@ class NodeInfoPanel(BasePanel):
             hui.info_row("ID", str(node_id))
 
 
-
-
 @panel(
     focus=NodeFocus,
     label="Node Properties",

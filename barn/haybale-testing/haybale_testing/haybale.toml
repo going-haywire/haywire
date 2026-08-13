@@ -3,7 +3,6 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-testing"
-id = "testing"
 version = "0.1.1"
 label = "Testing"
 description = "Test library for test support"

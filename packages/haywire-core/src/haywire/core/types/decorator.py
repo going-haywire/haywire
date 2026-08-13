@@ -169,7 +169,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         )
 
         # Set registry_key (always regenerate for this class)
-        identity_dict["registry_key"] = reg_key(library_identity.id, TYPE, identity_dict["registry_id"])
+        identity_dict["registry_key"] = reg_key(library_identity.name, TYPE, identity_dict["registry_id"])
 
         # Set source info from the class itself
         identity_dict["class_name"] = inner_cls.__name__

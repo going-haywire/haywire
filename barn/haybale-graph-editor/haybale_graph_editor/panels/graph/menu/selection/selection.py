@@ -108,8 +108,6 @@ class DeleteSelectionMenuPanel(BasePanel):
             )
 
 
-
-
 @panel(
     actions=SelectionContextActions,
     focus=SelectionFocus,

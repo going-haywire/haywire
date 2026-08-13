@@ -23,7 +23,7 @@ def test_string_to_choices_needs_an_explicit_adapter(library_system):
     conversion is never a free passthrough (not every string is a valid choice)."""
     reg = library_system.get_adapter_registry()
 
-    fwd = reg.get_adapter("builtin:type:STRING", "builtin:type:CHOICES")
+    fwd = reg.get_adapter("haywire-core:type:STRING", "haywire-core:type:CHOICES")
     assert fwd is not None
 
 
@@ -43,4 +43,4 @@ def test_choices_to_string_needs_no_adapter(library_system):
     assert error is None
     assert adapter is not None
     assert adapter._get_registry_keys() == []  # ReturnAdapter: no adapter chain used
-    assert reg.get_adapter("builtin:type:CHOICES", "builtin:type:STRING") is None
+    assert reg.get_adapter("haywire-core:type:CHOICES", "haywire-core:type:STRING") is None

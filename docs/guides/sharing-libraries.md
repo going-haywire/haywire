@@ -27,6 +27,10 @@ haywire project, your project already contains its own library: every node,
 widget, type and other component you built for your graphs is already in it.
 All that is left is to share it.
 
+Before you start though you have to make a decision about your library name. You might have noticed that the folder inside `barn/` is called `haybale-your-lib` and the package inside it is called `haybale_your_lib`. This naming scheme was not chosen arbitrarily — it is the canonical form for haybale libraries because haybale-* is a namespae in [[pypi](https://pypi.org)] (where all the python packages live) that is not used by any other project so far - the only haybale-* libraries there are, are the ones that are part of the haywire project (at least at the time of this writing). If you want to share your library with others, it is recommended to follow this naming scheme and use a name that is not already taken in pypi.org. You can check if a name is available by searching for it on pypi.org. But this only applies if you choose to share your library on pypi.org. If you choose to share it only via git (which this guide will cover) and amongst you friends, you can use any name you like, but it is still recommended to follow the haybale-* naming scheme to avoid confusion.
+
+If you do plan to share your library along a wider audience and want to avoid the painfull (for you and your library users) experience of having to rename your library later, it is recommended to choose a name you want that is available on pypi.org before you start with this process. Because if you don't, and your library name is already taken, your library and the other libary (that has a pypi package) will never be able to coexist in the same graph. Ever. Which would be a shame. But if you do, then once you have successfully shared your library with the approach described in this guide, you can follow the steps described in [publish_to_pypi](publish_to_pypi.md) to publish your library on pypi.org as well.
+
 The process:
 
 * Document your components: write descriptions, tags, class docstrings.
@@ -217,7 +221,7 @@ haybale-my-lib/
 ├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
 └── haybale_my_lib/
     ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
-    └── __init__.py         ← @library(id=...) declares the haywire runtime contract
+    └── __init__.py         ← @library(...) declares the haywire runtime contract
 ```
 
 The two manifests answer different questions:

@@ -85,7 +85,7 @@ def settings(
         _registry_id = inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        library_id = library_identity.id
+        library_id = library_identity.name
 
         registry_key = reg_key(library_id, SETTING, _registry_id)
 

@@ -6,10 +6,10 @@ classes (which are NiceGUI-backed). Each constant MUST match the key derived
 by @widget for the class of the same name; test_widget_keys.py enforces it.
 """
 
-NUMBER_WIDGET = "builtin:widget:NumberWidget"
-TEXT_WIDGET = "builtin:widget:TextWidget"
-SWITCH_WIDGET = "builtin:widget:SwitchWidget"
-SELECT_WIDGET = "builtin:widget:SelectWidget"
-COLOR_WIDGET = "builtin:widget:ColorWidget"
-VEC_WIDGET = "builtin:widget:VecWidget"
-SIMPLE_LABEL_WIDGET = "builtin:widget:SimpleLabelWidget"
+NUMBER_WIDGET = "haywire-core:widget:NumberWidget"
+TEXT_WIDGET = "haywire-core:widget:TextWidget"
+SWITCH_WIDGET = "haywire-core:widget:SwitchWidget"
+SELECT_WIDGET = "haywire-core:widget:SelectWidget"
+COLOR_WIDGET = "haywire-core:widget:ColorWidget"
+VEC_WIDGET = "haywire-core:widget:VecWidget"
+SIMPLE_LABEL_WIDGET = "haywire-core:widget:SimpleLabelWidget"

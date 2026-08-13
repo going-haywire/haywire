@@ -25,7 +25,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 
-
 @editor(
     label="Properties",
     icon=hui.icon.node_settings,
@@ -295,5 +294,3 @@ class PropertiesEditor(BaseEditor):
 
             if not visible:
                 hui.empty_state("No properties available", icon=hui.icon.node_info)
-
-

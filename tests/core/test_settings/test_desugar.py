@@ -8,7 +8,7 @@ def test_choices_type_stamps_select_widget():
         mode = setting[CHOICES](0, widget_config={"options": {0: "Off", 1: "On"}})
 
     d = bag.__dict__["mode"]
-    assert d.widget_key == "builtin:widget:SelectWidget"
+    assert d.widget_key == "haywire-core:widget:SelectWidget"
     assert d.widget_config["properties"]["options"] == {0: "Off", 1: "On"}
 
 
@@ -18,7 +18,7 @@ def test_min_max_desugar_to_number_config():
 
     d = bag.__dict__["x"]
     # No explicit widget=, no widget_config override -> type default (NumberWidget), bounds in config.
-    assert d.widget_key == "builtin:widget:NumberWidget"
+    assert d.widget_key == "haywire-core:widget:NumberWidget"
     assert d.widget_config["properties"]["min"] == 0.0
     assert d.widget_config["properties"]["max"] == 1.0
 
@@ -28,4 +28,4 @@ def test_label_widget_stamped_via_explicit_widget_dict():
         status = setting[INT](0, widget=SimpleLabelWidget.config())
 
     d = bag.__dict__["status"]
-    assert d.widget_key == "builtin:widget:SimpleLabelWidget"
+    assert d.widget_key == "haywire-core:widget:SimpleLabelWidget"

@@ -59,5 +59,3 @@ class MathOP(BaseNode):
         return None
 
     # --8<-- [end:math_op_worker]
-
-

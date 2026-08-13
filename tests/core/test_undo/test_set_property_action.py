@@ -5,9 +5,9 @@ import pytest
 pytestmark = pytest.mark.integration  # needs library_system for builtin types/nodes
 
 # A node with plain data inlets (example:node:MathOP has FLOAT inlets value_a/value_b).
-PORT_NODE_KEY = "example:node:MathOP"
+PORT_NODE_KEY = "haybale-example:node:MathOP"
 # A node carrying a settings bag (testing:node:SettingsNode -> bag 'example').
-SETTINGS_NODE_KEY = "testing:node:SettingsNode"
+SETTINGS_NODE_KEY = "haybale-testing:node:SettingsNode"
 
 
 @pytest.fixture

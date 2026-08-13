@@ -509,7 +509,7 @@ class LibrarySystemService:
             print(f"\n✅ Found {len(discovered)} libraries via entry points:\n")
 
             for lib_info in discovered:
-                print(f"  • {lib_info.identity.label} ({lib_info.identity.id})")
+                print(f"  • {lib_info.identity.label} ({lib_info.identity.name})")
                 print(f"      Type: {lib_info.install_type.value}")
                 print(f"      Path: {lib_info.library_path}")
                 if lib_info.entry_point_name:

@@ -1233,7 +1233,7 @@ class HaywireException(Exception):
             "node_id": self.node_id,
             "graph_id": self.graph_id,
             "edge_id": self.edge_id,
-            "library": self.library_identity.id if self.library_identity else None,
+            "library": self.library_identity.name if self.library_identity else None,
             "filename": self.filename,
             "line_number": self.line_number,
             "source_line": self.source_line,

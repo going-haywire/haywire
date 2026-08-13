@@ -68,7 +68,7 @@ class _ReloadRecordingRegistry(BaseRegistry):
 def _library(tmp_path: Path, body: str) -> _Lib:
     (tmp_path / HAYBALE_TOML).write_text(body)
     _Lib.class_identity = LibraryIdentity(
-        id="demo",
+        name="demo",
         label="Before",
         folder_path=str(tmp_path),
         module_name="haybale_demo",
@@ -121,10 +121,10 @@ def _moved(src: Path, dest: Path) -> SimpleNamespace:
 
 @pytest.mark.unit
 def test_edit_refreshes_label_and_linked_libraries(tmp_path: Path) -> None:
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
 
     (tmp_path / HAYBALE_TOML).write_text(
-        'id = "demo"\nversion = "0.0.1"\nlabel = "After"\nlinked_libraries = ["haybale_studio"]\n'
+        'name = "demo"\nversion = "0.0.1"\nlabel = "After"\nlinked_libraries = ["haybale_studio"]\n'
     )
     lib.file_watcher.handler.on_modified(_modified(tmp_path / HAYBALE_TOML))
     _drain(lib)
@@ -137,10 +137,10 @@ def test_edit_refreshes_label_and_linked_libraries(tmp_path: Path) -> None:
 def test_the_identity_is_mutated_in_place(tmp_path: Path) -> None:
     """The identity object is held by the registry and the reload machinery, so
     a replacement would refresh nothing."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
     held = lib.identity
 
-    (tmp_path / HAYBALE_TOML).write_text('id = "demo"\nversion = "0.0.1"\nlabel = "After"\n')
+    (tmp_path / HAYBALE_TOML).write_text('name = "demo"\nversion = "0.0.1"\nlabel = "After"\n')
     lib.file_watcher.handler.on_modified(_modified(tmp_path / HAYBALE_TOML))
     _drain(lib)
 
@@ -153,7 +153,7 @@ def test_a_metadata_edit_does_not_trigger_a_module_reload(tmp_path: Path) -> Non
     """A description change is not a code change. The .toml reaches every
     registry on the fallback, and each one that reloads modules rejects it —
     only the adapter acts."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
     # A real module-reloading registry, sharing the fallback with the adapter
     # exactly as a library's own registries do.
     reloader = _ReloadRecordingRegistry()
@@ -176,16 +176,16 @@ def test_a_metadata_edit_does_not_trigger_a_module_reload(tmp_path: Path) -> Non
 def test_atomic_write_paths_are_covered(tmp_path: Path) -> None:
     """Editors save by writing a temp file and renaming it over the target, so a
     real edit can arrive as CREATE or MOVE rather than MODIFY."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
     target = tmp_path / HAYBALE_TOML
     handler = lib.file_watcher.handler
 
-    target.write_text('id = "demo"\nversion = "0.0.1"\nlabel = "Via create"\n')
+    target.write_text('name = "demo"\nversion = "0.0.1"\nlabel = "Via create"\n')
     handler.on_created(_modified(target))
     _drain(lib)
     assert lib.identity.label == "Via create"
 
-    target.write_text('id = "demo"\nversion = "0.0.1"\nlabel = "Via move"\n')
+    target.write_text('name = "demo"\nversion = "0.0.1"\nlabel = "Via move"\n')
     handler.on_moved(_moved(tmp_path / "haybale.toml.tmp", target))
     _drain(lib)
     assert lib.identity.label == "Via move"
@@ -198,7 +198,7 @@ def test_atomic_write_paths_are_covered(tmp_path: Path) -> None:
 def test_a_malformed_edit_logs_and_keeps_the_previous_values(tmp_path: Path, caplog) -> None:
     """Opposite of the import-time rule: the author is mid-keystroke, so a
     half-written file must not break a running studio."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
 
     (tmp_path / HAYBALE_TOML).write_text("label = [unclosed\n")
     with caplog.at_level("WARNING"):
@@ -213,7 +213,7 @@ def test_a_malformed_edit_logs_and_keeps_the_previous_values(tmp_path: Path, cap
 def test_a_deleted_file_keeps_the_previous_values(tmp_path: Path) -> None:
     """The adapter gets DELETED like any other event; _reload_metadata handles
     the missing file via HaybaleTomlError → warn → keep previous."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
 
     (tmp_path / HAYBALE_TOML).unlink()
     lib.file_watcher.handler.on_deleted(_modified(tmp_path / HAYBALE_TOML))
@@ -229,10 +229,10 @@ def test_a_deleted_file_keeps_the_previous_values(tmp_path: Path) -> None:
 def test_a_nested_librarys_file_is_not_refreshed(tmp_path: Path) -> None:
     """The watch is recursive, so a nested library's haybale.toml is seen here
     too — but it belongs to that library, not this one."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
     nested = tmp_path / "vendored"
     nested.mkdir()
-    (nested / HAYBALE_TOML).write_text('id = "other"\nversion = "0.0.1"\nlabel = "Other"\n')
+    (nested / HAYBALE_TOML).write_text('name = "other"\nversion = "0.0.1"\nlabel = "Other"\n')
 
     lib.file_watcher.handler.on_modified(_modified(nested / HAYBALE_TOML))
     _drain(lib)
@@ -243,9 +243,9 @@ def test_a_nested_librarys_file_is_not_refreshed(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_other_root_files_do_not_refresh_metadata(tmp_path: Path) -> None:
     """pyproject.toml sits beside haybale.toml and is not it."""
-    lib = _library(tmp_path, 'id = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
+    lib = _library(tmp_path, 'name = "demo"\nversion = "0.0.1"\nlabel = "Before"\n')
     (tmp_path / "pyproject.toml").write_text('[project]\nname = "demo"\n')
-    (tmp_path / HAYBALE_TOML).write_text('id = "demo"\nversion = "0.0.1"\nlabel = "After"\n')
+    (tmp_path / HAYBALE_TOML).write_text('name = "demo"\nversion = "0.0.1"\nlabel = "After"\n')
 
     lib.file_watcher.handler.on_modified(_modified(tmp_path / "pyproject.toml"))
     _drain(lib)

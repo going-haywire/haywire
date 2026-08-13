@@ -35,13 +35,12 @@ does not change when the source does.
 # Edited in the studio's library overview — no reinstall, no reload.
 
 # ── identity ────────────────────────────────────────────────────────────────
-# Immutable after scaffold. `id` prefixes every component's registry key
-# (`core:node:Add`), so changing it orphans saved graphs; `name` is the pip
-# distribution name every consumer's install_spec holds.
-# `id` is also passed to @library(...) — this file wins, and a mismatch is
-# reported at preflight rather than silently resolved.
+# Immutable after scaffold. `name` is the library's sole identifier: the pip
+# distribution name every consumer's install_spec holds, AND the prefix of
+# every component's registry key (`haybale-core:node:Add`) — so changing it
+# orphans saved graphs. Not passed to @library(...): this file is the only
+# source.
 name = "haybale-core"
-id = "core"
 
 # ── written by the share wizard, never by the edit modal ────────────────────
 # PEP 440 — no leading "v". The git tag is derived: tag_for(version) → v0.0.40.
@@ -117,18 +116,17 @@ reason = "Superseded by haybale-vision, which handles both OAK-D revisions."
 successor = "haybale-vision"    # optional
 ```
 
-The smallest valid file is four lines — `name`, `id`, `label`, and whatever the
+The smallest valid file is three lines — `name`, `label`, and whatever the
 library actually needs:
 
 ```toml
 name = "haybale-minimal"
-id = "minimal"
 label = "Minimal"
 description = "One node, nothing else"
 ```
 
-`id` is the only field whose absence is fatal: without it the library cannot be
-named in a registry, and `@library` raises `HaybaleTomlError` at decoration
+`name` is the only field whose absence is fatal: without it the library cannot
+be named in a registry, and `@library` raises `HaybaleTomlError` at decoration
 time.
 
 ## The fields
@@ -145,8 +143,7 @@ Every field this file may declare, and which file each one reaches.
 
 | Field                          | Type      | Required | haybale | marketstall | pyproject                  | Meaning                                                                                           |
 | ------------------------------ | --------- | -------- |:-------:|:-----------:|:--------------------------:| ------------------------------------------------------------------------------------------------- |
-| `name`                         | string    | yes      | ●       | ●           | `name`                     | Pip distribution name. Canon here; pyproject carries the generated copy. Immutable                |
-| `id`                           | string    | yes      | ●       | ●           |                            | Prefixes every component's registry key (`core:node:Add`). Immutable                              |
+| `name`                         | string    | yes      | ●       | ●           | `name`                     | Pip distribution name — the library's sole identifier, and the prefix of every component's registry key (`haybale-core:node:Add`). Canon here; pyproject carries the generated copy. Immutable |
 | `version`                      | string    | yes      | ●       | ●           | `version`                  | PEP 440, no `v`. Canon here; pyproject carries the generated copy. The git tag is derived from it |
 | `label`                        | string    | yes      | ●       | ●           |                            | Human display name                                                                                |
 | `description`                  | string    | no       | ●       | ●           | `description`              | One line                                                                                          |
@@ -175,12 +172,12 @@ pip requirements (projected into require) and the entry point live in [`pyprojec
 
 | Written by                                     | Fields                                                                                                                                                                          |
 | ---------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `haywire init` (scaffold)                      | `name`, `id`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template                                              |
+| `haywire init` (scaffold)                      | `name`, `version`, `label`, `description`, `tags`, `linked_libraries` (empty); every other field commented out as a template                                                    |
 | The author, by hand or in the edit modal       | `label`, `description`, `tags`, `os`, `on_reload`, `linked_libraries`, `homepage_url`, `documentation_url`, `issues_url`, `examples_path`, `tests_path`, `notes`, `[[authors]]` |
 | The author, by hand only                       | `[deprecated]`                                                                                                                                                                  |
 | `scripts/bump_version.py` and the share wizard | `version` — canon here; the generated copy is synced into `pyproject.toml`                                                                                                      |
 | The share wizard                               | `origin`, `origin_provider`, and drift-detected `linked_libraries` additions                                                                                                    |
-| Nothing — immutable                            | `name`, `id`                                                                                                                                                                    |
+| Nothing — immutable                            | `name`                                                                                                                                                                          |
 
 The edit modal accepts exactly the thirteen author-editable fields above
 (`EDITABLE_FIELDS`); passing any other raises rather than silently dropping the
@@ -195,8 +192,9 @@ name is dropped from the save (matching the read side's own rule that a
 nameless entry is not an author) unless it carries a URL, in which case the
 save is blocked rather than silently discarding the typed URL.
 
-There is no supported rename path today: `name` and `id` are read-only
-everywhere until the rename-wizard lands.
+There is no supported rename path in the studio today: `name` is read-only
+everywhere until the rename-wizard lands (the CLI `haywire rename` tool
+rewrites it out-of-band, including saved graphs' registry-key prefixes).
 
 For what happens to each field *after* it is written — how it is carried into a
 published marketstall, and which fields are generated there rather than copied
@@ -219,7 +217,7 @@ that file and cannot read this one.
 `scripts/bump_version.py` writes both files together for the monorepo's own lockstep release;
 the share wizard's `write_barn_versions()` does the same for a per-library publish. Required:
 `read_haybale_toml()` raises if the key is absent, the same way it does for a
-missing `id`.
+missing `name`.
 
 Storing the tag form here instead would be invalid in `[project] version`,
 and `packaging.Version` normalises a leading `v` away — so mixed forms compare
@@ -320,7 +318,7 @@ order:
 
 |                                     | Lives in                                                                                  |
 | ----------------------------------- | ----------------------------------------------------------------------------------------- |
-| `id`, `file_watcher` kwargs         | `@library(...)` — see [haybale-canon](../../haybale/haybale-canon.md#4-the-library-class) |
+| `file_watcher` kwarg                | `@library(...)` — see [haybale-canon](../../haybale/haybale-canon.md#4-the-library-class) |
 | Pip requirements (`dependencies`)   | [`pyproject.toml`](pyproject-toml.md)                                                     |
 | The entry point and build config    | [`pyproject.toml`](pyproject-toml.md)                                                     |
 | `install_spec`, `require`, `source` | [`marketstall.toml`](marketstall-toml.md) — generated at publish                          |
@@ -356,7 +354,7 @@ installs, which have no entry point at all: `builtin` ships inside
 place that name exists for it.
 
 The `haybale-` prefix is a convention, not a rule — `builtin` disproves it — so
-a distribution name is displayed as declared, never reconstructed from an `id`.
+a distribution name is displayed as declared, never derived or reconstructed.
 
 Nothing falls back to the identity when a row reads empty, because there is no
 state in which that helps:

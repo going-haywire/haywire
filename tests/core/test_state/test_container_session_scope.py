@@ -36,7 +36,7 @@ from haywire.core.state.identity import LibraryStateClassIdentity
 
 def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
     return LibraryIdentity(
-        id=lib_id,
+        name=lib_id,
         label=lib_id.capitalize(),
         version="0.0.1",
         linked_libraries=[],
@@ -71,7 +71,7 @@ class TestAppScopeRegression:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
         reg._register_class(Pool, lib_id)
 
         container.on_lifecycle_events([make_added_event(Pool, lib_id)])
@@ -90,7 +90,7 @@ class TestSessionAttachDetach:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
 
         # Attach two sessions BEFORE class is registered.
         container.attach_session("s1")
@@ -121,7 +121,7 @@ class TestSessionAttachDetach:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
 
         # Register class first; no sessions yet.
         reg._register_class(Cursor, lib_id)
@@ -146,7 +146,7 @@ class TestSessionAttachDetach:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
         reg._register_class(Cursor, lib_id)
         container.on_lifecycle_events([make_added_event(Cursor, lib_id)])
         container.attach_session("s1")
@@ -187,7 +187,7 @@ class TestSessionScopeHotReload:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
         reg._register_class(Cursor, lib_id)
         container.on_lifecycle_events([make_added_event(Cursor, lib_id)])
         container.attach_session("s1")
@@ -230,7 +230,7 @@ class TestSessionScopeHotReload:
 
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
         container.on_lifecycle_events([make_added_event(V1, lib_id)])
         container.attach_session("s1")
         # Initial enable.
@@ -268,7 +268,7 @@ class TestDirectLibraryStateSubclass:
 
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
 
         with caplog.at_level(logging.WARNING):
             container.on_lifecycle_events([make_added_event(Bad, lib_id)])

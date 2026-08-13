@@ -212,7 +212,7 @@ class LibraryStateContainer:
             # correctly because the library is still in _enabled_library_ids
             # at that point (it is removed by on_library_disabled afterward).
             if event.event_type is not LifeCycleEventType.CLASS_ADDED:
-                if event.library_identity.id not in self._enabled_library_ids:
+                if event.library_identity.name not in self._enabled_library_ids:
                     continue
             try:
                 self._dispatch(event)
@@ -287,7 +287,7 @@ class LibraryStateContainer:
         ``_enabled_library_ids`` from a prior call) are skipped.
         """
         if library.enabled:
-            self._mark_library_enabled(library.identity.id)
+            self._mark_library_enabled(library.identity.name)
             classes = self._state_registry.get_classes_for_library(library.identity)
             for registry_key, cls in classes.items():
                 try:
@@ -350,7 +350,7 @@ class LibraryStateContainer:
         catch-up via ``on_library_enabled`` is what re-instantiates the
         state classes, mirroring first-time enable.
         """
-        self._mark_library_disabled(library.identity.id)
+        self._mark_library_disabled(library.identity.name)
 
     def _mark_library_enabled(self, library_id: str) -> None:
         """Record that *library_id* is enabled so events for it pass the filter.
@@ -392,7 +392,7 @@ class LibraryStateContainer:
         # _enabled_library_ids), this CLASS_ADDED comes from a hot-install
         # or a re-scan of an already-running library — call on_enable
         # immediately. Otherwise defer to on_library_enabled.
-        already_enabled = event.library_identity.id in self._enabled_library_ids
+        already_enabled = event.library_identity.name in self._enabled_library_ids
         if issubclass(cls, SessionState):
             self._add_session_class(cls, event.registry_key, call_on_enable=already_enabled)
         elif issubclass(cls, AppState):

@@ -30,7 +30,7 @@ def _installed(tmp_path, **row_kwargs) -> LibraryInfo:
     row = Haybale(name="haybale-x", version="1.0.0", **row_kwargs)
     return LibraryInfo(
         row=row,
-        identity=LibraryIdentity(id="x", label="Ex", version="1.0.0", folder_path=str(folder)),
+        identity=LibraryIdentity(name="x", label="Ex", version="1.0.0", folder_path=str(folder)),
         enabled=True,
         install_type=InstallType.REGULAR,
     )

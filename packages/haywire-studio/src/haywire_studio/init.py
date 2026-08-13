@@ -211,8 +211,8 @@ def _generate_haybale_toml(name: str, label: str) -> str:
 # reference: docs/reference/files/haybale-toml.md
 
 # ── identity — immutable ──────────────────────────────────────────────────
-name = "haybale-{lib_base}"  # pip distribution name
-id = "{lib_base}"  # prefixes every component's registry key, e.g. {lib_base}:node:Add
+name = "haybale-{lib_base}"  # pip distribution name; also prefixes every
+# component's registry key, e.g. haybale-{lib_base}:node:Add
 
 # ── written by scripts/bump_version.py / the share wizard, not by hand ──────
 version = "0.0.1"  # PEP 440, no "v" — canon here; pyproject.toml carries the synced copy
@@ -414,7 +414,6 @@ def _generate_library_readme(name: str, label: str) -> str:
 
 def _generate_library_init(name: str, label: str) -> str:
     """Generate the local haybale library's __init__.py content."""
-    lib_base = _lib_basename(name)
     return f'''"""
 Local haybale library for the {name} project.
 
@@ -449,7 +448,6 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    id='{lib_base}',
     file_watcher=True,
 )
 class Library(BaseLibrary):

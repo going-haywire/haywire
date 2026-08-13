@@ -15,7 +15,6 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 
 
 @library(
-    id="share",
     file_watcher=True,
 )
 class Library(BaseLibrary):

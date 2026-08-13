@@ -3,7 +3,6 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-share"
-id = "share"
 version = "0.1.1"
 label = "Share"
 description = "Publish this project: dependencies, version, docs, commit, tag, push"

@@ -17,7 +17,7 @@ def _lib(install_type: InstallType, folder_path: str, distribution_name: str = "
         version="0.1.0",
         folder_path=folder_path,
         module_name="testlib",
-        id="testlib",
+        name="testlib",
     )
     return LibraryInfo(
         row=Haybale(name=distribution_name or "haybale-x", version="1.0.0"),

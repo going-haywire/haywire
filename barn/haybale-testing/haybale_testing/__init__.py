@@ -22,7 +22,6 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    id="testing",
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -83,8 +82,6 @@ class Library(BaseLibrary):
     def validate(self) -> bool:
         """Validate that the test library is properly structured"""
         return True
-
-
 
 
 # Export for entry point discovery

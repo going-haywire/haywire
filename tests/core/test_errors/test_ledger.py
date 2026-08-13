@@ -15,7 +15,7 @@ def _identity(lib_id: str = "testing") -> LibraryIdentity:
         version="0.1",
         folder_path="/tmp/fake",
         module_name=lib_id,
-        id=lib_id,
+        name=lib_id,
     )
 
 
@@ -39,13 +39,13 @@ def test_record_assigns_monotonic_sequence(ledger):
 
 
 def test_query_returns_entries_with_cursor(ledger):
-    ledger.record(_exc("boom", registry_key="testing:node:foo"))
+    ledger.record(_exc("boom", registry_key="haybale-testing:node:foo"))
     page = ledger.query()
     assert page.total == 1
     assert page.cursor == ledger.current_seq
     entry = page.entries[0]
     assert entry.message == "boom"
-    assert entry.registry_key == "testing:node:foo"
+    assert entry.registry_key == "haybale-testing:node:foo"
     assert entry.ledger_seq == ledger.current_seq
 
 

@@ -64,9 +64,9 @@ _RELOAD_ACTION_RANK = {
 class LibraryIdentity:
     """A library as loaded in this process.
 
-    Populated by ``@library(...)``: ``id``, ``folder_path``, ``module_name`` and
-    ``file_watcher`` from the call itself, the rest — including ``version`` —
-    read out of ``haybale.toml``.
+    Populated by ``@library(...)``: ``folder_path``, ``module_name`` and
+    ``file_watcher`` from the call itself, the rest — including ``version`` and
+    ``name`` — read out of ``haybale.toml``.
 
     Carries only what cannot be answered by a file read: ``label`` (logged and
     rendered from inside the registry), ``linked_libraries`` (read during module
@@ -80,7 +80,10 @@ class LibraryIdentity:
     version: str = ""
     folder_path: str = ""  # Path to the library folder
     module_name: str = ""  # Python module name
-    id: str = ""  # Unique identifier for the library
+    name: str = ""
+    """The library's distribution (pip package) name, e.g. ``haybale-core``.
+    Prefixes every component's registry key (``haybale-core:node:Add``) — the
+    sole identifier"""
     linked_libraries: list[str] | None = None
     """Sibling haybales whose classes this library subscribes to, as **module**
     names (``haybale_studio``). Required for hot-reload scope tracking: without

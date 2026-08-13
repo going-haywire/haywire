@@ -3,7 +3,6 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-haystack"
-id = "haystack"
 version = "0.1.1"
 label = "Haystack"
 description = "File-centric multi-graph manager"

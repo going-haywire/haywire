@@ -9,7 +9,7 @@ from haywire.core.library.haybale import Haybale
 def test_installed_info_carries_the_row():
     info = LibraryInfo(
         row=Haybale(name="haybale-x", version="1.0.0", label="X", source="local"),
-        identity=LibraryIdentity(id="x", label="X", version="1.0.0"),
+        identity=LibraryIdentity(name="x", label="X", version="1.0.0"),
         enabled=True,
         install_type=InstallType.EDITABLE,
     )

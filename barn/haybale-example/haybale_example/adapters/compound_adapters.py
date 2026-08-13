@@ -46,5 +46,3 @@ class MapsStringArrayAdapter(BaseAdapter):
     @override
     def get_test_repetitions(self):
         return 2
-
-

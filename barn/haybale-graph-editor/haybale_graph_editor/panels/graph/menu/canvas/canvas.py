@@ -67,8 +67,6 @@ class CreateNodeMenuPanel(BasePanel):
             builder.create_node_menu(recent_nodes=[], show_search=True)
 
 
-
-
 @panel(
     actions=CanvasContextActions,
     focus=CanvasFocus,

@@ -46,8 +46,6 @@ class CopyToolbarPanel(BasePanel):
             hui.icon_action(hui.icon.copy, tooltip="Copy", on_click=self.actions.copy_selection)
 
 
-
-
 @panel(
     actions=SelectionContextActions,
     focus=ToolbarFocus,

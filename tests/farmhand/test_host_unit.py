@@ -93,7 +93,7 @@ def test_tool_table_seed_and_evict():
 
     PingTool.class_identity = FarmhandIdentity(
         registry_id="ping",
-        registry_key="studio:farmhand:ping",
+        registry_key="haybale-studio:farmhand:ping",
         label="Ping",
         description="",
         instructions="Ping.",
@@ -106,7 +106,7 @@ def test_tool_table_seed_and_evict():
         version="0.1",
         folder_path="/tmp/studio",
         module_name="studio",
-        id="studio",
+        name="haybale-studio",
     )
     registry._register_class(PingTool, PingTool.class_library)
 
@@ -114,9 +114,9 @@ def test_tool_table_seed_and_evict():
     host._tools = {}
     host._registry = registry
     host._seed_tools()
-    assert host._tools == {"studio_ping": PingTool}
+    assert host._tools == {"haybale-studio_ping": PingTool}
 
-    host._remove_tool_by_key("studio:farmhand:ping")
+    host._remove_tool_by_key("haybale-studio:farmhand:ping")
     assert host._tools == {}
 
 

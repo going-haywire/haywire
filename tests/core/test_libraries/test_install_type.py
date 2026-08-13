@@ -39,7 +39,7 @@ def test_not_installed_is_not_framework_origin():
 
     info = LibraryInfo(
         row=Haybale(name="haybale-x", version="1.0.0", source="pypi"),
-        identity=LibraryIdentity(id="x"),
+        identity=LibraryIdentity(name="x"),
         enabled=False,
         install_type=InstallType.NOT_INSTALLED,
     )

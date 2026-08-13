@@ -122,4 +122,4 @@ class TestThemeDecorator:
         assert TestDarkTheme.class_identity.theme_type == "workbench"
 
     def test_registry_key_format(self):
-        assert TestDarkTheme.class_identity.registry_key == "testing:theme:workbench:TestDarkTheme"
+        assert TestDarkTheme.class_identity.registry_key == "haybale-testing:theme:workbench:TestDarkTheme"

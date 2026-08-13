@@ -116,13 +116,12 @@ def rename_library(
         return False, f"Failed to rename module directory: {e}"
 
     # --- 5. Update __init__.py and haybale.toml ---
-    # The decorator carries only `id` now; everything else a rename touches
-    # lives in haybale.toml, which is rewritten rather than regex-patched.
+    # The decorator carries no identity kwargs at all now — `name` lives
+    # solely in haybale.toml, which is rewritten rather than regex-patched.
     sink("Updating __init__.py and haybale.toml...")
     try:
         init_file = new_pkg_dir_tmp / "__init__.py"
         content = init_file.read_text()
-        content = re.sub(r"(    id=[\"'])[^\"']*([\"'])", rf"\g<1>{new_name}\2", content)
         content = re.sub(
             r"(Local haybale library for the )[^\n]*(\.)",
             rf"\g<1>{new_name} project\2",
@@ -135,7 +134,6 @@ def rename_library(
     try:
         with edit_toml(new_pkg_dir_tmp / HAYBALE_TOML) as doc:
             doc["name"] = new_lib_name
-            doc["id"] = new_name
             doc["label"] = label_val
             doc["description"] = desc_val
             # A renamed library is a new library as far as consumers are
@@ -237,9 +235,14 @@ def run_rename_cli(*, old_library: str, new_name: str, workspace_root: Path, app
         print(f"error: '{new_name}' is not a valid library name")
         return 2
 
+    new_lib_name = f"haybale-{sanitized}"
     graphs_dir = workspace_root / "graphs"
-    plan = patch_graph_references(graphs_dir, old_library.removeprefix("haybale-"), sanitized, apply=False)
-    print(f"Will rename {old_library} -> haybale-{sanitized}")
+    # The registry-key prefix is the full distribution name now (name is the
+    # library's sole identifier), not a short id stripped of "haybale-" — two
+    # libraries with different prefixes (haybale-foo / hay-foo) must not
+    # collapse onto the same registry-key prefix.
+    plan = patch_graph_references(graphs_dir, old_library, new_lib_name, apply=False)
+    print(f"Will rename {old_library} -> {new_lib_name}")
     print(f"Graph references: {plan.replacements} key(s) in {plan.files_changed} file(s)")
     for name in plan.changed_files:
         print(f"  - {name}")
@@ -252,8 +255,8 @@ def run_rename_cli(*, old_library: str, new_name: str, workspace_root: Path, app
     if not ok:
         print(f"error: {msg}")
         return 1
-    patch_graph_references(graphs_dir, old_library.removeprefix("haybale-"), sanitized, apply=True)
-    print(f"Renamed to haybale-{sanitized}. Restart studio to pick up the change.")
+    patch_graph_references(graphs_dir, old_library, new_lib_name, apply=True)
+    print(f"Renamed to {new_lib_name}. Restart studio to pick up the change.")
     return 0
 
 
@@ -289,8 +292,13 @@ def _rewrite_keys(obj: object, old_prefix: str, new_prefix: str) -> int:
     return n
 
 
-def patch_graph_references(graphs_dir: Path, old_id: str, new_id: str, *, apply: bool) -> PatchResult:
-    """Rewrite old_id: registry-key prefixes to new_id: in graphs/**/*.json.
+def patch_graph_references(
+    graphs_dir: Path, old_lib_name: str, new_lib_name: str, *, apply: bool
+) -> PatchResult:
+    """Rewrite old_lib_name: registry-key prefixes to new_lib_name: in graphs/**/*.json.
+
+    The prefix is the library's distribution name (its sole identifier) — e.g.
+    "haybale-foo" — not a short id.
 
     JSON-aware: only fields in _KEY_FIELDS are candidates. Dry-run (apply=False)
     reports without writing. On apply, backs up each changed file to <name>.json.bak.
@@ -298,7 +306,7 @@ def patch_graph_references(graphs_dir: Path, old_id: str, new_id: str, *, apply:
     result = PatchResult()
     if not graphs_dir.is_dir():
         return result
-    old_prefix, new_prefix = old_id + ":", new_id + ":"
+    old_prefix, new_prefix = old_lib_name + ":", new_lib_name + ":"
     for f in sorted(graphs_dir.glob("**/*.json")):
         try:
             data = json.loads(f.read_text())

@@ -13,7 +13,7 @@ from haywire.core.state.registry import LibraryStateRegistry
 
 def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
     return LibraryIdentity(
-        id=lib_id,
+        name=lib_id,
         label=lib_id.capitalize(),
         version="0.0.1",
         linked_libraries=[],
@@ -101,7 +101,7 @@ class TestLibraryStateContainer:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(reg)
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
 
         reg._register_class(MyState, lib_id)
         # Phase 1+2 together (library already marked enabled).
@@ -435,7 +435,7 @@ class TestOnLibraryEnabledCatchUp:
 
         container.on_library_enabled(cast(Any, FakeLibrary()))
 
-        assert lib_id.id in container._enabled_library_ids
+        assert lib_id.name in container._enabled_library_ids
 
     def test_on_library_enabled_twice_does_not_double_fire_on_enable(self):
         """Calling on_library_enabled twice doesn't double-fire on_enable."""
@@ -510,10 +510,10 @@ class TestOnLibraryDisabled:
             enabled = True
 
         container.on_library_enabled(cast(Any, FakeLibrary()))
-        assert lib_id.id in container._enabled_library_ids
+        assert lib_id.name in container._enabled_library_ids
 
         container.on_library_disabled(cast(Any, FakeLibrary()))
-        assert lib_id.id not in container._enabled_library_ids
+        assert lib_id.name not in container._enabled_library_ids
 
     def test_class_removed_after_disable_is_dropped(self):
         """CLASS_REMOVED after on_library_disabled is filtered — nothing to tear
@@ -613,7 +613,7 @@ class TestOnLibraryDisabled:
 
         # Should not raise.
         container.on_library_disabled(cast(Any, FakeLibrary()))
-        assert lib_id.id not in container._enabled_library_ids
+        assert lib_id.name not in container._enabled_library_ids
 
 
 class TestSubscribeToLifecycleEvents:

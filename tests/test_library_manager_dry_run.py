@@ -34,7 +34,7 @@ def _make_manager():
         version="0.0.1",
         folder_path=f"/tmp/{lid}",
         module_name=lid,
-        id=lid,
+        name=lid,
     )
     return LibraryManager(library_registry=registry)
 

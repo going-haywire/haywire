@@ -20,7 +20,7 @@ def _identity(folder_path: str) -> LibraryIdentity:
         version="0.1.0",
         folder_path=folder_path,
         module_name="testlib",
-        id="testlib",
+        name="testlib",
     )
 
 

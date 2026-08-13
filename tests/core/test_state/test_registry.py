@@ -10,7 +10,7 @@ from haywire.core.state.registry import LibraryStateRegistry
 def make_lib_identity(lib_id: str = "midi") -> LibraryIdentity:
     """Build a minimal LibraryIdentity for tests."""
     return LibraryIdentity(
-        id=lib_id,
+        name=lib_id,
         label=lib_id.capitalize(),
         version="0.0.1",
         linked_libraries=[],

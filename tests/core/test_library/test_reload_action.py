@@ -13,7 +13,7 @@ def _identity(**overrides):
         version="0.1.0",
         folder_path="/tmp/demo",
         module_name="haybale_demo",
-        id="demo",
+        name="demo",
     )
     base.update(overrides)
     return LibraryIdentity(**cast(Any, base))

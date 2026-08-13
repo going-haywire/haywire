@@ -97,7 +97,6 @@ def _parse_haybale_entry(raw: dict) -> Haybale:
         require=raw.get("require", ""),
         label=raw.get("label", ""),
         description=raw.get("description", ""),
-        id=raw.get("id", ""),
         authors=_parse_authors(raw),
         source=raw.get("source", "pypi"),
         install_spec=raw.get("install_spec", name),

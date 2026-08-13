@@ -104,5 +104,3 @@ class StudioDismissErrorsTool(Farmhand):
         # the editor's own mutate-then-broadcast triage contract.
         ctx.broadcast(ErrorLedgerChanged())
         return {"summary": summary, "cursor": ledger.current_seq}
-
-

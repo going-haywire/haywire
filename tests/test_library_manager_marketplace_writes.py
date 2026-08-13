@@ -37,7 +37,7 @@ def test_update_library_identity_writes_heap_entry(tmp_path: Path) -> None:
     registry = MagicMock()
     registry.get_library_distribution_name.return_value = "haybale-demo"
     registry.get_library_identity.return_value = LibraryIdentity(
-        id="demo", label="Old", folder_path=str(pkg_dir), module_name="haybale_demo"
+        name="demo", label="Old", folder_path=str(pkg_dir), module_name="haybale_demo"
     )
     manager = LibraryManager.__new__(LibraryManager)
     manager.registry = registry

@@ -38,7 +38,7 @@ logger = logging.getLogger(__name__)
 FRAMEWORK_IDENTITY = LibraryIdentity(
     label="haywire-core",
     version="0.0.0",
-    id="haywire-core",
+    name="haywire-core",
     module_name="haywire",
     folder_path="",
 )
@@ -317,7 +317,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
             ns = schema_cls._namespace
             lib = library_identity or derive_library_identity(schema_cls)
-            reg_key_val = reg_key(lib.id, SETTING, ns)
+            reg_key_val = reg_key(lib.name, SETTING, ns)
             schema_cls.class_identity = SettingsClassIdentity(
                 namespace=ns,
                 registry_id=ns,

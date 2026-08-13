@@ -399,7 +399,7 @@ class LibraryOverviewEditor(BaseEditor):
                 return 0
             return sum(1 for k in registry.list_names() if k.startswith(prefix))
 
-        lib_id = installed_lib.identity.id if installed_lib else None
+        lib_id = installed_lib.identity.name if installed_lib else None
 
         # ── header + metadata + tabs bar ───────────────────────
         self._fixed.clear()
@@ -449,7 +449,7 @@ class LibraryOverviewEditor(BaseEditor):
                     # ── Action buttons ─────────────────────────────────────────
                     with ui.row().classes("gap-1 flex-shrink-0 items-center"):
                         if installed_lib and manager:
-                            _lib_id = info.identity.id
+                            _lib_id = info.identity.name
                             _lib_label = info.identity.label
 
                             # Dependents: all installed libs whose @library deps include me
@@ -858,7 +858,7 @@ class LibraryOverviewEditor(BaseEditor):
             )
             return
 
-        items = self._registry_items(registry, f"{lib.identity.id}:{config.prefix_segment}:")
+        items = self._registry_items(registry, f"{lib.identity.name}:{config.prefix_segment}:")
 
         if not items:
             ui.label(f"No {config.comp_type} registered for this library.").classes(
@@ -903,7 +903,7 @@ class LibraryOverviewEditor(BaseEditor):
 
         success, message = await asyncio.to_thread(
             manager.update_library_identity,
-            lib.identity.id,
+            lib.identity.name,
             workspace_root,
             identity,
         )
@@ -919,7 +919,7 @@ class LibraryOverviewEditor(BaseEditor):
 
         # LibraryInfo is frozen and info.row is a snapshot, not a live view —
         # reload_installed() re-fetches
-        context.active_library = reload_installed(lib.identity.id, manager)
+        context.active_library = reload_installed(lib.identity.name, manager)
 
     # ─────────────────────────────────────────────────────────────────────────
     # Marketplace overview fetch (async)

@@ -35,7 +35,11 @@ _ID_TAIL = r"(?:(?:workbench|node):)?[A-Za-z_][A-Za-z0-9_]*"
 
 # A keyed source link: [`lib:kind:id`](target) or [lib:kind:id](target). The
 # key sits in the link *text*; the target is a relative source-file path.
-_KEY_LINK_RE = re.compile(r"\[`?([a-z_][a-z0-9_]*:(?:" + _KINDS + r"):" + _ID_TAIL + r")`?\]\((\.\.[^)]*)\)")
+# The lib segment is a distribution name (e.g. haybale-example), so it may
+# contain hyphens as well as underscores.
+_KEY_LINK_RE = re.compile(
+    r"\[`?([a-z_][a-z0-9_-]*:(?:" + _KINDS + r"):" + _ID_TAIL + r")`?\]\((\.\.[^)]*)\)"
+)
 
 
 def _iter_doc_keys() -> list[tuple[Path, int, str]]:
@@ -51,8 +55,8 @@ def _iter_doc_keys() -> list[tuple[Path, int, str]]:
 def test_doc_source_keys_exist() -> None:
     """Sanity: the extractor finds the planted keys (guards against a broken regex)."""
     keys = {key for _f, _ln, key in _iter_doc_keys()}
-    assert "example:node:MathOP" in keys
-    assert "testing:setting:TestingSettings" in keys
+    assert "haybale-example:node:MathOP" in keys
+    assert "haybale-testing:setting:TestingSettings" in keys
     assert len(keys) >= 15
 
 

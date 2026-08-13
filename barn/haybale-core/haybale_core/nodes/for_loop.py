@@ -139,5 +139,3 @@ class ForLoopNode(BaseNode):
         # Continue loop - output current index
         self.out("index", current_index)
         return "loop_body"
-
-

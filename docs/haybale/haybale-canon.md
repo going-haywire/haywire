@@ -65,7 +65,7 @@ connects them.
 | --- | --- | --- |
 | [`haybale.toml`](../reference/files/haybale-toml.md) | Everything descriptive: label, description, tags, os, paths, URLs, authors | You, or the studio's edit modal |
 | [`pyproject.toml`](../reference/files/pyproject-toml.md) | `dependencies`, the entry point, build config. Its `[project]` block is generated | You (`dependencies` only) |
-| `__init__.py` | The `Library` class; `@library(id=…)` | You |
+| `__init__.py` | The `Library` class; `@library(…)` | You |
 
 The split is what makes a metadata edit cheap. `haybale.toml` ships **inside**
 the package, so it reaches consumers in the wheel and is read from disk at the
@@ -80,7 +80,7 @@ point of use: editing it is a file write, visible on the next read, with no
 Author writes                 pyproject.toml                Discovery
 ─────────────                 ──────────────                ─────────
 haybale.toml            ┐     [project.entry-points         LibraryDiscovery scans
-@library(id='image')    │      "haywire.libraries"]         installed packages at startup
+@library()               │      "haywire.libraries"]         installed packages at startup
 class Library(...):     │     image = "haybale_image:Library"        ↓
   register_components() │                                   LibraryRegistry imports the
   validate()            ┘                                   module, instantiates Library,
@@ -102,8 +102,8 @@ How metadata moves from your file to a consumer — see
 Beside `__init__.py`, inside the package:
 
 ```toml
-name = "haybale-image"
-id = "image"
+name = "haybale-image"   # the library's sole identifier — also prefixes
+                          # every component's registry_key (haybale-image:node:Resize)
 version = "0.1.0"   # canon here; generated copy synced into pyproject.toml — see §5, don't hand-edit
 label = "Image Processing"
 description = "Image processing nodes for haywire — resize, filter, convert."
@@ -133,16 +133,16 @@ name = "Your Name"
 url = "https://your.site"      # optional
 ```
 
-The smallest valid file is five keys — `name`, `id`, `version`, `label`, and a
-`description` worth reading. `id` and `version` are the two whose absence is
+The smallest valid file is four keys — `name`, `version`, `label`, and a
+`description` worth reading. `name` and `version` are the two whose absence is
 fatal; `haywire init` seeds `version` at scaffold, and the bump machinery
 keeps it current afterward, so an author rarely types it by hand.
 
 **Written for you, not by you.** `scripts/bump_version.py` (monorepo lockstep
 release) and the share wizard (per-library publish) write `version`, synced
 from `pyproject.toml`; the share wizard also writes `origin` and
-`origin_provider`; the drift detector maintains `linked_libraries`. `name` and
-`id` are immutable — they key saved graphs and every consumer's install spec.
+`origin_provider`; the drift detector maintains `linked_libraries`. `name` is
+immutable — it keys saved graphs and every consumer's install spec.
 `[deprecated]` is hand-edited, since retiring a library should not be one stray
 click.
 
@@ -160,7 +160,7 @@ from haywire.core.library.decorator import library
 from haywire.core.node.registry import NodeRegistry
 
 
-@library(id='image')
+@library()
 class Library(BaseLibrary):
     def register_components(self):
         self.add_folder_to_registry(
@@ -175,13 +175,12 @@ class Library(BaseLibrary):
 __all__ = ['Library']
 ```
 
-**The decorator takes two arguments, and only two.** Everything descriptive —
-including `version` — lives in `haybale.toml`; passing it to the decorator
-raises `TypeError` naming the file it moved to.
+**The decorator takes one argument, and only one.** Everything descriptive —
+including `name` and `version` — lives in `haybale.toml`; passing it to the
+decorator raises `TypeError` naming the file it moved to.
 
 | Parameter | Required | Purpose |
 | --- | --- | --- |
-| `id` | yes | Prefixes every component's `registry_key`. Also in `haybale.toml`, which wins; a mismatch is reported rather than guessed at |
 | `file_watcher` | no | Hot-reload via filesystem observer. Development only; no publishing meaning |
 
 **Always use parentheses.** `@library` without them is unsupported — as with
@@ -223,21 +222,22 @@ scanning state first keeps a single class object live.
 
 ## 5. Naming and versioning
 
-Each of the four names has its own casing rule:
+Each of the three names has its own casing rule:
 
 | Name | Convention | Example |
 | --- | --- | --- |
-| Pip distribution (`name`) | `haybale-<lowercase-hyphenated>` | `haybale-image-tools` |
+| Pip distribution (`name`) | `haybale-<lowercase-hyphenated>` — the library's sole identifier; also the `registry_key` prefix | `haybale-image-tools` |
 | Python module | `haybale_<lowercase_underscored>` | `haybale_image_tools` |
-| Library `id` | lowercase; the module name without `haybale_` | `image_tools` |
 | Display `label` | Human-readable, title case | `"Image Tools"` |
 
 The `haybale-` prefix is conventional, not required, but tools assume it.
 
-**`id` is load-bearing and stable.** It becomes the prefix of every component's
-`registry_key` — `image_tools:node:Resize`. Changing it after publishing orphans
-every saved graph that references those keys, which is why it is immutable and
-there is no supported rename path today.
+**`name` is load-bearing and stable.** It becomes the prefix of every
+component's `registry_key` — `haybale-image-tools:node:Resize`. Changing it
+after publishing orphans every saved graph that references those keys, which
+is why it is immutable and there is no supported rename path in the studio
+today (`haywire rename` rewrites it, and saved graphs' key prefixes, out of
+band).
 
 **SemVer.** MAJOR for breaking changes (renamed nodes, changed port types,
 removed components), MINOR for backward-compatible additions, PATCH for fixes.
@@ -333,10 +333,10 @@ pipeline.
   `version`, `requires-python`, and a
   `[project.entry-points."haywire.libraries"]` entry resolving to a
   `BaseLibrary` subclass.
-- **`haybale.toml`** inside the package, declaring at least `name`, `id`,
+- **`haybale.toml`** inside the package, declaring at least `name`,
   `version` and `label`. Missing or malformed, that library alone fails to
   load and the error names the file.
-- **`@library`** carrying only `id`, `file_watcher`.
+- **`@library`** carrying only `file_watcher`.
 - **For PyPI publishing**: a valid PyPI package (Trusted Publisher recommended).
 - **For marketstall publishing**: a valid `marketstall.toml`.
 
@@ -399,14 +399,14 @@ Source: `barn/haybale-testing/haybale_testing/__init__.py`
 the codebase. Pulled in live, so it cannot drift:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/__init__.py:24:88"
+--8<-- "barn/haybale-testing/haybale_testing/__init__.py:24:87"
 ```
 
-from: `Library` — registry_key: `testing:library:Library`
+from: `Library` — registry_key: `haybale-testing:library:Library`
 
 | Concept | Where |
 | --- | --- |
-| `@library(id=…, file_watcher=True)` | decoration |
+| `@library(file_watcher=True)` | decoration |
 | `BaseLibrary` subclass with both required hooks | `class Library(BaseLibrary)` |
 | One `add_folder_to_registry` call per category | nine calls |
 | State scanned before farmhands and editors | comment in `register_components` |
@@ -420,8 +420,8 @@ from: `Library` — registry_key: `testing:library:Library`
 ### Authoring checklist
 
 - [ ] Distribution `haybale-<name>` (hyphen); module `haybale_<name>` (underscore)
-- [ ] `haybale.toml` inside the package with `name`, `id`, `version`, `label`
-- [ ] `@library(id='…')` — parens always; only `id` / `file_watcher`
+- [ ] `haybale.toml` inside the package with `name`, `version`, `label`
+- [ ] `@library()` — parens always; only `file_watcher`
 - [ ] `Library(BaseLibrary)` in `__init__.py` implementing `register_components` and `validate`
 - [ ] `__all__ = ['Library']`
 - [ ] `[project.entry-points."haywire.libraries"]` pointing at `<module>:Library`
@@ -464,7 +464,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 | Shipping a wheel without `haybale.toml` | Read from disk at runtime; the library cannot load |
 | Confusing `linked_libraries` with `[project] dependencies` | The first is hot-reload scope and module names; the second is pip requirements |
 | Hyphens in `linked_libraries` | Produces a scope matching no module; rejected at read time |
-| Changing `id` after publishing | Orphans saved graphs referencing `<old_id>:node:…` |
+| Changing `name` after publishing | Orphans saved graphs referencing `<old_name>:node:…` |
 | `file_watcher=True` on a non-editable install | No effect — no watchable source |
 | Hand-editing generated `[project]` fields | Preflight reports the drift; publishing overwrites them |
 | Importing from `haywire.core.library.library` | Out of date — use `haywire.core.library.base` |
@@ -492,7 +492,7 @@ from haywire.ui.themes.registry import ThemeRegistry
 
 ### `HaybaleTomlError` at startup
 
-The file is missing, malformed, or declares no `id`. It is fatal for that
+The file is missing, malformed, or declares no `name`. It is fatal for that
 library alone — the studio still starts and the error names the file. Check that
 `haybale.toml` sits **inside** the package directory, beside `__init__.py`, and
 that no `[tool.hatch.build.targets.wheel] include` excludes it.

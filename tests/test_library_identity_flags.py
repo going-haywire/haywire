@@ -16,7 +16,7 @@ def _make_identity(**overrides) -> LibraryIdentity:
         version="1.0.0",
         folder_path="/tmp/test",
         module_name="test_module",
-        id="test",
+        name="test",
     )
     base.update(overrides)
     return LibraryIdentity(**cast(Any, base))

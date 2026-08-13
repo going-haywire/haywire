@@ -24,7 +24,6 @@ __all__ = ["GraphContainer", "GraphAppState", "Library"]
 
 
 @library(
-    id="graph_editor",
     file_watcher=True,
 )
 class Library(BaseLibrary):

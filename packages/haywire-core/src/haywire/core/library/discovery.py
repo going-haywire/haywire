@@ -68,7 +68,7 @@ class LibraryDiscovery:
             logger.error(f"Entry point discovery failed: {e}", exc_info=True)
 
         # Sort by install type: regular first, then editable
-        discovered.sort(key=lambda x: (x.install_type.value, x.identity.id))
+        discovered.sort(key=lambda x: (x.install_type.value, x.identity.name))
 
         return discovered
 
@@ -96,7 +96,7 @@ class LibraryDiscovery:
             library_path, install_type = cls._get_library_path_and_type(library_cls)
 
             logger.info(
-                f"Discovered library '{identity.label}' (id: {identity.id}) "
+                f"Discovered library '{identity.label}' (name: {identity.name}) "
                 f"at {library_path} [{install_type.value}]"
             )
 

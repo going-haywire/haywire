@@ -41,5 +41,3 @@ class KnobWidget(BaseWidget):
             knob.classes("w-32 h-32"),
             converter=PrimitiveUnwrappingConverter(default_value=0.0),
         )
-
-

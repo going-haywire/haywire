@@ -92,5 +92,3 @@ class CustomCallbackNode(BaseNode):
 
         self.out("payload", payload)
         return "triggered"
-
-

@@ -11,7 +11,6 @@ from haywire.core.library.decorator import library
 
 
 @library(
-    id="builtin",
     file_watcher=False,
 )
 class Library(BaseLibrary):

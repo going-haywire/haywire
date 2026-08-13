@@ -149,7 +149,7 @@ class ErrorLedger:
         if since_seq is not None:
             rows = [r for r in rows if r.ledger_seq > since_seq]
         if library is not None:
-            rows = [r for r in rows if (r.library_identity.id if r.library_identity else None) == library]
+            rows = [r for r in rows if (r.library_identity.name if r.library_identity else None) == library]
         if registry_key is not None:
             rows = [r for r in rows if r.registry_key == registry_key]
         return LedgerPage(

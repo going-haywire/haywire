@@ -74,8 +74,6 @@ def open_component_source(registry_key: str, context: "SessionContext") -> None:
     context.session.publish(Reveal(editor=ComponentSourceEditor))
 
 
-
-
 def open_file_in_studio(filepath: str, line_number: "int | None", context: "SessionContext") -> None:
     """Open a file in the studio's MAIN-slot CodeEditor.
 

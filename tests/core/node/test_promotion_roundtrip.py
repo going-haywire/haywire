@@ -12,7 +12,7 @@ def test_promoted_inlet_survives_full_roundtrip(graph_with_library_system, libra
     from haywire.core.node.promotion import promote_setting
 
     graph = graph_with_library_system
-    node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+    node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
     promote_setting(node, "example", "example_float")
     desc = type(node.example).__dict__["example_float"]
     pid = desc.storage_key
@@ -21,7 +21,7 @@ def test_promoted_inlet_survives_full_roundtrip(graph_with_library_system, libra
     assert pid not in dumped["ports"]  # promoted port is NOT in the ports block
     assert dumped["settings"]["example"]["promoted"] == {pid: "inlet"}
 
-    fresh = graph.create_node_wrapper("testing:node:SettingsNode", position=(50, 0)).node
+    fresh = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(50, 0)).node
     fresh._initialize_from_dict(dumped)
     assert pid in fresh.ports
     assert fresh.ports[pid].promoted is True
@@ -35,12 +35,12 @@ def test_promoted_outlet_rebinds_and_is_lazy(graph_with_library_system, library_
     from haywire.core.types.enums import PortType
 
     graph = graph_with_library_system
-    node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+    node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
     promote_setting(node, "example", "example_float", direction=PortType.OUTLET)
     pid = type(node.example).__dict__["example_float"].storage_key
 
     dumped = node._to_dict()
-    fresh = graph.create_node_wrapper("testing:node:SettingsNode", position=(50, 0)).node
+    fresh = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(50, 0)).node
     fresh._initialize_from_dict(dumped)
     assert fresh.ports[pid].is_outlet()
     assert fresh.ports[pid].is_linked_lazy is True
@@ -60,7 +60,7 @@ def test_stale_promoted_key_skips_regeneration(graph_with_library_system, librar
     from haywire.core.node.promotion import promote_setting
 
     graph = graph_with_library_system
-    node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+    node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
     promote_setting(node, "example", "example_float")
     desc = type(node.example).__dict__["example_float"]
     pid = desc.storage_key
@@ -71,7 +71,7 @@ def test_stale_promoted_key_skips_regeneration(graph_with_library_system, librar
     promoted_block = dumped["settings"]["example"]["promoted"]
     promoted_block[stale_id] = promoted_block.pop(pid)
 
-    fresh = graph.create_node_wrapper("testing:node:SettingsNode", position=(50, 0)).node
+    fresh = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(50, 0)).node
     with caplog.at_level(logging.WARNING):
         fresh._initialize_from_dict(dumped)  # must NOT raise
 

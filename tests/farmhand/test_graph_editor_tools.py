@@ -1,4 +1,4 @@
-"""graph_editor_* tools over the real MCP server; includes the one-call-one-undo-fence contract."""
+"""haybale-graph-editor_* tools over the real MCP server; includes the one-call-one-undo-fence contract."""
 
 import pytest
 
@@ -6,13 +6,13 @@ from tests.farmhand.conftest import call_tool_json
 
 pytestmark = pytest.mark.integration
 
-NODE_KEY = "example:node:MathOP"  # a registered node with FLOAT data inlets
-CALLBACK_NODE_KEY = "testing:node:EdgeLinkTestNode"  # has callback_outlet + callback_inlet
+NODE_KEY = "haybale-example:node:MathOP"  # a registered node with FLOAT data inlets
+CALLBACK_NODE_KEY = "haybale-testing:node:EdgeLinkTestNode"  # has callback_outlet + callback_inlet
 
 
 @pytest.fixture(autouse=True)
 def _restore_new_counter():
-    """haystack_create_graph increments the persistent HaystackSettings.new_counter
+    """haybale-haystack_create_graph increments the persistent HaystackSettings.new_counter
     on the ambient registry; restore it so settings tests keep their default."""
     from haybale_haystack.settings.haystack_settings import HaystackSettings
 
@@ -29,24 +29,26 @@ def _call(farmhand_call, tool: str, args: dict):
 
 
 def _new_graph(farmhand_call) -> str:
-    return call_tool_json(_call(farmhand_call, "haystack_create_graph", {}))["binding_id"]
+    return call_tool_json(_call(farmhand_call, "haybale-haystack_create_graph", {}))["binding_id"]
 
 
 def _close(farmhand_call, bid) -> None:
-    _call(farmhand_call, "haystack_close_graph", {"binding_id": bid})
+    _call(farmhand_call, "haybale-haystack_close_graph", {"binding_id": bid})
 
 
 def test_add_query_remove(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         node_id = call_tool_json(
-            _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
         )["node_id"]
-        query = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        query = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
         assert any(n["node_id"] == node_id for n in query["nodes"])
         assert query["total"] == 1
-        _call(farmhand_call, "graph_editor_remove_elements", {"binding_id": bid, "nodes": [node_id]})
-        after = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        _call(farmhand_call, "haybale-graph-editor_remove_elements", {"binding_id": bid, "nodes": [node_id]})
+        after = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
         assert after["total"] == 0
     finally:
         _close(farmhand_call, bid)
@@ -57,18 +59,20 @@ def test_query_detail_adds_port_setup_fields(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         node_id = call_tool_json(
-            _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
         )["node_id"]
 
         # Default call: only the three base fields, no detail keys leaked.
-        plain = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        plain = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
         plain_node = next(n for n in plain["nodes"] if n["node_id"] == node_id)
         for port in plain_node["ports"]:
             assert set(port) == {"id", "direction", "flow_type"}
 
         # detail=true: the tier-1/2 setup fields are present and typed sensibly.
         detailed = call_tool_json(
-            _call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid, "detail": True})
+            _call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid, "detail": True})
         )
         node = next(n for n in detailed["nodes"] if n["node_id"] == node_id)
         detail_keys = {
@@ -102,20 +106,20 @@ def test_query_labels_callback_ports_and_edges(farmhand_call):
         src = call_tool_json(
             _call(
                 farmhand_call,
-                "graph_editor_add_node",
+                "haybale-graph-editor_add_node",
                 {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
             )
         )["node_id"]
         sink = call_tool_json(
             _call(
                 farmhand_call,
-                "graph_editor_add_node",
+                "haybale-graph-editor_add_node",
                 {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
             )
         )["node_id"]
         _call(
             farmhand_call,
-            "graph_editor_connect",
+            "haybale-graph-editor_connect",
             {
                 "binding_id": bid,
                 "source_node_id": src,
@@ -125,7 +129,7 @@ def test_query_labels_callback_ports_and_edges(farmhand_call):
             },
         )
 
-        graph = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        graph = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
 
         # The edge is self-labeled — no port join needed to classify it.
         cb_edges = [e for e in graph["edges"] if e["flow_type"] == "callback"]
@@ -152,21 +156,21 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
         a = call_tool_json(
             _call(
                 farmhand_call,
-                "graph_editor_add_node",
+                "haybale-graph-editor_add_node",
                 {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
             )
         )["node_id"]
         b = call_tool_json(
             _call(
                 farmhand_call,
-                "graph_editor_add_node",
+                "haybale-graph-editor_add_node",
                 {"binding_id": bid, "registry_key": CALLBACK_NODE_KEY},
             )
         )["node_id"]
         # bool_outlet (TEST_BOOL) -> float_inlet (TEST_FLOAT): needs BoolToInt + IntToFloat.
         _call(
             farmhand_call,
-            "graph_editor_connect",
+            "haybale-graph-editor_connect",
             {
                 "binding_id": bid,
                 "source_node_id": a,
@@ -177,7 +181,7 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
         )
 
         # Default edges: no detail keys.
-        plain = call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))
+        plain = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
         assert set(plain["edges"][0]) == {
             "edge_id",
             "source_node",
@@ -188,7 +192,7 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
         }
 
         detailed = call_tool_json(
-            _call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid, "detail": True})
+            _call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid, "detail": True})
         )
         edge = detailed["edges"][0]
         assert edge["is_functional"] is True
@@ -196,8 +200,8 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
         assert edge["error"] is None
         assert edge["has_adapters"] is True
         assert edge["adapter_chain"] == [
-            "testing:adapter:BoolToIntAdapter",
-            "testing:adapter:IntToFloatAdapter",
+            "haybale-testing:adapter:BoolToIntAdapter",
+            "haybale-testing:adapter:IntToFloatAdapter",
         ]
     finally:
         _close(farmhand_call, bid)
@@ -206,17 +210,21 @@ def test_query_edge_detail_reports_health_and_adapter_chain(farmhand_call):
 def test_one_tool_call_is_one_undo_gesture(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
-        _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
-        _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+        _call(farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+        _call(farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
         assert (
-            call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))["total"]
+            call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))[
+                "total"
+            ]
             == 2
         )
-        undo = call_tool_json(_call(farmhand_call, "graph_editor_undo", {"binding_id": bid}))
+        undo = call_tool_json(_call(farmhand_call, "haybale-graph-editor_undo", {"binding_id": bid}))
         assert undo["performed"] is True
         # exactly ONE call reverted, not both:
         assert (
-            call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))["total"]
+            call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))[
+                "total"
+            ]
             == 1
         )
     finally:
@@ -227,22 +235,24 @@ def test_set_property_and_undo(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         node_id = call_tool_json(
-            _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
         )["node_id"]
         node = next(
             n
-            for n in call_tool_json(_call(farmhand_call, "graph_editor_query_graph", {"binding_id": bid}))[
-                "nodes"
-            ]
+            for n in call_tool_json(
+                _call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid})
+            )["nodes"]
             if n["node_id"] == node_id
         )
         inlet = next(p["id"] for p in node["ports"] if p["direction"] == "inlet")
         _call(
             farmhand_call,
-            "graph_editor_set_property",
+            "haybale-graph-editor_set_property",
             {"binding_id": bid, "node_id": node_id, "name": inlet, "value": 7.0},
         )
-        undo = call_tool_json(_call(farmhand_call, "graph_editor_undo", {"binding_id": bid}))
+        undo = call_tool_json(_call(farmhand_call, "haybale-graph-editor_undo", {"binding_id": bid}))
         assert undo["performed"] is True
     finally:
         _close(farmhand_call, bid)
@@ -253,7 +263,7 @@ def test_connect_failure_is_stable_error(farmhand_call):
     try:
         result = _call(
             farmhand_call,
-            "graph_editor_connect",
+            "haybale-graph-editor_connect",
             {
                 "binding_id": bid,
                 "source_node_id": "ghost",
@@ -273,14 +283,18 @@ def test_connect_bad_pin_is_connect_failed(farmhand_call):
     bid = _new_graph(farmhand_call)
     try:
         a = call_tool_json(
-            _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
         )["node_id"]
         b = call_tool_json(
-            _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY})
+            _call(
+                farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": NODE_KEY}
+            )
         )["node_id"]
         result = _call(
             farmhand_call,
-            "graph_editor_connect",
+            "haybale-graph-editor_connect",
             {
                 "binding_id": bid,
                 "source_node_id": a,
@@ -296,7 +310,7 @@ def test_connect_bad_pin_is_connect_failed(farmhand_call):
 
 
 def test_unknown_graph_is_stable_error(farmhand_call):
-    result = _call(farmhand_call, "graph_editor_query_graph", {"binding_id": "__nope__"})
+    result = _call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": "__nope__"})
     assert result.isError is True
     assert "[graph_not_found]" in result.content[0].text
 
@@ -305,13 +319,13 @@ def test_unknown_graph_is_stable_error(farmhand_call):
 # graph_editor_inspect_node
 # ---------------------------------------------------------------------------
 
-SETTINGS_NODE_KEY = "testing:node:SettingsNode"  # exercises every setting() flavour
+SETTINGS_NODE_KEY = "haybale-testing:node:SettingsNode"  # exercises every setting() flavour
 
 
 def _inspect(farmhand_call, bid, node_id, get, **kwargs):
     args = {"binding_id": bid, "node_id": node_id, "get": get}
     args.update(kwargs)
-    return call_tool_json(_call(farmhand_call, "graph_editor_inspect_node", args))
+    return call_tool_json(_call(farmhand_call, "haybale-graph-editor_inspect_node", args))
 
 
 def _settings_by_name(result, section: str = "settings") -> dict:
@@ -332,7 +346,7 @@ def _settings_by_name(result, section: str = "settings") -> dict:
 
 def _add(farmhand_call, bid, key=SETTINGS_NODE_KEY) -> str:
     return call_tool_json(
-        _call(farmhand_call, "graph_editor_add_node", {"binding_id": bid, "registry_key": key})
+        _call(farmhand_call, "haybale-graph-editor_add_node", {"binding_id": bid, "registry_key": key})
     )["node_id"]
 
 
@@ -592,7 +606,7 @@ def test_inspect_by_dir_rejects_an_unknown_direction(farmhand_call):
         node_id = _add(farmhand_call, bid, NODE_KEY)
         raw = _call(
             farmhand_call,
-            "graph_editor_inspect_node",
+            "haybale-graph-editor_inspect_node",
             {"binding_id": bid, "node_id": node_id, "get": ["ports"], "by_dir": ["inlets"]},
         )
         assert raw.isError
@@ -680,7 +694,7 @@ def test_inspect_round_trips_into_set_property(farmhand_call):
 
         _call(
             farmhand_call,
-            "graph_editor_set_property",
+            "haybale-graph-editor_set_property",
             {"binding_id": bid, "node_id": node_id, "name": "example_int", "value": 42},
         )
         after = _settings_by_name(
@@ -700,7 +714,7 @@ def test_set_property_reports_silent_validator_rejection(farmhand_call):
         node_id = _add(farmhand_call, bid)
         result = _call(
             farmhand_call,
-            "graph_editor_set_property",
+            "haybale-graph-editor_set_property",
             {"binding_id": bid, "node_id": node_id, "name": "even_int", "value": 7},
         )
         assert result.isError is True
@@ -722,7 +736,7 @@ def test_set_property_accepts_valid_value(farmhand_call):
         result = call_tool_json(
             _call(
                 farmhand_call,
-                "graph_editor_set_property",
+                "haybale-graph-editor_set_property",
                 {"binding_id": bid, "node_id": node_id, "name": "even_int", "value": 8},
             )
         )
@@ -743,7 +757,7 @@ def test_inspect_rejects_empty_and_unknown_sections(farmhand_call):
         node_id = _add(farmhand_call, bid)
         empty = _call(
             farmhand_call,
-            "graph_editor_inspect_node",
+            "haybale-graph-editor_inspect_node",
             {"binding_id": bid, "node_id": node_id, "get": []},
         )
         assert empty.isError is True
@@ -751,7 +765,7 @@ def test_inspect_rejects_empty_and_unknown_sections(farmhand_call):
 
         bad = _call(
             farmhand_call,
-            "graph_editor_inspect_node",
+            "haybale-graph-editor_inspect_node",
             {"binding_id": bid, "node_id": node_id, "get": ["bogus"]},
         )
         assert bad.isError is True
@@ -766,7 +780,7 @@ def test_inspect_unknown_node_is_stable_error(farmhand_call):
     try:
         result = _call(
             farmhand_call,
-            "graph_editor_inspect_node",
+            "haybale-graph-editor_inspect_node",
             {"binding_id": bid, "node_id": "ghost", "get": ["summary"]},
         )
         assert result.isError is True

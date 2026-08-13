@@ -83,8 +83,6 @@ class StudioListLibrariesTool(Farmhand):
         return result
 
 
-
-
 _KIND_ENUM = sorted(kind_registry_map())
 
 _LIST_COMPONENTS_SCHEMA = {

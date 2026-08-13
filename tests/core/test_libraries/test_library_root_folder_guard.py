@@ -44,7 +44,7 @@ class _Lib(BaseLibrary):
 @pytest.fixture
 def library(tmp_path: Path) -> _Lib:
     _Lib.class_identity = LibraryIdentity(
-        id="demo",
+        name="demo",
         label="Demo",
         folder_path=str(tmp_path),
         module_name="haybale_demo",

@@ -50,8 +50,6 @@ class CanvasSettingsPanel(BasePanel):
         render_schema(CanvasSettings, registry)
 
 
-
-
 @panel(
     focus=CanvasFocus,
     label="Skins",

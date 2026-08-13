@@ -90,7 +90,7 @@ def editor(**kwargs: Any):
         _label = identity_kwargs.pop("label", None) or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, EDITOR, _registry_id)
+        _registry_key = reg_key(library_identity.name, EDITOR, _registry_id)
 
         # Remaining keys (icon, order, description, deprecation_warning, hidden, …)
         # splat straight into the identity; an unknown key surfaces as a TypeError.

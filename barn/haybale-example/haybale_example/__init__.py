@@ -18,7 +18,6 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    id="example",
     file_watcher=False,
 )
 class Library(BaseLibrary):

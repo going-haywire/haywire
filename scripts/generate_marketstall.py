@@ -72,7 +72,7 @@ def build_entry(
     the bare dist name, overriding the builder's git-URL default) or "git"
     (the builder's own git+subdirectory VCS install_spec is kept as-is).
 
-    Everything descriptive (label, description, tags, authors, id, os, ...)
+    Everything descriptive (label, description, tags, authors, os, ...)
     comes from haybale.toml via `_build_entry_for_library` — the same
     function the git-publishing share pipeline uses, so the two publishers
     cannot drift apart again.
@@ -95,7 +95,6 @@ def build_entry(
 # compatible.
 _ENTRY_FIELD_ORDER: tuple[str, ...] = (
     "name",
-    "id",
     "label",
     "version",
     "require",

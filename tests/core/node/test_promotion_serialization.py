@@ -8,7 +8,7 @@ Settings-owned promotion serialization:
 - an edge into a promoted inlet survives round-trip (port exists before edges wire)
 - demote clears both the port AND the settings-side _promoted_keys record
 
-Uses "testing:node:SettingsNode" (registered test node, bag accessor "example",
+Uses "haybale-testing:node:SettingsNode" (registered test node, bag accessor "example",
 field "example_float") via the graph_with_library_system/library_system fixtures,
 same pattern as the sibling promotion test files in this directory.
 """
@@ -24,7 +24,7 @@ pytestmark = pytest.mark.integration
 class TestPromotedPortNotSerialized:
     def test_promoted_port_absent_from_ports_block(self, graph_with_library_system, library_system):
         graph = graph_with_library_system
-        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
         promote_setting(node, "example", "example_float", PortType.INLET)
         d = node._to_dict()
         pid = type(node.example).__dict__["example_float"].storage_key
@@ -32,7 +32,7 @@ class TestPromotedPortNotSerialized:
 
     def test_promotion_recorded_in_settings_block(self, graph_with_library_system, library_system):
         graph = graph_with_library_system
-        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
         promote_setting(node, "example", "example_float", PortType.OUTLET)
         d = node._to_dict()
         pid = type(node.example).__dict__["example_float"].storage_key
@@ -42,12 +42,12 @@ class TestPromotedPortNotSerialized:
 class TestRoundTripRegeneratesPort:
     def test_reload_regenerates_the_promoted_port(self, graph_with_library_system, library_system):
         graph = graph_with_library_system
-        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
         promote_setting(node, "example", "example_float", PortType.INLET)
         pid = type(node.example).__dict__["example_float"].storage_key
 
         data = node._to_dict()
-        reloaded = graph.create_node_wrapper("testing:node:SettingsNode", position=(50, 0)).node
+        reloaded = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(50, 0)).node
         reloaded._initialize_from_dict(data)
 
         assert pid in reloaded.ports, "reload must regenerate the promoted port"
@@ -59,8 +59,8 @@ class TestRoundTripRegeneratesPort:
 class TestEdgeIntoPromotedInletSurvives:
     def test_edge_to_promoted_inlet_round_trips(self, graph_with_library_system, library_system):
         graph = graph_with_library_system
-        src = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
-        sink = graph.create_node_wrapper("testing:node:SettingsNode", position=(100, 0))
+        src = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
+        sink = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(100, 0))
 
         promote_setting(src.node, "example", "example_float", PortType.OUTLET)
         promote_setting(sink.node, "example", "example_float", PortType.INLET)
@@ -84,7 +84,7 @@ class TestEdgeIntoPromotedInletSurvives:
 class TestDemoteClearsRecord:
     def test_demote_clears_promoted_keys(self, graph_with_library_system, library_system):
         graph = graph_with_library_system
-        node = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0)).node
+        node = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0)).node
         promote_setting(node, "example", "example_float", PortType.INLET)
         pid = type(node.example).__dict__["example_float"].storage_key
         demote_setting(node, pid)

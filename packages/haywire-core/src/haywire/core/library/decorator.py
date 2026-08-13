@@ -13,7 +13,7 @@ from .identity import LibraryIdentity
 T = TypeVar("T")
 
 
-def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
+def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
     """
     Decorator to register a class as a Haywire library.
 
@@ -28,9 +28,9 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
     the cost this design exists to remove. Nothing in the studio writes this
     call.
 
-    Takes exactly these two keyword arguments. The signature is explicit
-    rather than ``**kwargs``, so a stale call site passing a descriptive field
-    that moved to ``haybale.toml`` (``label``, ``description``, ``tags``,
+    Takes exactly this one keyword argument. The signature is explicit rather
+    than ``**kwargs``, so a stale call site passing a descriptive field that
+    moved to ``haybale.toml`` (``name``, ``label``, ``description``, ``tags``,
     ``author``, ``author_url``, ``url``, ``on_reload``, ``linked_libraries``,
     ``version``) — or any other unrecognized name — fails immediately with
     Python's own "unexpected keyword argument" ``TypeError``, rather than
@@ -39,7 +39,6 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
     ``haybale.toml``::
 
         name = "haybale-mylib"
-        id = "mylib"
         version = "1.0.0"
         label = "My Library"
         description = "What this library does"
@@ -53,16 +52,12 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
     has not been through either path yet.
 
     Args:
-        id (str, optional): Unique identifier; prefixes every component's
-            registry key. Also declared in ``haybale.toml``, which wins — the
-            kwarg exists because the registry needs an id before any file read,
-            and a mismatch between the two is reported rather than guessed at.
         file_watcher (bool, optional): Watch this library's files and hot-reload
             on change. Development only; has no publishing meaning.
 
     Raises:
         HaybaleTomlError: ``haybale.toml`` is missing, malformed, or declares no
-            ``id`` or no ``version``. Fatal for this library alone —
+            ``name`` or no ``version``. Fatal for this library alone —
             ``LibraryRegistry`` wraps each load, so the studio still starts and
             the failure names the file.
         TypeError: an unrecognized kwarg was passed — including any name that
@@ -73,7 +68,7 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
         if not issubclass(inner_cls, BaseLibrary):
             raise TypeError(f"@library can only be applied to BaseLibrary subclasses, got {inner_cls}")
 
-        kwargs: dict[str, Any] = {"id": id, "file_watcher": file_watcher}
+        kwargs: dict[str, Any] = {"file_watcher": file_watcher}
 
         # Auto-detect folder_path — the directory where inner_cls is defined,
         # which is also where haybale.toml lives.
@@ -82,18 +77,11 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
         kwargs["folder_path"] = str(package_dir)
         kwargs["module_name"] = inner_cls.__module__
 
-        # The file is canon for everything it declares, including `id`: a
-        # decorator id that disagrees is the author's bug, and letting the file
-        # win keeps one answer rather than two.
+        # haybale.toml is canon for everything it declares, including `name` —
+        # the library's sole identifier and the prefix of every component's
+        # registry key. There is no decorator-side kwarg to cross-check against
+        # any more; the file is the only source.
         declared = read_haybale_toml(package_dir)
-        decorator_id = kwargs.get("id")
-        if decorator_id and decorator_id != declared["id"]:
-            raise TypeError(
-                f"@library(id={decorator_id!r}) disagrees with "
-                f"{package_dir / 'haybale.toml'} (id={declared['id']!r}). "
-                f"The id prefixes every component's registry key, so the two "
-                f"must match."
-            )
         # read_haybale_toml() returns every LibraryIdentity-shaped field the
         # file declares, including ones (description, tags, ...) that live
         # only in the file now — LibraryIdentity itself carries just what
@@ -105,7 +93,7 @@ def library(*, id: str | None = None, file_watcher: bool = False) -> Callable[[T
             {
                 k: v
                 for k, v in declared.items()
-                if k in ("id", "label", "version", "on_reload", "linked_libraries")
+                if k in ("name", "label", "version", "on_reload", "linked_libraries")
             }
         )
 

@@ -28,7 +28,7 @@ def test_container_stamps_session_weakref_on_session_state():
             module=__name__,
         )
         class_library = LibraryIdentity(
-            id="test:lib",
+            name="test:lib",
             label="test",
             version="0",
             folder_path="",

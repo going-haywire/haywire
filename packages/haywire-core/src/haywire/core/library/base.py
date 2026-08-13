@@ -175,7 +175,7 @@ class BaseLibrary(ABC):
         registry: SettingsRegistry = self.get_registry(SettingsRegistry)
         if registry is None:
             return
-        lib_id = self.identity.id
+        lib_id = self.identity.name
         module_name = self.identity.module_name
         if not lib_id or not module_name:
             return
@@ -199,7 +199,7 @@ class BaseLibrary(ABC):
         registry = self.get_registry(SettingsRegistry)
         if registry is None:
             return
-        lib_id = self.identity.id
+        lib_id = self.identity.name
         if not lib_id:
             return
         registry.undefine(library_log_key(lib_id))

@@ -5,8 +5,8 @@ pytestmark = pytest.mark.integration
 
 def _two_node_graph_dict(graph):
     """Serialize a graph with two Display nodes and one edge between them."""
-    a = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
-    b = graph.create_node_wrapper("testing:node:SettingsNode", position=(100, 0))
+    a = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
+    b = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(100, 0))
     return graph.to_dict(), a.node_id, b.node_id
 
 
@@ -33,8 +33,8 @@ def test_poisoned_edge_skips_only_itself(graph_with_library_system, library_syst
     from haywire.core.types.enums import PortType
 
     graph = graph_with_library_system
-    a = graph.create_node_wrapper("testing:node:SettingsNode", position=(0, 0))
-    b = graph.create_node_wrapper("testing:node:SettingsNode", position=(100, 0))
+    a = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(0, 0))
+    b = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(100, 0))
     promote_setting(a.node, "example", "example_float", direction=PortType.OUTLET)
     promote_setting(b.node, "example", "example_float", direction=PortType.INLET)
     promote_setting(a.node, "example", "example_string", direction=PortType.OUTLET)

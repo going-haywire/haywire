@@ -33,7 +33,6 @@ from haywire.ui.widget.registry import WidgetRegistry
 
 
 @library(
-    id="studio",
     file_watcher=True,
 )
 class Library(BaseLibrary):

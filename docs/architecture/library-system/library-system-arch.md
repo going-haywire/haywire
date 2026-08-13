@@ -82,7 +82,7 @@ The install type is propagated to `LibraryIdentity` and exposed by the [haybale/
 
 ### 2.4 `LibraryIdentity` (`haywire/core/library/identity.py`)
 
-Frozen dataclass attached as `class_library` on every component class. Carries the library ID, version, label, install type, and source path. The identity is what every other registry uses to attribute a class to its owning library.
+Frozen dataclass attached as `class_library` on every component class. Carries the library's `name` (its sole identifier — the pip distribution name), version, label, install type, and source path. The identity is what every other registry uses to attribute a class to its owning library.
 
 ### 2.4a Registry keys (`haywire/core/library/utils.py`)
 
@@ -93,9 +93,9 @@ def reg_key(library_registry_id: str, module: str, node_registry_id: str) -> str
     return f"{library_registry_id}:{module}:{node_registry_id}"
 ```
 
-producing keys like `builtin:node:RerouteNode`, `builtin:skin:RerouteSkin`, `core:widget:NumberWidget`. The middle segment is one of the constants in the same module (`NODE`, `WIDGET`, `TYPE`, `ADAPTER`, `SKIN`, `SETTING`, `STATE`, `THEME`, `PANEL`, `EDITOR`) — use these instead of a bare string to avoid a silent key mismatch. `split_reg_key()` / `get_registry_id_from_key()` invert the format.
+producing keys like `haywire-core:node:RerouteNode`, `haywire-core:skin:RerouteSkin`, `haybale-core:widget:NumberWidget`. The middle segment is one of the constants in the same module (`NODE`, `WIDGET`, `TYPE`, `ADAPTER`, `SKIN`, `SETTING`, `STATE`, `THEME`, `PANEL`, `EDITOR`) — use these instead of a bare string to avoid a silent key mismatch. `split_reg_key()` / `get_registry_id_from_key()` invert the format.
 
-**The `library_registry_id` segment is never author-supplied.** Each decorator (`@node`, `@skin`, …) calls `derive_library_identity(cls)` at decoration time, which walks up `cls.__module__` looking for the nearest ancestor module that defines a `Library` class with `class_identity` set, and uses that library's `id`. A class that isn't parented under any `Library` falls back to the synthetic `__system__` identity rather than raising.
+**The `library_registry_id` segment is never author-supplied.** Each decorator (`@node`, `@skin`, …) calls `derive_library_identity(cls)` at decoration time, which walks up `cls.__module__` looking for the nearest ancestor module that defines a `Library` class with `class_identity` set, and uses that library's `name` — its sole identifier, the pip distribution name declared in `haybale.toml`. A class that isn't parented under any `Library` falls back to the synthetic `__system__` identity rather than raising.
 
 The practical consequence: **a component's registry key is determined entirely by which library's source tree the file lives in** — not by anything written in the file itself. Moving a node or skin's `.py` file from one library's folder to another's changes its registry key automatically, with no code change required at the call site.
 
@@ -117,7 +117,7 @@ Authoring surface — see [haybale-canon](../../haybale/haybale-canon.md). The a
 - `register_components()` is the mandatory hook called by `LibraryRegistry`.
 - `validate()` is called after registration; returning `False` aborts the load.
 - The `@library` decorator's `file_watcher` parameter wires up §2.5.
-- The decorator's `id` parameter is the library's stable identifier across the registries.
+- The decorator takes no identity parameter — `name`, read from `haybale.toml`, is the library's stable identifier across the registries.
 
 ## 3. Data flow
 
@@ -128,7 +128,7 @@ HaywireApp.__init__()
   │
   ├── LibraryDiscovery.scan()
   │     importlib.metadata.entry_points(group='haywire.libraries')
-  │     → [DiscoveredLibrary(id, import_path, install_type), ...]
+  │     → [DiscoveredLibrary(name, import_path, install_type), ...]
   │
   ├── for each DiscoveredLibrary:
   │     LibraryRegistry.load(discovered)
@@ -163,7 +163,7 @@ First match wins. Detection is by the resolved filesystem location of the import
 
 ### 3.2a The `builtin` library (Priority 1's sole occupant)
 
-`haywire.barn.builtin` (`id="builtin"`) is the only library that currently loads via the Priority 1 "core libraries" path. It differs from every other library in this doc in one structural way: it ships **inside the `haywire-core` distribution** (`packages/haywire-core/src/haywire/barn/builtin/`), not as a separate haybale package with its own `pyproject.toml` and entry point. `core_libraries_path` (wired in DI to `Path(haywire.barn.__file__).parent`) is scanned directly — no `importlib.metadata.entry_points()` involved for this one.
+`haywire.barn.builtin` (`name="haywire-core"`) is the only library that currently loads via the Priority 1 "core libraries" path. It differs from every other library in this doc in one structural way: it ships **inside the `haywire-core` distribution** (`packages/haywire-core/src/haywire/barn/builtin/`), not as a separate haybale package with its own `pyproject.toml` and entry point. `core_libraries_path` (wired in DI to `Path(haywire.barn.__file__).parent`) is scanned directly — no `importlib.metadata.entry_points()` involved for this one.
 
 **Priority 1 has no `InstallType` of its own: `builtin` is tagged `InstallType.FOLDER`**, the same value a `library_paths` library gets at Priority 4, with `entry_point_name=None`. The priority tiers are a *discovery order*, not a parallel taxonomy — mechanically both are directory scans, and what separates them is only which directory is scanned. `_discover_folder_libraries()` skips `core_libraries_path` by `os.path.samefile` so the same folder is never discovered twice.
 

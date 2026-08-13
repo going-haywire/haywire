@@ -52,7 +52,7 @@ class LibraryStateRegistry(BaseRegistry[LibraryState]):
         if library_identity is None:
             raise ValueError("LibraryStateRegistry._register_class requires a library_identity")
         if not hasattr(cls, "class_identity"):
-            registry_key = f"{library_identity.id}:state:{cls.__name__}"
+            registry_key = f"{library_identity.name}:state:{cls.__name__}"
             cls.class_identity = LibraryStateClassIdentity(
                 registry_id=cls.__name__,
                 registry_key=registry_key,
@@ -69,7 +69,7 @@ class LibraryStateRegistry(BaseRegistry[LibraryState]):
 
         result = super()._register(registry_key, cls, library_identity)
         if result is not None:
-            self._regkey_to_library_id[result] = library_identity.id
+            self._regkey_to_library_id[result] = library_identity.name
         return result
 
     def _unregister_class(self, registry_key: str) -> type[LibraryState] | None:
@@ -84,7 +84,7 @@ class LibraryStateRegistry(BaseRegistry[LibraryState]):
         state class the library contributed, then process them as if
         ``CLASS_ADDED`` events had fired.
 
-        Filters by ``library_identity.id`` (string comparison, not object
+        Filters by ``library_identity.name`` (string comparison, not object
         identity) so hot-reload of the identity object doesn't cause
         false misses.
 
@@ -95,7 +95,7 @@ class LibraryStateRegistry(BaseRegistry[LibraryState]):
             dict mapping ``registry_key`` → class. Empty if the library
             has registered no state classes (or if it isn't enabled at all).
         """
-        target_id = library_identity.id
+        target_id = library_identity.name
         result: dict[str, type[LibraryState]] = {}
         for registry_key, lib_id in self._regkey_to_library_id.items():
             if lib_id != target_id:

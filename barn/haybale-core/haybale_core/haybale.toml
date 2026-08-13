@@ -3,7 +3,6 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-core"
-id = "core"
 version = "0.1.1"
 label = "Core"
 description = "Fundamental components for haywire graphs"

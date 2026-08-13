@@ -88,7 +88,6 @@ def test_build_entry_uses_haybale_toml_over_pyproject(tmp_path: Path) -> None:
         dependencies=["haywire-core>=0.0.3", "haybale-beta>=0.0.3", "external-lib>=1.0"],
         haybale_toml=(
             'name = "haybale-alpha"\n'
-            'id = "alpha"\n'
             'version = "0.0.3"\n'
             'label = "Alpha"\n'
             'description = "Alpha library — declared in haybale.toml."\n'
@@ -102,7 +101,6 @@ def test_build_entry_uses_haybale_toml_over_pyproject(tmp_path: Path) -> None:
     entry = generate_marketstall.build_entry(pkg_dir)
 
     assert entry["name"] == "haybale-alpha"
-    assert entry["id"] == "alpha"
     assert entry["label"] == "Alpha"
     assert entry["version"] == "0.0.3"
     assert entry["description"] == "Alpha library — declared in haybale.toml."
@@ -171,7 +169,6 @@ def test_build_entry_raises_when_pyproject_missing(tmp_path: Path) -> None:
 def test_emit_stall_toml_round_trips_via_tomllib() -> None:
     entry = {
         "name": "haybale-alpha",
-        "id": "alpha",
         "label": "Alpha",
         "version": "0.0.3",
         "description": "alpha desc",
@@ -506,7 +503,6 @@ def test_generated_rows_parse_back_through_the_real_parser() -> None:
     declared = tomllib.loads((repo_root / "barn/haybale-core/haybale_core/haybale.toml").read_text())
 
     assert core["label"] == declared["label"] == "Core"
-    assert core["id"] == declared["id"] == "core"
     assert core["origin"]
     assert core["authors"], "authors must be non-empty"
     for entry in core["authors"]:

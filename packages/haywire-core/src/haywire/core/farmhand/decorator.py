@@ -90,7 +90,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
 
         # Auto-derive registry_key
         identity_kwargs["registry_key"] = reg_key(
-            library_identity.id, FARMHAND, identity_kwargs["registry_id"]
+            library_identity.name, FARMHAND, identity_kwargs["registry_id"]
         )
 
         # Set source info from the class itself

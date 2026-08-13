@@ -3,7 +3,6 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-studio"
-id = "studio"
 version = "0.1.1"
 label = "Studio"
 description = "Library for haywire studio"

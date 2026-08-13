@@ -15,11 +15,11 @@ def _lib_identity(lib_id: str) -> LibraryIdentity:
         version="0.1",
         folder_path="/tmp/fake",
         module_name=lib_id,
-        id=lib_id,
+        name=lib_id,
     )
 
 
-def _library_tool(lib_id: str = "testing", name: str = "echo"):
+def _library_tool(lib_id: str = "haybale-testing", name: str = "echo"):
     """Build a tool class with a hand-stamped identity (no library import machinery)."""
     from haywire.core.farmhand.identity import FarmhandIdentity
 
@@ -58,16 +58,16 @@ def test_register_and_lookup():
     registry = FarmhandRegistry()
     tool = _library_tool()
     key = registry._register_class(tool, tool.class_library)
-    assert key == "testing:farmhand:echo"
-    assert registry.get("testing:farmhand:echo") is tool
+    assert key == "haybale-testing:farmhand:echo"
+    assert registry.get("haybale-testing:farmhand:echo") is tool
 
 
 def test_unregister_removes_class():
     registry = FarmhandRegistry()
     tool = _library_tool()
     registry._register_class(tool, tool.class_library)
-    registry._unregister_class("testing:farmhand:echo")
-    assert registry.get("testing:farmhand:echo") is None
+    registry._unregister_class("haybale-testing:farmhand:echo")
+    assert registry.get("haybale-testing:farmhand:echo") is None
 
 
 def test_lifecycle_event_types_exist():

@@ -50,7 +50,7 @@ def state(
         _label = label or _registry_id
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, "state", _registry_id)
+        _registry_key = reg_key(library_identity.name, "state", _registry_id)
 
         inner_cls.class_identity = LibraryStateClassIdentity(
             registry_id=_registry_id,

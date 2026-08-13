@@ -15,11 +15,11 @@ def service(project_root):
 
 @pytest.mark.integration
 def test_extract_collects_components_with_identity(service):
-    doc = extract_library(service, "testing")
-    assert doc.library_id == "testing"
+    doc = extract_library(service, "haybale-testing")
+    assert doc.library_id == "haybale-testing"
     assert doc.components, "testing library should expose components"
     for rec in doc.components:
-        assert rec.registry_key.split(":")[0] == "testing"
+        assert rec.registry_key.split(":")[0] == "haybale-testing"
         assert rec.kind in {
             "node",
             "type",
@@ -38,7 +38,7 @@ def test_extract_collects_components_with_identity(service):
 
 @pytest.mark.integration
 def test_extract_farmhand_carries_input_schema(service):
-    doc = extract_library(service, "testing")
+    doc = extract_library(service, "haybale-testing")
     farmhands = [r for r in doc.components if r.kind == "farmhand"]
     if farmhands:
         assert "input_schema" in farmhands[0].extra
@@ -46,7 +46,7 @@ def test_extract_farmhand_carries_input_schema(service):
 
 @pytest.mark.integration
 def test_nodes_carry_ports_from_instance(service):
-    doc = extract_library(service, "testing")
+    doc = extract_library(service, "haybale-testing")
     nodes = [r for r in doc.components if r.kind == "node" and not r.hidden]
     assert nodes, "testing should expose visible nodes"
     # At least one node should declare at least one port once instantiated.

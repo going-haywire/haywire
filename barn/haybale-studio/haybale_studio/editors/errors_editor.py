@@ -184,7 +184,7 @@ class ErrorsEditor(BaseEditor):
         if entry.registry_key:
             sub_parts.append(entry.registry_key)
         elif entry.library_identity:
-            sub_parts.append(entry.library_identity.id)
+            sub_parts.append(entry.library_identity.name)
 
         row = ui.row().classes(
             "w-full px-2 py-1.5 cursor-pointer hw-list-item-hover items-center gap-2 rounded no-wrap"

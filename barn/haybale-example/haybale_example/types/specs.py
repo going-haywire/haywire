@@ -6,7 +6,7 @@ from haywire.barn.builtin.types import FLOAT
 @type(
     label="Temperature",
     description="Temperature data types",
-    widget_key="example:widget:TemperatureWidget",
+    widget_key="haybale-example:widget:TemperatureWidget",
     widget_config={"properties": {"unit": "°D"}},
 )
 class Temperature(FLOAT):
@@ -31,5 +31,3 @@ class Temperature(FLOAT):
     """
 
     pass
-
-

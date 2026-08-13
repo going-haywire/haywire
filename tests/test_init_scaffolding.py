@@ -215,10 +215,6 @@ class TestLibraryHaybaleToml:
             ).read_text()
         )
 
-    def test_id_matches_decorator(self, scaffold_project):
-        data = self._read(scaffold_project)
-        assert data["id"] == "test-project"
-
     def test_name_matches_pyproject(self, scaffold_project):
         data = self._read(scaffold_project)
         assert data["name"] == "haybale-test-project"
@@ -258,7 +254,6 @@ class TestLibraryInit:
             scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
         ).read_text()
         assert "@library(" in init_content
-        assert "id='test-project'" in init_content
         assert "file_watcher=True" in init_content
 
 
@@ -375,11 +370,11 @@ class TestHaybalePrefixNotDoubled:
         data = toml.loads((prefixed_project / "barn" / "haybale-weather" / "pyproject.toml").read_text())
         assert data["project"]["name"] == "haybale-weather"
 
-    def test_library_decorator_id_not_doubled(self, prefixed_project):
-        init_content = (
-            prefixed_project / "barn" / "haybale-weather" / "haybale_weather" / "__init__.py"
-        ).read_text()
-        assert "id='weather'" in init_content
+    def test_library_haybale_toml_name_not_doubled(self, prefixed_project):
+        data = toml.loads(
+            (prefixed_project / "barn" / "haybale-weather" / "haybale_weather" / "haybale.toml").read_text()
+        )
+        assert data["name"] == "haybale-weather"
 
     def test_project_name_kept_verbatim(self, prefixed_project):
         data = toml.loads((prefixed_project / "pyproject.toml").read_text())

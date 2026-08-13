@@ -77,7 +77,7 @@ def theme(**kwargs: Any):
         _label = identity_kwargs.pop("label", "") or _registry_id
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, f"{THEME}:{theme_type}", _registry_id)
+        _registry_key = reg_key(library_identity.name, f"{THEME}:{theme_type}", _registry_id)
 
         # Remaining keys (description, deprecation_warning, hidden, …) splat straight
         # into the identity; an unknown key surfaces as a TypeError there.

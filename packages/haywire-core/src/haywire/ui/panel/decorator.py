@@ -108,7 +108,7 @@ def panel(**kwargs: Any):
         _registry_id = identity_kwargs.pop("registry_id", None) or inner_cls.__name__
 
         library_identity = derive_library_identity(inner_cls)
-        _registry_key = reg_key(library_identity.id, PANEL, _registry_id)
+        _registry_key = reg_key(library_identity.name, PANEL, _registry_id)
 
         # Remaining keys (label, icon, order, default_open, description,
         # deprecation_warning, hidden, …) splat into the identity; an unknown key

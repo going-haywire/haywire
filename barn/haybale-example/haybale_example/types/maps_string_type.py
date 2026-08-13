@@ -52,7 +52,6 @@ class MapsStringType(CompoundType[T]):
         raise NotImplementedError("MapsStringType is a type descriptor, not instantiable")
 
 
-
 # ============================================================================
 # FIELD DEFINITION
 # ============================================================================

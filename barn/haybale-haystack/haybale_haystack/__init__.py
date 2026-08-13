@@ -26,7 +26,6 @@ from haywire.ui.panel.registry import PanelRegistry
 
 
 @library(
-    id="haystack",
     file_watcher=True,
 )
 class Library(BaseLibrary):

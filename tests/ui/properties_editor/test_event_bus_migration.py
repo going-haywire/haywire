@@ -41,7 +41,7 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
     version="0.1",
     folder_path="/tmp/fake",
     module_name="fake",
-    id="fake",
+    name="fake",
 )
 
 

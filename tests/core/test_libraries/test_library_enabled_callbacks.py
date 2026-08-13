@@ -21,7 +21,7 @@ from haywire.core.library.registry import LibraryRegistry
 def make_library_mock(library_id: str = "midi") -> MagicMock:
     """Build a stand-in BaseLibrary: only enable() and identity are read."""
     lib = MagicMock()
-    lib.identity.id = library_id
+    lib.identity.name = library_id
     lib.identity.label = library_id.capitalize()
     return lib
 
@@ -123,7 +123,7 @@ class TestEnableAllLibrariesFiresCallbacks:
         reg._libraries["b"] = lib_b
 
         def cb(library):
-            order.append(f"{library.identity.id}-callback")
+            order.append(f"{library.identity.name}-callback")
 
         reg.add_library_enabled_callback(cb)
         reg.enable_all_libraries()
@@ -167,7 +167,7 @@ class TestEnableAllLibrariesFiresCallbacks:
         reg._libraries["second"] = lib_second
 
         def cb(library):
-            callback_times[library.identity.id] = counter[0]
+            callback_times[library.identity.name] = counter[0]
             counter[0] += 1
 
         reg.add_library_enabled_callback(cb)
@@ -186,7 +186,7 @@ class TestEnableLibraryFiresCallback:
         reg._libraries["midi"] = lib
 
         def cb(library):
-            captured.append(library.identity.id)
+            captured.append(library.identity.name)
 
         reg.add_library_enabled_callback(cb)
         ok = reg.enable_library("midi")
@@ -199,7 +199,7 @@ class TestEnableLibraryFiresCallback:
         captured: list[str] = []
 
         def cb(library):
-            captured.append(library.identity.id)
+            captured.append(library.identity.name)
 
         reg.add_library_enabled_callback(cb)
         ok = reg.enable_library("does-not-exist")
@@ -224,7 +224,7 @@ class TestDisableLibraryFiresCallback:
         reg._libraries["midi"] = lib
 
         def cb(library):
-            order.append(f"{library.identity.id}-callback")
+            order.append(f"{library.identity.name}-callback")
 
         reg.add_library_disabled_callback(cb)
         ok = reg.disable_library("midi")
@@ -237,7 +237,7 @@ class TestDisableLibraryFiresCallback:
         captured: list[str] = []
 
         def cb(library):
-            captured.append(library.identity.id)
+            captured.append(library.identity.name)
 
         reg.add_library_disabled_callback(cb)
         ok = reg.disable_library("does-not-exist")

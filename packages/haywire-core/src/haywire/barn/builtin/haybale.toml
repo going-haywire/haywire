@@ -5,7 +5,6 @@
 # than in barn/, and is never published as a standalone haybale.
 
 name = "haywire-core"
-id = "builtin"
 version = "0.1.1"
 label = "Builtin"
 description = "Framework-owned primitive types and adapters"

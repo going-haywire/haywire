@@ -793,7 +793,7 @@ class LibraryManager:
         target_norm = self._lib_module_norm(lib_id)
         result = []
         for installed in self.list_installed():
-            identity = self.registry.get_library_identity(installed.identity.id)
+            identity = self.registry.get_library_identity(installed.identity.name)
             for dep in identity.linked_libraries or []:
                 if self._norm(dep.split(".")[0]) == target_norm:
                     result.append(installed)

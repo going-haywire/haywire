@@ -37,8 +37,8 @@ def test_library_overview_resource(farmhand_call):
     async def scenario(session, init):
         listing = await session.list_resources()
         uris = [str(r.uri) for r in listing.resources]
-        assert "farmhand://library/testing/overview" in uris
-        content = await session.read_resource("farmhand://library/testing/overview")
+        assert "farmhand://library/haybale-testing/overview" in uris
+        content = await session.read_resource("farmhand://library/haybale-testing/overview")
         return content.contents[0].text
 
     assert len(farmhand_call(scenario)) > 0

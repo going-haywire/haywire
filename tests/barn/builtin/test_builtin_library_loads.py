@@ -4,8 +4,8 @@ from haywire.barn.builtin import Library
 
 
 def test_builtin_library_identity():
-    """The bundled builtin library declares id='builtin'."""
-    assert Library.class_identity.id == "builtin"
+    """The bundled builtin library declares name='haywire-core'."""
+    assert Library.class_identity.name == "haywire-core"
 
 
 @pytest.mark.integration
@@ -21,5 +21,5 @@ def test_builtin_library_discovered_at_priority_one():
     reg.core_libraries_path = str(Path(barn.__file__).parent)
 
     discovered = reg._discover_core_libraries()
-    ids = [d.identity.id for d in discovered]
-    assert "builtin" in ids
+    names = [d.identity.name for d in discovered]
+    assert "haywire-core" in names

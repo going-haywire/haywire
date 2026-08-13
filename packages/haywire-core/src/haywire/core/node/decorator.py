@@ -251,7 +251,9 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         library_identity = derive_library_identity(inner_cls)
 
         # Auto-derive registry_key
-        identity_kwargs["registry_key"] = reg_key(library_identity.id, NODE, identity_kwargs["registry_id"])
+        identity_kwargs["registry_key"] = reg_key(
+            library_identity.name, NODE, identity_kwargs["registry_id"]
+        )
 
         # Set source info from the class itself
         identity_kwargs["class_name"] = inner_cls.__name__

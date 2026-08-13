@@ -124,7 +124,7 @@ class TypeRegistry(BaseRegistry[IType]):
         settings path to resolve an inferred Python type to its IType without a
         hand-maintained mapping. Returns ``None`` if no registered type matches.
 
-        Exact match only (``element_type_cls is py_type``); a ``builtin:`` type is
+        Exact match only (``element_type_cls is py_type``); a ``haywire-core:`` type is
         preferred when several libraries register the same Python type.
         """
         matches = [
@@ -132,7 +132,7 @@ class TypeRegistry(BaseRegistry[IType]):
         ]
         if not matches:
             return None
-        matches.sort(key=lambda c: 0 if c.class_identity.registry_key.startswith("builtin:") else 1)
+        matches.sort(key=lambda c: 0 if c.class_identity.registry_key.startswith("haywire-core:") else 1)
         return matches[0]
 
     def get_identity(self, key: str) -> DataTypeIdentity | None:

@@ -9,7 +9,6 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 
 
 @library(
-    id="marketplace",
     file_watcher=True,
 )
 class Library(BaseLibrary):
@@ -45,5 +44,3 @@ class Library(BaseLibrary):
 
     def validate(self) -> bool:
         return True
-
-

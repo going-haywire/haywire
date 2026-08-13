@@ -13,7 +13,7 @@ from haywire.barn.builtin.types import STRING
     label="Group",
     description="Inlet group",
     color="#ebff0f",
-    widget_key="builtin:widget:SwitchWidget",
+    widget_key="haywire-core:widget:SwitchWidget",
     default={"value": False},
 )
 class GROUP(PrimitiveType[bool]):

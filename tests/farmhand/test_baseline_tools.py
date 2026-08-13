@@ -53,21 +53,21 @@ def test_list_libraries_paginates():
 def test_list_components_filters_by_library_and_kind():
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    result = run_tool(StudioListComponentsTool, library="testing", kind="node")
+    result = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node")
     assert result["total"] >= 1
     rows = result["components"]
     # Default row is identity only — description is the bulk of a large listing.
     assert all(set(row) == {"registry_key", "label"} for row in rows)
-    assert all(row["registry_key"].startswith("testing:node:") for row in rows)
+    assert all(row["registry_key"].startswith("haybale-testing:node:") for row in rows)
 
-    detailed = run_tool(StudioListComponentsTool, library="testing", kind="node", detail=True)
+    detailed = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", detail=True)
     assert all(set(row) == {"registry_key", "label", "description"} for row in detailed["components"])
 
 
 def test_list_components_search_matches_label_or_description():
     from haybale_studio.farmhands.catalog import StudioDescribeComponentTool, StudioListComponentsTool
 
-    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    listing = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=1)
     key = listing["components"][0]["registry_key"]
     label = run_tool(StudioDescribeComponentTool, registry_key=key)["label"]
 
@@ -81,13 +81,15 @@ def test_list_components_search_matches_label_or_description():
 def test_list_components_excludes_hidden_by_default():
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    visible = run_tool(StudioListComponentsTool, library="builtin", kind="node")
+    visible = run_tool(StudioListComponentsTool, library="haywire-core", kind="node")
     keys = {row["registry_key"] for row in visible["components"]}
-    assert "builtin:node:RerouteNode" not in keys
+    assert "haywire-core:node:RerouteNode" not in keys
 
-    with_hidden = run_tool(StudioListComponentsTool, library="builtin", kind="node", include_hidden=True)
+    with_hidden = run_tool(
+        StudioListComponentsTool, library="haywire-core", kind="node", include_hidden=True
+    )
     keys_with_hidden = {row["registry_key"] for row in with_hidden["components"]}
-    assert "builtin:node:RerouteNode" in keys_with_hidden
+    assert "haywire-core:node:RerouteNode" in keys_with_hidden
 
 
 def test_list_components_excludes_system_library_by_default():
@@ -111,7 +113,7 @@ def test_describe_node_includes_live_ports():
         StudioListComponentsTool,
     )
 
-    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    listing = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=1)
     key = listing["components"][0]["registry_key"]
     result = run_tool(StudioDescribeComponentTool, registry_key=key)
     assert "ports" in result
@@ -123,9 +125,9 @@ def test_describe_node_includes_live_ports():
 def test_list_components_count_only_groups_by_library_and_kind():
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    result = run_tool(StudioListComponentsTool, library="testing", kind="node", count_only=True)
+    result = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", count_only=True)
     assert "components" not in result
-    assert result["counts"]["testing"]["node"] == result["total"]
+    assert result["counts"]["haybale-testing"]["node"] == result["total"]
     assert result["total"] >= 1
 
 
@@ -145,7 +147,7 @@ def test_list_components_truncated_result_gets_scoping_tip():
 def test_list_components_untruncated_result_has_no_tip():
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    result = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=10_000)
+    result = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=10_000)
     assert result["total"] <= 10_000
     # A complete result still gets a drill-down hint, but never the scoping nag.
     assert "narrow this" not in result.get("help", "")
@@ -164,7 +166,7 @@ def test_describe_component_returns_identity_and_doc():
         StudioListComponentsTool,
     )
 
-    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    listing = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=1)
     key = listing["components"][0]["registry_key"]
     result = run_tool(StudioDescribeComponentTool, registry_key=key)
     assert result["registry_key"] == key
@@ -183,7 +185,7 @@ def test_read_component_source_is_line_numbered():
     from haybale_studio.farmhands.authoring import StudioReadComponentSourceTool
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    listing = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=1)
     key = listing["components"][0]["registry_key"]
     result = run_tool(StudioReadComponentSourceTool, registry_key=key)
     assert result["source"].splitlines()[0].startswith("1\t")
@@ -193,7 +195,7 @@ def test_read_component_source_is_line_numbered():
 def _a_component_key():
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    listing = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=1)
     return listing["components"][0]["registry_key"]
 
 
@@ -239,9 +241,9 @@ def test_editable_library_is_a_writable_target():
     from haybale_studio.farmhands._helpers import project_writable_libraries, resolve_target_library
 
     locals_ = project_writable_libraries(FarmhandContext())
-    assert "testing" in locals_, f"editable library 'testing' should be writable, got {locals_}"
+    assert "haybale-testing" in locals_, f"editable library 'testing' should be writable, got {locals_}"
     # resolve_target_library returns it without raising the gate error.
-    assert resolve_target_library(FarmhandContext(), "testing") == "testing"
+    assert resolve_target_library(FarmhandContext(), "haybale-testing") == "haybale-testing"
 
 
 def test_write_gate_rejects_unknown_library():
@@ -257,7 +259,7 @@ def test_verify_component_ok_for_registered_node():
     from haybale_studio.farmhands.authoring import StudioVerifyComponentTool
     from haybale_studio.farmhands.catalog import StudioListComponentsTool
 
-    listing = run_tool(StudioListComponentsTool, library="testing", kind="node", limit=1)
+    listing = run_tool(StudioListComponentsTool, library="haybale-testing", kind="node", limit=1)
     key = listing["components"][0]["registry_key"]
     result = run_tool(StudioVerifyComponentTool, registry_key=key)
     assert result["registered"] is True
@@ -333,16 +335,16 @@ def test_registry_holds_exactly_ten_studio_tools(library_system):
     from haywire.core.farmhand import FarmhandRegistry
 
     registry = library_system.injector.get(FarmhandRegistry)
-    studio_keys = {k for k in registry.list_names() if k.startswith("studio:farmhand:")}
+    studio_keys = {k for k in registry.list_names() if k.startswith("haybale-studio:farmhand:")}
     assert studio_keys == {
-        "studio:farmhand:status",
-        "studio:farmhand:list_libraries",
-        "studio:farmhand:list_components",
-        "studio:farmhand:describe_component",
-        "studio:farmhand:scaffold_component",
-        "studio:farmhand:read_component_source",
-        "studio:farmhand:write_component_source",
-        "studio:farmhand:verify_component",
-        "studio:farmhand:get_errors",
-        "studio:farmhand:dismiss_errors",
+        "haybale-studio:farmhand:status",
+        "haybale-studio:farmhand:list_libraries",
+        "haybale-studio:farmhand:list_components",
+        "haybale-studio:farmhand:describe_component",
+        "haybale-studio:farmhand:scaffold_component",
+        "haybale-studio:farmhand:read_component_source",
+        "haybale-studio:farmhand:write_component_source",
+        "haybale-studio:farmhand:verify_component",
+        "haybale-studio:farmhand:get_errors",
+        "haybale-studio:farmhand:dismiss_errors",
     }

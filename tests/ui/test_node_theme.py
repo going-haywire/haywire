@@ -86,7 +86,7 @@ class TestThemeDecorator:
         assert TestNodeTheme.class_identity.theme_type == "node"
 
     def test_registry_key_format(self):
-        expected = "testing:theme:node:TestNodeTheme"
+        expected = "haybale-testing:theme:node:TestNodeTheme"
         assert TestNodeTheme.class_identity.registry_key == expected
 
     def test_label(self):

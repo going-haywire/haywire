@@ -14,7 +14,7 @@ from haywire.core.library.haybale_toml import (
 )
 
 _FULL = """\
-id = "core"
+name = "haybale-core"
 version = "0.0.40"
 label = "Core"
 on_reload = "restart"
@@ -34,7 +34,7 @@ def _write(tmp_path: Path, body: str) -> Path:
 def test_reads_every_identity_field(tmp_path: Path) -> None:
     fields = read_haybale_toml(_write(tmp_path, _FULL))
     assert fields == {
-        "id": "core",
+        "name": "haybale-core",
         "version": "0.0.40",
         "label": "Core",
         "on_reload": "restart",
@@ -46,25 +46,23 @@ def test_reads_every_identity_field(tmp_path: Path) -> None:
 def test_absent_keys_are_omitted_not_emptied(tmp_path: Path) -> None:
     """The splat contract: a caller updates defaults, so an absent key must not
     arrive as "" and clobber one."""
-    fields = read_haybale_toml(_write(tmp_path, 'id = "core"\nversion = "0.0.40"\n'))
-    assert fields == {"id": "core", "version": "0.0.40"}
+    fields = read_haybale_toml(_write(tmp_path, 'name = "haybale-core"\nversion = "0.0.40"\n'))
+    assert fields == {"name": "haybale-core", "version": "0.0.40"}
     assert "label" not in fields
     assert "linked_libraries" not in fields
 
 
 @pytest.mark.unit
 def test_unknown_keys_are_ignored(tmp_path: Path) -> None:
-    """`name` and the publishing coordinates are the marketstall row's
-    business — they don't reach the identity, even though they live in the
-    same file."""
+    """The publishing coordinates are the marketstall row's business — they
+    don't reach the identity, even though they live in the same file."""
     fields = read_haybale_toml(
         _write(
             tmp_path,
-            'id = "core"\nversion = "0.0.40"\nname = "haybale-core"\n'
-            'examples_path = "examples/"\nnotes = "NOTES.md"\n',
+            'name = "haybale-core"\nversion = "0.0.40"\nexamples_path = "examples/"\nnotes = "NOTES.md"\n',
         )
     )
-    assert fields == {"id": "core", "version": "0.0.40"}
+    assert fields == {"name": "haybale-core", "version": "0.0.40"}
 
 
 # ── the raises ───────────────────────────────────────────────────────────────
@@ -78,46 +76,46 @@ def test_missing_file_raises(tmp_path: Path) -> None:
 
 @pytest.mark.unit
 def test_malformed_toml_raises_with_the_path(tmp_path: Path) -> None:
-    d = _write(tmp_path, 'id = "core"\nlabel = [unclosed\n')
+    d = _write(tmp_path, 'name = "haybale-core"\nlabel = [unclosed\n')
     with pytest.raises(HaybaleTomlError, match="Malformed TOML") as exc:
         read_haybale_toml(d)
     assert HAYBALE_TOML in str(exc.value)
 
 
 @pytest.mark.unit
-def test_missing_id_raises(tmp_path: Path) -> None:
-    with pytest.raises(HaybaleTomlError, match="`id` is required"):
+def test_missing_name_raises(tmp_path: Path) -> None:
+    with pytest.raises(HaybaleTomlError, match="`name` is required"):
         read_haybale_toml(_write(tmp_path, 'label = "Core"\n'))
 
 
 @pytest.mark.unit
-def test_empty_id_raises(tmp_path: Path) -> None:
-    with pytest.raises(HaybaleTomlError, match="`id` is required"):
-        read_haybale_toml(_write(tmp_path, 'id = ""\n'))
+def test_empty_name_raises(tmp_path: Path) -> None:
+    with pytest.raises(HaybaleTomlError, match="`name` is required"):
+        read_haybale_toml(_write(tmp_path, 'name = ""\n'))
 
 
 @pytest.mark.unit
 def test_missing_version_raises(tmp_path: Path) -> None:
     with pytest.raises(HaybaleTomlError, match="`version` is required"):
-        read_haybale_toml(_write(tmp_path, 'id = "core"\n'))
+        read_haybale_toml(_write(tmp_path, 'name = "haybale-core"\n'))
 
 
 @pytest.mark.unit
 def test_empty_version_raises(tmp_path: Path) -> None:
     with pytest.raises(HaybaleTomlError, match="`version` is required"):
-        read_haybale_toml(_write(tmp_path, 'id = "core"\nversion = ""\n'))
+        read_haybale_toml(_write(tmp_path, 'name = "haybale-core"\nversion = ""\n'))
 
 
 @pytest.mark.unit
 def test_wrong_scalar_type_raises(tmp_path: Path) -> None:
     with pytest.raises(HaybaleTomlError, match="label must be a string"):
-        read_haybale_toml(_write(tmp_path, 'id = "core"\nlabel = 3\n'))
+        read_haybale_toml(_write(tmp_path, 'name = "haybale-core"\nlabel = 3\n'))
 
 
 @pytest.mark.unit
 def test_wrong_list_type_raises(tmp_path: Path) -> None:
     with pytest.raises(HaybaleTomlError, match="must be a list of strings"):
-        read_haybale_toml(_write(tmp_path, 'id = "core"\nlinked_libraries = "haybale_studio"\n'))
+        read_haybale_toml(_write(tmp_path, 'name = "haybale-core"\nlinked_libraries = "haybale_studio"\n'))
 
 
 # ── linked_libraries must be module-shaped ───────────────────────────────────
@@ -128,14 +126,14 @@ def test_wrong_list_type_raises(tmp_path: Path) -> None:
 def test_non_module_linked_library_raises(tmp_path: Path, bad: str) -> None:
     """A hyphen yields the scope prefix "haybale-studio.", which matches no
     module — hot-reload then degrades silently. Reject it at read time."""
-    d = _write(tmp_path, f'id = "core"\nlinked_libraries = ["{bad}"]\n')
+    d = _write(tmp_path, f'name = "haybale-core"\nlinked_libraries = ["{bad}"]\n')
     with pytest.raises(HaybaleTomlError, match="module names"):
         read_haybale_toml(d)
 
 
 @pytest.mark.unit
 def test_the_error_names_the_offending_entries(tmp_path: Path) -> None:
-    d = _write(tmp_path, 'id = "core"\nlinked_libraries = ["haybale_ok", "haybale-bad"]\n')
+    d = _write(tmp_path, 'name = "haybale-core"\nlinked_libraries = ["haybale_ok", "haybale-bad"]\n')
     with pytest.raises(HaybaleTomlError) as exc:
         read_haybale_toml(d)
     assert "haybale-bad" in str(exc.value)
@@ -148,12 +146,12 @@ def test_the_error_names_the_offending_entries(tmp_path: Path) -> None:
 @pytest.mark.unit
 def test_lenient_returns_empty_instead_of_raising(tmp_path: Path) -> None:
     assert read_haybale_toml_lenient(tmp_path) == {}
-    assert read_haybale_toml_lenient(_write(tmp_path, "id = [broken\n")) == {}
+    assert read_haybale_toml_lenient(_write(tmp_path, "name = [broken\n")) == {}
 
 
 @pytest.mark.unit
 def test_lenient_still_reads_a_good_file(tmp_path: Path) -> None:
-    assert read_haybale_toml_lenient(_write(tmp_path, _FULL))["id"] == "core"
+    assert read_haybale_toml_lenient(_write(tmp_path, _FULL))["name"] == "haybale-core"
 
 
 # ── derivations ──────────────────────────────────────────────────────────────
@@ -219,7 +217,6 @@ def test_read_haybale_reads_every_declared_field(tmp_path):
         _write(
             tmp_path,
             'name = "haybale-core"\n'
-            'id = "core"\n'
             'version = "1.2.3"\n'
             'label = "Core"\n'
             'description = "d"\n'
@@ -243,7 +240,6 @@ def test_read_haybale_reads_every_declared_field(tmp_path):
         )
     )
     assert row.name == "haybale-core"
-    assert row.id == "core"
     assert row.version == "1.2.3"
     assert row.label == "Core"
     assert row.description == "d"
@@ -266,7 +262,7 @@ def test_read_haybale_reads_every_declared_field(tmp_path):
 def test_read_haybale_marks_source_local(tmp_path):
     from haywire.core.library.haybale_toml import read_haybale
 
-    row = read_haybale(_write(tmp_path, 'id = "core"\nversion = "1.0.0"\n'))
+    row = read_haybale(_write(tmp_path, 'name = "haybale-core"\nversion = "1.0.0"\n'))
     assert row.source == "local"
     assert row.install_spec == ""
     assert row.stale is False
@@ -278,14 +274,16 @@ def test_read_haybale_never_raises(tmp_path):
     from haywire.core.library.haybale_toml import read_haybale
 
     assert read_haybale(tmp_path).name == ""  # no file at all
-    assert read_haybale(_write(tmp_path, "id = [broken\n")).name == ""
+    assert read_haybale(_write(tmp_path, "name = [broken\n")).name == ""
 
 
 @pytest.mark.unit
 def test_read_haybale_drops_wrong_typed_values(tmp_path):
     from haywire.core.library.haybale_toml import read_haybale
 
-    row = read_haybale(_write(tmp_path, 'id = "core"\nlabel = 3\ntags = "nope"\nauthors = ["Alice"]\n'))
+    row = read_haybale(
+        _write(tmp_path, 'name = "haybale-core"\nlabel = 3\ntags = "nope"\nauthors = ["Alice"]\n')
+    )
     assert row.label == ""
     assert row.tags == []
     assert row.authors == []
@@ -298,7 +296,7 @@ def test_read_haybale_reads_deprecation(tmp_path):
     row = read_haybale(
         _write(
             tmp_path,
-            'id = "core"\n[deprecated]\nsince = "1.0.0"\nreason = "old"\n',
+            'name = "haybale-core"\n[deprecated]\nsince = "1.0.0"\nreason = "old"\n',
         )
     )
     assert row.deprecated is not None
@@ -310,9 +308,9 @@ def test_read_haybale_reads_deprecation(tmp_path):
 def test_read_haybale_reflects_edits(tmp_path):
     from haywire.core.library.haybale_toml import read_haybale
 
-    d = _write(tmp_path, 'id = "core"\ndescription = "before"\n')
+    d = _write(tmp_path, 'name = "haybale-core"\ndescription = "before"\n')
     assert read_haybale(d).description == "before"
-    _write(tmp_path, 'id = "core"\ndescription = "after"\n')
+    _write(tmp_path, 'name = "haybale-core"\ndescription = "after"\n')
     assert read_haybale(d).description == "after"
 
 
@@ -323,7 +321,7 @@ def test_read_haybale_reflects_edits(tmp_path):
 def test_write_authors_round_trips_through_read_haybale(tmp_path: Path) -> None:
     from haywire.core.library.haybale_toml import read_haybale, write_haybale_fields
 
-    d = _write(tmp_path, 'id = "core"\nlabel = "Core"\n')
+    d = _write(tmp_path, 'name = "haybale-core"\nlabel = "Core"\n')
     write_haybale_fields(d, {"authors": [("maybites", "https://maybites.ch"), ("cansik", "")]})
 
     written = (d / HAYBALE_TOML).read_text()
@@ -340,7 +338,7 @@ def test_write_empty_authors_list_removes_the_key(tmp_path: Path) -> None:
 
     d = _write(
         tmp_path,
-        'id = "core"\nlabel = "Core"\n\n[[authors]]\nname = "old"\n',
+        'name = "haybale-core"\nlabel = "Core"\n\n[[authors]]\nname = "old"\n',
     )
     write_haybale_fields(d, {"authors": []})
 
@@ -378,7 +376,7 @@ def test_sync_never_removes_the_pyproject_version(tmp_path):
     module_dir = tmp_path / "haybale_alpha"
     module_dir.mkdir()
     (module_dir / "__init__.py").write_text("")
-    _write(module_dir, 'id = "alpha"\ndescription = "d"\n')
+    _write(module_dir, 'name = "haybale-alpha"\ndescription = "d"\n')
     (tmp_path / "pyproject.toml").write_text(
         '[project]\nname = "haybale-alpha"\nversion = "1.2.3"\ndescription = "old"\n'
     )

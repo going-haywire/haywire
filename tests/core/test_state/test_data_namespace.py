@@ -14,7 +14,7 @@ from haywire.core.state.data_namespace import AppDataNamespace
 
 def make_lib_identity() -> LibraryIdentity:
     return LibraryIdentity(
-        id="midi",
+        name="midi",
         label="Midi",
         version="0.0.1",
         linked_libraries=[],
@@ -33,7 +33,7 @@ class TestAppDataNamespace:
         reg = LibraryStateRegistry()
         container = LibraryStateContainer(LibraryStateRegistry())
         lib_id = make_lib_identity()
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
         reg._register_class(MidiPool, lib_id)
         container.on_lifecycle_events(
             [

@@ -71,5 +71,3 @@ class OpenInHaystackMenuPanel(BasePanel):
                 icon=hui.icon.graph,
                 on_click=_do_open,
             )
-
-

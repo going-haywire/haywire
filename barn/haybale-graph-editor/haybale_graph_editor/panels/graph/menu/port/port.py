@@ -54,8 +54,6 @@ class PortInfoMenuPanel(BasePanel):
             hui.info_label(f"Type: {type_key}")
 
 
-
-
 @panel(
     actions=PortContextActions,
     focus=PinFocus,

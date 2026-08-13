@@ -60,7 +60,7 @@ class _Registry(BaseRegistry):
 
 def _identity(folder: Path) -> LibraryIdentity:
     return LibraryIdentity(
-        id="demo",
+        name="demo",
         label="Demo",
         folder_path=str(folder),
         module_name="haybale_demo",

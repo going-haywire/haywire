@@ -47,7 +47,7 @@ class TestSessionStateIntegration:
 
         # Build a minimal LibraryIdentity for this test "library".
         lib_id = LibraryIdentity(
-            id="testlib",
+            name="testlib",
             label="Test Library",
             version="0.0.1",
             linked_libraries=[],
@@ -59,7 +59,7 @@ class TestSessionStateIntegration:
         # admits its events. In production this happens via
         # LibraryRegistry.on_library_enabled after library.enable() returns;
         # this test bypasses LibraryRegistry and drives events directly.
-        container._mark_library_enabled(lib_id.id)
+        container._mark_library_enabled(lib_id.name)
 
         # Register the class via the same path a real library would use.
         key = registry._register_class(TimelineCursor, lib_id)
