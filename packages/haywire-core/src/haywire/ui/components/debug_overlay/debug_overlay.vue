@@ -70,6 +70,13 @@ export default {
     this._census       = {};
     this._rafId        = null;
     this._observer     = null;
+    // Node-measurement traffic (window.__hwMeasureStats, published by canvas.vue).
+    // Tracked as a per-second rate as well as a total: the question these answer
+    // is whether measurement settles to zero once a graph has finished laying out.
+    this._measureLastT     = performance.now();
+    this._measureLastSent  = 0;
+    this._measureLastBatch = 0;
+    this._measureRate      = { sent: 0, batches: 0 };
     this._longTaskSupported = false;
     this.STALL_MS      = 50;     // matches the PerformanceLongTaskTiming threshold
 
@@ -113,6 +120,13 @@ export default {
       // Reset so the "skip first interval" stall guard re-arms on every restart;
       // the longtasks/stalls counters stay cumulative for the session.
       this._frameCounter = 0;
+      // Re-baseline the measurement rate, otherwise the first sample after a
+      // hidden period reports the whole gap as one second's worth of traffic.
+      const ms = window.__hwMeasureStats;
+      this._measureLastT     = this._lastT;
+      this._measureLastSent  = ms ? ms.sent : 0;
+      this._measureLastBatch = ms ? ms.batches : 0;
+      this._measureRate      = { sent: 0, batches: 0 };
       this._runCensus();
       this._rafId = requestAnimationFrame(this._tick);
     },
@@ -181,6 +195,20 @@ export default {
 
       if (this._frameCounter % this._censusEvery === 0) this._runCensus();
 
+      // Sample measurement traffic once a second (counters are cumulative, so
+      // the rate is a delta over the elapsed window).
+      const ms = window.__hwMeasureStats;
+      if (ms && now - this._measureLastT >= 1000) {
+        const elapsed = (now - this._measureLastT) / 1000;
+        this._measureRate = {
+          sent: (ms.sent - this._measureLastSent) / elapsed,
+          batches: (ms.batches - this._measureLastBatch) / elapsed,
+        };
+        this._measureLastT = now;
+        this._measureLastSent = ms.sent;
+        this._measureLastBatch = ms.batches;
+      }
+
       const avg   = this._times.reduce((a, b) => a + b, 0) / this._times.length;
       const fps   = 1000 / avg;
       const worst = this._pct(this._times, 0.99);
@@ -189,6 +217,15 @@ export default {
       const longTaskLine = this._longTaskSupported
         ? `longtasks ${this._longTasks}  (${this._longTaskMs.toFixed(0)}ms)`
         : `longtasks n/a`;
+
+      // "measure" reads: per-second batches (= websocket messages) and node
+      // measurements, then session totals as sent/observed. A settled graph
+      // shows 0/s; sent << observed is the dedupe doing its job.
+      const mr = this._measureRate;
+      const measureLine = ms
+        ? `measure ${mr.batches.toFixed(1)}/s  ${mr.sent.toFixed(0)} nodes/s\n` +
+          `  sent ${ms.sent}/${ms.observed}  batches ${ms.batches}`
+        : `measure n/a`;
 
       this.text =
         `Haywire perf\n` +
@@ -199,7 +236,8 @@ export default {
         `-------------------------\n` +
         `zoom ${c.zoom}   LOD ${c.lod}\n` +
         `DOM els ${c.totalEls}\n` +
-        `nodes ${c.nodes}  pins ${c.pins}  paths ${c.paths}`;
+        `nodes ${c.nodes}  pins ${c.pins}  paths ${c.paths}\n` +
+        `${measureLine}`;
 
       this._rafId = requestAnimationFrame(this._tick);
     },

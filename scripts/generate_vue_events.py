@@ -15,9 +15,18 @@ def main():
 
     vue_code = VueEventGenerator.generate_event_constants()
 
-    # Output to the editor_v1 directory
-    output_dir = project_root / "src" / "haywire" / "ui" / "components" / "graph_canvas" / "generated"
-    output_dir.mkdir(exist_ok=True)
+    output_dir = (
+        project_root
+        / "packages"
+        / "haywire-core"
+        / "src"
+        / "haywire"
+        / "ui"
+        / "components"
+        / "graph"
+        / "generated"
+    )
+    output_dir.mkdir(parents=True, exist_ok=True)
 
     output_file = output_dir / "graph_events.js"
     with open(output_file, "w") as f:

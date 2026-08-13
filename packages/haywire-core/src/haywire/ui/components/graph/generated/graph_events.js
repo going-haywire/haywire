@@ -8,7 +8,7 @@ window.GraphEvents = {
     USER_DRAG_UPDATE: 'userDragUpdate', // User is dragging nodes
     USER_DRAG_END: 'userDragEnd', // User finished dragging nodes
     USER_RESIZE_END: 'userResizeEnd', // User finished resizing a node via the gadget
-    NODE_MEASURED: 'nodeMeasured', // A node's host slot was measured by the ResizeObserver (auto-axis write-back)
+    NODES_MEASURED: 'nodesMeasured', // One frame's worth of host-slot measurements (auto-axis write-back, rAF-batched)
     NODE_CREATE_REQUEST: 'nodeCreateRequest', // Request to create node from context menu
     SPLIT_EDGE_WITH_REROUTE: 'splitEdgeWithReroute', // Split a data edge and insert a reroute node from the edge context menu
     DISSOLVE_REROUTE: 'dissolveReroute', // Dissolve a reroute node and bridge its connections
@@ -91,12 +91,12 @@ window.EventCreators = {
     };
   },
 
-  createNodeMeasured(nodeId, width, height, sessionId = 'default') {
+  createNodesMeasured(measurements, sessionId = 'default') {
     return {
-      event_type: 'nodeMeasured',
+      event_type: 'nodesMeasured',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { nodeId, width, height },
+      data: { measurements },
       requires_broadcast: true
     };
   },
@@ -314,8 +314,8 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
-  validateNodeMeasured(data) {
-    const requiredFields = ["nodeId", "width", "height"];
+  validateNodesMeasured(data) {
+    const requiredFields = ["measurements"];
     return requiredFields.every(field => field in data);
   },
 

@@ -211,6 +211,17 @@ export default {
     mounted() {
         console.log('GraphCanvas Vue component mounted with container ID:', this.containerId);
         this._pendingNodeIds = new Set();
+        // Non-reactive on purpose (see _queueMeasurement): plain instance fields,
+        // matching _pendingNodeIds above.
+        this._pendingMeasurements = new Map();
+        this._measureFlushHandle = null;
+
+        // Measurement instrumentation, published for the debug overlay. Kept on
+        // window (not component state) so it survives a graph switch — the point
+        // is to watch whether measurement traffic settles over a whole session.
+        if (!window.__hwMeasureStats) {
+            window.__hwMeasureStats = { observed: 0, queued: 0, batches: 0, sent: 0 };
+        }
 
         // Initialize component
         this._setupEventListeners();
@@ -236,6 +247,10 @@ export default {
         // Clear any pending magnify timers so they don't fire post-unmount.
         this._clearAllMagnified();
         if (this._zoomPanBoundsTimer) { clearTimeout(this._zoomPanBoundsTimer); this._zoomPanBoundsTimer = null; }
+        // Drop the queued measurement flush — the graph is going away, and the
+        // callback would emit against a torn-down component.
+        if (this._measureFlushHandle) { cancelAnimationFrame(this._measureFlushHandle); this._measureFlushHandle = null; }
+        if (this._pendingMeasurements) this._pendingMeasurements.clear();
     },
 
     methods: {
@@ -349,12 +364,64 @@ export default {
                 const width = autoW ? slot.offsetWidth : null;
                 const height = autoH ? slot.offsetHeight : null;
                 if (width === null && height === null) return;
-                this.emitCanvasEvent(EventCreators.createNodeMeasured(nodeId, width, height));
+
+                // Instrumentation (read by the debug overlay): every observer
+                // firing that produced a candidate measurement, before dedupe.
+                // The gap between this and `queued` is what fix-2 suppresses.
+                const stats = window.__hwMeasureStats;
+                if (stats) stats.observed += 1;
+
+                // Drop measurements the server already agrees with. The server
+                // applies the same ~1px epsilon (VisualLayer.process_nodes_measured),
+                // so anything inside it would be a no-op round-trip. Without this
+                // the steady state churns a message per observer firing.
+                const last = slot.__hwLastMeasure;
+                if (last
+                    && (width === null || Math.abs(width - last.width) <= 1.0)
+                    && (height === null || Math.abs(height - last.height) <= 1.0)) {
+                    return;
+                }
+                slot.__hwLastMeasure = { width, height };
+                if (stats) stats.queued += 1;
+
+                this._queueMeasurement(nodeId, width, height);
             };
 
             const obs = new ResizeObserver(emit);
             obs.observe(slot);
             slot.__hwSizeObs = obs;
+        },
+
+        /** Coalesce this frame's measurements into ONE server message.
+         *
+         *  Loading a large graph fires every node's ResizeObserver in the same
+         *  layout pass. Emitting per node meant one websocket message (and one
+         *  console.log) per node — a 2000-node graph wedged the browser and made
+         *  graph switching impossible, since a remount re-attaches every observer.
+         *  Batching makes the cost O(1 message per frame) instead of O(nodes).
+         *
+         *  Last write wins within a frame: a node measured twice before the
+         *  flush only reports its final size.
+         */
+        _queueMeasurement(nodeId, width, height) {
+            if (!this._pendingMeasurements) this._pendingMeasurements = new Map();
+            this._pendingMeasurements.set(nodeId, { nodeId, width, height });
+            if (this._measureFlushHandle !== null && this._measureFlushHandle !== undefined) return;
+            this._measureFlushHandle = requestAnimationFrame(() => {
+                this._measureFlushHandle = null;
+                this._flushMeasurements();
+            });
+        },
+
+        _flushMeasurements() {
+            if (!this._pendingMeasurements || this._pendingMeasurements.size === 0) return;
+            const measurements = Array.from(this._pendingMeasurements.values());
+            this._pendingMeasurements.clear();
+            // One batch == one websocket message. In steady state this should
+            // stop climbing entirely; see the debug overlay's "measure" line.
+            const stats = window.__hwMeasureStats;
+            if (stats) { stats.batches += 1; stats.sent += measurements.length; }
+            this.emitCanvasEvent(EventCreators.createNodesMeasured(measurements));
         },
 
         // =============================================================================
@@ -723,6 +790,16 @@ export default {
         },
 
         _cleanupObservers() {
+            // Per-slot size observers (see _attachSizeObserver). They would die
+            // with their DOM nodes, but teardown reflow can fire them first —
+            // disconnect explicitly so no measurement is queued mid-unmount.
+            document.querySelectorAll('.ui-node-slot').forEach(slot => {
+                if (slot.__hwSizeObs) {
+                    slot.__hwSizeObs.disconnect();
+                    slot.__hwSizeObs = null;
+                }
+                slot.__hwLastMeasure = null;
+            });
             if (this.mutationObserver) {
                 this.mutationObserver.disconnect();
                 this.mutationObserver = null;

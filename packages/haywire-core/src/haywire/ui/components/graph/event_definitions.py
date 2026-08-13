@@ -121,17 +121,18 @@ class UserResizeEndEvent(BaseGraphEvent):
 
 
 @graph_event(
-    "nodeMeasured",
+    "nodesMeasured",
     category="user",
-    description="A node's host slot was measured by the ResizeObserver (auto-axis write-back)",
+    description="One frame's worth of host-slot measurements (auto-axis write-back, rAF-batched)",
 )
 @dataclass
-class NodeMeasuredEvent(BaseGraphEvent):
-    nodeId: str
+class NodesMeasuredEvent(BaseGraphEvent):
+    # One entry per node measured during the frame: {nodeId, width, height}.
+    # Batched because a large graph fires every node's ResizeObserver in the
+    # same layout pass — one message per node made 200+ node graphs unusable.
     # Only the AUTO axes are reported; a manual axis is owned by the user and
-    # is omitted so measurement never overwrites it. None = axis is manual.
-    width: Optional[float] = None
-    height: Optional[float] = None
+    # is omitted (None) so measurement never overwrites it.
+    measurements: List[Dict[str, Any]]
 
 
 @graph_event("nodeCreateRequest", category="user", description="Request to create node from context menu")

@@ -22,7 +22,7 @@ from haywire.core.node import BaseNode
 
 from haywire.ui.components.graph.event_definitions import (
     UserRemoveEvent,
-    NodeMeasuredEvent,
+    NodesMeasuredEvent,
     NodeCreateRequestEvent,
     SplitEdgeWithRerouteEvent,
     DissolveRerouteEvent,
@@ -381,26 +381,37 @@ class VisualLayerHandlers:
     # Event handlers — graph mutation requests
     # -------------------------------------------------------------------------
 
-    @handles_event(NodeMeasuredEvent)
-    def process_node_measured(self, event: NodeMeasuredEvent):
-        """Write a measured auto-axis size back into the node's props.
+    @handles_event(NodesMeasuredEvent)
+    def process_nodes_measured(self, event: NodesMeasuredEvent):
+        """Write one frame's measured auto-axis sizes back into node props.
 
         The ResizeObserver (see UINode._attach_size_observer) reports
         offsetWidth/offsetHeight for AUTO axes only; a manual axis is omitted
-        (``None``) so measurement never clobbers a user-fixed size. The write
-        goes straight to ``props`` (NOT through the editor) so it is not
-        undoable and does not trigger a card redraw — it lands on the size
+        (``None``) so measurement never clobbers a user-fixed size. The client
+        rAF-batches a frame's measurements into a single event — a large graph
+        fires every node's observer in one layout pass, and a message per node
+        made 200+ node graphs unusable.
+
+        Each write goes straight to ``props`` (NOT through the editor) so it is
+        not undoable and does not trigger a card redraw — it lands on the size
         subscriber (UINode._on_size_field_change), which only restyles the
-        slot. Epsilon-gated ~1px so sub-pixel jitter doesn't churn props.
+        slot. Epsilon-gated ~1px so sub-pixel jitter doesn't churn props; the
+        client applies the same epsilon so unchanged sizes never reach here.
         """
-        ui_node = self.node_panels.get(event.nodeId)
-        if ui_node is None:
-            return
-        props = ui_node.wrapper.node.props
-        if event.width is not None and abs(event.width - props.width) > 1.0:
-            props.width = float(event.width)
-        if event.height is not None and abs(event.height - props.height) > 1.0:
-            props.height = float(event.height)
+        for measurement in event.measurements:
+            node_id = measurement.get("nodeId")
+            if node_id is None:
+                continue
+            ui_node = self.node_panels.get(node_id)
+            if ui_node is None:
+                continue
+            props = ui_node.wrapper.node.props
+            width = measurement.get("width")
+            height = measurement.get("height")
+            if width is not None and abs(width - props.width) > 1.0:
+                props.width = float(width)
+            if height is not None and abs(height - props.height) > 1.0:
+                props.height = float(height)
 
     @handles_event(UserRemoveEvent)
     def process_element_removal(self, event: UserRemoveEvent):
