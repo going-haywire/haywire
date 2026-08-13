@@ -94,19 +94,19 @@ class TestProjectStructure:
         assert (scaffold_project / "pyproject.toml").is_file()
 
     def test_library_dir_exists(self, scaffold_project):
-        assert (scaffold_project / "barn" / "haybale-test-project").is_dir()
+        assert (scaffold_project / "barn" / "hay-test-project").is_dir()
 
     def test_library_pyproject_exists(self, scaffold_project):
-        assert (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").is_file()
+        assert (scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").is_file()
 
     def test_library_init_exists(self, scaffold_project):
         assert (
-            scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
+            scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).is_file()
 
     def test_library_haybale_toml_exists(self, scaffold_project):
         assert (
-            scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "haybale.toml"
+            scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "haybale.toml"
         ).is_file()
 
 
@@ -115,12 +115,12 @@ class TestComponentFolders:
 
     @pytest.mark.parametrize("folder", ["nodes", "types", "widgets", "skins", "adapters"])
     def test_component_folder_exists(self, scaffold_project, folder):
-        pkg_dir = scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project"
+        pkg_dir = scaffold_project / "barn" / "hay-test-project" / "hay_test_project"
         assert (pkg_dir / folder).is_dir()
 
     @pytest.mark.parametrize("folder", ["nodes", "types", "widgets", "skins", "adapters"])
     def test_component_folder_has_init(self, scaffold_project, folder):
-        pkg_dir = scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project"
+        pkg_dir = scaffold_project / "barn" / "hay-test-project" / "hay_test_project"
         assert (pkg_dir / folder / "__init__.py").is_file()
 
 
@@ -166,42 +166,30 @@ class TestLibraryPyproject:
     """Verify the generated library pyproject.toml content."""
 
     def test_library_name(self, scaffold_project):
-        data = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
-        )
-        assert data["project"]["name"] == "haybale-test-project"
+        data = toml.loads((scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "hay-test-project"
 
     def test_library_dependency(self, scaffold_project):
         from haywire_studio.init import _release_pin
 
-        data = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
-        )
+        data = toml.loads((scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text())
         assert f"haywire-core{_release_pin()}" in data["project"]["dependencies"]
 
     def test_entry_point(self, scaffold_project):
-        data = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
-        )
+        data = toml.loads((scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text())
         eps = data["project"]["entry-points"]["haywire.libraries"]
-        assert eps["test-project"] == "haybale_test_project:Library"
+        assert eps["test-project"] == "hay_test_project:Library"
 
     def test_hatchling_backend(self, scaffold_project):
-        data = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
-        )
+        data = toml.loads((scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text())
         assert data["build-system"]["build-backend"] == "hatchling.build"
 
     def test_wheel_packages(self, scaffold_project):
-        data = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
-        )
-        assert "haybale_test_project" in data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
+        data = toml.loads((scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text())
+        assert "hay_test_project" in data["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"]
 
     def test_library_version_is_release(self, scaffold_project):
-        data = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
-        )
+        data = toml.loads((scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text())
         assert data["project"]["version"] == "0.0.1"
 
 
@@ -211,19 +199,19 @@ class TestLibraryHaybaleToml:
     def _read(self, scaffold_project):
         return toml.loads(
             (
-                scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "haybale.toml"
+                scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "haybale.toml"
             ).read_text()
         )
 
     def test_name_matches_pyproject(self, scaffold_project):
         data = self._read(scaffold_project)
-        assert data["name"] == "haybale-test-project"
+        assert data["name"] == "hay-test-project"
 
     def test_version_matches_pyproject(self, scaffold_project):
         """The two files must agree from the first write — nothing else
         reconciles them until the author's first version bump."""
         pyproject = toml.loads(
-            (scaffold_project / "barn" / "haybale-test-project" / "pyproject.toml").read_text()
+            (scaffold_project / "barn" / "hay-test-project" / "pyproject.toml").read_text()
         )
         data = self._read(scaffold_project)
         assert data["version"] == pyproject["project"]["version"]
@@ -234,7 +222,7 @@ class TestLibraryInit:
 
     def test_imports_all_registries(self, scaffold_project):
         init_content = (
-            scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
+            scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).read_text()
         assert "from haywire.core.node.registry import NodeRegistry" in init_content
         assert "from haywire.core.types.registry import TypeRegistry" in init_content
@@ -244,14 +232,14 @@ class TestLibraryInit:
 
     def test_registers_all_folders(self, scaffold_project):
         init_content = (
-            scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
+            scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).read_text()
         for folder in ["nodes", "types", "adapters", "widgets", "skins"]:
             assert f"base_path / '{folder}'" in init_content
 
     def test_library_decorator(self, scaffold_project):
         init_content = (
-            scaffold_project / "barn" / "haybale-test-project" / "haybale_test_project" / "__init__.py"
+            scaffold_project / "barn" / "hay-test-project" / "hay_test_project" / "__init__.py"
         ).read_text()
         assert "@library(" in init_content
         assert "file_watcher=True" in init_content
@@ -267,13 +255,13 @@ class TestProjectMarketplace:
         data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
         heaps = data.get("heaps", [])
         assert len(heaps) == 1
-        assert heaps[0]["name"] == "haybale-test-project"
+        assert heaps[0]["name"] == "hay-test-project"
 
     def test_project_marketplace_local_path_is_absolute(self, scaffold_project):
         data = toml.loads((scaffold_project / ".haywire" / "marketplace.toml").read_text())
         path = data["heaps"][0]["path"]
         assert Path(path).is_absolute()
-        assert Path(path) == scaffold_project / "barn" / "haybale-test-project"
+        assert Path(path) == scaffold_project / "barn" / "hay-test-project"
 
     def test_project_marketplace_has_no_caches(self, scaffold_project):
         """No [[caches]] section — refresh (Plan E) populates that."""
@@ -304,7 +292,7 @@ class TestDevMode:
 
     def test_library_has_framework_source(self, scaffold_project_dev):
         data = toml.loads(
-            (scaffold_project_dev / "barn" / "haybale-test-project-dev" / "pyproject.toml").read_text()
+            (scaffold_project_dev / "barn" / "hay-test-project-dev" / "pyproject.toml").read_text()
         )
         sources = data["tool"]["uv"]["sources"]
         assert "haywire-core" in sources
@@ -316,7 +304,7 @@ class TestDevMode:
         data = toml.loads((scaffold_project_dev / ".haywire" / "marketplace.toml").read_text())
         names = {entry["name"] for entry in data.get("heaps", [])}
         # The scaffolded project library:
-        assert "haybale-test-project-dev" in names
+        assert "hay-test-project-dev" in names
         # A representative sample of dev-repo libraries:
         for dev_lib in ["haybale-core", "haybale-studio", "haybale-haystack"]:
             assert dev_lib in names, f"missing dev-repo library: {dev_lib}"
@@ -324,7 +312,18 @@ class TestDevMode:
 
 
 class TestLibBasename:
-    """_lib_basename strips a leading haybale- prefix so library names aren't doubled."""
+    """_lib_basename lowercases and strips a leading hay-/haybale- prefix so
+    library names aren't doubled and everything under barn/ is lowercase."""
+
+    def test_strips_hay_hyphen_prefix(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("hay-weather") == "weather"
+
+    def test_strips_hay_underscore_prefix(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("hay_weather") == "weather"
 
     def test_strips_haybale_hyphen_prefix(self):
         from haywire_studio.init import _lib_basename
@@ -336,7 +335,7 @@ class TestLibBasename:
 
         assert _lib_basename("haybale_weather") == "weather"
 
-    def test_leaves_unprefixed_name_untouched(self):
+    def test_leaves_unprefixed_lowercase_name_untouched(self):
         from haywire_studio.init import _lib_basename
 
         assert _lib_basename("weather") == "weather"
@@ -347,9 +346,165 @@ class TestLibBasename:
         # An internal occurrence is not a prefix and must be preserved.
         assert _lib_basename("my-haybale-thing") == "my-haybale-thing"
 
+    def test_lowercases_unprefixed_name(self):
+        from haywire_studio.init import _lib_basename
 
-class TestHaybalePrefixNotDoubled:
-    """`haywire init haybale-weather` must not yield a haybale-haybale-* library."""
+        assert _lib_basename("MyApp") == "myapp"
+
+    def test_lowercases_after_stripping_prefix(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("Hay-Weather") == "weather"
+
+    def test_prefix_match_is_case_insensitive(self):
+        from haywire_studio.init import _lib_basename
+
+        assert _lib_basename("HAYBALE-Weather") == "weather"
+
+
+class TestResolveDistname:
+    """_resolve_distname: hay-<base> by default, --distname verbatim as override."""
+
+    def test_default_prefixes_hay(self):
+        from haywire_studio.init import _resolve_distname
+
+        assert _resolve_distname("weather", None) == "hay-weather"
+
+    def test_default_strips_existing_hay_prefix(self):
+        from haywire_studio.init import _resolve_distname
+
+        assert _resolve_distname("hay-weather", None) == "hay-weather"
+
+    def test_default_strips_legacy_haybale_prefix(self):
+        from haywire_studio.init import _resolve_distname
+
+        assert _resolve_distname("haybale-weather", None) == "hay-weather"
+
+    def test_override_returned_verbatim(self):
+        from haywire_studio.init import _resolve_distname
+
+        assert _resolve_distname("weather", "acme-weather") == "acme-weather"
+
+    def test_override_bypasses_hay_automatism_entirely(self):
+        """--distname is the author's escape hatch — even haybale-* is allowed
+        through verbatim, on purpose."""
+        from haywire_studio.init import _resolve_distname
+
+        assert _resolve_distname("weather", "haybale-weather") == "haybale-weather"
+
+
+class TestDistmodule:
+    def test_replaces_hyphens_with_underscores(self):
+        from haywire_studio.init import _distmodule
+
+        assert _distmodule("hay-my-app") == "hay_my_app"
+
+    def test_single_word_unchanged(self):
+        from haywire_studio.init import _distmodule
+
+        assert _distmodule("weather") == "weather"
+
+
+class TestValidateSlug:
+    def test_accepts_simple_slug(self):
+        from haywire_studio.init import _validate_slug
+
+        _validate_slug("my-app", "project name")  # must not raise
+
+    def test_accepts_single_letter(self):
+        from haywire_studio.init import _validate_slug
+
+        _validate_slug("a", "project name")  # must not raise
+
+    @pytest.mark.parametrize(
+        "bad",
+        ["My-App", "my_app", "my app", "1abc", "-abc", "abc-", "abc!", "", "abc.def"],
+    )
+    def test_rejects_invalid_slugs(self, bad):
+        from haywire_studio.init import InvalidSlugError, _validate_slug
+
+        with pytest.raises(InvalidSlugError):
+            _validate_slug(bad, "project name")
+
+    def test_error_names_the_field(self):
+        from haywire_studio.init import InvalidSlugError, _validate_slug
+
+        with pytest.raises(InvalidSlugError, match="--distname"):
+            _validate_slug("Bad Name", "--distname")
+
+    def test_rejects_uppercase(self):
+        """--distname stays strict — no case easing, unlike the project name."""
+        from haywire_studio.init import InvalidSlugError, _validate_slug
+
+        with pytest.raises(InvalidSlugError):
+            _validate_slug("My-App", "--distname")
+
+
+class TestValidateProjectName:
+    """Eased relative to _validate_slug: uppercase is allowed in the project
+    name (it's a directory/display name, not a pip distribution name)."""
+
+    def test_accepts_simple_slug(self):
+        from haywire_studio.init import _validate_project_name
+
+        _validate_project_name("my-app")  # must not raise
+
+    def test_accepts_uppercase(self):
+        from haywire_studio.init import _validate_project_name
+
+        _validate_project_name("My-App")  # must not raise
+
+    def test_accepts_all_uppercase(self):
+        from haywire_studio.init import _validate_project_name
+
+        _validate_project_name("MYAPP")  # must not raise
+
+    @pytest.mark.parametrize(
+        "bad",
+        ["my_app", "My App", "1abc", "-abc", "abc-", "abc!", "", "abc.def"],
+    )
+    def test_rejects_invalid_names(self, bad):
+        from haywire_studio.init import InvalidSlugError, _validate_project_name
+
+        with pytest.raises(InvalidSlugError):
+            _validate_project_name(bad)
+
+
+class TestHayPrefixNotDoubled:
+    """`haywire init hay-weather` must not yield a hay-hay-* library."""
+
+    @pytest.fixture
+    def prefixed_project(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import init_project
+
+        init_project("hay-weather", auto_sync=False)
+        return tmp_path / "hay-weather"
+
+    def test_library_dir_not_doubled(self, prefixed_project):
+        assert (prefixed_project / "barn" / "hay-weather").is_dir()
+        assert not (prefixed_project / "barn" / "hay-hay-weather").exists()
+
+    def test_library_module_not_doubled(self, prefixed_project):
+        assert (prefixed_project / "barn" / "hay-weather" / "hay_weather").is_dir()
+
+    def test_library_name_not_doubled(self, prefixed_project):
+        data = toml.loads((prefixed_project / "barn" / "hay-weather" / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "hay-weather"
+
+    def test_library_haybale_toml_name_not_doubled(self, prefixed_project):
+        data = toml.loads(
+            (prefixed_project / "barn" / "hay-weather" / "hay_weather" / "haybale.toml").read_text()
+        )
+        assert data["name"] == "hay-weather"
+
+    def test_project_name_kept_verbatim(self, prefixed_project):
+        data = toml.loads((prefixed_project / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "hay-weather-dev"
+
+
+class TestLegacyHaybalePrefixStripped:
+    """`haywire init haybale-weather` yields hay-weather, not hay-haybale-weather."""
 
     @pytest.fixture
     def prefixed_project(self, tmp_path, monkeypatch, fake_home):
@@ -359,26 +514,68 @@ class TestHaybalePrefixNotDoubled:
         init_project("haybale-weather", auto_sync=False)
         return tmp_path / "haybale-weather"
 
-    def test_library_dir_not_doubled(self, prefixed_project):
-        assert (prefixed_project / "barn" / "haybale-weather").is_dir()
-        assert not (prefixed_project / "barn" / "haybale-haybale-weather").exists()
-
-    def test_library_module_not_doubled(self, prefixed_project):
-        assert (prefixed_project / "barn" / "haybale-weather" / "haybale_weather").is_dir()
-
-    def test_library_name_not_doubled(self, prefixed_project):
-        data = toml.loads((prefixed_project / "barn" / "haybale-weather" / "pyproject.toml").read_text())
-        assert data["project"]["name"] == "haybale-weather"
-
-    def test_library_haybale_toml_name_not_doubled(self, prefixed_project):
-        data = toml.loads(
-            (prefixed_project / "barn" / "haybale-weather" / "haybale_weather" / "haybale.toml").read_text()
-        )
-        assert data["name"] == "haybale-weather"
+    def test_library_dir_is_hay_prefixed(self, prefixed_project):
+        assert (prefixed_project / "barn" / "hay-weather").is_dir()
+        assert not (prefixed_project / "barn" / "hay-haybale-weather").exists()
 
     def test_project_name_kept_verbatim(self, prefixed_project):
+        """The project name itself doesn't collide with hay-weather, so no -dev suffix."""
         data = toml.loads((prefixed_project / "pyproject.toml").read_text())
-        assert data["project"]["name"] == "haybale-weather-dev"
+        assert data["project"]["name"] == "haybale-weather"
+
+
+class TestDistnameOverride:
+    """`haywire init <name> --distname <distname>` bypasses the hay- automatism."""
+
+    @pytest.fixture
+    def overridden_project(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import init_project
+
+        init_project("my-app", auto_sync=False, distname="acme-weather")
+        return tmp_path / "my-app"
+
+    def test_library_dir_uses_distname(self, overridden_project):
+        assert (overridden_project / "barn" / "acme-weather").is_dir()
+        assert not (overridden_project / "barn" / "hay-my-app").exists()
+
+    def test_library_module_derived_from_distname(self, overridden_project):
+        assert (overridden_project / "barn" / "acme-weather" / "acme_weather").is_dir()
+
+    def test_library_pyproject_name(self, overridden_project):
+        data = toml.loads((overridden_project / "barn" / "acme-weather" / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "acme-weather"
+
+    def test_haybale_toml_name(self, overridden_project):
+        data = toml.loads(
+            (overridden_project / "barn" / "acme-weather" / "acme_weather" / "haybale.toml").read_text()
+        )
+        assert data["name"] == "acme-weather"
+
+    def test_project_marketplace_heap_name(self, overridden_project):
+        data = toml.loads((overridden_project / ".haywire" / "marketplace.toml").read_text())
+        assert data["heaps"][0]["name"] == "acme-weather"
+
+    def test_root_project_name_kept_verbatim(self, overridden_project):
+        """The root project name is driven by projectname, never by --distname,
+        unless they happen to collide."""
+        data = toml.loads((overridden_project / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "my-app"
+
+    def test_invalid_distname_rejected(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import InvalidSlugError, init_project
+
+        with pytest.raises(InvalidSlugError):
+            init_project("my-app", auto_sync=False, distname="Not_Valid")
+
+    def test_distname_colliding_with_projectname_gets_dev_suffix(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import init_project
+
+        init_project("my-app", auto_sync=False, distname="my-app")
+        data = toml.loads((tmp_path / "my-app" / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "my-app-dev"
 
 
 class TestNameSanitization:
@@ -390,7 +587,7 @@ class TestNameSanitization:
 
         init_project("my-cool-project", auto_sync=False)
         assert (
-            tmp_path / "my-cool-project" / "barn" / "haybale-my-cool-project" / "haybale_my_cool_project"
+            tmp_path / "my-cool-project" / "barn" / "hay-my-cool-project" / "hay_my_cool_project"
         ).is_dir()
 
     def test_existing_dir_exits(self, tmp_path, monkeypatch, fake_home):
@@ -400,6 +597,51 @@ class TestNameSanitization:
 
         with pytest.raises(SystemExit):
             init_project("existing", auto_sync=False)
+
+    def test_invalid_project_name_rejected(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import InvalidSlugError, init_project
+
+        with pytest.raises(InvalidSlugError):
+            init_project("My Cool Project", auto_sync=False)
+
+
+class TestUppercaseProjectName:
+    """The project name may carry uppercase letters; the scaffolded library
+    identity (barn/ dir, dist name, module name) is always lowercase."""
+
+    @pytest.fixture
+    def cased_project(self, tmp_path, monkeypatch, fake_home):
+        monkeypatch.chdir(tmp_path)
+        from haywire_studio.init import init_project
+
+        init_project("My-Cool-Project", auto_sync=False)
+        return tmp_path / "My-Cool-Project"
+
+    def test_project_dir_keeps_case(self, cased_project):
+        assert cased_project.is_dir()
+
+    def test_root_pyproject_name_keeps_case(self, cased_project):
+        data = toml.loads((cased_project / "pyproject.toml").read_text())
+        assert data["project"]["name"] == "My-Cool-Project"
+
+    def test_barn_library_dir_is_lowercase(self, cased_project):
+        assert (cased_project / "barn" / "hay-my-cool-project").is_dir()
+        # Directory listing rather than .exists(): on a case-insensitive
+        # filesystem (default macOS), .exists() on the wrong-cased path would
+        # resolve to the same inode and pass regardless of actual casing.
+        assert [p.name for p in (cased_project / "barn").iterdir()] == ["hay-my-cool-project"]
+
+    def test_module_dir_is_lowercase(self, cased_project):
+        assert (cased_project / "barn" / "hay-my-cool-project" / "hay_my_cool_project").is_dir()
+
+    def test_haybale_toml_name_is_lowercase(self, cased_project):
+        data = toml.loads(
+            (
+                cased_project / "barn" / "hay-my-cool-project" / "hay_my_cool_project" / "haybale.toml"
+            ).read_text()
+        )
+        assert data["name"] == "hay-my-cool-project"
 
 
 class TestUserGlobalStaysEmpty:
@@ -436,7 +678,7 @@ class TestSameNameAcrossProjectsAllowed:
             assert project_mp.is_file()
             data = toml.loads(project_mp.read_text())
             names = [entry["name"] for entry in data.get("heaps", [])]
-            assert names == ["haybale-test-project"]
+            assert names == ["hay-test-project"]
 
 
 class TestDevModeProjectRegistration:
@@ -455,7 +697,7 @@ class TestDevModeProjectRegistration:
         names = {entry["name"] for entry in data.get("heaps", [])}
 
         # The scaffolded project library:
-        assert "haybale-test-dev-project" in names
+        assert "hay-test-dev-project" in names
 
         # The dev-repo libraries:
         for dev_lib in [
@@ -476,7 +718,7 @@ class TestDevModeProjectRegistration:
         dev_root = _get_dev_repo_root()
 
         for entry in data["heaps"]:
-            if entry["name"] == "haybale-test-dev-project":
+            if entry["name"] == "hay-test-dev-project":
                 continue  # The project's own library lives in the project, not the dev repo
             path = entry["path"]
             assert path.startswith(dev_root), f"{entry['name']}: {path} not under {dev_root}"
@@ -493,7 +735,7 @@ class TestDevModeProjectRegistration:
         """Without --dev, only the project's own library appears in the project marketplace."""
         data = toml.loads((scaffold_project_with_fake_home / ".haywire" / "marketplace.toml").read_text())
         names = [entry["name"] for entry in data.get("heaps", [])]
-        assert names == ["haybale-test-project"]
+        assert names == ["hay-test-project"]
 
     def test_dev_heaps_carry_decorator_dependencies(self, scaffold_dev_with_fake_home):
         """A dev heap records its @library(linked_libraries=...) so the install gate can check.

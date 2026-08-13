@@ -31,7 +31,7 @@ def test_init_writes_barn_library_readme_with_marker_pair(
     monkeypatch.chdir(tmp_path)
     init_project("my-project", auto_sync=False)
 
-    lib_readme = tmp_path / "my-project" / "barn" / "haybale-my-project" / "README.md"
+    lib_readme = tmp_path / "my-project" / "barn" / "hay-my-project" / "README.md"
     assert lib_readme.is_file()
     content = lib_readme.read_text()
     assert "<!-- marketstall:share-url:start -->" in content
