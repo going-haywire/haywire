@@ -12,6 +12,8 @@ import os
 import subprocess
 from typing import Any
 
+import toml
+
 from haywire.core.tomlio import edit_toml
 
 from .graphs import apply_graphs
@@ -49,7 +51,7 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
             stem = plan.new_dist.removeprefix("haybale-").removeprefix("hay-")
             entry_points[stem] = f"{plan.new_module}:Library"
             doc["tool"]["hatch"]["build"]["targets"]["wheel"]["packages"] = [plan.new_module]
-    except (OSError, KeyError) as exc:
+    except (OSError, KeyError, toml.TomlDecodeError) as exc:
         return False, f"Failed to update library metadata: {exc}\nRecover with:\n  {RECOVERY}"
 
     sink(f"Rewriting {len(plan.python_changes)} Python file(s)...")
@@ -91,7 +93,7 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
                     if str(heap.get("name", "")).lower() == plan.old_dist.lower():
                         heap["name"] = plan.new_dist
                         heap["path"] = str(plan.new_lib_dir)
-    except (OSError, KeyError) as exc:
+    except (OSError, KeyError, toml.TomlDecodeError) as exc:
         return False, f"Failed to update project configuration: {exc}\nRecover with:\n  {RECOVERY}"
 
     sink(f"Patching {len(plan.graph_changes)} graph file(s)...")
@@ -119,17 +121,26 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
                         for i, dep in enumerate(list(deps)):
                             if str(dep).lower() == plan.old_dist.lower():
                                 deps[i] = plan.new_dist
-        except (OSError, KeyError) as exc:
+        except (OSError, KeyError, toml.TomlDecodeError) as exc:
             return False, f"Failed to update dependents: {exc}\nRecover with:\n  {RECOVERY}"
 
     # ── phase 5: uv sync ────────────────────────────────────────────────
     sink("Running uv sync...")
-    result = subprocess.run(
-        ["uv", "sync"],
-        cwd=str(plan.workspace_root),
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-    )
+    try:
+        result = subprocess.run(
+            ["uv", "sync"],
+            cwd=str(plan.workspace_root),
+            stdout=subprocess.PIPE,
+            stderr=subprocess.STDOUT,
+        )
+    except OSError as exc:
+        # The source rename is complete and correct — this is an environment
+        # problem (e.g. `uv` missing from PATH). Advising a revert would
+        # discard good work, so no RECOVERY hint here either.
+        return False, (
+            f"Source rename to {plan.new_dist} completed, but `uv sync` could not be run: {exc}\n"
+            f"Fix the environment (e.g. install/fix `uv` on PATH) and re-run:\n  uv sync"
+        )
     for line in result.stdout.decode().splitlines():
         sink(line)
     if result.returncode != 0:
