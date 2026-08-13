@@ -3282,10 +3282,9 @@
 </span><span id="__span-0-76"><a id="__codelineno-0-76" name="__codelineno-0-76" href="#__codelineno-0-76"></a>
 </span><span id="__span-0-77"><a id="__codelineno-0-77" name="__codelineno-0-77" href="#__codelineno-0-77"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
-<p>from: <code>TestEmitCallbackNode</code> — registry_key: <code>testing:node:TestEmitCallbackNode</code></p>
+<p>from: <code>TestEmitCallbackNode</code> — registry_key: <code>haybale-testing:node:TestEmitCallbackNode</code></p>
 <p><strong>Role-specific:</strong> EXEC inlet (<code>execute</code>) + EXEC outlet (<code>exec</code>) makes this CONTROL. The worker returns the outlet ID <code>"exec"</code> to continue control flow. <code>context.emit_callback(event_name=..., payload=...)</code> dispatches to listener nodes by name. <code>PooledType[CALLBACK].as_inlet(...)</code> collects all connected listener IDs into a dict.</p>
 <h2 id="data-pure-compute">DATA — pure compute<a class="headerlink" href="#data-pure-compute" title="Permanent link">&para;</a></h2>
-<p><code>TestAddFloatNode</code> — registry_key: <code>testing:node:TestAddFloatNode</code></p>
 <p>A DATA node has <strong>no EXEC ports</strong>. It runs only when a downstream CONTROL node demands one of its outputs. Its worker returns <code>None</code> and writes results via <code>self.out(...)</code>.</p>
 <p>Source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py</code></p>
 <p><code>TestAddFloatNode</code> is the minimal DATA node: two FLOAT inlets, one FLOAT outlet, worker adds them and returns <code>None</code>:</p>
@@ -3310,13 +3309,11 @@
 </span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;result&quot;</span><span class="p">,</span> <span class="n">value_a</span> <span class="o">+</span> <span class="n">value_b</span><span class="p">)</span>
 </span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a>        <span class="k">return</span> <span class="kc">None</span>
 </span></code></pre></div>
-<p>from: <code>TestBeginPlayNode</code> — registry_key: <code>testing:node:TestBeginPlayNode</code></p>
-<p><strong>Role-specific:</strong> no EXEC ports, returns <code>None</code>, runs lazily on demand from downstream.
-<code>CustomCallbackNode</code> — registry_key: <code>example:node:CustomCallbackNode</code></p>
+<p>from: <code>TestAddFloatNode</code> — registry_key: <code>haybale-testing:node:TestAddFloatNode</code></p>
+<p><strong>Role-specific:</strong> no EXEC ports, returns <code>None</code>, runs lazily on demand from downstream.</p>
 <h2 id="event-event_subscription">EVENT — <code>event_subscription</code><a class="headerlink" href="#event-event_subscription" title="Permanent link">&para;</a></h2>
 <p>An EVENT node has no EXEC inlet either, but unlike DATA it is an <strong>entry point</strong> of a control flow: it runs when an event source fires. The role-defining hook is <code>self.event_subscription</code>, set in <code>post_init()</code>.</p>
 <h3 id="system-event">System event<a class="headerlink" href="#system-event" title="Permanent link">&para;</a></h3>
-<p><code>EmitCallbackNode</code> — registry_key: <code>example:node:EmitCallbackNode</code></p>
 <p>Source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py</code></p>
 <p><code>TestBeginPlayNode</code> fires once when execution starts, emitting the current timestamp:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@node</span><span class="p">(</span>
@@ -3345,7 +3342,7 @@
 </span><span id="__span-2-24"><a id="__codelineno-2-24" name="__codelineno-2-24" href="#__codelineno-2-24"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;timestamp&quot;</span><span class="p">,</span> <span class="n">time</span><span class="o">.</span><span class="n">time</span><span class="p">())</span>
 </span><span id="__span-2-25"><a id="__codelineno-2-25" name="__codelineno-2-25" href="#__codelineno-2-25"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
-<p>from: <code>ForLoopNode</code> — registry_key: <code>core:node:ForLoopNode</code></p>
+<p>from: <code>TestBeginPlayNode</code> — registry_key: <code>haybale-testing:node:TestBeginPlayNode</code></p>
 <p><strong>Role-specific:</strong> <code>event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)</code> in <code>post_init()</code>. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID <code>"exec"</code> to trigger control flow.</p>
 <h3 id="callback-event-pair-listener-emitter">Callback event pair (listener + emitter)<a class="headerlink" href="#callback-event-pair-listener-emitter" title="Permanent link">&para;</a></h3>
 <p><code>event_subscription</code> also accepts <code>CallbackEvent(event_name=...)</code>, which lets one node trigger another by name. A callback listener needs a matching emitter, so we show the pair together.</p>
@@ -3439,6 +3436,7 @@
 </span><span id="__span-3-86"><a id="__codelineno-3-86" name="__codelineno-3-86" href="#__codelineno-3-86"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;payload&quot;</span><span class="p">,</span> <span class="n">payload</span><span class="p">)</span>
 </span><span id="__span-3-87"><a id="__codelineno-3-87" name="__codelineno-3-87" href="#__codelineno-3-87"></a>        <span class="k">return</span> <span class="s2">&quot;triggered&quot;</span>
 </span></code></pre></div>
+<p>from: <code>CustomCallbackNode</code> — registry_key: <code>haybale-example:node:CustomCallbackNode</code></p>
 <p><strong>Emitter</strong> — source: <code>barn/haybale-example/haybale_example/nodes/emits/emit_callback.py</code></p>
 <p><code>EmitCallbackNode</code> is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via <code>PooledType[CALLBACK]</code>, and emits to them via <code>context.emit_callback</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Emit Callback&quot;</span><span class="p">,</span>
@@ -3536,6 +3534,7 @@
 </span><span id="__span-4-93"><a id="__codelineno-4-93" name="__codelineno-4-93" href="#__codelineno-4-93"></a>
 </span><span id="__span-4-94"><a id="__codelineno-4-94" name="__codelineno-4-94" href="#__codelineno-4-94"></a>        <span class="k">return</span> <span class="s2">&quot;exec&quot;</span>
 </span></code></pre></div>
+<p>from: <code>EmitCallbackNode</code> — registry_key: <code>haybale-example:node:EmitCallbackNode</code></p>
 <p><strong>What the pair shows:</strong></p>
 <ul>
 <li><strong><code>allow_multiple_links=True</code></strong> on the listener's <code>CALLBACK</code> outlet lets many emitters target the same listener (port detail in <a href="../ports/">guides/ports</a>).</li>
@@ -3680,6 +3679,7 @@
 </span><span id="__span-5-129"><a id="__codelineno-5-129" name="__codelineno-5-129" href="#__codelineno-5-129"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">out</span><span class="p">(</span><span class="s2">&quot;index&quot;</span><span class="p">,</span> <span class="n">current_index</span><span class="p">)</span>
 </span><span id="__span-5-130"><a id="__codelineno-5-130" name="__codelineno-5-130" href="#__codelineno-5-130"></a>        <span class="k">return</span> <span class="s2">&quot;loop_body&quot;</span>
 </span></code></pre></div>
+<p>from: <code>ForLoopNode</code> — registry_key: <code>haybale-core:node:ForLoopNode</code></p>
 <p><strong>Role-specific:</strong></p>
 <ul>
 <li><strong><code>needs_loopback=True</code></strong> on <code>loop_body</code> declares the round-trip: the VM remembers this node and returns control to it after the body completes.</li>

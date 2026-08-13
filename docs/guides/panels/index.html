@@ -3153,7 +3153,7 @@
 </span><span id="__span-2-34"><a id="__codelineno-2-34" name="__codelineno-2-34" href="#__codelineno-2-34"></a>
 </span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
-<p>from: <code>NodeInfoPanel</code> — registry_key: <code>graph_editor:panel:NodeInfoPanel</code></p>
+<p>from: <code>NodeInfoPanel</code> — registry_key: <code>haybale-graph-editor:panel:NodeInfoPanel</code></p>
 <p><strong>Type-specific:</strong> no <code>actions=</code> on <code>@panel</code> — introspect panels are display-only. <code>poll()</code> gates on <code>ctx.data[EditState].active_node</code>, so the panel appears only while a node is selected. <code>with layout:</code> places all rows inside the panel's container.</p>
 <h2 id="properties-settings-panel">Properties / settings panel<a class="headerlink" href="#properties-settings-panel" title="Permanent link">&para;</a></h2>
 <p>Settings panels register against settings-scope focuses (<code>CanvasFocus</code>, <code>AppFocus</code>, <code>ExecutionFocus</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
@@ -3180,7 +3180,7 @@
 </span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>
 </span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
-<p>from: <code>CanvasSettingsPanel</code> — registry_key: <code>studio:panel:CanvasSettingsPanel</code></p>
+<p>from: <code>CanvasSettingsPanel</code> — registry_key: <code>haybale-studio:panel:CanvasSettingsPanel</code></p>
 <p><strong>Type-specific:</strong> no <code>actions=</code>, no <code>poll()</code> override — settings panels are always visible for their focus. <code>render_schema(SettingsClass, registry)</code> renders every field in the schema as a labelled input widget.</p>
 <h2 id="graph-menu-canvas-panel">Graph menu / canvas panel<a class="headerlink" href="#graph-menu-canvas-panel" title="Permanent link">&para;</a></h2>
 <p>Canvas menu panels register against <code>CanvasFocus</code> with <code>actions=CanvasContextActions</code> and surface on right-click on empty canvas space.</p>
@@ -3232,7 +3232,7 @@
 </span><span id="__span-4-44"><a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>
 </span><span id="__span-4-45"><a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
-<p>from: <code>CreateNodeMenuPanel</code> — registry_key: <code>graph_editor:panel:CreateNodeMenuPanel</code></p>
+<p>from: <code>CreateNodeMenuPanel</code> — registry_key: <code>haybale-graph-editor:panel:CreateNodeMenuPanel</code></p>
 <p><strong>Type-specific:</strong> <code>actions=CanvasContextActions</code> wires the panel to the canvas action protocol. <code>poll()</code> returns <code>True</code> unconditionally — the canvas menu always has at least "Create Node". <code>self.actions.create_node_at_click(registry_key)</code> dispatches via the action protocol; the host resolves the concrete implementation.</p>
 <h2 id="graph-menu-selection-panel">Graph menu / selection panel<a class="headerlink" href="#graph-menu-selection-panel" title="Permanent link">&para;</a></h2>
 <p>Selection menu panels register against <code>SelectionFocus</code> and surface when one or more nodes or edges are selected.</p>
@@ -3271,7 +3271,7 @@
 </span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>
 </span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
-<p>from: <code>DeleteSelectionMenuPanel</code> — registry_key: <code>graph_editor:panel:DeleteSelectionMenuPanel</code></p>
+<p>from: <code>DeleteSelectionMenuPanel</code> — registry_key: <code>haybale-graph-editor:panel:DeleteSelectionMenuPanel</code></p>
 <p><strong>Type-specific:</strong> <code>poll()</code> gates on <code>edit.selected_nodes or edit.selected_edges</code> — the panel is hidden when nothing is selected. <code>selection_label()</code> (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").</p>
 <h2 id="graph-toolbar-panel">Graph toolbar panel<a class="headerlink" href="#graph-toolbar-panel" title="Permanent link">&para;</a></h2>
 <p>Toolbar panels register against <code>ToolbarFocus</code> and contribute a single icon button to the floating toolbar that appears over a canvas selection.</p>
@@ -3299,7 +3299,7 @@
 </span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>
 </span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
-<p>from: <code>CopyToolbarPanel</code> — registry_key: <code>graph_editor:panel:CopyToolbarPanel</code></p>
+<p>from: <code>CopyToolbarPanel</code> — registry_key: <code>haybale-graph-editor:panel:CopyToolbarPanel</code></p>
 <p><strong>Type-specific:</strong> <code>draw()</code> renders exactly one <code>hui.icon_action(...)</code>. The toolbar host owns the <code>ui.row</code> container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.</p>
 <h2 id="graph-menu-skin-panel">Graph menu / skin panel<a class="headerlink" href="#graph-menu-skin-panel" title="Permanent link">&para;</a></h2>
 <p>A skin panel is a <code>*MenuPanel</code> registered against a custom focus set by the skin layer via DOM attributes. Two attributes control which focus the context menu fires:</p>
@@ -3344,7 +3344,7 @@
 </span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>
 </span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
-<p>from: <code>PortInfoMenuPanel</code> — registry_key: <code>graph_editor:panel:PortInfoMenuPanel</code></p>
+<p>from: <code>PortInfoMenuPanel</code> — registry_key: <code>haybale-graph-editor:panel:PortInfoMenuPanel</code></p>
 <p><strong>Type-specific:</strong> <code>actions=PortContextActions</code> is an empty marker — there are no methods to dispatch; the panel only reads <code>ctx.data[EditState].active_port</code>. <code>layout.container</code> (not <code>with layout:</code>) is used here to render directly into the bare container without an extra wrapper.</p>
 <h2 id="file-browser-menu-panel">File browser menu panel<a class="headerlink" href="#file-browser-menu-panel" title="Permanent link">&para;</a></h2>
 <p>File browser menu panels register against <code>FileFocus</code> (from haybale-studio) and surface in the FileBrowser's right-click menu.</p>
@@ -3390,7 +3390,7 @@
 </span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>                <span class="n">on_click</span><span class="o">=</span><span class="n">_do_open</span><span class="p">,</span>
 </span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>            <span class="p">)</span>
 </span></code></pre></div>
-<p>from: <code>OpenInHaystackMenuPanel</code> — registry_key: <code>haystack:panel:OpenInHaystackMenuPanel</code></p>
+<p>from: <code>OpenInHaystackMenuPanel</code> — registry_key: <code>haybale-haystack:panel:OpenInHaystackMenuPanel</code></p>
 <p><strong>Type-specific:</strong> <code>poll()</code> checks the file extension via <code>ctx.data[FileBrowserState].right_clicked_file</code>. <code>self.actions.reveal(EditorClass, binding_id, label)</code> tells the studio to open or focus the named editor bound to that file. The panel lives in haybale-haystack (not haybale-studio) because it depends on <code>HaystackState</code>, which is owned by that library.</p>
 
 

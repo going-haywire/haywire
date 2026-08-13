@@ -3357,7 +3357,7 @@
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a>        <span class="n">registry_cls</span><span class="o">=</span><span class="n">FarmhandRegistry</span><span class="p">,</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a>    <span class="p">)</span>
 </span></code></pre></div>
-<p><strong>The <code>'studio'</code> library-id prefix is reserved.</strong> <code>barn/haybale-studio</code>'s baseline tools (<code>studio_status</code>, <code>studio_list_components</code>, ...) own the <code>studio</code> library id; the reservation is enforced by library-id uniqueness at discovery, not by <code>FarmhandRegistry</code> itself. Don't register a second library under the <code>studio</code> id.</p>
+<p><strong>The <code>'haybale-studio'</code> registry-key prefix is reserved.</strong> <code>barn/haybale-studio</code>'s baseline tools (<code>studio_status</code>, <code>studio_list_components</code>, ...) own it; the reservation is enforced by distribution-name uniqueness at discovery, not by <code>FarmhandRegistry</code> itself. Don't register a second library under that distribution name.</p>
 <h2 id="4-agent-facing-output">4. Agent-facing output<a class="headerlink" href="#4-agent-facing-output" title="Permanent link">&para;</a></h2>
 <p>Everything above is about making a tool <em>work</em>. This section is about making it <em>usable by an agent</em> — a different discipline, with its own failure modes, and the one most easily skipped because a tool that ignores all of it still passes its tests.</p>
 <p>Two costs drive every rule here:</p>
@@ -3509,7 +3509,7 @@
 </span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">FarmhandContext</span><span class="p">,</span> <span class="n">text</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;echo&quot;</span><span class="p">:</span> <span class="n">text</span><span class="p">}</span>
 </span></code></pre></div>
-<p>from: <code>echo_tool</code> — registry_key: <code>testing:farmhand:echo_tool</code></p>
+<p>from: <code>EchoTool</code> — registry_key: <code>haybale-testing:farmhand:echo</code></p>
 <p><strong>The <code>FarmhandError</code> contract</strong> — a tool that always fails, to exercise the structured-error path in tests:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@farmhand</span><span class="p">(</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Fail&quot;</span><span class="p">,</span>
@@ -3523,7 +3523,7 @@
 </span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="k">async</span> <span class="k">def</span><span class="w"> </span><span class="nf">run</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">FarmhandContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
 </span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>        <span class="k">raise</span> <span class="n">FarmhandError</span><span class="p">(</span><span class="s2">&quot;testing_failure&quot;</span><span class="p">,</span> <span class="s2">&quot;This tool always fails.&quot;</span><span class="p">,</span> <span class="n">ids</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;tool&quot;</span><span class="p">:</span> <span class="s2">&quot;fail&quot;</span><span class="p">})</span>
 </span></code></pre></div>
-<p>from: <code>fail_tool</code> — registry_key: <code>testing:farmhand:fail_tool</code></p>
+<p>from: <code>FailTool</code> — registry_key: <code>haybale-testing:farmhand:fail</code></p>
 <p><strong>Pagination + filtering</strong> — <code>ctx.registry()</code>, the <code>page()</code>/<code>truncation_note()</code> convention, and an <code>include_*</code> opt-out pattern for rows excluded by default:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@farmhand</span><span class="p">(</span>
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;List libraries&quot;</span><span class="p">,</span>
@@ -3582,7 +3582,7 @@
 </span><span id="__span-9-55"><a id="__codelineno-9-55" name="__codelineno-9-55" href="#__codelineno-9-55"></a>
 </span><span id="__span-9-56"><a id="__codelineno-9-56" name="__codelineno-9-56" href="#__codelineno-9-56"></a><span class="n">_KIND_ENUM</span> <span class="o">=</span> <span class="nb">sorted</span><span class="p">(</span><span class="n">kind_registry_map</span><span class="p">())</span>
 </span></code></pre></div>
-<p>from: <code>list_libraries_tool</code> — registry_key: <code>studio:farmhand:list_libraries_tool</code></p>
+<p>from: <code>StudioListLibrariesTool</code> — registry_key: <code>haybale-studio:farmhand:list_libraries</code></p>
 <p><strong>Mutually-exclusive arguments, idempotent delete, and <code>ctx.broadcast</code></strong> — validates exactly one of two optional arguments is set before doing anything, and notifies open studio UIs after a mutation:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@farmhand</span><span class="p">(</span>
 </span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Dismiss errors&quot;</span><span class="p">,</span>
@@ -3635,7 +3635,7 @@
 </span><span id="__span-10-49"><a id="__codelineno-10-49" name="__codelineno-10-49" href="#__codelineno-10-49"></a>        <span class="n">ctx</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">ErrorLedgerChanged</span><span class="p">())</span>
 </span><span id="__span-10-50"><a id="__codelineno-10-50" name="__codelineno-10-50" href="#__codelineno-10-50"></a>        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;summary&quot;</span><span class="p">:</span> <span class="n">summary</span><span class="p">,</span> <span class="s2">&quot;cursor&quot;</span><span class="p">:</span> <span class="n">ledger</span><span class="o">.</span><span class="n">current_seq</span><span class="p">}</span>
 </span></code></pre></div>
-<p>from: <code>dismiss_errors_tool</code> — registry_key: <code>studio:farmhand:dismiss_errors_tool</code></p>
+<p>from: <code>StudioDismissErrorsTool</code> — registry_key: <code>haybale-studio:farmhand:dismiss_errors</code></p>
 <p>What these examples exercise:</p>
 <table>
 <thead>

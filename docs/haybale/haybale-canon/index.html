@@ -1184,10 +1184,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#three-files-three-jobs" class="md-nav__link">
+  <a href="#two-files-two-jobs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Three files, three jobs
+        Two files, two jobs
       
     </span>
   </a>
@@ -3399,10 +3399,10 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#three-files-three-jobs" class="md-nav__link">
+  <a href="#two-files-two-jobs" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Three files, three jobs
+        Two files, two jobs
       
     </span>
   </a>
@@ -3768,7 +3768,7 @@ subscribe to.</p>
 (<code>haybale-image</code>) and the Python module name (<code>haybale_image</code>) are different
 things — pip uses hyphens, Python imports use underscores, and the entry point
 connects them.</p>
-<h3 id="three-files-three-jobs">Three files, three jobs<a class="headerlink" href="#three-files-three-jobs" title="Permanent link">&para;</a></h3>
+<h3 id="two-files-two-jobs">Two files, two jobs<a class="headerlink" href="#two-files-two-jobs" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
 <tr>
@@ -3780,18 +3780,13 @@ connects them.</p>
 <tbody>
 <tr>
 <td><a href="../../reference/files/haybale-toml/"><code>haybale.toml</code></a></td>
-<td>Everything descriptive: label, description, tags, os, paths, URLs, authors</td>
+<td>Everything descriptive: name, label, description, tags, os, paths, URLs, authors</td>
 <td>You, or the studio's edit modal</td>
 </tr>
 <tr>
 <td><a href="../../reference/files/pyproject-toml/"><code>pyproject.toml</code></a></td>
 <td><code>dependencies</code>, the entry point, build config. Its <code>[project]</code> block is generated</td>
 <td>You (<code>dependencies</code> only)</td>
-</tr>
-<tr>
-<td><code>__init__.py</code></td>
-<td>The <code>Library</code> class; <code>@library(…)</code></td>
-<td>You</td>
 </tr>
 </tbody>
 </table>
@@ -3800,7 +3795,7 @@ the package, so it reaches consumers in the wheel and is read from disk at the
 point of use: editing it is a file write, visible on the next read, with no
 <code>uv sync</code>, no reinstall, and no registry reload. <code>pyproject.toml</code> cannot do this
 — it is not installed — which is why its descriptive fields are generated from
-<code>haybale.toml</code> when you publish. See <a href="../../adr/0025-haybale-toml-is-canon/">ADR 0025</a>.</p>
+<code>haybale.toml</code> when you publish.</p>
 <h3 id="how-it-is-discovered">How it is discovered<a class="headerlink" href="#how-it-is-discovered" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Author writes                 pyproject.toml                Discovery
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>─────────────                 ──────────────                ─────────
@@ -4030,7 +4025,7 @@ scanning state first keeps a single class object live.</p>
 </tr>
 </tbody>
 </table>
-<p>The <code>haybale-</code> prefix is conventional, not required, but tools assume it.</p>
+<p>The <code>haybale-</code> prefix is conventional, not required, but tools assume it. <code>haywire init</code> scaffolds local project libraries under a different prefix, <code>hay-</code>, instead — <code>hay-</code> is a reserved namespace for local-only libraries, so a library must be renamed off it (<code>haywire rename</code>) before it can be shared through <code>haywire share</code>.</p>
 <p><strong><code>name</code> is load-bearing and stable.</strong> It becomes the prefix of every
 component's <code>registry_key</code> — <code>haybale-image-tools:node:Resize</code>. Changing it
 after publishing orphans every saved graph that references those keys, which

@@ -3555,7 +3555,7 @@
 <p><code>shadow()</code> and <code>watch()</code> accept either a descriptor reference (<code>shadow(CanvasSettings.snap_to_grid)</code>) or a raw key string (<code>shadow("ui.canvas.snap_to_grid")</code>), and the source must be declared on a DIFFERENT class — a same-bag sibling raises <code>ValueError</code>. <code>graph()</code> accepts <strong>only</strong> a descriptor reference, and only one whose owner is a <code>GraphSettings</code> subclass — <code>TypeError</code> at class-definition time otherwise. Use <code>shadow()</code>/<code>watch()</code> for a registry-backed (Framework/Library) source; use <code>graph()</code> for a <code>GraphSettings</code> source. Pointing <code>shadow()</code> at a <code>GraphSettings</code> field instead of using <code>graph()</code> fails loudly at wiring time (bag construction), naming the fix.</p>
 <p><strong>The accessor name.</strong> A node's <code>class filter(NodeSettings):</code> becomes <code>self.filter</code> on every instance. The class name is the accessor name — pick descriptive ones (<code>filter</code>, <code>output</code>, <code>api</code>). Multiple accessors per node are allowed; each gets its own <code>_setting_key</code> namespace.</p>
 <p><strong><code>@node</code> derives the namespace automatically.</strong> From a node's <code>registry_key</code>:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>registry_key: haybale_core:node:transform
+<div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>example key: haybale-core:node:transform
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  → namespace: haybale_core.node.transform
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>  → field key: haybale_core.node.transform.filter.threshold
 </span></code></pre></div>
@@ -3988,7 +3988,7 @@ a <code>CHOICES</code>-typed setting with no special-case handling.</p>
 </span><span id="__span-17-56"><a id="__codelineno-17-56" name="__codelineno-17-56" href="#__codelineno-17-56"></a>        <span class="n">category</span><span class="o">=</span><span class="s2">&quot;root&quot;</span><span class="p">,</span>
 </span><span id="__span-17-57"><a id="__codelineno-17-57" name="__codelineno-17-57" href="#__codelineno-17-57"></a>    <span class="p">)</span>
 </span></code></pre></div>
-<p>from: <code>TestingSettings</code> — registry_key: <code>testing:setting:TestingSettings</code></p>
+<p>from: <code>TestingSettings</code> — registry_key: <code>haybale-testing:setting:TestingSettings</code></p>
 <p><strong>NodeSettings with every descriptor</strong> — source: <code>barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py</code></p>
 <p><code>SettingsNode.example</code> exercises every <code>setting()</code> type, <code>shadow()</code>, <code>watch()</code>, and <code>validator</code> in one inner class:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="nd">@node</span><span class="p">(</span>
@@ -4130,7 +4130,7 @@ a <code>CHOICES</code>-typed setting with no special-case handling.</p>
 </span><span id="__span-18-137"><a id="__codelineno-18-137" name="__codelineno-18-137" href="#__codelineno-18-137"></a>            <span class="n">validator</span><span class="o">=</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="nb">isinstance</span><span class="p">(</span><span class="n">v</span><span class="p">,</span> <span class="nb">int</span><span class="p">)</span> <span class="ow">and</span> <span class="n">v</span> <span class="o">%</span> <span class="mi">2</span> <span class="o">==</span> <span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-18-138"><a id="__codelineno-18-138" name="__codelineno-18-138" href="#__codelineno-18-138"></a>        <span class="p">)</span>
 </span></code></pre></div>
-<p>from: <code>SettingsNode</code> — registry_key: <code>testing:node:SettingsNode</code></p>
+<p>from: <code>SettingsNode</code> — registry_key: <code>haybale-testing:node:SettingsNode</code></p>
 <p>What these examples exercise:</p>
 <table>
 <thead>

@@ -3429,12 +3429,12 @@
 <p>The tag moves with the code it wraps, and <code>check_paths: true</code> in <code>mkdocs.yml</code> fails the build if the tag is ever deleted — so drift is caught loudly instead of silently. Tag names must be unique per file; pick a name that describes the concept being shown (<code>startup-state-wiring</code>), not the file it's in.</p>
 <p>At build time mkdocs inlines either form as a real, syntax-highlighted code block. This is the mechanism to reach for whenever a canon/arch page shows a "here's what this looks like in practice" example — see <code>node-canon.md</code>, <code>setting-canon.md</code>, <code>haybale-canon.md</code> for the existing (tag-based, pre-dating this split) pattern.</p>
 <h4 id="library-components-nodes-types-panels-must-also-print-the-registry-key">Library components (nodes, types, panels, …) must also print the registry key<a class="headerlink" href="#library-components-nodes-types-panels-must-also-print-the-registry-key" title="Permanent link">&para;</a></h4>
-<p>A library component isn't just its source location — at runtime it's addressed by its <strong>registry key</strong>, <code>&lt;library_id&gt;:&lt;component_type&gt;:&lt;registry_id&gt;</code> (built by <code>reg_key()</code>; see <code>reference/glossary.md</code>). </p>
+<p>A library component isn't just its source location — at runtime it's addressed by its <strong>registry key</strong>, <code>&lt;library_name&gt;:&lt;component_type&gt;:&lt;registry_id&gt;</code> (built by <code>reg_key()</code>; see <code>reference/glossary.md</code>). </p>
 <blockquote>
 <p><strong>Worked example — linking to a node's source</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="o">--</span><span class="mi">8</span><span class="o">&lt;--</span> <span class="s2">&quot;barn/haybale-example/haybale_example/nodes/math_op.py:11:20&quot;</span>
 </span></code></pre></div>
-<p>from: <code>MathOP</code> — registry_key: <code>example:node:MathOP</code></p>
+<p>from: <code>MathOP</code> — registry_key: <code>haybale-example:node:MathOP</code></p>
 </blockquote>
 <p>which renders as:</p>
 <blockquote>
@@ -3447,15 +3447,15 @@
 </span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
 </span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">MathOP</span><span class="p">(</span><span class="n">BaseNode</span><span class="p">):</span>
 </span></code></pre></div>
-<p>from <code>MathOP</code> — registry_key: <code>example:node:MathOP</code></p>
+<p>from <code>MathOP</code> — registry_key: <code>haybale-example:node:MathOP</code></p>
 </blockquote>
-<p>Assemble the key from source:<code>&lt;library_id&gt;:&lt;component_type&gt;:&lt;class_name&gt;</code>, unless the component's decorator sets an explicit <code>registry_id</code>/<code>id</code>, in which case that replaces <code>&lt;class_name&gt;</code>:</p>
+<p>Assemble the key from source:<code>&lt;library_name&gt;:&lt;component_type&gt;:&lt;class_name&gt;</code>, unless the component's decorator sets an explicit <code>registry_id</code>/<code>id</code>, in which case that replaces <code>&lt;class_name&gt;</code>:</p>
 <ol>
-<li><strong><code>&lt;library_id&gt;</code></strong> — the <code>id=</code> argument on that package's <code>@library(...)</code> decorator (in <code>&lt;package&gt;/__init__.py</code>). Not the package or directory name - they differ.</li>
+<li><strong><code>&lt;library_name&gt;</code></strong> — the library's <strong>distribution (pip package) name</strong>, e.g. <code>haybale-example</code> (<code>name</code> inside <code>haybale.toml</code> or more simply the folder name right below barn/).</li>
 <li><strong><code>&lt;component_type&gt;</code></strong> — the fixed string for the kind of component (<code>node</code>, <code>type</code>, <code>panel</code>, <code>widget</code>, <code>setting</code>, <code>adapter</code>, <code>editor</code>, <code>theme</code>, <code>skin</code>, <code>state</code>; see <code>NODE</code>/<code>WIDGET</code>/<code>TYPE</code>/… in <code>packages/haywire-core/src/haywire/core/library/utils.py</code>).</li>
 <li><strong><code>&lt;class_name-or-registry_id&gt;</code></strong> — check the component's own decorator (<code>@node(...)</code>, <code>@panel(...)</code>, etc.) for an explicit `registry_id=`` kwarg. If present, use it. If absent, it defaults to the class name.</li>
 </ol>
-<p>Grep both files rather than trusting memory — a library's <code>id=</code> and a component's <code>registry_id=</code> are each set in exactly one place, and neither has to match what its surrounding path or class name suggests.</p>
+<p>Grep the package's <code>pyproject.toml</code> and the component's decorator rather than trusting memory — a library's distribution name and a component's <code>registry_id=</code> are each set in exactly one place, and neither has to match what its surrounding path or class name suggests.</p>
 <h3 id="3b-plain-markdown-links-for-pointing-at-a-filesymbol-without-embedding-it">3b. Plain markdown links — for pointing at a file/symbol without embedding it<a class="headerlink" href="#3b-plain-markdown-links-for-pointing-at-a-filesymbol-without-embedding-it" title="Permanent link">&para;</a></h3>
 <p>Source files live outside <code>docs_dir</code>, so they can't be linked as markdown doc-links (mkdocs' strict mode treats any link target that isn't a file under <code>docs/</code> as unresolved). Point at source with plain text — a code-styled path, optionally a GitHub blob URL with a <code>#L&lt;n&gt;</code> anchor when the repo is browsed there:</p>
 <div class="language-markdown highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>See <span class="sb">`packages/haywire-core/src/haywire/core/execution/execution_context.py`</span> for the full class.
