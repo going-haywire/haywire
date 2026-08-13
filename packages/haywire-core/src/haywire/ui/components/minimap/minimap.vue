@@ -100,6 +100,12 @@ export default {
     };
     document.addEventListener('zoom-pan-state', this._onZoomPanState);
 
+    // Cached container size (see _getMainContainerSize) — invalidated on resize,
+    // which is the only thing that changes it.
+    this._containerSize = null;
+    this._onWindowResize = () => { this._containerSize = null; };
+    window.addEventListener('resize', this._onWindowResize);
+
     // Initial scan after the first two animation frames (same timing as fitToContent).
     requestAnimationFrame(() => requestAnimationFrame(() => this.scanContent()));
 
@@ -109,6 +115,7 @@ export default {
 
   beforeUnmount() {
     document.removeEventListener('zoom-pan-state', this._onZoomPanState);
+    if (this._onWindowResize) window.removeEventListener('resize', this._onWindowResize);
     clearInterval(this._scanInterval);
     if (this._fadeTimer) clearTimeout(this._fadeTimer);
   },
@@ -203,11 +210,33 @@ export default {
       this._scaleFactor = Math.min(contentW / cw, contentH / ch, 1.0);
     },
 
+    /** Container size, cached. Only width/height are ever read, and those change
+     *  on resize — not on zoom or pan.
+     *
+     *  This is called on every zoom-pan-state event, i.e. every zoom frame, and
+     *  a live getBoundingClientRect() there is a forced synchronous layout. When
+     *  a zoom frame also crosses an LOD threshold, pan.vue has just written
+     *  data-lod-level, dirtying style for the whole canvas subtree — so the read
+     *  makes the browser recompute every element before it can answer. Measured
+     *  on a 200-node graph: ~36ms per crossing interleaved, versus ~0ms for the
+     *  write and the read taken separately. That was the zoom hitch.
+     */
+    _getMainContainerSize() {
+      if (!this._containerSize) {
+        const el = this._getMainContainer();
+        if (!el) return null;
+        const rect = el.getBoundingClientRect();
+        this._containerSize = { width: rect.width, height: rect.height };
+      }
+      return this._containerSize;
+    },
+
     _updateViewport(zoom, panX, panY) {
       const el = this._getMainContainer();
       if (!el) return;
 
-      const rect       = el.getBoundingClientRect();
+      const rect       = this._getMainContainerSize();
+      if (!rect) return;
       const sf         = this._scaleFactor;
       const { minX, minY } = this._contentBounds;
 
@@ -226,6 +255,10 @@ export default {
     scanContent() {
       const el = this._getMainContainer();
       if (!el) return;
+
+      // Drop the cached container size — this runs on the periodic rescan, so
+      // the cache self-heals even if a resize is somehow missed.
+      this._containerSize = null;
 
       const content = el.querySelector('.zoom-pan-content');
       if (!content) return;
