@@ -3790,7 +3790,7 @@ connects them.</p>
 </tr>
 <tr>
 <td><code>__init__.py</code></td>
-<td>The <code>Library</code> class; <code>@library(id=…)</code></td>
+<td>The <code>Library</code> class; <code>@library(…)</code></td>
 <td>You</td>
 </tr>
 </tbody>
@@ -3805,7 +3805,7 @@ point of use: editing it is a file write, visible on the next read, with no
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>Author writes                 pyproject.toml                Discovery
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>─────────────                 ──────────────                ─────────
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>haybale.toml            ┐     [project.entry-points         LibraryDiscovery scans
-</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>@library(id=&#39;image&#39;)    │      &quot;haywire.libraries&quot;]         installed packages at startup
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>@library()               │      &quot;haywire.libraries&quot;]         installed packages at startup
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>class Library(...):     │     image = &quot;haybale_image:Library&quot;        ↓
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  register_components() │                                   LibraryRegistry imports the
 </span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>  validate()            ┘                                   module, instantiates Library,
@@ -3822,8 +3822,8 @@ How metadata moves from your file to a consumer — see
 <a href="../metadata-flow/">metadata-flow</a>.</p>
 <h2 id="3-haybaletoml">3. <code>haybale.toml</code><a class="headerlink" href="#3-haybaletoml" title="Permanent link">&para;</a></h2>
 <p>Beside <code>__init__.py</code>, inside the package:</p>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-image&quot;</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">id</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;image&quot;</span>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-image&quot;</span><span class="w">   </span><span class="c1"># the library&#39;s sole identifier — also prefixes</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">                          </span><span class="c1"># every component&#39;s registry_key (haybale-image:node:Resize)</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">version</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.1.0&quot;</span><span class="w">   </span><span class="c1"># canon here; generated copy synced into pyproject.toml — see §5, don&#39;t hand-edit</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">label</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Image Processing&quot;</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">description</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Image processing nodes for haywire — resize, filter, convert.&quot;</span>
@@ -3852,15 +3852,15 @@ How metadata moves from your file to a consumer — see
 </span><span id="__span-2-28"><a id="__codelineno-2-28" name="__codelineno-2-28" href="#__codelineno-2-28"></a><span class="n">name</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Your Name&quot;</span>
 </span><span id="__span-2-29"><a id="__codelineno-2-29" name="__codelineno-2-29" href="#__codelineno-2-29"></a><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://your.site&quot;</span><span class="w">      </span><span class="c1"># optional</span>
 </span></code></pre></div>
-<p>The smallest valid file is five keys — <code>name</code>, <code>id</code>, <code>version</code>, <code>label</code>, and a
-<code>description</code> worth reading. <code>id</code> and <code>version</code> are the two whose absence is
+<p>The smallest valid file is four keys — <code>name</code>, <code>version</code>, <code>label</code>, and a
+<code>description</code> worth reading. <code>name</code> and <code>version</code> are the two whose absence is
 fatal; <code>haywire init</code> seeds <code>version</code> at scaffold, and the bump machinery
 keeps it current afterward, so an author rarely types it by hand.</p>
 <p><strong>Written for you, not by you.</strong> <code>scripts/bump_version.py</code> (monorepo lockstep
 release) and the share wizard (per-library publish) write <code>version</code>, synced
 from <code>pyproject.toml</code>; the share wizard also writes <code>origin</code> and
-<code>origin_provider</code>; the drift detector maintains <code>linked_libraries</code>. <code>name</code> and
-<code>id</code> are immutable — they key saved graphs and every consumer's install spec.
+<code>origin_provider</code>; the drift detector maintains <code>linked_libraries</code>. <code>name</code> is
+immutable — it keys saved graphs and every consumer's install spec.
 <code>[deprecated]</code> is hand-edited, since retiring a library should not be one stray
 click.</p>
 <p>Every field, its type, and which files it reaches:
@@ -3874,7 +3874,7 @@ click.</p>
 </span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.node.registry</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeRegistry</span>
 </span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>
 </span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nd">@library</span><span class="p">(</span><span class="nb">id</span><span class="o">=</span><span class="s1">&#39;image&#39;</span><span class="p">)</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="nd">@library</span><span class="p">()</span>
 </span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a><span class="k">class</span><span class="w"> </span><span class="nc">Library</span><span class="p">(</span><span class="n">BaseLibrary</span><span class="p">):</span>
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
 </span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
@@ -3888,9 +3888,9 @@ click.</p>
 </span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>
 </span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a><span class="n">__all__</span> <span class="o">=</span> <span class="p">[</span><span class="s1">&#39;Library&#39;</span><span class="p">]</span>
 </span></code></pre></div>
-<p><strong>The decorator takes two arguments, and only two.</strong> Everything descriptive —
-including <code>version</code> — lives in <code>haybale.toml</code>; passing it to the decorator
-raises <code>TypeError</code> naming the file it moved to.</p>
+<p><strong>The decorator takes one argument, and only one.</strong> Everything descriptive —
+including <code>name</code> and <code>version</code> — lives in <code>haybale.toml</code>; passing it to the
+decorator raises <code>TypeError</code> naming the file it moved to.</p>
 <table>
 <thead>
 <tr>
@@ -3900,11 +3900,6 @@ raises <code>TypeError</code> naming the file it moved to.</p>
 </tr>
 </thead>
 <tbody>
-<tr>
-<td><code>id</code></td>
-<td>yes</td>
-<td>Prefixes every component's <code>registry_key</code>. Also in <code>haybale.toml</code>, which wins; a mismatch is reported rather than guessed at</td>
-</tr>
 <tr>
 <td><code>file_watcher</code></td>
 <td>no</td>
@@ -4008,7 +4003,7 @@ instantiates it.</p>
 register it — farmhand and editor modules transitively import state classes, and
 scanning state first keeps a single class object live.</p>
 <h2 id="5-naming-and-versioning">5. Naming and versioning<a class="headerlink" href="#5-naming-and-versioning" title="Permanent link">&para;</a></h2>
-<p>Each of the four names has its own casing rule:</p>
+<p>Each of the three names has its own casing rule:</p>
 <table>
 <thead>
 <tr>
@@ -4020,18 +4015,13 @@ scanning state first keeps a single class object live.</p>
 <tbody>
 <tr>
 <td>Pip distribution (<code>name</code>)</td>
-<td><code>haybale-&lt;lowercase-hyphenated&gt;</code></td>
+<td><code>haybale-&lt;lowercase-hyphenated&gt;</code> — the library's sole identifier; also the <code>registry_key</code> prefix</td>
 <td><code>haybale-image-tools</code></td>
 </tr>
 <tr>
 <td>Python module</td>
 <td><code>haybale_&lt;lowercase_underscored&gt;</code></td>
 <td><code>haybale_image_tools</code></td>
-</tr>
-<tr>
-<td>Library <code>id</code></td>
-<td>lowercase; the module name without <code>haybale_</code></td>
-<td><code>image_tools</code></td>
 </tr>
 <tr>
 <td>Display <code>label</code></td>
@@ -4041,10 +4031,12 @@ scanning state first keeps a single class object live.</p>
 </tbody>
 </table>
 <p>The <code>haybale-</code> prefix is conventional, not required, but tools assume it.</p>
-<p><strong><code>id</code> is load-bearing and stable.</strong> It becomes the prefix of every component's
-<code>registry_key</code> — <code>image_tools:node:Resize</code>. Changing it after publishing orphans
-every saved graph that references those keys, which is why it is immutable and
-there is no supported rename path today.</p>
+<p><strong><code>name</code> is load-bearing and stable.</strong> It becomes the prefix of every
+component's <code>registry_key</code> — <code>haybale-image-tools:node:Resize</code>. Changing it
+after publishing orphans every saved graph that references those keys, which
+is why it is immutable and there is no supported rename path in the studio
+today (<code>haywire rename</code> rewrites it, and saved graphs' key prefixes, out of
+band).</p>
 <p><strong>SemVer.</strong> MAJOR for breaking changes (renamed nodes, changed port types,
 removed components), MINOR for backward-compatible additions, PATCH for fixes.
 You never keep the two copies in sync by hand: <code>haywire share</code> bumps
@@ -4152,10 +4144,10 @@ pipeline.</p>
   <code>version</code>, <code>requires-python</code>, and a
   <code>[project.entry-points."haywire.libraries"]</code> entry resolving to a
   <code>BaseLibrary</code> subclass.</li>
-<li><strong><code>haybale.toml</code></strong> inside the package, declaring at least <code>name</code>, <code>id</code>,
+<li><strong><code>haybale.toml</code></strong> inside the package, declaring at least <code>name</code>,
   <code>version</code> and <code>label</code>. Missing or malformed, that library alone fails to
   load and the error names the file.</li>
-<li><strong><code>@library</code></strong> carrying only <code>id</code>, <code>file_watcher</code>.</li>
+<li><strong><code>@library</code></strong> carrying only <code>file_watcher</code>.</li>
 <li><strong>For PyPI publishing</strong>: a valid PyPI package (Trusted Publisher recommended).</li>
 <li><strong>For marketstall publishing</strong>: a valid <code>marketstall.toml</code>.</li>
 </ul>
@@ -4239,69 +4231,71 @@ you to fill in the decorator or docstring, then re-run.</p>
 — the framework's own test library, and the most complete <code>Library</code> subclass in
 the codebase. Pulled in live, so it cannot drift:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@library</span><span class="p">(</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="nb">id</span><span class="o">=</span><span class="s2">&quot;testing&quot;</span><span class="p">,</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">file_watcher</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="p">)</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">Library</span><span class="p">(</span><span class="n">BaseLibrary</span><span class="p">):</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Test library implementation&quot;&quot;&quot;</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register all test components with the global registries&quot;&quot;&quot;</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register nodes and types&quot;&quot;&quot;</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>        <span class="n">base_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="c1"># Register types</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;types&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">TypeRegistry</span><span class="p">)</span>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="c1"># Register adapters</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;adapters&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">AdapterRegistry</span><span class="p">)</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="c1"># Register themes</span>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;themes&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">ThemeRegistry</span><span class="p">)</span>
-</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>
-</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        <span class="c1"># Register widgets</span>
-</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;widgets&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">WidgetRegistry</span><span class="p">)</span>
-</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>
-</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        <span class="c1"># Register skins (node skins)</span>
-</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;skins&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">SkinRegistry</span><span class="p">)</span>
-</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>
-</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>        <span class="c1"># Register settings</span>
-</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
-</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;settings&quot;</span><span class="p">),</span>
-</span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">SettingsRegistry</span><span class="p">,</span>
-</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>        <span class="p">)</span>
-</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>
-</span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>        <span class="c1"># Register nodes</span>
-</span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;nodes&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">NodeRegistry</span><span class="p">)</span>
-</span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>
-</span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>        <span class="c1"># Register panels</span>
-</span><span id="__span-6-39"><a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;panels&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">PanelRegistry</span><span class="p">)</span>
-</span><span id="__span-6-40"><a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>
-</span><span id="__span-6-41"><a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a>        <span class="c1"># Register state LAST — deliberately adversarial ordering. Panels</span>
-</span><span id="__span-6-42"><a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>        <span class="c1"># registered above eagerly import TestSessionState, so by the time</span>
-</span><span id="__span-6-43"><a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a>        <span class="c1"># state/ is scanned the module is already in sys.modules. This is</span>
-</span><span id="__span-6-44"><a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a>        <span class="c1"># the placement that broke pre-fix: BaseRegistry._on_creation used</span>
-</span><span id="__span-6-45"><a id="__codelineno-6-45" name="__codelineno-6-45" href="#__codelineno-6-45"></a>        <span class="c1"># to force-reload the module, producing a second class object and</span>
-</span><span id="__span-6-46"><a id="__codelineno-6-46" name="__codelineno-6-46" href="#__codelineno-6-46"></a>        <span class="c1"># leaving the panel&#39;s reference stale. The fix makes class</span>
-</span><span id="__span-6-47"><a id="__codelineno-6-47" name="__codelineno-6-47" href="#__codelineno-6-47"></a>        <span class="c1"># identity stable regardless of scan order. See</span>
-</span><span id="__span-6-48"><a id="__codelineno-6-48" name="__codelineno-6-48" href="#__codelineno-6-48"></a>        <span class="c1"># tests/core/test_libraries/test_registries.py.</span>
-</span><span id="__span-6-49"><a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
-</span><span id="__span-6-50"><a id="__codelineno-6-50" name="__codelineno-6-50" href="#__codelineno-6-50"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;state&quot;</span><span class="p">),</span>
-</span><span id="__span-6-51"><a id="__codelineno-6-51" name="__codelineno-6-51" href="#__codelineno-6-51"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">LibraryStateRegistry</span><span class="p">,</span>
-</span><span id="__span-6-52"><a id="__codelineno-6-52" name="__codelineno-6-52" href="#__codelineno-6-52"></a>        <span class="p">)</span>
-</span><span id="__span-6-53"><a id="__codelineno-6-53" name="__codelineno-6-53" href="#__codelineno-6-53"></a>
-</span><span id="__span-6-54"><a id="__codelineno-6-54" name="__codelineno-6-54" href="#__codelineno-6-54"></a>        <span class="c1"># Register MCP tools (canonical order: after state — tools may reference states)</span>
-</span><span id="__span-6-55"><a id="__codelineno-6-55" name="__codelineno-6-55" href="#__codelineno-6-55"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
-</span><span id="__span-6-56"><a id="__codelineno-6-56" name="__codelineno-6-56" href="#__codelineno-6-56"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;farmhands&quot;</span><span class="p">),</span>
-</span><span id="__span-6-57"><a id="__codelineno-6-57" name="__codelineno-6-57" href="#__codelineno-6-57"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">FarmhandRegistry</span><span class="p">,</span>
-</span><span id="__span-6-58"><a id="__codelineno-6-58" name="__codelineno-6-58" href="#__codelineno-6-58"></a>        <span class="p">)</span>
-</span><span id="__span-6-59"><a id="__codelineno-6-59" name="__codelineno-6-59" href="#__codelineno-6-59"></a>
-</span><span id="__span-6-60"><a id="__codelineno-6-60" name="__codelineno-6-60" href="#__codelineno-6-60"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-6-61"><a id="__codelineno-6-61" name="__codelineno-6-61" href="#__codelineno-6-61"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate that the test library is properly structured&quot;&quot;&quot;</span>
-</span><span id="__span-6-62"><a id="__codelineno-6-62" name="__codelineno-6-62" href="#__codelineno-6-62"></a>        <span class="k">return</span> <span class="kc">True</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">file_watcher</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a><span class="p">)</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a><span class="k">class</span><span class="w"> </span><span class="nc">Library</span><span class="p">(</span><span class="n">BaseLibrary</span><span class="p">):</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Test library implementation&quot;&quot;&quot;</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">register_components</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register all test components with the global registries&quot;&quot;&quot;</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Register nodes and types&quot;&quot;&quot;</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="n">base_path</span> <span class="o">=</span> <span class="n">Path</span><span class="p">(</span><span class="vm">__file__</span><span class="p">)</span><span class="o">.</span><span class="n">parent</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="c1"># Register types</span>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;types&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">TypeRegistry</span><span class="p">)</span>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>        <span class="c1"># Register adapters</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;adapters&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">AdapterRegistry</span><span class="p">)</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>        <span class="c1"># Register themes</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;themes&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">ThemeRegistry</span><span class="p">)</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a>
+</span><span id="__span-6-22"><a id="__codelineno-6-22" name="__codelineno-6-22" href="#__codelineno-6-22"></a>        <span class="c1"># Register widgets</span>
+</span><span id="__span-6-23"><a id="__codelineno-6-23" name="__codelineno-6-23" href="#__codelineno-6-23"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;widgets&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">WidgetRegistry</span><span class="p">)</span>
+</span><span id="__span-6-24"><a id="__codelineno-6-24" name="__codelineno-6-24" href="#__codelineno-6-24"></a>
+</span><span id="__span-6-25"><a id="__codelineno-6-25" name="__codelineno-6-25" href="#__codelineno-6-25"></a>        <span class="c1"># Register skins (node skins)</span>
+</span><span id="__span-6-26"><a id="__codelineno-6-26" name="__codelineno-6-26" href="#__codelineno-6-26"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;skins&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">SkinRegistry</span><span class="p">)</span>
+</span><span id="__span-6-27"><a id="__codelineno-6-27" name="__codelineno-6-27" href="#__codelineno-6-27"></a>
+</span><span id="__span-6-28"><a id="__codelineno-6-28" name="__codelineno-6-28" href="#__codelineno-6-28"></a>        <span class="c1"># Register settings</span>
+</span><span id="__span-6-29"><a id="__codelineno-6-29" name="__codelineno-6-29" href="#__codelineno-6-29"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
+</span><span id="__span-6-30"><a id="__codelineno-6-30" name="__codelineno-6-30" href="#__codelineno-6-30"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;settings&quot;</span><span class="p">),</span>
+</span><span id="__span-6-31"><a id="__codelineno-6-31" name="__codelineno-6-31" href="#__codelineno-6-31"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">SettingsRegistry</span><span class="p">,</span>
+</span><span id="__span-6-32"><a id="__codelineno-6-32" name="__codelineno-6-32" href="#__codelineno-6-32"></a>        <span class="p">)</span>
+</span><span id="__span-6-33"><a id="__codelineno-6-33" name="__codelineno-6-33" href="#__codelineno-6-33"></a>
+</span><span id="__span-6-34"><a id="__codelineno-6-34" name="__codelineno-6-34" href="#__codelineno-6-34"></a>        <span class="c1"># Register nodes</span>
+</span><span id="__span-6-35"><a id="__codelineno-6-35" name="__codelineno-6-35" href="#__codelineno-6-35"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;nodes&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">NodeRegistry</span><span class="p">)</span>
+</span><span id="__span-6-36"><a id="__codelineno-6-36" name="__codelineno-6-36" href="#__codelineno-6-36"></a>
+</span><span id="__span-6-37"><a id="__codelineno-6-37" name="__codelineno-6-37" href="#__codelineno-6-37"></a>        <span class="c1"># Register panels</span>
+</span><span id="__span-6-38"><a id="__codelineno-6-38" name="__codelineno-6-38" href="#__codelineno-6-38"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span><span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;panels&quot;</span><span class="p">),</span> <span class="n">registry_cls</span><span class="o">=</span><span class="n">PanelRegistry</span><span class="p">)</span>
+</span><span id="__span-6-39"><a id="__codelineno-6-39" name="__codelineno-6-39" href="#__codelineno-6-39"></a>
+</span><span id="__span-6-40"><a id="__codelineno-6-40" name="__codelineno-6-40" href="#__codelineno-6-40"></a>        <span class="c1"># Register state LAST — deliberately adversarial ordering. Panels</span>
+</span><span id="__span-6-41"><a id="__codelineno-6-41" name="__codelineno-6-41" href="#__codelineno-6-41"></a>        <span class="c1"># registered above eagerly import TestSessionState, so by the time</span>
+</span><span id="__span-6-42"><a id="__codelineno-6-42" name="__codelineno-6-42" href="#__codelineno-6-42"></a>        <span class="c1"># state/ is scanned the module is already in sys.modules. This is</span>
+</span><span id="__span-6-43"><a id="__codelineno-6-43" name="__codelineno-6-43" href="#__codelineno-6-43"></a>        <span class="c1"># the placement that broke pre-fix: BaseRegistry._on_creation used</span>
+</span><span id="__span-6-44"><a id="__codelineno-6-44" name="__codelineno-6-44" href="#__codelineno-6-44"></a>        <span class="c1"># to force-reload the module, producing a second class object and</span>
+</span><span id="__span-6-45"><a id="__codelineno-6-45" name="__codelineno-6-45" href="#__codelineno-6-45"></a>        <span class="c1"># leaving the panel&#39;s reference stale. The fix makes class</span>
+</span><span id="__span-6-46"><a id="__codelineno-6-46" name="__codelineno-6-46" href="#__codelineno-6-46"></a>        <span class="c1"># identity stable regardless of scan order. See</span>
+</span><span id="__span-6-47"><a id="__codelineno-6-47" name="__codelineno-6-47" href="#__codelineno-6-47"></a>        <span class="c1"># tests/core/test_libraries/test_registries.py.</span>
+</span><span id="__span-6-48"><a id="__codelineno-6-48" name="__codelineno-6-48" href="#__codelineno-6-48"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
+</span><span id="__span-6-49"><a id="__codelineno-6-49" name="__codelineno-6-49" href="#__codelineno-6-49"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;state&quot;</span><span class="p">),</span>
+</span><span id="__span-6-50"><a id="__codelineno-6-50" name="__codelineno-6-50" href="#__codelineno-6-50"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">LibraryStateRegistry</span><span class="p">,</span>
+</span><span id="__span-6-51"><a id="__codelineno-6-51" name="__codelineno-6-51" href="#__codelineno-6-51"></a>        <span class="p">)</span>
+</span><span id="__span-6-52"><a id="__codelineno-6-52" name="__codelineno-6-52" href="#__codelineno-6-52"></a>
+</span><span id="__span-6-53"><a id="__codelineno-6-53" name="__codelineno-6-53" href="#__codelineno-6-53"></a>        <span class="c1"># Register MCP tools (canonical order: after state — tools may reference states)</span>
+</span><span id="__span-6-54"><a id="__codelineno-6-54" name="__codelineno-6-54" href="#__codelineno-6-54"></a>        <span class="bp">self</span><span class="o">.</span><span class="n">add_folder_to_registry</span><span class="p">(</span>
+</span><span id="__span-6-55"><a id="__codelineno-6-55" name="__codelineno-6-55" href="#__codelineno-6-55"></a>            <span class="n">folder_path</span><span class="o">=</span><span class="nb">str</span><span class="p">(</span><span class="n">base_path</span> <span class="o">/</span> <span class="s2">&quot;farmhands&quot;</span><span class="p">),</span>
+</span><span id="__span-6-56"><a id="__codelineno-6-56" name="__codelineno-6-56" href="#__codelineno-6-56"></a>            <span class="n">registry_cls</span><span class="o">=</span><span class="n">FarmhandRegistry</span><span class="p">,</span>
+</span><span id="__span-6-57"><a id="__codelineno-6-57" name="__codelineno-6-57" href="#__codelineno-6-57"></a>        <span class="p">)</span>
+</span><span id="__span-6-58"><a id="__codelineno-6-58" name="__codelineno-6-58" href="#__codelineno-6-58"></a>
+</span><span id="__span-6-59"><a id="__codelineno-6-59" name="__codelineno-6-59" href="#__codelineno-6-59"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">validate</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-6-60"><a id="__codelineno-6-60" name="__codelineno-6-60" href="#__codelineno-6-60"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;Validate that the test library is properly structured&quot;&quot;&quot;</span>
+</span><span id="__span-6-61"><a id="__codelineno-6-61" name="__codelineno-6-61" href="#__codelineno-6-61"></a>        <span class="k">return</span> <span class="kc">True</span>
+</span><span id="__span-6-62"><a id="__codelineno-6-62" name="__codelineno-6-62" href="#__codelineno-6-62"></a>
+</span><span id="__span-6-63"><a id="__codelineno-6-63" name="__codelineno-6-63" href="#__codelineno-6-63"></a>
+</span><span id="__span-6-64"><a id="__codelineno-6-64" name="__codelineno-6-64" href="#__codelineno-6-64"></a><span class="c1"># Export for entry point discovery</span>
 </span></code></pre></div>
-<p>from: <code>Library</code> — registry_key: <code>testing:library:Library</code></p>
+<p>from: <code>Library</code> — registry_key: <code>haybale-testing:library:Library</code></p>
 <table>
 <thead>
 <tr>
@@ -4311,7 +4305,7 @@ the codebase. Pulled in live, so it cannot drift:</p>
 </thead>
 <tbody>
 <tr>
-<td><code>@library(id=…, file_watcher=True)</code></td>
+<td><code>@library(file_watcher=True)</code></td>
 <td>decoration</td>
 </tr>
 <tr>
@@ -4341,8 +4335,8 @@ the codebase. Pulled in live, so it cannot drift:</p>
 <h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Distribution <code>haybale-&lt;name&gt;</code> (hyphen); module <code>haybale_&lt;name&gt;</code> (underscore)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>haybale.toml</code> inside the package with <code>name</code>, <code>id</code>, <code>version</code>, <code>label</code></li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@library(id='…')</code> — parens always; only <code>id</code> / <code>file_watcher</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>haybale.toml</code> inside the package with <code>name</code>, <code>version</code>, <code>label</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@library()</code> — parens always; only <code>file_watcher</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>Library(BaseLibrary)</code> in <code>__init__.py</code> implementing <code>register_components</code> and <code>validate</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>__all__ = ['Library']</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>[project.entry-points."haywire.libraries"]</code> pointing at <code>&lt;module&gt;:Library</code></li>
@@ -4430,8 +4424,8 @@ the codebase. Pulled in live, so it cannot drift:</p>
 <td>Produces a scope matching no module; rejected at read time</td>
 </tr>
 <tr>
-<td>Changing <code>id</code> after publishing</td>
-<td>Orphans saved graphs referencing <code>&lt;old_id&gt;:node:…</code></td>
+<td>Changing <code>name</code> after publishing</td>
+<td>Orphans saved graphs referencing <code>&lt;old_name&gt;:node:…</code></td>
 </tr>
 <tr>
 <td><code>file_watcher=True</code> on a non-editable install</td>
@@ -4467,7 +4461,7 @@ the codebase. Pulled in live, so it cannot drift:</p>
    <code>LibraryLoadError</code> — the latter means it was discovered but failed during
    <code>register_components()</code> or <code>validate()</code>.</p>
 <h3 id="haybaletomlerror-at-startup"><code>HaybaleTomlError</code> at startup<a class="headerlink" href="#haybaletomlerror-at-startup" title="Permanent link">&para;</a></h3>
-<p>The file is missing, malformed, or declares no <code>id</code>. It is fatal for that
+<p>The file is missing, malformed, or declares no <code>name</code>. It is fatal for that
 library alone — the studio still starts and the error names the file. Check that
 <code>haybale.toml</code> sits <strong>inside</strong> the package directory, beside <code>__init__.py</code>, and
 that no <code>[tool.hatch.build.targets.wheel] include</code> excludes it.</p>
