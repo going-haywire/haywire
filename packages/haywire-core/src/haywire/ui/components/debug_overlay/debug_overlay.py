@@ -38,6 +38,7 @@ class DebugOverlay(ui.element, component="debug_overlay.vue"):
         self._props["container-id"] = zoom_container.container_id
         self._props["position"] = do.position
         self._props["visible"] = do.enabled
+        self._props["census-interval-ms"] = do.census_interval_ms
 
         self._settings.subscribe(self._on_setting_changed)
 
@@ -47,6 +48,8 @@ class DebugOverlay(ui.element, component="debug_overlay.vue"):
             self.set_enabled(value)
         elif name == "position":
             self.set_position(value)
+        elif name == "census_interval_ms":
+            self.set_census_interval(value)
 
     # ── Public API ────────────────────────────────────────────────────────────
 
@@ -63,4 +66,9 @@ class DebugOverlay(ui.element, component="debug_overlay.vue"):
     def set_position(self, position: str) -> None:
         """Change the debug overlay corner position."""
         self._props["position"] = position
+        self.update()
+
+    def set_census_interval(self, interval_ms: int) -> None:
+        """Change how often the overlay recounts canvas DOM elements."""
+        self._props["census-interval-ms"] = interval_ms
         self.update()

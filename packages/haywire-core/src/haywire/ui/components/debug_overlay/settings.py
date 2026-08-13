@@ -4,7 +4,7 @@
 from haywire.core.namespaces import NAMESPACE_UI_DEBUG_OVERLAY
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES
+from haywire.barn.builtin.types import BOOL, CHOICES, INT
 
 
 class DebugOverlaySettings(FrameworkSettings, namespace=NAMESPACE_UI_DEBUG_OVERLAY):
@@ -20,4 +20,14 @@ class DebugOverlaySettings(FrameworkSettings, namespace=NAMESPACE_UI_DEBUG_OVERL
         label="Overlay Position",
         description="Corner position of the debug overlay",
         widget_config={"options": ["top-left", "top-right", "bottom-left", "bottom-right"]},
+    )
+    census_interval_ms = setting[INT](
+        1000,
+        label="DOM Census Interval (ms)",
+        description=(
+            "How often the overlay recounts canvas DOM elements. The census walks the "
+            "whole canvas subtree, so on very large graphs it costs real frame time — "
+            "raise this to make the HUD cheaper, lower it for a more responsive count."
+        ),
+        widget_config={"min": 100, "max": 10000, "step": 100},
     )
