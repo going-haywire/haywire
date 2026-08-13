@@ -47,6 +47,30 @@ def test_does_not_rewrite_lookalike_module():
 
 
 @pytest.mark.unit
+def test_rewrites_comma_joined_import_only_matching_name():
+    out, n = _rw("import haybale_foo, os\n")
+    assert out == "import hay_bar, os\n"
+    assert n == 1
+
+
+@pytest.mark.unit
+def test_rewrites_semicolon_joined_import_statements():
+    out, n = _rw("import haybale_foo; import os\n")
+    assert out == "import hay_bar; import os\n"
+    assert n == 1
+
+
+@pytest.mark.unit
+def test_does_not_rewrite_lookalike_module_in_comma_joined_import():
+    """Regression guard: word-boundary matching must not false-positive on a
+    longer identifier sharing the prefix, even alongside other rewritable names."""
+    src = "import haybale_foobar, haybale_foo\n"
+    out, n = _rw(src)
+    assert out == "import haybale_foobar, hay_bar\n"
+    assert n == 1
+
+
+@pytest.mark.unit
 def test_rewrites_self_referencing_registry_key_literal():
     """types/specs.py:9 does exactly this — an unrewritten key dangles."""
     src = 'X = spec(widget_key="haybale-foo:widget:TemperatureWidget")\n'
@@ -102,3 +126,16 @@ def test_scan_prose_reports_only_unhandled_lines():
 def test_preserves_comments_and_blank_lines():
     out, _ = _rw("from haybale_foo import A  # keep me\n\n\nY = 2\n")
     assert out == "from hay_bar import A  # keep me\n\n\nY = 2\n"
+
+
+@pytest.mark.unit
+def test_comma_joined_import_excluded_from_prose_because_actually_rewritten():
+    """A line the AST detects as an import must not vanish from both the rewrite
+    output AND the prose report — verify it's excluded because it WAS rewritten,
+    not merely because the AST proved it's an import."""
+    from haywire_studio.packaging.rename.pysource import scan_prose
+
+    src = "import haybale_foo, os\n"
+    out, n = _rw(src)
+    assert n >= 1
+    assert scan_prose(src, OLD_MOD, OLD_DIST) == []

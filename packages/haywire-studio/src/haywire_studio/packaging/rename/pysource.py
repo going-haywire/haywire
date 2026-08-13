@@ -48,13 +48,26 @@ def _import_line_numbers(source: str, old_module: str) -> set[int]:
     return lines
 
 
+def _import_name_pattern(old_module: str) -> re.Pattern[str]:
+    """Match *old_module* as a whole dotted-path head, not a prefix of a longer name.
+
+    Boundaries: start/end of string, whitespace, ``,``, ``;``, and ``.`` all count —
+    everything a comma/semicolon-joined or dotted import can legally place next to a
+    module name. An identifier character (letter/digit/underscore) on either side means
+    it's part of a longer name (``haybale_foobar``) and must not match.
+    """
+    return re.compile(rf"(?<![\w.]){re.escape(old_module)}(?![\w])")
+
+
 def _rewrite_import_line(line: str, old_module: str, new_module: str) -> str:
-    replaced = line.replace(f"{old_module}.", f"{new_module}.")
-    replaced = replaced.replace(f" {old_module} ", f" {new_module} ")
-    if replaced.rstrip("\n").endswith(f" {old_module}"):
-        newline = "\n" if replaced.endswith("\n") else ""
-        replaced = replaced.rstrip("\n")[: -len(old_module)] + new_module + newline
-    return replaced
+    """Replace every whole-name occurrence of *old_module* in an import line.
+
+    Handles comma-joined (``import a, old_module, b``), semicolon-joined
+    (``import old_module; import os``), dotted (``old_module.sub``), and aliased
+    (``old_module as x``) forms alike — a single word-boundary-anchored substitution
+    rather than positional string patterns, so it can't miss a valid syntax shape.
+    """
+    return _import_name_pattern(old_module).sub(new_module, line)
 
 
 def _key_literal_pattern(old_dist: str) -> re.Pattern[str]:
