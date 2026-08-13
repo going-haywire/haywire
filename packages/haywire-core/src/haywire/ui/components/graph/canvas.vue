@@ -657,6 +657,14 @@ export default {
         },
 
         _onNodeHoverEnter(lodElement) {
+            // Mark the hovered card so LOD hover-persistence can re-admit its
+            // hidden descendants (pan.vue). Deliberately a JS-set class rather
+            // than a CSS `.zoom-pan-lod0:hover .zoom-pan-lod2` rule: a
+            // descendant-of-:hover selector makes Blink track hover state
+            // across every node's subtree, which turned each LOD crossing into
+            // a ~37ms restyle on a 200-node graph (0.1ms without it).
+            lodElement.classList.add('hw-lod-hover');
+
             // Clear any pending release so re-entering keeps it magnified.
             if (lodElement._magnifyExitTimer) {
                 clearTimeout(lodElement._magnifyExitTimer);
@@ -686,6 +694,8 @@ export default {
         },
 
         _onNodeHoverLeave(lodElement) {
+            lodElement.classList.remove('hw-lod-hover');
+
             // Cancel a pending magnify that never fired.
             if (lodElement._magnifyEnterTimer) {
                 clearTimeout(lodElement._magnifyEnterTimer);
