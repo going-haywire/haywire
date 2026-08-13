@@ -66,7 +66,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intros
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py:22:56"
 ```
 
-from: `NodeInfoPanel` — registry_key: `graph_editor:panel:NodeInfoPanel`
+from: `NodeInfoPanel` — registry_key: `haybale-graph-editor:panel:NodeInfoPanel`
 
 **Type-specific:** no `actions=` on `@panel` — introspect panels are display-only. `poll()` gates on `ctx.data[EditState].active_node`, so the panel appears only while a node is selected. `with layout:` places all rows inside the panel's container.
 
@@ -82,7 +82,7 @@ Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 --8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:34:53"
 ```
 
-from: `CanvasSettingsPanel` — registry_key: `studio:panel:CanvasSettingsPanel`
+from: `CanvasSettingsPanel` — registry_key: `haybale-studio:panel:CanvasSettingsPanel`
 
 **Type-specific:** no `actions=`, no `poll()` override — settings panels are always visible for their focus. `render_schema(SettingsClass, registry)` renders every field in the schema as a labelled input widget.
 
@@ -98,7 +98,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py:26:70"
 ```
 
-from: `CreateNodeMenuPanel` — registry_key: `graph_editor:panel:CreateNodeMenuPanel`
+from: `CreateNodeMenuPanel` — registry_key: `haybale-graph-editor:panel:CreateNodeMenuPanel`
 
 **Type-specific:** `actions=CanvasContextActions` wires the panel to the canvas action protocol. `poll()` returns `True` unconditionally — the canvas menu always has at least "Create Node". `self.actions.create_node_at_click(registry_key)` dispatches via the action protocol; the host resolves the concrete implementation.
 
@@ -114,7 +114,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/select
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:80:111"
 ```
 
-from: `DeleteSelectionMenuPanel` — registry_key: `graph_editor:panel:DeleteSelectionMenuPanel`
+from: `DeleteSelectionMenuPanel` — registry_key: `haybale-graph-editor:panel:DeleteSelectionMenuPanel`
 
 **Type-specific:** `poll()` gates on `edit.selected_nodes or edit.selected_edges` — the panel is hidden when nothing is selected. `selection_label()` (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").
 
@@ -130,7 +130,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/sel
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:29:49"
 ```
 
-from: `CopyToolbarPanel` — registry_key: `graph_editor:panel:CopyToolbarPanel`
+from: `CopyToolbarPanel` — registry_key: `haybale-graph-editor:panel:CopyToolbarPanel`
 
 **Type-specific:** `draw()` renders exactly one `hui.icon_action(...)`. The toolbar host owns the `ui.row` container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.
 
@@ -153,7 +153,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/p
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:26:57"
 ```
 
-from: `PortInfoMenuPanel` — registry_key: `graph_editor:panel:PortInfoMenuPanel`
+from: `PortInfoMenuPanel` — registry_key: `haybale-graph-editor:panel:PortInfoMenuPanel`
 
 **Type-specific:** `actions=PortContextActions` is an empty marker — there are no methods to dispatch; the panel only reads `ctx.data[EditState].active_port`. `layout.container` (not `with layout:`) is used here to render directly into the bare container without an extra wrapper.
 
@@ -169,6 +169,6 @@ Source: `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py
 --8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:35:76"
 ```
 
-from: `OpenInHaystackMenuPanel` — registry_key: `haystack:panel:OpenInHaystackMenuPanel`
+from: `OpenInHaystackMenuPanel` — registry_key: `haybale-haystack:panel:OpenInHaystackMenuPanel`
 
 **Type-specific:** `poll()` checks the file extension via `ctx.data[FileBrowserState].right_clicked_file`. `self.actions.reveal(EditorClass, binding_id, label)` tells the studio to open or focus the named editor bound to that file. The panel lives in haybale-haystack (not haybale-studio) because it depends on `HaystackState`, which is owned by that library.

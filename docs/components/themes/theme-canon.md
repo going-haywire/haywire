@@ -149,13 +149,13 @@ Source: [`barn/haybale-testing/haybale_testing/themes/`](../../../barn/haybale-t
 --8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:11:68"
 ```
 
-from: `TestDarkTheme` — registry_key: `testing:theme:TestDarkTheme`
+from: `TestDarkTheme` — registry_key: `haybale-testing:theme:workbench:TestDarkTheme`
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/themes/workbench.py:70:129"
 ```
 
-from: `TestLightTheme` — registry_key: `testing:theme:TestLightTheme`
+from: `TestLightTheme` — registry_key: `haybale-testing:theme:workbench:TestLightTheme`
 
 **NodeTheme** — `TestNodeTheme` sets all node-specific tokens. Independent of workbench themes; users mix freely:
 
@@ -163,7 +163,7 @@ from: `TestLightTheme` — registry_key: `testing:theme:TestLightTheme`
 --8<-- "barn/haybale-testing/haybale_testing/themes/node.py:9:28"
 ```
 
-from: `TestNodeTheme` — registry_key: `testing:theme:TestNodeTheme`
+from: `TestNodeTheme` — registry_key: `haybale-testing:theme:node:TestNodeTheme`
 
 What these examples exercise:
 

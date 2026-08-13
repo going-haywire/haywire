@@ -193,7 +193,7 @@ The salient excerpts:
 --8<-- "barn/haybale-studio/haybale_studio/editors/properties_editor.py:28:300"
 ```
 
-from: `PropertiesEditor` — registry_key: `studio:editor:PropertiesEditor`
+from: `PropertiesEditor` — registry_key: `haybale-studio:editor:PropertiesEditor`
 
 _rebuild_toolbar / _rebuild_content omitted for brevity — see source.
 

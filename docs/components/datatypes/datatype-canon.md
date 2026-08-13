@@ -71,7 +71,7 @@ Source: [`barn/haybale-example/haybale_example/types/`](../../../barn/haybale-ex
 --8<-- "barn/haybale-example/haybale_example/types/specs.py:6:33"
 ```
 
-from: `Temperature` — registry_key: `example:type:Temperature`
+from: `Temperature` — registry_key: `haybale-example:type:Temperature`
 
 **Derived type with widget and enum choices** — `MathOPSelector` extends `STRING` and pins a `SelectWidget` with a fixed option list at the type level:
 
@@ -79,7 +79,7 @@ from: `Temperature` — registry_key: `example:type:Temperature`
 --8<-- "barn/haybale-example/haybale_example/types/math.py:22:37"
 ```
 
-from: `MathOpSelector` — registry_key: `example:type:MathOpSelector`
+from: `MathOPSelector` — registry_key: `haybale-example:type:MathOPSelector`
 
 **Compound type** — `MapsStringType` is a `CompoundType[T]` for string-keyed maps. Demonstrates the compound category: parameterisable (`MapsStringType[FLOAT]`), custom `field_class` assigned post-definition, no `value` property (compound types are descriptors, not instances):
 
@@ -87,7 +87,7 @@ from: `MathOpSelector` — registry_key: `example:type:MathOpSelector`
 --8<-- "barn/haybale-example/haybale_example/types/maps_string_type.py:14:55"
 ```
 
-from: `MapsStringType` — registry_key: `example:type:MapsStringType`
+from: `MapsStringType` — registry_key: `haybale-example:type:MapsStringType`
 
 What these examples exercise:
 

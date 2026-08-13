@@ -25,13 +25,11 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:5:84"
 ```
 
-from: `TestEmitCallbackNode` — registry_key: `testing:node:TestEmitCallbackNode`
+from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
 
 **Role-specific:** EXEC inlet (`execute`) + EXEC outlet (`exec`) makes this CONTROL. The worker returns the outlet ID `"exec"` to continue control flow. `context.emit_callback(event_name=..., payload=...)` dispatches to listener nodes by name. `PooledType[CALLBACK].as_inlet(...)` collects all connected listener IDs into a dict.
 
 ## DATA — pure compute
-`TestAddFloatNode` — registry_key: `testing:node:TestAddFloatNode`
-
 
 A DATA node has **no EXEC ports**. It runs only when a downstream CONTROL node demands one of its outputs. Its worker returns `None` and writes results via `self.out(...)`.
 
@@ -43,19 +41,15 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py`
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/math_op_node.py:5:27"
 ```
 
-from: `TestBeginPlayNode` — registry_key: `testing:node:TestBeginPlayNode`
+from: `TestAddFloatNode` — registry_key: `haybale-testing:node:TestAddFloatNode`
 
 **Role-specific:** no EXEC ports, returns `None`, runs lazily on demand from downstream.
-`CustomCallbackNode` — registry_key: `example:node:CustomCallbackNode`
-
 
 ## EVENT — `event_subscription`
 
 An EVENT node has no EXEC inlet either, but unlike DATA it is an **entry point** of a control flow: it runs when an event source fires. The role-defining hook is `self.event_subscription`, set in `post_init()`.
 
 ### System event
-`EmitCallbackNode` — registry_key: `example:node:EmitCallbackNode`
-
 
 Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 
@@ -65,7 +59,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py`
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/begin_play_node.py:6:33"
 ```
 
-from: `ForLoopNode` — registry_key: `core:node:ForLoopNode`
+from: `TestBeginPlayNode` — registry_key: `haybale-testing:node:TestBeginPlayNode`
 
 **Role-specific:** `event_subscription = SystemEvent(SystemEventType.BEGIN_PLAY)` in `post_init()`. No EXEC inlet — the framework dispatches the event source instead. Worker returns the outlet ID `"exec"` to trigger control flow.
 
@@ -81,6 +75,8 @@ from: `ForLoopNode` — registry_key: `core:node:ForLoopNode`
 --8<-- "barn/haybale-example/haybale_example/nodes/emits/custom_callback.py:8:97"
 ```
 
+from: `CustomCallbackNode` — registry_key: `haybale-example:node:CustomCallbackNode`
+
 **Emitter** — source: `barn/haybale-example/haybale_example/nodes/emits/emit_callback.py`
 
 `EmitCallbackNode` is the CONTROL counterpart: it has an EXEC inlet, reads connected listener IDs via `PooledType[CALLBACK]`, and emits to them via `context.emit_callback`:
@@ -88,6 +84,8 @@ from: `ForLoopNode` — registry_key: `core:node:ForLoopNode`
 ```python
 --8<-- "barn/haybale-example/haybale_example/nodes/emits/emit_callback.py:6:102"
 ```
+
+from: `EmitCallbackNode` — registry_key: `haybale-example:node:EmitCallbackNode`
 
 **What the pair shows:**
 
@@ -110,6 +108,8 @@ Source: `barn/haybale-core/haybale_core/nodes/for_loop.py`
 ```python
 --8<-- "barn/haybale-core/haybale_core/nodes/for_loop.py:12:144"
 ```
+
+from: `ForLoopNode` — registry_key: `haybale-core:node:ForLoopNode`
 
 **Role-specific:**
 

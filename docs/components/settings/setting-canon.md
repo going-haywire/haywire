@@ -79,7 +79,7 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 **`@node` derives the namespace automatically.** From a node's `registry_key`:
 
 ```text
-registry_key: haybale_core:node:transform
+example key: haybale-core:node:transform
   → namespace: haybale_core.node.transform
   → field key: haybale_core.node.transform.filter.threshold
 ```
@@ -433,7 +433,7 @@ The callback fires on any change — local writes, global writes from other plac
 --8<-- "barn/haybale-testing/haybale_testing/settings/testing.py:10:69"
 ```
 
-from: `TestingSettings` — registry_key: `testing:setting:TestingSettings`
+from: `TestingSettings` — registry_key: `haybale-testing:setting:TestingSettings`
 
 **NodeSettings with every descriptor** — source: `barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py`
 
@@ -443,7 +443,7 @@ from: `TestingSettings` — registry_key: `testing:setting:TestingSettings`
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/settings_node.py:9:148"
 ```
 
-from: `SettingsNode` — registry_key: `testing:node:SettingsNode`
+from: `SettingsNode` — registry_key: `haybale-testing:node:SettingsNode`
 
 What these examples exercise:
 

@@ -204,7 +204,7 @@ Source: `barn/haybale-example/haybale_example/widgets/knob_widget.py`
 --8<-- "barn/haybale-example/haybale_example/widgets/knob_widget.py:10:45"
 ```
 
-from: `KnobWidget` — registry_key: `example:widget:KnobWidget`
+from: `KnobWidget` — registry_key: `haybale-example:widget:KnobWidget`
 
 Using it from a node's `init()`:
 

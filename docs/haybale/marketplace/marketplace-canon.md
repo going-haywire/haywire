@@ -118,7 +118,7 @@ live, so it cannot drift from the code:
 --8<-- "barn/haybale-marketplace/haybale_marketplace/__init__.py:11:50"
 ```
 
-from: `Library` — registry_key: `marketplace:library:Library`
+from: `Library` — registry_key: `haybale-marketplace:library:Library`
 
 It registers like any other haybale, and its descriptive metadata lives beside
 it in `haybale.toml` — see [haybale-canon](../haybale-canon.md) for the

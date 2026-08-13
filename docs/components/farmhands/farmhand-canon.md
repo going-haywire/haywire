@@ -259,7 +259,7 @@ If you are extending a *different* agent-facing surface — a CLI, for instance 
 --8<-- "barn/haybale-testing/haybale_testing/farmhands/echo_tool.py:6:19"
 ```
 
-from: `echo_tool` — registry_key: `testing:farmhand:echo_tool`
+from: `EchoTool` — registry_key: `haybale-testing:farmhand:echo`
 
 **The `FarmhandError` contract** — a tool that always fails, to exercise the structured-error path in tests:
 
@@ -267,7 +267,7 @@ from: `echo_tool` — registry_key: `testing:farmhand:echo_tool`
 --8<-- "barn/haybale-testing/haybale_testing/farmhands/fail_tool.py:6:19"
 ```
 
-from: `fail_tool` — registry_key: `testing:farmhand:fail_tool`
+from: `FailTool` — registry_key: `haybale-testing:farmhand:fail`
 
 **Pagination + filtering** — `ctx.registry()`, the `page()`/`truncation_note()` convention, and an `include_*` opt-out pattern for rows excluded by default:
 
@@ -275,7 +275,7 @@ from: `fail_tool` — registry_key: `testing:farmhand:fail_tool`
 --8<-- "barn/haybale-studio/haybale_studio/farmhands/catalog.py:31:86"
 ```
 
-from: `list_libraries_tool` — registry_key: `studio:farmhand:list_libraries_tool`
+from: `StudioListLibrariesTool` — registry_key: `haybale-studio:farmhand:list_libraries`
 
 **Mutually-exclusive arguments, idempotent delete, and `ctx.broadcast`** — validates exactly one of two optional arguments is set before doing anything, and notifies open studio UIs after a mutation:
 
@@ -283,7 +283,7 @@ from: `list_libraries_tool` — registry_key: `studio:farmhand:list_libraries_to
 --8<-- "barn/haybale-studio/haybale_studio/farmhands/errors.py:57:109"
 ```
 
-from: `dismiss_errors_tool` — registry_key: `studio:farmhand:dismiss_errors_tool`
+from: `StudioDismissErrorsTool` — registry_key: `haybale-studio:farmhand:dismiss_errors`
 
 What these examples exercise:
 

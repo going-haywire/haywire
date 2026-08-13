@@ -103,7 +103,7 @@ At build time mkdocs inlines either form as a real, syntax-highlighted code bloc
 
 #### Library components (nodes, types, panels, …) must also print the registry key
 
-A library component isn't just its source location — at runtime it's addressed by its **registry key**, `<library_id>:<component_type>:<registry_id>` (built by `reg_key()`; see `reference/glossary.md`). 
+A library component isn't just its source location — at runtime it's addressed by its **registry key**, `<library_name>:<component_type>:<registry_id>` (built by `reg_key()`; see `reference/glossary.md`). 
 
 > **Worked example — linking to a node's source**
 > 
@@ -111,7 +111,7 @@ A library component isn't just its source location — at runtime it's addressed
 > --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:11:20"
 > ```
 >
-> from: `MathOP` — registry_key: `example:node:MathOP`
+> from: `MathOP` — registry_key: `haybale-example:node:MathOP`
 
 which renders as:
 
@@ -126,16 +126,16 @@ which renders as:
 > class MathOP(BaseNode):
 > ```
 >
-> from `MathOP` — registry_key: `example:node:MathOP`
+> from `MathOP` — registry_key: `haybale-example:node:MathOP`
 
 
-Assemble the key from source:`<library_id>:<component_type>:<class_name>`, unless the component's decorator sets an explicit `registry_id`/`id`, in which case that replaces `<class_name>`:
+Assemble the key from source:`<library_name>:<component_type>:<class_name>`, unless the component's decorator sets an explicit `registry_id`/`id`, in which case that replaces `<class_name>`:
 
-1. **`<library_id>`** — the `id=` argument on that package's `@library(...)` decorator (in `<package>/__init__.py`). Not the package or directory name - they differ.
+1. **`<library_name>`** — the library's **distribution (pip package) name**, e.g. `haybale-example` (`name` inside `haybale.toml` or more simply the folder name right below barn/).
 2. **`<component_type>`** — the fixed string for the kind of component (`node`, `type`, `panel`, `widget`, `setting`, `adapter`, `editor`, `theme`, `skin`, `state`; see `NODE`/`WIDGET`/`TYPE`/… in `packages/haywire-core/src/haywire/core/library/utils.py`).
 3. **`<class_name-or-registry_id>`** — check the component's own decorator (`@node(...)`, `@panel(...)`, etc.) for an explicit `registry_id=`` kwarg. If present, use it. If absent, it defaults to the class name.
 
-Grep both files rather than trusting memory — a library's `id=` and a component's `registry_id=` are each set in exactly one place, and neither has to match what its surrounding path or class name suggests.
+Grep the package's `pyproject.toml` and the component's decorator rather than trusting memory — a library's distribution name and a component's `registry_id=` are each set in exactly one place, and neither has to match what its surrounding path or class name suggests.
 
 ### 3b. Plain markdown links — for pointing at a file/symbol without embedding it
 

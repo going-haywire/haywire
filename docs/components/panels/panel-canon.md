@@ -278,7 +278,7 @@ Source: [`barn/haybale-testing/haybale_testing/panels/graph/menu/`](../../../bar
 --8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:22:53"
 ```
 
-from: `TestDeleteNodeMenuPanel` — registry_key: `testing:panel:TestDeleteNodeMenuPanel`
+from: `TestDeleteNodeMenuPanel` — registry_key: `haybale-testing:panel:TestDeleteNodeMenuPanel`
 
 **SessionState-reading panel** — `TestSessionStateMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py`. Demonstrates `poll()` reading a `SessionState` signal field and `draw()` displaying it with `with layout: hui.label(...)`:
 
@@ -286,7 +286,7 @@ from: `TestDeleteNodeMenuPanel` — registry_key: `testing:panel:TestDeleteNodeM
 --8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py:57:82"
 ```
 
-from: `TestSessionStateMenuPanel` — registry_key: `testing:panel:TestSessionStateMenuPanel`
+from: `TestSessionStateMenuPanel` — registry_key: `haybale-testing:panel:TestSessionStateMenuPanel`
 
 What these examples exercise:
 

@@ -120,14 +120,14 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 ```python
 --8<-- "barn/haybale-example/haybale_example/nodes/math_op.py:12:64"
 ```
-from: `MathOP` — registry_key: `example:node:MathOP`
+from: `MathOP` — registry_key: `haybale-example:node:MathOP`
 
 **Dynamic ports — `DynamicPortTestNode`** from `barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py`. Demonstrates `on_change` triggering a `hb_*` helper, `with self.rejig(include=...)` for pattern-matched port replacement, and building dynamic port sets in a helper method:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/dynamic_port_test.py:13:68"
 ```
-from:`DynamicPortTestNode` — registry_key: `testing:node:DynamicPortTestNode`
+from:`DynamicPortTestNode` — registry_key: `haybale-testing:node:DynamicPortTestNode`
 
 What these examples exercise:
 

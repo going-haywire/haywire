@@ -148,7 +148,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py`
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/edge_link_test.py:10:122"
 ```
 
-from: `EdgeLinkTestNode` — registry_key: `testing:node:EdgeLinkTestNode`
+from: `EdgeLinkTestNode` — registry_key: `haybale-testing:node:EdgeLinkTestNode`
 
 What this example covers for port shapes:
 
@@ -172,7 +172,7 @@ Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.p
 --8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:5:84"
 ```
 
-from: `TestEmitCallbackNode` — registry_key: `testing:node:TestEmitCallbackNode`
+from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
 
 What this example covers for worker access:
 
