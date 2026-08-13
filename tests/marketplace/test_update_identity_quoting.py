@@ -57,8 +57,9 @@ def test_update_library_identity_writes_haybale_toml(tmp_path):
 
 
 def test_update_library_identity_rejects_fields_it_does_not_own(tmp_path):
-    """version/origin belong to the share wizard, name/id are immutable. Passing
-    one is a caller bug, so it fails loudly rather than being dropped."""
+    """version/origin belong to the share wizard, name is changed only by
+    `haywire rename`. Passing one is a caller bug, so it fails loudly rather
+    than being dropped."""
     from unittest.mock import MagicMock
 
     from haybale_marketplace.library_manager import LibraryManager
@@ -66,7 +67,7 @@ def test_update_library_identity_rejects_fields_it_does_not_own(tmp_path):
 
     pkg_dir = tmp_path / "barn" / "haybale-demo" / "haybale_demo"
     pkg_dir.mkdir(parents=True)
-    (pkg_dir / "haybale.toml").write_text('id = "demo"\nversion = "0.1.0"\n')
+    (pkg_dir / "haybale.toml").write_text('name = "haybale-demo"\nversion = "0.1.0"\n')
 
     registry = MagicMock()
     registry.get_library_distribution_name.return_value = "haybale-demo"

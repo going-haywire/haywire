@@ -14,10 +14,10 @@ logger = logging.getLogger(__name__)
 
 
 class FarmhandRegistry(BaseRegistry[Farmhand]):
-    """Registry for Farmhand classes using {lib_id}:farmhand:{name} keys.
+    """Registry for Farmhand classes using {distribution_name}:farmhand:{name} keys.
 
-    The 'studio' prefix belongs to barn/haybale-studio (library id 'studio',
-    home of the baseline tools); the reservation is enforced by library-id
+    The 'haybale-studio' prefix belongs to barn/haybale-studio, home of the
+    baseline tools; the reservation is enforced by distribution-name
     uniqueness at discovery, not by this registry (user decision 2026-07-19).
     """
 

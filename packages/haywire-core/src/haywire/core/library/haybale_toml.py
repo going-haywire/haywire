@@ -323,8 +323,8 @@ def _row_from(data: dict) -> "Haybale":
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: What :func:`write_haybale_fields` will set. Everything else in the file is
-#: off-limits to the editor: `name` and `id` are immutable (renaming rewrites
-#: registry keys and every consumer's install_spec), `version` is canon here and
+#: off-limits to the editor: `name` is changed only by `haywire rename` (it
+#: rewrites registry keys and every consumer's install_spec), `version` is canon here and
 #: is written by `scripts/bump_version.py` and the share wizard, which sync the
 #: generated copy into `pyproject.toml`, `origin` and `origin_provider` are
 #: written by the share wizard from facts it observes, and `[deprecated]` is
@@ -376,7 +376,7 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
         raise HaybaleTomlError(
             f"{package_dir / HAYBALE_TOML}: {', '.join(sorted(unknown))} "
             f"{'is' if len(unknown) == 1 else 'are'} not editable here. "
-            f"name/id are immutable, version is canon here but written by "
+            f"name is changed only by `haywire rename`, version is canon here but written by "
             f"scripts/bump_version.py or the share wizard rather than by hand, "
             f"origin is set by the share wizard, and [deprecated] is hand-edited."
         )

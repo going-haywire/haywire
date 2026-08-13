@@ -141,7 +141,7 @@ def register_components(self):
     )
 ```
 
-**The `'studio'` library-id prefix is reserved.** `barn/haybale-studio`'s baseline tools (`studio_status`, `studio_list_components`, ...) own the `studio` library id; the reservation is enforced by library-id uniqueness at discovery, not by `FarmhandRegistry` itself. Don't register a second library under the `studio` id.
+**The `'haybale-studio'` registry-key prefix is reserved.** `barn/haybale-studio`'s baseline tools (`studio_status`, `studio_list_components`, ...) own it; the reservation is enforced by distribution-name uniqueness at discovery, not by `FarmhandRegistry` itself. Don't register a second library under that distribution name.
 
 ## 4. Agent-facing output
 
