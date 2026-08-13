@@ -5,17 +5,17 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-06-29T16:04:27.611148",
+  "modified_at": "2026-08-13T15:43:05.859319",
   "nodes": {
-    "SettingsNode_74eaf023": {
-      "node_id": "SettingsNode_74eaf023",
+    "SettingsNode_1db88375": {
+      "node_id": "SettingsNode_1db88375",
       "registry_key": "haybale-testing:node:SettingsNode",
       "position": [
-        3116.550048828125,
-        3606.14990234375
+        3114.703137525242,
+        3614.817583062898
       ],
       "node_data": {
-        "node_id": "SettingsNode_74eaf023",
+        "node_id": "SettingsNode_1db88375",
         "ports": {
           "settings": {
             "kwargs": {
@@ -47,14 +47,27 @@
         },
         "settings": {
           "props": {
-            "posX": 3116.550048828125,
-            "posY": 3606.14990234375
+            "values": {
+              "posX": 3114.703137525242,
+              "posY": 3614.817583062898,
+              "width": 263,
+              "height": 104
+            },
+            "promoted": {}
           },
-          "example": {}
+          "example": {
+            "values": {},
+            "promoted": {}
+          }
         },
         "props": {
-          "posX": 3116.550048828125,
-          "posY": 3606.14990234375
+          "values": {
+            "posX": 3114.703137525242,
+            "posY": 3614.817583062898,
+            "width": 263,
+            "height": 104
+          },
+          "promoted": {}
         },
         "store": {},
         "identity": {
@@ -63,6 +76,7 @@
           "label": "Settings Test Node",
           "description": "Test the Settings for debugging",
           "deprecation_warning": "",
+          "hidden": false,
           "class_name": "SettingsNode",
           "module": "haybale_testing.nodes.testbed.settings_node",
           "search_tags": [
@@ -80,31 +94,24 @@
         },
         "library": {
           "label": "Testing",
-          "version": "0.0.25",
-          "description": "Test library for test support",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "Haywire Team",
-          "author_url": "https://github.com/going-haywire/haywire",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
           "module_name": "haybale_testing",
-          "id": "testing",
-          "dependencies": [
+          "name": "haybale-testing",
+          "linked_libraries": [
             "haybale_core",
             "haybale_graph_editor"
           ],
-          "tags": [
-            "testing",
-            "development",
-            "debug"
-          ],
           "file_watcher": true,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     }
   },
   "edges": {},
-  "variables": {}
+  "variables": {},
+  "props": {
+    "values": {},
+    "promoted": {}
+  }
 }

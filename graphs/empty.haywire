@@ -5,8 +5,12 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-06-13T11:23:40.368947",
+  "modified_at": "2026-08-13T15:42:09.292332",
   "nodes": {},
   "edges": {},
-  "variables": {}
+  "variables": {},
+  "props": {
+    "values": {},
+    "promoted": {}
+  }
 }

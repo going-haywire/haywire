@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-07-13T13:53:21.826337",
+  "modified_at": "2026-08-13T15:36:33.617755",
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -72,7 +72,9 @@
           "props": {
             "values": {
               "posX": 550.0,
-              "posY": 1400.0
+              "posY": 1400.0,
+              "width": 256,
+              "height": 132
             },
             "promoted": {}
           }
@@ -80,7 +82,9 @@
         "props": {
           "values": {
             "posX": 550.0,
-            "posY": 1400.0
+            "posY": 1400.0,
+            "width": 256,
+            "height": 132
           },
           "promoted": {}
         },
@@ -109,26 +113,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.25",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -461,7 +452,9 @@
           "props": {
             "values": {
               "posX": 1050.0,
-              "posY": 1400.0
+              "posY": 1400.0,
+              "width": 256,
+              "height": 341
             },
             "promoted": {}
           }
@@ -469,7 +462,9 @@
         "props": {
           "values": {
             "posX": 1050.0,
-            "posY": 1400.0
+            "posY": 1400.0,
+            "width": 256,
+            "height": 341
           },
           "promoted": {}
         },
@@ -499,27 +494,15 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.17",
-          "description": "Visiongraph library",
-          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Florian Briggisser, Martin Fröhlich",
-          "author_url": "https://author_url",
+          "version": "0.0.36",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
-          "id": "visiongraph",
-          "dependencies": [
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
             "haybale_core"
           ],
-          "tags": [
-            "vision",
-            "camera",
-            "video",
-            "opencv"
-          ],
           "file_watcher": false,
-          "needs_refresh": true,
-          "needs_restart": false
+          "on_reload": "restart"
         }
       }
     },
@@ -588,7 +571,9 @@
           "props": {
             "values": {
               "posX": 550.0,
-              "posY": 1600.0
+              "posY": 1600.0,
+              "width": 256,
+              "height": 132
             },
             "promoted": {}
           }
@@ -596,7 +581,9 @@
         "props": {
           "values": {
             "posX": 550.0,
-            "posY": 1600.0
+            "posY": 1600.0,
+            "width": 256,
+            "height": 132
           },
           "promoted": {}
         },
@@ -625,26 +612,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.25",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -908,7 +882,9 @@
           "props": {
             "values": {
               "posX": 1050.0,
-              "posY": 1750.0
+              "posY": 1750.0,
+              "width": 259,
+              "height": 320
             },
             "promoted": {}
           }
@@ -916,7 +892,9 @@
         "props": {
           "values": {
             "posX": 1050.0,
-            "posY": 1750.0
+            "posY": 1750.0,
+            "width": 259,
+            "height": 320
           },
           "promoted": {}
         },
@@ -949,27 +927,15 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.17",
-          "description": "Visiongraph library",
-          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Florian Briggisser, Martin Fröhlich",
-          "author_url": "https://author_url",
+          "version": "0.0.36",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
-          "id": "visiongraph",
-          "dependencies": [
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
             "haybale_core"
           ],
-          "tags": [
-            "vision",
-            "camera",
-            "video",
-            "opencv"
-          ],
           "file_watcher": false,
-          "needs_refresh": true,
-          "needs_restart": false
+          "on_reload": "restart"
         }
       }
     },
@@ -1234,7 +1200,9 @@
           "props": {
             "values": {
               "posX": 550.0,
-              "posY": 2200.0
+              "posY": 2200.0,
+              "width": 256,
+              "height": 304
             },
             "promoted": {}
           }
@@ -1242,7 +1210,9 @@
         "props": {
           "values": {
             "posX": 550.0,
-            "posY": 2200.0
+            "posY": 2200.0,
+            "width": 256,
+            "height": 304
           },
           "promoted": {}
         },
@@ -1278,27 +1248,15 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.17",
-          "description": "Visiongraph library",
-          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Florian Briggisser, Martin Fröhlich",
-          "author_url": "https://author_url",
+          "version": "0.0.36",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
-          "id": "visiongraph",
-          "dependencies": [
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
             "haybale_core"
           ],
-          "tags": [
-            "vision",
-            "camera",
-            "video",
-            "opencv"
-          ],
           "file_watcher": false,
-          "needs_refresh": true,
-          "needs_restart": false
+          "on_reload": "restart"
         }
       }
     },
@@ -1562,7 +1520,9 @@
           "props": {
             "values": {
               "posX": 1050.0,
-              "posY": 2300.0
+              "posY": 2300.0,
+              "width": 259,
+              "height": 320
             },
             "promoted": {}
           }
@@ -1570,7 +1530,9 @@
         "props": {
           "values": {
             "posX": 1050.0,
-            "posY": 2300.0
+            "posY": 2300.0,
+            "width": 259,
+            "height": 320
           },
           "promoted": {}
         },
@@ -1603,27 +1565,15 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.17",
-          "description": "Visiongraph library",
-          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Florian Briggisser, Martin Fröhlich",
-          "author_url": "https://author_url",
+          "version": "0.0.36",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
-          "id": "visiongraph",
-          "dependencies": [
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
             "haybale_core"
           ],
-          "tags": [
-            "vision",
-            "camera",
-            "video",
-            "opencv"
-          ],
           "file_watcher": false,
-          "needs_refresh": true,
-          "needs_restart": false
+          "on_reload": "restart"
         }
       }
     },
@@ -1862,7 +1812,9 @@
           "props": {
             "values": {
               "posX": 550.0,
-              "posY": 1800.0
+              "posY": 1800.0,
+              "width": 256,
+              "height": 276
             },
             "promoted": {}
           }
@@ -1870,7 +1822,9 @@
         "props": {
           "values": {
             "posX": 550.0,
-            "posY": 1800.0
+            "posY": 1800.0,
+            "width": 256,
+            "height": 276
           },
           "promoted": {}
         },
@@ -1906,27 +1860,15 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.17",
-          "description": "Visiongraph library",
-          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Florian Briggisser, Martin Fröhlich",
-          "author_url": "https://author_url",
+          "version": "0.0.36",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
-          "id": "visiongraph",
-          "dependencies": [
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
             "haybale_core"
           ],
-          "tags": [
-            "vision",
-            "camera",
-            "video",
-            "opencv"
-          ],
           "file_watcher": false,
-          "needs_refresh": true,
-          "needs_restart": false
+          "on_reload": "restart"
         }
       }
     },
@@ -2090,14 +2032,17 @@
           "props": {
             "values": {
               "posX": 1500.0,
-              "posY": 1400.0
+              "posY": 1400.0,
+              "width": 256,
+              "height": 256
             },
             "promoted": {}
           },
           "device": {
             "values": {},
             "promoted": {
-              "visiongraph.node.OakDCameraNode.device.mxid": "config"
+              "visiongraph.node.OakDCameraNode.device.mxid": "config",
+              "haybale-visiongraph.node.OakDCameraNode.device.mxid": "config"
             }
           },
           "stream_flags": {
@@ -2123,7 +2068,9 @@
         "props": {
           "values": {
             "posX": 1500.0,
-            "posY": 1400.0
+            "posY": 1400.0,
+            "width": 256,
+            "height": 256
           },
           "promoted": {}
         },
@@ -2156,27 +2103,15 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.17",
-          "description": "Visiongraph library",
-          "url": "https://github.com/haywire/haywire-repo/libraries/haybale-visiongraph",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Florian Briggisser, Martin Fröhlich",
-          "author_url": "https://author_url",
+          "version": "0.0.36",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
-          "id": "visiongraph",
-          "dependencies": [
+          "name": "haybale-visiongraph",
+          "linked_libraries": [
             "haybale_core"
           ],
-          "tags": [
-            "vision",
-            "camera",
-            "video",
-            "opencv"
-          ],
           "file_watcher": false,
-          "needs_refresh": true,
-          "needs_restart": false
+          "on_reload": "restart"
         }
       }
     }

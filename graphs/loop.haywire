@@ -5,7 +5,7 @@
   "version": "1.0.0",
   "author": "",
   "created_at": null,
-  "modified_at": "2026-07-27T13:22:22.624775",
+  "modified_at": "2026-08-13T15:36:38.927899",
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
@@ -113,26 +113,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -344,26 +331,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -501,26 +475,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -779,26 +740,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -972,7 +920,7 @@
               },
               "id": "condition",
               "port_type": "config",
-              "order": 11,
+              "order": 14,
               "show_widget": "always"
             },
             "recipe": {
@@ -999,7 +947,7 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "compare",
               "port_type": "inlet",
-              "order": 12
+              "order": 15
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -1025,7 +973,7 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "with",
               "port_type": "inlet",
-              "order": 13
+              "order": 16
             },
             "recipe": {
               "registry_key": "haywire-core:type:INT"
@@ -1080,26 +1028,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -1275,26 +1210,16 @@
         },
         "library": {
           "label": "Example",
-          "version": "0.0.30",
-          "description": "Example library for demonstrating multi-library support",
-          "url": "https://github.com/author/haywire_library",
-          "help_url": "https://docs.github.io/haywire_library",
-          "author": "Example Author",
-          "author_url": "https://author_url",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-example/haybale_example",
           "module_name": "haybale_example",
-          "id": "example",
-          "dependencies": [
-            "haybale_core"
-          ],
-          "tags": [
-            "example",
-            "demo",
-            "tutorial"
+          "name": "haybale-example",
+          "linked_libraries": [
+            "haybale_core",
+            "haybale_studio"
           ],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -1404,26 +1329,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     },
@@ -1490,6 +1402,7 @@
               "description": "Log level this message is emitted at.",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
               "default": {
                 "value": "INFO"
               },
@@ -1617,26 +1530,13 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.0.30",
-          "description": "Fundamental components for hayire graphs",
-          "url": "https://github.com/going-haywire/haywire",
-          "help_url": "https://github.com/going-haywire/haywire",
-          "author": "maybites",
-          "author_url": "https://maybites.ch",
+          "version": "0.1.1",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
-          "id": "core",
-          "dependencies": [],
-          "tags": [
-            "core",
-            "types",
-            "widgets",
-            "skins",
-            "adapters"
-          ],
+          "name": "haybale-core",
+          "linked_libraries": [],
           "file_watcher": false,
-          "needs_refresh": false,
-          "needs_restart": false
+          "on_reload": "none"
         }
       }
     }
