@@ -202,3 +202,65 @@ def check_write_access(paths: list[Path], dir_renames: list[Path]) -> list[Block
             )
 
     return blockers
+
+
+def find_dependents(workspace_root: Path, old_dist: str) -> tuple[list[Path], list[Blocker]]:
+    """In-workspace barn libraries referencing *old_dist*.
+
+    A dependent references it four ways: ``linked_libraries`` (module name),
+    ``[project] dependencies`` (distribution name), imports (module name),
+    and registry-key literals (distribution name). A broken
+    ``linked_libraries`` entry does not raise — it silently breaks hot-reload
+    scope tracking — so these must be patched, not merely reported.
+
+    Out-of-workspace dependents are returned as blockers: site-packages
+    cannot be rewritten from here.
+    """
+    from .pysource import _import_line_numbers
+
+    old_module = module_of(old_dist)
+    barn = workspace_root / "barn"
+    dependents: list[Path] = []
+    blockers: list[Blocker] = []
+
+    if not barn.is_dir():
+        return dependents, blockers
+
+    for lib in sorted(barn.iterdir()):
+        if not lib.is_dir() or lib.name.lower() == old_dist.lower():
+            continue
+
+        referenced = False
+
+        pyproject = lib / "pyproject.toml"
+        if pyproject.is_file():
+            try:
+                text = pyproject.read_text(encoding="utf-8")
+                if f'"{old_dist}"' in text or f"'{old_dist}'" in text:
+                    referenced = True
+            except OSError:
+                pass
+
+        for toml_path in lib.glob("*/haybale.toml"):
+            try:
+                if f'"{old_module}"' in toml_path.read_text(encoding="utf-8"):
+                    referenced = True
+            except OSError:
+                pass
+
+        if not referenced:
+            for py in lib.glob("**/*.py"):
+                if "__pycache__" in py.parts:
+                    continue
+                try:
+                    source = py.read_text(encoding="utf-8")
+                except (OSError, UnicodeDecodeError):
+                    continue
+                if _import_line_numbers(source, old_module) or f"{old_dist}:" in source:
+                    referenced = True
+                    break
+
+        if referenced:
+            dependents.append(lib)
+
+    return dependents, blockers
