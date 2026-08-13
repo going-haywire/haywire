@@ -59,20 +59,19 @@ Omit any subfolder you do not use. The pip distribution name
 things — pip uses hyphens, Python imports use underscores, and the entry point
 connects them.
 
-### Three files, three jobs
+### Two files, two jobs
 
 | File | Holds | Edited by |
 | --- | --- | --- |
-| [`haybale.toml`](../reference/files/haybale-toml.md) | Everything descriptive: label, description, tags, os, paths, URLs, authors | You, or the studio's edit modal |
+| [`haybale.toml`](../reference/files/haybale-toml.md) | Everything descriptive: name, label, description, tags, os, paths, URLs, authors | You, or the studio's edit modal |
 | [`pyproject.toml`](../reference/files/pyproject-toml.md) | `dependencies`, the entry point, build config. Its `[project]` block is generated | You (`dependencies` only) |
-| `__init__.py` | The `Library` class; `@library(…)` | You |
 
 The split is what makes a metadata edit cheap. `haybale.toml` ships **inside**
 the package, so it reaches consumers in the wheel and is read from disk at the
 point of use: editing it is a file write, visible on the next read, with no
 `uv sync`, no reinstall, and no registry reload. `pyproject.toml` cannot do this
 — it is not installed — which is why its descriptive fields are generated from
-`haybale.toml` when you publish. See [ADR 0025](../adr/0025-haybale-toml-is-canon.md).
+`haybale.toml` when you publish.
 
 ### How it is discovered
 
@@ -230,7 +229,7 @@ Each of the three names has its own casing rule:
 | Python module | `haybale_<lowercase_underscored>` | `haybale_image_tools` |
 | Display `label` | Human-readable, title case | `"Image Tools"` |
 
-The `haybale-` prefix is conventional, not required, but tools assume it.
+The `haybale-` prefix is conventional, not required, but tools assume it. `haywire init` scaffolds local project libraries under a different prefix, `hay-`, instead — `hay-` is a reserved namespace for local-only libraries, so a library must be renamed off it (`haywire rename`) before it can be shared through `haywire share`.
 
 **`name` is load-bearing and stable.** It becomes the prefix of every
 component's `registry_key` — `haybale-image-tools:node:Resize`. Changing it
