@@ -9,7 +9,7 @@
   "nodes": {
     "SettingsNode_74eaf023": {
       "node_id": "SettingsNode_74eaf023",
-      "registry_key": "testing:node:SettingsNode",
+      "registry_key": "haybale-testing:node:SettingsNode",
       "position": [
         3116.550048828125,
         3606.14990234375
@@ -20,7 +20,7 @@
           "settings": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "builtin:type:STRING",
+              "registry_key": "haywire-core:type:STRING",
               "label": "Settings",
               "description": "Text data",
               "class_name": "STRING",
@@ -31,14 +31,14 @@
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:TextWidget",
+              "widget_key": "haywire-core:widget:TextWidget",
               "id": "settings",
               "port_type": "outlet",
               "allow_multiple_links": true,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:STRING"
+              "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
               "value": "default value"
@@ -59,7 +59,7 @@
         "store": {},
         "identity": {
           "registry_id": "SettingsNode",
-          "registry_key": "testing:node:SettingsNode",
+          "registry_key": "haybale-testing:node:SettingsNode",
           "label": "Settings Test Node",
           "description": "Test the Settings for debugging",
           "deprecation_warning": "",

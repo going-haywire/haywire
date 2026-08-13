@@ -9,7 +9,7 @@
   "nodes": {
     "BeginPlayNode_8d7335c8": {
       "node_id": "BeginPlayNode_8d7335c8",
-      "registry_key": "core:node:BeginPlayNode",
+      "registry_key": "haybale-core:node:BeginPlayNode",
       "position": [
         936.7521107244153,
         1050.2518374418269
@@ -20,7 +20,7 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -36,13 +36,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "timestamp": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Start Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
@@ -53,7 +53,7 @@
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -61,7 +61,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 1785148384.259501
@@ -91,7 +91,7 @@
         "store": {},
         "identity": {
           "registry_id": "BeginPlayNode",
-          "registry_key": "core:node:BeginPlayNode",
+          "registry_key": "haybale-core:node:BeginPlayNode",
           "label": "Begin Player",
           "description": "Triggered once when execution starts",
           "deprecation_warning": "",
@@ -138,7 +138,7 @@
     },
     "TickEmitNode_8accf22d": {
       "node_id": "TickEmitNode_8accf22d",
-      "registry_key": "core:node:TickEmitNode",
+      "registry_key": "haybale-core:node:TickEmitNode",
       "position": [
         1304.384948158642,
         1042.0765770334099
@@ -149,7 +149,7 @@
           "start": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Start",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -165,13 +165,13 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "stop": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Stop",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -188,13 +188,13 @@
               "order": 1
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "target_fps": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Target FPS",
               "description": "Targeted Frames per second - needs a start signal to be applied",
               "class_name": "FLOAT",
@@ -205,7 +205,7 @@
               },
               "store_strategy": 2,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "widget_config": {
                 "properties": {
                   "min": 0.1,
@@ -218,7 +218,7 @@
               "order": 2
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 60.0
@@ -227,7 +227,7 @@
           "callback_names": {
             "kwargs": {
               "registry_id": "PooledType",
-              "registry_key": "core:type:PooledType",
+              "registry_key": "haybale-core:type:PooledType",
               "label": "Trigger",
               "description": "Multi-source aggregation",
               "class_name": "PooledType",
@@ -244,16 +244,16 @@
               "order": 3
             },
             "recipe": {
-              "registry_key": "core:type:PooledType",
+              "registry_key": "haybale-core:type:PooledType",
               "element_type": {
-                "registry_key": "core:type:CALLBACK"
+                "registry_key": "haybale-core:type:CALLBACK"
               }
             }
           },
           "started": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Started",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -270,13 +270,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "stopped": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Stopped",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -293,7 +293,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           }
         },
@@ -320,7 +320,7 @@
         "store": {},
         "identity": {
           "registry_id": "TickEmitNode",
-          "registry_key": "core:node:TickEmitNode",
+          "registry_key": "haybale-core:node:TickEmitNode",
           "label": "Tick Emit",
           "description": "Emits tick callbacks at a configurable framerate",
           "deprecation_warning": "",
@@ -369,7 +369,7 @@
     },
     "TickEventNode_f06e7bcb": {
       "node_id": "TickEventNode_f06e7bcb",
-      "registry_key": "core:node:TickEventNode",
+      "registry_key": "haybale-core:node:TickEventNode",
       "position": [
         939.2815227320294,
         1380.65794277859
@@ -380,7 +380,7 @@
           "listen_callback": {
             "kwargs": {
               "registry_id": "CALLBACK",
-              "registry_key": "core:type:CALLBACK",
+              "registry_key": "haybale-core:type:CALLBACK",
               "label": "Listen",
               "description": "Signal for callback execution between nodes",
               "class_name": "CALLBACK",
@@ -397,7 +397,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:CALLBACK"
+              "registry_key": "haybale-core:type:CALLBACK"
             },
             "field_data": {
               "value": "TickEventNode_f06e7bcb"
@@ -406,7 +406,7 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -423,13 +423,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "delta_time": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Delta Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
@@ -440,7 +440,7 @@
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "delta_time",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -448,7 +448,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 0.01590283401310444
@@ -478,7 +478,7 @@
         "store": {},
         "identity": {
           "registry_id": "TickEventNode",
-          "registry_key": "core:node:TickEventNode",
+          "registry_key": "haybale-core:node:TickEventNode",
           "label": "Tick",
           "description": "Triggered periodically by a connected TickEmitNode",
           "deprecation_warning": "",
@@ -526,7 +526,7 @@
     },
     "ForLoopNode_97b173f2": {
       "node_id": "ForLoopNode_97b173f2",
-      "registry_key": "core:node:ForLoopNode",
+      "registry_key": "haybale-core:node:ForLoopNode",
       "position": [
         1309.2815227320295,
         1369.65794277859
@@ -537,7 +537,7 @@
           "execute": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -553,13 +553,13 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "start": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "Start",
               "description": "Whole number",
               "class_name": "INT",
@@ -570,13 +570,13 @@
               },
               "store_strategy": 2,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "start",
               "port_type": "inlet",
               "order": 1
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 0
@@ -585,7 +585,7 @@
           "end": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "End",
               "description": "Whole number",
               "class_name": "INT",
@@ -596,13 +596,13 @@
               },
               "store_strategy": 2,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "end",
               "port_type": "inlet",
               "order": 2
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 1000
@@ -611,7 +611,7 @@
           "step": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "Step",
               "description": "Whole number",
               "class_name": "INT",
@@ -622,13 +622,13 @@
               },
               "store_strategy": 2,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "step",
               "port_type": "inlet",
               "order": 3
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 1
@@ -637,7 +637,7 @@
           "break_loop": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Break",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -654,13 +654,13 @@
               "order": 4
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "loop_body": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Loop Body",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -678,13 +678,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "index": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "Index",
               "description": "Whole number",
               "class_name": "INT",
@@ -695,7 +695,7 @@
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "index",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -703,7 +703,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 999
@@ -712,7 +712,7 @@
           "completed": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Completed",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -729,7 +729,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           }
         },
@@ -756,7 +756,7 @@
         "store": {},
         "identity": {
           "registry_id": "ForLoopNode",
-          "registry_key": "core:node:ForLoopNode",
+          "registry_key": "haybale-core:node:ForLoopNode",
           "label": "For Loop",
           "description": "Iterate with start, end, and step control",
           "deprecation_warning": "",
@@ -804,7 +804,7 @@
     },
     "ControlSwitch_48a0d650": {
       "node_id": "ControlSwitch_48a0d650",
-      "registry_key": "core:node:ControlSwitch",
+      "registry_key": "haybale-core:node:ControlSwitch",
       "position": [
         1983.0960756684008,
         1251.7767038314423
@@ -815,7 +815,7 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -831,13 +831,13 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "DataType": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "builtin:type:STRING",
+              "registry_key": "haywire-core:type:STRING",
               "label": "Data Type",
               "class_name": "STRING",
               "module": "haywire.barn.builtin.types.specs",
@@ -847,7 +847,7 @@
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:SelectWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -864,7 +864,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "builtin:type:STRING"
+              "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
               "value": "int"
@@ -873,7 +873,7 @@
           "true": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "True",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -890,13 +890,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "false": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "False",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -913,13 +913,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "test": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "Test",
               "description": "Whole number",
               "class_name": "INT",
@@ -930,7 +930,7 @@
               },
               "store_strategy": 14,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "test",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -938,7 +938,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 0
@@ -947,7 +947,7 @@
           "condition": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "builtin:type:STRING",
+              "registry_key": "haywire-core:type:STRING",
               "label": "Condition",
               "description": "set form of comparison",
               "class_name": "STRING",
@@ -957,7 +957,7 @@
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:SelectWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -976,7 +976,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "builtin:type:STRING"
+              "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
               "value": "=="
@@ -985,7 +985,7 @@
           "compare": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "Compare",
               "description": "Whole number",
               "class_name": "INT",
@@ -996,13 +996,13 @@
               },
               "store_strategy": 2,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "compare",
               "port_type": "inlet",
               "order": 12
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 1000
@@ -1011,7 +1011,7 @@
           "with": {
             "kwargs": {
               "registry_id": "INT",
-              "registry_key": "builtin:type:INT",
+              "registry_key": "haywire-core:type:INT",
               "label": "With",
               "description": "Whole number",
               "class_name": "INT",
@@ -1022,13 +1022,13 @@
               },
               "store_strategy": 2,
               "color": "#f7b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "with",
               "port_type": "inlet",
               "order": 13
             },
             "recipe": {
-              "registry_key": "builtin:type:INT"
+              "registry_key": "haywire-core:type:INT"
             },
             "field_data": {
               "value": 1998
@@ -1058,7 +1058,7 @@
         "store": {},
         "identity": {
           "registry_id": "ControlSwitch",
-          "registry_key": "core:node:ControlSwitch",
+          "registry_key": "haybale-core:node:ControlSwitch",
           "label": "Control Switch",
           "description": "Switches control flow based on condition",
           "deprecation_warning": "",
@@ -1105,7 +1105,7 @@
     },
     "MathOP_cdb83482": {
       "node_id": "MathOP_cdb83482",
-      "registry_key": "example:node:MathOP",
+      "registry_key": "haybale-example:node:MathOP",
       "position": [
         1647.2815227320295,
         1539.65794277859
@@ -1116,7 +1116,7 @@
           "operator": {
             "kwargs": {
               "registry_id": "MathOPSelector",
-              "registry_key": "example:type:MathOPSelector",
+              "registry_key": "haybale-example:type:MathOPSelector",
               "label": "Operator",
               "description": "Simple mathematical operations for one or two float values",
               "class_name": "MathOPSelector",
@@ -1127,7 +1127,7 @@
               },
               "store_strategy": 2,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:SelectWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1142,7 +1142,7 @@
               "port_type": "inlet"
             },
             "recipe": {
-              "registry_key": "example:type:MathOPSelector"
+              "registry_key": "haybale-example:type:MathOPSelector"
             },
             "field_data": {
               "value": "add"
@@ -1151,7 +1151,7 @@
           "value_a": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Value A",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
@@ -1162,13 +1162,13 @@
               },
               "store_strategy": 2,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "value_a",
               "port_type": "inlet",
               "order": 1
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 999.0
@@ -1177,7 +1177,7 @@
           "value_b": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Value B",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
@@ -1188,13 +1188,13 @@
               },
               "store_strategy": 2,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "value_b",
               "port_type": "inlet",
               "order": 2
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 999.0
@@ -1203,7 +1203,7 @@
           "result": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Result",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
@@ -1214,7 +1214,7 @@
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "result",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -1222,7 +1222,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 1998.0
@@ -1252,7 +1252,7 @@
         "store": {},
         "identity": {
           "registry_id": "MathOP",
-          "registry_key": "example:node:MathOP",
+          "registry_key": "haybale-example:node:MathOP",
           "label": "Math Operation",
           "description": "",
           "deprecation_warning": "This node will be moved to the math library",
@@ -1300,7 +1300,7 @@
     },
     "ShutdownNode_0fb7bb57": {
       "node_id": "ShutdownNode_0fb7bb57",
-      "registry_key": "core:node:ShutdownNode",
+      "registry_key": "haybale-core:node:ShutdownNode",
       "position": [
         930.0919174880954,
         1218.0529496758252
@@ -1311,7 +1311,7 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execute",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -1327,13 +1327,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "timestamp": {
             "kwargs": {
               "registry_id": "FLOAT",
-              "registry_key": "builtin:type:FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
               "label": "Shutdown Time",
               "description": "Decimal numberer",
               "class_name": "FLOAT",
@@ -1344,7 +1344,7 @@
               },
               "store_strategy": 14,
               "color": "#50b0ff",
-              "widget_key": "builtin:widget:NumberWidget",
+              "widget_key": "haywire-core:widget:NumberWidget",
               "id": "timestamp",
               "port_type": "outlet",
               "allow_multiple_links": true,
@@ -1352,7 +1352,7 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "builtin:type:FLOAT"
+              "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 1785148386.4750211
@@ -1382,7 +1382,7 @@
         "store": {},
         "identity": {
           "registry_id": "ShutdownNode",
-          "registry_key": "core:node:ShutdownNode",
+          "registry_key": "haybale-core:node:ShutdownNode",
           "label": "Shutdown",
           "description": "Triggered when execution is shutting down",
           "deprecation_warning": "",
@@ -1429,7 +1429,7 @@
     },
     "LoggerNode_0eafb662": {
       "node_id": "LoggerNode_0eafb662",
-      "registry_key": "core:node:LoggerNode",
+      "registry_key": "haybale-core:node:LoggerNode",
       "position": [
         2400,
         1300
@@ -1440,7 +1440,7 @@
           "exec": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -1456,13 +1456,13 @@
               "allow_multiple_links": true
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "done": {
             "kwargs": {
               "registry_id": "EXEC",
-              "registry_key": "core:type:EXEC",
+              "registry_key": "haybale-core:type:EXEC",
               "label": "Execution Signal",
               "description": "Signal for controlling execution flow between nodes",
               "class_name": "EXEC",
@@ -1479,13 +1479,13 @@
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "core:type:EXEC"
+              "registry_key": "haybale-core:type:EXEC"
             }
           },
           "severity": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "builtin:type:STRING",
+              "registry_key": "haywire-core:type:STRING",
               "label": "Severity",
               "description": "Log level this message is emitted at.",
               "class_name": "STRING",
@@ -1495,7 +1495,7 @@
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:SelectWidget",
+              "widget_key": "haywire-core:widget:SelectWidget",
               "widget_config": {
                 "properties": {
                   "options": [
@@ -1513,7 +1513,7 @@
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "builtin:type:STRING"
+              "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
               "value": "INFO"
@@ -1522,7 +1522,7 @@
           "prepend": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "builtin:type:STRING",
+              "registry_key": "haywire-core:type:STRING",
               "label": "Prepend",
               "description": "Text data",
               "class_name": "STRING",
@@ -1533,13 +1533,13 @@
               },
               "store_strategy": 2,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:TextWidget",
+              "widget_key": "haywire-core:widget:TextWidget",
               "id": "prepend",
               "port_type": "inlet",
               "order": 3
             },
             "recipe": {
-              "registry_key": "builtin:type:STRING"
+              "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
               "value": "My Message to you:"
@@ -1548,7 +1548,7 @@
           "message": {
             "kwargs": {
               "registry_id": "STRING",
-              "registry_key": "builtin:type:STRING",
+              "registry_key": "haywire-core:type:STRING",
               "label": "String",
               "description": "Text data",
               "class_name": "STRING",
@@ -1559,13 +1559,13 @@
               },
               "store_strategy": 2,
               "color": "#ffc107",
-              "widget_key": "builtin:widget:TextWidget",
+              "widget_key": "haywire-core:widget:TextWidget",
               "id": "message",
               "port_type": "inlet",
               "order": 4
             },
             "recipe": {
-              "registry_key": "builtin:type:STRING"
+              "registry_key": "haywire-core:type:STRING"
             },
             "field_data": {
               "value": "1998.0"
@@ -1595,7 +1595,7 @@
         "store": {},
         "identity": {
           "registry_id": "LoggerNode",
-          "registry_key": "core:node:LoggerNode",
+          "registry_key": "haybale-core:node:LoggerNode",
           "label": "Logger",
           "description": "Log a message to the Python logging system at a configurable severity",
           "deprecation_warning": "",
@@ -1685,7 +1685,7 @@
       "inlet_port_id": "value_a",
       "edge_type": "data",
       "chain_adapter_keys": [
-        "builtin:adapter:IntToFloatAdapter"
+        "haywire-core:adapter:IntToFloatAdapter"
       ],
       "is_lazy": false
     },
@@ -1696,7 +1696,7 @@
       "inlet_port_id": "value_b",
       "edge_type": "data",
       "chain_adapter_keys": [
-        "builtin:adapter:IntToFloatAdapter"
+        "haywire-core:adapter:IntToFloatAdapter"
       ],
       "is_lazy": false
     },
@@ -1707,7 +1707,7 @@
       "inlet_port_id": "with",
       "edge_type": "data",
       "chain_adapter_keys": [
-        "builtin:adapter:FloatToIntAdapter"
+        "haywire-core:adapter:FloatToIntAdapter"
       ],
       "is_lazy": false
     },
@@ -1736,7 +1736,7 @@
       "inlet_port_id": "message",
       "edge_type": "data",
       "chain_adapter_keys": [
-        "builtin:adapter:FloatToStringAdapter"
+        "haywire-core:adapter:FloatToStringAdapter"
       ],
       "is_lazy": false
     }
