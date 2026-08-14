@@ -226,12 +226,18 @@ async def test_no_project_path_reports_instead_of_advancing(tmp_path: Path) -> N
 
 
 def test_steps_cover_every_panel() -> None:
-    """A step with no panel raises at open time, so keep the two in lockstep."""
+    """A step with no panel raises at open time, so keep the two in lockstep.
+
+    Every step needs a title and a panel, including `conflicts`, which most
+    runs step over but which stays in the list so the progress bar keeps its
+    length.
+    """
     from haybale_marketplace.editors._refresh_flow import STEPS
     from haybale_marketplace.editors._refresh_flow.copy import STEP_TITLES
 
     assert set(STEPS) == set(STEP_TITLES)
-    assert STEPS.index("sources") < STEPS.index("fetched") < STEPS.index("resolved")
+    assert STEPS.index("sources") < STEPS.index("fetched") < STEPS.index("conflicts")
+    assert STEPS.index("conflicts") < STEPS.index("resolved") < STEPS.index("applied")
 
 
 # ---------------------------------------------------------------------------
@@ -268,7 +274,10 @@ def _collision_reachable():
 
         m = MagicMock()
         version = "2.1.0" if url == _URL_A else "2.3.0"
-        body = f'[[haybales]]\nname = "haybale-foo"\nversion = "{version}"\n'
+        body = (
+            f'[[haybales]]\nname = "haybale-foo"\nversion = "{version}"\n'
+            'source = "git"\norigin = "https://github.com/alice/foo"\n'
+        )
         m.__enter__.return_value.read.return_value = body.encode()
         return m
 
@@ -352,3 +361,287 @@ async def test_no_collision_leaves_the_list_empty(tmp_path: Path) -> None:
 
     assert flow.resolved is not None
     assert flow.resolved.collisions == []
+
+
+# ---------------------------------------------------------------------------
+# Name conflicts — two different libraries wearing one name
+# ---------------------------------------------------------------------------
+
+
+class _ConflictingState(_CollidingState):
+    """Both stalls offer haybale-foo, but the resolver calls them different
+    libraries — the marketplace's identity policy said so."""
+
+    def __init__(self, root: Path) -> None:
+        super().__init__(root)
+        self.blocked: list[tuple[str, str]] = []
+        self.installed: dict[str, object] = {}
+
+    def resolve(self, fetched):
+        from haybale_marketplace.identity import identity_matches
+        from haywire.core.marketstall import resolve_catalog
+
+        return resolve_catalog(fetched, same_library=identity_matches)
+
+    def installed_row(self, name: str):
+        return self.installed.get(name)
+
+    def block_source(self, name: str, *, source_url: str) -> None:
+        from haywire.core.marketstall import record_block_on_source
+
+        self.blocked.append((source_url, name))
+        record_block_on_source(self.global_path, source_url=source_url, haybale_name=name)
+
+    def unblock_source(self, name: str, *, source_url: str) -> None:
+        from haywire.core.marketstall import remove_block_on_source
+
+        self.blocked = [b for b in self.blocked if b != (source_url, name)]
+        remove_block_on_source(self.global_path, source_url=source_url, haybale_name=name)
+
+
+def _conflicting_flow(root: Path):
+    from haybale_marketplace.editors._refresh_flow import RefreshFlow
+
+    return RefreshFlow(state=_ConflictingState(root))
+
+
+def _conflict_reachable():
+    """Both stalls reachable, each serving an UNRELATED library of one name."""
+
+    def fake_urlopen(url, *, timeout):
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        version, repo = ("2.1.0", "alice") if url == _URL_A else ("2.3.0", "bob")
+        body = (
+            f'[[haybales]]\nname = "haybale-foo"\nversion = "{version}"\n'
+            f'source = "git"\norigin = "https://github.com/{repo}/foo"\n'
+        )
+        m.__enter__.return_value.read.return_value = body.encode()
+        return m
+
+    mock = patch.object(marketstall_cache, "_urlopen", side_effect=fake_urlopen)
+    mock.start()
+    return mock
+
+
+@pytest.mark.anyio
+async def test_a_name_conflict_routes_through_the_conflicts_step(tmp_path: Path) -> None:
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+    finally:
+        mock.stop()
+
+    assert flow.step == "conflicts"
+    assert "conflicts" in flow.STEPS
+    assert [c.name for c in flow.conflicts] == ["haybale-foo"]
+    assert not flow.state.project_path.exists()
+
+
+@pytest.mark.anyio
+async def test_no_conflict_steps_over_the_conflicts_step(tmp_path: Path) -> None:
+    """Skipped, not removed — the bar must not change length mid-flow."""
+    flow = _colliding_flow(tmp_path)  # same-library collision
+    mock = _collision_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+    finally:
+        mock.stop()
+
+    assert flow.step == "resolved"
+    assert "conflicts" in flow.STEPS  # listed, just not stopped at
+    assert flow.conflicts == []
+
+
+@pytest.mark.anyio
+async def test_blocking_a_claimant_resolves_the_conflict_in_place(tmp_path: Path) -> None:
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        flow.block_claimant("haybale-foo", source_url=_URL_B)
+    finally:
+        mock.stop()
+
+    assert flow.state.blocked == [(_URL_B, "haybale-foo")]
+    # The conflict stays listed — settled, not disappeared.
+    assert [c.name for c in flow.conflicts] == ["haybale-foo"]
+    assert flow.conflicts_are_settled is True
+    assert not flow.state.project_path.exists()  # still nothing written
+
+
+@pytest.mark.anyio
+async def test_an_unsettled_conflict_cannot_be_skipped(tmp_path: Path) -> None:
+    """Even with nothing installed: leaving it unsettled is what lets a
+    survivor win by attrition on some later refresh."""
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        await flow.advance_from_conflicts()
+    finally:
+        mock.stop()
+
+    assert flow.step == "conflicts"
+    assert flow.error is not None
+
+
+@pytest.mark.anyio
+async def test_a_blocked_claimant_stays_listed(tmp_path: Path) -> None:
+    """Blocking must not make the claimant vanish.
+
+    A vanished claimant turns the step into "keep blocking until the conflict
+    reports itself gone", which lets the last one standing win by attrition
+    rather than by being chosen.
+    """
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        flow.block_claimant("haybale-foo", source_url=_URL_B)
+    finally:
+        mock.stop()
+
+    claimants = flow.claimants_for("haybale-foo")
+    assert [c.url for c in claimants] == [_URL_A, _URL_B]
+    assert [c.blocked for c in claimants] == [False, True]
+
+
+@pytest.mark.anyio
+async def test_a_block_can_be_undone_from_the_step(tmp_path: Path) -> None:
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        flow.block_claimant("haybale-foo", source_url=_URL_B)
+        flow.unblock_claimant("haybale-foo", source_url=_URL_B)
+    finally:
+        mock.stop()
+
+    assert [c.blocked for c in flow.claimants_for("haybale-foo")] == [False, False]
+
+
+@pytest.mark.anyio
+async def test_a_rerun_shows_the_choice_made_last_time(tmp_path: Path) -> None:
+    """The block lives in the global file, so a fresh flow reads it back."""
+    from haybale_marketplace.editors._refresh_flow import RefreshFlow
+
+    first = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await first.advance_from_sources()
+        await first.advance_from_fetched()
+        first.block_claimant("haybale-foo", source_url=_URL_B)
+
+        second = RefreshFlow(state=first.state)
+        await second.advance_from_sources()
+        await second.advance_from_fetched()
+    finally:
+        mock.stop()
+
+    assert second.step == "conflicts"  # still unsettled? no — one left standing
+    assert [c.blocked for c in second.claimants_for("haybale-foo")] == [False, True]
+
+
+@pytest.mark.anyio
+async def test_continue_needs_exactly_one_unblocked_claimant(tmp_path: Path) -> None:
+    """Blocking every claimant is as unresolved as blocking none."""
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+
+        assert flow.conflicts_are_settled is False  # two claimants, none blocked
+        await flow.advance_from_conflicts()
+        assert flow.step == "conflicts"  # refused
+
+        flow.block_claimant("haybale-foo", source_url=_URL_B)
+        assert flow.conflicts_are_settled is True
+
+        flow.block_claimant("haybale-foo", source_url=_URL_A)
+        assert flow.conflicts_are_settled is False  # none left standing
+        await flow.advance_from_conflicts()
+        assert flow.step == "conflicts"  # refused again
+
+        flow.unblock_claimant("haybale-foo", source_url=_URL_A)
+        await flow.advance_from_conflicts()
+    finally:
+        mock.stop()
+
+    assert flow.step == "resolved"
+
+
+@pytest.mark.anyio
+async def test_an_installed_claimant_cannot_be_blocked(tmp_path: Path) -> None:
+    """Blocking the copy you are running would offer another author's code
+    under the same name on the next install."""
+    from haywire.core.library.haybale import Haybale
+
+    flow = _conflicting_flow(tmp_path)
+    flow.state.installed["haybale-foo"] = Haybale(
+        name="haybale-foo", version="2.1.0", source="git", origin="https://github.com/alice/foo"
+    )
+    mock = _conflict_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        installed = [c for c in flow.claimants_for("haybale-foo") if c.installed]
+        assert [c.url for c in installed] == [_URL_A]
+        assert installed[0].can_block is False
+
+        flow.block_claimant("haybale-foo", source_url=_URL_A)
+    finally:
+        mock.stop()
+
+    assert flow.state.blocked == []  # refused
+    assert flow.error is not None
+
+
+@pytest.mark.anyio
+async def test_the_step_count_never_changes_mid_flow(tmp_path: Path) -> None:
+    """The progress bar is drawn from flow.STEPS on every render.
+
+    A step list that grows once the resolve finds a conflict would redraw the
+    bar with an extra segment halfway through — the user watches the goalposts
+    move. The list is fixed; a refresh with nothing to settle steps over the
+    conflicts step instead of removing it.
+    """
+    flow = _colliding_flow(tmp_path)  # same-library: no conflict to settle
+    mock = _collision_reachable()
+    try:
+        counts = [len(flow.STEPS)]
+        await flow.advance_from_sources()
+        counts.append(len(flow.STEPS))
+        await flow.advance_from_fetched()
+        counts.append(len(flow.STEPS))
+        await flow.advance_from_resolved()
+        counts.append(len(flow.STEPS))
+    finally:
+        mock.stop()
+
+    assert len(set(counts)) == 1, f"step count changed mid-flow: {counts}"
+    assert flow.step == "applied"
+
+
+@pytest.mark.anyio
+async def test_a_conflict_flow_has_the_same_step_count(tmp_path: Path) -> None:
+    flow = _conflicting_flow(tmp_path)
+    mock = _conflict_reachable()
+    try:
+        before = len(flow.STEPS)
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+    finally:
+        mock.stop()
+
+    assert flow.step == "conflicts"
+    assert len(flow.STEPS) == before

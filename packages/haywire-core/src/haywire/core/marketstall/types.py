@@ -170,6 +170,21 @@ class SourceCollision:
     discovered through an aggregator, which the user cannot subscribe to
     directly."""
 
+    same_library: bool = True
+    """Whether every claimant is provably the same library.
+
+    ``True`` — several feeds carrying one library; "which source?" is a
+    preference, and the versions are comparable.
+
+    ``False`` — different libraries wearing one name, which the marketplace
+    has no namespace to prevent. Not a preference: choosing one picks *which
+    project you mean*, so the UI must not offer them as interchangeable.
+
+    What counts as "provably the same" is policy the marketplace owns and
+    passes to :func:`~haywire.core.marketstall.refresh.resolve`; core records
+    the answer without knowing the rule. Defaults ``True`` so a caller that
+    supplies no comparator keeps the historical name-is-identity behaviour."""
+
     @property
     def source_count(self) -> int:
         """How many sources offered this name — winner included."""

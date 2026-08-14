@@ -15,7 +15,9 @@ from haywire.core.marketstall import (
     fetch_sources as runtime_fetch_sources,
     parse_global_marketplace,
     parse_project_marketplace,
+    record_block_on_source,
     record_preference,
+    remove_block_on_source,
     refresh as runtime_refresh,
     remove_stale_haybale_from_project,
     resolve_catalog as runtime_resolve,
@@ -172,8 +174,15 @@ class MarketplaceState(AppState):
         )
 
     def resolve(self, fetched: FetchedSources) -> ResolvedCatalog:
-        """Phase 2 — pure; safe to call on the event loop."""
-        return runtime_resolve(fetched)
+        """Phase 2 — pure; safe to call on the event loop.
+
+        Supplies the identity policy core deliberately does not own: without
+        it every same-name candidate reads as one library, and two unrelated
+        projects sharing a name would be offered as interchangeable sources.
+        """
+        from haybale_marketplace.identity import identity_matches
+
+        return runtime_resolve(fetched, same_library=identity_matches)
 
     def apply_refresh(self, fetched: FetchedSources, resolved: ResolvedCatalog) -> RefreshReport:
         """Phase 3 — write the project file. Caches the report like refresh()."""
@@ -184,6 +193,42 @@ class MarketplaceState(AppState):
         report = runtime_apply(fetched, resolved, project_path=project_path)
         self.last_report = report
         return report
+
+    def installed_row(self, name: str) -> Optional[Haybale]:
+        """The installed library's own declared metadata, or None.
+
+        Reads ``haybale.toml`` off the installed package via the manager, so
+        the row has the same shape as a feed row and the two compare
+        field-for-field. Returns None when the library is not installed here.
+        """
+        from haybale_marketplace.state.library_manager_state import LibraryManagerState
+
+        app_data = getattr(self, "app_data", None)
+        if app_data is None or LibraryManagerState not in app_data:
+            return None
+        manager = app_data[LibraryManagerState].manager
+        for lib in manager.list_installed():
+            if lib.row.name == name:
+                return lib.row
+        return None
+
+    def block_source(self, name: str, *, source_url: str) -> None:
+        """Refuse `name` from `source_url` on every future refresh.
+
+        The resolution for a name conflict — several unrelated libraries
+        claiming one name, which no preference can settle because they are not
+        interchangeable. Per-name and per-source: a feed claiming one name that
+        is not its own stays trusted for everything else it offers.
+        """
+        record_block_on_source(self._global_path(), source_url=source_url, haybale_name=name)
+
+    def unblock_source(self, name: str, *, source_url: str) -> None:
+        """Put a blocked name back in the running for `source_url`.
+
+        The inverse of :meth:`block_source`, so the name-conflict step's choice
+        is reversible without hand-editing the marketplace file.
+        """
+        remove_block_on_source(self._global_path(), source_url=source_url, haybale_name=name)
 
     def prefer_source(self, name: str, *, source_url: str) -> None:
         """Make `source_url` the preferred source for `name` on future refreshes.

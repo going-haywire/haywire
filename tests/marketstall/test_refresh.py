@@ -1021,3 +1021,73 @@ def test_record_preference_reports_when_no_subscription_can_own_it(tmp_path: Pat
     global_path.write_text("")
 
     assert record_preference(global_path, source_url="https://x.example/s.toml", haybale_name="hb") is False
+
+
+# ---------------------------------------------------------------------------
+# The identity seam — core defines it, the marketplace supplies the policy
+# ---------------------------------------------------------------------------
+
+
+@pytest.mark.unit
+def test_collisions_are_same_library_by_default() -> None:
+    """No comparator supplied: every same-name candidate is one library.
+
+    The historical behaviour, kept so core callers (refresh(), the farmhand
+    tool, first-enable auto-refresh) are unchanged by the seam existing.
+    """
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
+
+    _, collisions = dedupe_reporting_collisions(
+        [
+            _h("haybale-foo", via="https://a.example/s.toml"),
+            _h("haybale-foo", via="https://b.example/s.toml"),
+        ]
+    )
+    assert collisions[0].same_library is True
+
+
+@pytest.mark.unit
+def test_a_comparator_can_mark_a_collision_as_a_name_conflict() -> None:
+    """Two unrelated libraries wearing one name: not a source preference."""
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
+
+    _, collisions = dedupe_reporting_collisions(
+        [
+            _h("haybale-foo", via="https://a.example/s.toml"),
+            _h("haybale-foo", via="https://b.example/s.toml"),
+        ],
+        same_library=lambda a, b: False,
+    )
+    assert collisions[0].same_library is False
+
+
+@pytest.mark.unit
+def test_one_dissenting_candidate_makes_the_whole_group_a_conflict() -> None:
+    """Three claimants, one an impostor — the group is unsafe as a whole.
+
+    Reporting "same" because two of three agree would let the odd one out ride
+    along under a preference prompt that implies they are interchangeable.
+    """
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
+
+    a = _h("haybale-foo", via="https://a.example/s.toml", origin="https://github.com/alice/foo")
+    b = _h("haybale-foo", via="https://b.example/s.toml", origin="https://github.com/alice/foo")
+    c = _h("haybale-foo", via="https://c.example/s.toml", origin="https://github.com/bob/foo")
+
+    _, collisions = dedupe_reporting_collisions([a, b, c], same_library=lambda x, y: x.origin == y.origin)
+    assert collisions[0].same_library is False
+
+
+@pytest.mark.unit
+def test_resolve_passes_the_comparator_through(tmp_path: Path) -> None:
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+
+    url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"
+    global_path = _two_stall_global(tmp_path, url_a, url_b)
+    project_path = tmp_path / "project.toml"
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=_collision_bodies(url_a)):
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    assert resolve(fetched).collisions[0].same_library is True
+    assert resolve(fetched, same_library=lambda a, b: False).collisions[0].same_library is False

@@ -325,3 +325,58 @@ def test_detect_subscription_conflicts_no_collisions() -> None:
     existing = [Haybale(name="haybale-a", version="0.1.0")]
     new = [Haybale(name="haybale-b", version="0.1.0")]
     assert detect_subscription_conflicts(existing, new) == []
+
+
+@pytest.mark.unit
+def test_remove_block_undoes_a_block(tmp_path: Path) -> None:
+    from haywire.core.marketstall.helpers import (
+        add_stall_subscription_to_global,
+        record_block_on_source,
+        remove_block_on_source,
+    )
+    from haywire.core.marketstall.parsing import parse_global_marketplace
+
+    f = tmp_path / "marketplace.toml"
+    url = "https://alice.example/marketstall.toml"
+    add_stall_subscription_to_global(f, url)
+    record_block_on_source(f, source_url=url, haybale_name="haybale-mesh")
+
+    assert remove_block_on_source(f, source_url=url, haybale_name="haybale-mesh") is True
+    assert parse_global_marketplace(f).stalls[0].blocked == []
+
+
+@pytest.mark.unit
+def test_remove_block_leaves_other_blocked_names_alone(tmp_path: Path) -> None:
+    from haywire.core.marketstall.helpers import (
+        add_stall_subscription_to_global,
+        record_block_on_source,
+        remove_block_on_source,
+    )
+    from haywire.core.marketstall.parsing import parse_global_marketplace
+
+    f = tmp_path / "marketplace.toml"
+    url = "https://alice.example/marketstall.toml"
+    add_stall_subscription_to_global(f, url)
+    record_block_on_source(f, source_url=url, haybale_name="haybale-mesh")
+    record_block_on_source(f, source_url=url, haybale_name="haybale-other")
+
+    remove_block_on_source(f, source_url=url, haybale_name="haybale-mesh")
+
+    assert parse_global_marketplace(f).stalls[0].blocked == ["haybale-other"]
+
+
+@pytest.mark.unit
+def test_remove_block_reports_false_when_nothing_was_blocked(tmp_path: Path) -> None:
+    """False, and no write — an unchanged file must not churn its mtime."""
+    from haywire.core.marketstall.helpers import (
+        add_stall_subscription_to_global,
+        remove_block_on_source,
+    )
+
+    f = tmp_path / "marketplace.toml"
+    url = "https://alice.example/marketstall.toml"
+    add_stall_subscription_to_global(f, url)
+    before = f.read_text()
+
+    assert remove_block_on_source(f, source_url=url, haybale_name="haybale-mesh") is False
+    assert f.read_text() == before

@@ -9,7 +9,13 @@ from nicegui import ui
 from haywire.ui.components.stepper import Panel, show_step_flow
 
 from ._state import RefreshFlow, RefreshSource
-from .panels import _panel_applied, _panel_fetched, _panel_resolved, _panel_sources
+from .panels import (
+    _panel_applied,
+    _panel_conflicts,
+    _panel_fetched,
+    _panel_resolved,
+    _panel_sources,
+)
 
 
 def show_refresh_flow(
@@ -30,6 +36,7 @@ def show_refresh_flow(
     panels: dict[str, Panel[RefreshFlow]] = {
         "sources": _panel_sources,
         "fetched": _panel_fetched,
+        "conflicts": _panel_conflicts,
         "resolved": _panel_resolved,
         "applied": lambda f, _rerender: _panel_applied(f, None),
     }

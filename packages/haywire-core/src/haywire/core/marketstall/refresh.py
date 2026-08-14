@@ -25,6 +25,7 @@ from __future__ import annotations
 import datetime as _dt
 from dataclasses import replace
 from pathlib import Path
+from typing import Callable
 
 from haywire.core.library.haybale import Haybale
 from haywire.core.marketstall.cache import (
@@ -122,6 +123,8 @@ def apply_heaps_shadow(heaps: list[dict], haybales: list[Haybale]) -> list[Hayba
 def dedupe_reporting_collisions(
     haybales: list[Haybale],
     preferences: dict[str, str] | None = None,
+    *,
+    same_library: Callable[[Haybale, Haybale], bool] | None = None,
 ) -> tuple[list[Haybale], list[SourceCollision]]:
     """Deduplicate by name, returning both the survivors and what was discarded.
 
@@ -133,6 +136,13 @@ def dedupe_reporting_collisions(
     Candidate order is preserved on both sides; a preferred copy takes the
     position of the first candidate for its name, so honouring a preference
     never reshuffles the catalog.
+
+    ``same_library`` decides whether the claimants for a name are one library
+    seen through several feeds or several libraries wearing one name — policy
+    the caller owns (see ``haybale_marketplace.identity``). Omitted, every
+    same-name candidate counts as the same library, which is what the name
+    alone has always been taken to mean. One dissenting claimant marks the
+    whole group a conflict: a group is only interchangeable if all of it is.
     """
     prefs = preferences or {}
     grouped: dict[str, list[Haybale]] = {}
@@ -153,6 +163,9 @@ def dedupe_reporting_collisions(
                     winner_version=winner.version,
                     losers=[(h.via, h.version) for h in losers],
                     loser_owners=[h.owner_url or h.via for h in losers],
+                    same_library=(
+                        True if same_library is None else all(same_library(winner, h) for h in losers)
+                    ),
                 )
             )
     return out, collisions
@@ -267,21 +280,23 @@ def _body_for(fetched: FetchedSources, url: str) -> str | None:
     return None
 
 
-def resolve(fetched: FetchedSources) -> ResolvedCatalog:
-    """Phase 2 — turn fetched bodies into the catalog that would be written.
+def candidate_haybales(fetched: FetchedSources, *, honour_blocked: bool = True) -> list[Haybale]:
+    """Every haybale the fetched bodies offer, stamped with its provenance.
 
-    Steps 4–6: apply each subscription's blocked filter, combine candidates
-    (inline [[haybales]], then stalls, then market-inline — the order that
-    decides collisions the user has expressed no preference about), shadow
-    local heaps, dedupe honouring ``preference``, and stale-mark against the
-    previous [[caches]].
+    Order is inline [[haybales]], then stalls, then market-inline — the order
+    that decides a collision the user has expressed no preference about.
 
-    Pure: no network, no writes. The deltas on the result (``newly_stale``,
-    ``newly_added``) exist so a caller can present the consequences of the
-    write before :func:`apply` performs it.
+    ``honour_blocked=False`` keeps the names a subscription blocks. The refresh
+    itself always drops them, but the name-conflict step needs to *show* a
+    blocked claimant so the block reads as a reversible choice rather than the
+    claimant having vanished — a list you can only shorten turns the step into
+    an elimination game, where the last one standing wins by attrition instead
+    of being chosen.
     """
     mf = fetched.global_file
-    pm_prev = fetched.previous
+
+    def _blocked(haybales: list[Haybale], blocked: list[str]) -> list[Haybale]:
+        return apply_blocked(haybales, blocked) if honour_blocked else list(haybales)
 
     market_haybales: list[Haybale] = []
     for sub in mf.markets:
@@ -289,7 +304,7 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
         if body is None:
             continue
         contents = parse_remote_marketplace_body(body)
-        filtered = apply_blocked(contents.haybales, sub.blocked)
+        filtered = _blocked(contents.haybales, sub.blocked)
         for h in filtered:
             h.via = sub.url
         market_haybales.extend(filtered)
@@ -303,8 +318,7 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
         body = _body_for(fetched, sub.url)
         if body is None:
             continue
-        hb = parse_marketstall_body(body)
-        hb = apply_blocked(hb, sub.blocked)
+        hb = _blocked(parse_marketstall_body(body), sub.blocked)
         for h in hb:
             h.via = sub.url
         stall_haybales.extend(hb)
@@ -328,10 +342,39 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
             h.owner_url = owner
         stall_haybales.extend(discovered_hb)
 
-    candidates: list[Haybale] = list(mf.haybales) + stall_haybales + market_haybales
+    return list(mf.haybales) + stall_haybales + market_haybales
+
+
+def resolve(
+    fetched: FetchedSources,
+    *,
+    same_library: Callable[[Haybale, Haybale], bool] | None = None,
+) -> ResolvedCatalog:
+    """Phase 2 — turn fetched bodies into the catalog that would be written.
+
+    Steps 4–6: apply each subscription's blocked filter, combine candidates
+    (inline [[haybales]], then stalls, then market-inline — the order that
+    decides collisions the user has expressed no preference about), shadow
+    local heaps, dedupe honouring ``preference``, and stale-mark against the
+    previous [[caches]].
+
+    Pure: no network, no writes. The deltas on the result (``newly_stale``,
+    ``newly_added``) exist so a caller can present the consequences of the
+    write before :func:`apply` performs it.
+
+    ``same_library`` is the identity policy, supplied by the caller so this
+    module never has to know what makes two rows the same library — see
+    :func:`dedupe_reporting_collisions`.
+    """
+    mf = fetched.global_file
+    pm_prev = fetched.previous
+
+    candidates = candidate_haybales(fetched)
 
     candidates = apply_heaps_shadow(pm_prev.heaps, candidates)
-    candidates, collisions = dedupe_reporting_collisions(candidates, preferred_sources(mf))
+    candidates, collisions = dedupe_reporting_collisions(
+        candidates, preferred_sources(mf), same_library=same_library
+    )
 
     # Drop blocked names from the previous list before stale-rescue: blocked
     # entries must disappear, not be re-added as stale.

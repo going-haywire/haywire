@@ -28,6 +28,7 @@ from haywire.core.marketstall.helpers import (
     detect_subscription_conflicts,
     record_block_on_source,
     record_preference,
+    remove_block_on_source,
     remove_stale_haybale_from_project,
     resolve_block_target,
 )
@@ -48,6 +49,7 @@ from haywire.core.marketstall.requirement import (
 from haywire.core.marketstall.refresh import (
     apply_blocked,
     apply_heaps_shadow,
+    candidate_haybales,
     dedupe_reporting_collisions,
     preferred_sources,
     fetch_sources,
@@ -130,6 +132,7 @@ __all__ = [
     "apply_refresh",
     "apply_blocked",
     "apply_heaps_shadow",
+    "candidate_haybales",
     "dedupe_reporting_collisions",
     "preferred_sources",
     "mark_stale_against_previous",
@@ -140,6 +143,7 @@ __all__ = [
     "remove_stale_haybale_from_project",
     "record_preference",
     "record_block_on_source",
+    "remove_block_on_source",
     "resolve_block_target",
     "detect_subscription_conflicts",
     # Errors

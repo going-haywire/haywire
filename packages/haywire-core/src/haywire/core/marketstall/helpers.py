@@ -184,7 +184,10 @@ def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: 
     """Add `haybale_name` to the `blocked` array of the subscription at `source_url`.
 
     Idempotent. Searches both [[markets]] and [[stalls]] — first match wins.
-    Blocked entries are persistent; un-block only by editing the file.
+    Reversible with :func:`remove_block_on_source`, which the refresh flow's
+    name-conflict step offers as an Unblock toggle. The install flow's Block
+    affordance is still a side exit that closes the flow — blocking there means
+    you are not installing — but it is no longer a one-way door.
     """
     mf = parse_global_marketplace(global_path)
 
@@ -203,6 +206,38 @@ def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: 
 
     if changed:
         global_path.write_text(serialize_global_marketplace(mf))
+
+
+def remove_block_on_source(global_path: Path, *, source_url: str, haybale_name: str) -> bool:
+    """Drop `haybale_name` from the `blocked` array of the subscription at `source_url`.
+
+    The inverse of :func:`record_block_on_source`, so a block made in the
+    name-conflict step is a toggle rather than a one-way door: the step shows
+    every claimant, blocked or not, and the user moves the choice around until
+    exactly one is left standing.
+
+    Returns True iff the file changed. Other blocked names on the same
+    subscription are untouched — a block is per-name, and lifting one says
+    nothing about the rest.
+    """
+    mf = parse_global_marketplace(global_path)
+
+    def drop_block(sub: Subscription) -> Subscription:
+        if haybale_name not in sub.blocked:
+            return sub  # Unchanged: no write, no mtime churn.
+        return Subscription(
+            url=sub.url,
+            preference=list(sub.preference),
+            blocked=[n for n in sub.blocked if n != haybale_name],
+        )
+
+    changed = _replace_subscription_in_list(mf.markets, source_url, drop_block)
+    if not changed:
+        changed = _replace_subscription_in_list(mf.stalls, source_url, drop_block)
+
+    if changed:
+        global_path.write_text(serialize_global_marketplace(mf))
+    return changed
 
 
 def detect_subscription_conflicts(existing: list[Haybale], new: list[Haybale]) -> list[SubscriptionConflict]:

@@ -139,7 +139,7 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
             f"{'has' if resolved.updates_available == 1 else 'have'} a newer version available."
         ).classes("text-xs hw-text-dim")
 
-    if resolved.collisions:
+    if any(c.same_library for c in resolved.collisions):
         _render_collisions(flow, rerender)
 
     ui.label(
@@ -164,7 +164,7 @@ def _render_collisions(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
         return
 
     hui.section_label("Offered by several sources")
-    for collision in resolved.collisions:
+    for collision in (c for c in resolved.collisions if c.same_library):
         with ui.column().classes("gap-0.5 ml-1 mb-1"):
             ui.label(f"{collision.name} — offered by {_plural(collision.source_count, 'source')}").classes(
                 "text-xs font-mono"
@@ -208,6 +208,133 @@ def _prefer_button(
     ui.button("Use this one", on_click=_prefer).props("flat dense no-caps").classes("text-xs").style(
         "color: var(--hw-accent);"
     )
+
+
+def _panel_conflicts(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
+    """Several unrelated libraries claim one name — which do you mean?
+
+    Not a source preference: the marketplace has no namespace, so two authors
+    can publish the same name from unrelated repositories. Picking one is
+    picking a project, so the resolution is to block the claimants you do not
+    want — written by the user, one name and one source at a time.
+
+    Blocked claimants stay listed with an Unblock toggle. A list that only ever
+    shrinks would turn the step into an elimination game where the last one
+    standing wins by attrition; keeping every claimant on screen makes it a
+    choice, visible and reversible on the next refresh too.
+    """
+    ui.label(
+        f"{_plural(len(flow.conflicts), 'name is', 'names are')} claimed by more than one library."
+    ).classes("text-sm font-medium").style("color: var(--hw-warning);")
+    ui.label(
+        "These are different libraries that happen to share a name — not the same "
+        "library from several feeds. Leave exactly one unblocked."
+    ).classes("text-xs hw-text-muted")
+
+    for conflict in flow.conflicts:
+        claimants = flow.claimants_for(conflict.name)
+        with ui.column().classes("gap-0.5 ml-1 mb-2"):
+            remaining = sum(1 for c in claimants if not c.blocked)
+            with ui.row().classes("items-center gap-2"):
+                ui.label(conflict.name).classes("text-xs font-mono font-medium")
+                tone = "var(--hw-positive)" if remaining == 1 else "var(--hw-warning)"
+                ui.label(f"{remaining} of {len(claimants)} unblocked").classes("text-xs").style(
+                    f"color: {tone};"
+                )
+            for claimant in claimants:
+                _render_claimant(flow, rerender, conflict.name, claimant)
+
+    settled = flow.conflicts_are_settled
+    if settled:
+        ui.label(
+            "Each name resolves to one library. The blocks are kept, and this step "
+            "shows them again on the next refresh if you want to change your mind."
+        ).classes("text-xs").style("color: var(--hw-positive);")
+    else:
+        ui.label(
+            "Leave exactly one source unblocked per name. Blocking all of them is as "
+            "unresolved as blocking none."
+        ).classes("text-xs").style("color: var(--hw-warning);")
+
+    with ui.row().classes("w-full justify-end gap-2"):
+        cont = ui.button("Continue").props("flat dense").style("color: var(--hw-positive);")
+        cont.on_click(lambda: busy_advance(rerender, cont, flow.advance_from_conflicts))
+        # Disabled rather than failing on click: the requirement is visible on
+        # screen (the per-name "n of m unblocked" counter), so a dead button is
+        # self-explanatory where an error message after the fact is not.
+        if not settled:
+            cont.props("disable")
+            cont.tooltip("Leave exactly one source unblocked for each contested name.")
+
+
+def _render_claimant(
+    flow: RefreshFlow,
+    rerender: Callable[[], None],
+    name: str,
+    claimant,
+) -> None:
+    """One claimant row: who offers it, its identity, and the block toggle."""
+    with ui.column().classes("gap-0 ml-2 mb-1"):
+        with ui.row().classes("items-center gap-2"):
+            label = claimant.label or claimant.url or "(inline)"
+            colour = (
+                "color: var(--hw-text-dim); text-decoration: line-through;"
+                if claimant.blocked
+                else ("color: var(--hw-positive);" if claimant.installed else "")
+            )
+            ui.label(label + (f" ({claimant.version})" if claimant.version else "")).classes(
+                "text-xs font-mono"
+            ).style(colour)
+            if claimant.installed:
+                ui.label("installed").classes("text-xs px-1 rounded").style(
+                    "color: var(--hw-positive); border: 1px solid var(--hw-positive);"
+                )
+            if claimant.blocked:
+                ui.label("blocked").classes("text-xs px-1 rounded hw-text-dim").style(
+                    "border: 1px solid var(--hw-border);"
+                )
+            _render_block_toggle(flow, rerender, name, claimant)
+
+        # The origin is what actually distinguishes two same-named libraries,
+        # so it is shown rather than left to a tooltip.
+        if claimant.origin:
+            ui.label(claimant.origin).classes("text-xs font-mono hw-text-dim ml-1")
+
+
+def _render_block_toggle(
+    flow: RefreshFlow,
+    rerender: Callable[[], None],
+    name: str,
+    claimant,
+) -> None:
+    """Block / Unblock, or a disabled Block for the copy already installed."""
+    if claimant.blocked:
+        btn = ui.button("Unblock", on_click=lambda: _toggle(flow, rerender, name, claimant, False))
+        btn.props("flat dense no-caps").classes("text-xs").style("color: var(--hw-accent);")
+        return
+
+    btn = ui.button("Block", on_click=lambda: _toggle(flow, rerender, name, claimant, True))
+    btn.props("flat dense no-caps").classes("text-xs").style("color: var(--hw-warning);")
+    if not claimant.can_block:
+        btn.props("disable")
+        btn.tooltip(
+            f"{name} is installed from this source. Uninstall it first — blocking it "
+            "now would leave the catalog offering another author's code under this name."
+        )
+
+
+def _toggle(
+    flow: RefreshFlow,
+    rerender: Callable[[], None],
+    name: str,
+    claimant,
+    block: bool,
+) -> None:
+    if block:
+        flow.block_claimant(name, source_url=claimant.owner_url)
+    else:
+        flow.unblock_claimant(name, source_url=claimant.owner_url)
+    rerender()
 
 
 def _panel_applied(flow: RefreshFlow, on_done: Callable[[], None] | None) -> None:

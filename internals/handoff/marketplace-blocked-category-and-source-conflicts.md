@@ -1,6 +1,6 @@
 ---
 name: marketplace-blocked-category-and-source-conflicts
-description: Handoff — whether Blocked should join the library category enum, and the silent cross-source winner when stall entries collide; silent-winner half LANDED 2026-08-14 (`preference` replaces `ignores`+`doubles`, one-click settle, refresh no longer writes the global file), Blocked-category half still open behind it
+description: Handoff — LANDED 2026-08-14: `preference` replaces `ignores`+`doubles`, and a name-conflict step settles several libraries claiming one name; only the Blocked-category chip in the library browser is still open
 metadata:
   type: project
   status: open
@@ -249,6 +249,62 @@ Not done, deliberately: the add-source stale-baseline gap is *narrowed* (a
 missed collision surfaces on the next refresh) but `existing_haybales()` still
 reads the last refresh's catalog. Fixing it properly means probing every
 subscribed source at add time — a network-cost decision wanting its own round.
+
+## LANDED 2026-08-14 (second round) — name conflicts
+
+A name offered by several sources was treated as one library seen through
+several feeds. It is not always: the marketplace has no namespace for
+git-sourced names, so two authors can publish `haybale-mesh` from unrelated
+repositories and the catalog would offer them as interchangeable — one click
+away from installing somebody else's code under the name you meant.
+
+**Identity policy lives in the barn, not core.** `resolve(..., same_library=)`
+is a seam core defines and never fills; `haybale_marketplace.identity` supplies
+`identity_matches`. Rule, deliberately conservative — say "same" only when
+provable:
+
+| Candidates | Verdict |
+|---|---|
+| Both PyPI, same name | same library (PyPI's namespace has one owner) |
+| Both git, same `origin` | same library |
+| Both git, different `origin` | **conflict** |
+| PyPI vs git | **conflict**, labelled, no auto-win |
+| `origin` missing | **conflict** |
+
+PyPI does *not* auto-win: registering a name there is trivial, so preferring it
+would hand the win to a squatter in the case that does damage.
+
+`installed_identity_matches` adds one rule: an **editable project-local**
+checkout is authoritative for its own identity. Its `haybale.toml` legitimately
+carries no `origin` (the share wizard writes that at publish), so the plain rule
+would raise a conflict on every refresh for anyone developing in-repo.
+
+**The step.** `conflicts` sits between `fetched` and `resolved` and is
+*stopped at* only when there is one — but stays in `STEPS` either way, because
+the progress bar is redrawn from that list and a growing bar moves the
+goalposts mid-flow. Every claimant is listed, blocked ones included, read from
+`candidate_haybales(fetched, honour_blocked=False)` — the resolve drops blocked
+names, and a claimant that vanishes when blocked turns the step into an
+elimination game where the survivor wins by attrition. Continue is disabled
+until **exactly one** claimant per name is unblocked; blocking all of them is as
+unresolved as blocking none. The installed copy cannot be blocked (disabled
+button + a guard in `block_claimant`) — uninstall first to switch.
+
+Blocks are per-name and per-source, written only by the user, and reversible:
+`remove_block_on_source` is new, and `record_block_on_source`'s "un-block only
+by editing the file" docstring was corrected.
+
+**Resolves three of the four open questions above.** Q1 dissolved when
+`ignores` was removed — `preference` owns per-source preference, `blocked` owns
+rejection, and the two are no longer near-duplicates. Q2 is built. Q4's answer
+is "it doesn't need to live in the cache": blocked state is re-derived from the
+global file at render time. Q3 is answered here (un-blocking is a UI action).
+
+Still open: only the **`Blocked` category chip in the library browser** — a
+different surface, and now cheap, since re-deriving from the global file at
+render time is the proven pattern. Its precedence against
+Required/Enabled/Disabled/Available is still undecided, but that is a
+UI-ordering question, not a semantics one.
 
 ## What changed since this was written
 
