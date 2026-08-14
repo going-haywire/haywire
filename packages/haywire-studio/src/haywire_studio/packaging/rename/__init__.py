@@ -58,7 +58,7 @@ def run_rename_cli(
 
     if not assume_yes:
         if needs_prefix_confirm and not _confirm(
-            f'"{new_name}" does not start with "haybale-" or "hay-". Continue?'
+            f'"{plan.new_dist}" does not start with "haybale-" or "hay-". Continue?'
         ):
             print("Aborted.")
             return 1
