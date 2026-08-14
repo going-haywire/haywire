@@ -22,5 +22,3 @@ class TestAddFloatNode(BaseNode):
     def worker(self, context: ExecutionContext, value_a: float, value_b: float) -> str | None:
         self.out("result", value_a + value_b)
         return None
-
-

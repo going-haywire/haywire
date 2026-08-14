@@ -50,8 +50,6 @@ class TestDeleteNodeMenuPanel(BasePanel):
             )
 
 
-
-
 @panel(
     actions=TestNodeContextActions,
     focus=TestNodeFocus,

@@ -90,8 +90,10 @@ uv run pytest --cov                       # with coverage
 # outlier is usually an accidental network call, not real work.
 
 # Code quality
-# CI's ruff job runs BOTH `ruff check` and `ruff format --check`. They catch
-# disjoint problems, so run both locally or CI will reject what passed here.
+# "Run a ruff check" / "ruff check" as a spoken instruction means BOTH commands
+# below, not just the first. CI's ruff job runs BOTH `ruff check` and
+# `ruff format --check` — they catch disjoint problems (lint vs formatting), so
+# running only `ruff check` and calling it done is what causes CI-only failures.
 uv run ruff check .                          # lint (line-length = 109)
 uv run ruff format --check .                 # verify formatting — same as CI; fails on drift
 uv run ruff format .                         # apply formatting in place to FIX drift, then re-commit

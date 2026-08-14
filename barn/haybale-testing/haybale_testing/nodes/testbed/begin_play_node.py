@@ -28,5 +28,3 @@ class TestBeginPlayNode(BaseNode):
 
         self.out("timestamp", time.time())
         return "exec"
-
-

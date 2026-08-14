@@ -23,8 +23,6 @@ class BoolToIntAdapter(BaseAdapter):
         return random.choice([True, False])
 
 
-
-
 @adapter(description="Convert integer to float", converts_from=TEST_INT, converts_to=TEST_FLOAT)
 class IntToFloatAdapter(BaseAdapter):
     @override
@@ -33,8 +31,6 @@ class IntToFloatAdapter(BaseAdapter):
 
     def get_test_value(self) -> int:
         return int(random.randrange(0, 100))
-
-
 
 
 @adapter(description="Convert float to string", converts_from=TEST_FLOAT, converts_to=TEST_STRING)
@@ -47,8 +43,6 @@ class FloatToStringAdapter(BaseAdapter):
 
     def get_test_value(self) -> float:
         return float(random.randrange(0, 100))
-
-
 
 
 # BoolToIntAdapter, IntToFloatAdapter, FloatToStringAdapter — see above.

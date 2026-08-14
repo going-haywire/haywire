@@ -64,5 +64,3 @@ class TestingSettings(LibrarySettings):
         description="Library-wide 3D float position used by test nodes",
         category="root",
     )
-
-

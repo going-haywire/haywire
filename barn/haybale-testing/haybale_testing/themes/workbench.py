@@ -65,8 +65,6 @@ class TestDarkTheme(WorkbenchTheme):
     console_text = "#00ff00"
 
 
-
-
 @theme(label="Test Light")
 class TestLightTheme(WorkbenchTheme):
     """Minimal light-style theme for tests."""
@@ -122,5 +120,3 @@ class TestLightTheme(WorkbenchTheme):
     statusbar_text = "rgba(255,255,255,0.87)"
     console_bg = "#f8f8f8"
     console_text = "rgba(0,0,0,0.87)"
-
-

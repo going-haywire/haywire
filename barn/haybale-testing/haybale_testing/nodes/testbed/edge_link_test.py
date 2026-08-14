@@ -117,5 +117,3 @@ class EdgeLinkTestNode(BaseNode):
     def worker(self, context: ExecutionContext) -> str | None:
         """Execute the node - return the constant value"""
         return None
-
-

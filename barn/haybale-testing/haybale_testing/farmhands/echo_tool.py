@@ -14,5 +14,3 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, fa
 class EchoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, text: str) -> dict:
         return {"echo": text}
-
-

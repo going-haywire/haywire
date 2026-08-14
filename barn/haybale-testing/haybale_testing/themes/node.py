@@ -23,5 +23,3 @@ class TestNodeTheme(NodeTheme):
     error_bg = "#330000"
     error_border = "#ff0000"
     muted_opacity = "0.4"
-
-

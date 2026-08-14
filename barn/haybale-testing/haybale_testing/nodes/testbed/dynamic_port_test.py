@@ -63,5 +63,3 @@ class DynamicPortTestNode(BaseNode):
 
     def worker(self, context: ExecutionContext) -> str | None:
         return None
-
-

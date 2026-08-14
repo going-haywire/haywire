@@ -77,5 +77,3 @@ class TestSessionStateMenuPanel(BasePanel):
         counter = ctx.data[TestSessionState].counter
         with layout:
             hui.label(f"counter: {counter}")
-
-
