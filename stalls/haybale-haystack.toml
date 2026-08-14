@@ -5,10 +5,9 @@
 
 [[haybales]]
 name = "haybale-haystack"
-id = "haystack"
 label = "Haystack"
-version = "0.1.1"
-require = "haywire-core>=0.1.1"
+version = "0.1.2"
+require = "haywire-core>=0.1.2"
 description = "File-centric multi-graph manager"
 source = "pypi"
 install_spec = "haybale-haystack"

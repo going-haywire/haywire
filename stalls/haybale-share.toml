@@ -5,10 +5,9 @@
 
 [[haybales]]
 name = "haybale-share"
-id = "share"
 label = "Share"
-version = "0.1.1"
-require = "haywire-core>=0.1.1"
+version = "0.1.2"
+require = "haywire-core>=0.1.2"
 description = "Publish this project: dependencies, version, docs, commit, tag, push"
 source = "pypi"
 install_spec = "haybale-share"

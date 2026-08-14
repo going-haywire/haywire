@@ -11,36 +11,18 @@
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-core.toml"
-ignores = []
-doubles = []
-blocked = []
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-studio.toml"
-ignores = []
-doubles = []
-blocked = []
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-marketplace.toml"
-ignores = []
-doubles = []
-blocked = []
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-share.toml"
-ignores = []
-doubles = []
-blocked = []
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-graph-editor.toml"
-ignores = []
-doubles = []
-blocked = []
 
 [[stalls]]
 url = "https://going-haywire.github.io/haywire/stalls/haybale-haystack.toml"
-ignores = []
-doubles = []
-blocked = []

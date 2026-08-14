@@ -5,10 +5,9 @@
 
 [[haybales]]
 name = "haybale-marketplace"
-id = "marketplace"
 label = "Marketplace"
-version = "0.1.1"
-require = "haywire-core>=0.1.1"
+version = "0.1.2"
+require = "haywire-core>=0.1.2"
 description = "Library installer + browser editors"
 source = "pypi"
 install_spec = "haybale-marketplace"

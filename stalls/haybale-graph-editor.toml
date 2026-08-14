@@ -5,10 +5,9 @@
 
 [[haybales]]
 name = "haybale-graph-editor"
-id = "graph_editor"
 label = "Graph Editor"
-version = "0.1.1"
-require = "haywire-core>=0.1.1"
+version = "0.1.2"
+require = "haywire-core>=0.1.2"
 description = "Visual graph editor library — host-agnostic"
 source = "pypi"
 install_spec = "haybale-graph-editor"
