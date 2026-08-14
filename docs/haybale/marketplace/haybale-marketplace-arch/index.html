@@ -1663,6 +1663,8 @@
       
         
       
+        
+      
     
     
     
@@ -1795,6 +1797,41 @@
     
   
     Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
   
 
     
@@ -3881,7 +3918,7 @@ files carry the state; each hop below names which one it writes.</p>
 </span><span id="__span-0-18"><a id="__codelineno-0-18" name="__codelineno-0-18" href="#__codelineno-0-18"></a>  └───────┬───────┘                                               │
 </span><span id="__span-0-19"><a id="__codelineno-0-19" name="__codelineno-0-19" href="#__codelineno-0-19"></a>          │  fetch each subscription ──▶ ~/.haywire/cache/&lt;hash&gt;.toml
 </span><span id="__span-0-20"><a id="__codelineno-0-20" name="__codelineno-0-20" href="#__codelineno-0-20"></a>          │  parse markets one level deep (their [[stalls]] only)
-</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>          │  apply blocked / ignores per subscription
+</span><span id="__span-0-21"><a id="__codelineno-0-21" name="__codelineno-0-21" href="#__codelineno-0-21"></a>          │  apply blocked per subscription
 </span><span id="__span-0-22"><a id="__codelineno-0-22" name="__codelineno-0-22" href="#__codelineno-0-22"></a>          │  apply heaps shadow, then first-come-first-served
 </span><span id="__span-0-23"><a id="__codelineno-0-23" name="__codelineno-0-23" href="#__codelineno-0-23"></a>          │  diff against the previous cache to mark stale
 </span><span id="__span-0-24"><a id="__codelineno-0-24" name="__codelineno-0-24" href="#__codelineno-0-24"></a>          ▼
@@ -4059,8 +4096,8 @@ combined list:</p>
 <td>Names the user rejected in the install-safety modal. Filtered from the candidate list <strong>and</strong> from the previous cache's stale-rescue pool, so they disappear entirely rather than surviving as stale rows. Un-blockable only by editing the file</td>
 </tr>
 <tr>
-<td><code>ignores</code></td>
-<td>Names to skip from <em>this</em> source. Written by the conflict prompt at Add Source time; the library may still appear from a different source</td>
+<td><code>preference</code></td>
+<td>Names <em>this</em> source should win when several offer them. Written by the conflict prompt at Add Source time and by the refresh flow's "Use this one"; exclusive, so one write settles the choice</td>
 </tr>
 <tr>
 <td>Heaps shadow</td>
@@ -4068,13 +4105,13 @@ combined list:</p>
 </tr>
 <tr>
 <td>First-come-first-served</td>
-<td>Any name still appearing twice keeps its first occurrence. A safety net for hand-edits; every conflict routed through the UI lands in <code>ignores</code> or <code>blocked</code></td>
+<td>The fallback when no source claims a contested name in <code>preference</code>. Every collision is reported on the resolve step, so an unsettled one is visible before it changes a version</td>
 </tr>
 </tbody>
 </table>
 <p>When Add Source detects a collision against already-resolved state, the user
 picks which source wins; the loser's subscription gains the name in its
-<code>ignores</code>. Later refreshes honour the choice without re-asking.</p>
+<code>preference</code>. Later refreshes honour the choice without re-asking.</p>
 <h3 id="26-the-refresh-report">2.6 The refresh report<a class="headerlink" href="#26-the-refresh-report" title="Permanent link">&para;</a></h3>
 <p>Cached on <code>MarketplaceState.last_report</code>.</p>
 <table>
@@ -4142,8 +4179,8 @@ state, so the worst case is a rebuild plus re-subscribing.</p>
 </tr>
 <tr>
 <td>A library will not go away</td>
-<td>Its name is in a subscription's <code>blocked</code> or <code>ignores</code></td>
-<td>Remove it from that array in the global file. <code>blocked</code> hides it everywhere; <code>ignores</code> only from that source</td>
+<td>Its name is in a subscription's <code>blocked</code></td>
+<td>Remove it from that array in the global file. <code>blocked</code> hides it everywhere</td>
 </tr>
 <tr>
 <td>Rows marked "(stale)" that should be gone</td>
@@ -4489,9 +4526,8 @@ sees <code>[[stalls]]</code> references, and writes a <code>[[markets]]</code> s
 <code>~/.haywire/db/haybale_marketplace/marketplace.toml</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[[markets]]</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://going-haywire.github.io/haywire/marketplace.toml&quot;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">ignores</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">doubles</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="n">blocked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="n">preference</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="n">blocked</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="p">[]</span>
 </span></code></pre></div>
 <p>Add Source then auto-refreshes. The runtime:</p>
 <ol>

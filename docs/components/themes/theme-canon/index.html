@@ -1396,6 +1396,8 @@
       
         
       
+        
+      
     
     
     
@@ -1528,6 +1530,41 @@
     
   
     Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
   
 
     
@@ -3421,63 +3458,64 @@
 </span><span id="__span-7-53"><a id="__codelineno-7-53" name="__codelineno-7-53" href="#__codelineno-7-53"></a>    <span class="n">statusbar_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(255,255,255,0.7)&quot;</span>
 </span><span id="__span-7-54"><a id="__codelineno-7-54" name="__codelineno-7-54" href="#__codelineno-7-54"></a>    <span class="n">console_bg</span> <span class="o">=</span> <span class="s2">&quot;#000000&quot;</span>
 </span><span id="__span-7-55"><a id="__codelineno-7-55" name="__codelineno-7-55" href="#__codelineno-7-55"></a>    <span class="n">console_text</span> <span class="o">=</span> <span class="s2">&quot;#00ff00&quot;</span>
+</span><span id="__span-7-56"><a id="__codelineno-7-56" name="__codelineno-7-56" href="#__codelineno-7-56"></a>
+</span><span id="__span-7-57"><a id="__codelineno-7-57" name="__codelineno-7-57" href="#__codelineno-7-57"></a>
+</span><span id="__span-7-58"><a id="__codelineno-7-58" name="__codelineno-7-58" href="#__codelineno-7-58"></a><span class="nd">@theme</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test Light&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>TestDarkTheme</code> — registry_key: <code>haybale-testing:theme:workbench:TestDarkTheme</code></p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@theme</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test Light&quot;</span><span class="p">)</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestLightTheme</span><span class="p">(</span><span class="n">WorkbenchTheme</span><span class="p">):</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Minimal light-style theme for tests.&quot;&quot;&quot;</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">bg_page</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">bg_surface</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a>    <span class="n">bg_sidebar</span> <span class="o">=</span> <span class="s2">&quot;#dddddd&quot;</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a>    <span class="n">bg_elevated</span> <span class="o">=</span> <span class="s2">&quot;#cccccc&quot;</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a>    <span class="n">bg_overlay</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.2)&quot;</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>    <span class="n">bg_input</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    <span class="n">border</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.1)&quot;</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>    <span class="n">border_strong</span> <span class="o">=</span> <span class="s2">&quot;#aaaaaa&quot;</span>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="n">text_body</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="n">text_muted</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.55)&quot;</span>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>    <span class="n">text_dim</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.4)&quot;</span>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>    <span class="n">text_expansion</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.7)&quot;</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>    <span class="n">text_on_accent</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>    <span class="n">accent</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>    <span class="n">accent_hover</span> <span class="o">=</span> <span class="s2">&quot;#0066dd&quot;</span>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>    <span class="n">accent_active</span> <span class="o">=</span> <span class="s2">&quot;#0044bb&quot;</span>
-</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>    <span class="n">danger</span> <span class="o">=</span> <span class="s2">&quot;#cc0000&quot;</span>
-</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>    <span class="n">warning</span> <span class="o">=</span> <span class="s2">&quot;#cc8800&quot;</span>
-</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>    <span class="n">success</span> <span class="o">=</span> <span class="s2">&quot;#008800&quot;</span>
-</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>    <span class="n">info</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>    <span class="n">positive</span> <span class="o">=</span> <span class="s2">&quot;#008800&quot;</span>
-</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>    <span class="n">node_bg</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
-</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>    <span class="n">node_border</span> <span class="o">=</span> <span class="s2">&quot;#cccccc&quot;</span>
-</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>    <span class="n">node_header_bg</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
-</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>    <span class="n">node_header_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
-</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>    <span class="n">node_selected</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>    <span class="n">node_active</span> <span class="o">=</span> <span class="s2">&quot;#0033aa&quot;</span>
-</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>    <span class="n">node_shadow</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.1)&quot;</span>
-</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>    <span class="n">edge_default</span> <span class="o">=</span> <span class="s2">&quot;#aaaaaa&quot;</span>
-</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>    <span class="n">edge_selected</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>    <span class="n">edge_active</span> <span class="o">=</span> <span class="s2">&quot;#0033aa&quot;</span>
-</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>    <span class="n">canvas_bg</span> <span class="o">=</span> <span class="s2">&quot;#f0f0f0&quot;</span>
-</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>    <span class="n">canvas_grid</span> <span class="o">=</span> <span class="s2">&quot;#dddddd&quot;</span>
-</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>    <span class="n">ghost_pin</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.12)&quot;</span>
-</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>    <span class="n">danger_bg</span> <span class="o">=</span> <span class="s2">&quot;rgba(204,0,0,0.06)&quot;</span>
-</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a>    <span class="n">bg_hover</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
-</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a>    <span class="n">bg_active</span> <span class="o">=</span> <span class="s2">&quot;#d0d0e8&quot;</span>
-</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a>    <span class="n">popup_shadow</span> <span class="o">=</span> <span class="s2">&quot;0 8px 32px rgba(0,0,0,0.18)&quot;</span>
-</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a>    <span class="n">drag_over</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a>    <span class="n">drag_ghost</span> <span class="o">=</span> <span class="s2">&quot;0.5&quot;</span>
-</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a>    <span class="n">topbar_bg</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
-</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a>    <span class="n">topbar_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
-</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a>    <span class="n">sidebar_bg</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
-</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a>    <span class="n">sidebar_icon</span> <span class="o">=</span> <span class="s2">&quot;#888888&quot;</span>
-</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a>    <span class="n">sidebar_icon_active</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a>    <span class="n">panel_bg</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
-</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a>    <span class="n">panel_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
-</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a>    <span class="n">statusbar_bg</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
-</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a>    <span class="n">statusbar_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(255,255,255,0.87)&quot;</span>
-</span><span id="__span-8-54"><a id="__codelineno-8-54" name="__codelineno-8-54" href="#__codelineno-8-54"></a>    <span class="n">console_bg</span> <span class="o">=</span> <span class="s2">&quot;#f8f8f8&quot;</span>
-</span><span id="__span-8-55"><a id="__codelineno-8-55" name="__codelineno-8-55" href="#__codelineno-8-55"></a>    <span class="n">console_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="sd">&quot;&quot;&quot;Minimal light-style theme for tests.&quot;&quot;&quot;</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a><span class="n">bg_page</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="n">bg_surface</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="n">bg_sidebar</span> <span class="o">=</span> <span class="s2">&quot;#dddddd&quot;</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="n">bg_elevated</span> <span class="o">=</span> <span class="s2">&quot;#cccccc&quot;</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="n">bg_overlay</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.2)&quot;</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="n">bg_input</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="n">border</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.1)&quot;</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a><span class="n">border_strong</span> <span class="o">=</span> <span class="s2">&quot;#aaaaaa&quot;</span>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="n">text_body</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="n">text_muted</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.55)&quot;</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="n">text_dim</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.4)&quot;</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a><span class="n">text_expansion</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.7)&quot;</span>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="n">text_on_accent</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="n">accent</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="n">accent_hover</span> <span class="o">=</span> <span class="s2">&quot;#0066dd&quot;</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a><span class="n">accent_active</span> <span class="o">=</span> <span class="s2">&quot;#0044bb&quot;</span>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a><span class="n">danger</span> <span class="o">=</span> <span class="s2">&quot;#cc0000&quot;</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a><span class="n">warning</span> <span class="o">=</span> <span class="s2">&quot;#cc8800&quot;</span>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a><span class="n">success</span> <span class="o">=</span> <span class="s2">&quot;#008800&quot;</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a><span class="n">info</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a><span class="n">positive</span> <span class="o">=</span> <span class="s2">&quot;#008800&quot;</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a><span class="n">node_bg</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
+</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a><span class="n">node_border</span> <span class="o">=</span> <span class="s2">&quot;#cccccc&quot;</span>
+</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a><span class="n">node_header_bg</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
+</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a><span class="n">node_header_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
+</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a><span class="n">node_selected</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a><span class="n">node_active</span> <span class="o">=</span> <span class="s2">&quot;#0033aa&quot;</span>
+</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a><span class="n">node_shadow</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.1)&quot;</span>
+</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a><span class="n">edge_default</span> <span class="o">=</span> <span class="s2">&quot;#aaaaaa&quot;</span>
+</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a><span class="n">edge_selected</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a><span class="n">edge_active</span> <span class="o">=</span> <span class="s2">&quot;#0033aa&quot;</span>
+</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a><span class="n">canvas_bg</span> <span class="o">=</span> <span class="s2">&quot;#f0f0f0&quot;</span>
+</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a><span class="n">canvas_grid</span> <span class="o">=</span> <span class="s2">&quot;#dddddd&quot;</span>
+</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a><span class="n">ghost_pin</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.12)&quot;</span>
+</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a><span class="n">danger_bg</span> <span class="o">=</span> <span class="s2">&quot;rgba(204,0,0,0.06)&quot;</span>
+</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a><span class="n">bg_hover</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
+</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a><span class="n">bg_active</span> <span class="o">=</span> <span class="s2">&quot;#d0d0e8&quot;</span>
+</span><span id="__span-8-40"><a id="__codelineno-8-40" name="__codelineno-8-40" href="#__codelineno-8-40"></a><span class="n">popup_shadow</span> <span class="o">=</span> <span class="s2">&quot;0 8px 32px rgba(0,0,0,0.18)&quot;</span>
+</span><span id="__span-8-41"><a id="__codelineno-8-41" name="__codelineno-8-41" href="#__codelineno-8-41"></a><span class="n">drag_over</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-42"><a id="__codelineno-8-42" name="__codelineno-8-42" href="#__codelineno-8-42"></a><span class="n">drag_ghost</span> <span class="o">=</span> <span class="s2">&quot;0.5&quot;</span>
+</span><span id="__span-8-43"><a id="__codelineno-8-43" name="__codelineno-8-43" href="#__codelineno-8-43"></a><span class="n">topbar_bg</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
+</span><span id="__span-8-44"><a id="__codelineno-8-44" name="__codelineno-8-44" href="#__codelineno-8-44"></a><span class="n">topbar_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
+</span><span id="__span-8-45"><a id="__codelineno-8-45" name="__codelineno-8-45" href="#__codelineno-8-45"></a><span class="n">sidebar_bg</span> <span class="o">=</span> <span class="s2">&quot;#eeeeee&quot;</span>
+</span><span id="__span-8-46"><a id="__codelineno-8-46" name="__codelineno-8-46" href="#__codelineno-8-46"></a><span class="n">sidebar_icon</span> <span class="o">=</span> <span class="s2">&quot;#888888&quot;</span>
+</span><span id="__span-8-47"><a id="__codelineno-8-47" name="__codelineno-8-47" href="#__codelineno-8-47"></a><span class="n">sidebar_icon_active</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-48"><a id="__codelineno-8-48" name="__codelineno-8-48" href="#__codelineno-8-48"></a><span class="n">panel_bg</span> <span class="o">=</span> <span class="s2">&quot;#ffffff&quot;</span>
+</span><span id="__span-8-49"><a id="__codelineno-8-49" name="__codelineno-8-49" href="#__codelineno-8-49"></a><span class="n">panel_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
+</span><span id="__span-8-50"><a id="__codelineno-8-50" name="__codelineno-8-50" href="#__codelineno-8-50"></a><span class="n">statusbar_bg</span> <span class="o">=</span> <span class="s2">&quot;#0055cc&quot;</span>
+</span><span id="__span-8-51"><a id="__codelineno-8-51" name="__codelineno-8-51" href="#__codelineno-8-51"></a><span class="n">statusbar_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(255,255,255,0.87)&quot;</span>
+</span><span id="__span-8-52"><a id="__codelineno-8-52" name="__codelineno-8-52" href="#__codelineno-8-52"></a><span class="n">console_bg</span> <span class="o">=</span> <span class="s2">&quot;#f8f8f8&quot;</span>
+</span><span id="__span-8-53"><a id="__codelineno-8-53" name="__codelineno-8-53" href="#__codelineno-8-53"></a><span class="n">console_text</span> <span class="o">=</span> <span class="s2">&quot;rgba(0,0,0,0.87)&quot;</span>
 </span></code></pre></div>
 <p>from: <code>TestLightTheme</code> — registry_key: <code>haybale-testing:theme:workbench:TestLightTheme</code></p>
 <p><strong>NodeTheme</strong> — <code>TestNodeTheme</code> sets all node-specific tokens. Independent of workbench themes; users mix freely:</p>

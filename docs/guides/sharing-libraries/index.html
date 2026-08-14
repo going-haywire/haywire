@@ -13,7 +13,7 @@
         <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/">
       
       
-        <link rel="prev" href="../signals/">
+        <link rel="prev" href="../rename-library/">
       
       
         <link rel="next" href="../publish-to-pypi/">
@@ -1247,6 +1247,8 @@
       
         
       
+        
+      
     
     
     
@@ -1380,6 +1382,41 @@
     
   
     Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
   
 
     
@@ -3788,7 +3825,7 @@ screen, which offers each finding with a per-item choice.</p>
 Three causes worth checking:</p>
 <ol>
 <li>Their <code>Refresh</code> hasn't run. Subscriptions are passive; the catalog updates only on refresh.</li>
-<li>The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, your entry is in their <code>ignores</code>. They can edit <code>~/.haywire/marketplace.toml</code> to remove the ignore.</li>
+<li>The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, that source holds the <code>preference</code>. Every later refresh lists the collision on its resolve step, so they can switch to your copy in one click.</li>
 <li>The git URL in your <code>install_spec</code> is unreachable. Test with <code>uv pip install '&lt;install_spec&gt;'</code> directly.</li>
 </ol>
 <p><strong>Detection didn't pick up an import.</strong>

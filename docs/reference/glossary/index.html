@@ -1245,6 +1245,8 @@
       
         
       
+        
+      
     
     
     
@@ -1377,6 +1379,41 @@
     
   
     Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
   
 
     
@@ -4385,12 +4422,12 @@
 </tr>
 <tr>
 <td><strong><code>[[markets]]</code></strong></td>
-<td>TOML section in the global marketplace declaring subscriptions to <em>remote marketplace feeds</em>. Each entry: <code>url</code>, <code>ignores</code>, <code>doubles</code>, <code>blocked</code>. Renamed from <code>[[marketplaces]]</code> (spec §14).</td>
+<td>TOML section in the global marketplace declaring subscriptions to <em>remote marketplace feeds</em>. Each entry: <code>url</code>, <code>preference</code>, <code>blocked</code>. Renamed from <code>[[marketplaces]]</code> (spec §14).</td>
 <td><code>[[marketplaces]]</code> (legacy schema)</td>
 </tr>
 <tr>
 <td><strong><code>[[stalls]]</code></strong></td>
-<td>TOML section declaring subscriptions to <em>remote marketstall feeds</em> (single-author publish files). Each entry: <code>url</code>, <code>ignores</code>, <code>doubles</code>, <code>blocked</code>. Renamed from <code>[[marketstalls]]</code>.</td>
+<td>TOML section declaring subscriptions to <em>remote marketstall feeds</em> (single-author publish files). Each entry: <code>url</code>, <code>preference</code>, <code>blocked</code>. Renamed from <code>[[marketstalls]]</code>.</td>
 <td><code>[[marketstalls]]</code> (legacy schema)</td>
 </tr>
 <tr>
@@ -4414,23 +4451,18 @@
 <td>feed, source (overloaded)</td>
 </tr>
 <tr>
-<td><strong><code>ignores</code></strong></td>
-<td>Per-subscription array of names skipped from that source. Populated by the conflict-resolution prompt at Add Source time. Soft preference — the user picked another source.</td>
-<td>skip list</td>
+<td><strong><code>preference</code></strong></td>
+<td>Per-subscription array of names this source should <strong>win</strong> when several sources offer them. Positive rather than exclusionary, and exclusive: naming a winner clears the same name from every other subscription, so one write settles a collision no matter how many sources offer it and the outcome no longer depends on subscription order. Written by the Add Source conflict prompt and by the refresh flow's "Use this one".</td>
+<td><code>ignores</code>/<code>doubles</code> (both removed — <code>ignores</code> named the losers, <code>doubles</code> was a write-only receipt)</td>
 </tr>
 <tr>
 <td><strong><code>blocked</code></strong></td>
-<td>Per-subscription array of names the user actively rejected via the install-safety modal (§7.4). Stronger than <code>ignores</code>: blocked haybales are hidden from the Library Browser entirely and filtered out of the stale-rescue step so they never survive as <code>stale=True</code>. Un-blockable only by editing the marketplace file.</td>
+<td>Per-subscription array of names the user actively rejected via the install-safety modal (§7.4). Stronger than <code>preference</code>: blocked haybales are hidden from the Library Browser entirely and filtered out of the stale-rescue step so they never survive as <code>stale=True</code>. Un-blockable only by editing the marketplace file.</td>
 <td>denylist (don't use — it's not a denylist, it's per-subscription)</td>
 </tr>
 <tr>
-<td><strong><code>doubles</code></strong></td>
-<td>Per-subscription array of names that two <code>[[markets]]</code> entries silently dedup to. Diagnostic only.</td>
-<td>—</td>
-</tr>
-<tr>
 <td><strong>Refresh</strong></td>
-<td>The orchestrator (<code>haywire.core.marketstall.refresh</code>) that fetches every subscribed feed, resolves the candidate haybale list, applies <code>blocked</code>/<code>ignores</code>/heaps shadow/FCFS, and writes the result to the project <code>[[caches]]</code>. Triggered by Refresh button or auto-fires after Add Source.</td>
+<td>The orchestrator (<code>haywire.core.marketstall.refresh</code>) that fetches every subscribed feed, resolves the candidate haybale list, applies <code>blocked</code>/heaps shadow/preference-aware dedup, and writes the result to the project <code>[[caches]]</code>. Triggered by Refresh button or auto-fires after Add Source.</td>
 <td>sync, update</td>
 </tr>
 <tr>
@@ -4455,13 +4487,33 @@
 </tr>
 <tr>
 <td><strong>Subscription (dataclass)</strong></td>
-<td>The frozen dataclass for one <code>[[markets]]</code> or <code>[[stalls]]</code> entry: <code>url</code>, <code>ignores</code>, <code>doubles</code>, <code>blocked</code>. Renamed from <code>RemoteSubscription</code>; gained the <code>blocked</code> field.</td>
+<td>The frozen dataclass for one <code>[[markets]]</code> or <code>[[stalls]]</code> entry: <code>url</code>, <code>preference</code>, <code>blocked</code>. Renamed from <code>RemoteSubscription</code>; gained the <code>blocked</code> field.</td>
 <td><code>RemoteSubscription</code> (legacy name)</td>
 </tr>
 <tr>
 <td><strong>Conflict resolution</strong></td>
-<td>The four-filter rule applied during refresh: <code>blocked</code> per subscription, then <code>ignores</code> per subscription, then heaps shadow (heaps always win), then first-come-first-served as the final safety net. Spec §8.2.</td>
+<td>The rule applied during refresh: <code>blocked</code> per subscription, then heaps shadow (heaps always win), then dedup — which honours <code>preference</code> where the user named a winner and falls back to first-come-first-served where they have not. Spec §8.2.</td>
 <td>—</td>
+</tr>
+<tr>
+<td><strong>Standing collision</strong></td>
+<td>One library name offered by several <em>already-subscribed</em> sources, detected on every refresh by the dedup step and carried on <code>ResolvedCatalog.collisions</code> (<code>SourceCollision</code>: name, winner, losers with versions). Surfaced on the refresh flow's resolved step <strong>before</strong> the write, because the user-visible consequence is usually a version change; resolved by "Use this one" in a single click, which writes <code>preference</code> on the chosen source. Settling one does not hide it: the losers stay listed so the choice can be changed again. Distinct from <strong>Subscription conflict</strong>, which is the add-source-time check against the cached catalog.</td>
+<td>conflict (overloaded — say which one)</td>
+</tr>
+<tr>
+<td><strong>Name conflict</strong></td>
+<td>Several <em>different</em> libraries claiming one name — provable only in the negative, since the marketplace has no namespace for git-sourced names. Detected by <code>identity_matches</code> (<code>haybale_marketplace.identity</code>): both-PyPI-same-name or both-git-same-<code>origin</code> means one library; anything else, including PyPI-vs-git and a missing <code>origin</code>, is a conflict. Settled in the refresh flow's <strong>conflicts</strong> step by blocking every claimant but one — not by <code>preference</code>, which assumes the claimants are interchangeable.</td>
+<td>collision (that is the same-library case — say which one)</td>
+</tr>
+<tr>
+<td><strong>Claimant</strong></td>
+<td>One source's claim on a contested name, as rendered in the conflicts step: url, version, origin, plus whether it is blocked and whether it is the copy installed here. Blocked claimants stay listed so a block reads as a reversible choice; the installed one cannot be blocked (uninstall first).</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Subscription conflict</strong></td>
+<td>The collision <code>detect_subscription_conflicts</code> finds at <strong>Add Source</strong> time between the cached catalog and what a brand-new source offers, prompted before subscribing (<code>SubscriptionConflict</code>). Baseline is the last refresh's result, so a subscribed-but-unrefreshed source is invisible to it — that gap is covered by the <strong>Standing collision</strong> check on the next refresh.</td>
+<td>conflict (overloaded — say which one)</td>
 </tr>
 <tr>
 <td><strong>Stale</strong></td>
@@ -5286,7 +5338,7 @@
 <li>A <strong>Signal</strong> subclass with <code>cross_session: ClassVar[bool] = True</code> routes through <code>SessionManager.broadcast</code> and is received by every active <strong>Session</strong>.</li>
 <li>A library that subscribes to another library's <strong>Signal</strong> must list the <strong>signal-defining library</strong> in its own <code>LibraryIdentity.dependencies</code>.</li>
 <li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds the project's own <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes only the project marketplace. <em>(new)</em></li>
-<li><strong>Refresh</strong> reads the <strong>Global marketplace</strong>, fetches every <strong>Subscription</strong> (one-level-deep), and writes the resolved candidates to the <strong>Project marketplace</strong>'s <code>[[caches]]</code>. <strong>Conflict resolution</strong> applies <code>blocked</code>, then <code>ignores</code>, then heaps shadow, then first-come-first-served. <em>(new)</em></li>
+<li><strong>Refresh</strong> reads the <strong>Global marketplace</strong>, fetches every <strong>Subscription</strong> (one-level-deep), and writes the resolved candidates to the <strong>Project marketplace</strong>'s <code>[[caches]]</code>. <strong>Conflict resolution</strong> applies <code>blocked</code>, then heaps shadow, then preference-aware dedup (first-come-first-served where no preference exists). <em>(new)</em></li>
 <li>The Library Browser's <strong>REQUIRED</strong> filter and the Library Overview Editor's Disable/Uninstall gating both use <code>LibraryManager.get_installed_dependents()</code> — the <code>linked_libraries</code> graph. The two surfaces always agree. <em>(new)</em></li>
 <li>A library's published manifest survives <code>haywire share</code> only if the <strong>Three manifest layers</strong> agree. The <strong>Detect step</strong> reports divergence; the Share flow's Review screen reconciles it. The Library Overview Editor is read-only for <strong>library pyproject</strong> dependencies — one authoring path, not two. <code>linked_libraries</code> is the exception, and not a second authoring path: the Edit dialog's Refresh button applies the same union rule the CLI and wizard apply, because a <strong>Linked registration</strong> is provably true and carries no author decision a second writer could clobber.</li>
 </ul>
@@ -5343,7 +5395,7 @@
 <strong>Dev:</strong> "Will it fetch immediately?"
 <strong>Domain expert:</strong> "Yes — Add Source auto-fires <strong>Refresh</strong>. The fetch is one-level-deep: the runtime reads the remote's <code>[[stalls]]</code> URLs and inline <code>[[haybales]]</code>, but ignores its own <code>[[markets]]</code> to bound the resolution. Resolved candidates land in the <strong>Project marketplace</strong>'s <code>[[caches]]</code>."
 <strong>Dev:</strong> "What if two feeds advertise the same haybale name?"
-<strong>Domain expert:</strong> "You get a <strong>Conflict resolution</strong> prompt at Add Source time: pick which feed wins. The losing feed's <code>ignores</code> array gains that name so future refreshes silently skip it from that source."
+<strong>Domain expert:</strong> "You get a <strong>Conflict resolution</strong> prompt at Add Source time: pick which feed wins. The winning feed's <code>preference</code> array gains that name, so future refreshes resolve it the same way without re-asking — and a <strong>Standing collision</strong> on any later refresh can re-settle it in one click."
 <strong>Dev:</strong> "And if a feed I'm subscribed to goes offline?"
 <strong>Domain expert:</strong> "Refresh falls back to the <strong>HTTP cache</strong> at <code>~/.haywire/cache/</code>. The Library Browser shows a yellow 'N sources unavailable' banner so you know what's not fresh. Cached entries that don't re-resolve get marked <strong>Stale</strong> with a red dot and a (stale) suffix; if they're uninstalled, a trash icon lets you drop them from the cache."</p>
 </blockquote>

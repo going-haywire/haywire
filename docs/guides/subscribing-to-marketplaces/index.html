@@ -1247,6 +1247,8 @@
       
         
       
+        
+      
     
     
     
@@ -1380,6 +1382,41 @@
     
   
     Signals
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../rename-library/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Renaming a library
   
 
     
@@ -3590,8 +3627,8 @@ installed it.</p>
 <h2 id="2-when-two-authors-use-the-same-name">2. When two authors use the same name<a class="headerlink" href="#2-when-two-authors-use-the-same-name" title="Permanent link">&para;</a></h2>
 <p>Two authors can pick the same library name — there's no central namespace stopping them. The system surfaces collisions at the moment you're about to follow a new feed that would introduce one.</p>
 <p>When Add Source detects a conflict (a package in the new source whose name matches one your existing sources already provide), a conflict-resolution dialog opens with one row per colliding name. Each row shows the name and which sources offer it; you pick which to keep.</p>
-<p>The choice is permanent: the losing source's <code>ignores</code> array gains the name, and from then on refresh will silently skip it from that source. You won't be asked again for the same conflict.</p>
-<p>If you change your mind later, you can edit <code>~/.haywire/marketplace.toml</code> directly via the Edit File button — remove the entry from the <code>ignores</code> array, then click Refresh.</p>
+<p>The choice is recorded as a preference: the winning source's <code>preference</code> array gains the name, and from then on refresh resolves it that way without asking again. Preferring a source is exclusive, so the name is cleared from every other subscription — one choice settles the collision however many sources offer it.</p>
+<p>If you change your mind later, you don't have to edit anything: every refresh lists the collision on its resolve step with a "Use this one" next to each other source, and a single click moves the preference. (Editing <code>~/.haywire/marketplace.toml</code> via Edit File still works if you prefer.)</p>
 <p>Why you are asked here rather than at refresh: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</p>
 <h2 id="3-when-something-looks-wrong">3. When something looks wrong<a class="headerlink" href="#3-when-something-looks-wrong" title="Permanent link">&para;</a></h2>
 <h3 id="31-a-source-is-unavailable">3.1 A source is unavailable<a class="headerlink" href="#31-a-source-is-unavailable" title="Permanent link">&para;</a></h3>
@@ -3632,7 +3669,7 @@ Check three things:</p>
 <p><strong>A library you expected to see isn't in the catalog.</strong>
 Possible causes:</p>
 <ol>
-<li>A conflict resolution dropped it. Look in Edit File for the library's name in any subscription's <code>ignores</code> array.</li>
+<li>Another source won it. Run Refresh and look at the resolve step: a name several sources offer is listed there with the source currently supplying it.</li>
 <li>The feed actually doesn't carry it — check the author's marketstall directly via the URL.</li>
 <li>A local library with the same name is shadowing it. Locals always win.</li>
 </ol>
@@ -3651,7 +3688,7 @@ Click Refresh. Stale-uninstalled entries that aren't re-resolved by the refresh 
 <p>Sometimes the UI doesn't cover what you need to do. Examples:</p>
 <ul>
 <li>Removing a subscription (no UI yet — coming).</li>
-<li>Removing a name from an <code>ignores</code> array to undo a conflict-resolution choice.</li>
+<li>Moving a <code>preference</code> by hand (the refresh flow's "Use this one" does this for you).</li>
 <li>Adding or removing a name from a <code>blocked</code> array to undo an install-safety-modal Block choice.</li>
 <li>Inspecting what subscriptions you actually have.</li>
 </ul>
@@ -3697,9 +3734,9 @@ of what they serve decides, not where they point.</p>
 <li>Reads your global marketplace.</li>
 <li>Fetches every subscribed <code>[[markets]]</code> and <code>[[stalls]]</code> URL.</li>
 <li>For each <code>[[markets]]</code> body, reads its <code>[[stalls]]</code> references one level deep and fetches those too. Inline <code>[[haybales]]</code> in the markets body are also collected.</li>
-<li>For each haybale, applies the subscription's <code>blocked</code> array first (silently drops names you've actively rejected), then <code>ignores</code> (drops names you chose against in a previous conflict prompt). Each surviving haybale is stamped with the subscription's URL as its <code>via</code> field.</li>
+<li>For each haybale, applies the subscription's <code>blocked</code> array (silently drops names you've actively rejected). Each surviving haybale is stamped with the subscription's URL as its <code>via</code> field.</li>
 <li>Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).</li>
-<li>Deduplicates by name (first occurrence wins for any straggler).</li>
+<li>Deduplicates by name, honouring <code>preference</code> where you named a winning source and falling back to first occurrence where you have not. Every name several sources offered is reported on the resolve step so the choice is visible before it is applied.</li>
 <li>Marks newly-missing entries as stale (see <a href="#32-an-entry-is-marked-stale">§3.2</a>). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as <code>stale=true</code>.</li>
 <li>Counts installed libraries whose cache <code>version</code> exceeds the installed version (updates available, see <a href="#14-keeping-up-to-date">§1.4</a>).</li>
 <li>Writes the result to your project marketplace's <code>[[caches]]</code> section.</li>
