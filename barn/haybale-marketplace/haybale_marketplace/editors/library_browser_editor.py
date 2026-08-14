@@ -107,26 +107,27 @@ class LibraryBrowserEditor(BaseEditor):
 
     def _build_ui(self, context: "SessionContext") -> None:
         with ui.column().classes("w-full h-full gap-0"):
-            # Header: editor icon + title + overflow (burger) menu, with the
-            # standard panel separator beneath — matches the Haystack editor.
+            # Header: editor icon + title + inline actions, with the standard
+            # panel separator beneath. Three actions is few enough to show
+            # directly — panel_header's documented anatomy floats icon_actions
+            # right, and a burger for three items costs a click to reveal what
+            # fits in the bar anyway.
             with hui.panel_header("Marketplace", icon=hui.icon.library):
-                # Burger menu — actions that used to live in the toolbar:
-                # Refresh, Add Source, Edit File.
-                with ui.button(icon="more_vert").props("flat round dense size=sm").classes("flex-shrink-0"):
-                    with ui.menu():
-                        ui.menu_item(
-                            "Refresh",
-                            on_click=lambda c=context: self._on_refresh_click(c),
-                        )
-                        ui.menu_item(
-                            "Add Source…",
-                            on_click=lambda c=context: self._on_add_source_click(c),
-                        )
-                        ui.separator()
-                        ui.menu_item(
-                            "Edit File…",
-                            on_click=lambda c=context: self._on_edit_file_click(c),
-                        )
+                hui.icon_action(
+                    hui.icon.refresh,
+                    tooltip="Refresh libraries",
+                    on_click=lambda c=context: self._on_refresh_click(c),
+                )
+                hui.icon_action(
+                    hui.icon.add,
+                    tooltip="Add source…",
+                    on_click=lambda c=context: self._on_add_source_click(c),
+                )
+                hui.icon_action(
+                    hui.icon.edit_document,
+                    tooltip="Edit marketplace file…",
+                    on_click=lambda c=context: self._on_edit_file_click(c),
+                )
 
             # Filter row: "Show:" toggles + search toggle. Uses the same
             # full-width 1px var(--hw-border) separator as panel_header so the
