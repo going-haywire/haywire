@@ -50,51 +50,71 @@ def _rewrite(value: object, old: str, new: str) -> tuple[object, int]:
     return new + value[len(old) :], 1
 
 
-def _walk(node: object, old: str, new: str, in_library: bool = False) -> int:
-    """Recurse the whole tree, rewriting key fields wherever they appear."""
+def _walk(
+    node: object,
+    old: str,
+    new: str,
+    needles: tuple[str, ...],
+    leftovers: list[str],
+    trail: str = "",
+    in_library: bool = False,
+) -> int:
+    """Recurse the whole tree once: rewrite key fields where they appear,
+    and record a drift hit for every OTHER string containing a needle.
+
+    A single pass, not two, is required for correctness: a field the walker
+    rewrites (``registry_key``, ``widget_key``, ``chain_adapter_keys``, the
+    position-scoped ``library.name``) legitimately contains ``old`` both
+    before and after rewriting is decided — scanning either snapshot in
+    isolation, without knowing which fields the walker claims, cannot tell
+    "a field the walker is about to fix" apart from "a field nothing
+    touches". Only a walk that makes both decisions together gets this
+    right, including the case where *new* itself contains *old* as a
+    substring (e.g. renaming ``haybale-testing`` to ``haybale-testing2``,
+    where the rewritten value still contains the old needle).
+    """
     count = 0
 
     if isinstance(node, dict):
         for key, value in node.items():
+            child_trail = f"{trail}.{key}" if trail else key
             if key in KEY_FIELDS:
                 node[key], hit = _rewrite(value, old, new)
                 count += hit
+                # _rewrite declines a value that isn't a matching registry
+                # key (lookalike prefix, or a grammar-guard miss) — that's
+                # exactly the case the drift report exists to surface.
+                if not hit and isinstance(value, str) and any(needle in value for needle in needles):
+                    leftovers.append(child_trail)
             elif key in LIST_KEY_FIELDS and isinstance(value, list):
                 for i, item in enumerate(value):
                     value[i], hit = _rewrite(item, old, new)
                     count += hit
+                    if not hit and isinstance(item, str) and any(needle in item for needle in needles):
+                        leftovers.append(f"{child_trail}[{i}]")
             elif key == "name" and in_library and value == old:
                 # Position-scoped: only the library block's own name. A bare
                 # `name` anywhere else is a graph/port/user value.
                 node[key] = new
                 count += 1
+            elif isinstance(value, str):
+                if any(needle in value for needle in needles):
+                    leftovers.append(child_trail)
             else:
-                count += _walk(value, old, new, in_library=(key == "library"))
+                count += _walk(
+                    value, old, new, needles, leftovers, child_trail, in_library=(key == "library")
+                )
 
     elif isinstance(node, list):
-        for item in node:
-            count += _walk(item, old, new, in_library=in_library)
+        for i, item in enumerate(node):
+            item_trail = f"{trail}[{i}]"
+            if isinstance(item, str):
+                if any(needle in item for needle in needles):
+                    leftovers.append(item_trail)
+            else:
+                count += _walk(item, old, new, needles, leftovers, item_trail, in_library=in_library)
 
     return count
-
-
-def _scan_leftovers(obj: object, needles: tuple[str, ...], trail: str = "") -> list[str]:
-    """Every remaining string containing any of *needles*, as dotted paths.
-    Drift detector: a hit means a key-bearing field this module does not
-    know. Widened beyond the distribution name so module-name-shaped
-    occurrences (e.g. ``library.module_name``, underscore form) are reported
-    even though this module never rewrites them."""
-    found: list[str] = []
-    if isinstance(obj, str):
-        if any(needle in obj for needle in needles):
-            found.append(trail)
-    elif isinstance(obj, dict):
-        for key, value in obj.items():
-            found += _scan_leftovers(value, needles, f"{trail}.{key}" if trail else str(key))
-    elif isinstance(obj, list):
-        for i, item in enumerate(obj):
-            found += _scan_leftovers(item, needles, f"{trail}[{i}]")
-    return found
 
 
 def patch_graph_tree(
@@ -111,9 +131,10 @@ def patch_graph_tree(
 
     Returns ``(replacements, leftover_paths)``.
     """
-    count = _walk(data, old, new)
     needles = (old,) if old_module is None or old_module == old else (old, old_module)
-    return count, _scan_leftovers(data, needles)
+    leftovers: list[str] = []
+    count = _walk(data, old, new, needles, leftovers)
+    return count, leftovers
 
 
 def plan_graphs(

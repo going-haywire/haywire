@@ -126,9 +126,13 @@ def test_prefix_match_is_colon_scoped():
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {"nodes": {"n": {"registry_key": "haybale-foobar:node:Add"}}}
-    count, _ = patch_graph_tree(data, "haybale-foo", "hay-bar")
+    count, leftovers = patch_graph_tree(data, "haybale-foo", "hay-bar")
 
     assert count == 0
+    # A key-shaped field _rewrite declines to touch is still a real
+    # occurrence of `old` — it must surface as drift, not vanish silently
+    # just because it lives in a KEY_FIELDS-named field.
+    assert leftovers == ["nodes.n.registry_key"]
 
 
 @pytest.mark.unit
@@ -137,9 +141,10 @@ def test_non_key_value_in_a_key_field_is_left_alone():
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {"nodes": {"n": {"registry_key": "haybale-foo: see the docs"}}}
-    count, _ = patch_graph_tree(data, "haybale-foo", "hay-bar")
+    count, leftovers = patch_graph_tree(data, "haybale-foo", "hay-bar")
 
     assert count == 0
+    assert leftovers == ["nodes.n.registry_key"]
 
 
 @pytest.mark.unit
@@ -195,6 +200,38 @@ def test_module_name_drift_not_reported_without_old_module():
 
     _, leftovers = patch_graph_tree(data, "haybale-foo", "hay-bar")
 
+    assert leftovers == []
+
+
+@pytest.mark.unit
+def test_rewritten_field_is_not_reported_as_drift_when_new_contains_old():
+    """A rename target that extends the old name as a prefix (e.g.
+    haybale-testing -> haybale-testing2) makes every correctly-rewritten
+    value still contain the old needle as a substring of its NEW value.
+    Scanning the post-mutation tree for drift double-reports those fields
+    as unpatched even though they were rewritten correctly — the drift scan
+    must run against a pre-mutation snapshot."""
+    from haywire_studio.packaging.rename.graphs import patch_graph_tree
+
+    data: dict[str, Any] = {
+        "nodes": {
+            "n": {
+                "registry_key": "haybale-testing:node:X",
+                "node_data": {
+                    "identity": {"registry_key": "haybale-testing:node:X"},
+                    "library": {"name": "haybale-testing"},
+                },
+            }
+        }
+    }
+
+    count, leftovers = patch_graph_tree(data, "haybale-testing", "haybale-testing2")
+
+    node = data["nodes"]["n"]
+    assert node["registry_key"] == "haybale-testing2:node:X"
+    assert node["node_data"]["identity"]["registry_key"] == "haybale-testing2:node:X"
+    assert node["node_data"]["library"]["name"] == "haybale-testing2"
+    assert count == 3
     assert leftovers == []
 
 
