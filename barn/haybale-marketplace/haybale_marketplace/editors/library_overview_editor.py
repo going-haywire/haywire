@@ -106,6 +106,34 @@ _CFG_EDITORS = TabConfig("editors", EDITOR)
 _CFG_FARMHANDS = TabConfig("farmhands", FARMHAND)
 
 
+def deprecation_message(row: Haybale, *, installed: bool) -> str | None:
+    """The banner text for *row*'s deprecation notice, or None if it has none.
+
+    Version-aware only when the caller says the library is installed *and*
+    the row carries a version — comparing an uninstalled row's version would
+    compare the catalog's advertised version against ``since``, which answers
+    a different question ("does the feed's current version predate the
+    notice") than the one this banner exists for ("is the version *you have
+    installed* older than the notice").
+    """
+    deprecated = row.deprecated
+    if deprecated is None:
+        return None
+
+    message = f"Deprecated since v{deprecated.since}"
+    if installed and row.version:
+        try:
+            from packaging.version import Version
+
+            if Version(row.version) < Version(deprecated.since):
+                message = f"You are on v{row.version}; this library was deprecated in v{deprecated.since}"
+        except Exception:
+            pass
+    if deprecated.reason:
+        message = f"{message} — {deprecated.reason}"
+    return message
+
+
 def should_block_install_for_os(haybale) -> str | None:
     """Return a tooltip message when the current OS doesn't match.
 
@@ -258,6 +286,29 @@ class LibraryOverviewEditor(BaseEditor):
         except Exception:
             return None
 
+    def _row_by_dist_name(self, dist_name: str, context: "SessionContext") -> Haybale | None:
+        """The marketplace [[caches]] entry for an arbitrary distribution name.
+
+        Used to resolve a deprecation notice's ``successor`` to an installable
+        row — the notice only carries a name, not the row itself, since the
+        successor need not be anything the author of *this* library controls.
+        Returns None when the successor isn't in the user's catalog; the
+        caller falls back to showing the name as plain text rather than a
+        dead button.
+        """
+        from haybale_marketplace.state.marketplace_state import MarketplaceState
+
+        if not dist_name or context.app_data is None or MarketplaceState not in context.app_data:
+            return None
+        state = context.app_data[MarketplaceState]
+        try:
+            return next(
+                (h for h in state.get_project_haybales() if h.name == dist_name),
+                None,
+            )
+        except Exception:
+            return None
+
     def _render_placeholder(self):
         """Placeholder shown when nothing is selected."""
         if self._scroll:
@@ -315,6 +366,46 @@ class LibraryOverviewEditor(BaseEditor):
             open_file_in_studio(str(notes_path), None, context)
 
         return _open, hui.icon.edit_document
+
+    def _render_deprecation_banner(
+        self,
+        row: Haybale,
+        installed_lib: "LibraryInfo | None",
+        manager,
+        context: "SessionContext",
+    ) -> None:
+        """A warning banner for a library carrying a ``[deprecated]`` notice.
+
+        Informational only — never gates Install/Enable/Update, which stay
+        exactly as they render without this banner. Mirrors the
+        border-left-accent pattern LibraryBrowserEditor uses for its
+        unavailable-sources banner: no ``--hw-warning-bg`` token exists, so
+        the accent carries the border and ``hw-text-warning`` the text.
+        """
+        deprecated = row.deprecated
+        if deprecated is None:
+            return
+        message = deprecation_message(row, installed=installed_lib is not None)
+        assert message is not None  # deprecated is not None, so deprecation_message can't return None
+
+        with ui.column().classes("w-full p-2 gap-1 mb-2").style("border-left: 4px solid var(--hw-warning);"):
+            with ui.row().classes("w-full gap-2 items-center"):
+                ui.icon("warning", size="18px").classes("hw-text-warning flex-shrink-0")
+                ui.label(message).classes("text-xs hw-text-warning flex-1")
+            if deprecated.successor and manager is not None:
+                successor_row = self._row_by_dist_name(deprecated.successor, context)
+                with ui.row().classes("w-full gap-2 items-center"):
+                    ui.icon(hui.icon.arrow_forward, size="18px").classes("hw-text-success flex-shrink-0")
+                    if successor_row is not None:
+                        ui.button(
+                            f"Install {deprecated.successor}",
+                            icon=hui.icon.download,
+                            on_click=lambda pkg=successor_row, m=manager, ctx=context: (
+                                install_with_safety_check(pkg, None, m, ctx)
+                            ),
+                        ).props("size=sm color=warning flat")
+                    else:
+                        ui.label(f"Successor: {deprecated.successor}").classes("text-xs hw-text-dim")
 
     # ─────────────────────────────────────────────────────────────────────────
     # Center panel — unified renderer
@@ -423,6 +514,8 @@ class LibraryOverviewEditor(BaseEditor):
                                 ui.label(row.name).classes("text-xs hw-text-muted font-mono")
                             if update_available and catalog_row:
                                 hui.tag(f"v{catalog_row.version} available", color="orange")
+                            if row.deprecated is not None:
+                                hui.tag("deprecated", color="red")
 
                         # Mechanism/origin badges on their own row — kept off the
                         # version/dist-name line above so short vs. long names (e.g.
@@ -642,6 +735,8 @@ class LibraryOverviewEditor(BaseEditor):
                                 color="positive",
                                 flat=False,
                             )
+
+                self._render_deprecation_banner(row, installed_lib, manager, context)
 
                 # ── Metadata ───────────────────────────────────────────────────
                 if description:

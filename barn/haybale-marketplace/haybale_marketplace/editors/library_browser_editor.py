@@ -646,6 +646,15 @@ class LibraryBrowserEditor(BaseEditor):
             dot_color=dot_color,
             on_click=lambda entry=lib, ctx=context: self._select_library(entry, ctx),
         )
+        deprecated = haybale_row.deprecated
+        if deprecated is not None:
+            with row:
+                ui.icon("report_off", size="14px").classes(
+                    "hw-use-props-color hw-text-danger ml-auto flex-shrink-0"
+                ).tooltip(
+                    f"Deprecated since v{deprecated.since}"
+                    + (f" — {deprecated.reason}" if deprecated.reason else "")
+                )
         if has_update:
             with row:
                 ui.icon("arrow_upward", size="14px").classes(
