@@ -25,6 +25,8 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
     Returns ``(plan, needs_prefix_confirm)``.
     """
     workspace_root = Path(workspace_root)
+    new_dist, name_blockers, needs_confirm = validate_target(new_dist)
+
     old_module = module_of(old_dist)
     new_module = module_of(new_dist)
     old_lib_dir = workspace_root / "barn" / old_dist
@@ -39,7 +41,6 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
         new_lib_dir=workspace_root / "barn" / new_dist,
     )
 
-    name_blockers, needs_confirm = validate_target(new_dist)
     plan.blockers += name_blockers
     if name_blockers:
         return plan, needs_confirm
@@ -72,7 +73,7 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
         if candidate.is_file():
             plan.toml_changes.append(FileChange(path=candidate, kind="toml", count=count))
 
-    graph_changes, graph_drift = plan_graphs(workspace_root, old_dist, new_dist)
+    graph_changes, graph_drift = plan_graphs(workspace_root, old_dist, new_dist, old_module=old_module)
     plan.graph_changes = graph_changes
     plan.unrecognized += graph_drift
 

@@ -9,7 +9,7 @@ import pytest
 def test_path_separators_are_blocked():
     from haywire_studio.packaging.rename.checks import validate_target
 
-    blockers, _ = validate_target("foo/bar")
+    _, blockers, _ = validate_target("foo/bar")
     assert blockers
     assert "separator" in blockers[0].message.lower()
 
@@ -19,7 +19,7 @@ def test_conventional_prefixes_need_no_confirm():
     from haywire_studio.packaging.rename.checks import validate_target
 
     for name in ("haybale-forecast", "hay-forecast"):
-        blockers, needs_confirm = validate_target(name)
+        _, blockers, needs_confirm = validate_target(name)
         assert not blockers
         assert not needs_confirm
 
@@ -29,7 +29,7 @@ def test_unconventional_prefix_requests_confirmation():
     """A bare name is legal but usually a typo — warn, do not block."""
     from haywire_studio.packaging.rename.checks import validate_target
 
-    blockers, needs_confirm = validate_target("forecast")
+    _, blockers, needs_confirm = validate_target("forecast")
     assert not blockers
     assert needs_confirm
 
@@ -39,7 +39,7 @@ def test_haywire_prefix_is_not_conventional():
     """haywire- belongs to the framework; a user library there is asked."""
     from haywire_studio.packaging.rename.checks import validate_target
 
-    _, needs_confirm = validate_target("haywire-forecast")
+    _, _, needs_confirm = validate_target("haywire-forecast")
     assert needs_confirm
 
 
@@ -47,8 +47,21 @@ def test_haywire_prefix_is_not_conventional():
 def test_invalid_module_name_is_blocked():
     from haywire_studio.packaging.rename.checks import validate_target
 
-    blockers, _ = validate_target("9bad")
+    _, blockers, _ = validate_target("9bad")
     assert blockers
+
+
+@pytest.mark.unit
+def test_whitespace_padded_name_is_normalized():
+    """Finding 3: validate_target's own .strip() implies stripping was
+    always the intent — the normalized name must be returned, not just used
+    internally for validation."""
+    from haywire_studio.packaging.rename.checks import validate_target
+
+    name, blockers, needs_confirm = validate_target("  hay-dst  ")
+    assert not blockers
+    assert name == "hay-dst"
+    assert not needs_confirm
 
 
 @pytest.mark.unit

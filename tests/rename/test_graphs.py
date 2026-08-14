@@ -156,6 +156,49 @@ def test_drift_scan_reports_unpatched_occurrences():
 
 
 @pytest.mark.unit
+def test_module_name_field_reported_as_drift():
+    """Finding 6: library.module_name carries the UNDERSCORE module form,
+    distinct from the hyphenated distribution name the walker rewrites. It
+    is not rewritten (write-only telemetry, not read back on load), but the
+    drift scan must still report it as an unrecognized occurrence when
+    old_module is supplied — otherwise the safety net silently misses a
+    known-stale field."""
+    from haywire_studio.packaging.rename.graphs import patch_graph_tree
+
+    data: dict[str, Any] = {
+        "nodes": {
+            "n": {
+                "node_data": {
+                    "library": {"name": "haybale-foo", "module_name": "haybale_foo"},
+                }
+            }
+        }
+    }
+
+    count, leftovers = patch_graph_tree(data, "haybale-foo", "hay-bar", old_module="haybale_foo")
+
+    # library.name IS rewritten (position-scoped rule); module_name is not.
+    assert data["nodes"]["n"]["node_data"]["library"]["name"] == "hay-bar"
+    assert data["nodes"]["n"]["node_data"]["library"]["module_name"] == "haybale_foo"
+    assert count == 1
+    assert any("module_name" in path for path in leftovers)
+
+
+@pytest.mark.unit
+def test_module_name_drift_not_reported_without_old_module():
+    """Without old_module, drift scanning is unchanged (searches only the
+    distribution name) — proves the widening is additive, not a behavior
+    change for existing callers."""
+    from haywire_studio.packaging.rename.graphs import patch_graph_tree
+
+    data: dict[str, Any] = {"nodes": {"n": {"node_data": {"library": {"module_name": "haybale_foo"}}}}}
+
+    _, leftovers = patch_graph_tree(data, "haybale-foo", "hay-bar")
+
+    assert leftovers == []
+
+
+@pytest.mark.unit
 def test_is_registry_key_grammar():
     from haywire_studio.packaging.rename.graphs import is_registry_key
 

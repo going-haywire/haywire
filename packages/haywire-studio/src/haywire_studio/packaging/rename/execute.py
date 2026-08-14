@@ -10,17 +10,35 @@ from __future__ import annotations
 
 import os
 import subprocess
-from typing import Any
+from pathlib import Path
+from typing import Any, Iterable
 
 import toml
 
 from haywire.core.tomlio import edit_toml
 
 from .graphs import apply_graphs
-from .model import RenamePlan
+from .model import FileChange, RenamePlan
 from .pysource import apply_python
 
 RECOVERY = "git checkout . && git clean -fd"
+
+
+def _retarget(changes: Iterable[FileChange], old_root: Path, new_root: Path) -> None:
+    """Rewrite each change's path from under *old_root* to under *new_root*.
+
+    Plans are computed before the filesystem moves anything, so every path a
+    plan carries is stale the moment a directory it lived under gets renamed.
+    A change whose path is NOT under *old_root* (it genuinely lives
+    elsewhere — e.g. a dependent in another library's directory) is left
+    untouched rather than raising.
+    """
+    for change in changes:
+        try:
+            relative = change.path.relative_to(old_root)
+        except ValueError:
+            continue
+        change.path = new_root / relative
 
 
 def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
@@ -45,7 +63,12 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
 
         with edit_toml(plan.old_lib_dir / "pyproject.toml") as doc:
             doc["project"]["name"] = plan.new_dist
-            entry_points = doc.get("project", {}).get("entry-points", {}).get("haywire.libraries", {})
+            # Subscript through (not .get(..., {})) so a missing table raises
+            # KeyError, caught below — same as the hatch-table write just
+            # after it. Every real library carries this section; silently
+            # discarding the write when it's absent would make the library
+            # undiscoverable while reporting success.
+            entry_points = doc["project"]["entry-points"]["haywire.libraries"]
             for key in list(entry_points):
                 del entry_points[key]
             stem = plan.new_dist.removeprefix("haybale-").removeprefix("hay-")
@@ -55,9 +78,13 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
         return False, f"Failed to update library metadata: {exc}\nRecover with:\n  {RECOVERY}"
 
     sink(f"Rewriting {len(plan.python_changes)} Python file(s)...")
-    # Paths were planned against the pre-rename module dir; retarget them.
-    for change in plan.python_changes:
-        change.path = tmp_pkg / change.path.relative_to(old_pkg)
+    # Paths were planned against the pre-rename module dir; retarget every
+    # plan-carried path that lived under it. A graph or dependent path can
+    # live under old_pkg too (e.g. an examples/ folder inside the module
+    # dir) — _retarget leaves non-matching paths alone rather than raising.
+    _retarget(plan.python_changes, old_pkg, tmp_pkg)
+    _retarget(plan.graph_changes, old_pkg, tmp_pkg)
+    _retarget(plan.dependent_changes, old_pkg, tmp_pkg)
     try:
         apply_python(plan.python_changes, plan.old_dist, plan.new_dist, plan.old_module, plan.new_module)
     except OSError as exc:
@@ -69,6 +96,16 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
         os.rename(plan.old_lib_dir, plan.new_lib_dir)
     except OSError as exc:
         return False, f"Failed to rename library directory: {exc}\nRecover with:\n  {RECOVERY}"
+
+    # Any plan-carried path that lived under old_lib_dir is now stale — this
+    # covers Python files outside the module dir (tests/, conftest.py, ...)
+    # and graphs shipped inside the library directory (e.g. examples/).
+    # dependent_changes live in OTHER libraries' directories, which did not
+    # move, so this is a no-op for them — _retarget leaves non-matching
+    # paths alone rather than raising.
+    _retarget(plan.python_changes, plan.old_lib_dir, plan.new_lib_dir)
+    _retarget(plan.graph_changes, plan.old_lib_dir, plan.new_lib_dir)
+    _retarget(plan.dependent_changes, plan.old_lib_dir, plan.new_lib_dir)
 
     # ── phase 4: project config, graphs, dependents ─────────────────────
     sink("Updating project configuration...")
@@ -93,6 +130,15 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
                     if str(heap.get("name", "")).lower() == plan.old_dist.lower():
                         heap["name"] = plan.new_dist
                         heap["path"] = str(plan.new_lib_dir)
+                    # Every heap's own linked_libraries (module names) may
+                    # reference the renamed library, not just its own entry —
+                    # a sibling heap's copy of this list is what the
+                    # marketplace install gate actually reads.
+                    linked = heap.get("linked_libraries")
+                    if linked is not None:
+                        for i, entry in enumerate(list(linked)):
+                            if str(entry) == plan.old_module:
+                                linked[i] = plan.new_module
     except (OSError, KeyError, toml.TomlDecodeError) as exc:
         return False, f"Failed to update project configuration: {exc}\nRecover with:\n  {RECOVERY}"
 

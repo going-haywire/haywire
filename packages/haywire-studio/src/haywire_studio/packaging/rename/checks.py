@@ -17,36 +17,48 @@ from .model import Blocker, Warning_
 CONVENTIONAL_PREFIXES = ("haybale-", "hay-")
 
 
-def validate_target(new_dist: str) -> tuple[list[Blocker], bool]:
+def validate_target(new_dist: str) -> tuple[str, list[Blocker], bool]:
     """Validate the target distribution name.
 
-    Returns ``(blockers, needs_prefix_confirm)``. The name is taken verbatim —
-    nothing is prefixed, stripped, or slugified on the user's behalf.
+    Returns ``(normalized_name, blockers, needs_prefix_confirm)``. The name is
+    taken verbatim except for surrounding whitespace, which is always
+    stripped before validating OR using it — a name is either the trimmed
+    name the user meant, or it is rejected; accidental padding is never
+    preserved into a directory or module name. Nothing else is prefixed,
+    stripped, or slugified on the user's behalf.
     """
     blockers: list[Blocker] = []
     name = new_dist.strip()
 
     if not name:
-        return [Blocker(message="Target name cannot be empty.")], False
+        return name, [Blocker(message="Target name cannot be empty.")], False
 
     if "/" in name or "\\" in name or ".." in name:
-        return [
-            Blocker(
-                message=f'"{name}" contains a path separator.',
-                remedy="Use a plain package name.",
-            )
-        ], False
+        return (
+            name,
+            [
+                Blocker(
+                    message=f'"{name}" contains a path separator.',
+                    remedy="Use a plain package name.",
+                )
+            ],
+            False,
+        )
 
     if not module_of(name).isidentifier():
-        return [
-            Blocker(
-                message=f'"{name}" does not produce a valid Python module name '
-                f'(would be "{module_of(name)}").',
-                remedy="Use letters, digits, hyphens and underscores; do not start with a digit.",
-            )
-        ], False
+        return (
+            name,
+            [
+                Blocker(
+                    message=f'"{name}" does not produce a valid Python module name '
+                    f'(would be "{module_of(name)}").',
+                    remedy="Use letters, digits, hyphens and underscores; do not start with a digit.",
+                )
+            ],
+            False,
+        )
 
-    return blockers, not name.lower().startswith(CONVENTIONAL_PREFIXES)
+    return name, blockers, not name.lower().startswith(CONVENTIONAL_PREFIXES)
 
 
 def _installed_dist_names() -> set[str]:

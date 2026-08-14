@@ -78,32 +78,47 @@ def _walk(node: object, old: str, new: str, in_library: bool = False) -> int:
     return count
 
 
-def _scan_leftovers(obj: object, old: str, trail: str = "") -> list[str]:
-    """Every remaining string containing *old*, as dotted paths. Drift
-    detector: a hit means a key-bearing field this module does not know."""
+def _scan_leftovers(obj: object, needles: tuple[str, ...], trail: str = "") -> list[str]:
+    """Every remaining string containing any of *needles*, as dotted paths.
+    Drift detector: a hit means a key-bearing field this module does not
+    know. Widened beyond the distribution name so module-name-shaped
+    occurrences (e.g. ``library.module_name``, underscore form) are reported
+    even though this module never rewrites them."""
     found: list[str] = []
     if isinstance(obj, str):
-        if old in obj:
+        if any(needle in obj for needle in needles):
             found.append(trail)
     elif isinstance(obj, dict):
         for key, value in obj.items():
-            found += _scan_leftovers(value, old, f"{trail}.{key}" if trail else str(key))
+            found += _scan_leftovers(value, needles, f"{trail}.{key}" if trail else str(key))
     elif isinstance(obj, list):
         for i, item in enumerate(obj):
-            found += _scan_leftovers(item, old, f"{trail}[{i}]")
+            found += _scan_leftovers(item, needles, f"{trail}[{i}]")
     return found
 
 
-def patch_graph_tree(data: dict, old: str, new: str) -> tuple[int, list[str]]:
+def patch_graph_tree(
+    data: dict, old: str, new: str, *, old_module: str | None = None
+) -> tuple[int, list[str]]:
     """Rewrite every registry key in *data* in place.
+
+    *old* is the distribution name (hyphenated) that is actually rewritten.
+    *old_module* is the underscore-form module name — never rewritten (it is
+    write-only telemetry, not read back on load), but WIDENS what the drift
+    scan reports: a graph carrying ``library.module_name`` in the old module
+    form is a real, known-stale field, and the drift report exists
+    specifically to catch what this module doesn't rewrite.
 
     Returns ``(replacements, leftover_paths)``.
     """
     count = _walk(data, old, new)
-    return count, _scan_leftovers(data, old)
+    needles = (old,) if old_module is None or old_module == old else (old, old_module)
+    return count, _scan_leftovers(data, needles)
 
 
-def plan_graphs(root: Path, old: str, new: str) -> tuple[list[FileChange], list[Occurrence]]:
+def plan_graphs(
+    root: Path, old: str, new: str, *, old_module: str | None = None
+) -> tuple[list[FileChange], list[Occurrence]]:
     """Compute graph changes without writing anything."""
     changes: list[FileChange] = []
     drift: list[Occurrence] = []
@@ -113,7 +128,7 @@ def plan_graphs(root: Path, old: str, new: str) -> tuple[list[FileChange], list[
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        count, leftovers = patch_graph_tree(data, old, new)
+        count, leftovers = patch_graph_tree(data, old, new, old_module=old_module)
         if count:
             changes.append(FileChange(path=path, kind="graph", count=count))
         drift += [Occurrence(path=path, line=0, text=p) for p in leftovers]
