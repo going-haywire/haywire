@@ -136,6 +136,118 @@ def test_barn_with_no_library_fails(tmp_path: Path, bare_remote: Path) -> None:
     assert any("pyproject.toml" in f.message for f in report.failures)
 
 
+def test_reserved_hay_prefix_fails(tmp_path: Path, bare_remote: Path) -> None:
+    """A library still named `hay-*` (haywire init's scaffold default) blocks
+    the share — it's a reserved local-only namespace, not a publishable name.
+    """
+    repo = tmp_path / "reserved"
+    _init_repo(repo)
+    _add_lib(repo, name="hay-myproject")
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+    _commit(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    assert report.failure is not None
+    assert "hay-myproject" in report.failure.message
+    assert report.failure.kind == "inform"
+    assert report.failure.fix_id is None
+
+
+def test_reserved_hay_prefix_remedy_suggests_the_rename_command(tmp_path: Path, bare_remote: Path) -> None:
+    repo = tmp_path / "reserved"
+    _init_repo(repo)
+    _add_lib(repo, name="hay-myproject")
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+    _commit(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.failure is not None
+    assert "uv run haywire rename hay-myproject haybale-myproject" in report.failure.remedy
+
+
+def test_reserved_hay_prefix_links_the_rename_guide(tmp_path: Path, bare_remote: Path) -> None:
+    repo = tmp_path / "reserved"
+    _init_repo(repo)
+    _add_lib(repo, name="hay-myproject")
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+    _commit(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.failure is not None
+    assert report.failure.doc_url.startswith("https://")
+    assert "rename-library" in report.failure.doc_url
+
+
+def test_reserved_hay_prefix_lists_every_offending_library_in_one_failure(
+    tmp_path: Path, bare_remote: Path
+) -> None:
+    """Project-wide scan, not per-library: two `hay-*` libraries surface as
+    ONE failure naming both, not two separate failures or two wizard restarts.
+    """
+    repo = tmp_path / "reserved-multi"
+    _init_repo(repo)
+    _add_lib(repo, name="hay-alpha")
+    _add_lib(repo, name="hay-beta")
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+    _commit(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.ok is False
+    assert len(report.failures) == 1
+    failure = report.failure
+    assert failure is not None
+    assert "hay-alpha" in failure.message
+    assert "hay-beta" in failure.message
+    assert "hay-alpha" in failure.remedy
+    assert "hay-beta" in failure.remedy
+
+
+def test_reserved_hay_prefix_checked_before_manifest_content_checks(
+    tmp_path: Path, bare_remote: Path
+) -> None:
+    """The naming gate runs before the per-library manifest/path/drift loop —
+    a `hay-*` library with an ALSO-invalid `os` declaration should surface
+    the naming failure, not the os one, since naming blocks it regardless.
+    """
+    repo = tmp_path / "reserved-and-broken"
+    _init_repo(repo)
+    lib = _add_lib(repo, name="hay-myproject")
+    declared = lib / "hay_myproject" / "haybale.toml"
+    declared.write_text(declared.read_text() + 'os = ["macos", "other"]\n')
+    subprocess.run(
+        ["git", "remote", "add", "origin", str(bare_remote)], cwd=repo, check=True, capture_output=True
+    )
+    _commit(repo)
+
+    report = SharePipeline(repo).check_preconditions()
+
+    assert report.failure is not None
+    assert "hay-myproject" in report.failure.message
+    assert report.failure.fix_id is None  # the reserved-prefix failure, not strip_os
+
+
+def test_haybale_prefix_is_not_flagged(project: Path) -> None:
+    """Only the literal `hay-` prefix is reserved; `haybale-*` (the
+    conventional published prefix) and any other name pass through untouched
+    — this check does not enforce the `haybale-` convention, only block the
+    `hay-` reservation. `project` already uses `haybale-alpha`."""
+    report = SharePipeline(project).check_preconditions()
+    assert report.ok is True
+
+
 def test_missing_origin_fails_with_setup_instructions(tmp_path: Path) -> None:
     repo = tmp_path / "noremote"
     _init_repo(repo)
@@ -932,3 +1044,31 @@ def test_commit_dirty_tree_round_trip_clears_the_dirty_tree_failure(
 
     report2 = pipeline.check_preconditions()
     assert report2.failure is None or report2.failure.fix_id != "commit_dirty_tree"
+
+
+def test_rename_guide_url_matches_the_published_site() -> None:
+    """RENAME_GUIDE_URL is restated in source because this code runs in an
+    installed venv where mkdocs.yml does not exist — see
+    SHARING_GUIDE_URL's sibling test in test_unreachable_remedy.py for the
+    identical reasoning. This is what keeps the copy honest.
+    """
+    import re
+
+    from haywire.core.publishing.pipeline.steps.preconditions import RENAME_GUIDE_URL
+
+    repo_root = Path(__file__).resolve().parents[2]
+    mkdocs = repo_root / "mkdocs.yml"
+    if not mkdocs.is_file():
+        pytest.skip("mkdocs.yml is absent (installed copy, not a checkout)")
+
+    match = re.search(r"^site_url:\s*(\S+)", mkdocs.read_text(), re.MULTILINE)
+    assert match, "mkdocs.yml has no site_url"
+    site_url = match.group(1).rstrip("/")
+
+    assert RENAME_GUIDE_URL.startswith(f"{site_url}/"), (
+        f"RENAME_GUIDE_URL ({RENAME_GUIDE_URL}) is not under the published "
+        f"site ({site_url}/) — one of the two moved."
+    )
+
+    guide = repo_root / "docs" / "guides" / "rename-library.md"
+    assert guide.is_file(), "RENAME_GUIDE_URL names a guide that no longer exists"

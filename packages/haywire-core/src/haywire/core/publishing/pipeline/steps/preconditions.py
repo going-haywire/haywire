@@ -28,6 +28,21 @@ GIT_INSTALL_HINT = (
 
 _NO_REMOTE_HINT = "git remote add origin <your-repo-url>\ngit push -u origin <branch-name>"
 
+#: `haywire init` scaffolds project-local libraries under this prefix by
+#: default (see `_lib_basename` in haywire_studio/init.py) — a reserved
+#: namespace for local-only work, per haybale-canon.md §5. Renaming off it
+#: is a whole-project rewrite (registry keys, saved graphs) that cannot run
+#: alongside a live studio, so `haywire rename` is a separate, studio-stopped
+#: CLI rather than an in-wizard fix — see RENAME_GUIDE_URL below.
+_RESERVED_LOCAL_PREFIX = "hay-"
+
+#: Published copy of docs/guides/rename-library.md. Restated here (not read
+#: from mkdocs.yml) because this runs in an installed venv with no docs/ —
+#: see SHARING_GUIDE_URL below for the identical reasoning, and
+#: test_sharing_guide_url_matches_the_published_site's sibling test for the
+#: drift guard that keeps this copy honest.
+RENAME_GUIDE_URL = "https://going-haywire.github.io/haywire/docs/guides/rename-library/"
+
 
 #: How deep to look for a misplaced project root. Two levels covers the shapes
 #: that actually occur — `<repo>/<project>/` and `<repo>/projects/<project>/` —
@@ -46,6 +61,39 @@ def _has_haywire_dir_below(repo_root: Path) -> bool:
         if any(match.is_dir() for match in repo_root.glob(pattern)):
             return True
     return False
+
+
+def _reserved_prefix_failure(offenders: list[tuple[Path, str]]) -> PreconditionFailure:
+    """The combined failure for every `hay-*` library found (stop-at-first
+    still applies at the report level — this is one failure, not one per
+    library). See `_RESERVED_LOCAL_PREFIX`.
+
+    Suggests a ready-to-run `haywire rename` command per library, replacing
+    the reserved prefix with the conventional `haybale-` one — the same
+    stripping `haywire init` itself does in reverse. The user can still type
+    a different target name; `haywire rename` takes it verbatim either way.
+    """
+    listed = "\n".join(f"  {rel_lib_dir} (name = {name!r})" for rel_lib_dir, name in offenders)
+    commands = "\n".join(
+        f"  uv run haywire rename {name} haybale-{name.removeprefix(_RESERVED_LOCAL_PREFIX)}"
+        for _rel_lib_dir, name in offenders
+    )
+    return PreconditionFailure(
+        message=(
+            f"The following librar{'y is' if len(offenders) == 1 else 'ies are'} still named "
+            f"under the reserved `{_RESERVED_LOCAL_PREFIX}` prefix:\n{listed}"
+        ),
+        remedy=(
+            f"`{_RESERVED_LOCAL_PREFIX}` is reserved for local-only libraries scaffolded by "
+            "`haywire init` — it cannot be published. Stop the studio and rename each library "
+            f"before sharing:\n\n{commands}\n\n"
+            "Renaming rewrites the library's identity everywhere it's stamped — registry keys, "
+            "saved graphs, dependents — which is why it runs as its own studio-stopped CLI step "
+            "rather than an in-wizard fix."
+        ),
+        doc_url=RENAME_GUIDE_URL,
+        doc_label="Renaming a library",
+    )
 
 
 def _path_candidates(project_root: Path, field: str) -> list[str]:
@@ -199,6 +247,31 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
             ],
             remote_url=None,
             barn_libraries=[],
+        )
+
+    # ── no library may still carry the reserved `hay-` prefix ──────────────
+    # Project-wide, ahead of the per-library loop below: unlike the manifest/
+    # path/drift checks that follow, this is not about a library's file
+    # contents — a `hay-*` name blocks the library regardless of what else is
+    # true about it, so there is no point parsing its manifest first. Scans
+    # all of barn_libraries in one pass and reports every offender together
+    # (see _reserved_prefix_failure) rather than stopping on whichever
+    # library the per-library loop would reach first.
+    reserved_offenders: list[tuple[Path, str]] = []
+    for lib_dir in barn_libraries:
+        module_dir = find_module_dir(lib_dir)
+        name = read_raw(module_dir).get("name") if module_dir else None
+        if isinstance(name, str) and name.startswith(_RESERVED_LOCAL_PREFIX):
+            try:
+                rel_lib_dir = lib_dir.relative_to(pipeline.repo_root)
+            except ValueError:
+                rel_lib_dir = lib_dir
+            reserved_offenders.append((rel_lib_dir, name))
+    if reserved_offenders:
+        return PreconditionsReport(
+            failures=[_reserved_prefix_failure(reserved_offenders)],
+            remote_url=None,
+            barn_libraries=barn_libraries,
         )
 
     for lib_dir in barn_libraries:
