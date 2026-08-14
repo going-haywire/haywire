@@ -114,6 +114,7 @@ nav:
       - Node roles: guides/node-roles.md
       - Ports: guides/ports.md
       - Signals: guides/signals.md
+      - Renaming a library: guides/rename-library.md
       - Sharing libraries: guides/sharing-libraries.md
       - Publishing to PyPI: guides/publish-to-pypi.md
       - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
