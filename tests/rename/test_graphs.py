@@ -161,13 +161,12 @@ def test_drift_scan_reports_unpatched_occurrences():
 
 
 @pytest.mark.unit
-def test_module_name_field_reported_as_drift():
-    """Finding 6: library.module_name carries the UNDERSCORE module form,
-    distinct from the hyphenated distribution name the walker rewrites. It
-    is not rewritten (write-only telemetry, not read back on load), but the
-    drift scan must still report it as an unrecognized occurrence when
-    old_module is supplied — otherwise the safety net silently misses a
-    known-stale field."""
+def test_module_name_field_reported_as_drift_when_new_module_not_supplied():
+    """library.module_name carries the UNDERSCORE module form, distinct
+    from the hyphenated distribution name the walker rewrites. Without
+    new_module (the plan-preview case, before the target module name is
+    known), it is left alone and reported as drift — the safety net must
+    not silently miss a known-stale field."""
     from haywire_studio.packaging.rename.graphs import patch_graph_tree
 
     data: dict[str, Any] = {
@@ -182,11 +181,121 @@ def test_module_name_field_reported_as_drift():
 
     count, leftovers = patch_graph_tree(data, "haybale-foo", "hay-bar", old_module="haybale_foo")
 
-    # library.name IS rewritten (position-scoped rule); module_name is not.
+    # library.name IS rewritten (position-scoped rule); module_name is not,
+    # since no new_module was supplied to rewrite it TO.
     assert data["nodes"]["n"]["node_data"]["library"]["name"] == "hay-bar"
     assert data["nodes"]["n"]["node_data"]["library"]["module_name"] == "haybale_foo"
     assert count == 1
     assert any("module_name" in path for path in leftovers)
+
+
+@pytest.mark.unit
+def test_module_shaped_fields_rewritten_when_new_module_supplied():
+    """When both old_module and new_module are given, library.module_name,
+    library.folder_path, and identity.module are rewritten too — the same
+    position-scoped, never-a-blind-substring treatment as library.name."""
+    from haywire_studio.packaging.rename.graphs import patch_graph_tree
+
+    data: dict[str, Any] = {
+        "nodes": {
+            "n": {
+                "node_data": {
+                    "identity": {"module": "haybale_foo.nodes.testbed.thing"},
+                    "library": {
+                        "name": "haybale-foo",
+                        "module_name": "haybale_foo",
+                        "folder_path": "/workspace/barn/haybale-foo/haybale_foo",
+                    },
+                }
+            }
+        }
+    }
+
+    count, leftovers = patch_graph_tree(
+        data, "haybale-foo", "hay-bar", old_module="haybale_foo", new_module="hay_bar"
+    )
+
+    nd = data["nodes"]["n"]["node_data"]
+    assert nd["identity"]["module"] == "hay_bar.nodes.testbed.thing"
+    assert nd["library"]["name"] == "hay-bar"
+    assert nd["library"]["module_name"] == "hay_bar"
+    assert nd["library"]["folder_path"] == "/workspace/barn/hay-bar/hay_bar"
+    assert count == 4
+    assert leftovers == []
+
+
+@pytest.mark.unit
+def test_lookalike_module_name_is_not_rewritten():
+    """haybale_foo must not match haybale_foo_extras — same colon/word-
+    boundary discipline as the registry-key grammar, applied to module-
+    shaped fields. An unrewritten lookalike is still real drift: it is a
+    different library sharing a name prefix, worth surfacing."""
+    from haywire_studio.packaging.rename.graphs import patch_graph_tree
+
+    data: dict[str, Any] = {
+        "nodes": {
+            "n": {
+                "node_data": {
+                    "identity": {"module": "haybale_foo_extras.nodes.thing"},
+                    "library": {"module_name": "haybale_foo_extras"},
+                }
+            }
+        }
+    }
+
+    count, leftovers = patch_graph_tree(
+        data, "haybale-foo", "hay-bar", old_module="haybale_foo", new_module="hay_bar"
+    )
+
+    nd = data["nodes"]["n"]["node_data"]
+    assert nd["identity"]["module"] == "haybale_foo_extras.nodes.thing"
+    assert nd["library"]["module_name"] == "haybale_foo_extras"
+    assert count == 0
+    assert set(leftovers) == {
+        "nodes.n.node_data.identity.module",
+        "nodes.n.node_data.library.module_name",
+    }
+
+
+@pytest.mark.unit
+def test_folder_path_rewrite_is_scoped_to_its_own_tail():
+    """Only the path's own /<old_dist>/<old_module> tail changes — the
+    workspace-root prefix survives untouched, and a path that doesn't end
+    in the expected tail (captured elsewhere, or already moved by
+    something else) is reported as drift rather than guessed at."""
+    from haywire_studio.packaging.rename.graphs import patch_graph_tree
+
+    matching: dict[str, Any] = {
+        "nodes": {
+            "n": {"node_data": {"library": {"folder_path": "/Volumes/repo/barn/haybale-foo/haybale_foo"}}}
+        }
+    }
+    count, leftovers = patch_graph_tree(
+        matching, "haybale-foo", "hay-bar", old_module="haybale_foo", new_module="hay_bar"
+    )
+    assert (
+        matching["nodes"]["n"]["node_data"]["library"]["folder_path"] == "/Volumes/repo/barn/hay-bar/hay_bar"
+    )
+    assert count == 1
+    assert leftovers == []
+
+    # Contains the needle, but doesn't end in the expected /<dist>/<module>
+    # tail (e.g. captured with a trailing slash, or from a nonstandard
+    # layout) — genuinely can't be rewritten safely, must surface as drift.
+    non_matching: dict[str, Any] = {
+        "nodes": {
+            "n": {
+                "node_data": {"library": {"folder_path": "/Volumes/repo/barn/haybale-foo/haybale_foo/nodes"}}
+            }
+        }
+    }
+    count2, leftovers2 = patch_graph_tree(
+        non_matching, "haybale-foo", "hay-bar", old_module="haybale_foo", new_module="hay_bar"
+    )
+    unchanged_path = non_matching["nodes"]["n"]["node_data"]["library"]["folder_path"]
+    assert unchanged_path == "/Volumes/repo/barn/haybale-foo/haybale_foo/nodes"
+    assert count2 == 0
+    assert leftovers2 == ["nodes.n.node_data.library.folder_path"]
 
 
 @pytest.mark.unit

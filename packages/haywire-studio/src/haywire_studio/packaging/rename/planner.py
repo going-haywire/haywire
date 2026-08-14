@@ -73,7 +73,9 @@ def plan_rename(old_dist: str, new_dist: str, workspace_root: Path) -> tuple[Ren
         if candidate.is_file():
             plan.toml_changes.append(FileChange(path=candidate, kind="toml", count=count))
 
-    graph_changes, graph_drift = plan_graphs(workspace_root, old_dist, new_dist, old_module=old_module)
+    graph_changes, graph_drift = plan_graphs(
+        workspace_root, old_dist, new_dist, old_module=old_module, new_module=new_module
+    )
     plan.graph_changes = graph_changes
     plan.unrecognized += graph_drift
 

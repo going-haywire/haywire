@@ -10,8 +10,23 @@ Matching by field name is safe *for these fields specifically* because the
 key grammar is unambiguous: all 16,143 real values match
 ``<dist>:<kind>[:<sub>]:<Name>``. A value starting ``<old-dist>:`` in one of
 these fields is certainly a registry key, never a coincidence. The same is
-NOT true of a bare ``name`` field, which is why ``library.name`` keeps a
-position-scoped rule.
+NOT true of a bare ``name`` field, which is why ``library.name``,
+``library.module_name``, ``library.folder_path``, and ``identity.module``
+each keep a position-scoped rule instead of a blind substring replace — a
+blind replace would also touch user prose that happens to mention the old
+name, or a DIFFERENT library whose name merely contains this one as a
+substring (``haybale-testing`` inside ``haybale-testing-extras``).
+
+All four are write-only telemetry — ``graph/base.py``'s loader reads only
+``library.name`` and ``library.version`` on load, never these — so this
+module rewrites them purely for hygiene: a graph opened for a quick look
+should not show a stale path or module name. ``library.folder_path`` gets
+the narrowest treatment of the four: it is an absolute filesystem path, so
+only its own ``.../<old_dist>/<old_module>`` tail is rewritten (workspace
+root untouched), and if that exact tail isn't present — the path was
+captured on a different machine, or the library directory was moved by
+something other than this rename — it is reported as drift instead of
+guessing at a rewrite that might point at nothing on disk.
 """
 
 from __future__ import annotations
@@ -50,6 +65,35 @@ def _rewrite(value: object, old: str, new: str) -> tuple[object, int]:
     return new + value[len(old) :], 1
 
 
+def _rewrite_module(value: object, old_module: str, new_module: str) -> tuple[object, int]:
+    """Rewrite a dotted-module-shaped value (``identity.module``): exact
+    match, or ``<old_module>.<rest>`` for a submodule. Never a bare
+    substring match — ``haybale_testing_extras`` must not match
+    ``haybale_testing``."""
+    if not isinstance(value, str):
+        return value, 0
+    if value == old_module:
+        return new_module, 1
+    if value.startswith(old_module + "."):
+        return new_module + value[len(old_module) :], 1
+    return value, 0
+
+
+def _rewrite_folder_path(
+    value: object, old_dist: str, old_module: str, new_dist: str, new_module: str
+) -> tuple[object, int]:
+    """Rewrite ``library.folder_path``'s ``.../<old_dist>/<old_module>``
+    tail. The workspace-root prefix is preserved untouched — only the two
+    path segments that are actually this library's own name are rewritten,
+    never a blind substring replace across the whole path."""
+    if not isinstance(value, str):
+        return value, 0
+    suffix = f"/{old_dist}/{old_module}"
+    if value.endswith(suffix):
+        return value[: -len(suffix)] + f"/{new_dist}/{new_module}", 1
+    return value, 0
+
+
 def _walk(
     node: object,
     old: str,
@@ -58,20 +102,28 @@ def _walk(
     leftovers: list[str],
     trail: str = "",
     in_library: bool = False,
+    in_identity: bool = False,
+    old_module: str | None = None,
+    new_module: str | None = None,
 ) -> int:
     """Recurse the whole tree once: rewrite key fields where they appear,
     and record a drift hit for every OTHER string containing a needle.
 
     A single pass, not two, is required for correctness: a field the walker
     rewrites (``registry_key``, ``widget_key``, ``chain_adapter_keys``, the
-    position-scoped ``library.name``) legitimately contains ``old`` both
-    before and after rewriting is decided — scanning either snapshot in
-    isolation, without knowing which fields the walker claims, cannot tell
-    "a field the walker is about to fix" apart from "a field nothing
-    touches". Only a walk that makes both decisions together gets this
-    right, including the case where *new* itself contains *old* as a
+    position-scoped ``library.name``/``library.module_name``/
+    ``library.folder_path``/``identity.module``) legitimately contains
+    ``old`` both before and after rewriting is decided — scanning either
+    snapshot in isolation, without knowing which fields the walker claims,
+    cannot tell "a field the walker is about to fix" apart from "a field
+    nothing touches". Only a walk that makes both decisions together gets
+    this right, including the case where *new* itself contains *old* as a
     substring (e.g. renaming ``haybale-testing`` to ``haybale-testing2``,
     where the rewritten value still contains the old needle).
+
+    Module-name rewriting (``old_module``/``new_module``) is optional: a
+    caller that doesn't supply it gets the old behaviour unchanged
+    (distribution-name rewriting only, module-shaped fields left as drift).
     """
     count = 0
 
@@ -97,12 +149,36 @@ def _walk(
                 # `name` anywhere else is a graph/port/user value.
                 node[key] = new
                 count += 1
+            elif key == "module_name" and in_library and old_module is not None and new_module is not None:
+                node[key], hit = _rewrite_module(value, old_module, new_module)
+                count += hit
+                if not hit and isinstance(value, str) and any(needle in value for needle in needles):
+                    leftovers.append(child_trail)
+            elif key == "folder_path" and in_library and old_module is not None and new_module is not None:
+                node[key], hit = _rewrite_folder_path(value, old, old_module, new, new_module)
+                count += hit
+                if not hit and isinstance(value, str) and any(needle in value for needle in needles):
+                    leftovers.append(child_trail)
+            elif key == "module" and in_identity and old_module is not None and new_module is not None:
+                node[key], hit = _rewrite_module(value, old_module, new_module)
+                count += hit
+                if not hit and isinstance(value, str) and any(needle in value for needle in needles):
+                    leftovers.append(child_trail)
             elif isinstance(value, str):
                 if any(needle in value for needle in needles):
                     leftovers.append(child_trail)
             else:
                 count += _walk(
-                    value, old, new, needles, leftovers, child_trail, in_library=(key == "library")
+                    value,
+                    old,
+                    new,
+                    needles,
+                    leftovers,
+                    child_trail,
+                    in_library=(key == "library"),
+                    in_identity=(key == "identity"),
+                    old_module=old_module,
+                    new_module=new_module,
                 )
 
     elif isinstance(node, list):
@@ -112,33 +188,59 @@ def _walk(
                 if any(needle in item for needle in needles):
                     leftovers.append(item_trail)
             else:
-                count += _walk(item, old, new, needles, leftovers, item_trail, in_library=in_library)
+                count += _walk(
+                    item,
+                    old,
+                    new,
+                    needles,
+                    leftovers,
+                    item_trail,
+                    in_library=in_library,
+                    in_identity=in_identity,
+                    old_module=old_module,
+                    new_module=new_module,
+                )
 
     return count
 
 
 def patch_graph_tree(
-    data: dict, old: str, new: str, *, old_module: str | None = None
+    data: dict,
+    old: str,
+    new: str,
+    *,
+    old_module: str | None = None,
+    new_module: str | None = None,
 ) -> tuple[int, list[str]]:
     """Rewrite every registry key in *data* in place.
 
-    *old* is the distribution name (hyphenated) that is actually rewritten.
-    *old_module* is the underscore-form module name — never rewritten (it is
-    write-only telemetry, not read back on load), but WIDENS what the drift
-    scan reports: a graph carrying ``library.module_name`` in the old module
-    form is a real, known-stale field, and the drift report exists
-    specifically to catch what this module doesn't rewrite.
+    *old*/*new* are distribution names (hyphenated) — always rewritten.
+    *old_module*/*new_module* are the underscore-form module names. When
+    BOTH are supplied, ``library.module_name``, ``library.folder_path``,
+    and ``identity.module`` are also rewritten (position-scoped, never a
+    blind substring match — see the module docstring). Supplying only
+    ``old_module`` (or neither) leaves those fields unrewritten and reports
+    them as drift instead — the widened-reporting-only behaviour this
+    function has always had for callers that don't have a module rename in
+    hand yet (e.g. a plan-time drift preview before ``new_module`` is
+    known).
 
     Returns ``(replacements, leftover_paths)``.
     """
     needles = (old,) if old_module is None or old_module == old else (old, old_module)
     leftovers: list[str] = []
-    count = _walk(data, old, new, needles, leftovers)
+    rewrite_module = old_module if new_module is not None else None
+    count = _walk(data, old, new, needles, leftovers, old_module=rewrite_module, new_module=new_module)
     return count, leftovers
 
 
 def plan_graphs(
-    root: Path, old: str, new: str, *, old_module: str | None = None
+    root: Path,
+    old: str,
+    new: str,
+    *,
+    old_module: str | None = None,
+    new_module: str | None = None,
 ) -> tuple[list[FileChange], list[Occurrence]]:
     """Compute graph changes without writing anything."""
     changes: list[FileChange] = []
@@ -149,7 +251,7 @@ def plan_graphs(
             data = json.loads(path.read_text(encoding="utf-8"))
         except (OSError, json.JSONDecodeError):
             continue
-        count, leftovers = patch_graph_tree(data, old, new, old_module=old_module)
+        count, leftovers = patch_graph_tree(data, old, new, old_module=old_module, new_module=new_module)
         if count:
             changes.append(FileChange(path=path, kind="graph", count=count))
         drift += [Occurrence(path=path, line=0, text=p) for p in leftovers]
@@ -157,10 +259,17 @@ def plan_graphs(
     return changes, drift
 
 
-def apply_graphs(changes: list[FileChange], old: str, new: str) -> None:
+def apply_graphs(
+    changes: list[FileChange],
+    old: str,
+    new: str,
+    *,
+    old_module: str | None = None,
+    new_module: str | None = None,
+) -> None:
     """Rewrite each planned graph on disk. No backups — a clean tree is the
     precondition, so ``git checkout .`` is the rollback."""
     for change in changes:
         data = json.loads(change.path.read_text(encoding="utf-8"))
-        patch_graph_tree(data, old, new)
+        patch_graph_tree(data, old, new, old_module=old_module, new_module=new_module)
         change.path.write_text(json.dumps(data, indent=2), encoding="utf-8")

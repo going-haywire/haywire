@@ -57,6 +57,39 @@ def test_patches_graph_keys_outside_graphs_folder(tmp_path):
 
 
 @pytest.mark.unit
+def test_patches_module_shaped_telemetry_fields_end_to_end(tmp_path):
+    """execute_plan threads plan.old_module/new_module through to
+    apply_graphs, so library.module_name, library.folder_path, and
+    identity.module — write-only telemetry the loader never reads, but
+    worth keeping fresh — are rewritten by a real --apply run, not just by
+    the unit-level patch_graph_tree call."""
+    ws = _workspace(tmp_path)
+    graph_path = ws / "flows" / "g.haywire"
+    data = json.loads(graph_path.read_text())
+    data["nodes"]["n"]["node_data"]["identity"] = {"module": "hay_src.nodes.add"}
+    data["nodes"]["n"]["node_data"]["library"] = {
+        "name": "hay-src",
+        "module_name": "hay_src",
+        "folder_path": str(ws / "barn" / "hay-src" / "hay_src"),
+    }
+    graph_path.write_text(json.dumps(data))
+
+    import subprocess
+
+    subprocess.run(["git", "add", "-A"], cwd=ws, check=True)
+    subprocess.run(["git", "commit", "-qm", "add telemetry fields"], cwd=ws, check=True)
+
+    ok, _ = _run(ws, "hay-src", "hay-dst")
+    assert ok
+
+    patched = json.loads(graph_path.read_text())
+    nd = patched["nodes"]["n"]["node_data"]
+    assert nd["identity"]["module"] == "hay_dst.nodes.add"
+    assert nd["library"]["module_name"] == "hay_dst"
+    assert nd["library"]["folder_path"] == str(ws / "barn" / "hay-dst" / "hay_dst")
+
+
+@pytest.mark.unit
 def test_writes_no_bak_files(tmp_path):
     """Git is the rollback; .bak files would trip the next clean-tree gate."""
     ws = _workspace(tmp_path)

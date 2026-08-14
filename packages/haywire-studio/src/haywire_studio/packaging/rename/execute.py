@@ -144,7 +144,13 @@ def execute_plan(plan: RenamePlan, *, sink: Any = print) -> tuple[bool, str]:
 
     sink(f"Patching {len(plan.graph_changes)} graph file(s)...")
     try:
-        apply_graphs(plan.graph_changes, plan.old_dist, plan.new_dist)
+        apply_graphs(
+            plan.graph_changes,
+            plan.old_dist,
+            plan.new_dist,
+            old_module=plan.old_module,
+            new_module=plan.new_module,
+        )
     except (OSError, ValueError) as exc:
         return False, f"Failed to patch graphs: {exc}\nRecover with:\n  {RECOVERY}"
 
