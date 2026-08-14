@@ -11,26 +11,50 @@ see-also:
 
 # Renaming a library — Author guide
 
-A library's distribution name is stamped into every component's registry key
-(`haybale-your-lib:node:Resize`) and into every saved graph that uses it.
-There is no supported rename path in the studio — `name` is read-only
-everywhere — because changing it by hand means editing a name in one place
-and leaving thousands of stale key prefixes behind in every graph that
-referenced it. `haywire rename` is the one supported way to do this: it finds
-every reference across the project and rewrites them together, or tells you
-exactly what it can't touch safely.
+Renaming a library is a step that requires carefull consideration. 
+
+Renaming a library will break all graphs that are using the libraries components - and potentially other libraries that rely on this one, too.
+
+It is thus only recommended to be done once: when you plan to share your existing project and its local library with other people.
+
+Its is actually a required step before you can use the share wizard, because your local library is named "hay-<projectname>" but the share wizard only accepts "haybale-<name>"
+
+The rename tool does not only rename the library - it also scans the complete project for references and converts them. This includes self refereces within the library itself, but also all your graphs in your project; A library's distribution name is stamped into every component's registry key (`hay-your-lib:node:Resize`) and into every saved graph that uses it.
+
+The library rename **cannot** be done from within the studio. Stop the studio before you do it. The tool runs only from the command line.
 
 ## 1. The short version
 
+Run first 
+
 ```sh
-uv run haywire rename haybale-old-name haybale-new-name --verbose
+uv run haywire verify        # confirm every graph's keys resolve
+```
+
+this verifies that your project is in a good state before you rename. If it fails, fix the problems first.
+
+Next you need to commit all your changes, so that the working tree is clean. The rename tool will refuse to run if there are uncommitted changes.
+
+```sh
+git status --porcelain
+```
+will show you if there are any uncommitted changes. If there are, commit them:
+
+```sh
+git add -A && git commit -m "wip before rename"
+```
+
+Then run the rename command:
+
+```sh
+uv run haywire rename hay-old-name haybale-new-name --verbose
 ```
 
 Run without `--apply`, this is a dry run: a full preflight report of what
 would change, and nothing is written. When it looks right:
 
 ```sh
-uv run haywire rename haybale-old-name haybale-new-name --apply
+uv run haywire rename hay-old-name haybale-new-name --apply
 ```
 
 You'll be asked to confirm once (twice if the target name doesn't start with
@@ -62,16 +86,16 @@ still depends on.
 
 Concretely, one run touches:
 
-| What | How |
-| --- | --- |
-| The library directory | `barn/<old-dist>/` → `barn/<new-dist>/`, and its module subdirectory renamed to match |
-| `haybale.toml` | Only `name` changes |
-| The library's `pyproject.toml` | `name`, the `haywire.libraries` entry-point key, and the wheel's `packages` list — `description` and everything else untouched |
-| The project's `pyproject.toml` | The dependency string and the `[tool.uv.sources]` key, if present |
-| `.haywire/marketplace.toml` | The library's own `[[heaps]]` entry, and any *other* heap's `linked_libraries` that names the old module |
-| Every saved graph, anywhere in the workspace | Every `registry_key`, `widget_key`, and `chain_adapter_keys` entry belonging to the library; `node_data.library.name`, `.module_name`, `.folder_path`; `node_data.identity.module` |
-| Python sources — the library itself, and every sibling that depends on it | `import`/`from` statements naming the old module, and any registry-key string literal a component hardcodes as its own (a widget's `widget_key=` kwarg is the common case) |
-| `uv sync` | Run last, to update the lockfile against the new package name |
+| What                                                                      | How                                                                                                                                                                                |
+| ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The library directory                                                     | `barn/<old-dist>/` → `barn/<new-dist>/`, and its module subdirectory renamed to match                                                                                              |
+| `haybale.toml`                                                            | Only `name` changes                                                                                                                                                                |
+| The library's `pyproject.toml`                                            | `name`, the `haywire.libraries` entry-point key, and the wheel's `packages` list — `description` and everything else untouched                                                     |
+| The project's `pyproject.toml`                                            | The dependency string and the `[tool.uv.sources]` key, if present                                                                                                                  |
+| `.haywire/marketplace.toml`                                               | The library's own `[[heaps]]` entry, and any *other* heap's `linked_libraries` that names the old module                                                                           |
+| Every saved graph, anywhere in the workspace                              | Every `registry_key`, `widget_key`, and `chain_adapter_keys` entry belonging to the library; `node_data.library.name`, `.module_name`, `.folder_path`; `node_data.identity.module` |
+| Python sources — the library itself, and every sibling that depends on it | `import`/`from` statements naming the old module, and any registry-key string literal a component hardcodes as its own (a widget's `widget_key=` kwarg is the common case)         |
+| `uv sync`                                                                 | Run last, to update the lockfile against the new package name                                                                                                                      |
 
 Graph discovery isn't limited to a `graphs/` folder or a `.haywire`
 extension — every graph anywhere in the workspace is found by content, so a
