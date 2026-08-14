@@ -1,12 +1,12 @@
 [project]
 name = "haybale-graph-editor"
-version = "0.1.1"
+version = "0.1.2"
 description = "Visual graph editor library — host-agnostic"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 
 dependencies = [
-    "haywire-core>=0.1.1",
+    "haywire-core>=0.1.2",
     "nicegui>=3.12.1",
 ]
 keywords = ["graph-editor"]
