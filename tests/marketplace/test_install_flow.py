@@ -226,6 +226,44 @@ def test_update_vs_install_is_derived_from_current_version() -> None:
     assert _flow(source).is_update is False
 
 
+def test_downgrade_is_detected_and_named() -> None:
+    """An older target is not "Update" — the verb must say what it does."""
+    source = _FakeSource()
+    flow = _flow(source, current_version="1.2.0", package=_pkg(version="0.9.0"))
+    assert flow.is_update is True  # something IS installed
+    assert flow.is_downgrade is True
+    assert flow.verb == "Downgrade"
+
+
+def test_newer_target_is_an_update_not_a_downgrade() -> None:
+    source = _FakeSource()
+    flow = _flow(source, current_version="0.9.0", package=_pkg(version="1.2.0"))
+    assert flow.is_downgrade is False
+    assert flow.verb == "Update"
+
+
+def test_equal_versions_are_not_a_downgrade() -> None:
+    source = _FakeSource()
+    flow = _flow(source, current_version="1.0.0", package=_pkg(version="1.0.0"))
+    assert flow.is_downgrade is False
+    assert flow.verb == "Update"
+
+
+def test_fresh_install_is_never_a_downgrade() -> None:
+    source = _FakeSource()
+    flow = _flow(source, package=_pkg(version="0.1.0"))
+    assert flow.is_downgrade is False
+    assert flow.verb == "Install"
+
+
+def test_unorderable_versions_fall_back_to_update() -> None:
+    """A non-PEP-440 git tag must not raise — generic wording beats a crash."""
+    source = _FakeSource()
+    flow = _flow(source, current_version="nightly-2026", package=_pkg(version="release-candidate"))
+    assert flow.is_downgrade is False
+    assert flow.verb == "Update"
+
+
 def test_target_version_comes_from_the_package() -> None:
     source = _FakeSource()
     assert _flow(source, package=_pkg(version="1.2.3")).target_version == "1.2.3"

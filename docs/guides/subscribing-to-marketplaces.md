@@ -135,9 +135,9 @@ Two authors can pick the same library name — there's no central namespace stop
 
 When Add Source detects a conflict (a package in the new source whose name matches one your existing sources already provide), a conflict-resolution dialog opens with one row per colliding name. Each row shows the name and which sources offer it; you pick which to keep.
 
-The choice is permanent: the losing source's `ignores` array gains the name, and from then on refresh will silently skip it from that source. You won't be asked again for the same conflict.
+The choice is recorded as a preference: the winning source's `preference` array gains the name, and from then on refresh resolves it that way without asking again. Preferring a source is exclusive, so the name is cleared from every other subscription — one choice settles the collision however many sources offer it.
 
-If you change your mind later, you can edit `~/.haywire/marketplace.toml` directly via the Edit File button — remove the entry from the `ignores` array, then click Refresh.
+If you change your mind later, you don't have to edit anything: every refresh lists the collision on its resolve step with a "Use this one" next to each other source, and a single click moves the preference. (Editing `~/.haywire/marketplace.toml` via Edit File still works if you prefer.)
 
 Why you are asked here rather than at refresh: [haybale-marketplace-arch §8](../haybale/marketplace/haybale-marketplace-arch.md#8-why-the-model-is-shaped-this-way).
 
@@ -178,7 +178,7 @@ Check three things:
 **A library you expected to see isn't in the catalog.**
 Possible causes:
 
-1. A conflict resolution dropped it. Look in Edit File for the library's name in any subscription's `ignores` array.
+1. Another source won it. Run Refresh and look at the resolve step: a name several sources offer is listed there with the source currently supplying it.
 2. The feed actually doesn't carry it — check the author's marketstall directly via the URL.
 3. A local library with the same name is shadowing it. Locals always win.
 
@@ -200,7 +200,7 @@ Click Refresh. Stale-uninstalled entries that aren't re-resolved by the refresh 
 Sometimes the UI doesn't cover what you need to do. Examples:
 
 - Removing a subscription (no UI yet — coming).
-- Removing a name from an `ignores` array to undo a conflict-resolution choice.
+- Moving a `preference` by hand (the refresh flow's "Use this one" does this for you).
 - Adding or removing a name from a `blocked` array to undo an install-safety-modal Block choice.
 - Inspecting what subscriptions you actually have.
 
@@ -260,9 +260,9 @@ What refresh does, in concept:
 1. Reads your global marketplace.
 2. Fetches every subscribed `[[markets]]` and `[[stalls]]` URL.
 3. For each `[[markets]]` body, reads its `[[stalls]]` references one level deep and fetches those too. Inline `[[haybales]]` in the markets body are also collected.
-4. For each haybale, applies the subscription's `blocked` array first (silently drops names you've actively rejected), then `ignores` (drops names you chose against in a previous conflict prompt). Each surviving haybale is stamped with the subscription's URL as its `via` field.
+4. For each haybale, applies the subscription's `blocked` array (silently drops names you've actively rejected). Each surviving haybale is stamped with the subscription's URL as its `via` field.
 5. Assembles the combined candidate list and applies the heaps shadow (your project's path-based libraries win over any remote of the same name).
-6. Deduplicates by name (first occurrence wins for any straggler).
+6. Deduplicates by name, honouring `preference` where you named a winning source and falling back to first occurrence where you have not. Every name several sources offered is reported on the resolve step so the choice is visible before it is applied.
 7. Marks newly-missing entries as stale (see [§3.2](#32-an-entry-is-marked-stale)). Blocked names are filtered out of the stale-rescue step so they fully disappear rather than survive as `stale=true`.
 8. Counts installed libraries whose cache `version` exceeds the installed version (updates available, see [§1.4](#14-keeping-up-to-date)).
 9. Writes the result to your project marketplace's `[[caches]]` section.

@@ -127,6 +127,14 @@ class Haybale:
     source_label: str = ""
     source_file: str = ""
     source_origin: str = ""
+    owner_url: str = ""
+    """The subscription URL a `preference` for this row must be written against.
+
+    Empty when ``via`` is itself a subscription (the common case). Set only for
+    a stall discovered through a `[[markets]]` body: the user never subscribed
+    to that stall, so the aggregator is the only thing they can express a
+    preference on. Runtime-only — never persisted."""
+
     # Cache-only fields (project [[caches]] only).
     via: str = ""
     last_seen: str = ""

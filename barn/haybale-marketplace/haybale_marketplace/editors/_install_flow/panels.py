@@ -20,13 +20,18 @@ def _plural(count: int, singular: str, plural: str | None = None) -> str:
 
 def _panel_selected(flow: InstallFlow, rerender: Callable[[], None]) -> None:
     """What is about to be installed, and from where. Nothing resolved yet."""
-    verb = "Update" if flow.is_update else "Install"
-    ui.label(f"{verb} {flow.name}").classes("text-sm font-medium")
+    ui.label(f"{flow.verb} {flow.name}").classes("text-sm font-medium")
 
     if flow.is_update and flow.target_version:
         ui.label(f"{flow.current_version} → {flow.target_version}").classes("text-xs font-mono hw-text-dim")
     elif flow.target_version:
         ui.label(f"version {flow.target_version}").classes("text-xs font-mono hw-text-dim")
+
+    if flow.is_downgrade:
+        ui.label(
+            f"This source offers an older release than the one installed. "
+            f"Continuing replaces v{flow.current_version} with v{flow.target_version}."
+        ).classes("text-xs").style("color: var(--hw-warning);")
 
     pkg = flow.package
     if pkg is not None and pkg.origin:
@@ -120,7 +125,7 @@ def _panel_installing(flow: InstallFlow, rerender: Callable[[], None]) -> None:
 
 
 def _panel_done(flow: InstallFlow, on_done: Callable[[], None] | None) -> None:
-    verb = "updated" if flow.is_update else "installed"
+    verb = flow.verb.lower() + "d" if flow.is_update else "installed"
     with ui.row().classes("w-full items-center gap-2"):
         ui.icon("check_circle", size="16px").style("color: var(--hw-positive);")
         ui.label(f"{flow.name} {verb}.").classes("text-sm").style("color: var(--hw-positive);")

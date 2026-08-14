@@ -91,10 +91,7 @@ def test_get_global_returns_parsed(state_with_workspace, fake_home) -> None:
     global_mp = fake_home / ".haywire" / "db" / "haybale_marketplace" / "marketplace.toml"
     global_mp.parent.mkdir(parents=True, exist_ok=True)
     global_mp.write_text(
-        "[[markets]]\n"
-        'url = "https://going-haywire.github.io/haywire/marketplace.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        '[[markets]]\nurl = "https://going-haywire.github.io/haywire/marketplace.toml"\npreference = []\n'
     )
     gm = state.get_global()
     assert gm is not None

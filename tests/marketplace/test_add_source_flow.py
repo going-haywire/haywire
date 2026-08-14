@@ -39,12 +39,12 @@ class _FakeTarget:
         self._existing = existing or []
         self._kind = kind
         self.subscribed: list[str] = []
-        self.ignores: list[tuple[str, str]] = []
+        self.preferences: list[tuple[str, str]] = []
         self.refreshed = 0
         self.resolve_error: Exception | None = None
         self.subscribe_error: Exception | None = None
         self.refresh_error: Exception | None = None
-        self.ignore_error: Exception | None = None
+        self.preference_error: Exception | None = None
 
     def resolve_source(self, user_input: str) -> ResolvedSource:
         if self.resolve_error is not None:
@@ -65,10 +65,10 @@ class _FakeTarget:
         self.subscribed.append(resolved.persist_url)
         return resolved.persist_url
 
-    def record_ignore(self, source_url: str, haybale_name: str) -> None:
-        if self.ignore_error is not None:
-            raise self.ignore_error
-        self.ignores.append((source_url, haybale_name))
+    def record_preference(self, source_url: str, haybale_name: str) -> None:
+        if self.preference_error is not None:
+            raise self.preference_error
+        self.preferences.append((source_url, haybale_name))
 
     def refresh(self) -> RefreshReport:
         if self.refresh_error is not None:
@@ -212,12 +212,12 @@ async def test_abandoning_before_subscribe_changes_nothing() -> None:
     await flow.advance_from_probed()
 
     assert target.subscribed == []
-    assert target.ignores == []
+    assert target.preferences == []
     assert target.refreshed == 0
 
 
 @pytest.mark.anyio
-async def test_keeping_existing_tells_the_new_source_to_step_aside() -> None:
+async def test_keeping_existing_prefers_the_existing_source() -> None:
     target = _FakeTarget(offers=["haybale-foo"], existing=["haybale-foo"])
     flow = _flow(target)
     await flow.advance_from_input("https://alice.example/marketstall.toml")
@@ -225,14 +225,14 @@ async def test_keeping_existing_tells_the_new_source_to_step_aside() -> None:
 
     await flow.advance_from_resolved()
 
-    assert len(target.ignores) == 1
-    source_url, name = target.ignores[0]
+    assert len(target.preferences) == 1
+    source_url, name = target.preferences[0]
     assert name == "haybale-foo"
-    assert source_url == "https://alice.example/marketstall.toml"
+    assert source_url == "https://bob.example/marketstall.toml"
 
 
 @pytest.mark.anyio
-async def test_using_new_tells_the_existing_source_to_step_aside() -> None:
+async def test_using_new_prefers_the_new_source() -> None:
     target = _FakeTarget(offers=["haybale-foo"], existing=["haybale-foo"])
     flow = _flow(target)
     await flow.advance_from_input("https://alice.example/marketstall.toml")
@@ -241,16 +241,16 @@ async def test_using_new_tells_the_existing_source_to_step_aside() -> None:
 
     await flow.advance_from_resolved()
 
-    assert len(target.ignores) == 1
-    source_url, name = target.ignores[0]
+    assert len(target.preferences) == 1
+    source_url, name = target.preferences[0]
     assert name == "haybale-foo"
-    assert source_url == "https://bob.example/marketstall.toml"
+    assert source_url == "https://alice.example/marketstall.toml"
 
 
 @pytest.mark.anyio
-async def test_failed_ignore_warns_but_keeps_the_subscription() -> None:
+async def test_failed_preference_warns_but_keeps_the_subscription() -> None:
     target = _FakeTarget(offers=["haybale-foo"], existing=["haybale-foo"])
-    target.ignore_error = OSError("read-only")
+    target.preference_error = OSError("read-only")
     flow = _flow(target)
     await flow.advance_from_input("https://alice.example/marketstall.toml")
     await flow.advance_from_probed()

@@ -139,6 +139,9 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
             f"{'has' if resolved.updates_available == 1 else 'have'} a newer version available."
         ).classes("text-xs hw-text-dim")
 
+    if resolved.collisions:
+        _render_collisions(flow, rerender)
+
     ui.label(
         "Applying overwrites the project's cached library list. Nothing is installed or removed."
     ).classes("text-xs hw-text-dim")
@@ -146,6 +149,65 @@ def _panel_resolved(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
     with ui.row().classes("w-full justify-end gap-2"):
         apply_button = ui.button("Apply").props("flat dense").style("color: var(--hw-positive);")
         apply_button.on_click(lambda: busy_advance(rerender, apply_button, flow.advance_from_resolved))
+
+
+def _render_collisions(flow: RefreshFlow, rerender: Callable[[], None]) -> None:
+    """Names several sources offered, and which copy won.
+
+    The point of showing this *before* Apply is that the user-visible
+    consequence of a collision is usually a version change: without it, a
+    downgrade caused by subscription order lands silently and is discovered
+    later with nothing recording that a choice was made.
+    """
+    resolved = flow.resolved
+    if resolved is None:  # pragma: no cover — guarded by the caller
+        return
+
+    hui.section_label("Offered by several sources")
+    for collision in resolved.collisions:
+        with ui.column().classes("gap-0.5 ml-1 mb-1"):
+            ui.label(f"{collision.name} — offered by {_plural(collision.source_count, 'source')}").classes(
+                "text-xs font-mono"
+            )
+            ui.label(
+                f"using {collision.winner_url or '(inline)'}"
+                + (f" ({collision.winner_version})" if collision.winner_version else "")
+            ).classes("text-xs font-mono ml-2").style("color: var(--hw-positive);")
+
+            for i, (loser_url, loser_version) in enumerate(collision.losers):
+                # The URL shown is where the copy came from; the URL written to
+                # is the subscription that owns it — the two differ for a stall
+                # reached through an aggregator.
+                owner = collision.loser_owners[i] if i < len(collision.loser_owners) else loser_url
+                with ui.row().classes("items-center gap-2 ml-2"):
+                    ui.label(
+                        f"also {loser_url or '(inline)'}" + (f" ({loser_version})" if loser_version else "")
+                    ).classes("text-xs font-mono hw-text-dim")
+                    if owner:
+                        _prefer_button(flow, rerender, collision.name, owner)
+
+
+def _prefer_button(
+    flow: RefreshFlow,
+    rerender: Callable[[], None],
+    name: str,
+    source_url: str,
+) -> None:
+    """ "Use this one" — names *this* source the winner, then re-resolves.
+
+    One click settles it whatever the source count, because `preference` is
+    exclusive — nothing has to be clicked down a list. Only the global file
+    changes; the project cache is still written by Apply alone, so the flow
+    stays on this step and the panel redraws with the new winner.
+    """
+
+    def _prefer() -> None:
+        flow.prefer_source(name, source_url=source_url)
+        rerender()
+
+    ui.button("Use this one", on_click=_prefer).props("flat dense no-caps").classes("text-xs").style(
+        "color: var(--hw-accent);"
+    )
 
 
 def _panel_applied(flow: RefreshFlow, on_done: Callable[[], None] | None) -> None:

@@ -19,14 +19,17 @@ from haywire.core.library.haybale import Haybale
 class Subscription:
     """One [[markets]] or [[stalls]] entry. Same shape; distinction is which list it lives in.
 
-    `blocked` holds names the user actively rejected via
-    the first-install safety modal. Per-subscription; un-blockable only by
-    editing the marketplace file.
+    Both arrays are user intent — a refresh never writes here.
+
+    ``preference`` names the haybales this source should *win* when several
+    offer the same name; it is exclusive, so one write settles a collision at
+    any source count and the outcome does not depend on subscription order.
+    ``blocked`` names those the user rejected in the install-safety modal,
+    un-blockable only by editing the file.
     """
 
     url: str
-    ignores: list[str] = field(default_factory=list)
-    doubles: list[str] = field(default_factory=list)
+    preference: list[str] = field(default_factory=list)
     blocked: list[str] = field(default_factory=list)
 
 
@@ -143,6 +146,36 @@ class FetchedSources:
         return [o.url for o in self.outcomes if o.outcome is RefreshOutcome.UNAVAILABLE]
 
 
+@dataclass(frozen=True)
+class SourceCollision:
+    """One library name offered by more than one source during a single resolve.
+
+    Carries versions alongside URLs because the user-visible consequence of a
+    collision is usually a version change, not a provenance change.
+
+    Distinct from :class:`SubscriptionConflict`, which is the *add-source*
+    check against the cached catalog. This one is a *standing* collision
+    between sources already subscribed, detected on every refresh.
+    """
+
+    name: str
+    winner_url: str
+    winner_version: str
+    losers: list[tuple[str, str]] = field(default_factory=list)
+    """``(source_url, version)`` per discarded copy — the URL to *display*."""
+
+    loser_owners: list[str] = field(default_factory=list)
+    """Parallel to ``losers``: the subscription URL a preference for that copy
+    must be written against. Differs from the displayed URL only for a stall
+    discovered through an aggregator, which the user cannot subscribe to
+    directly."""
+
+    @property
+    def source_count(self) -> int:
+        """How many sources offered this name — winner included."""
+        return 1 + len(self.losers)
+
+
 @dataclass
 class ResolvedCatalog:
     """The catalog the apply phase would write, plus the deltas that justify it.
@@ -151,12 +184,17 @@ class ResolvedCatalog:
     updates available" and let the user decide whether to commit the write.
     ``newly_stale`` / ``newly_added`` are names, not Haybales — they exist to
     be listed in a confirmation panel.
+
+    ``collisions`` is the same idea applied to dedup: the names several sources
+    offered, and which copy won — so the refresh flow can show a version
+    downgrade *before* the write rather than leaving it to be discovered later.
     """
 
     haybales: list[Haybale] = field(default_factory=list)
     newly_stale: list[str] = field(default_factory=list)
     newly_added: list[str] = field(default_factory=list)
     updates_available: int = 0
+    collisions: list[SourceCollision] = field(default_factory=list)
 
     @property
     def resolved_count(self) -> int:

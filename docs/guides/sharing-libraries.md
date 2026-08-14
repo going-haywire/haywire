@@ -331,7 +331,7 @@ screen, which offers each finding with a per-item choice.
 Three causes worth checking:
 
 1. Their `Refresh` hasn't run. Subscriptions are passive; the catalog updates only on refresh.
-2. The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, your entry is in their `ignores`. They can edit `~/.haywire/marketplace.toml` to remove the ignore.
+2. The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, that source holds the `preference`. Every later refresh lists the collision on its resolve step, so they can switch to your copy in one click.
 3. The git URL in your `install_spec` is unreachable. Test with `uv pip install '<install_spec>'` directly.
 
 **Detection didn't pick up an import.**

@@ -86,7 +86,7 @@ files carry the state; each hop below names which one it writes.
   └───────┬───────┘                                               │
           │  fetch each subscription ──▶ ~/.haywire/cache/<hash>.toml
           │  parse markets one level deep (their [[stalls]] only)
-          │  apply blocked / ignores per subscription
+          │  apply blocked per subscription
           │  apply heaps shadow, then first-come-first-served
           │  diff against the previous cache to mark stale
           ▼
@@ -193,13 +193,13 @@ combined list:
 | Filter | Effect |
 | --- | --- |
 | `blocked` | Names the user rejected in the install-safety modal. Filtered from the candidate list **and** from the previous cache's stale-rescue pool, so they disappear entirely rather than surviving as stale rows. Un-blockable only by editing the file |
-| `ignores` | Names to skip from *this* source. Written by the conflict prompt at Add Source time; the library may still appear from a different source |
+| `preference` | Names *this* source should win when several offer them. Written by the conflict prompt at Add Source time and by the refresh flow's "Use this one"; exclusive, so one write settles the choice |
 | Heaps shadow | A candidate whose `name` matches a project `[[heaps]]` entry is dropped — local always wins |
-| First-come-first-served | Any name still appearing twice keeps its first occurrence. A safety net for hand-edits; every conflict routed through the UI lands in `ignores` or `blocked` |
+| First-come-first-served | The fallback when no source claims a contested name in `preference`. Every collision is reported on the resolve step, so an unsettled one is visible before it changes a version |
 
 When Add Source detects a collision against already-resolved state, the user
 picks which source wins; the loser's subscription gains the name in its
-`ignores`. Later refreshes honour the choice without re-asking.
+`preference`. Later refreshes honour the choice without re-asking.
 
 ### 2.6 The refresh report
 
@@ -229,7 +229,7 @@ state, so the worst case is a rebuild plus re-subscribing.
 | --- | --- | --- |
 | Red banner; the catalog refuses to render | The global `marketplace.toml` is malformed | Edit File — the parse error names the file. The browser deliberately refuses to render a catalog it cannot trust |
 | Yellow banner, "N sources unavailable" | Fetch failed with no cached fallback | Check the URLs in the info modal. Refresh continues; cached sources still fill in |
-| A library will not go away | Its name is in a subscription's `blocked` or `ignores` | Remove it from that array in the global file. `blocked` hides it everywhere; `ignores` only from that source |
+| A library will not go away | Its name is in a subscription's `blocked` | Remove it from that array in the global file. `blocked` hides it everywhere |
 | Rows marked "(stale)" that should be gone | The source stopped listing them | Trash icon on the row when the library is not installed, or clear `[[caches]]` |
 | The wrong library wins | A project `[[heaps]]` entry shadows the remote one, or first-come-first-served picked one | Check `[[heaps]]` first — local always wins |
 | A source serves old content | Its cached body is being reused | Delete `~/.haywire/cache/` to force a refetch |
@@ -466,8 +466,7 @@ sees `[[stalls]]` references, and writes a `[[markets]]` subscription to
 ```toml
 [[markets]]
 url = "https://going-haywire.github.io/haywire/marketplace.toml"
-ignores = []
-doubles = []
+preference = []
 blocked = []
 ```
 

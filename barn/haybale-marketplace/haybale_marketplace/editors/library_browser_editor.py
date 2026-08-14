@@ -513,6 +513,7 @@ class LibraryBrowserEditor(BaseEditor):
         # workspace_root / marketplace_path computed earlier, above is_required().
         available: list[LibraryInfo] = []
         updates_available: set[str] = set()
+        downgrades_available: set[str] = set()
         if marketplace_path and marketplace_path.exists():
             try:
                 from packaging.version import Version
@@ -520,7 +521,11 @@ class LibraryBrowserEditor(BaseEditor):
 
                 pm = parse_project_marketplace(marketplace_path)
 
-                # Updates available — compare caches vs installed versions.
+                # Compare caches vs installed versions, both directions. The
+                # backwards case is not "no update" — it means the catalog and
+                # the install disagree, which a source preference can cause
+                # without touching the venv. Saying nothing would leave the
+                # user running a version the catalog no longer offers.
                 for entry in pm.caches:
                     if not entry.version or not entry.name:
                         continue
@@ -529,6 +534,8 @@ class LibraryBrowserEditor(BaseEditor):
                         try:
                             if Version(entry.version) > Version(lib.row.version):
                                 updates_available.add(entry.name)
+                            elif Version(entry.version) < Version(lib.row.version):
+                                downgrades_available.add(entry.name)
                         except Exception:
                             pass
 
@@ -572,6 +579,7 @@ class LibraryBrowserEditor(BaseEditor):
                         context,
                         installed_names,
                         has_update=lib.row.name in updates_available,
+                        has_downgrade=lib.row.name in downgrades_available,
                     )
 
             if enabled:
@@ -583,6 +591,7 @@ class LibraryBrowserEditor(BaseEditor):
                         context,
                         installed_names,
                         has_update=lib.row.name in updates_available,
+                        has_downgrade=lib.row.name in downgrades_available,
                     )
 
             if disabled:
@@ -594,6 +603,7 @@ class LibraryBrowserEditor(BaseEditor):
                         context,
                         installed_names,
                         has_update=lib.row.name in updates_available,
+                        has_downgrade=lib.row.name in downgrades_available,
                     )
 
             if available:
@@ -611,6 +621,7 @@ class LibraryBrowserEditor(BaseEditor):
         context: "SessionContext",
         installed_names: set[str],
         has_update: bool = False,
+        has_downgrade: bool = False,
     ):
         # ``haybale_row`` rather than ``row``: the list-item element below already
         # owns that name in this scope.
@@ -639,6 +650,16 @@ class LibraryBrowserEditor(BaseEditor):
                 ui.icon("arrow_upward", size="14px").classes(
                     "hw-use-props-color hw-text-warning ml-auto flex-shrink-0"
                 ).tooltip("Update available")
+        elif has_downgrade:
+            # Mutually exclusive with has_update by construction (one comparison,
+            # two branches), so the elif is belt-and-braces rather than a choice.
+            with row:
+                ui.icon("arrow_downward", size="14px").classes(
+                    "hw-use-props-color hw-text-warning ml-auto flex-shrink-0"
+                ).tooltip(
+                    f"Installed v{version} is newer than the v{haybale_row.version} this "
+                    "source offers — installing would downgrade it"
+                )
         if is_stale:
             last_seen = haybale_row.last_seen or "unknown"
             entry_name = haybale_row.name

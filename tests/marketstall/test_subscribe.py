@@ -53,8 +53,7 @@ def test_subscribe_marketplace_with_inline_haybales(tmp_path: Path) -> None:
     body = (
         "[[stalls]]\n"
         'url = "https://other.example/marketstall.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
         "\n"
         "[[haybales]]\n"
@@ -84,7 +83,7 @@ def test_subscribe_marketplace_with_markets_only(tmp_path: Path) -> None:
 
     global_path = tmp_path / "marketplace.toml"
 
-    body = '[[markets]]\nurl = "https://x.example/m.toml"\nignores = []\ndoubles = []\nblocked = []\n'
+    body = '[[markets]]\nurl = "https://x.example/m.toml"\npreference = []\nblocked = []\n'
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = body.encode()
         result = resolve_and_subscribe(
@@ -253,7 +252,7 @@ def test_subscribe_pasted_block_without_haybales_raises(tmp_path: Path) -> None:
     """A pasted TOML block must contain [[haybales]] (it's a marketstall by definition)."""
     from haywire.core.marketstall import SubscribeError, resolve_and_subscribe
 
-    block = '[[markets]]\nurl = "https://x.example/m.toml"\nignores = []\ndoubles = []\nblocked = []\n'
+    block = '[[markets]]\nurl = "https://x.example/m.toml"\npreference = []\nblocked = []\n'
     with pytest.raises(SubscribeError):
         resolve_and_subscribe(
             tmp_path / "marketplace.toml",

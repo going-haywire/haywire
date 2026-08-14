@@ -130,8 +130,7 @@ def _parse_subscription(raw: dict, kind: str) -> Subscription:
         raise MalformedMarketplaceError(f"[[{kind}]] entry missing required `url` field")
     return Subscription(
         url=url,
-        ignores=list(raw.get("ignores", [])),
-        doubles=list(raw.get("doubles", [])),
+        preference=list(raw.get("preference", [])),
         blocked=list(raw.get("blocked", [])),
     )
 
@@ -258,13 +257,12 @@ def parse_remote_marketplace_body(body: str) -> RemoteMarketplaceContents:
 def _subscription_to_dict(sub: Subscription) -> dict:
     """Serialize a Subscription back to its TOML dict shape.
 
-    Always emits all four arrays (even when empty) so users editing the file
-    see the schema — every subscription declares all four.
+    Always emits both arrays (even when empty) so users editing the file see
+    the schema — every subscription declares both.
     """
     return {
         "url": sub.url,
-        "ignores": list(sub.ignores),
-        "doubles": list(sub.doubles),
+        "preference": list(sub.preference),
         "blocked": list(sub.blocked),
     }
 

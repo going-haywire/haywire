@@ -27,7 +27,7 @@ from haywire.core.marketstall.helpers import (
     add_stall_subscription_to_global,
     detect_subscription_conflicts,
     record_block_on_source,
-    record_ignore_on_source,
+    record_preference,
     remove_stale_haybale_from_project,
     resolve_block_target,
 )
@@ -47,16 +47,16 @@ from haywire.core.marketstall.requirement import (
 )
 from haywire.core.marketstall.refresh import (
     apply_blocked,
-    apply_first_come_first_served,
     apply_heaps_shadow,
-    apply_ignores,
+    dedupe_reporting_collisions,
+    preferred_sources,
     fetch_sources,
     mark_stale_against_previous,
     refresh,
 )
 from haywire.core.marketstall.refresh import (
     # Aliased at the package boundary: bare `apply`/`resolve` are too generic
-    # for a namespace that also exports apply_blocked, apply_ignores, etc.
+    # for a namespace that also exports apply_blocked, apply_heaps_shadow, etc.
     apply as apply_refresh,
 )
 from haywire.core.marketstall.refresh import (
@@ -70,6 +70,7 @@ from haywire.core.marketstall.types import (
     RefreshOutcome,
     RefreshReport,
     ResolvedCatalog,
+    SourceCollision,
     SourceOutcome,
     Subscription,
 )
@@ -99,6 +100,7 @@ __all__ = [
     "RefreshOutcome",
     "RefreshReport",
     "ResolvedCatalog",
+    "SourceCollision",
     "SourceOutcome",
     "Subscription",
     "RemoteMarketplaceContents",
@@ -126,17 +128,17 @@ __all__ = [
     "fetch_sources",
     "resolve_catalog",
     "apply_refresh",
-    "apply_ignores",
     "apply_blocked",
     "apply_heaps_shadow",
-    "apply_first_come_first_served",
+    "dedupe_reporting_collisions",
+    "preferred_sources",
     "mark_stale_against_previous",
     # Helpers / install-safety
     "add_market_subscription_to_global",
     "add_stall_subscription_to_global",
     "add_heap_to_project",
     "remove_stale_haybale_from_project",
-    "record_ignore_on_source",
+    "record_preference",
     "record_block_on_source",
     "resolve_block_target",
     "detect_subscription_conflicts",

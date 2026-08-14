@@ -156,15 +156,18 @@ def emit_stall_toml(entry: dict[str, object]) -> str:
 
 
 def emit_marketplace_toml(stall_urls: list[str]) -> str:
-    """Emit the aggregator marketplace TOML referencing one ``[[stalls]]`` per URL."""
+    """Emit the aggregator marketplace TOML referencing one ``[[stalls]]`` per URL.
+
+    ``url`` only: ``preference`` and ``blocked`` are a *consumer's* local
+    opinion about their own subscriptions, and the remote parser reads nothing
+    but ``url`` from a published feed. Emitting them here wrote three arrays
+    nobody could act on and implied the publisher had a say in them.
+    """
     parts: list[str] = [_MARKETPLACE_HEADER]
     for url in stall_urls:
         parts.append("")
         parts.append("[[stalls]]")
         parts.append(f"url = {_format_string(url)}")
-        parts.append("ignores = []")
-        parts.append("doubles = []")
-        parts.append("blocked = []")
     parts.append("")
     return "\n".join(parts)
 

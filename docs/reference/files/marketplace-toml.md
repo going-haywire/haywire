@@ -36,7 +36,7 @@ dropped at parse.
 | `[[heaps]]` | project | `haywire init` | Path-based libraries this project knows about |
 | `[[caches]]` | project | refresh | The resolved catalog from the last refresh |
 
-`[[markets]]` and `[[stalls]]` are structurally identical — the same four
+`[[markets]]` and `[[stalls]]` are structurally identical — the same three
 fields. The difference is how the fetched body is parsed: a market body may
 reference further stalls, a stall body contains only `[[haybales]]`.
 
@@ -54,24 +54,21 @@ reference further stalls, a stall body contains only `[[haybales]]`.
 # enrol the user in an unbounded graph of feeds.
 [[markets]]
 url = "https://going-haywire.github.io/haywire/marketplace.toml"
-# Names to skip from THIS source. Populated by the conflict prompt when two
-# sources offer the same library — the losing side gets the name added here.
-# The library may still appear from another source.
-ignores = []
-# Reserved for duplicate bookkeeping.
-doubles = []
+# Names THIS source should win when several sources offer the same library.
+# Written by the conflict prompt and by the refresh flow's "Use this one";
+# exclusive, so naming a winner clears the name from every other subscription.
+preference = []
 # Names the user actively rejected in the install-safety modal. Stronger than
-# `ignores`: a blocked name is filtered out of the candidate list AND out of
+# `preference`: a blocked name is filtered out of the candidate list AND out of
 # the previous cache, so it disappears entirely rather than lingering as a
 # stale row. Un-blockable only by editing this file.
 blocked = []
 
 # ── one author's feed ───────────────────────────────────────────────────────
-# The body is [[haybales]]-only. Same four fields, same meanings.
+# The body is [[haybales]]-only. Same three fields, same meanings.
 [[stalls]]
 url = "https://raw.githubusercontent.com/alice/haybales/main/marketstall.toml"
-ignores = []
-doubles = []
+preference = []
 blocked = []
 
 # ── inline libraries ────────────────────────────────────────────────────────
@@ -140,11 +137,21 @@ Shared by `[[markets]]` and `[[stalls]]`.
 | Field | Type | Meaning |
 | --- | --- | --- |
 | `url` | string | The feed to fetch. `https://` or `file://` |
-| `ignores` | list[str] | Names to skip from this source. Written by the conflict prompt; the library may still appear from elsewhere |
-| `doubles` | list[str] | Duplicate bookkeeping |
+| `preference` | list[str] | Names this source should win when several offer them. Written by the conflict prompt and "Use this one" |
 | `blocked` | list[str] | Names the user rejected in the install-safety modal. Fully hidden, from the candidate list and the stale-rescue pool alike |
 
-`ignores` answers "not from *this* source"; `blocked` answers "not at all".
+`preference` answers "from *this* source, when several offer it"; `blocked`
+answers "not at all".
+
+When several sources offer one name, the refresh honours whichever source
+claims it in `preference`, falling back to the first candidate when none do —
+which is why the resolve step lists every collision, so an unsettled one is
+visible before it changes a version. Preferring a source is exclusive: the name
+is removed from every other subscription's array, so one edit fully settles the
+choice regardless of how many sources offer it.
+
+A refresh never writes this file. It holds your intent — subscriptions,
+`preference`, `blocked` — and only an explicit action changes it.
 
 ## Heap fields
 

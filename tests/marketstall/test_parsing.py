@@ -78,8 +78,7 @@ def test_parse_subscription_minimal() -> None:
     raw = {"url": "https://x.example/m.toml"}
     sub = _parse_subscription(raw, "markets")
     assert sub.url == "https://x.example/m.toml"
-    assert sub.ignores == []
-    assert sub.doubles == []
+    assert sub.preference == []
     assert sub.blocked == []
 
 
@@ -89,12 +88,11 @@ def test_parse_subscription_with_blocked() -> None:
 
     raw = {
         "url": "https://x.example/m.toml",
-        "ignores": ["haybale-skip"],
-        "doubles": [],
+        "preference": ["haybale-preferred"],
         "blocked": ["haybale-untrusted"],
     }
     sub = _parse_subscription(raw, "stalls")
-    assert sub.ignores == ["haybale-skip"]
+    assert sub.preference == ["haybale-preferred"]
     assert sub.blocked == ["haybale-untrusted"]
 
 
@@ -161,14 +159,12 @@ def test_parse_global_marketplace_all_three_sections(tmp_path: Path) -> None:
     f.write_text(
         "[[markets]]\n"
         'url = "https://aggregator.example/marketplace.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
         "\n"
         "[[stalls]]\n"
         'url = "https://alice.example/marketstall.toml"\n'
         'ignores = ["haybale-skip"]\n'
-        "doubles = []\n"
         'blocked = ["haybale-untrusted"]\n'
         "\n"
         "[[haybales]]\n"
@@ -237,7 +233,7 @@ def test_parse_project_marketplace_drops_global_only_sections(tmp_path: Path) ->
     from haywire.core.marketstall.parsing import parse_project_marketplace
 
     f = tmp_path / "marketplace.toml"
-    f.write_text('[[markets]]\nurl = "https://x.example/m.toml"\nignores = []\ndoubles = []\nblocked = []\n')
+    f.write_text('[[markets]]\nurl = "https://x.example/m.toml"\npreference = []\nblocked = []\n')
     pm = parse_project_marketplace(f)
     # No markets attribute exists on ProjectMarketplaceFile; the section is silently skipped.
     assert pm.heaps == []
@@ -262,8 +258,7 @@ def test_parse_marketstall_body_silently_drops_extra_sections() -> None:
     body = (
         "[[markets]]\n"
         'url = "https://x.example/m.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
         "\n"
         "[[haybales]]\n"
@@ -289,8 +284,7 @@ def test_parse_remote_marketplace_body_collects_stalls_and_haybales() -> None:
     body = (
         "[[stalls]]\n"
         'url = "https://going-haywire.github.io/haywire/stalls/haybale-core.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
         "\n"
         "[[haybales]]\n"
@@ -312,8 +306,7 @@ def test_parse_remote_marketplace_body_ignores_nested_markets() -> None:
     body = (
         "[[markets]]\n"
         'url = "https://other-aggregator.example/marketplace.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
     )
     contents = parse_remote_marketplace_body(body)
@@ -347,7 +340,7 @@ def test_serialize_global_marketplace_emits_blocked_field() -> None:
         stalls=[
             Subscription(
                 url="https://alice.example/marketstall.toml",
-                ignores=["haybale-skip"],
+                preference=["haybale-preferred"],
                 blocked=["haybale-untrusted"],
             )
         ]
@@ -355,7 +348,7 @@ def test_serialize_global_marketplace_emits_blocked_field() -> None:
     out = serialize_global_marketplace(mf)
     assert "[[stalls]]" in out
     assert "alice.example/marketstall.toml" in out
-    assert "haybale-skip" in out
+    assert "haybale-preferred" in out
     assert "haybale-untrusted" in out
     assert "blocked" in out
 
@@ -374,7 +367,7 @@ def test_serialize_global_marketplace_roundtrip(tmp_path: Path) -> None:
         stalls=[
             Subscription(
                 url="https://alice.example/marketstall.toml",
-                ignores=["haybale-skip"],
+                preference=["haybale-preferred"],
                 blocked=["haybale-untrusted"],
             )
         ],

@@ -1,4 +1,4 @@
-"""Helpers for the marketplace file: subscriptions, heaps, ignores, cache removals.
+"""Helpers for the marketplace file: subscriptions, heaps, preferences, cache removals.
 
 Each helper reads the global (or project) file, mutates the parsed structure,
 and writes back via the serializer. All operations are idempotent where it
@@ -132,30 +132,52 @@ def _replace_subscription_in_list(
     return False
 
 
-def record_ignore_on_source(global_path: Path, *, source_url: str, haybale_name: str) -> None:
-    """Add `haybale_name` to the `ignores` array of the subscription at `source_url`.
+def record_preference(global_path: Path, *, source_url: str, haybale_name: str) -> bool:
+    """Make the subscription owning `source_url` the preferred source for `haybale_name`.
 
-    Idempotent: if the name is already in `ignores`, no write happens.
-    Searches both [[markets]] and [[stalls]] — first match wins.
+    Exclusive by construction: the name is added to that subscription's
+    ``preference`` and removed from every other's, so one call fully settles a
+    collision no matter how many sources offered the name. The old
+    "ignore the losers" phrasing needed one write per rival and let
+    subscription order pick the intermediate winners.
+
+    ``source_url`` is a haybale's ``via``, which for a transitively-discovered
+    stall is a URL the user never subscribed to; it is mapped to the
+    subscription that owns it via :func:`resolve_block_target` — the same
+    mapping the Block button uses. Returns False when no subscription can own
+    it, so a caller can say so rather than appearing to succeed.
+
+    Idempotent.
     """
+    owner = resolve_block_target(global_path, source_url)
+    if owner is None:
+        return False
+    source_url = owner
+
     mf = parse_global_marketplace(global_path)
 
-    def add_ignore(sub: Subscription) -> Subscription:
-        if haybale_name in sub.ignores:
-            return sub  # Idempotent.
-        return Subscription(
-            url=sub.url,
-            ignores=[*sub.ignores, haybale_name],
-            doubles=list(sub.doubles),
-            blocked=list(sub.blocked),
-        )
+    def retarget(subs: list[Subscription]) -> bool:
+        changed = False
+        for i, sub in enumerate(subs):
+            wants = sub.url == source_url
+            has = haybale_name in sub.preference
+            if wants == has:
+                continue
+            preference = (
+                [*sub.preference, haybale_name]
+                if wants
+                else [n for n in sub.preference if n != haybale_name]
+            )
+            subs[i] = Subscription(url=sub.url, preference=preference, blocked=list(sub.blocked))
+            changed = True
+        return changed
 
-    changed = _replace_subscription_in_list(mf.markets, source_url, add_ignore)
-    if not changed:
-        changed = _replace_subscription_in_list(mf.stalls, source_url, add_ignore)
+    changed_markets = retarget(mf.markets)
+    changed_stalls = retarget(mf.stalls)
 
-    if changed:
+    if changed_markets or changed_stalls:
         global_path.write_text(serialize_global_marketplace(mf))
+    return True
 
 
 def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: str) -> None:
@@ -171,8 +193,7 @@ def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: 
             return sub
         return Subscription(
             url=sub.url,
-            ignores=list(sub.ignores),
-            doubles=list(sub.doubles),
+            preference=list(sub.preference),
             blocked=[*sub.blocked, haybale_name],
         )
 

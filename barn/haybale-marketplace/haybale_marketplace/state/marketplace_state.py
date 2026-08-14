@@ -15,6 +15,7 @@ from haywire.core.marketstall import (
     fetch_sources as runtime_fetch_sources,
     parse_global_marketplace,
     parse_project_marketplace,
+    record_preference,
     refresh as runtime_refresh,
     remove_stale_haybale_from_project,
     resolve_catalog as runtime_resolve,
@@ -183,6 +184,15 @@ class MarketplaceState(AppState):
         report = runtime_apply(fetched, resolved, project_path=project_path)
         self.last_report = report
         return report
+
+    def prefer_source(self, name: str, *, source_url: str) -> None:
+        """Make `source_url` the preferred source for `name` on future refreshes.
+
+        The resolution half of a standing collision. Exclusive and positive, so
+        one call settles the choice no matter how many sources offer the name —
+        and the outcome no longer depends on subscription order.
+        """
+        record_preference(self._global_path(), source_url=source_url, haybale_name=name)
 
     def remove_stale_haybale(self, name: str) -> bool:
         """Remove a stale entry from the project [[caches]]. Returns True iff removed."""

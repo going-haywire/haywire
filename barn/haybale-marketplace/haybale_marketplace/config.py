@@ -14,8 +14,7 @@ _DEFAULT_MARKETPLACE: dict = {
     "markets": [
         {
             "url": "https://going-haywire.github.io/haywire/marketplace.toml",
-            "ignores": [],
-            "doubles": [],
+            "preference": [],
             "blocked": [],
         }
     ],

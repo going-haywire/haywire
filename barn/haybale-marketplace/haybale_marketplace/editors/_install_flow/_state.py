@@ -101,8 +101,39 @@ class InstallFlow(StepFlow):
 
     @property
     def is_update(self) -> bool:
-        """An update replaces a version already installed."""
+        """An update replaces a version already installed.
+
+        True for a downgrade too — see :attr:`is_downgrade` for the direction.
+        """
         return bool(self.current_version)
+
+    @property
+    def is_downgrade(self) -> bool:
+        """The target version is *older* than what is installed.
+
+        Reachable two ways: the version picker, and a source `preference` that
+        moved the catalog to a feed publishing an older release. Neither is an
+        error — but calling it "Update" would misdescribe what the button does,
+        so the flow says Downgrade and shows both versions.
+
+        Unparseable versions (a non-PEP-440 git tag) fall back to False: the
+        generic "Update" wording is wrong-ish rather than actively misleading.
+        """
+        if not self.current_version or not self.target_version:
+            return False
+        try:
+            from packaging.version import Version
+
+            return Version(self.target_version) < Version(self.current_version)
+        except Exception:  # noqa: BLE001 — unorderable versions are not an error
+            return False
+
+    @property
+    def verb(self) -> str:
+        """Install / Update / Downgrade — what this flow will actually do."""
+        if not self.is_update:
+            return "Install"
+        return "Downgrade" if self.is_downgrade else "Update"
 
     @property
     def target_version(self) -> str:

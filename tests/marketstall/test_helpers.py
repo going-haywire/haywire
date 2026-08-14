@@ -159,42 +159,102 @@ def test_remove_stale_haybale_returns_false_when_not_found(tmp_path: Path) -> No
 
 
 @pytest.mark.unit
-def test_record_ignore_appends_to_subscription(tmp_path: Path) -> None:
+def test_record_preference_names_the_winning_source(tmp_path: Path) -> None:
     from haywire.core.marketstall.helpers import (
         add_stall_subscription_to_global,
-        record_ignore_on_source,
+        record_preference,
     )
     from haywire.core.marketstall.parsing import parse_global_marketplace
 
     f = tmp_path / "marketplace.toml"
     add_stall_subscription_to_global(f, "https://alice.example/marketstall.toml")
-    record_ignore_on_source(
-        f, source_url="https://alice.example/marketstall.toml", haybale_name="haybale-mesh"
-    )
+    record_preference(f, source_url="https://alice.example/marketstall.toml", haybale_name="haybale-mesh")
 
     mf = parse_global_marketplace(f)
-    assert mf.stalls[0].ignores == ["haybale-mesh"]
+    assert mf.stalls[0].preference == ["haybale-mesh"]
 
 
 @pytest.mark.unit
-def test_record_ignore_is_idempotent(tmp_path: Path) -> None:
+def test_record_preference_is_idempotent(tmp_path: Path) -> None:
     from haywire.core.marketstall.helpers import (
         add_stall_subscription_to_global,
-        record_ignore_on_source,
+        record_preference,
     )
     from haywire.core.marketstall.parsing import parse_global_marketplace
 
     f = tmp_path / "marketplace.toml"
     add_stall_subscription_to_global(f, "https://alice.example/marketstall.toml")
-    record_ignore_on_source(
-        f, source_url="https://alice.example/marketstall.toml", haybale_name="haybale-mesh"
-    )
-    record_ignore_on_source(
-        f, source_url="https://alice.example/marketstall.toml", haybale_name="haybale-mesh"
-    )
+    for _ in range(2):
+        record_preference(
+            f, source_url="https://alice.example/marketstall.toml", haybale_name="haybale-mesh"
+        )
 
     mf = parse_global_marketplace(f)
-    assert mf.stalls[0].ignores == ["haybale-mesh"]
+    assert mf.stalls[0].preference == ["haybale-mesh"]
+
+
+@pytest.mark.unit
+def test_record_preference_is_exclusive(tmp_path: Path) -> None:
+    """Preferring B must clear A's claim — one click settles the collision.
+
+    The old `ignores` phrasing needed one write per rival and let file order
+    pick the intermediate winner.
+    """
+    from haywire.core.marketstall.helpers import (
+        add_stall_subscription_to_global,
+        record_preference,
+    )
+    from haywire.core.marketstall.parsing import parse_global_marketplace
+
+    f = tmp_path / "marketplace.toml"
+    a, b = "https://a.example/s.toml", "https://b.example/s.toml"
+    add_stall_subscription_to_global(f, a)
+    add_stall_subscription_to_global(f, b)
+
+    record_preference(f, source_url=a, haybale_name="haybale-mesh")
+    record_preference(f, source_url=b, haybale_name="haybale-mesh")
+
+    by_url = {s.url: s for s in parse_global_marketplace(f).stalls}
+    assert by_url[b].preference == ["haybale-mesh"]
+    assert by_url[a].preference == []
+
+
+@pytest.mark.unit
+def test_record_preference_leaves_other_names_alone(tmp_path: Path) -> None:
+    """Retargeting one name must not disturb a preference for a different one."""
+    from haywire.core.marketstall.helpers import (
+        add_stall_subscription_to_global,
+        record_preference,
+    )
+    from haywire.core.marketstall.parsing import parse_global_marketplace
+
+    f = tmp_path / "marketplace.toml"
+    a, b = "https://a.example/s.toml", "https://b.example/s.toml"
+    add_stall_subscription_to_global(f, a)
+    add_stall_subscription_to_global(f, b)
+
+    record_preference(f, source_url=a, haybale_name="haybale-other")
+    record_preference(f, source_url=b, haybale_name="haybale-mesh")
+
+    by_url = {s.url: s for s in parse_global_marketplace(f).stalls}
+    assert by_url[a].preference == ["haybale-other"]
+    assert by_url[b].preference == ["haybale-mesh"]
+
+
+@pytest.mark.unit
+def test_record_preference_on_unknown_source_is_a_noop(tmp_path: Path) -> None:
+    from haywire.core.marketstall.helpers import (
+        add_stall_subscription_to_global,
+        record_preference,
+    )
+
+    f = tmp_path / "marketplace.toml"
+    add_stall_subscription_to_global(f, "https://alice.example/marketstall.toml")
+    before = f.read_text()
+
+    record_preference(f, source_url="https://nobody.example/s.toml", haybale_name="haybale-mesh")
+
+    assert f.read_text() == before
 
 
 @pytest.mark.unit

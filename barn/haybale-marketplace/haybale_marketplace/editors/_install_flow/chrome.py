@@ -77,7 +77,7 @@ def show_install_flow(
     flow.popup = show_step_flow(
         flow,
         panels,
-        title=("Update" if flow.is_update else "Install") + f" {name}",
+        title=f"{flow.verb} {name}",
         width="620px",
         on_done=on_done,
     )

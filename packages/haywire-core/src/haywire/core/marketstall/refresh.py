@@ -1,7 +1,7 @@
 """Refresh pipeline.
 
-Filter functions (apply_ignores, apply_blocked, apply_heaps_shadow,
-apply_first_come_first_served) are pure transformations over Haybale lists.
+Filter functions (apply_blocked, apply_heaps_shadow) are pure transformations
+over Haybale lists.
 
 The pipeline runs in three phases so a UI can show what a refresh would do
 before it does it:
@@ -15,9 +15,9 @@ steps.
 
 Conflict-resolution order:
   1. apply_blocked per subscription (hide rejected names)
-  2. apply_ignores per subscription (skip names with another preferred source)
-  3. apply_heaps_shadow across the combined candidate list
-  4. apply_first_come_first_served as the deterministic safety net
+  2. apply_heaps_shadow across the combined candidate list
+  3. dedupe, honouring `preference` where the user named a winner and falling
+     back to first-come-first-served where they have not
 """
 
 from __future__ import annotations
@@ -42,10 +42,12 @@ from haywire.core.marketstall.parsing import (
 )
 from haywire.core.marketstall.types import (
     FetchedSources,
+    MarketplaceFile,
     ProjectMarketplaceFile,
     RefreshOutcome,
     RefreshReport,
     ResolvedCatalog,
+    SourceCollision,
     SourceOutcome,
 )
 
@@ -79,25 +81,25 @@ def _count_updates_available(final: list[Haybale]) -> int:
     return count
 
 
-def apply_ignores(haybales: list[Haybale], ignores: list[str]) -> list[Haybale]:
-    """Drop haybales whose name is in `ignores`.
+def preferred_sources(mf: MarketplaceFile) -> dict[str, str]:
+    """Map ``haybale name -> the subscription URL the user wants it from``.
 
-    The user picked another source for these names at conflict-
-    resolution time; this subscription is asked to step aside.
+    A name claimed by two subscriptions (hand-edit only) resolves to the first
+    in file order and is still reported as a collision, so it can be re-settled.
     """
-    if not ignores:
-        return list(haybales)
-    ignored = set(ignores)
-    return [h for h in haybales if h.name not in ignored]
+    out: dict[str, str] = {}
+    for sub in [*mf.markets, *mf.stalls]:
+        for name in sub.preference:
+            out.setdefault(name, sub.url)
+    return out
 
 
 def apply_blocked(haybales: list[Haybale], blocked: list[str]) -> list[Haybale]:
     """Drop haybales whose name is in `blocked`.
 
-    The user actively rejected these names via the first-install
-    safety modal. Identical filter shape to apply_ignores; semantically a
-    stronger statement (the haybale is hidden from the UI rather than just
-    deduplicated against another source).
+    The user actively rejected these names via the first-install safety modal.
+    Stronger than a preference: the haybale is hidden entirely, not just
+    passed over in favour of another source.
     """
     if not blocked:
         return list(haybales)
@@ -117,21 +119,43 @@ def apply_heaps_shadow(heaps: list[dict], haybales: list[Haybale]) -> list[Hayba
     return [hb for hb in haybales if hb.name not in heap_names]
 
 
-def apply_first_come_first_served(haybales: list[Haybale]) -> list[Haybale]:
-    """Deduplicate by name, keeping the first occurrence.
+def dedupe_reporting_collisions(
+    haybales: list[Haybale],
+    preferences: dict[str, str] | None = None,
+) -> tuple[list[Haybale], list[SourceCollision]]:
+    """Deduplicate by name, returning both the survivors and what was discarded.
 
-    A safety net for cases the per-subscription `ignores`
-    didn't cover (hand-edited marketplace file, or a brand-new collision the
-    UI never prompted for).
+    The winner is the copy the user preferred; with no preference (or one
+    naming a source that no longer offers the name) the first candidate wins,
+    which depends on subscription order — hence reporting the losers, so an
+    order-dependent choice is visible instead of silent.
+
+    Candidate order is preserved on both sides; a preferred copy takes the
+    position of the first candidate for its name, so honouring a preference
+    never reshuffles the catalog.
     """
-    seen: set[str] = set()
-    out: list[Haybale] = []
+    prefs = preferences or {}
+    grouped: dict[str, list[Haybale]] = {}
     for hb in haybales:
-        if hb.name in seen:
-            continue
-        seen.add(hb.name)
-        out.append(hb)
-    return out
+        grouped.setdefault(hb.name, []).append(hb)
+
+    out: list[Haybale] = []
+    collisions: list[SourceCollision] = []
+    for name, candidates in grouped.items():
+        wanted = prefs.get(name)
+        winner = next((h for h in candidates if wanted in (h.via, h.owner_url)), candidates[0])
+        out.append(winner)
+        if losers := [h for h in candidates if h is not winner]:
+            collisions.append(
+                SourceCollision(
+                    name=name,
+                    winner_url=winner.via,
+                    winner_version=winner.version,
+                    losers=[(h.via, h.version) for h in losers],
+                    loser_owners=[h.owner_url or h.via for h in losers],
+                )
+            )
+    return out, collisions
 
 
 def _now_iso() -> str:
@@ -246,10 +270,11 @@ def _body_for(fetched: FetchedSources, url: str) -> str | None:
 def resolve(fetched: FetchedSources) -> ResolvedCatalog:
     """Phase 2 — turn fetched bodies into the catalog that would be written.
 
-    Steps 4–6: apply each subscription's blocked/ignores filters, combine
-    candidates (inline [[haybales]], then stalls, then market-inline — the
-    order that gives FCFS stable provenance), shadow local heaps, dedupe, and
-    stale-mark against the previous [[caches]].
+    Steps 4–6: apply each subscription's blocked filter, combine candidates
+    (inline [[haybales]], then stalls, then market-inline — the order that
+    decides collisions the user has expressed no preference about), shadow
+    local heaps, dedupe honouring ``preference``, and stale-mark against the
+    previous [[caches]].
 
     Pure: no network, no writes. The deltas on the result (``newly_stale``,
     ``newly_added``) exist so a caller can present the consequences of the
@@ -265,7 +290,6 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
             continue
         contents = parse_remote_marketplace_body(body)
         filtered = apply_blocked(contents.haybales, sub.blocked)
-        filtered = apply_ignores(filtered, sub.ignores)
         for h in filtered:
             h.via = sub.url
         market_haybales.extend(filtered)
@@ -281,11 +305,16 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
             continue
         hb = parse_marketstall_body(body)
         hb = apply_blocked(hb, sub.blocked)
-        hb = apply_ignores(hb, sub.ignores)
         for h in hb:
             h.via = sub.url
         stall_haybales.extend(hb)
 
+    # Stalls a [[markets]] body pointed at. `via` stays the stall URL (that is
+    # where the haybale really came from, and the provenance label shows it),
+    # but `owner_url` records the subscription the user actually controls —
+    # nothing here is directly subscribed, so a preference can only ever be
+    # expressed against the aggregator that discovered it.
+    owner = mf.markets[0].url if mf.markets else ""
     for url in fetched.discovered_stall_urls:
         if url in seen_stall_urls:
             continue
@@ -296,12 +325,13 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
         discovered_hb = parse_marketstall_body(body)
         for h in discovered_hb:
             h.via = url
+            h.owner_url = owner
         stall_haybales.extend(discovered_hb)
 
     candidates: list[Haybale] = list(mf.haybales) + stall_haybales + market_haybales
 
     candidates = apply_heaps_shadow(pm_prev.heaps, candidates)
-    candidates = apply_first_come_first_served(candidates)
+    candidates, collisions = dedupe_reporting_collisions(candidates, preferred_sources(mf))
 
     # Drop blocked names from the previous list before stale-rescue: blocked
     # entries must disappear, not be re-added as stale.
@@ -320,6 +350,7 @@ def resolve(fetched: FetchedSources) -> ResolvedCatalog:
         newly_stale=[h.name for h in final if h.stale and h.name not in prev_stale_names],
         newly_added=[h.name for h in final if not h.stale and h.name not in prev_names],
         updates_available=_count_updates_available(final),
+        collisions=collisions,
     )
 
 
@@ -334,6 +365,10 @@ def apply(
 
     Step 7. Split out so the two read-only phases can be shown to the user
     first; everything that makes a refresh irreversible happens here.
+
+    The global marketplace is never written by a refresh: it holds user intent
+    (subscriptions, ``preference``, ``blocked``) and only an explicit user
+    action changes it.
     """
     mf = fetched.global_file
     pm_prev = fetched.previous

@@ -100,8 +100,7 @@ def test_subscription_minimal_construction() -> None:
 
     s = Subscription(url="https://example.com/marketplace.toml")
     assert s.url == "https://example.com/marketplace.toml"
-    assert s.ignores == []
-    assert s.doubles == []
+    assert s.preference == []
     assert s.blocked == []  # new field per §7.4
 
 
@@ -111,7 +110,7 @@ def test_subscription_with_blocked() -> None:
 
     s = Subscription(
         url="https://example.com/marketstall.toml",
-        ignores=["haybale-skip"],
+        preference=["haybale-preferred"],
         blocked=["haybale-untrusted"],
     )
     assert s.blocked == ["haybale-untrusted"]
@@ -227,7 +226,7 @@ def test_public_surface_imports_from_marketstall_package() -> None:
         add_stall_subscription_to_global,
         add_heap_to_project,
         remove_stale_haybale_from_project,
-        record_ignore_on_source,
+        record_preference,
         record_block_on_source,
         detect_subscription_conflicts,
         # Errors

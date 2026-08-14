@@ -1,12 +1,19 @@
 ---
 name: marketplace-blocked-category-and-source-conflicts
-description: Handoff — whether Blocked should join the library category enum, and the silent cross-source winner when stall entries collide; conflict prompt now runs before write, core design question still open
+description: Handoff — whether Blocked should join the library category enum, and the silent cross-source winner when stall entries collide; silent-winner half LANDED 2026-08-14 (`preference` replaces `ignores`+`doubles`, one-click settle, refresh no longer writes the global file), Blocked-category half still open behind it
 metadata:
   type: project
   status: open
 ---
 
 # Blocked as a library category, and the silent cross-source winner
+
+> **Read the LANDED section first.** Everything above it is the original
+> 2026-08-03 analysis and the 2026-08-14 drift check, both written when
+> `ignores` and `doubles` still existed. They are kept for the reasoning, not
+> as a description of the current schema — a subscription now carries `url`,
+> `preference`, `blocked`. Anywhere below that says "`ignores`", read
+> "`preference`, inverted": it named the loser, `preference` names the winner.
 
 Raised 2026-08-03 while designing the marketplace stepper flows. Scoped OUT of
 that UX work deliberately: this is marketplace *semantics*, not presentation,
@@ -159,6 +166,89 @@ That is a description of exactly the bug this document is about — someone
 reserved the slot for the silent-FCFS record and never filled it. Any solution
 should either use `doubles` as intended or delete it; leaving a documented
 field that no code writes is worse than either.
+
+## LANDED 2026-08-14 — `preference` replaces `ignores` + `doubles`
+
+The silent-winner half of this document is **built and green** (3447 passing).
+The `Blocked` category half stays open behind it; nothing here touches
+`blocked`'s per-source semantics.
+
+**Breaking schema change, no migration** (agreed): a subscription now carries
+`url`, `preference`, `blocked`. Both `ignores` and `doubles` are gone.
+
+The first cut of this recorded FCFS losers into `doubles` and resolved
+collisions by writing `ignores` on the winner. Two problems killed it:
+
+- `doubles` was written and never read — a receipt nobody consumed, needing a
+  rewrite-per-run rule purely to stop it rotting, and making refresh write to
+  the user's config file for no one's benefit.
+- `ignores` is *negative*, so reaching the third of three sources took two
+  clicks and passed through an intermediate winner nobody asked for.
+
+`preference` is positive and exclusive: naming the winner clears that name from
+every other subscription. One click settles any collision at any source count,
+and the result no longer depends on subscription order — which was the original
+bug.
+
+What shipped:
+
+- `Subscription(url, preference, blocked)`; `apply_ignores` and `record_doubles`
+  deleted, `record_ignore_on_source` → `record_preference` (returns bool).
+- `preferred_sources()` builds `name -> url`; a double claim (hand-edit only)
+  resolves by file order and is still reported as a collision.
+- `dedupe_reporting_collisions()` picks the preferred copy, falling back to
+  first-come-first-served. A stale preference (source stopped offering the
+  name) falls back rather than blanking the row.
+- **Refresh never writes the global file.** It is user intent; only an explicit
+  action edits it. `apply()` lost the `global_path` parameter it briefly had.
+- Settling a collision does not hide it — losers stay listed, so the choice is
+  reversible from the same panel with one click.
+
+**Transitive-discovery trap, found by testing against the real feed.** A stall
+discovered through a `[[markets]]` body is not subscribable, so a preference
+against its own URL matches nothing and the click silently did nothing. Fixed
+by stamping `Haybale.owner_url` (runtime-only) with the aggregator that found
+it, matching preferences on `via` *or* `owner_url`, and carrying
+`SourceCollision.loser_owners` so the panel displays the real source but writes
+to the subscription that owns it. `record_preference` routes through
+`resolve_block_target` — the same mapping the Block button uses — and returns
+False when nothing can own the URL.
+
+Also: the CI aggregator (`scripts/generate_marketstall.py`) now emits `url`
+only. `preference`/`blocked` are a consumer's opinion about their own
+subscriptions, and the remote parser reads neither — emitting them implied the
+publisher had a say. The share pipeline never touched subscriptions.
+
+Tests: 14 in `tests/marketstall/test_refresh.py`, 5 in `test_helpers.py`,
+4 in `tests/test_refresh_flow_ui.py`.
+
+### Downgrade surfacing (same session)
+
+A source preference can point the catalog at a feed publishing an *older*
+release than the one installed. Refresh never touches the venv, so nothing
+broke — but both update checks were `catalog > installed`, so the disagreement
+was completely silent and a reinstall would have quietly downgraded.
+
+- Library browser: `downgrades_available` alongside `updates_available` (same
+  loop, inverse comparison) → a `arrow_downward` warning chip.
+- Install flow: `is_downgrade` + a `verb` property, so the title, the heading
+  and the done-message read Install / Update / **Downgrade**. Unparseable
+  versions (non-PEP-440 git tags) fall back to "Update" rather than raising.
+- Version picker: shows the installed version next to the count, and now moves
+  `version` with `install_spec` when pinning — it previously kept the catalog's
+  version on a pinned spec, which would have made the flow describe the wrong
+  release.
+
+**Still missing: install provenance.** Nothing records which subscription a
+library was installed *from*, so switching preference between two sources at
+the *same* version is undetectable — no version comparison can see it. That is
+the gap under both the badge and the "is my copy the one this source means"
+question, and it wants a field on the project cache rather than a UI change.
+
+Not done, deliberately: the add-source stale-baseline gap is *narrowed* (a
+missed collision surfaces on the next refresh) but `existing_haybales()` still
+reads the last refresh's catalog. Fixing it properly means probing every
+subscribed source at add time — a network-cost decision wanting its own round.
 
 ## What changed since this was written
 

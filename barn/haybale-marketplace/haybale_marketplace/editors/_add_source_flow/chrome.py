@@ -56,8 +56,12 @@ class MarketplaceAddSourceTarget:
         """What the project already resolves to — the collision baseline.
 
         This is the *last refresh's* result, so a source subscribed but not
-        yet refreshed is invisible here. Pre-existing behaviour, carried over
-        from the old dialog; see
+        yet refreshed is invisible here and its collisions are not prompted for
+        at add time. Narrowed rather than fixed: refresh now detects standing
+        collisions across all subscribed sources and surfaces them on its
+        resolved step, so anything missed here shows up on the next refresh
+        instead of staying hidden. Closing the gap at *this* point would mean
+        probing every subscribed source on add — see
         internals/handoff/marketplace-blocked-category-and-source-conflicts.md.
         """
         return self._state.get_project_haybales()
@@ -68,10 +72,10 @@ class MarketplaceAddSourceTarget:
         result = subscribe(resolved, self._global_path, paste_dir=self._paste_dir)
         return result.persist_url
 
-    def record_ignore(self, source_url: str, haybale_name: str) -> None:
-        from haywire.core.marketstall import record_ignore_on_source
+    def record_preference(self, source_url: str, haybale_name: str) -> None:
+        from haywire.core.marketstall import record_preference
 
-        record_ignore_on_source(self._global_path, source_url=source_url, haybale_name=haybale_name)
+        record_preference(self._global_path, source_url=source_url, haybale_name=haybale_name)
 
     def refresh(self) -> RefreshReport:
         return self._state.refresh()

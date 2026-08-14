@@ -35,9 +35,7 @@ class _FakeState:
 
     def __init__(self, root: Path) -> None:
         self.global_path = root / "global.toml"
-        self.global_path.write_text(
-            f'[[stalls]]\nurl = "{_STALL_URL}"\nignores = []\ndoubles = []\nblocked = []\n'
-        )
+        self.global_path.write_text(f'[[stalls]]\nurl = "{_STALL_URL}"\npreference = []\nblocked = []\n')
         self.project_path = root / "project.toml"
         self.cache_dir = root / "cache"
         self.last_report: RefreshReport | None = None
@@ -67,6 +65,11 @@ class _FakeState:
         report = apply_refresh(fetched, resolved, project_path=self.project_path, cache_dir=self.cache_dir)
         self.last_report = report
         return report
+
+    def prefer_source(self, name: str, *, source_url: str) -> None:
+        from haywire.core.marketstall import record_preference
+
+        record_preference(self.global_path, source_url=source_url, haybale_name=name)
 
 
 def _flow(root: Path):
@@ -229,3 +232,123 @@ def test_steps_cover_every_panel() -> None:
 
     assert set(STEPS) == set(STEP_TITLES)
     assert STEPS.index("sources") < STEPS.index("fetched") < STEPS.index("resolved")
+
+
+# ---------------------------------------------------------------------------
+# Standing collisions — surfaced on the resolved step, resolvable in place
+# ---------------------------------------------------------------------------
+
+_URL_A = "https://a.example/marketstall.toml"
+_URL_B = "https://b.example/marketstall.toml"
+
+
+class _CollidingState(_FakeState):
+    """Two stalls, both offering haybale-foo at different versions."""
+
+    def __init__(self, root: Path) -> None:
+        super().__init__(root)
+        self.global_path.write_text(
+            f'[[stalls]]\nurl = "{_URL_A}"\npreference = []\nblocked = []\n'
+            "\n"
+            f'[[stalls]]\nurl = "{_URL_B}"\npreference = []\nblocked = []\n'
+        )
+
+
+def _colliding_flow(root: Path):
+    from haybale_marketplace.editors._refresh_flow import RefreshFlow
+
+    return RefreshFlow(state=_CollidingState(root))
+
+
+def _collision_reachable():
+    """Both stalls reachable; A serves 2.1.0, B serves 2.3.0."""
+
+    def fake_urlopen(url, *, timeout):
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        version = "2.1.0" if url == _URL_A else "2.3.0"
+        body = f'[[haybales]]\nname = "haybale-foo"\nversion = "{version}"\n'
+        m.__enter__.return_value.read.return_value = body.encode()
+        return m
+
+    mock = patch.object(marketstall_cache, "_urlopen", side_effect=fake_urlopen)
+    mock.start()
+    return mock
+
+
+@pytest.mark.anyio
+async def test_collision_is_visible_before_the_write(tmp_path: Path) -> None:
+    """The whole point: the user sees the version choice before Apply, not after."""
+    flow = _colliding_flow(tmp_path)
+    mock = _collision_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+    finally:
+        mock.stop()
+
+    assert flow.step == "resolved"
+    assert flow.resolved is not None
+    assert len(flow.resolved.collisions) == 1
+    collision = flow.resolved.collisions[0]
+    assert collision.name == "haybale-foo"
+    assert collision.winner_url == _URL_A
+    assert collision.losers == [(_URL_B, "2.3.0")]
+    assert not flow.state.project_path.exists()  # still nothing written
+
+
+@pytest.mark.anyio
+async def test_preferring_the_other_source_flips_the_winner_in_place(tmp_path: Path) -> None:
+    """ "Use this one" re-resolves and stays on the step — no write, new winner."""
+    flow = _colliding_flow(tmp_path)
+    mock = _collision_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        assert flow.resolved is not None
+        assert flow.resolved.haybales[0].version == "2.1.0"
+
+        flow.prefer_source("haybale-foo", source_url=_URL_B)
+    finally:
+        mock.stop()
+
+    assert flow.step == "resolved"  # still pre-write
+    assert flow.error is None
+    assert flow.resolved is not None
+    assert flow.resolved.haybales[0].version == "2.3.0"  # B now wins
+    # The collision is settled, not hidden: A is still listed as an option.
+    assert flow.resolved.collisions[0].winner_url == _URL_B
+    assert flow.resolved.collisions[0].losers == [(_URL_A, "2.1.0")]
+    assert not flow.state.project_path.exists()
+
+
+@pytest.mark.anyio
+async def test_applying_never_writes_the_global_file(tmp_path: Path) -> None:
+    """Refresh reads user intent and writes only the project cache."""
+    flow = _colliding_flow(tmp_path)
+    before = flow.state.global_path.read_text()
+    mock = _collision_reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+        await flow.advance_from_resolved()
+    finally:
+        mock.stop()
+
+    assert flow.step == "applied"
+    assert flow.state.global_path.read_text() == before
+
+
+@pytest.mark.anyio
+async def test_no_collision_leaves_the_list_empty(tmp_path: Path) -> None:
+    flow = _flow(tmp_path)
+    mock = _reachable()
+    try:
+        await flow.advance_from_sources()
+        await flow.advance_from_fetched()
+    finally:
+        mock.stop()
+
+    assert flow.resolved is not None
+    assert flow.resolved.collisions == []

@@ -17,20 +17,42 @@ def _h(name: str, **kw) -> Haybale:
 
 
 @pytest.mark.unit
-def test_apply_ignores_filters_by_name() -> None:
-    from haywire.core.marketstall.refresh import apply_ignores
+def test_preferred_sources_maps_name_to_the_chosen_url() -> None:
+    from haywire.core.marketstall.refresh import preferred_sources
+    from haywire.core.marketstall.types import MarketplaceFile, Subscription
 
-    pkgs = [_h("haybale-a"), _h("haybale-b"), _h("haybale-c")]
-    out = apply_ignores(pkgs, ["haybale-b"])
-    assert [p.name for p in out] == ["haybale-a", "haybale-c"]
+    mf = MarketplaceFile(
+        stalls=[
+            Subscription(url="https://a.example/s.toml"),
+            Subscription(url="https://b.example/s.toml", preference=["haybale-foo"]),
+        ]
+    )
+    assert preferred_sources(mf) == {"haybale-foo": "https://b.example/s.toml"}
 
 
 @pytest.mark.unit
-def test_apply_ignores_empty_list_is_noop() -> None:
-    from haywire.core.marketstall.refresh import apply_ignores
+def test_preferred_sources_is_empty_when_nobody_claims_anything() -> None:
+    from haywire.core.marketstall.refresh import preferred_sources
+    from haywire.core.marketstall.types import MarketplaceFile, Subscription
 
-    pkgs = [_h("haybale-a")]
-    assert apply_ignores(pkgs, []) == pkgs
+    mf = MarketplaceFile(stalls=[Subscription(url="https://a.example/s.toml")])
+    assert preferred_sources(mf) == {}
+
+
+@pytest.mark.unit
+def test_preferred_sources_breaks_a_double_claim_by_file_order() -> None:
+    """Only reachable by hand-editing; first in file order wins and the dedup
+    step still reports the collision so the user can re-settle it."""
+    from haywire.core.marketstall.refresh import preferred_sources
+    from haywire.core.marketstall.types import MarketplaceFile, Subscription
+
+    mf = MarketplaceFile(
+        stalls=[
+            Subscription(url="https://a.example/s.toml", preference=["haybale-foo"]),
+            Subscription(url="https://b.example/s.toml", preference=["haybale-foo"]),
+        ]
+    )
+    assert preferred_sources(mf) == {"haybale-foo": "https://a.example/s.toml"}
 
 
 @pytest.mark.unit
@@ -70,22 +92,67 @@ def test_apply_heaps_shadow_empty_heaps_noop() -> None:
 
 
 @pytest.mark.unit
-def test_apply_first_come_first_served_dedups() -> None:
-    from haywire.core.marketstall.refresh import apply_first_come_first_served
+def test_dedupe_without_preference_keeps_the_first_occurrence() -> None:
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
 
     candidates = [_h("haybale-foo", label="first"), _h("haybale-foo", label="second")]
-    out = apply_first_come_first_served(candidates)
-    assert len(out) == 1
-    assert out[0].label == "first"
+    survivors, _ = dedupe_reporting_collisions(candidates)
+    assert [h.label for h in survivors] == ["first"]
 
 
 @pytest.mark.unit
-def test_apply_first_come_first_served_preserves_distinct_names() -> None:
-    from haywire.core.marketstall.refresh import apply_first_come_first_served
+def test_dedupe_preserves_distinct_names_in_order() -> None:
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
 
-    candidates = [_h("haybale-a"), _h("haybale-b"), _h("haybale-c")]
-    out = apply_first_come_first_served(candidates)
-    assert [p.name for p in out] == ["haybale-a", "haybale-b", "haybale-c"]
+    survivors, _ = dedupe_reporting_collisions([_h("haybale-a"), _h("haybale-b"), _h("haybale-c")])
+    assert [h.name for h in survivors] == ["haybale-a", "haybale-b", "haybale-c"]
+
+
+@pytest.mark.unit
+def test_dedupe_reports_the_loser_instead_of_dropping_it_silently() -> None:
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
+
+    candidates = [
+        _h("haybale-foo", version="2.1.0", via="https://a.example/s.toml"),
+        _h("haybale-foo", version="2.3.0", via="https://b.example/s.toml"),
+    ]
+    survivors, collisions = dedupe_reporting_collisions(candidates)
+
+    assert [h.version for h in survivors] == ["2.1.0"]
+    assert len(collisions) == 1
+    assert collisions[0].name == "haybale-foo"
+    assert collisions[0].winner_url == "https://a.example/s.toml"
+    assert collisions[0].winner_version == "2.1.0"
+    assert collisions[0].losers == [("https://b.example/s.toml", "2.3.0")]
+    assert collisions[0].source_count == 2
+
+
+@pytest.mark.unit
+def test_dedupe_reports_every_loser_in_drop_order() -> None:
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
+
+    candidates = [
+        _h("haybale-foo", version="1.0.0", via="https://a.example/s.toml"),
+        _h("haybale-foo", version="2.0.0", via="https://b.example/s.toml"),
+        _h("haybale-foo", version="3.0.0", via="https://c.example/s.toml"),
+    ]
+    _, collisions = dedupe_reporting_collisions(candidates)
+
+    assert collisions[0].source_count == 3
+    assert collisions[0].losers == [
+        ("https://b.example/s.toml", "2.0.0"),
+        ("https://c.example/s.toml", "3.0.0"),
+    ]
+
+
+@pytest.mark.unit
+def test_dedupe_reports_nothing_when_names_are_distinct() -> None:
+    from haywire.core.marketstall.refresh import dedupe_reporting_collisions
+
+    survivors, collisions = dedupe_reporting_collisions([_h("haybale-a"), _h("haybale-b")])
+
+    assert [h.name for h in survivors] == ["haybale-a", "haybale-b"]
+    assert collisions == []
 
 
 @pytest.mark.unit
@@ -158,11 +225,7 @@ def test_refresh_fetches_stall_subscription(tmp_path: Path) -> None:
 
     global_path = tmp_path / "global.toml"
     global_path.write_text(
-        "[[stalls]]\n"
-        'url = "https://alice.example/marketstall.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
-        "blocked = []\n"
+        '[[stalls]]\nurl = "https://alice.example/marketstall.toml"\npreference = []\nblocked = []\n'
     )
     project_path = tmp_path / "project.toml"
 
@@ -189,11 +252,7 @@ def test_refresh_falls_back_to_cache_when_unreachable(tmp_path: Path) -> None:
 
     global_path = tmp_path / "global.toml"
     global_path.write_text(
-        "[[stalls]]\n"
-        'url = "https://alice.example/marketstall.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
-        "blocked = []\n"
+        '[[stalls]]\nurl = "https://alice.example/marketstall.toml"\npreference = []\nblocked = []\n'
     )
     project_path = tmp_path / "project.toml"
 
@@ -212,11 +271,7 @@ def test_refresh_unavailable_when_no_cache_no_network(tmp_path: Path) -> None:
 
     global_path = tmp_path / "global.toml"
     global_path.write_text(
-        "[[stalls]]\n"
-        'url = "https://gone.example/marketstall.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
-        "blocked = []\n"
+        '[[stalls]]\nurl = "https://gone.example/marketstall.toml"\npreference = []\nblocked = []\n'
     )
     project_path = tmp_path / "project.toml"
 
@@ -235,8 +290,7 @@ def test_refresh_applies_blocked_per_subscription(tmp_path: Path) -> None:
     global_path.write_text(
         "[[stalls]]\n"
         'url = "https://alice.example/marketstall.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         'blocked = ["haybale-untrusted"]\n'
     )
     project_path = tmp_path / "project.toml"
@@ -272,7 +326,7 @@ def test_refresh_gcs_orphan_cache_files(tmp_path: Path) -> None:
 
     global_path = tmp_path / "global.toml"
     global_path.write_text(
-        '[[stalls]]\nurl = "https://active.example/m.toml"\nignores = []\ndoubles = []\nblocked = []\n'
+        '[[stalls]]\nurl = "https://active.example/m.toml"\npreference = []\nblocked = []\n'
     )
     project_path = tmp_path / "project.toml"
 
@@ -290,19 +344,14 @@ def test_refresh_one_level_deep_consumes_market_stalls(tmp_path: Path) -> None:
 
     global_path = tmp_path / "global.toml"
     global_path.write_text(
-        "[[markets]]\n"
-        'url = "https://aggregator.example/marketplace.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
-        "blocked = []\n"
+        '[[markets]]\nurl = "https://aggregator.example/marketplace.toml"\npreference = []\nblocked = []\n'
     )
     project_path = tmp_path / "project.toml"
 
     aggregator_body = (
         "[[stalls]]\n"
         'url = "https://stall.example/marketstall.toml"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
         "\n"
         "[[haybales]]\n"
@@ -347,14 +396,12 @@ def test_refresh_stamps_via_on_cached_haybales(tmp_path: Path) -> None:
     global_path.write_text(
         "[[stalls]]\n"
         f'url = "{stall_url}"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
         "\n"
         "[[markets]]\n"
         f'url = "{market_url}"\n'
-        "ignores = []\n"
-        "doubles = []\n"
+        "preference = []\n"
         "blocked = []\n"
     )
     project_path = tmp_path / "project.toml"
@@ -410,7 +457,7 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
 
     # Step 1: initial refresh populates the cache with haybale-foo.
     global_path = tmp_path / "global.toml"
-    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = []\n')
+    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\npreference = []\nblocked = []\n')
     project_path = tmp_path / "project.toml"
     cache_dir = tmp_path / "c"
 
@@ -422,9 +469,7 @@ def test_refresh_blocked_entry_disappears_from_caches(tmp_path: Path) -> None:
     assert "haybale-foo" in {h.name for h in pm.caches}
 
     # Step 2: user blocks haybale-foo, then refreshes.
-    global_path.write_text(
-        f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = ["haybale-foo"]\n'
-    )
+    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\npreference = []\nblocked = ["haybale-foo"]\n')
 
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
         mock_open.return_value.__enter__.return_value.read.return_value = stall_body.encode()
@@ -533,7 +578,7 @@ def test_refresh_populates_updates_available_in_report(tmp_path: Path, monkeypat
     stall_body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.5.0"\n'
 
     global_path = tmp_path / "global.toml"
-    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\nignores = []\ndoubles = []\nblocked = []\n')
+    global_path.write_text(f'[[stalls]]\nurl = "{stall_url}"\npreference = []\nblocked = []\n')
     project_path = tmp_path / "project.toml"
 
     with patch.object(marketstall_cache, "_urlopen") as mock_open:
@@ -602,7 +647,7 @@ def test_malformed_caches_do_not_discard_heaps(tmp_path):
 
 def _stall_global(tmp_path: Path, url: str = "https://alice.example/marketstall.toml") -> Path:
     global_path = tmp_path / "global.toml"
-    global_path.write_text(f'[[stalls]]\nurl = "{url}"\nignores = []\ndoubles = []\nblocked = []\n')
+    global_path.write_text(f'[[stalls]]\nurl = "{url}"\npreference = []\nblocked = []\n')
     return global_path
 
 
@@ -751,3 +796,228 @@ def test_resolve_marks_newly_stale_against_previous(tmp_path: Path) -> None:
 
     assert resolved.newly_stale == ["haybale-gone"]
     assert resolved.newly_added == ["haybale-foo"]
+
+
+# ---------------------------------------------------------------------------
+# Cross-source collisions — the standing-conflict record
+# ---------------------------------------------------------------------------
+
+
+def _two_stall_global(tmp_path: Path, url_a: str, url_b: str) -> Path:
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(
+        f'[[stalls]]\nurl = "{url_a}"\npreference = []\nblocked = []\n'
+        "\n"
+        f'[[stalls]]\nurl = "{url_b}"\npreference = []\nblocked = []\n'
+    )
+    return global_path
+
+
+def _collision_bodies(url_a: str):
+    """Both stalls offer haybale-foo; A at 2.1.0 (older), B at 2.3.0 (newer)."""
+
+    def fake_urlopen(url, *, timeout):
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        version = "2.1.0" if url == url_a else "2.3.0"
+        body = f'[[haybales]]\nname = "haybale-foo"\nversion = "{version}"\n'
+        m.__enter__.return_value.read.return_value = body.encode()
+        return m
+
+    return fake_urlopen
+
+
+@pytest.mark.unit
+def test_resolve_surfaces_a_cross_source_collision(tmp_path: Path) -> None:
+    """Two stalls offering one name must produce a visible collision record.
+
+    Before this, the loser was dropped with no prompt and no diagnostic — the
+    catalog could not distinguish "one source offers this" from "two do and we
+    picked by list position".
+    """
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+
+    url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"
+    global_path = _two_stall_global(tmp_path, url_a, url_b)
+    project_path = tmp_path / "project.toml"
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=_collision_bodies(url_a)):
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    resolved = resolve(fetched)
+
+    assert resolved.resolved_count == 1
+    assert len(resolved.collisions) == 1
+    collision = resolved.collisions[0]
+    assert collision.name == "haybale-foo"
+    assert collision.winner_url == url_a
+    assert collision.winner_version == "2.1.0"
+    assert collision.losers == [(url_b, "2.3.0")]
+
+
+@pytest.mark.unit
+def test_preference_picks_the_winner_regardless_of_subscription_order(tmp_path: Path) -> None:
+    """The whole point of a positive preference: file order stops deciding.
+
+    Without one, url_a wins because its [[stalls]] entry comes first.
+    """
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+    from haywire.core.marketstall.refresh import refresh
+
+    url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(
+        f'[[stalls]]\nurl = "{url_a}"\npreference = []\nblocked = []\n'
+        "\n"
+        f'[[stalls]]\nurl = "{url_b}"\npreference = ["haybale-foo"]\nblocked = []\n'
+    )
+    project_path = tmp_path / "project.toml"
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=_collision_bodies(url_a)):
+        refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    cached = parse_project_marketplace(project_path).caches
+    assert [h.version for h in cached] == ["2.3.0"]
+    assert cached[0].via == url_b
+
+
+@pytest.mark.unit
+def test_a_preference_still_reports_the_collision(tmp_path: Path) -> None:
+    """Settling a collision does not hide it — the losers are still listed, so
+    the resolved step can keep offering the other sources."""
+    from haywire.core.marketstall.refresh import fetch_sources, resolve
+
+    url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(
+        f'[[stalls]]\nurl = "{url_a}"\npreference = []\nblocked = []\n'
+        "\n"
+        f'[[stalls]]\nurl = "{url_b}"\npreference = ["haybale-foo"]\nblocked = []\n'
+    )
+    project_path = tmp_path / "project.toml"
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=_collision_bodies(url_a)):
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    resolved = resolve(fetched)
+    assert len(resolved.collisions) == 1
+    assert resolved.collisions[0].winner_url == url_b
+    assert resolved.collisions[0].losers == [(url_a, "2.1.0")]
+
+
+@pytest.mark.unit
+def test_a_preference_for_a_source_that_no_longer_offers_it_falls_back(tmp_path: Path) -> None:
+    """A stale preference must not blank the entry — FCFS still yields a winner."""
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+    from haywire.core.marketstall.refresh import refresh
+
+    url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(
+        f'[[stalls]]\nurl = "{url_a}"\npreference = []\nblocked = []\n'
+        "\n"
+        f'[[stalls]]\nurl = "{url_b}"\npreference = ["haybale-foo"]\nblocked = []\n'
+    )
+    project_path = tmp_path / "project.toml"
+
+    def only_a(url, *, timeout):
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        body = (
+            '[[haybales]]\nname = "haybale-foo"\nversion = "2.1.0"\n'
+            if url == url_a
+            else '[[haybales]]\nname = "haybale-other"\nversion = "1.0.0"\n'
+        )
+        m.__enter__.return_value.read.return_value = body.encode()
+        return m
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=only_a):
+        refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    by_name = {h.name: h for h in parse_project_marketplace(project_path).caches}
+    assert by_name["haybale-foo"].version == "2.1.0"
+    assert by_name["haybale-foo"].via == url_a
+
+
+@pytest.mark.unit
+def test_refresh_never_writes_the_global_file(tmp_path: Path) -> None:
+    """The global marketplace is user intent; only an explicit action edits it."""
+    from haywire.core.marketstall.refresh import refresh
+
+    url_a, url_b = "https://a.example/s.toml", "https://b.example/s.toml"
+    global_path = _two_stall_global(tmp_path, url_a, url_b)
+    project_path = tmp_path / "project.toml"
+    before = global_path.read_text()
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=_collision_bodies(url_a)):
+        refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    assert global_path.read_text() == before
+
+
+@pytest.mark.unit
+def test_preference_reaches_a_stall_discovered_through_a_market(tmp_path: Path) -> None:
+    """A discovered stall is not subscribable, so its owner is the aggregator.
+
+    Regression: the panel used to hand the discovered stall's own URL to
+    record_preference, which matched no subscription — the click silently did
+    nothing.
+    """
+    from haywire.core.marketstall.helpers import record_preference
+    from haywire.core.marketstall.parsing import parse_project_marketplace
+    from haywire.core.marketstall.refresh import fetch_sources, refresh, resolve
+
+    rival = "file:///rival.toml"
+    market = "https://agg.example/marketplace.toml"
+    discovered = "https://agg.example/stalls/haybale-foo.toml"
+
+    global_path = tmp_path / "global.toml"
+    global_path.write_text(
+        f'[[stalls]]\nurl = "{rival}"\npreference = []\nblocked = []\n'
+        "\n"
+        f'[[markets]]\nurl = "{market}"\npreference = []\nblocked = []\n'
+    )
+    project_path = tmp_path / "project.toml"
+
+    def fake(url, *, timeout):
+        from unittest.mock import MagicMock
+
+        m = MagicMock()
+        if url == market:
+            body = f'[[stalls]]\nurl = "{discovered}"\n'
+        elif url == discovered:
+            body = '[[haybales]]\nname = "haybale-foo"\nversion = "0.1.0"\n'
+        else:
+            body = '[[haybales]]\nname = "haybale-foo"\nversion = "9.9.9"\n'
+        m.__enter__.return_value.read.return_value = body.encode()
+        return m
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=fake):
+        fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+    collision = resolve(fetched).collisions[0]
+
+    # Displayed as the stall it came from, but written against the aggregator.
+    assert collision.losers == [(discovered, "0.1.0")]
+    assert collision.loser_owners == [market]
+
+    assert record_preference(global_path, source_url=market, haybale_name="haybale-foo") is True
+
+    with patch.object(marketstall_cache, "_urlopen", side_effect=fake):
+        refresh(global_path=global_path, project_path=project_path, cache_dir=tmp_path / "c")
+
+    cached = parse_project_marketplace(project_path).caches
+    assert [h.version for h in cached] == ["0.1.0"]
+    assert cached[0].via == discovered
+
+
+@pytest.mark.unit
+def test_record_preference_reports_when_no_subscription_can_own_it(tmp_path: Path) -> None:
+    """False rather than a silent no-op, so the UI can say the click did nothing."""
+    from haywire.core.marketstall.helpers import record_preference
+
+    global_path = tmp_path / "global.toml"
+    global_path.write_text("")
+
+    assert record_preference(global_path, source_url="https://x.example/s.toml", haybale_name="hb") is False

@@ -213,8 +213,11 @@ def test_emit_stall_toml_includes_name_in_header() -> None:
 
 @pytest.mark.unit
 def test_emit_marketplace_toml_writes_one_stall_per_url() -> None:
-    """The aggregator (spec §11.2) holds one [[stalls]] entry per URL, each
-    with empty ignores/doubles/blocked arrays (consumers populate those)."""
+    """The aggregator (spec §11.2) holds one [[stalls]] entry per URL, url only.
+
+    `preference` and `blocked` are a consumer's opinion about their own
+    subscriptions and the remote parser reads neither, so a published feed does
+    not carry them."""
     out = generate_marketstall.emit_marketplace_toml(
         [
             "https://example.github.io/feed/stalls/haybale-a.toml",
@@ -228,9 +231,7 @@ def test_emit_marketplace_toml_writes_one_stall_per_url() -> None:
     assert len(parsed["stalls"]) == 2
     assert parsed["stalls"][0]["url"] == "https://example.github.io/feed/stalls/haybale-a.toml"
     for sub in parsed["stalls"]:
-        assert sub["ignores"] == []
-        assert sub["doubles"] == []
-        assert sub["blocked"] == []
+        assert set(sub) == {"url"}
 
 
 @pytest.mark.unit

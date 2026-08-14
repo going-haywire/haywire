@@ -143,8 +143,23 @@ def install_package(
     )
 
 
+def _installed_version(pkg: Haybale, manager: "LibraryManager") -> str:
+    """Installed version of *pkg*, or "" when it is not installed."""
+    if not pkg.name:
+        return ""
+    try:
+        return manager.get_installed_version(pkg.name) or ""
+    except Exception:  # noqa: BLE001 — a missing version is not an error here
+        return ""
+
+
 def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "SessionContext") -> None:
-    """Dialog to fetch and select a specific version for installation."""
+    """Dialog to fetch and select a specific version for installation.
+
+    Picking an older release than the installed one is legitimate, so the
+    dialog reports what is installed rather than blocking the choice — and the
+    install flow it hands off to says "Downgrade" instead of "Update".
+    """
     with ui.dialog() as dialog, ui.card().classes("min-w-80"):
         ui.label(f"Install specific version — {pkg.name}").classes("text-lg font-bold mb-2")
         version_select = (
@@ -163,7 +178,10 @@ def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "Sessi
             if versions:
                 version_select.options = versions
                 version_select.value = versions[0]
+                installed = _installed_version(pkg, manager)
                 status.text = f"{len(versions)} versions available"
+                if installed:
+                    status.text += f" · installed v{installed}"
             else:
                 version_select.options = ["(unavailable)"]
                 version_select.value = "(unavailable)"
@@ -177,7 +195,10 @@ def open_version_picker(pkg: Haybale, manager: "LibraryManager", context: "Sessi
             spec = manager.build_versioned_spec(pkg, selected)
             from dataclasses import replace
 
-            versioned_pkg = replace(pkg, install_spec=spec)
+            # `version` moves with `install_spec`: the flow reads it to work out
+            # whether this is an update or a downgrade, and leaving the catalog's
+            # version on a pinned spec would have it describe the wrong release.
+            versioned_pkg = replace(pkg, install_spec=spec, version=selected)
             install_with_safety_check(versioned_pkg, None, manager, context)
 
         with ui.row().classes("w-full justify-end gap-2 mt-4"):

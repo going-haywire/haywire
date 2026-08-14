@@ -50,6 +50,8 @@ class RefreshSource(Protocol):
 
     def apply_refresh(self, fetched: FetchedSources, resolved: ResolvedCatalog) -> RefreshReport: ...
 
+    def prefer_source(self, name: str, *, source_url: str) -> None: ...
+
 
 class RefreshFlow(StepFlow):
     """Linear, resumable state machine for the Refresh Libraries flow."""
@@ -111,6 +113,34 @@ class RefreshFlow(StepFlow):
             self.fail(exc)
             return
         self.step = "resolved"
+
+    def prefer_source(self, name: str, *, source_url: str) -> None:
+        """Resolve a standing collision by naming the source that should win.
+
+        Writes `preference` on the chosen source, then re-resolves in place so
+        the panel immediately reflects it. Stays on the `resolved` step: this
+        changes what a refresh *would* do, it does not perform one, and the
+        project cache is still untouched.
+
+        The re-resolve reads the global file again rather than reusing the
+        parsed copy on `fetched` — that copy predates the write and would
+        resolve to the same winner, making the click look inert. Only the cheap
+        parse is redone; the fetched bodies are reused, so no source is
+        contacted a second time.
+        """
+        self.retry()
+        fetched = self.fetched
+        if fetched is None:  # pragma: no cover — unreachable via the panels
+            self.error = "Nothing fetched yet."
+            return
+        try:
+            self.state.prefer_source(name, source_url=source_url)
+            reparsed = self.state.get_global()
+            if reparsed is not None:
+                fetched.global_file = reparsed
+            self.resolved = self.state.resolve(fetched)
+        except Exception as exc:  # noqa: BLE001 — surfaced inline, never swallowed
+            self.fail(exc)
 
     async def advance_from_resolved(self) -> None:
         """Write the project cache. The only step that mutates anything."""

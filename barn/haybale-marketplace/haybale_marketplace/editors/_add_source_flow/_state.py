@@ -61,7 +61,7 @@ class AddSourceTarget(Protocol):
 
     def subscribe(self, resolved: ResolvedSource) -> str: ...
 
-    def record_ignore(self, source_url: str, haybale_name: str) -> None: ...
+    def record_preference(self, source_url: str, haybale_name: str) -> None: ...
 
     def refresh(self) -> RefreshReport: ...
 
@@ -155,7 +155,7 @@ class AddSourceFlow(StepFlow):
         self.choices[name] = choice
 
     async def advance_from_resolved(self) -> None:
-        """Write the subscription and any ignores. First mutating step."""
+        """Write the subscription and any preferences. First mutating step."""
         self.retry()
         resolved = self.resolved
         if resolved is None:  # pragma: no cover — unreachable via the panels
@@ -170,26 +170,28 @@ class AddSourceFlow(StepFlow):
         self.step = "added"
 
     def _apply_conflict_choices(self) -> None:
-        """Tell the losing source to ignore each contested name.
+        """Name the winning source for each contested name.
 
-        Recorded against whichever side lost, exactly as the old dialog did:
-        keeping the existing entry means the NEW subscription steps aside,
-        and vice versa.
+        Recorded against whichever side the user kept: keeping the existing
+        entry makes its source the preferred one, choosing the new source
+        makes that one preferred. `record_preference` is exclusive, so this is
+        one write per contested name regardless of how many sources offer it.
         """
         for conflict in self.conflicts:
             if self.choices.get(conflict.name, KEEP_EXISTING) == KEEP_EXISTING:
-                loser = conflict.new_source or self.persist_url
+                winner = conflict.existing_source
             else:
-                loser = conflict.existing_source
-            if not loser:
+                winner = conflict.new_source or self.persist_url
+            if not winner:
                 continue
             try:
-                self.target.record_ignore(loser, conflict.name)
+                self.target.record_preference(winner, conflict.name)
             except Exception:
-                # A failed ignore leaves a live collision, which refresh
-                # resolves first-come-first-served. Worth a warning, not
-                # worth undoing a subscription the user asked for.
-                logger.exception("Failed to record ignore for %s", conflict.name)
+                # A failed preference leaves a live collision, which refresh
+                # resolves first-come-first-served and re-offers on its
+                # resolved step. Worth a warning, not worth undoing a
+                # subscription the user asked for.
+                logger.exception("Failed to record preference for %s", conflict.name)
                 self.warnings.append(
                     f"Could not record the choice for {conflict.name}; "
                     "the first source to offer it will win."
