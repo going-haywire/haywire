@@ -123,6 +123,43 @@ blocking only filters the marketplace catalog, not the venv).
    either retained-and-flagged (like `stale`) or re-derived from the global
    file's `blocked` arrays at render time.
 
+## Drift check — 2026-08-14
+
+Re-verified every claim below against the tree. **The analysis holds in full**:
+`apply_first_come_first_served` still dedupes on bare `hb.name` with no record
+of the discard (`refresh.py:120`), `apply_blocked`/`apply_ignores` are still
+the same function modulo the field they read (`refresh.py:82`/`94`), and
+`detect_subscription_conflicts` still runs only on the add-source path.
+
+Three corrections to the "Relevant code" pointers:
+
+- **Blocks are created in `_overview_install_flow.py:_on_block`**, not in
+  `_install_flow/chrome.py`. Chrome only renders the button and invokes the
+  `on_block` callback the caller passes; the write (`resolve_block_target` →
+  `record_block_on_source`) lives in `_overview_install_flow.py:59-88`. That
+  is also where the un-block write path would have to be mirrored.
+- **`resolve()` gained a blocked-names stale-rescue guard** (`refresh.py:306`)
+  that the original text predates: blocked names are stripped from the previous
+  `[[caches]]` before `mark_stale_against_previous`, so a blocked entry cannot
+  come back as `stale=True`. This is load-bearing for question 4 — nothing
+  persists a blocked entry today, by explicit design, not by omission.
+- **`ResolvedCatalog` has no `collisions` field yet** (`types.py:146`); the
+  landing site predicted below is still unbuilt.
+
+### The unused `doubles` field — not previously noted
+
+`Subscription.doubles` (`types.py:29`) is **fully plumbed and never written**:
+parsed (`parsing.py:134`), serialized (`parsing.py:267`), preserved across both
+helper rewrites (`helpers.py:149`/`175`), scaffolded into every new
+subscription (`haybale_marketplace/config.py:18`), and documented in the
+glossary as *"names that two `[[markets]]` entries silently dedup to.
+Diagnostic only."*
+
+That is a description of exactly the bug this document is about — someone
+reserved the slot for the silent-FCFS record and never filled it. Any solution
+should either use `doubles` as intended or delete it; leaving a documented
+field that no code writes is worse than either.
+
 ## What changed since this was written
 
 The five marketplace flows landed (`da7bcb3c` … `fcca7aef`). Three things
@@ -179,5 +216,8 @@ and it did not exist when this document was written.
   — `_state.py` holds `_detect_conflicts` and `_apply_conflict_choices`;
   `chrome.py` holds the stale-baseline note on `existing_haybales`
 - `barn/haybale-marketplace/haybale_marketplace/editors/_install_flow/chrome.py`
-  — `_render_block`, the only place a block is currently created (a side exit
-  off the first step, not a step of its own)
+  — `_render_block`, which renders the side exit off the first step (not a step
+  of its own) and calls back out
+- `barn/haybale-marketplace/haybale_marketplace/editors/_overview_install_flow.py`
+  — `_on_block`, the only place a block is actually **written**
+  (`resolve_block_target` → `record_block_on_source`)
