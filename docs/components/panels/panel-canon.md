@@ -99,6 +99,17 @@ Two registration paths feed `PanelRegistry`:
 
 **Boundaries.** Editors that *host* panels — see [components/editors](../editors/editor-canon.md). The studio shell that owns the Properties editor — see [architecture/studio](../../architecture/studio/studio-arch.md). Library/session state read inside panels — see [components/states](../states/state-canon.md).
 
+**One shared gate for every host.** No host implements the poll/draw loop itself. `haywire.ui.panel.host_rendering` owns it, and all three panel hosts funnel through the same two functions:
+
+| Function | Role |
+| --- | --- |
+| `visible_panels(classes, ctx)` | The single visibility gate. Poll-filters a list down to what should show, in order. A panel whose `poll()` returns `False` — or raises — is dropped, with raises logged through the error boundary. |
+| `render_panel(cls, ctx, layout, actions_host=...)` | Instantiates one panel, injects `panel.actions`, and draws it under the same error boundary. A panel that raises renders an inline `error_label` instead of crashing its host. |
+
+The three hosts are `PropertiesEditor` (persistent display panels), `BaseContextMenuProvider` (right-click menus), and the graph canvas `SelectionToolbarProvider`. Because the filter is shared, anything that decides *whether a panel may show* — `poll()`, and `access=` under [ADR 0027](../../adr/0027-studio-authentication.md) — is written once in `visible_panels()` and takes effect in all three at once.
+
+Two consequences worth knowing when authoring a host: `_open_menu()` refuses to build a popup at all when `visible_panels()` returns empty (so a menu with nothing to show never appears as an empty box), and `render_panel()` assumes its caller already poll-filtered — a new host that calls it directly without `visible_panels()` bypasses the gate.
+
 ## 3. Important concepts
 
 **The `@panel` decorator.** Required on every panel class. Two parameters are mandatory: `focus=` (a `Focus` subclass that determines visibility) and `label=` (display label).

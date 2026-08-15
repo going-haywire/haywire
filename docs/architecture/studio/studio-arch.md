@@ -226,6 +226,24 @@ The studio layer does not own:
 
 The studio is a presentation and orchestration layer: it owns *which editor is in which slot, when does each get redrawn*. Everything else flows through the shared project state and the per-session signal bus.
 
+### 4.5 Serving — one ASGI app, several mounts
+
+`HaywireApp.run()` builds a single ASGI application and hands it to `ui.run()`. Everything the studio serves lives inside it:
+
+| Path | What it is |
+| --- | --- |
+| `/` | The `@ui.page` handler that creates the `Session` and renders `AppShell` |
+| `/_nicegui_ws/` | NiceGUI's Socket.IO mount — **all** UI traffic after the initial page load |
+| `/_nicegui/<version>/*` | NiceGUI static assets, libraries, components |
+| `/api/code-intel/{complete,info,hover}` | jedi completion/hover endpoints |
+| `/mcp` | The Farmhand MCP server, mounted by `FarmhandHost.mount()` |
+
+Because these are mounts on one app rather than separate servers, middleware installed via `nicegui.app.add_middleware` wraps *all* of them — including `/mcp`, and including `websocket` scopes through the Socket.IO mount. That is what makes a single process-wide gate possible; it is also why any such middleware must be pure-ASGI rather than a `BaseHTTPMiddleware` subclass. See [ADR 0026](../../adr/0026-studio-network-exposure.md) (bind address, peer allowlist) and [ADR 0027](../../adr/0027-studio-authentication.md) (authentication).
+
+**TLS.** `ui.run()` ends in `**kwargs`, which NiceGUI forwards to uvicorn — and it recognises the `ssl_certfile` / `ssl_keyfile` pair explicitly, using it to build the `https://` URL for the `show=True` auto-open browser. So HTTPS needs no patching: `NetworkSettings.ssl_certfile` / `ssl_keyfile` pass straight through. Leaving them empty (the default) serves plain HTTP exactly as before.
+
+Two things follow from serving TLS that are easy to miss: `FarmhandHost.mount()` builds `allowed_origins` for the MCP DNS-rebinding check with a hardcoded scheme, so it must follow the TLS setting or `/mcp` rejects its own origin; and browser features gated behind a *secure context* — clipboard, camera/mic, geolocation — only work on `localhost` or under real TLS, never on a plain-HTTP LAN address (see `.insights/feedback_clipboard_secure_context.md`).
+
 ## 5. Extensibility
 
 A library extends the studio by adding any of:

@@ -282,6 +282,29 @@ A haybale library's dependencies live across three manifests with different audi
 
 ---
 
+## Access & Authentication
+
+Off by default. When enabled, these terms describe *who may reach the studio* and *what surfaces they see*. The watertight boundary is **no-access vs access**; the tiers within access guard against ignorance, not malice — an `edit` **Principal** can author a Python node, which is arbitrary code execution on the host.
+
+| Term | Definition | Aliases to avoid |
+|------|-----------|-----------------|
+| **Principal** | Anything that can authenticate to the studio — a **User Principal** or an **Agent Principal**. The unit listed in the **Roster** and the unit an **Access Tier** is attached to | Account, identity, login |
+| **User Principal** | A **Principal** that authenticates with a username and password and receives a signed cookie; reaches the studio through a browser | User (bare — ambiguous with the human operating the machine) |
+| **Agent Principal** | A **Principal** that authenticates with a bearer token; reaches the studio through the Farmhand `/mcp` mount. May be scoped to one workspace | Bot, service account, API key |
+| **Roster** | The single global file (`~/.haywire/auth.json`) holding every **Principal** and the auth-enabled flag. One document, so "auth is on" and "an admin exists" cannot disagree | User list, user database, credentials file |
+| **Access Tier** | One of `view` ⊂ `edit` ⊂ `admin`, cumulative — an `admin` passes every `view` check. Carried by a **Principal** and required by an **Access-Gated Surface** | Role, permission, access rights (plural — implies a set, not one level) |
+| **Access-Gated Surface** | A component whose identity declares `access=` and which is therefore hidden from **Principals** below that tier: **Panels**, **Editors**, and **Farmhands**. Nodes, skins, widgets and themes are never access-gated — hiding their identity would not restrict the graph that already uses them | Protected component, secured panel |
+| **Gate** | The pure-ASGI middleware wrapping the whole studio app, which accepts a valid cookie or a valid bearer token and rejects everything else on both `http` and `websocket` scopes. App-owned, never library-owned | Auth middleware, login check |
+
+**Relationships**
+
+- A **Roster** holds zero or more **Principals**; each carries exactly one **Access Tier**
+- A **User Principal** maps onto exactly one **SessionContext** per browser tab; `ctx.can_view()` / `can_edit()` / `can_admin()` / `can_access(tier)` answer from it
+- An **Agent Principal** has no **SessionContext** — its tier filters the Farmhand tool list instead
+- An **Access-Gated Surface** is never rendered for a **Principal** below its tier; it vanishes rather than appearing disabled
+
+---
+
 ## Settings System
 
 See [architecture/settings](../architecture/settings/settings-arch.md) for the resolution chain and registry mechanics; see [components/settings](../components/settings/setting-canon.md) for authoring.

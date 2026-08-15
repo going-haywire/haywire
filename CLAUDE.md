@@ -115,6 +115,7 @@ Things that aren't visible from the code itself — bugs we hit, framework quirk
 - [project_nicegui_input_update_value_event.md](.insights/project_nicegui_input_update_value_event.md) — `ui.input` emits `update:value`, not `update:modelValue`; a widget binding on the wrong event silently drops all user edits in-browser. Other value elements (checkbox/switch/select/color) use `update:modelValue`.
 - [feedback_nicegui_outbox_updatevalue_stomp.md](.insights/feedback_nicegui_outbox_updatevalue_stomp.md) — render-time `updateValue` messages flush after the websocket connects and stomp early user input (edit silently reverted server-side). Harness pages stamp `data-hw-synced` last; tests use `goto_ready`. Also: autofocus into a dynamically-shown popup silently no-ops — needs `ui.timer(0.1, ...) + run_javascript`.
 - [feedback_nicegui_lifespan_task_scope.md](.insights/feedback_nicegui_lifespan_task_scope.md) — `app.on_startup`/`on_shutdown` handlers run in different tasks; an anyio task-group context entered in one and exited in the other crashes shutdown with a cancel-scope error. Use the single-runner-task pattern (found via the MCP mount prototype).
+- [feedback_clipboard_secure_context.md](.insights/feedback_clipboard_secure_context.md) — `navigator.clipboard` is undefined outside a secure context, so every `hui` copy button silently no-ops on a LAN-exposed studio over http (localhost is secure, a LAN IP isn't — so it always works where you test it). Same rule hits camera/mic, geolocation, notifications.
 
 ### Test traps
 

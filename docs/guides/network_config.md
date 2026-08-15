@@ -9,12 +9,18 @@ see-also:
 
 # Network configuration
 
-The studio is a single-operator workbench: whoever can reach it can execute
-arbitrary Python through the graph editor. This guide covers the settings
-that control *who can reach it at all* — bind address, an IP allowlist, and
-what to do if you want to reach the studio from another machine. It does not
-cover authentication or sandboxing the graph editor itself; there isn't any.
-For the full design rationale, see [ADR-0026](../adr/0026-studio-network-exposure.md).
+Whoever can reach the studio can execute arbitrary Python through the graph
+editor. This guide covers the settings that control *where it can be reached
+from* — bind address, an IP allowlist, and what to do if you want to reach the
+studio from another machine. For the full design rationale, see
+[ADR-0026](../adr/0026-studio-network-exposure.md).
+
+It does not cover *who* may connect. Authenticating principals is a separate,
+independent layer designed in
+[ADR-0027](../adr/0027-studio-authentication.md); neither layer substitutes for
+the other, and nothing on this page performs any authentication. Sandboxing the
+graph editor is out of scope for both — a principal who can edit a graph holds
+the authority of the studio process, by design.
 
 ## 1. Default: local only
 

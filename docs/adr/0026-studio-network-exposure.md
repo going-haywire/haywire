@@ -17,9 +17,11 @@ filesystem path. `farmhand/auth.py` already documented Farmhand as "Layered
 with 127.0.0.1 binding" — a layer that had never existed. This change
 supplies it.
 
-**Framing, stated plainly:** Haywire is a single-operator workbench. Everyone
-who reaches it is a full operator; a graph executes arbitrary Python
-in-process. These controls govern *who gets in*, never *what they may do*.
+**Framing, stated plainly:** these are network-location controls. They govern
+*from where* the studio can be reached, never *what a reachable caller may do*
+— a graph executes arbitrary Python in-process, so any principal who can edit
+a graph holds the authority of the studio process itself. Deciding *which*
+principals may connect at all is a separate layer (ADR 0027).
 
 ## The layered model
 
@@ -79,6 +81,16 @@ don't.** The `http`-only code path would keep working in manual testing
 through unfiltered. The bug is invisible in a browser and invisible in a
 casual `curl` check against `/`; it only shows up as "the allowlist doesn't
 actually block anyone."
+
+**A websocket is one scope, checked once.** Covering `scope["type"] ==
+"websocket"` does not mean the filter runs per frame: ASGI calls the
+application exactly once per connection, and the whole connection lifetime
+then happens *inside* that call via `receive` / `send`. So the peer check runs
+at the handshake and never again for that socket — the cost is per connection,
+not per interaction, and a filter cannot revoke a socket it has already
+admitted. Anything needing mid-connection enforcement has to wrap `receive`
+(paying a Python call per frame on the UI hot path) or act out-of-band on the
+session, which is what ADR 0027 does for principal revocation.
 
 ## Three guards, three threat models
 
@@ -169,7 +181,8 @@ an unconfigured allowlist.
 
 ## jedi path confinement
 
-`code_intelligence.py` registers three unauthenticated POST endpoints —
+`code_intelligence.py` registers three POST endpoints that carry no
+authentication of their own —
 `/api/code-intel/complete`, `/info`, `/hover` — that each construct
 `jedi.Script(body.get("code", ""), path=_confined_path(body.get("path")))`.
 Before confinement, `path` went straight from the request body into
@@ -235,13 +248,13 @@ is unauthenticated-by-design at this trust tier (see Consequences).
   is what lets a reverse-proxy deployment with `restrict_to_loopback` still
   on pass the DNS-rebinding `Host`/`Origin` check for the proxy's own
   hostname.
-- **The single-operator trust model is unchanged.** None of this is
-  authentication, authorization, or per-user isolation for the graph editor
-  itself — it remains full arbitrary-code-execution surface for anyone who
-  gets past the bind address and allowlist. These controls narrow *who can
+- **These are network controls, not authorization.** They narrow *who can
   reach the process*; they do not change what a reachable caller can do once
-  in, which stays "everything," by design, for this single-operator
-  workbench.
+  in. The graph editor is full arbitrary-code-execution surface for anyone who
+  gets past the bind address and allowlist, by design — a principal who can
+  edit a graph holds the authority of the studio process. Authenticating
+  principals is ADR 0027; these two layers are independent and neither
+  substitutes for the other.
 
 ## Alternatives considered
 
