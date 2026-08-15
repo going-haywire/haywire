@@ -118,6 +118,7 @@ nav:
       - Sharing libraries: guides/sharing-libraries.md
       - Publishing to PyPI: guides/publish-to-pypi.md
       - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
+      - Network configuration: guides/network_config.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md

@@ -33,8 +33,7 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, Farm
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
-from haywire_studio.network.settings import NetworkSettings
-
+from ..network.settings import NetworkSettings
 from .auth import BearerTokenMiddleware, connection_command, ensure_token
 from .settings import FarmhandSettings
 
@@ -275,10 +274,21 @@ class FarmhandHost:
         require_auth = FarmhandSettings().require_auth
         token = ensure_token(Path(self._workspace_root)) if require_auth else None
 
-        if NetworkSettings().restrict_to_loopback:
+        if FarmhandSettings().restrict_to_loopback:
+            allowed_hosts = [f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"]
+            allowed_origins = [f"http://127.0.0.1:{port}", f"http://localhost:{port}"]
+
+            public_hostname = NetworkSettings().public_hostname
+            if public_hostname:
+                allowed_hosts.append(public_hostname)
+                if ":" not in public_hostname:
+                    allowed_hosts.append(f"{public_hostname}:{port}")
+                allowed_origins.append(f"http://{public_hostname}")
+                allowed_origins.append(f"https://{public_hostname}")
+
             security = TransportSecuritySettings(
-                allowed_hosts=[f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"],
-                allowed_origins=[f"http://127.0.0.1:{port}", f"http://localhost:{port}"],
+                allowed_hosts=allowed_hosts,
+                allowed_origins=allowed_origins,
             )
         else:
             security = TransportSecuritySettings(enable_dns_rebinding_protection=False)

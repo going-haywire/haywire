@@ -11,7 +11,6 @@ from haywire_studio.farmhand import host as host_module
 from haywire_studio.farmhand.auth import BearerTokenMiddleware
 from haywire_studio.farmhand.host import FarmhandHost, _FarmhandServer, _format_tool_error
 from haywire_studio.farmhand.settings import FarmhandSettings
-from haywire_studio.network.settings import NetworkSettings
 
 pytestmark = pytest.mark.unit
 
@@ -25,7 +24,7 @@ def test_require_auth_descriptor_default_is_true():
 
 
 def test_restrict_to_loopback_descriptor_default_is_true():
-    assert NetworkSettings.__dict__["restrict_to_loopback"]._default is True
+    assert FarmhandSettings.__dict__["restrict_to_loopback"]._default is True
 
 
 def test_initialization_options_advertise_tools_list_changed():
@@ -140,12 +139,9 @@ def _bare_host(tmp_path) -> FarmhandHost:
 def test_mount_wraps_with_bearer_middleware_when_require_auth(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
+    with patch.object(host_module, "FarmhandSettings") as settings_cls:
         settings_cls.return_value.require_auth = True
-        network_cls.return_value.restrict_to_loopback = True
+        settings_cls.return_value.restrict_to_loopback = True
         host.mount(8082, app_target=target)
     assert isinstance(target.mounted["/mcp"], BearerTokenMiddleware)
 
@@ -153,12 +149,9 @@ def test_mount_wraps_with_bearer_middleware_when_require_auth(tmp_path):
 def test_mount_skips_bearer_middleware_when_require_auth_false(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
+    with patch.object(host_module, "FarmhandSettings") as settings_cls:
         settings_cls.return_value.require_auth = False
-        network_cls.return_value.restrict_to_loopback = True
+        settings_cls.return_value.restrict_to_loopback = True
         host.mount(8082, app_target=target)
     assert not isinstance(target.mounted["/mcp"], BearerTokenMiddleware)
     # No token generated at all — nothing written under .haywire/.
@@ -168,12 +161,9 @@ def test_mount_skips_bearer_middleware_when_require_auth_false(tmp_path):
 def test_mount_disables_dns_rebinding_protection_when_loopback_unrestricted(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
+    with patch.object(host_module, "FarmhandSettings") as settings_cls:
         settings_cls.return_value.require_auth = True
-        network_cls.return_value.restrict_to_loopback = False
+        settings_cls.return_value.restrict_to_loopback = False
         host.mount(8082, app_target=target)
     assert cast(Any, host._session_manager).security_settings.enable_dns_rebinding_protection is False
 
@@ -186,8 +176,76 @@ def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
         patch.object(host_module, "NetworkSettings") as network_cls,
     ):
         settings_cls.return_value.require_auth = True
-        network_cls.return_value.restrict_to_loopback = True
+        settings_cls.return_value.restrict_to_loopback = True
+        network_cls.return_value.public_hostname = ""
         host.mount(8082, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert security.enable_dns_rebinding_protection is True
     assert "127.0.0.1:8082" in security.allowed_hosts
+    # Regression guard: empty public_hostname (default) must produce
+    # byte-identical allowed_hosts/allowed_origins to the shipped behavior —
+    # no extra entries leak in.
+    assert security.allowed_hosts == ["127.0.0.1:8082", "localhost:8082", "127.0.0.1", "localhost"]
+    assert security.allowed_origins == ["http://127.0.0.1:8082", "http://localhost:8082"]
+
+
+def test_mount_extends_allowed_hosts_and_origins_with_public_hostname(tmp_path):
+    host = _bare_host(tmp_path)
+    target = _FakeAppTarget()
+    with (
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
+    ):
+        settings_cls.return_value.require_auth = True
+        settings_cls.return_value.restrict_to_loopback = True
+        network_cls.return_value.public_hostname = "haywire.example.com"
+        host.mount(8082, app_target=target)
+    security = cast(Any, host._session_manager).security_settings
+    # Existing loopback entries are untouched.
+    assert security.allowed_hosts[:4] == ["127.0.0.1:8082", "localhost:8082", "127.0.0.1", "localhost"]
+    # Bare hostname (no port given) gets both bare and port-qualified forms,
+    # matching the dual-form convention used for the loopback entries.
+    assert "haywire.example.com" in security.allowed_hosts
+    assert "haywire.example.com:8082" in security.allowed_hosts
+    # Both schemes allowed since this module can't know which the proxy terminates as.
+    assert "http://haywire.example.com" in security.allowed_origins
+    assert "https://haywire.example.com" in security.allowed_origins
+
+
+def test_mount_public_hostname_with_explicit_port_not_doubled_up(tmp_path):
+    host = _bare_host(tmp_path)
+    target = _FakeAppTarget()
+    with (
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
+    ):
+        settings_cls.return_value.require_auth = True
+        settings_cls.return_value.restrict_to_loopback = True
+        network_cls.return_value.public_hostname = "haywire.example.com:443"
+        host.mount(8082, app_target=target)
+    security = cast(Any, host._session_manager).security_settings
+    assert "haywire.example.com:443" in security.allowed_hosts
+    # No extra port-appended duplicate since the hostname already carries one.
+    assert "haywire.example.com:443:8082" not in security.allowed_hosts
+    assert security.allowed_hosts.count("haywire.example.com:443") == 1
+    assert "http://haywire.example.com:443" in security.allowed_origins
+    assert "https://haywire.example.com:443" in security.allowed_origins
+
+
+def test_mount_public_hostname_ignored_when_loopback_unrestricted(tmp_path):
+    host = _bare_host(tmp_path)
+    target = _FakeAppTarget()
+    with (
+        patch.object(host_module, "FarmhandSettings") as settings_cls,
+        patch.object(host_module, "NetworkSettings") as network_cls,
+    ):
+        settings_cls.return_value.require_auth = True
+        settings_cls.return_value.restrict_to_loopback = False
+        network_cls.return_value.public_hostname = "haywire.example.com"
+        host.mount(8082, app_target=target)
+    security = cast(Any, host._session_manager).security_settings
+    assert security.enable_dns_rebinding_protection is False
+    # public_hostname has no effect on this branch — DNS-rebinding protection
+    # is off entirely, so there's nothing to extend.
+    assert security.allowed_hosts == []
+    assert security.allowed_origins == []

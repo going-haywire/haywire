@@ -9,6 +9,8 @@ haywire.ui.extends.codemirror).
 from __future__ import annotations
 
 import logging
+import sys
+from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
 import jedi
@@ -20,6 +22,44 @@ if TYPE_CHECKING:
     from jedi.api.classes import BaseName, Completion
 
 logger = logging.getLogger(__name__)
+
+# sys.path is fixed for the life of the interpreter for our purposes here, so
+# resolve it once at import time rather than on every request. The workspace
+# root is read fresh per call (via get_workspace_root()) since it is not set
+# until HaywireApp.__init__ runs, which happens after this module is imported.
+_SYS_PATH_ROOTS: tuple[Path, ...] = tuple(Path(entry).resolve() for entry in sys.path if entry)
+
+
+def _confined_path(raw: str | None) -> str | None:
+    """Return *raw* if it resolves inside an allowed root, else None.
+
+    Allowed roots: the workspace root plus every sys.path entry — i.e. exactly
+    what this interpreter could import anyway, so confinement grants no new
+    disclosure while closing arbitrary-path probing.
+    """
+    if raw is None:
+        return None
+    try:
+        resolved = Path(raw).resolve()
+    except (OSError, ValueError):
+        logger.warning("code-intel: rejected unresolvable path %r", raw)
+        return None
+
+    roots = _SYS_PATH_ROOTS
+    try:
+        from haywire.core.di.context import get_workspace_root
+
+        roots = (get_workspace_root().resolve(), *roots)
+    except RuntimeError:
+        # Workspace root not set yet (e.g. module imported before HaywireApp
+        # init) — fall back to sys.path roots only.
+        pass
+
+    if any(resolved.is_relative_to(root) for root in roots):
+        return raw
+
+    logger.warning("code-intel: rejected out-of-bounds path %r", raw)
+    return None
 
 
 def _signature_and_doc(name: "BaseName") -> tuple[str, str]:
@@ -53,7 +93,7 @@ def register_code_intelligence_endpoints() -> None:
     async def complete(request: Request) -> JSONResponse:
         try:
             body: dict[str, Any] = await request.json()
-            script = jedi.Script(body.get("code", ""), path=body.get("path"))
+            script = jedi.Script(body.get("code", ""), path=_confined_path(body.get("path")))
             completions = script.complete(int(body.get("line", 1)), int(body.get("column", 0)), fuzzy=False)
             return JSONResponse(
                 {"completions": _completion_payload(completions, explicit=bool(body.get("explicit")))}
@@ -66,7 +106,7 @@ def register_code_intelligence_endpoints() -> None:
     async def info(request: Request) -> JSONResponse:
         try:
             body: dict[str, Any] = await request.json()
-            script = jedi.Script(body.get("code", ""), path=body.get("path"))
+            script = jedi.Script(body.get("code", ""), path=_confined_path(body.get("path")))
             label = body.get("label", "")
             for c in script.complete(int(body.get("line", 1)), int(body.get("column", 0)), fuzzy=False):
                 if c.name == label:
@@ -81,7 +121,7 @@ def register_code_intelligence_endpoints() -> None:
     async def hover(request: Request) -> JSONResponse:
         try:
             body: dict[str, Any] = await request.json()
-            script = jedi.Script(body.get("code", ""), path=body.get("path"))
+            script = jedi.Script(body.get("code", ""), path=_confined_path(body.get("path")))
             names = script.help(int(body.get("line", 1)), int(body.get("column", 0)))
             if not names:
                 return JSONResponse({"signature": "", "docstring": ""})

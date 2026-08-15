@@ -282,19 +282,26 @@ class HaywireApp:
         """Manual cleanup fallback."""
         self.on_app_shutdown()
 
-    def run(self):
+    def run(self, *, open_browser: bool = True):
         """Run the application."""
         print("Starting Haywire...")
         self.create_ui()
         from haywire_studio.network.settings import NetworkSettings
 
-        port = NetworkSettings().port
+        settings = NetworkSettings()
+        port = settings.port
+        host = "0.0.0.0" if settings.expose_to_network else "127.0.0.1"
         # Mount the Farmhand MCP server on the same port before ui.run (flag read once).
         self.setup_farmhand(port)
+
+        if settings.expose_to_network:
+            self._install_ip_allowlist(settings)
+
         try:
             ui.run(
+                host=host,
                 port=port,
-                show=True,
+                show=open_browser,
                 title="Haywire",
                 reload=False,
             )
@@ -304,13 +311,79 @@ class HaywireApp:
             if not self._is_shutting_down:
                 self.cleanup()
 
+    @staticmethod
+    def _install_ip_allowlist(settings) -> None:
+        """Install IPAllowlistMiddleware on the root ASGI app (only called when
+        expose_to_network is on — see run()).
+
+        Uses ``nicegui.app.add_middleware`` (nicegui.app is a FastAPI instance):
+        Starlette's middleware stack wraps the whole ASGI callable, including
+        mounted sub-apps such as NiceGUI's Socket.IO mount at /_nicegui_ws/, so
+        the wrapper sees `websocket` scopes for UI traffic too, not just the
+        initial HTTP page load. Verified behaviorally against a FastAPI app with
+        a mounted WebSocketRoute sub-app (mirrors NiceGUI's own mount pattern):
+        a middleware installed via add_middleware saw scope["type"] == "websocket"
+        for traffic through the mount, and a middleware-issued reject
+        (websocket.close) took effect before the sub-app was ever reached.
+
+        Invalid CIDR entries in allowed_remote_ranges/trusted_proxies raise
+        ValueError from the constructor; that must never be swallowed into a
+        silently-unprotected startup, so it is surfaced here as a clear error
+        and a clean process exit rather than either a raw traceback or a
+        fail-open skip.
+
+        Note: Starlette's ``add_middleware`` only records ``(cls, args, kwargs)``
+        — it does NOT instantiate the class immediately, so a bad-CIDR
+        ValueError from the constructor would otherwise surface much later
+        (on first request, via ``build_middleware_stack()``) or not at all if
+        the server never received one before shutdown. We construct once here
+        purely to validate eagerly at startup, then let ``add_middleware``
+        install the (now known-good) class for Starlette to instantiate again
+        when it builds the real middleware stack.
+        """
+        from haywire_studio.network.ip_filter import IPAllowlistMiddleware
+
+        allowed_ranges = [
+            entry.strip() for entry in settings.allowed_remote_ranges.split(",") if entry.strip()
+        ]
+        trusted_proxies = [entry.strip() for entry in settings.trusted_proxies.split(",") if entry.strip()]
+
+        if not trusted_proxies:
+            logger.warning(
+                "Network: expose_to_network is on but trusted_proxies is empty — "
+                "X-Forwarded-For headers will be ignored. If this studio sits behind "
+                "a reverse proxy, add the proxy's own peer IP to allowed_remote_ranges "
+                "or configure trusted_proxies, or every client will appear to be the proxy."
+            )
+
+        try:
+            # Validate eagerly (see docstring) — the throwaway instance's inner
+            # `app` (None) is never invoked; it exists only to run the same CIDR
+            # parsing the real, Starlette-owned instance will run later.
+            IPAllowlistMiddleware(None, allowed_ranges=allowed_ranges, trusted_proxies=trusted_proxies)
+        except ValueError as e:
+            print(
+                "ERROR: Haywire cannot start — invalid network settings.\n"
+                f"  {e}\n"
+                "Check 'allowed_remote_ranges' and 'trusted_proxies' under Network "
+                "settings (settings.json): every entry must be a valid CIDR range "
+                "(e.g. '192.168.1.0/24')."
+            )
+            raise SystemExit(1) from e
+
+        app.add_middleware(
+            IPAllowlistMiddleware,
+            allowed_ranges=allowed_ranges,
+            trusted_proxies=trusted_proxies,
+        )
+
 
 # ---------------------------------------------------------------------------
 # Entry points
 # ---------------------------------------------------------------------------
 
 
-def run_app() -> int:
+def run_app(*, open_browser: bool = True) -> int:
     """Launch the Haywire application. Returns the process exit code.
 
     Nothing reads the code today — it is the seam a future supervisor uses
@@ -327,7 +400,7 @@ def run_app() -> int:
 
     app_instance = HaywireApp()
     app.on_shutdown(app_instance.cleanup)
-    app_instance.run()
+    app_instance.run(open_browser=open_browser)
 
     from haywire.core.update.confirmed import exit_code
 
@@ -339,7 +412,8 @@ def main():
 
     Every subcommand registers its own parser and handler in
     :mod:`haywire_studio.cli`; this only wires them together, so adding one
-    never touches this file.
+    never touches this file. A top-level flag (not a subcommand) is a
+    deliberate, documented exception — see ``--no-browser`` below.
     """
     import argparse
 
@@ -349,6 +423,11 @@ def main():
         prog="haywire",
         description="Haywire visual programming system",
     )
+    parser.add_argument(
+        "--no-browser",
+        action="store_true",
+        help="Do not open a browser window on startup (headless/server use).",
+    )
     subparsers = parser.add_subparsers(dest="command")
     for subcommand in SUBCOMMANDS:
         subcommand.register(subparsers)
@@ -357,7 +436,7 @@ def main():
 
     handler = getattr(args, "handler", None)
     if handler is None:
-        raise SystemExit(run_app())
+        raise SystemExit(run_app(open_browser=not args.no_browser))
     raise SystemExit(handler(args))
 
 

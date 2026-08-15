@@ -269,7 +269,7 @@ def _render_grouped(
             if group_wrappers is not None:
                 group_wrappers[category] = wrapper
             with wrapper:
-                with hui.category_group(category):
+                with hui.category_group(category, default_open=category.lower() != "advanced"):
                     for item in group:
                         render_one(item)
     return column
