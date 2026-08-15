@@ -18,12 +18,23 @@ The module reads top-to-bottom as a waterfall:
 Every field flows through the same stages. Stage 4 returns an ``apply(value)``
 callback used ONLY by the label fallback for an unknown widget key (no cell
 binding to hear); real widgets bind the field's shared cell directly and hear
-writes via ``on_changed`` — the reactive path still keeps its own
-override-chrome (• dirty glyph / the row's context-menu Reset item) in sync via
-the ``updaters`` dict. That chrome shows for any locally-set field, mirror or
-plain, unless a promoted inlet owns the value (the graph drives it, so reset is
-meaningless). Promote/Demote/Reset all live on one right-click menu anchored to
-the row's label (see ``_build_row_menu``) — there is no other promote surface.
+writes via ``on_changed``.
+
+BOTH row renderers carry the same override chrome — a • dirty glyph and a
+right-click Reset item on the row's label — over different notions of
+"overridden", and each keeps it in sync itself (the reactive path via the
+``updaters`` dict, the registry path via a per-row registry subscription):
+
+- reactive (instance): overridden = the bag holds a local opinion, mirror or
+  plain. Reset restores the global (mirror) or the descriptor default. The
+  chrome is suppressed when a promoted inlet owns the value — the graph drives
+  it, so reset is meaningless. Promote/Demote share this one menu (see
+  ``_build_row_menu``) — there is no other promote surface.
+- registry (schema/keys): overridden = the WORKSPACE tier is set, the tier the
+  UI writes. Reset clears it and the value falls back through ``resolve()`` to
+  the global tier (``~/.haywire/settings.json``, hand-edited, never written by
+  the app) or the descriptor default — the menu item is worded from whichever
+  it lands on. No promote half: a registry key belongs to no node.
 """
 
 from __future__ import annotations
@@ -50,7 +61,6 @@ if TYPE_CHECKING:
 logger = logging.getLogger(__name__)
 
 _ROW_CLASSES = "w-full items-center justify-between gap-0 px-2"
-_LABEL_CLASSES = "text-xs min-w-0 truncate sf-label"
 _WIDGET_CLASSES = "sf-widget"
 _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 
@@ -329,6 +339,16 @@ def _render_field_row(
     """Render a single label + widget row (registry path). The widget binds
     *cell* (the registry-owned cell) for live external sync.
 
+    Carries the same override chrome as ``_render_reactive_field_row`` — a •
+    dirty prefix and a right-click Reset item on the label — but against the
+    registry's TIER stack rather than a bag's local opinion. "Locally set"
+    here means the workspace tier is set (the tier the UI writes, see
+    ``_registry_on_edit``); reset clears it and the value falls back through
+    ``resolve()`` to the global tier or the descriptor default. The menu item
+    is worded from ``resolve()``'s reported source so it never promises a
+    fallback that isn't there. There is no promote/demote half: a registry key
+    belongs to no node.
+
     *error_container* is a block-level element BEFORE the label+widget row,
     not a third flex child inside it (mirrors ``_render_reactive_field_row``):
     as a flex sibling inside the row, its own ``w-full`` would claim a third
@@ -336,15 +356,76 @@ def _render_field_row(
     sitting beside the label.
     """
     if defn._ui_state is UiState.HIDDEN:
-        return
+        return None
     error_container = ui.element("div").classes("w-full")
     on_edit = _registry_on_edit(registry, key, error_container)
-    with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):
-        lbl = ui.label(label_text).classes(_LABEL_CLASSES)
-        if description:
-            lbl.tooltip(description)
+
+    def _is_workspace_set() -> bool:
+        return registry.get_global_tier(key, "workspace").is_set
+
+    def _reset_label() -> str:
+        # Wording follows where a reset would actually land. The global tier is
+        # hand-edited and never written by the app (see save_to_json), so
+        # "reset to global" is offered only when that tier really holds a value
+        # — otherwise the fallback is the descriptor default.
+        return (
+            "Reset to global setting"
+            if registry.get_global_tier(key, "global").is_set
+            else "Reset to default"
+        )
+
+    reset_item: Any = None
+    reset_caption: Any = None
+    label: Any = None
+
+    def _refresh_chrome() -> None:
+        dirty = _is_workspace_set()
+        if label is not None:
+            label.set_text(f"• {label_text}" if dirty else label_text)
+        if reset_item is not None:
+            reset_item.set_enabled(dirty)
+        if reset_caption is not None:
+            # A ui.menu_item has no set_text — its caption is a child label,
+            # which is why the wording is re-applied through that element.
+            reset_caption.set_text(_reset_label())
+
+    def _on_reset_click() -> None:
+        # reset_global only notifies when the effective value actually MOVES
+        # (workspace value equal to the global/default it falls back to fires
+        # nothing), so refresh this row's chrome directly rather than relying
+        # on the subscription — same reasoning as the reactive path's
+        # _on_reset_click.
+        _registry_reset(registry, key, error_container)
+        _refresh_chrome()
+
+    with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else "") as row:
+        with ui.row().classes("items-center gap-0 shrink-0 sf-label"):
+            label = ui.label(label_text).classes("text-xs min-w-0 truncate")
+            if description:
+                label.tooltip(description)
+            # Nested in the label cell so the widget column keeps the browser's
+            # native context menu (copy/paste in inputs) — as in the reactive path.
+            with ui.context_menu().props('data-row-menu="true"'):
+                reset_item = ui.menu_item(on_click=_on_reset_click, auto_close=True)
+                with reset_item:
+                    reset_caption = ui.label(_reset_label())
         callback, _set_enabled = _resolve_widget_instance(defn, on_edit, cell=cell)
-        return callback
+
+    # The registry stores subscriptions as weakrefs, so this closure must be kept
+    # alive by something with the row's lifetime — the cleanup callback anchored
+    # to the row element holds the only strong reference.
+    def _on_registry_change(_key: str, _value: Any) -> None:
+        _refresh_chrome()
+
+    registry.subscribe(key, _on_registry_change)
+
+    def _teardown(_cb: Callable[[str, Any], None] = _on_registry_change) -> None:
+        registry.unsubscribe(key, _cb)
+
+    anchor_cleanup_to_element(row, _teardown)
+
+    _refresh_chrome()
+    return callback
 
 
 def _render_reactive_field_row(
@@ -801,3 +882,29 @@ def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -
         error_container.clear()
 
     return on_edit
+
+
+def _registry_reset(registry: "SettingsRegistry", key: str, error_container) -> None:
+    """Reset policy for the registry path: clear the workspace tier → debounced save.
+
+    The mirror of ``_registry_on_edit``: that closure SETS the workspace tier,
+    this clears it, and the value falls back through ``resolve()`` to the
+    global tier or the descriptor default. The save is not optional —
+    ``_collect_workspace_entries`` writes only *set* values, so persisting is
+    what actually drops the key from the workspace JSON; without it the old
+    value returns on the next load.
+
+    Only the workspace tier is ever touched. The global tier is hand-edited by
+    the user and never written by the app (see ``save_to_json``).
+    """
+    try:
+        registry.reset_global(key, "workspace")
+        registry.save_to_json_debounced()
+    except KeyError as exc:
+        # Definition dropped underneath us (hot-reload race) — same failure
+        # surface as _registry_on_edit rather than a swallowed exception.
+        error_container.clear()
+        with error_container:
+            ui.label(str(exc)).classes("text-xs hw-text-danger px-2").props('data-error="true"')
+        return
+    error_container.clear()

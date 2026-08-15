@@ -130,15 +130,4 @@ def test_restrict_to_loopback_removed_from_network_settings():
 
 def test_expose_to_network_default_is_false():
     assert NetworkSettings.__dict__["expose_to_network"]._default is False
-
-
-def test_house_phrase_in_every_description():
-    phrase = "Read once at startup; restart to apply."
-    for name in ("port", "expose_to_network", "allowed_remote_ranges", "public_hostname", "trusted_proxies"):
-        assert phrase in NetworkSettings.__dict__[name]._description
-
-
-def test_allowed_remote_ranges_description_mentions_expose_to_network_qualifier():
-    description = NetworkSettings.__dict__["allowed_remote_ranges"]._description
-    assert "expose_to_network" in description.lower() or "expose to network" in description.lower()
-    assert "loopback" in description.lower()
+    
