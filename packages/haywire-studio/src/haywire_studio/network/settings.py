@@ -4,6 +4,7 @@ import ipaddress
 
 from haywire.barn.builtin.types import BOOL, INT, STRING
 from haywire.core.settings import setting
+from haywire.core.settings.descriptor import UiState
 from haywire.core.settings.settings_framework import FrameworkSettings
 
 
@@ -33,21 +34,20 @@ class NetworkSettings(FrameworkSettings, namespace="network"):
     )
     expose_to_network = setting[BOOL](
         False,
-        label="Expose to Network",
+        label="Expose",
         description=(
-            "Bind the studio's web server to all interfaces instead of loopback-only, "
-            "so other machines on the network can reach it. Read once at startup; "
-            "restart to apply."
+            "Expose the studio to the wider network instead only the local machine. "
+            "Read once at startup; restart to apply."
         ),
         category="network",
     )
     allowed_remote_ranges = setting[STRING](
         "",
-        label="Allowed Remote Ranges",
+        label="Remote Ranges",
         description=(
-            "Comma-separated CIDR ranges (e.g. '192.168.1.0/24, 10.0.0.0/8') allowed to "
-            "reach the studio. Applies only when Expose to Network is on; loopback is "
-            "always allowed regardless. Read once at startup; restart to apply."
+            "List of allowed remote ranges when exposed to the network. Needs restart to apply. "
+            "Comma-separated CIDR ranges (e.g. '192.168.1.0/24, 10.21.136.0/21, 10.0.0.0/8') allowed to "
+            "reach the studio. loopback is always allowed regardless."
         ),
         category="network",
         validator=_valid_cidr_list,
@@ -66,8 +66,9 @@ class NetworkSettings(FrameworkSettings, namespace="network"):
         "",
         label="Trusted Proxies",
         description=(
-            "Comma-separated CIDR ranges of reverse proxies whose forwarded headers "
-            "are trusted. Read once at startup; restart to apply."
+            "Reverse proxies whose forwarded headers are trusted. "
+            "Takes a list of comma-separated CIDR ranges. "
+            "Read once at startup; restart to apply."
         ),
         category="advanced",
         validator=_valid_cidr_list,

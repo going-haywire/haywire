@@ -1,6 +1,6 @@
 ---
 name: _settings_bags contains props, and settings writes fail silently
-description: NodeProperties extends NodeSettings so every node's _settings_bags includes 13 framework fields under 'props' — generic bag-walks must filter it explicitly. Also, a validator-rejected settings write is dropped with no exception; min/max are UI-only hints, not enforced.
+description: NodeProperties extends NodeSettings so every node's _settings_bags includes 13 framework fields under 'props' — generic bag-walks must filter it explicitly. Also, a validator-rejected PROGRAMMATIC settings write is dropped with no exception (the settings panel DOES show inline error chrome); min/max are UI-only hints, not enforced.
 type: project
 ---
 
@@ -34,7 +34,11 @@ somewhere separate.
 (`settings` = author bags, `props` = framework) rather than merging or
 dropping.
 
-## 2. A rejected settings write is dropped silently
+## 2. A rejected settings write is dropped silently — in *programmatic* writes
+
+Scope: this applies to direct `setattr` on a bag. The **settings panel is not
+affected** — see "The UI path does surface rejections" below before building a
+workaround.
 
 `setting.__set__` starts with `if not self.validate(value): return` — a value
 failing the field's `validator` is discarded with **no exception, no log, no
@@ -69,6 +73,26 @@ either way.
 Do **not** "fix" this by making `__set__` raise: the silent clamp/drop is
 load-bearing for interactive widgets (a slider dragged out of range must not
 explode). The verification belongs in the agent-facing caller.
+
+### The UI path DOES surface rejections
+
+A settings **panel** edit never reaches `__set__` unchecked. `SettingWidgetModel`
+forwards edits to an injected `on_edit` write policy, and both policies render
+inline error chrome instead of swallowing the failure:
+
+- `_bag_on_edit` (instance path) — calls `descriptor.validate(value)` first and,
+  on failure, paints `Invalid value: …` into the row's error container
+  (`hw-text-danger`, `data-error="true"`) and returns without writing.
+- `_registry_on_edit` (persistent path) — `set_global` *raises* `ValueError` on
+  validator rejection (and `KeyError` on a hot-reload-dropped definition); the
+  policy catches both and paints the same chrome.
+
+Both live in `haywire/ui/panel/render_utils.py`.
+
+**So: a `validator=` on a setting is sufficient for a UI-edited field** — the
+user sees why the edit was refused. Do not add read-back-and-notify plumbing for
+panel-edited settings; it already exists. Read-back is for *programmatic* and
+agent-facing writes, which is exactly what `graph_editor_set_property` does.
 
 ## Bonus: where constraints actually live
 

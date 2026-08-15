@@ -29,6 +29,7 @@ the row's label (see ``_build_row_menu``) — there is no other promote surface.
 from __future__ import annotations
 
 import logging
+from collections.abc import Iterable
 from itertools import groupby
 from typing import TYPE_CHECKING, Any, Callable
 
@@ -176,7 +177,7 @@ def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") ->
     FrameworkSettings block deep subclassing, so this is unreachable for
     either — documented, not fixed.
     """
-    prop_fields = schema_cls._property_settings()
+    prop_fields: dict[str, setting] = schema_cls._property_settings()
     ordered_defns = [
         defn
         for defn in prop_fields.values()
@@ -186,7 +187,7 @@ def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") ->
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
-    def _render_one(defn) -> None:
+    def _render_one(defn: setting) -> None:
         key = defn._setting_key
         try:
             cell = registry.cell_for(key)
@@ -214,7 +215,9 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
     from the key structure via the category group.
     """
     match_prefix = prefix + "."
-    defns = {key: defn for key, defn in registry.all_definitions().items() if key.startswith(match_prefix)}
+    defns: dict[str, setting] = {
+        key: defn for key, defn in registry.all_definitions().items() if key.startswith(match_prefix)
+    }
     if not defns:
         ui.label(f"No fields found under: {prefix}.*").classes("text-xs hw-text-muted px-2 py-1")
         return
@@ -237,7 +240,7 @@ def _category_sort_key(category: str, order: int, tiebreak: "str | int") -> tupl
     return ("" if category.lower() == "root" else category, order, tiebreak)
 
 
-def _sort_definitions(defns) -> list:
+def _sort_definitions(defns: "Iterable[setting]") -> list[setting]:
     """Sort a collection of field descriptors by (category, order, setting_key)."""
     return sorted(
         defns,
@@ -245,13 +248,15 @@ def _sort_definitions(defns) -> list:
     )
 
 
-def _group_by_category(items: list, key=lambda x: x._category) -> list[tuple[str, list]]:
+def _group_by_category(
+    items: list, key: Callable[[Any], str] = lambda x: x._category
+) -> list[tuple[str, list]]:
     """Group a pre-sorted list of descriptors by category, preserving order."""
     return [(cat, list(grp)) for cat, grp in groupby(items, key=key)]
 
 
 def _render_grouped(
-    sorted_items, category_of, render_one, group_wrappers: dict[str, Any] | None = None
+    sorted_items: list[setting], category_of, render_one, group_wrappers: dict[str, Any] | None = None
 ) -> Any:
     """Lay out *sorted_items* as a settings column, grouped into category sections.
 
@@ -261,6 +266,8 @@ def _render_grouped(
     (and tests/CSS) can toggle a whole section; when *group_wrappers* is
     given it maps ``category -> wrapper`` for visibility recomputes — a
     fully-hidden category hides header and all.
+
+    category 'advanced' is initially closed, all others open.
     """
     column = ui.column().classes("w-full compact-fields sf-field-list").style(_COLUMN_STYLE)
     with column:
@@ -269,7 +276,8 @@ def _render_grouped(
             if group_wrappers is not None:
                 group_wrappers[category] = wrapper
             with wrapper:
-                with hui.category_group(category, default_open=category.lower() != "advanced"):
+                default_open = category.lower() != "advanced"
+                with hui.category_group(category, default_open=default_open):
                     for item in group:
                         render_one(item)
     return column
@@ -284,7 +292,7 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
     throwaway field.
     """
 
-    def _render_one(defn) -> None:
+    def _render_one(defn: setting) -> None:
         key = defn._setting_key
         try:
             cell = registry.cell_for(key)
@@ -327,6 +335,8 @@ def _render_field_row(
     column, squeezing the widget onto a wrapped second line instead of
     sitting beside the label.
     """
+    if defn._ui_state is UiState.HIDDEN:
+        return
     error_container = ui.element("div").classes("w-full")
     on_edit = _registry_on_edit(registry, key, error_container)
     with ui.row().classes(_ROW_CLASSES).props(f'data-field="{attr_name}"' if attr_name else ""):

@@ -63,6 +63,7 @@ strict=False)`. A few worked examples:
 | --- | --- |
 | `192.168.1.42/32` | A single host — `/32` matches exactly one address. |
 | `192.168.1.0/24` | A subnet — the whole `192.168.1.x` range. |
+| `10.21.36.0/21` | A subnet — the whole `10.21.36.x` - '10.21.43.x range. |
 | `10.0.0.0/8` | The entire RFC-1918 `10.x.x.x` block. |
 
 Multiple entries are comma-separated in one field:
@@ -185,7 +186,131 @@ loopback port on the remote machine. Works today with the default settings —
 `expose_to_network` can stay off, since the tunnel presents as loopback
 traffic on the remote end. No studio-side configuration at all.
 
-## 6. Multi-user: not supported
+## 6. Machine-wide defaults: the global settings tier
+
+The settings in [§2](#2-the-five-settings) are editable in the studio UI, but
+on a head server that is often the wrong place for them. `public_hostname`
+and `trusted_proxies` describe *the deployment* — the reverse proxy in front
+of this machine — not the preferences of whoever happens to be drawing
+graphs. They belong with the person who wrote the nginx config, and they
+should apply to every project opened on the box rather than being re-entered
+per workspace.
+
+That is what the **global tier** is for.
+
+### Which file
+
+Haywire has two unrelated stores under `~/.haywire/`, and it is easy to reach
+for the wrong one:
+
+| File | Holds | Read by |
+| --- | --- | --- |
+| `~/.haywire/settings.json` | **Setting values** — everything in `NetworkSettings`, `FarmhandSettings`, etc. | The settings registry |
+| `~/.haywire/config.toml` | Studio bootstrap config: `[haywire] version`, `[ui] theme`, self-hosted marketplace hosts | `haywire_studio.config` |
+
+Network settings go in **`settings.json`**. Nothing in the settings system
+reads `config.toml`, so a `public_hostname` written there is silently ignored
+— no error, no warning, and the studio starts with the default empty value.
+
+### The three tiers
+
+Values resolve highest-priority-set-wins across three tiers
+(`SettingsRegistry`,
+`packages/haywire-core/src/haywire/core/settings/registry.py`):
+
+```text
+local (per-node, in graph JSON)  >  workspace  >  global  >  default
+```
+
+| Tier | File | Written by |
+| --- | --- | --- |
+| `workspace` | `<project>/.haywire/settings.json` | The UI, on save |
+| `global` | `~/.haywire/settings.json` | **You, by hand** — the app never writes it |
+
+The global tier is the machine-wide default layer. The app loads it at
+startup and never overwrites it, so a hand-edited value survives every UI
+save. The file does not exist on a fresh install; create it yourself.
+
+**A workspace value still wins over your global one.** If someone opens a
+project whose `.haywire/settings.json` already carries a `network` entry —
+including one the UI wrote by saving the panel with default values — that
+project's value shadows the global default. If a global setting appears not
+to take effect, check the workspace file first.
+
+### Setting `public_hostname` and `trusted_proxies`
+
+Create `~/.haywire/settings.json` with the `network` namespace. Each setting
+is an object with a `value` key, nested under its namespace:
+
+```json
+{
+  "network": {
+    "public_hostname": {
+      "value": "haywire.example.com"
+    },
+    "trusted_proxies": {
+      "value": "172.16.0.0/12"
+    }
+  }
+}
+```
+
+A fuller head-server example, pinning the whole network posture for the
+machine — bound to all interfaces, reachable only from the office subnet and
+the proxy, behind TLS on port 443:
+
+```json
+{
+  "network": {
+    "expose_to_network": {
+      "value": true
+    },
+    "allowed_remote_ranges": {
+      "value": "192.168.10.0/24, 172.16.0.0/12"
+    },
+    "public_hostname": {
+      "value": "haywire.example.com:443"
+    },
+    "trusted_proxies": {
+      "value": "172.16.0.0/12"
+    }
+  }
+}
+```
+
+Notes on the format:
+
+- The namespace is `network` because `NetworkSettings` declares
+  `namespace="network"`. Other schemas use their own (`farmhand`, `editor`,
+  `debug`, …) and can live in the same file as sibling keys.
+- Booleans are JSON booleans (`true`), not the strings `"True"`/`"true"`.
+- CIDR lists are a **single comma-separated string**, not a JSON array —
+  `"192.168.1.0/24, 10.0.0.0/8"`. See [§3](#3-cidr-syntax) for the syntax.
+- A bare value (`"public_hostname": "haywire.example.com"`) is also accepted,
+  but prefer the explicit `{"value": …}` form — it is what the UI writes and
+  what the rest of the file will look like.
+
+### Applying and verifying
+
+These are startup-only reads ([§2](#2-the-five-settings)), so **restart the
+studio** after editing. Two things worth knowing about failure modes:
+
+- **Invalid CIDR refuses to start.** A malformed entry in
+  `trusted_proxies` or `allowed_remote_ranges` exits with a clear error
+  naming the setting, rather than starting unprotected.
+- **Invalid JSON is quieter.** A syntax error doesn't stop startup: the store
+  logs `Failed to parse settings file` at ERROR level, the whole tier is
+  skipped, and every setting in it falls back to its default. It is easy to
+  miss in the startup noise, so if your values seem ignored, validate the
+  file first — e.g. `python -m json.tool ~/.haywire/settings.json`.
+
+To confirm the values took effect, start the studio with `expose_to_network`
+on and check the startup log: an empty `trusted_proxies` logs the warning
+described in [§5](#reverse-proxy-with-auth-in-front), and its absence means
+your proxy CIDR was read. The Network settings panel also reflects the
+resolved value, whichever tier it came from.
+
+## 7. Multi-user: not supported
 
 The studio is one process, one filesystem, with no sandbox between whoever
 reaches it and the host machine it runs on. There is no per-user identity,

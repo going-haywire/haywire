@@ -80,7 +80,7 @@ class UiState(IntEnum):
 
     - NORMAL: rendered, interactive.
     - DISABLED: rendered, non-interactive (exists but locked).
-    - HIDDEN: row not rendered (does not apply right now).
+    - HIDDEN: row not rendered.
     """
 
     NORMAL = 0
@@ -209,7 +209,8 @@ class setting(SettingDescriptor, Generic[T]):
         ``effective_ui_state`` for how all sources compose.
 
     promotable : Promotable
-        Which port directions this field may be promoted to (default
+        Applies only to NodeSettings fields.
+        Defines which port directions this field may be promoted to (default
         ``Promotable.ALL``). ``Promotable.NONE`` removes the field from the
         Setting-row menu entirely and makes ``promote_setting()`` raise — use it
         for fields where a port would be misleading (e.g. restart-required
