@@ -5,6 +5,7 @@ Routes:
   GET  /status               — liveness probe, returns {"status": "ok"}
   GET  /node?class=...&bag=  — render a NodeSettings bag via render_reactive()
   GET  /schema?class=...     — render a LibrarySettings/FrameworkSettings via render_schema()
+  GET  /copy-button          — a bare hui.code_snippet() with its copy button
   POST /api/set?key=&value=  — write a value to the SettingsRegistry workspace tier
 """
 
@@ -18,6 +19,7 @@ from fastapi.responses import JSONResponse
 from nicegui import app as nicegui_app
 from nicegui import ui
 
+from haywire.ui import elements as hui
 from haywire.ui.components.graph.canvas import GraphCanvasVue
 from haywire.ui.components.zoom.pan import ZoomPanContainer
 from haywire.ui.panel.render_utils import render_settings, render_schema
@@ -559,6 +561,25 @@ def register_routes(library_service) -> None:
             )
 
         _mount_graph_canvas(library_service, graph, editor, testid="widgetbox")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /copy-button
+    #
+    # A bare hui.code_snippet() with its default copy button. Backs the
+    # copy-to-clipboard browser regression: localhost is a secure context, so
+    # clicking the button exercises the navigator.clipboard.writeText() path
+    # (not the execCommand fallback) and should raise a "Copied to clipboard"
+    # ui.notify(). See test_copy_button_browser.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/copy-button")
+    async def copy_button_page():
+        if theme_css:
+            ui.add_css(theme_css)
+
+        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+            hui.code_snippet("copy-me")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

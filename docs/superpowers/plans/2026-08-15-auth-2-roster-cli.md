@@ -1,5 +1,5 @@
 ---
-status: planned
+status: implemented
 slice: 2 of 6
 feature: studio-authentication
 adr: docs/adr/0027-studio-authentication.md
@@ -2090,8 +2090,100 @@ git commit -m "docs(plan): slice 2 complete — roster and CLI"
 
 ## Delivered
 
-*(Filled in by the final task.)*
+Public surface Slice 3 consumes:
+
+```python
+# haywire_studio.auth.roster
+ROSTER_VERSION: int = 1
+ROSTER_FILENAME = "auth.json"
+KIND_USER = "user"
+KIND_AGENT = "agent"
+
+class RosterError(Exception): ...
+
+def roster_path() -> Path: ...
+
+@dataclass
+class Principal:
+    name: str
+    kind: str
+    tier: AccessTier
+    password_hash: str = ""
+    token: str = ""
+    workspace: str = ""
+
+    @property
+    def is_user(self) -> bool: ...
+    @property
+    def is_agent(self) -> bool: ...
+
+@dataclass
+class Roster:
+    enabled: bool = False
+    session_days: int = 30
+    principals: list[Principal] = ...
+
+    def find(self, name: str) -> Principal | None: ...
+    def find_by_token(self, token: str) -> Principal | None: ...
+    def admins(self) -> list[Principal]: ...
+
+def load_roster(path: Path | None = None) -> Roster: ...
+def save_roster(roster: Roster, path: Path | None = None) -> None: ...
+
+# haywire_studio.auth.passwords
+def hash_password(password: str) -> str: ...
+def verify_password(password: str, encoded: str) -> bool: ...
+def dummy_verify() -> None: ...
+def password_problem(password: str, *, username: str = "") -> str | None: ...
+POLICY_HELP: str
+
+# haywire_studio.auth.operations
+def add_user(name: str, password: str, tier: AccessTier, *, path: Path | None = None) -> Principal: ...
+def add_agent(name: str, tier: AccessTier, *, workspace: str = "", path: Path | None = None) -> Principal: ...
+def remove_principal(name: str, *, path: Path | None = None) -> None: ...
+def set_password(name: str, password: str, *, path: Path | None = None) -> None: ...
+def set_tier(name: str, tier: AccessTier, *, path: Path | None = None) -> None: ...
+def authenticate(username: str, password: str, *, path: Path | None = None) -> Principal | None: ...
+def enable_auth(username: str, password: str, *, path: Path | None = None) -> None: ...
+def disable_auth(username: str, password: str, *, path: Path | None = None) -> None: ...
+
+# haywire_studio.auth.live
+class RosterCache:
+    def __init__(self, path: Path | None = None) -> None: ...
+    @property
+    def path(self) -> Path: ...
+    def roster(self) -> Roster: ...
+    def invalidate(self) -> None: ...
+
+def install_resolver(cache: RosterCache) -> None: ...
+```
+
+CLI: `haywire user {add,remove,list,passwd,tier}` and
+`haywire auth {enable,disable,status}`, registered in
+`haywire_studio.cli.SUBCOMMANDS` as `(init, share, rename, deps, docs, verify,
+user, authcmd)`.
+
+Test counts (all green): passwords 24, roster 13, operations 26, live 10,
+user CLI 10, auth CLI 10 — 93 total for this slice; full repo gate
+`pytest -m "not browser and not perf"` — 3708 passed, 68 deselected, 2 xfailed.
 
 ## Drift Log
 
-*(Filled in by the final task. One line per deviation, or the words "No drift.")*
+- Task 4: `test_resolver_answers_the_principals_tier` as written added a user at
+  EDIT without enabling auth, so under the resolver's own documented rule
+  (disabled roster → everyone resolves ADMIN) the asserted EDIT was
+  unreachable — a bug in the plan's test, not the implementation. Fixed by
+  enabling auth via an admin principal first and asserting on a second,
+  non-admin principal.
+- Task 1: `test_passwords.py` collects 24 tests, not the 25 the plan's Step 4
+  expected — a miscount in the plan text; no test was added or removed.
+- Task 6: the plan's inline test code chains attribute access straight onto
+  `Roster.find()` / `find_by_token()` / `authenticate()` return values in
+  several places (`tests/auth/test_roster.py`, `test_operations.py`,
+  `test_live.py`, `tests/test_user_cli.py`), which are typed `Principal |
+  None`. mypy flags every one (`union-attr`). Added an explicit
+  `assert x is not None` before each access; behaviour unchanged, no plan
+  logic affected.
+- Task 6: three tests used `assert a and b` (PT018, disallowed by this repo's
+  ruff config); split into two `assert` statements each in
+  `test_passwords.py`, `test_auth_cli.py`, `test_user_cli.py`.

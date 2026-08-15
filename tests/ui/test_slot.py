@@ -25,8 +25,15 @@ def _add_binding(slot: TabSlot, *, editor_key: str, editor_cls: Any, **kwargs: A
     ``_FakeEditor`` deliberately does NOT subclass ``BaseEditor`` — that base's
     ``__init__`` performs signal auto-subscription, which these tests exist to
     stay clear of. Cast at the one seam rather than widening the fake.
+
+    ``add_binding`` can return ``None`` when the access gate (Slice 4) refuses
+    the editor; every fixture here uses an allow-all session, so a ``None``
+    here is a broken precondition, not a branch under test — same contract as
+    ``_binding``.
     """
-    return slot.add_binding(editor_key=editor_key, editor_cls=cast(Any, editor_cls), **kwargs)
+    wrapper = slot.add_binding(editor_key=editor_key, editor_cls=cast(Any, editor_cls), **kwargs)
+    assert wrapper is not None, f"add_binding refused {editor_key!r} — check the test's session stub"
+    return wrapper
 
 
 def _render_into(slot: TabSlot, container: Any) -> None:
@@ -144,8 +151,13 @@ class _FakeEditorAlt(_FakeEditor):
     """Distinct class for tests that need a second editor type."""
 
 
+# can_access always grants — these tests aren't about access control, so
+# Slot.add_binding's admission gate (Slice 4) should never refuse here.
+_ALLOW_ALL_CONTEXT = SimpleNamespace(can_access=lambda required: True)
+
+
 def _session_with_context() -> SimpleNamespace:
-    return SimpleNamespace(context=SimpleNamespace())
+    return SimpleNamespace(context=_ALLOW_ALL_CONTEXT)
 
 
 class _FakeRegistry:
@@ -581,7 +593,7 @@ def test_slot_switch_to_updates_active_key(monkeypatch):
     cls_a = type("_A", (), {"class_identity": SimpleNamespace(opens="required")})
     cls_b = type("_B", (), {"class_identity": SimpleNamespace(opens="required")})
     reg = _FakeRegistry()
-    sess = SimpleNamespace(context=None)
+    sess = SimpleNamespace(context=_ALLOW_ALL_CONTEXT)
     slot = _tab_slot(session=sess, name=SlotName.ACTION, registry=reg)
     _add_binding(slot, editor_key="a", editor_cls=cls_a)
     _add_binding(slot, editor_key="b", editor_cls=cls_b)
@@ -600,7 +612,7 @@ def test_slot_set_visible_fires_on_visibility_change(monkeypatch):
     calls: list[bool] = []
     reg = _FakeRegistry()
     slot = _tab_slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         on_visibility_change=calls.append,
@@ -619,7 +631,7 @@ def test_slot_set_visible_updates_internal_state(monkeypatch):
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
     reg = _FakeRegistry()
     slot = _tab_slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
     )
@@ -639,7 +651,7 @@ def test_slot_set_size_updates_internal_size():
     cls = type("_C", (), {"class_identity": SimpleNamespace(opens="required")})
     reg = _FakeRegistry()
     slot = _tab_slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.INFO,
         registry=reg,
         size=300,
@@ -695,7 +707,7 @@ class _FakeRegistry2:
 
 def _make_tab_slot2(registry=None, visible=True, size=200):
     return _tab_slot(
-        session=_SN(context=None),
+        session=_SN(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=registry or _FakeRegistry2({}),
         bar_place="top",
@@ -762,7 +774,7 @@ class TestSlotPopulateFromSnapshot:
 
         cls = _FakeEditorCls2("ed:required", OpenBehavior.REQUIRED, slot=SlotName.EDIT)
         registry = _FakeRegistry2({"ed:required": cls})
-        session = _SN(context=None)
+        session = _SN(context=_ALLOW_ALL_CONTEXT)
         slot = _tab_slot(
             session=session,
             name=SlotName.EDIT,
@@ -778,7 +790,7 @@ class TestSlotPopulateFromSnapshot:
 
         cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD, slot=SlotName.EDIT)
         registry = _FakeRegistry2({"ed:graph": cls})
-        session = _SN(context=None)
+        session = _SN(context=_ALLOW_ALL_CONTEXT)
         data = {
             "active_key": "ed:graph::/a.haywire",
             "editors": [{"key": "ed:graph", "binding_id": "/a.haywire", "label": "a.haywire"}],
@@ -795,7 +807,7 @@ class TestSlotPopulateFromSnapshot:
 
     def test_unknown_editor_key_skipped(self):
         registry = _FakeRegistry2({})
-        session = _SN(context=None)
+        session = _SN(context=_ALLOW_ALL_CONTEXT)
         data = {"editors": [{"key": "ed:gone", "binding_id": "/x.haywire", "label": "x"}]}
         slot = _tab_slot(
             session=session,
@@ -809,7 +821,7 @@ class TestSlotPopulateFromSnapshot:
 
     def test_visible_and_size_restored(self):
         registry = _FakeRegistry2({})
-        session = _SN(context=None)
+        session = _SN(context=_ALLOW_ALL_CONTEXT)
         slot = _tab_slot(
             session=session,
             name=SlotName.INFO,

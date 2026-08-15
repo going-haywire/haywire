@@ -13,7 +13,7 @@ class _FakeHost:
     def __init__(self, *args, **kwargs):
         pass
 
-    def mount(self, port):  # no real network mount in a unit test
+    def mount(self, port, *, tls: bool = False):  # no real network mount in a unit test
         self.mounted_port = port
 
 

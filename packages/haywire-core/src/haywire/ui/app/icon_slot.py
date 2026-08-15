@@ -18,7 +18,7 @@ ContextBar).
 
 from __future__ import annotations
 
-from typing import ClassVar, Literal
+from typing import Callable, ClassVar, Literal, Optional
 
 from nicegui import ui
 
@@ -46,6 +46,20 @@ class IconSlot(Slot):
     _expands_on_reveal: ClassVar[bool] = True
 
     _ORIENTATION: ClassVar[Literal["horizontal", "vertical"]] = "horizontal"
+
+    def __init__(self, *args, **kwargs) -> None:
+        super().__init__(*args, **kwargs)
+        self._footer_renderer: Optional[Callable[[], None]] = None
+
+    def set_footer(self, renderer: Optional[Callable[[], None]]) -> None:
+        """Install a renderer for the bar's footer region.
+
+        Framework chrome that is not an editor tab — today just the account
+        icon, deliberately shaped as a region rather than a single hook so a
+        second icon (settings, in the VS Code idiom) does not need a new seam.
+        Only the ACTION slot sets one.
+        """
+        self._footer_renderer = renderer
 
     # ------------------------------------------------------------------
     # Rendering
@@ -83,64 +97,70 @@ class IconSlot(Slot):
         does not fire when the already-active tab is re-clicked, so it can't
         detect the collapse gesture on its own.
         """
-        # Filter to wrappers with a registered editor class — we use
-        # binding_id as the tab value for stable per-(key, binding_id) routing.
-        renderable = [w for w in self._bindings if w.editor_cls is not None]
-        if not renderable:
-            return
+        # Filter to wrappers with a registered editor class this principal may
+        # see — binding_id is the tab value for stable per-(key, binding_id)
+        # routing.
+        renderable = self._accessible_bindings()
+        if renderable:
+            # Indicator side: q-tabs in vertical mode places the indicator on
+            # the inner edge of the active tab. Quasar's `switch-indicator`
+            # prop flips it to the opposite edge. The bar's area-facing side
+            # is the side OPPOSITE its placement — left-slot bar has its area
+            # on the right, so the indicator should be on the right edge of
+            # the tabs container (no `switch-indicator` needed since q-tabs
+            # in vertical mode defaults to the right edge for left-aligned
+            # tabs). For a right-slot bar we flip with `switch-indicator`.
+            active_wrapper = self._active if self._active in renderable else renderable[0]
+            tab_props = "vertical no-caps inline-label align=center"
+            if self._bar_place == "right":
+                tab_props += " switch-indicator"
 
-        # Indicator side: q-tabs in vertical mode places the indicator on
-        # the inner edge of the active tab. Quasar's `switch-indicator`
-        # prop flips it to the opposite edge. The bar's area-facing side
-        # is the side OPPOSITE its placement — left-slot bar has its area
-        # on the right, so the indicator should be on the right edge of
-        # the tabs container (no `switch-indicator` needed since q-tabs
-        # in vertical mode defaults to the right edge for left-aligned
-        # tabs). For a right-slot bar we flip with `switch-indicator`.
-        active_wrapper = self._active if self._active in renderable else renderable[0]
-        tab_props = "vertical no-caps inline-label align=center"
-        if self._bar_place == "right":
-            tab_props += " switch-indicator"
+            # No ``on_change`` handler: the per-tab ``click`` below is the sole
+            # driver of switch / collapse / expand. Wiring ``on_change`` too would
+            # race the click — q-tabs updates its value (firing on_change →
+            # switch_to) *before* the click handler runs, so the click handler
+            # would then see the just-switched tab as the active one and collapse
+            # the slot on a plain cross-tab click. Quasar still moves its own
+            # visual ``value`` on click; the next ``_refresh_bar`` re-syncs the
+            # highlight to the true active editor (``tabs.value = active_tab``).
+            tabs = (
+                ui.tabs()
+                .props(tab_props)
+                .classes("w-full hw-icon-bar-tabs")
+                .style("background: transparent;")
+            )
+            active_tab = None
+            with tabs:
+                for wrapper in renderable:
+                    # ui.tab defaults label to `name` when label is None; pass
+                    # label="" so the binding_id doesn't render as text under
+                    # the icon. The editor draws its own icon (and tooltip) via
+                    # render_tab_into; the slot owns only the tab shell, the
+                    # active indicator, and the dirty marker.
+                    tab = ui.tab(name=wrapper.editor_binding_id, label="")
+                    # Per-tab click drives switch / collapse / expand. Fires on
+                    # every click — including a re-click of the already-active
+                    # icon (the fold gesture), which a tabs ``on_change`` would
+                    # swallow.
+                    tab.on("click", lambda _e, bid=wrapper.editor_binding_id: self._on_icon_clicked(bid))
+                    with tab:
+                        # Slot-owned chrome: dirty marker — a small corner dot,
+                        # rendered for every editor including custom overrides.
+                        if wrapper.state is not None and wrapper.state.is_dirty:
+                            ui.icon("circle").classes("hw-tab-dirty").style(
+                                "position: absolute; top: 4px; right: 4px; font-size: 8px; "
+                                "color: var(--hw-text-body);"
+                            )
+                        # Editor-owned interior: icon (+ tooltip) by default.
+                        wrapper.render_tab_into(orientation="vertical")
+                    if wrapper is active_wrapper:
+                        active_tab = tab
+            if active_tab is not None:
+                tabs.value = active_tab
 
-        # No ``on_change`` handler: the per-tab ``click`` below is the sole
-        # driver of switch / collapse / expand. Wiring ``on_change`` too would
-        # race the click — q-tabs updates its value (firing on_change →
-        # switch_to) *before* the click handler runs, so the click handler
-        # would then see the just-switched tab as the active one and collapse
-        # the slot on a plain cross-tab click. Quasar still moves its own
-        # visual ``value`` on click; the next ``_refresh_bar`` re-syncs the
-        # highlight to the true active editor (``tabs.value = active_tab``).
-        tabs = (
-            ui.tabs().props(tab_props).classes("w-full hw-icon-bar-tabs").style("background: transparent;")
-        )
-        active_tab = None
-        with tabs:
-            for wrapper in renderable:
-                # ui.tab defaults label to `name` when label is None; pass
-                # label="" so the binding_id doesn't render as text under
-                # the icon. The editor draws its own icon (and tooltip) via
-                # render_tab_into; the slot owns only the tab shell, the
-                # active indicator, and the dirty marker.
-                tab = ui.tab(name=wrapper.editor_binding_id, label="")
-                # Per-tab click drives switch / collapse / expand. Fires on
-                # every click — including a re-click of the already-active
-                # icon (the fold gesture), which a tabs ``on_change`` would
-                # swallow.
-                tab.on("click", lambda _e, bid=wrapper.editor_binding_id: self._on_icon_clicked(bid))
-                with tab:
-                    # Slot-owned chrome: dirty marker — a small corner dot,
-                    # rendered for every editor including custom overrides.
-                    if wrapper.state is not None and wrapper.state.is_dirty:
-                        ui.icon("circle").classes("hw-tab-dirty").style(
-                            "position: absolute; top: 4px; right: 4px; font-size: 8px; "
-                            "color: var(--hw-text-body);"
-                        )
-                    # Editor-owned interior: icon (+ tooltip) by default.
-                    wrapper.render_tab_into(orientation="vertical")
-                if wrapper is active_wrapper:
-                    active_tab = tab
-        if active_tab is not None:
-            tabs.value = active_tab
+        if self._footer_renderer is not None:
+            ui.space()
+            self._footer_renderer()
 
     # ------------------------------------------------------------------
     # User actions

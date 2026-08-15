@@ -4,7 +4,6 @@ import ipaddress
 
 from haywire.barn.builtin.types import BOOL, INT, STRING
 from haywire.core.settings import setting
-from haywire.core.settings.descriptor import UiState
 from haywire.core.settings.settings_framework import FrameworkSettings
 
 
@@ -72,4 +71,23 @@ class NetworkSettings(FrameworkSettings, namespace="network"):
         ),
         category="advanced",
         validator=_valid_cidr_list,
+    )
+    ssl_certfile = setting[STRING](
+        "",
+        label="TLS Certificate",
+        description=(
+            "Path to a TLS certificate file. Set together with the key to serve HTTPS "
+            "directly — a self-signed pair is adequate on a LAN. Leave both empty for plain "
+            "HTTP. Read once at startup; restart to apply."
+        ),
+        category="advanced",
+    )
+    ssl_keyfile = setting[STRING](
+        "",
+        label="TLS Private Key",
+        description=(
+            "Path to the private key matching the TLS certificate. Both must be set, or "
+            "neither. Read once at startup; restart to apply."
+        ),
+        category="advanced",
     )

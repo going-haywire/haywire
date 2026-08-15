@@ -20,6 +20,7 @@ from .vocabulary import (
     LibraryCatalogChanged,
     ErrorLogged,
     ErrorLedgerChanged,
+    PresenceChanged,
     Reveal,
     Close,
     BroadcastClose,
@@ -43,6 +44,7 @@ __all__ = [
     "LibraryCatalogChanged",
     "ErrorLogged",
     "ErrorLedgerChanged",
+    "PresenceChanged",
     # Imperative commands
     "Reveal",
     "Close",

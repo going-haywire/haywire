@@ -59,9 +59,10 @@ class TabSlot(Slot):
 
     def _render_bar_contents(self) -> None:
         """Render tab row + optional chevron."""
-        if self._bindings:
+        bindings = self._accessible_bindings()
+        if bindings:
             active_id = self._active.editor_binding_id if self._active is not None else None
-            ids = [b.editor_binding_id for b in self._bindings]
+            ids = [b.editor_binding_id for b in bindings]
             initial = active_id if active_id in ids else (ids[0] if ids else None)
             with (
                 ui.tabs(value=cast(Any, initial), on_change=lambda e: self._on_tab_clicked(e.value))
@@ -69,7 +70,7 @@ class TabSlot(Slot):
                 .classes("hw-slot-bar-tabs")
                 .style("flex: 1; min-height: 36px;")
             ):
-                for wrapper in self._bindings:
+                for wrapper in bindings:
                     tab_el = ui.tab(name=wrapper.editor_binding_id, label="").props("no-caps")
                     with tab_el:
                         with ui.row().classes("items-center gap-1 no-wrap"):

@@ -22,7 +22,7 @@ import argparse
 from collections.abc import Sequence
 from typing import Protocol
 
-from haywire_studio.cli import deps, docs, init, rename, share, verify
+from haywire_studio.cli import authcmd, deps, docs, init, rename, share, user, verify
 
 
 class _SubcommandModule(Protocol):
@@ -31,6 +31,6 @@ class _SubcommandModule(Protocol):
     def register(self, subparsers: argparse._SubParsersAction) -> None: ...
 
 
-SUBCOMMANDS: Sequence[_SubcommandModule] = (init, share, rename, deps, docs, verify)
+SUBCOMMANDS: Sequence[_SubcommandModule] = (init, share, rename, deps, docs, verify, user, authcmd)
 
 __all__ = ["SUBCOMMANDS"]

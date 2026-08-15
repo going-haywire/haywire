@@ -96,7 +96,10 @@ class _FakeEditor(BaseEditor):
 
 
 def _make_session():
-    ctx = SimpleNamespace()
+    # can_access always grants — these tests are about on_focus lifecycle
+    # firing, not access control, so add_binding's admission gate (Slice 4)
+    # should never refuse here.
+    ctx = SimpleNamespace(can_access=lambda required: True)
     session = SimpleNamespace(context=ctx)
     return session
 

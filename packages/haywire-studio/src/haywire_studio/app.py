@@ -4,6 +4,7 @@ import logging
 from pathlib import Path
 from typing import Callable, Optional, TYPE_CHECKING
 
+from fastapi import Request
 from nicegui import ui, app
 
 # Core imports
@@ -12,12 +13,14 @@ from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.host import HostStore
-from haywire.core.session.signals import ErrorLogged
+from haywire.core.session.signals import ErrorLogged, PresenceChanged
 
 # UI imports
 from haywire.ui.console_bridge import get_stdout_tee
 
 from haywire.ui.extends.codemirror import register_code_intelligence_render_endpoint
+
+from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY
 
 from .code_intelligence import register_code_intelligence_endpoints
 
@@ -134,6 +137,7 @@ class HaywireApp:
                 print(f"  Error cleaning up shell for session {session_id[:8]}: {e}")
 
         self.session_manager.remove_session(session_id)
+        self.session_manager.broadcast(PresenceChanged())
 
     # ------------------------------------------------------------------
     # Shared services setup
@@ -195,7 +199,7 @@ class HaywireApp:
 
         print("Shared services configured successfully.")
 
-    def setup_farmhand(self, port: int) -> None:
+    def setup_farmhand(self, port: int, *, tls: bool = False) -> None:
         """Mount the Farmhand MCP server if enabled (flag read once; restart to apply)."""
         from haywire_studio.farmhand.host import FarmhandHost
         from haywire_studio.farmhand.settings import FarmhandSettings
@@ -204,7 +208,7 @@ class HaywireApp:
             logging.getLogger(__name__).info("Farmhand: disabled by settings (farmhand.enabled = false)")
             return
         self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root)
-        self.farmhand_host.mount(port)
+        self.farmhand_host.mount(port, tls=tls)
 
         # Write the sidecar identity file so a later process (the farmhand4claude
         # plugin startup script) can identify which project owns this studio on
@@ -248,7 +252,7 @@ class HaywireApp:
         """Register NiceGUI page routes."""
 
         @ui.page("/", title="Haywire")
-        def main_page():
+        def main_page(request: Request):
             from haywire.ui.app.shell import AppShell
             from haywire.ui.editor.registry import EditorTypeRegistry
             from nicegui import context
@@ -261,6 +265,12 @@ class HaywireApp:
                 project_state=self,
                 workspace_manager=self.workspace_manager,
             )
+
+            # The gate already verified the credential and stashed the principal
+            # on the ASGI scope; `request.scope` IS that same dict. None means
+            # authentication is off, which resolves to ADMIN.
+            haywire_session.context.principal = request.scope.get(PRINCIPAL_SCOPE_KEY)
+            haywire_session.publish(PresenceChanged())
 
             # Map this client to its session so on_disconnect can resolve
             # which session to tear down.
@@ -282,6 +292,59 @@ class HaywireApp:
         """Manual cleanup fallback."""
         self.on_app_shutdown()
 
+    def _install_auth(self) -> bool:
+        """Install the gate, the login routes and the tier resolver, if enabled.
+
+        Returns whether authentication is on. Everything here is skipped when the
+        roster says disabled, so an auth-off install runs exactly the code it ran
+        before this feature existed.
+        """
+        from nicegui import app as nicegui_app
+
+        from haywire_studio.auth.cookies import load_or_create_secret
+        from haywire_studio.auth.gate import AuthGateMiddleware
+        from haywire_studio.auth.live import RosterCache, install_resolver
+        from haywire_studio.auth.login import register_login_routes
+        from haywire_studio.auth.roster import RosterError, load_roster
+
+        cache = RosterCache()
+        try:
+            # RosterCache.roster() deliberately swallows RosterError to keep
+            # serving the last-good copy once the studio is already running —
+            # exactly the wrong behaviour for this first-ever read, where a
+            # corrupt or unreadable file must fail startup loudly rather than
+            # silently degrade to "no roster" (enabled=False). Read once
+            # directly to surface that error, then let the cache take over.
+            load_roster(cache.path)
+        except RosterError as exc:
+            print(f"ERROR: Haywire cannot start — the roster is unreadable.\n  {exc}")
+            raise SystemExit(1) from exc
+        roster = cache.roster()
+
+        if not roster.enabled:
+            return False
+
+        if not roster.admins():
+            print(
+                "ERROR: Haywire cannot start — authentication is enabled but no admin exists.\n"
+                "  Run 'haywire auth disable', add an admin with 'haywire user add <name> "
+                "--tier admin', then 'haywire auth enable'."
+            )
+            raise SystemExit(1)
+
+        secret = load_or_create_secret()
+        install_resolver(cache)
+        register_login_routes(cache=cache, secret=secret)
+        nicegui_app.add_middleware(
+            AuthGateMiddleware,
+            cache=cache,
+            secret=secret,
+            workspace_root=self.workspace_root,
+        )
+        self._auth_cache = cache
+        print(f"🔒 Authentication enabled — {len(roster.principals)} principal(s)")
+        return True
+
     def run(self, *, open_browser: bool = True):
         """Run the application."""
         print("Starting Haywire...")
@@ -291,11 +354,28 @@ class HaywireApp:
         settings = NetworkSettings()
         port = settings.port
         host = "0.0.0.0" if settings.expose_to_network else "127.0.0.1"
-        # Mount the Farmhand MCP server on the same port before ui.run (flag read once).
-        self.setup_farmhand(port)
+        ssl_kwargs = _ssl_kwargs(settings.ssl_certfile, settings.ssl_keyfile)
+
+        # Install the gate BEFORE the Farmhand mount so the root wrapper covers
+        # /mcp too — one boundary, not a boundary with a documented hole beside it.
+        auth_enabled = self._install_auth()
+
+        self.setup_farmhand(port, tls=bool(ssl_kwargs))
 
         if settings.expose_to_network:
             self._install_ip_allowlist(settings)
+            if not auth_enabled:
+                logger.warning(
+                    "Network: the studio is exposed beyond loopback with authentication OFF. "
+                    "Anyone who can reach it is a full operator. Run 'haywire auth enable' to "
+                    "require a login."
+                )
+            if not ssl_kwargs:
+                logger.warning(
+                    "Network: serving plain HTTP beyond loopback — session cookies and "
+                    "passwords travel unencrypted and a captured cookie is a valid cookie. "
+                    "Set ssl_certfile/ssl_keyfile, or terminate TLS at a reverse proxy."
+                )
 
         try:
             ui.run(
@@ -304,6 +384,7 @@ class HaywireApp:
                 show=open_browser,
                 title="Haywire",
                 reload=False,
+                **ssl_kwargs,  # type: ignore[arg-type]
             )
         except KeyboardInterrupt:
             print("\nKeyboard interrupt received")
@@ -381,6 +462,36 @@ class HaywireApp:
 # ---------------------------------------------------------------------------
 # Entry points
 # ---------------------------------------------------------------------------
+
+
+def _ssl_kwargs(certfile: str, keyfile: str) -> dict[str, str]:
+    """Build the uvicorn TLS kwargs, or exit with a clear message.
+
+    NiceGUI's ``ui.run(**kwargs)`` forwards these to uvicorn and recognises the
+    pair explicitly — it uses them to build the ``https://`` URL for the
+    ``show=True`` auto-open browser. So HTTPS needs no patching, only a
+    passthrough.
+
+    Exactly one of the pair is always a misconfiguration: silently serving plain
+    HTTP when the operator believes TLS is on would leak every session cookie on
+    the wire. Fail loudly at startup instead, matching ``_install_ip_allowlist``.
+    """
+    if not certfile and not keyfile:
+        return {}
+
+    if bool(certfile) != bool(keyfile):
+        print(
+            "ERROR: Haywire cannot start — incomplete TLS configuration.\n"
+            "  Set BOTH 'ssl_certfile' and 'ssl_keyfile' under Network settings, or neither."
+        )
+        raise SystemExit(1)
+
+    for label, value in (("ssl_certfile", certfile), ("ssl_keyfile", keyfile)):
+        if not Path(value).is_file():
+            print(f"ERROR: Haywire cannot start — {label} does not point at a file: {value}")
+            raise SystemExit(1)
+
+    return {"ssl_certfile": certfile, "ssl_keyfile": keyfile}
 
 
 def run_app(*, open_browser: bool = True) -> int:

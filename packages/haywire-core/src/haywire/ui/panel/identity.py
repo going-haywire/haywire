@@ -7,6 +7,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import TYPE_CHECKING, Optional, Tuple
 
+from haywire.core.access import AccessTier
 from haywire.core.registry.identity import BaseIdentity
 
 if TYPE_CHECKING:
@@ -44,6 +45,10 @@ class PanelIdentity(BaseIdentity):
                 dispatch — when one of these signals publishes, the editor
                 redraws (and the panel re-mounts as part of that redraw).
                 Empty tuple means the panel contributes no subscriptions.
+        access: Minimum AccessTier a principal needs to see this panel.
+                Below it, the panel is filtered out of visible_panels() —
+                it vanishes rather than rendering disabled. Default VIEW,
+                i.e. visible to every authenticated principal.
     """
 
     editor_keys: list[str] = field(default_factory=list)
@@ -54,3 +59,4 @@ class PanelIdentity(BaseIdentity):
     action_protocol: Optional[type] = None
     focus: Optional[type] = None
     redraw_on: Tuple[type["Signal"], ...] = ()
+    access: AccessTier = AccessTier.VIEW

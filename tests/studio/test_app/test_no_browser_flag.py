@@ -86,7 +86,8 @@ def test_haywire_app_run_threads_open_browser_to_ui_run_show(monkeypatch):
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port: None)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda: False)
 
     with (
         patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
@@ -99,6 +100,8 @@ def test_haywire_app_run_threads_open_browser_to_ui_run_show(monkeypatch):
             expose_to_network=False,
             allowed_remote_ranges="",
             trusted_proxies="",
+            ssl_certfile="",
+            ssl_keyfile="",
         )
         instance.run(open_browser=False)
 

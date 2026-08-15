@@ -16,11 +16,12 @@ studio from another machine. For the full design rationale, see
 [ADR-0026](../adr/0026-studio-network-exposure.md).
 
 It does not cover *who* may connect. Authenticating principals is a separate,
-independent layer designed in
-[ADR-0027](../adr/0027-studio-authentication.md); neither layer substitutes for
-the other, and nothing on this page performs any authentication. Sandboxing the
-graph editor is out of scope for both — a principal who can edit a graph holds
-the authority of the studio process, by design.
+independent layer described in
+[ADR-0027](../adr/0027-studio-authentication.md) and covered in
+[§8 below](#8-authenticating-principals); neither layer substitutes for the
+other, and nothing on this page performs any authentication by itself.
+Sandboxing the graph editor is out of scope for both — a principal who can
+edit a graph holds the authority of the studio process, by design.
 
 ## 1. Default: local only
 
@@ -316,15 +317,67 @@ described in [§5](#reverse-proxy-with-auth-in-front), and its absence means
 your proxy CIDR was read. The Network settings panel also reflects the
 resolved value, whichever tier it came from.
 
-## 7. Multi-user: not supported
+## 7. No sandbox, no multi-tenancy
 
 The studio is one process, one filesystem, with no sandbox between whoever
-reaches it and the host machine it runs on. There is no per-user identity,
-no isolation between concurrent operators, and no notion of "read-only"
-access — everyone who gets past the bind address, allowlist, and (for
-`/mcp`) the bearer token is the same single operator the studio was designed
-for. None of the settings in this guide add authentication or authorization
-for the graph editor itself; they only narrow *who can reach the process*,
-never *what a reachable caller can do* once in. See
-[ADR-0026](../adr/0026-studio-network-exposure.md#consequences) for the full
-framing.
+reaches it and the host machine it runs on. §8 below adds *who* a connection
+is — separate view/edit/admin principals with their own identity — but not
+*isolation*: there is no "read-only copy of the studio" and no per-graph,
+per-node or per-file permission. Every principal who can reach the studio
+sees the same live graphs, the same running execution and the same haystack;
+a `view` principal simply cannot mutate them. None of the settings in this
+guide, and none of the roster settings in §8, add a sandbox around the graph
+editor — a principal who can edit a graph holds the authority of the studio
+process, by design. See
+[ADR-0026](../adr/0026-studio-network-exposure.md#consequences) and
+[ADR-0027's non-goals](../adr/0027-studio-authentication.md#explicit-non-goals)
+for the full framing.
+
+## 8. Authenticating principals
+
+Network settings (§1–§6) control *where* the studio can be reached from.
+This section covers *who* may connect once it's reachable — a separate,
+independent layer ([ADR-0027](../adr/0027-studio-authentication.md)) that
+is off by default. With it off, anyone who can reach the studio is a full
+operator, exactly as in every earlier version.
+
+### Enabling it
+
+Authentication needs at least one admin principal before it can be turned
+on — the roster is empty otherwise and nobody could sign back in.
+
+```sh
+# with the studio stopped
+uv run haywire user add alice --tier admin
+uv run haywire auth enable
+```
+
+`auth enable` prompts for an admin username and password to confirm you can
+actually get in before it starts requiring a login for everyone else. If a
+Farmhand token already exists for this workspace, it offers to import it as
+an `edit`-tier agent principal, so existing MCP clients keep working.
+
+### Managing principals
+
+```sh
+uv run haywire user add <name> --tier {view,edit,admin}   # a password-holding user
+uv run haywire user add <name> --agent --tier {view,edit,admin}   # a token-holding agent
+uv run haywire user list
+uv run haywire user tier <name> {view,edit,admin}
+uv run haywire user passwd <name>
+uv run haywire user remove <name>
+uv run haywire auth status
+uv run haywire auth disable
+```
+
+Once signed in, an admin can do all of this from the studio itself — the
+account menu behind the `account_circle` icon at the bottom of the action
+bar opens a roster editor with the same add/remove/re-tier/re-key
+operations, plus live effect: a re-tiered or removed principal's open
+session is evicted immediately, no re-login needed to see it take hold. The
+account menu also shows who else is currently connected (both browser
+sessions and MCP agents, the latter by last-seen time rather than a
+possibly-stale online/offline flag).
+
+Every mutation — CLI or UI — goes through the same roster file, so the two
+surfaces can never disagree about who's allowed in.

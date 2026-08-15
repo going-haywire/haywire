@@ -7,6 +7,10 @@ from haywire.core.session.signals import Reveal
 from haywire.ui.app.icon_slot import IconSlot
 from haywire.ui.editor.identity import SlotName
 
+# Stub SessionContext for tests that aren't about access control — always
+# grants, so add_binding's admission gate (Slice 4) never refuses here.
+_ALLOW_ALL_CONTEXT = SimpleNamespace(can_access=lambda required: True)
+
 
 def _slot(*, session: Any, registry: Any, **kwargs: Any) -> IconSlot:
     """Construct a IconSlot from structural test doubles.
@@ -200,7 +204,7 @@ def test_icon_slot_renders_row_with_bar_and_area(monkeypatch):
     a = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
@@ -229,7 +233,7 @@ def test_icon_slot_bar_change_switches_active_binding(monkeypatch):
     a = _editor_cls("a")
     b = _editor_cls("b")
     signals: list = []
-    session = SimpleNamespace(context=None, signal=signals.append)
+    session = SimpleNamespace(context=_ALLOW_ALL_CONTEXT, signal=signals.append)
     reg = _FakeRegistry()
     slot = _slot(
         session=session,
@@ -267,7 +271,7 @@ def test_icon_slot_has_no_fold_toggle_button(monkeypatch):
     a = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
@@ -287,7 +291,7 @@ def test_icon_slot_click_active_icon_collapses(monkeypatch):
     vis_calls: list = []
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
@@ -309,7 +313,7 @@ def test_icon_slot_click_while_collapsed_reexpands(monkeypatch):
     vis_calls: list = []
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
@@ -340,7 +344,7 @@ def test_icon_slot_click_inactive_icon_switches_without_collapsing(monkeypatch):
     vis_calls: list = []
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
@@ -365,7 +369,7 @@ def test_icon_slot_collapsed_click_other_icon_expands_and_switches(monkeypatch):
     b = _editor_cls("b")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.ACTION,
         registry=reg,
         bar_place="left",
@@ -389,7 +393,7 @@ def test_icon_slot_reveal_into_collapsed_slot_auto_expands(monkeypatch):
     a = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.CONTEXT,
         registry=reg,
         bar_place="right",

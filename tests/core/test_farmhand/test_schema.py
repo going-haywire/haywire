@@ -44,7 +44,7 @@ def test_float_and_unannotated():
 
 
 def test_multi_arm_union_yields_anyof_not_empty():
-    async def run(self, ctx, value: int | str | bool = None): ...
+    async def run(self, ctx, value: int | str | bool = None): ...  # type: ignore[assignment]
 
     schema = derive_input_schema(run)
     prop = schema["properties"]["value"]

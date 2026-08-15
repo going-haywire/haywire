@@ -7,6 +7,10 @@ from haywire.core.session.signals import Reveal
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 
+# Stub SessionContext for tests that aren't about access control — always
+# grants, so add_binding's admission gate (Slice 4) never refuses here.
+_ALLOW_ALL_CONTEXT = SimpleNamespace(can_access=lambda required: True)
+
 
 def _slot(*, session: Any, registry: Any, **kwargs: Any) -> TabSlot:
     """Construct a TabSlot from structural test doubles.
@@ -153,7 +157,7 @@ def test_tab_slot_reveal_adds_binding_and_makes_active(monkeypatch):
     cls = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -170,7 +174,7 @@ def test_tab_slot_reveal_existing_activates_no_duplicate(monkeypatch):
     cls = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -190,7 +194,7 @@ def test_tab_slot_close_binding_removes_and_promotes_sibling(monkeypatch):
     cls_b = _editor_cls("b")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -210,7 +214,7 @@ def test_tab_slot_repayload_updates_ids(monkeypatch):
     cls = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -230,7 +234,7 @@ def test_tab_slot_close_tabs_for_payload_closes_matching(monkeypatch):
     cls = _editor_cls("a")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -304,7 +308,7 @@ def test_on_tab_close_clicked_calls_wrapper_close(monkeypatch):
     _install_ui_fakes(monkeypatch)
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -325,7 +329,7 @@ def test_on_tab_close_clicked_respects_veto(monkeypatch):
     _install_ui_fakes(monkeypatch)
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -350,7 +354,7 @@ def test_on_tab_close_clicked_no_longer_emits_tab_close_requested(monkeypatch):
     signals_seen: list = []
 
     sess = SimpleNamespace(
-        context=None,
+        context=_ALLOW_ALL_CONTEXT,
         signal=lambda s: signals_seen.append(s),
         reveal=lambda r: None,
     )
@@ -384,7 +388,7 @@ def test_dirty_wrapper_renders_slot_owned_dirty_marker(monkeypatch):
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )
@@ -410,7 +414,7 @@ def test_clean_wrapper_renders_no_dirty_marker(monkeypatch):
     cls = _editor_cls("a", label="MyEditor")
     reg = _FakeRegistry()
     slot = _slot(
-        session=SimpleNamespace(context=None),
+        session=SimpleNamespace(context=_ALLOW_ALL_CONTEXT),
         name=SlotName.EDIT,
         registry=reg,
     )

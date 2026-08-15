@@ -12,6 +12,7 @@ in the DI provider via register_builtin_editors().
 
 from typing import Any, Union
 
+from haywire.core.access import AccessTier
 from haywire.core.library.utils import EDITOR, derive_library_identity, reg_key
 
 from .base import BaseEditor
@@ -44,6 +45,10 @@ def editor(**kwargs: Any):
             'on_payload'. Defaults to 'required'. Any value is permitted on
             any default_slot — choosing a UX-sensible pairing is up to the
             editor author.
+        access: Minimum AccessTier needed to see this editor — an
+            :class:`AccessTier` or its string value ('view', 'edit', 'admin').
+            Defaults to 'view'. An unknown value raises ``ValueError`` at
+            class-definition time.
         order: Sort priority within a slot (lower = earlier in the bar).
             Defaults to 100. Editors with equal order fall back to
             registration order.
@@ -85,6 +90,10 @@ def editor(**kwargs: Any):
         identity_kwargs["default_slot"] = (
             SlotName(default_slot) if not isinstance(default_slot, SlotName) else default_slot
         )
+
+        # Coerce access to enum; raises ValueError at class-definition time on typo.
+        access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.VIEW)
+        identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
 
         _registry_id = identity_kwargs.pop("registry_id", None) or inner_cls.__name__
         _label = identity_kwargs.pop("label", None) or inner_cls.__name__

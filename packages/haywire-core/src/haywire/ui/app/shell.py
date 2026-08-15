@@ -26,6 +26,7 @@ from haywire.ui import elements as hui
 from haywire.core.session.signals import (
     BroadcastClose,
     Close,
+    PresenceChanged,
     Reveal,
 )
 from haywire.ui.app.slot import Slot
@@ -52,6 +53,30 @@ def _pygments_doc_css() -> str:
 if TYPE_CHECKING:
     from haywire.ui.editor.registry import EditorTypeRegistry
     from haywire.core.session.session import Session
+    from haywire.core.access import AccessTier
+
+
+def identity_text(principal: "str | None", tier: "AccessTier") -> str:
+    """StatusBar label — ``alice · admin``, or empty when authentication is off.
+
+    This label is what makes the vanish-on-denial behaviour humane rather than
+    mysterious: a principal who cannot see an editor has one place that explains
+    why, instead of a padlock on every control (ADR 0027).
+    """
+    return f"{principal} · {tier.value}" if principal else ""
+
+
+def last_seen_text(seconds: float) -> str:
+    """Relative recency for an agent chip.
+
+    Deliberately relative rather than a green dot: MCP's ``ping`` is optional,
+    so a binary indicator can be wrong while "last seen 40s ago" cannot.
+    """
+    if seconds < 60:
+        return "just now"
+    if seconds < 3600:
+        return f"{int(seconds // 60)}m ago"
+    return f"{int(seconds // 3600)}h ago"
 
 
 """Static, theme-independent CSS for every haywire surface.
@@ -405,6 +430,8 @@ class AppShell:
         self._left_divider: ui.element | None = None  # drag handle between left and main slots
         self._right_divider: ui.element | None = None  # drag handle between main and right slots
         self._bottom_divider: ui.element | None = None  # horizontal drag handle above BottomTabBar
+        self._presence_row: ui.element | None = None  # TopBar connected-principal chips
+        self._account_menu: object | None = None  # AccountMenuProvider, built lazily
 
         # Bus subscriptions for workspace-mutation commands.
         self._lifecycle_unsubs: list[Callable[[], None]] = []
@@ -487,6 +514,9 @@ class AppShell:
         self._lifecycle_unsubs.append(self.session.subscribe(Reveal, self._reveal_editor))
         self._lifecycle_unsubs.append(self.session.subscribe(Close, self._close_payload))
         self._lifecycle_unsubs.append(self.session.subscribe(BroadcastClose, self._close_payload))
+        self._lifecycle_unsubs.append(
+            self.session.subscribe(PresenceChanged, lambda _s: self._render_presence())
+        )
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts
@@ -598,20 +628,25 @@ class AppShell:
                 .style("flex: 1; overflow: hidden; min-height: 0; flex-wrap: nowrap;")
             ):
                 # ---------------- Action slot (left edge) ----------------
-                left_data = snapshot.get(SlotName.ACTION, {})
-                if left_data.get("active_key") or self._editor_registry.get_by_default_slot(SlotName.ACTION):
-                    left_slot = self._build_managed_slot(SlotName.ACTION, bar_place="left")
-                    # Slot wrapper lives inside main_content_row; slot renders bar + area into it.
-                    left_wrapper = ui.element("div").style("height: 100%;")
-                    left_slot.render(left_wrapper)
+                # Always built: the account_circle footer icon lives in this
+                # bar regardless of whether any ACTION-slot editor is bound,
+                # so the bar itself is never truly empty.
+                from haywire.ui.app.icon_slot import IconSlot as _IconSlot
 
-                    self._left_divider = (
-                        ui.element("div")
-                        .classes("hw-area-divider hw-area-divider-left flex-shrink-0")
-                        .style("width: 5px; height: 100%; cursor: col-resize;")
-                    )
-                    self._left_divider.set_visibility(left_slot.visible)
-                    left_slot._on_visibility_change = self._left_divider.set_visibility
+                left_slot = self._build_managed_slot(SlotName.ACTION, bar_place="left")
+                assert isinstance(left_slot, _IconSlot)
+                left_slot.set_footer(self._render_account_icon)
+                # Slot wrapper lives inside main_content_row; slot renders bar + area into it.
+                left_wrapper = ui.element("div").style("height: 100%;")
+                left_slot.render(left_wrapper)
+
+                self._left_divider = (
+                    ui.element("div")
+                    .classes("hw-area-divider hw-area-divider-left flex-shrink-0")
+                    .style("width: 5px; height: 100%; cursor: col-resize;")
+                )
+                self._left_divider.set_visibility(left_slot.visible)
+                left_slot._on_visibility_change = self._left_divider.set_visibility
 
                 # ---------------- Main + Bottom ----------------
                 with (
@@ -695,6 +730,11 @@ class AppShell:
                 on_click=_on_check_updates,
             ).props("flat round dense").tooltip("Check for Haywire updates")
 
+            ui.space()
+
+            self._presence_row = ui.row().classes("items-center gap-1")
+            self._render_presence()
+
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
         with (
@@ -712,6 +752,74 @@ class AppShell:
             notice = startup_mismatch(Path.cwd() / "pyproject.toml")
             if notice:
                 ui.label(notice).classes("text-xs").style("color: var(--hw-warning);")
+
+            from haywire.core.access import resolve_tier
+
+            principal = self.session.context.principal
+            label = identity_text(principal, resolve_tier(principal))
+            if label:
+                ui.space()
+                ui.label(label).classes("hw-text-muted text-xs px-2")
+
+    def _render_account_icon(self) -> None:
+        """The ``account_circle`` button in the ACTION bar footer."""
+        from haywire.ui.app.account_menu import AccountMenuProvider
+
+        provider = AccountMenuProvider(
+            context=self.session.context,
+            session=self.session,
+            panel_registry=self.session.context.app.library_service.get_panel_registry(),
+        )
+        self._account_menu = provider
+
+        button = (
+            ui.button(icon="account_circle")
+            .props("flat round dense")
+            .classes("hw-account-icon")
+            .tooltip("Account")
+        )
+        button.on(
+            "click",
+            lambda event: provider.open(
+                (event.args.get("clientX", 0), event.args.get("clientY", 0))
+                if isinstance(event.args, dict)
+                else (0, 0)
+            ),
+        )
+
+    def _render_presence(self) -> None:
+        """Chips for every connected principal — users first, then agents.
+
+        Visible to everyone, not admin-only: in a crew setting, knowing who else
+        is connected is useful to all, and it discloses nothing beyond "these
+        roster entries are online" to people already inside the trust boundary.
+        """
+        if self._presence_row is None:
+            return
+
+        try:
+            from haywire_studio.auth.live import RosterCache
+            from haywire_studio.auth.presence import collect_presence
+        except ImportError:
+            return
+
+        # DI accessor, not self.session._session_manager — reaching into a
+        # private attribute of Session would couple the shell to its internals.
+        from haywire.core.di.context import get_session_manager
+
+        self._presence_row.clear()
+        with self._presence_row:
+            for entry in collect_presence(get_session_manager(), RosterCache()):
+                icon = "smart_toy" if entry.kind == "agent" else "person"
+                detail = (
+                    last_seen_text(entry.last_seen_seconds)
+                    if entry.kind == "agent"
+                    else (f"{entry.sessions} tabs" if entry.sessions > 1 else "connected")
+                )
+                with ui.row().classes("items-center gap-1 px-2 hw-presence-chip"):
+                    ui.icon(icon).classes("text-xs")
+                    ui.label(entry.name).classes("text-xs")
+                ui.tooltip(f"{entry.tier.value} · {detail}")
 
     def _build_managed_slot(
         self,
@@ -731,6 +839,15 @@ class AppShell:
         data = snapshot.get(slot_name, {})
 
         cls = IconSlot if slot_name in (SlotName.ACTION, SlotName.CONTEXT) else TabSlot
+        # The ACTION slot is always built (its bar carries the account
+        # footer icon even with zero editor bindings) but its area starts
+        # collapsed unless the snapshot or registry actually has something
+        # to show, so an idle ACTION slot doesn't reserve empty space.
+        initial_visible = True
+        if slot_name is SlotName.ACTION:
+            initial_visible = bool(
+                data.get("active_key") or self._editor_registry.get_by_default_slot(slot_name)
+            )
         slot = cls(
             session=self.session,
             name=slot_name,
@@ -738,6 +855,7 @@ class AppShell:
             bar_place=bar_place,
             show_fold_toggle=show_fold_toggle,
             on_visibility_change=on_visibility_change,
+            visible=initial_visible,
         )
         slot.populate_from_snapshot(data)
         self._managed_slots[slot_name] = slot

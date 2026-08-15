@@ -30,8 +30,9 @@ for type-checker visibility but the framework does not read it.
 
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Union
 
+from haywire.core.access import AccessTier
 from haywire.core.library.utils import PANEL, derive_library_identity, reg_key
 from haywire.core.session.handlers import validate_signal_types
 
@@ -65,6 +66,10 @@ def panel(**kwargs: Any):
         registry_id:  Unique ID for this panel. Defaults to the class name.
         redraw_on:    Tuple of Signal subclasses the panel wants its host
                       editor to redraw on. Empty tuple means no subscriptions.
+        access:       Minimum AccessTier needed to see this panel — an
+            :class:`AccessTier` or its string value ('view', 'edit', 'admin').
+            Defaults to 'view'. An unknown value raises ``ValueError`` at
+            class-definition time.
         deprecation_warning: Optional human-readable message shown when this
             panel is listed anywhere. Empty string means not deprecated.
         hidden: When True, the panel is registered and usable but excluded from
@@ -100,6 +105,10 @@ def panel(**kwargs: Any):
     validated_redraw_on = validate_signal_types(
         "@panel(..., redraw_on=...)", tuple(identity_kwargs.pop("redraw_on", ())), allow_empty=True
     )
+
+    # Coerce access to enum; raises ValueError at class-definition time on typo.
+    access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.VIEW)
+    identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
 
     def decorator(inner_cls):
         if not issubclass(inner_cls, BasePanel):

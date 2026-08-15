@@ -5,8 +5,9 @@ class-name defaults via setdefault, kind constant from library/utils."""
 from __future__ import annotations
 
 import inspect
-from typing import Any, Callable, Type, TypeVar
+from typing import Any, Callable, Type, TypeVar, Union
 
+from haywire.core.access import AccessTier
 from haywire.core.farmhand.base import Farmhand
 from haywire.core.farmhand.identity import FarmhandIdentity, ToolAnnotations
 from haywire.core.library.utils import FARMHAND, derive_library_identity, reg_key
@@ -85,6 +86,9 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         identity_kwargs.setdefault("label", identity_kwargs["registry_id"])
         identity_kwargs.setdefault("annotations", ToolAnnotations())
 
+        # Coerce access to enum; raises ValueError at class-definition time on typo.
+        access: Union[AccessTier, str] = identity_kwargs.pop("access", AccessTier.VIEW)
+        identity_kwargs["access"] = AccessTier(access) if isinstance(access, str) else access
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
 

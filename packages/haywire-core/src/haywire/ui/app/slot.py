@@ -7,6 +7,7 @@ from typing import Any, Callable, ClassVar, Literal, Optional, TYPE_CHECKING
 
 from nicegui import ui
 
+from haywire.core.access import required_access
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.registry import EditorTypeRegistry
@@ -169,6 +170,8 @@ class Slot(ABC):
                 binding_id=entry.get("binding_id"),
                 activate=False,
             )
+            if wrapper is None:
+                continue
             snapshot_label = entry.get("label", "")
             if snapshot_label:
                 wrapper.label = snapshot_label
@@ -255,6 +258,29 @@ class Slot(ABC):
     def bindings(self) -> list[EditorWrapper]:
         """Read-only view of the wrappers list."""
         return list(self._bindings)
+
+    def _editor_accessible(self, editor_cls) -> bool:
+        """Whether this session's principal may see ``editor_cls``.
+
+        Reads the tier live on every call, so a demotion takes effect on the
+        next redraw with no eviction and no re-login. The missing-identity
+        fallback lives in ``required_access`` (Slice 1), shared with the panel
+        and Farmhand gates.
+        """
+        return bool(self._session.context.can_access(required_access(editor_cls)))
+
+    def _accessible_bindings(self) -> list[EditorWrapper]:
+        """The bindings this principal may see, in order.
+
+        The one place the access rule is written for editors. Bar rendering and
+        panel creation both read through here, so there is a single definition
+        to change rather than one conditional per call site.
+        """
+        return [
+            wrapper
+            for wrapper in self._bindings
+            if wrapper.editor_cls is not None and self._editor_accessible(wrapper.editor_cls)
+        ]
 
     def find_binding(self, editor_key: str, binding_id: Optional[str] = None) -> Optional[EditorWrapper]:
         """
@@ -386,7 +412,7 @@ class Slot(ABC):
             )
         self._area_panel_container.set_visibility(self._visible)
 
-        for wrapper in self._bindings:
+        for wrapper in self._accessible_bindings():
             self._create_panel(wrapper)
 
         if self._active is None and self._area_panel_container is not None:
@@ -526,6 +552,9 @@ class Slot(ABC):
             binding_id=binding_id,
             activate=True,
         )
+        if wrapper is None:
+            # Above this principal's access tier — nothing to reveal.
+            return False
         # Empty label falls through to dynamic class_identity.label
         # resolution in the bar — keeps hot-reload label updates working.
         if command.label:
@@ -599,20 +628,33 @@ class Slot(ABC):
         editor_cls: "type[BaseEditor]",
         binding_id: Optional[str] = None,
         activate: bool = False,
-    ) -> EditorWrapper:
+    ) -> Optional[EditorWrapper]:
         """Construct a wrapper, attach the redraw callback, and add it.
 
         Single wrapper-construction path — used by both populate_from_snapshot
-        and TabSlot.open_tab. Creates the panel if the area has been
-        rendered. Activates the new wrapper if requested.
+        and reveal(). Creates the panel if the area has been rendered.
+        Activates the new wrapper if requested.
 
         The wrapper's ``label`` defaults to empty so the bar resolves it
         dynamically from ``editor_cls.class_identity.label``. Callers with
         a custom label (e.g. graph filename) assign ``wrapper.label = ...``
         on the returned wrapper.
 
-        Returns the newly-constructed wrapper.
+        Returns the newly-constructed wrapper, or ``None`` when ``editor_cls``
+        is above this principal's access tier. Refusing here rather than only
+        at render time keeps the binding out of ``_bindings`` entirely, so
+        ``to_snapshot`` cannot persist it into the principal's
+        ``workspace_state.json`` and ``reveal`` cannot activate it through
+        ``find_binding``.
         """
+        if not self._editor_accessible(editor_cls):
+            logger.info(
+                "Slot '%s': refusing binding for %s — above this principal's access tier",
+                self.name,
+                getattr(editor_cls, "__name__", editor_cls),
+            )
+            return None
+
         wrapper = EditorWrapper(
             editor_key=editor_key,
             editor_cls=editor_cls,
@@ -808,6 +850,8 @@ class Slot(ABC):
                 if self.find_binding(event.registry_key) is not None:
                     continue
                 wrapper = self.add_binding(editor_key=event.registry_key, editor_cls=cls)
+                if wrapper is None:
+                    continue
                 self._reorder_required_binding(wrapper)
                 bar_dirty = True
 

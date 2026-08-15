@@ -28,6 +28,7 @@ from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
 from mcp.server.transport_security import TransportSecuritySettings
 from nicegui import app as nicegui_app
 
+from haywire.core.access import AccessTier, required_access
 from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
@@ -57,6 +58,15 @@ class _FarmhandServer(Server):
         )
 
 
+def _origin_scheme(*, tls: bool) -> str:
+    """The scheme the MCP DNS-rebinding check should expect for its own origin.
+
+    ``allowed_origins`` used to hardcode ``http://``. Under TLS that makes /mcp
+    reject its own origin, because the browser or client sends ``https://``.
+    """
+    return "https" if tls else "http"
+
+
 def _format_tool_error(exc: Exception) -> str:
     if isinstance(exc, FarmhandError):
         ids = ", ".join(f"{k}={v}" for k, v in exc.ids.items())
@@ -73,6 +83,35 @@ def _format_tool_error(exc: Exception) -> str:
         suffix = f" (registry_key={key})" if key else ""
         return f"[haywire:{category}] {message}{suffix}"
     return f"[internal] {type(exc).__name__}: {exc}"
+
+
+def tools_for_tier(tools: dict[str, Any], tier: AccessTier) -> list[str]:
+    """Tool names visible at ``tier``.
+
+    Uses the same ``required_access`` lookup as the panel and editor gates, so a
+    tool with no declared access is VIEW here for exactly the reason it is VIEW
+    there.
+    """
+    return [name for name, cls in tools.items() if tier.satisfies(required_access(cls))]
+
+
+def caller_tier(request: Any) -> AccessTier:
+    """The tier of whoever is making this MCP call.
+
+    The gate stamped the resolved principal onto the ASGI scope, and the MCP
+    SDK's ``RequestContext.request`` carries that same scope through. With
+    authentication off there is no stamp and the resolver answers ADMIN, which
+    is what keeps Farmhand behaving exactly as it did before this feature.
+    """
+    from haywire.core.access import resolve_tier
+
+    from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY
+
+    principal = None
+    scope = getattr(request, "scope", None)
+    if isinstance(scope, dict):
+        principal = scope.get(PRINCIPAL_SCOPE_KEY)
+    return resolve_tier(principal)
 
 
 class FarmhandHost:
@@ -143,12 +182,22 @@ class FarmhandHost:
             except Exception as exc:  # dead session — WeakSet will drop it
                 logger.debug(f"Farmhand: list_changed notification failed: {exc}")
 
+    def _caller_tier(self) -> AccessTier:
+        """Tier of the in-flight MCP request; ADMIN when there is no request context."""
+        try:
+            request = self._server.request_context.request
+        except Exception:
+            return caller_tier(None)
+        return caller_tier(request)
+
     # -- MCP handlers ---------------------------------------------------
 
     def _register_handlers(self) -> None:
         @self._server.list_tools()
         async def list_tools() -> list[types.Tool]:
             self._track_session()
+            tier = self._caller_tier()
+            visible = set(tools_for_tier(self._tools, tier))
             return [
                 types.Tool(
                     name=name,
@@ -157,6 +206,7 @@ class FarmhandHost:
                     annotations=types.ToolAnnotations(**cls.class_identity.annotations.to_dict()),
                 )
                 for name, cls in sorted(self._tools.items())
+                if name in visible
             ]
 
         @self._server.call_tool()
@@ -172,6 +222,19 @@ class FarmhandHost:
                             ids={"tool": name},
                             help="Re-list the server's tools; the tool set changes as libraries are "
                             "enabled, disabled, or hot-reloaded.",
+                        )
+                    )
+                )
+            tier = self._caller_tier()
+            if name not in tools_for_tier({name: cls}, tier):
+                raise Exception(
+                    _format_tool_error(
+                        FarmhandError(
+                            "access_denied",
+                            f"'{name}' requires a higher access tier than this token holds",
+                            ids={"tool": name},
+                            help="Ask an admin for a token at the required tier, or use a "
+                            "read-only tool instead.",
                         )
                     )
                 )
@@ -269,14 +332,15 @@ class FarmhandHost:
 
     # -- mount + lifespan ----------------------------------------------
 
-    def mount(self, port: int, app_target: Any = None) -> None:
+    def mount(self, port: int, app_target: Any = None, *, tls: bool = False) -> None:
         target = app_target if app_target is not None else nicegui_app
         require_auth = FarmhandSettings().require_auth
         token = ensure_token(Path(self._workspace_root)) if require_auth else None
 
         if FarmhandSettings().restrict_to_loopback:
             allowed_hosts = [f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"]
-            allowed_origins = [f"http://127.0.0.1:{port}", f"http://localhost:{port}"]
+            scheme = _origin_scheme(tls=tls)
+            allowed_origins = [f"{scheme}://127.0.0.1:{port}", f"{scheme}://localhost:{port}"]
 
             public_hostname = NetworkSettings().public_hostname
             if public_hostname:

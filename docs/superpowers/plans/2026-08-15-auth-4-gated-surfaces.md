@@ -1,5 +1,5 @@
 ---
-status: planned
+status: implemented
 slice: 4 of 6
 feature: studio-authentication
 adr: docs/adr/0027-studio-authentication.md
@@ -42,9 +42,9 @@ next: 2026-08-15-auth-5-roster-ui-presence.md
 
 ### Task 0: Affirm current state and reconcile Slice 3 drift
 
-- [ ] **Step 1:** confirm `grep -n "^status:" docs/superpowers/plans/2026-08-15-auth-3-gate-login.md` says `implemented`.
-- [ ] **Step 2:** read Slice 3's Drift Log + Delivered; edit this plan if names differ, and note the correction in this plan's Drift Log.
-- [ ] **Step 3:** verify the surface
+- [x] **Step 1:** confirm `grep -n "^status:" docs/superpowers/plans/2026-08-15-auth-3-gate-login.md` says `implemented`.
+- [x] **Step 2:** read Slice 3's Drift Log + Delivered; edit this plan if names differ, and note the correction in this plan's Drift Log.
+- [x] **Step 3:** verify the surface
 
 ```bash
 uv run python -c "
@@ -60,13 +60,13 @@ this class demand?". **Do not re-implement the ``getattr(cls, 'class_identity')`
 in this slice** — all three gates below call it, which is what keeps them from drifting
 apart.
 
-- [ ] **Step 4:** re-read the files this slice modifies and confirm their shape:
+- [x] **Step 4:** re-read the files this slice modifies and confirm their shape:
   - `packages/haywire-core/src/haywire/ui/panel/identity.py`, `.../editor/identity.py`, `.../core/farmhand/identity.py` — plain dataclasses extending `BaseIdentity`.
   - `packages/haywire-core/src/haywire/ui/panel/host_rendering.py` — `visible_panels()` and `render_panel()`.
   - `packages/haywire-core/src/haywire/ui/app/slot.py` — `_bindings`, `add_binding`, `populate_from_snapshot`, `to_snapshot`.
   - `packages/haywire-core/src/haywire/ui/app/icon_slot.py`, `tab_slot.py` — `_render_bar_contents` iterating `self._bindings`.
   - `packages/haywire-studio/src/haywire_studio/farmhand/host.py` — `list_tools` / `call_tool`.
-- [ ] **Step 5:** `uv run ruff check . && uv run mypy` (full command) — baseline clean.
+- [x] **Step 5:** `uv run ruff check . && uv run mypy` (full command) — baseline clean.
 
 ---
 
@@ -84,7 +84,7 @@ apart.
 **Interfaces:**
 - Produces: `PanelIdentity.access`, `EditorIdentity.access`, `FarmhandIdentity.access` — all `AccessTier`, default `AccessTier.VIEW`; each decorator coerces a string value to the enum at class-definition time.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/core/test_access/test_identity_access.py`:
 
@@ -167,12 +167,12 @@ def test_editor_decorator_rejects_an_unknown_tier_at_definition_time():
             def draw(self, context, container): ...
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/core/test_access/test_identity_access.py -v`
 Expected: FAIL — `assert 'access' in _fields(PanelIdentity)`
 
-- [ ] **Step 3: Add the field to `PanelIdentity`**
+- [x] **Step 3: Add the field to `PanelIdentity`**
 
 In `packages/haywire-core/src/haywire/ui/panel/identity.py`, add the import and the field:
 
@@ -194,7 +194,7 @@ And extend the class docstring's "Contract attributes" block with:
                 i.e. visible to every authenticated principal.
 ```
 
-- [ ] **Step 4: Add the field to `EditorIdentity`**
+- [x] **Step 4: Add the field to `EditorIdentity`**
 
 In `packages/haywire-core/src/haywire/ui/editor/identity.py`:
 
@@ -207,7 +207,7 @@ from haywire.core.access import AccessTier
     access: AccessTier = AccessTier.VIEW
 ```
 
-- [ ] **Step 5: Add the field to `FarmhandIdentity`**
+- [x] **Step 5: Add the field to `FarmhandIdentity`**
 
 In `packages/haywire-core/src/haywire/core/farmhand/identity.py`:
 
@@ -221,7 +221,7 @@ from haywire.core.access import AccessTier
     instructions: str = field(kw_only=True)
 ```
 
-- [ ] **Step 6: Coerce strings in all three decorators**
+- [x] **Step 6: Coerce strings in all three decorators**
 
 Each decorator already splats `**kwargs` into its identity, so a string would land unconverted. Add coercion.
 
@@ -257,17 +257,17 @@ In `packages/haywire-core/src/haywire/core/farmhand/decorator.py`, before the id
 
 (Adjust to whichever local dict that module splats — read it first; it uses `kwargs` directly with `setdefault`.)
 
-- [ ] **Step 7: Run the test**
+- [x] **Step 7: Run the test**
 
 Run: `uv run pytest tests/core/test_access/test_identity_access.py -v`
 Expected: PASS, 9 tests.
 
-- [ ] **Step 8: Confirm nothing else broke**
+- [x] **Step 8: Confirm nothing else broke**
 
 Run: `uv run pytest tests/core/ tests/ui/ -q -m "not browser"`
 Expected: PASS — the field has a default, so every existing construction still works.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/panel/ packages/haywire-core/src/haywire/ui/editor/ packages/haywire-core/src/haywire/core/farmhand/ tests/core/test_access/test_identity_access.py
@@ -287,7 +287,7 @@ git commit -m "feat(access): add access= to panel, editor and farmhand identitie
 
 **Why both:** `visible_panels()` is the normal path and covers all three hosts at once. `render_panel()` is public API whose docstring only *asks* callers to poll-filter first — a future host, or a barn library author writing a fourth panel surface, can call it directly. Making it refuse turns that contract from a comment into a fact.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/panel/test_panel_access.py`:
 
@@ -414,12 +414,12 @@ def test_render_panel_draws_an_allowed_panel():
     assert panel.drew is True
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/ui/panel/test_panel_access.py -v`
 Expected: FAIL — denied panels are still returned.
 
-- [ ] **Step 3: Implement**
+- [x] **Step 3: Implement**
 
 In `packages/haywire-core/src/haywire/ui/panel/host_rendering.py`, add the import:
 
@@ -475,12 +475,12 @@ Add the refusal at the top of `render_panel`, before `_draw` is defined:
         return False
 ```
 
-- [ ] **Step 4: Run it**
+- [x] **Step 4: Run it**
 
 Run: `uv run pytest tests/ui/panel/test_panel_access.py tests/ui/panel/test_panel_rendering.py -v`
 Expected: PASS. The existing `test_panel_rendering.py` uses `MagicMock()` contexts, whose `can_access` returns a truthy `MagicMock` — so those tests keep passing unchanged.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/panel/host_rendering.py tests/ui/panel/test_panel_access.py
@@ -502,7 +502,7 @@ git commit -m "feat(access): gate panels in visible_panels and render_panel"
 
 **Why both admission and render:** render-only filtering leaves the binding inside `_bindings`, where `to_snapshot()` would persist it into the principal's `workspace_state.json` and `reveal()` could still activate it through `find_binding()`. Admission-only never re-evaluates after a live demotion. They close different doors.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/test_slot_access.py`:
 
@@ -593,12 +593,12 @@ def test_editor_accessible_treats_a_missing_identity_as_view():
     assert slot._editor_accessible(type("NoIdentity", (), {})) is True
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/ui/test_slot_access.py -v`
 Expected: FAIL — `AttributeError: '_TestSlot' object has no attribute '_accessible_bindings'`
 
-- [ ] **Step 3: Add the helpers to `Slot`**
+- [x] **Step 3: Add the helpers to `Slot`**
 
 In `packages/haywire-core/src/haywire/ui/app/slot.py`, add the import:
 
@@ -633,7 +633,7 @@ Add these methods after the `bindings` property:
         ]
 ```
 
-- [ ] **Step 4: Refuse at admission**
+- [x] **Step 4: Refuse at admission**
 
 `add_binding` currently returns `EditorWrapper` (non-Optional), and `populate_from_snapshot` uses that return value (`wrapper.label = snapshot_label`). Refusing therefore means widening the return type and guarding both call sites — three small edits, not one.
 
@@ -692,7 +692,7 @@ In `populate_from_snapshot`, guard the snapshot loop's use of the return value:
 
 The REQUIRED-editor loop above it ignores the return value already, so it needs no change — a denied REQUIRED editor is simply never injected.
 
-- [ ] **Step 4b: Guard the other `add_binding` caller**
+- [x] **Step 4b: Guard the other `add_binding` caller**
 
 ```bash
 grep -rn "add_binding(" packages/ barn/ --include=*.py | grep -v "def add_binding"
@@ -700,7 +700,7 @@ grep -rn "add_binding(" packages/ barn/ --include=*.py | grep -v "def add_bindin
 
 For every hit outside `slot.py`, add a `None` guard if the return value is used. `TabSlot.open_tab` is the known one — read it and handle `None` by returning early with whatever it returns for "could not open".
 
-- [ ] **Step 5: Read through the helper in the bar renderers**
+- [x] **Step 5: Read through the helper in the bar renderers**
 
 In `packages/haywire-core/src/haywire/ui/app/icon_slot.py`, replace:
 
@@ -735,7 +735,7 @@ In `packages/haywire-core/src/haywire/ui/app/tab_slot.py`, `_render_bar_contents
 
 All three must move together: leaving `ids` on the unfiltered list would let `initial` name a tab that was never rendered, and Quasar would show no active tab at all.
 
-- [ ] **Step 6: Filter panel creation**
+- [x] **Step 6: Filter panel creation**
 
 In `_render_area_contents`, replace:
 
@@ -751,12 +751,12 @@ with:
             self._create_panel(wrapper)
 ```
 
-- [ ] **Step 7: Run the tests**
+- [x] **Step 7: Run the tests**
 
 Run: `uv run pytest tests/ui/test_slot_access.py tests/ui/test_slot.py tests/ui/test_app_shell.py -v`
 Expected: PASS. Existing tests use `MagicMock` sessions whose `can_access` returns a truthy mock.
 
-- [ ] **Step 8: Commit**
+- [x] **Step 8: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/app/ tests/ui/test_slot_access.py
@@ -776,7 +776,7 @@ git commit -m "feat(access): gate editors at slot admission and rendering"
 
 **Why this is a stronger boundary than the browser side:** an agent's surface is an *enumerated API*. A `view` agent never receives the write tools, so it is not being asked to restrain itself — the surface is absent. `call_tool` re-checks for a client holding a cached list.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/farmhand/test_farmhand_access.py`:
 
@@ -848,12 +848,12 @@ def test_caller_tier_with_no_request_is_admin_when_auth_is_off():
         set_access_resolver(previous)
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/farmhand/test_farmhand_access.py -v`
 Expected: FAIL — `ImportError: cannot import name 'tools_for_tier'`
 
-- [ ] **Step 3: Add the helpers to `host.py`**
+- [x] **Step 3: Add the helpers to `host.py`**
 
 Add at module level in `packages/haywire-studio/src/haywire_studio/farmhand/host.py`:
 
@@ -889,7 +889,7 @@ def caller_tier(request: Any) -> AccessTier:
 
 with `from haywire.core.access import AccessTier, required_access` at the top of the module.
 
-- [ ] **Step 4: Add `_caller_tier` and use it in the handlers**
+- [x] **Step 4: Add `_caller_tier` and use it in the handlers**
 
 Add to `FarmhandHost`:
 
@@ -941,12 +941,12 @@ In `call_tool`, re-check after the tool is resolved and before it runs:
                 )
 ```
 
-- [ ] **Step 5: Run the tests**
+- [x] **Step 5: Run the tests**
 
 Run: `uv run pytest tests/farmhand/ -v`
 Expected: PASS — existing Farmhand tests run with no resolver installed, so `caller_tier` returns ADMIN and every tool stays visible.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/haywire-studio/src/haywire_studio/farmhand/host.py tests/farmhand/test_farmhand_access.py
@@ -966,7 +966,7 @@ git commit -m "feat(access): filter the Farmhand tool list by the caller's tier"
 
 **Rule to apply:** read-only inspection → `VIEW`. Graph and settings mutation → `EDIT`. Anything that writes Python to disk, installs software, or clears the error ledger → `ADMIN`.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/farmhand/test_tool_tiers.py`:
 
@@ -1035,12 +1035,12 @@ def test_no_shipped_tool_is_left_at_the_default_by_accident():
     assert identities, "no farmhand identities discovered — fix the import list in this test"
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/farmhand/test_tool_tiers.py -v`
 Expected: FAIL for the admin tools.
 
-- [ ] **Step 3: Annotate the tools**
+- [x] **Step 3: Annotate the tools**
 
 Work file by file. For each `@farmhand(...)` call, add `access=`:
 
@@ -1072,12 +1072,12 @@ class GraphEditorQueryGraphTool(Farmhand):
     ...
 ```
 
-- [ ] **Step 4: Run it**
+- [x] **Step 4: Run it**
 
 Run: `uv run pytest tests/farmhand/test_tool_tiers.py -v -m integration`
 Expected: PASS.
 
-- [ ] **Step 5: Regenerate library docs — identities changed**
+- [x] **Step 5: Regenerate library docs — identities changed**
 
 ```bash
 uv run haywire docs --all
@@ -1085,7 +1085,7 @@ uv run haywire docs --all
 
 Then check `git status` for changed `OVERVIEW.md` / `QUICKREF.md` files and include them in the commit.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add barn/ tests/farmhand/test_tool_tiers.py
@@ -1096,31 +1096,31 @@ git commit -m "feat(access): declare access tiers on every shipped farmhand tool
 
 ### Task 6: Quality gate
 
-- [ ] **Step 1:** `uv run ruff check . && uv run ruff format --check .`
-- [ ] **Step 2:** full mypy command.
-- [ ] **Step 3:**
+- [x] **Step 1:** `uv run ruff check . && uv run ruff format --check .`
+- [x] **Step 2:** full mypy command.
+- [x] **Step 3:**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/slice4.log 2>&1; echo "exit=$?"
 grep -E "^FAILED|^ERROR" /tmp/slice4.log
 ```
 
-- [ ] **Step 4:** browser tests — slot rendering changed
+- [x] **Step 4:** browser tests — slot rendering changed
 
 ```bash
 uv run pytest tests/ui/harness/ -q > /tmp/slice4-browser.log 2>&1; echo "exit=$?"
 ```
 
-- [ ] **Step 5:** commit fixes.
+- [x] **Step 5:** commit fixes.
 
 ---
 
 ### Task 7 (final): Record delivery and drift
 
-- [ ] **Step 1: Fill in the Drift Log** — one line per deviation, or "No drift." explicitly. Pay particular attention to Task 3 Step 4: `add_binding`'s real signature and return type were read at implementation time, and if they differ from what this plan sketched, that is drift worth recording for Slice 5.
-- [ ] **Step 2: Record in Delivered** the exact helper names Slice 5 uses: `Slot._accessible_bindings`, `Slot._editor_accessible`, `host_rendering._accessible`, `farmhand.host.tools_for_tier` / `caller_tier` — and confirm all four route through Slice 1's `required_access` rather than re-deriving the tier.
-- [ ] **Step 3: Flip `status:` to `implemented`.**
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Fill in the Drift Log** — one line per deviation, or "No drift." explicitly. Pay particular attention to Task 3 Step 4: `add_binding`'s real signature and return type were read at implementation time, and if they differ from what this plan sketched, that is drift worth recording for Slice 5.
+- [x] **Step 2: Record in Delivered** the exact helper names Slice 5 uses: `Slot._accessible_bindings`, `Slot._editor_accessible`, `host_rendering._accessible`, `farmhand.host.tools_for_tier` / `caller_tier` — and confirm all four route through Slice 1's `required_access` rather than re-deriving the tier.
+- [x] **Step 3: Flip `status:` to `implemented`.**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/superpowers/plans/2026-08-15-auth-4-gated-surfaces.md
@@ -1131,8 +1131,139 @@ git commit -m "docs(plan): slice 4 complete — access-gated surfaces"
 
 ## Delivered
 
-*(Filled in by the final task.)*
+Public surface Slice 5 consumes:
+
+```python
+# haywire.ui.panel.identity / haywire.ui.editor.identity / haywire.core.farmhand.identity
+access: AccessTier = AccessTier.VIEW   # on PanelIdentity, EditorIdentity, FarmhandIdentity — NOT BaseIdentity
+
+# haywire.ui.panel.host_rendering
+def visible_panels(panel_classes, context) -> list[type[BasePanel]]: ...   # access-filters, then poll-filters
+def render_panel(panel_cls, context, layout) -> bool: ...                  # refuses a denied panel directly
+def _accessible(panel_cls, ctx) -> bool: ...                               # routes through required_access()
+
+# haywire.ui.app.slot.Slot
+def _editor_accessible(self, editor_cls) -> bool: ...          # routes through required_access()
+def _accessible_bindings(self) -> list[EditorWrapper]: ...     # the one place bar/panel rendering reads
+def add_binding(...) -> Optional[EditorWrapper]: ...           # now Optional — None means access-refused
+
+# haywire_studio.farmhand.host
+def tools_for_tier(tools: dict[str, Any], tier: AccessTier) -> list[str]: ...
+def caller_tier(request: Any) -> AccessTier: ...                # ADMIN when no request/no resolver
+# FarmhandHost._caller_tier(self) -> AccessTier                 # wraps request_context lookup defensively
+```
+
+All four enforcement points (`host_rendering._accessible`, `Slot._editor_accessible`,
+`tools_for_tier`, `caller_tier`) route through Slice 1's `required_access()` for the
+missing-identity-defaults-to-VIEW fallback — none reimplements it. Confirmed by each
+task's review (Tasks 2–4) reading `required_access()` directly rather than trusting a
+report claim.
+
+Every shipped Farmhand tool (40 tools across 12 files in `barn/` — the final
+whole-slice review counted 40 by direct grep of `@farmhand(`; Task 5's own report
+undercounted this as 30, corrected here) now declares a deliberate `access=` tier
+— see Task 5's per-tool table in `.superpowers/sdd/task-5-report.md` in the
+worktree for the full classification and reasoning, including four explicitly
+flagged judgment calls (`haystack_start_graph` kept at EDIT despite
+`destructive_hint=True`; `marketplace_refresh` kept at VIEW despite a disk write;
+`marketplace_dry_run_install` kept at EDIT despite `read_only_hint=True`;
+`haystack_open_graph`/`close_graph` read as session-mutation, not just
+content-mutation). The whole-slice review independently re-verified full 40/40
+coverage and cross-file tier consistency (all list/query/describe/inspect tools
+VIEW everywhere; both Python-writing tools and both venv-mutating tools ADMIN
+everywhere) — no gaps found.
 
 ## Drift Log
 
-*(Filled in by the final task. One line per deviation, or the words "No drift.")*
+- **Task 3 Step 4 (`add_binding`'s real signature):** matched the plan's assumption
+  exactly — `EditorWrapper` (non-Optional) before, correctly widened to
+  `Optional[EditorWrapper]`. No signature adaptation was needed. What *did* drift:
+  the plan's Step 4b named `TabSlot.open_tab` as "the known" external caller to guard —
+  that method does not exist anywhere in the repo (confirmed by grep across
+  `packages/`, `barn/`, `tests/`). The real caller set was 4 sites, all internal to
+  `slot.py` (`populate_from_snapshot` ×2, `reveal()`, and the `CLASS_ADDED` hot-load
+  branch in `_on_lifecycle_events`) — 2 of the 4 were not enumerated anywhere in the
+  plan text and were found only by following the plan's own "grep and guard every
+  real caller" instruction literally. All 4 are now guarded.
+- **Task 3 (test fixture assumption):** the plan's Step 7 assumed existing slot tests
+  use `MagicMock` sessions (truthy `can_access` by default). True for
+  `test_app_shell.py` and most of `test_slot.py`, false for 57 pre-existing tests
+  across `test_slot.py`, `test_slot_icon.py`, `test_slot_tab.py`,
+  `test_slot_on_focus.py`, and `test_editor_wrapper.py`, which used hand-built
+  `SimpleNamespace` session doubles with no `can_access` attribute at all (some with
+  `context=None`). Fixed by adding an allow-all `can_access` stub to each affected
+  fixture — additive only, none of those tests assert anything about access denial,
+  so the real access-control behavior still lives exclusively in the new
+  `test_slot_access.py`.
+- **Task 5 (file list):** the plan's "Files" section named ~4–5 files by explicit
+  path/glob; the real corpus was 12 files (it omitted `barn/haybale-testing/`'s 4
+  farmhand tool files from the top-level list, though Step 3's per-file guidance
+  table did mention it generically as `*.py — VIEW`). 30 tools total were classified,
+  not just the sample the plan's snippet named explicitly.
+- **Task 5 (docs regeneration, Step 5 — human-adjudicated deviation):** `uv run
+  haywire docs --all` produced a 456-file diff that is pre-existing drift unrelated
+  to this task (a registry-id prefix rename `graph_editor:` → `haybale-graph-editor:`
+  plus version-string bumps, applied uniformly repo-wide) — not triggered by the
+  `access=` field addition, since generated OVERVIEW/QUICKREF docs render
+  registry_key/label/description, never the access tier value. Committing it would
+  have buried the actual 190-line tier-declaration diff under unrelated churn. This
+  was surfaced to the human controller mid-execution rather than silently resolved;
+  the human chose to accept the implementer's call (option 1: leave docs-regen out
+  of this task, treat the pre-existing drift as a separate future concern). The
+  drift itself remains unaddressed in the repo — a future task should regenerate
+  and commit it deliberately, on its own.
+- **Task 6 (pre-existing test-isolation bug, found and fixed):** the full
+  non-browser suite (Task 6 Step 3) failed 5 tests
+  (`tests/farmhand/test_bare_studio.py::test_studio_baseline_always_served`,
+  4 tests in `tests/farmhand/test_graph_editor_tools.py`) that passed in isolation.
+  Root cause: `tests/auth/test_app_wiring.py::test_enabled_roster_with_admin_installs_gate_and_returns_true`
+  (a Slice 3 test, unrelated to this slice's diff) calls the real `_install_auth()`,
+  which calls `install_resolver()`, which sets the module-level access-resolver
+  global — and never restored it. This bug predates Slice 4 entirely; it was
+  invisible before because every Farmhand tool defaulted to VIEW regardless of
+  caller tier, so a leaked resolver answering VIEW for unknown principals changed
+  nothing observable. Task 5 giving tools real ADMIN/EDIT tiers made the leak
+  produce visible test failures for the first time. Fixed in commit `532aeb56`
+  with the same autouse snapshot/restore fixture pattern already used in
+  `test_live.py`, `test_resolver.py`, and `test_context_access.py`. Full suite
+  re-confirmed green after the fix: 3809 passed, 0 failed.
+- **Final whole-slice review — one test bug fixed, one design gap deferred by
+  human decision:**
+  1. `tests/farmhand/test_tool_tiers.py`'s `test_write_tools_require_admin` used
+     `any(registry_id in name for name in ADMIN_TOOLS)` (substring containment)
+     instead of `registry_id in ADMIN_TOOLS` (set membership) — inherited verbatim
+     from the plan's own Step 1 snippet. Harmless against the current 40-tool
+     corpus, but would silently pass a mis-tiered future tool whose name happens
+     to be a substring of an admin tool's name (e.g. a `list_library` tool against
+     `install_library`). Two sibling assertions in the same file already use the
+     correct `in` form. **This needs a one-line fix before merge** — tracked as an
+     immediate follow-up, not deferred.
+  2. **Live-demotion gap in `Slot` (deferred to a future design pass, human
+     decision):** the reviewer found that `_accessible_bindings()` correctly stops
+     a denied-tier editor from *rendering* after a live demotion, but three other
+     `_bindings` readers were not moved onto the same gate: `to_snapshot()` (still
+     writes the denied binding's key/binding_id/label into
+     `.haywire/workspace_state.json`), `find_binding()`, and `reveal()`'s
+     already-open branch (`_activate` runs with no access re-check; only survives
+     today because `_ensure_drawn`'s panel-absence check happens to catch it after
+     a fresh redraw — incidental, not enforced). This is real and matches the
+     plan's own stated rationale for the admission+render dual gate ("closes
+     different doors") — the demotion door was left open.
+     On discussion, the human identified the deeper cause: **`WorkspaceManager`
+     (`haywire/core/session/workspace/manager.py`) persists one
+     `.haywire/workspace_state.json` per *project*, not per *principal*.**
+     `populate_from_snapshot` already re-applies the access gate on load (Task 3),
+     so a demoted principal reloading the shared file cannot regain a denied
+     editor that way — but the file itself still carries the denied binding's
+     identifying data for anyone else who reads it, and the in-memory
+     `find_binding()`/`reveal()` reach-around persists until the next full
+     reload. A local patch (routing `to_snapshot`/`find_binding`/`reveal` through
+     `_accessible_bindings()`) would only mask the underlying issue for the
+     currently-connected principal — it would not make workspace state safe to
+     share across principals or across a demote-then-relogin cycle, which is the
+     property that actually matters. Per-principal (or per-principal-tier)
+     workspace-state scoping is the real fix and is out of scope for a
+     surface-gating slice. **Left unfixed in this slice, by explicit human
+     decision** — flagged for a dedicated design pass before Slice 5's roster UI
+     ships, since Slice 5 is exactly where live demotion becomes a normal admin
+     action rather than a theoretical one.

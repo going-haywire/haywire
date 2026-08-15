@@ -5,6 +5,7 @@ EditorIdentity dataclass for the Haywire editor type system.
 from dataclasses import dataclass, field
 from enum import Enum, StrEnum
 
+from haywire.core.access import AccessTier
 from haywire.core.registry.identity import BaseIdentity
 
 
@@ -81,3 +82,4 @@ class EditorIdentity(BaseIdentity):
     default_slot: SlotName = SlotName.EDIT
     opens: OpenBehavior = field(default=OpenBehavior.REQUIRED)
     order: int = 100
+    access: AccessTier = AccessTier.VIEW

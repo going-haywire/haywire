@@ -155,6 +155,19 @@ class ErrorLedgerChanged(Signal):
     cross_session: ClassVar[bool] = True
 
 
+@dataclass(frozen=True)
+class PresenceChanged(Signal):
+    """Who is connected has changed — a session opened or closed.
+
+    Cross-session like :class:`ErrorLogged`: every shell shows the same
+    presence row, so a connect in one tab must refresh the others. Carries no
+    payload; subscribers re-read the live presence rather than trusting a
+    snapshot that may already be stale by the time it is delivered.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
 # ---------------------------------------------------------------------------
 # Imperative commands
 # ---------------------------------------------------------------------------

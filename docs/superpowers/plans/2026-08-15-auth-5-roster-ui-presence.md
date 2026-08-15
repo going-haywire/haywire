@@ -1,5 +1,5 @@
 ---
-status: planned
+status: implemented
 slice: 5 of 6
 feature: studio-authentication
 adr: docs/adr/0027-studio-authentication.md
@@ -1220,8 +1220,163 @@ git commit -m "docs(plan): slice 5 complete — roster UI, account menu, presenc
 
 ## Delivered
 
-*(Filled in by the final task.)*
+Public surface this slice adds:
+
+```python
+# haywire.core.session.signals
+class PresenceChanged(Signal):
+    cross_session: ClassVar[bool] = True   # broadcast on session create/remove
+
+# haywire_studio.auth.presence
+def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]: ...
+# PresenceEntry(name, kind, tier, sessions=0, last_seen_seconds=0.0)
+AGENT_IDLE_TIMEOUT_SECONDS = 300.0
+
+# haywire.barn.builtin.focuses
+class AccountFocus(Focus): ...   # id="account", always available
+
+# haywire.ui.app.account_menu
+class AccountActions(Protocol):
+    def logout(self) -> None: ...
+    def reveal(self, editor_cls: type, binding_id: Any, label: str) -> None: ...
+class AccountMenuProvider(BaseContextMenuProvider):
+    def open(self, pos: tuple[float, float]) -> None: ...
+
+# haywire.ui.app.icon_slot.IconSlot
+def set_footer(self, renderer: Optional[Callable[[], None]]) -> None: ...
+
+# haywire.ui.app.shell
+def identity_text(principal: str | None, tier: AccessTier) -> str: ...
+def last_seen_text(seconds: float) -> str: ...
+
+# haybale_studio.editors.roster_editor
+@editor(access=AccessTier.ADMIN, opens="on_context", default_slot="edit")
+class RosterEditor(BaseEditor): ...
+
+# haybale_studio.panels.account.account
+class LogoutPanel(BasePanel): ...        # access=VIEW, focus=AccountFocus
+class OpenRosterPanel(BasePanel): ...    # access=ADMIN, focus=AccountFocus
+class RotateSecretPanel(BasePanel): ...  # access=ADMIN, focus=AccountFocus
+```
+
+Manually verified end-to-end in a running studio (Playwright, two concurrent
+browser contexts as admin1/viewer1): account icon renders in the ACTION bar
+footer regardless of bound editors; menu entries correctly access-filtered
+per tier (admin sees Manage principals / Sign everyone out / Sign out; view
+sees only Sign out); RosterEditor lists/adds/re-tiers/removes principals;
+StatusBar identity label and TopBar presence chips render and update live
+across sessions on connect/disconnect; live re-tier takes effect without
+re-login; live removal evicts the session (redirected to `/login` on next
+request — an already-open websocket cannot be revoked mid-flight, matching
+the documented eviction model).
 
 ## Drift Log
 
-*(Filled in by the final task. One line per deviation, or the words "No drift.")*
+- **Task 0 (Slice 6 not landed):** `2026-08-15-auth-6-clipboard-secure-context.md`
+  was still `status: planned` at the start of this slice. Per the chain
+  protocol's stated choice, proceeded without it rather than landing an
+  entire separate slice first — the only affected control is the token
+  `code_snippet`'s copy button in `RosterEditor`, which will silently no-op
+  over LAN HTTP (works over localhost and HTTPS) until Slice 6 lands. This
+  matches `.insights/feedback_clipboard_secure_context.md`.
+- **Task 0 (pre-existing per-principal workspace-state gap):** Slice 4's
+  Drift Log flagged that `WorkspaceManager` persists one
+  `.haywire/workspace_state.json` per *project*, not per *principal* — a
+  demoted principal's denied editor bindings can still be read by
+  `find_binding()`/`reveal()`'s already-open branch, or written into the
+  shared snapshot by `to_snapshot()`. That slice deferred the fix to "a
+  dedicated design pass before Slice 5's roster UI ships." This slice adds
+  the roster UI that makes demotion a normal admin action but does **not**
+  fix the underlying gap — it is a `WorkspaceManager` scoping change, not a
+  roster-UI change, and remains open. Recorded again here so it isn't lost.
+- **Task 2 (`hui.icon.logout` does not exist):** the plan's panel snippets
+  use `hui.icon.logout`; `AppIcon` (`haywire/ui/elements/icons.py`) has no
+  `logout` entry. Used the plan's own documented fallback — the raw Material
+  name `"logout"` — in `RotateSecretPanel`/`LogoutPanel`'s `hui.button(...,
+  icon="logout", ...)` calls. `hui.icon.save` (used elsewhere in `shell.py`,
+  unchanged by this slice) does exist and was left as-is.
+- **Task 3 (`shell.py` → `haywire_studio` import direction):** left as a
+  guarded local import (`try/except ImportError` inside `_render_presence`),
+  exactly as the plan's own fallback specified — not a provider-callback
+  seam. The guarded-import version was already under an hour and matches the
+  existing precedent in this same file for optional lower-layer imports;
+  a provider callback would be a larger seam change better done as its own
+  task if the guarded import ever becomes a real pain point.
+- **Task 3 (`IconSlot._render_bar_contents` needed more restructuring than
+  sketched):** the plan's snippet only showed wrapping the existing tab-bar
+  block in `if renderable:` and appending the footer render at the end —
+  which is what was done — but a second, unplanned change was required
+  upstream in `shell.py`: the ACTION slot's construction was previously
+  gated behind `if left_data.get("active_key") or
+  self._editor_registry.get_by_default_slot(SlotName.ACTION):` (no editor →
+  slot never built → footer never rendered). Today nothing registers a
+  default-slot ACTION editor, so a fresh session would never show the
+  account icon at all. Fixed by always building the ACTION `IconSlot` (so
+  its bar — and the footer icon — always renders), but computing its
+  *initial area visibility* from the old condition, so an idle ACTION slot
+  still collapses to zero width instead of reserving empty space. This is a
+  materially different fix than the plan anticipated needing.
+- **Task 4 (`hui.dialog_card()` idiom):** the plan's `_ask_password` snippet
+  used `with hui.dialog_card() as dialog:` alone. The actual API
+  (`elements.py`) requires the outer NiceGUI dialog too:
+  `with ui.dialog() as dialog, hui.dialog_card():`. Fixed to the two-context-
+  manager form; `hui.dialog_actions`/`ui.input(password=True)` matched the
+  plan as written.
+- **Task 4 (registration):** confirmed (rather than assumed) that no
+  `__init__.py` change was needed — `add_folder_to_registry` scans `panels/`
+  and `editors/` recursively (same precedent as the existing
+  `panels/file_browser/menu/` nesting), so `panels/account/account.py` and
+  `editors/roster_editor.py` were picked up by the existing scan calls.
+  Verified via `tests/farmhand/test_bare_studio.py::test_studio_baseline_always_served`
+  (full library load) passing.
+- **Task 5 (manual verification — mostly clean, one CLI gap, one
+  out-of-scope block):** Steps 1–5 all verified via Playwright against a
+  real running studio (screenshots taken, not just tool calls) and matched
+  the plan's expected behavior exactly, including live demotion and live
+  revocation. Two notes:
+  - `haywire user add`/`haywire auth enable` prompt interactively via
+    `getpass` with no non-interactive flag; needed `printf '...\n' | uv run
+    haywire ...` to script. Not a defect, just undocumented for scripted use.
+  - Step 6 (agent presence) could not be verified end-to-end: hitting
+    `/mcp/` with the `builder` agent's own roster token 401'd with
+    "unknown or out-of-scope bearer token" — this is Farmhand's *own*,
+    separate bearer-token check (`FarmhandSettings`/`.haywire/farmhand_token`,
+    predates this slice), not the roster gate. `collect_presence`'s agent
+    path is fully covered by `tests/auth/test_presence.py` (7 of 8 tests
+    exercise the agent branch), so the mechanism is proven; only the live
+    MCP-request → `record_seen()` → chip-renders wire-up went unverified
+    live. Worth a follow-up if Farmhand's own auth model and the roster's
+    agent tokens are ever meant to be the same credential.
+  - Task 5's own manual testing left a `.haywire/farmhand_token` file on
+    disk in this worktree, which broke 3 pre-existing `tests/test_auth_cli.py`
+    tests (an interactive "import this token?" prompt introduced by an
+    earlier slice fired against pytest's captured stdin). Removed the file;
+    all 10 tests pass. Not a code defect — a reminder that manual studio
+    verification in the same worktree as the test suite can leave state
+    that fails unrelated tests, and it's worth checking `git status
+    --ignored` after any manual run before trusting a "tests failed" signal.
+- **Task 6 (docs regeneration deferred, same call as Slice 4):** `uv run
+  haywire docs barn/haybale-studio` (single-library run, since only
+  `haybale-studio` gained components) produced a diff renaming every
+  existing doc file from the `studio.*` prefix to `haybale-studio.*` —
+  confirmed via `git show master:...` that this prefix rename is
+  *pre-existing* drift on `master`, unrelated to this slice, identical in
+  shape to the whole-repo version Slice 4 already flagged and deliberately
+  left uncommitted. Reverted the regeneration entirely rather than commit
+  ~80 renamed/unrelated files alongside 4 genuinely new ones
+  (`RosterEditor`, `LogoutPanel`, `OpenRosterPanel`, `RotateSecretPanel`
+  docs). Docs for the new components are therefore not yet generated on
+  disk — deferred to the same future "regenerate deliberately, on its own"
+  task Slice 4 already called for.
+- **Task 7 (ADR correction):** ADR 0027's "Layering" section originally
+  attributed the account menu itself to `haybale-studio` ("`haybale-studio`
+  — the `RosterEditor` and the account menu"). What this plan specified and
+  what was built puts the menu's *chrome* (`AccountFocus`,
+  `AccountMenuProvider`, footer icon, StatusBar label, TopBar chips) in
+  core and only its *contents* (the three panels + `RosterEditor`) in
+  `haybale-studio` — matching this plan's own stated architecture note and
+  the `project_app_library_dependency_direction` rule that only a library
+  registers components. Corrected the ADR to describe the built (and
+  planned) split precisely.
+- All other files, signatures, and control flow matched the plan as
+  written — no further drift.

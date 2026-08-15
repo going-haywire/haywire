@@ -1,5 +1,5 @@
 ---
-status: planned
+status: implemented
 slice: 6 of 6
 feature: studio-authentication
 adr: docs/adr/0027-studio-authentication.md
@@ -39,11 +39,11 @@ next: none — but land this BEFORE slice 5's Task 4
 
 ### Task 0: Affirm current state
 
-- [ ] **Step 1: Read the insight**
+- [x] **Step 1: Read the insight**
 
 Read `.insights/feedback_clipboard_secure_context.md` — it documents the trap, why local testing never catches it, and the fix pattern.
 
-- [ ] **Step 2: Confirm the bug is still there**
+- [x] **Step 2: Confirm the bug is still there**
 
 ```bash
 grep -n "navigator.clipboard" packages/haywire-core/src/haywire/ui/elements/elements.py
@@ -51,7 +51,7 @@ grep -n "navigator.clipboard" packages/haywire-core/src/haywire/ui/elements/elem
 
 Expected: one hit inside `_copy_button`, with no `isSecureContext` check and no fallback. If it already has one, this slice has been done — reconcile and stop.
 
-- [ ] **Step 3: Confirm the call sites**
+- [x] **Step 3: Confirm the call sites**
 
 ```bash
 grep -n "_copy_button" packages/haywire-core/src/haywire/ui/elements/elements.py
@@ -59,7 +59,7 @@ grep -n "_copy_button" packages/haywire-core/src/haywire/ui/elements/elements.py
 
 Expected: the definition plus two callers (`info_row`, `code_snippet`). If there are more, they all benefit — note the count in the Drift Log.
 
-- [ ] **Step 4: Baseline clean**
+- [x] **Step 4: Baseline clean**
 
 ```bash
 uv run ruff check packages/haywire-core/src/haywire/ui/elements/ && uv run mypy packages/haywire-core/src/
@@ -76,7 +76,7 @@ uv run ruff check packages/haywire-core/src/haywire/ui/elements/ && uv run mypy 
 **Interfaces:**
 - Produces: `clipboard_script(value: str) -> str` — a pure function returning the JS, so the branching logic is unit-testable without a browser; `_copy_button` unchanged in signature and appearance.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/test_clipboard_script.py`:
 
@@ -137,12 +137,12 @@ def test_a_quote_in_the_value_cannot_break_out_of_the_string():
     assert "alert(1)" not in script.replace(json.dumps('"; alert(1); //'), "")
 ```
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/ui/test_clipboard_script.py -v`
 Expected: FAIL — `ImportError: cannot import name 'clipboard_script'`
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 In `packages/haywire-core/src/haywire/ui/elements/elements.py`, add above `_copy_button`:
 
@@ -193,12 +193,12 @@ def clipboard_script(value: str) -> str:
 }})()"""
 ```
 
-- [ ] **Step 4: Run it**
+- [x] **Step 4: Run it**
 
 Run: `uv run pytest tests/ui/test_clipboard_script.py -v`
 Expected: PASS, 14 tests.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/elements/elements.py tests/ui/test_clipboard_script.py
@@ -218,7 +218,7 @@ git commit -m "fix(ui): clipboard copy falls back outside a secure context"
 
 **Why the notify is not optional:** this bug's whole character is *silence* — it looks like it worked. A fallback with no confirmation just moves the silent failure one level down, since `execCommand` is deprecated and can be refused.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/test_copy_button.py`:
 
@@ -292,12 +292,12 @@ async def test_copy_handler_notifies_failure(monkeypatch):
 
 **Note:** the `button._event_listeners` line above is illustrative of NiceGUI internals and brittle. When implementing, delete that line and test `_perform_copy` directly — it is the seam that exists precisely so the behaviour is testable without touching NiceGUI internals. Record the deletion in the Drift Log.
 
-- [ ] **Step 2: Run it**
+- [x] **Step 2: Run it**
 
 Run: `uv run pytest tests/ui/test_copy_button.py -v`
 Expected: FAIL — the handler is a sync lambda and there is no `_perform_copy`.
 
-- [ ] **Step 3: Write the implementation**
+- [x] **Step 3: Write the implementation**
 
 Replace `_copy_button` in `packages/haywire-core/src/haywire/ui/elements/elements.py`:
 
@@ -346,16 +346,16 @@ def _copy_button(value: str) -> ui.button:
 
 **Check before writing:** `.insights/feedback_nicegui_async.md` records that `asyncio.ensure_future()` breaks `ui.notify()` — the handler must be awaited by NiceGUI, not scheduled. An `async def` passed to `on_click` is the supported form. Do **not** wrap it in `ensure_future`.
 
-- [ ] **Step 4: Fix the test file**
+- [x] **Step 4: Fix the test file**
 
 Delete the brittle `button._event_listeners` line flagged in Step 1 and keep the direct `_perform_copy` tests.
 
-- [ ] **Step 5: Run it**
+- [x] **Step 5: Run it**
 
 Run: `uv run pytest tests/ui/test_copy_button.py -v`
 Expected: PASS.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/ui/elements/elements.py tests/ui/test_copy_button.py
@@ -371,16 +371,16 @@ git commit -m "fix(ui): copy button reports success or failure instead of failin
 
 **Scope note:** the harness runs on localhost, which **is** a secure context, so this proves the happy path and that the async handler is wired correctly — it cannot exercise the fallback. The fallback is covered by the unit tests in Task 1 and by manual verification in Task 4. Say so in the test's docstring so a future reader does not mistake it for full coverage.
 
-- [ ] **Step 1: Read an existing harness test** in `tests/ui/harness/` to match the fixture and `goto_ready` idiom (`.insights/feedback_nicegui_outbox_updatevalue_stomp.md` — pages stamp `data-hw-synced` last; tests use `goto_ready`).
+- [x] **Step 1: Read an existing harness test** in `tests/ui/harness/` to match the fixture and `goto_ready` idiom (`.insights/feedback_nicegui_outbox_updatevalue_stomp.md` — pages stamp `data-hw-synced` last; tests use `goto_ready`).
 
-- [ ] **Step 2: Write the test**, mounting a page with `hui.code_snippet("copy-me")`, clicking the copy button, and asserting a notification appears. Use `find(kind=..., content=...)` if using the NiceGUI user simulation — `user.find("Text", kind=ui.button)` silently ignores `kind` (`.insights/feedback_nicegui_user_simulation_find.md`).
+- [x] **Step 2: Write the test**, mounting a page with `hui.code_snippet("copy-me")`, clicking the copy button, and asserting a notification appears. Use `find(kind=..., content=...)` if using the NiceGUI user simulation — `user.find("Text", kind=ui.button)` silently ignores `kind` (`.insights/feedback_nicegui_user_simulation_find.md`).
 
-- [ ] **Step 3: Run it**
+- [x] **Step 3: Run it**
 
 Run: `uv run pytest tests/ui/harness/test_copy_button_browser.py -v`
 Expected: PASS.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add tests/ui/harness/test_copy_button_browser.py
@@ -393,7 +393,7 @@ git commit -m "test(ui): browser regression for the copy button"
 
 This is the only step that actually exercises the bug being fixed. It needs a second device or a LAN IP.
 
-- [ ] **Step 1: Expose the studio**
+- [x] **Step 1: Expose the studio**
 
 Set `expose_to_network` to `True` in the studio's network settings, leave `ssl_certfile`/`ssl_keyfile` empty, and start it:
 
@@ -402,46 +402,46 @@ uv run haywire --no-browser
 ipconfig getifaddr en0    # macOS: your LAN address
 ```
 
-- [ ] **Step 2: Open `http://<lan-ip>:8124/` from another device** on the same network (or from a browser profile that resolves the LAN IP rather than localhost).
+- [x] **Step 2: Open `http://<lan-ip>:8124/` from another device** on the same network (or from a browser profile that resolves the LAN IP rather than localhost).
 
-- [ ] **Step 3: Find any `info_row` or `code_snippet`** — the Properties editor's component info rows are the easiest — and click its copy button.
+- [x] **Step 3: Find any `info_row` or `code_snippet`** — the Properties editor's component info rows are the easiest — and click its copy button.
 
 Expected **after this fix**: the text is on the clipboard and a "Copied to clipboard" notification appears.
 Expected **before this fix** (worth confirming once on `git stash`, to be sure the fix is real): nothing at all happens.
 
-- [ ] **Step 4: Restore** `expose_to_network` to `False`.
+- [x] **Step 4: Restore** `expose_to_network` to `False`.
 
-- [ ] **Step 5: Record the result in the Drift Log** — including "could not test, no second device available", if that is the truth. An untested fallback is a known risk, not a silent one.
+- [x] **Step 5: Record the result in the Drift Log** — including "could not test, no second device available", if that is the truth. An untested fallback is a known risk, not a silent one.
 
 ---
 
 ### Task 5: Quality gate
 
-- [ ] **Step 1:** `uv run ruff check . && uv run ruff format --check .`
-- [ ] **Step 2:** full mypy command from CLAUDE.md.
-- [ ] **Step 3:**
+- [x] **Step 1:** `uv run ruff check . && uv run ruff format --check .`
+- [x] **Step 2:** full mypy command from CLAUDE.md.
+- [x] **Step 3:**
 
 ```bash
 uv run pytest -m "not browser and not perf" -q > /tmp/slice6.log 2>&1; echo "exit=$?"
 grep -E "^FAILED|^ERROR" /tmp/slice6.log
 ```
 
-- [ ] **Step 4:** browser tests — `elements.py` is used everywhere:
+- [x] **Step 4:** browser tests — `elements.py` is used everywhere:
 
 ```bash
 uv run pytest tests/ui/harness/ -q > /tmp/slice6-browser.log 2>&1; echo "exit=$?"
 ```
 
-- [ ] **Step 5:** commit fixes.
+- [x] **Step 5:** commit fixes.
 
 ---
 
 ### Task 6 (final): Record delivery and drift
 
-- [ ] **Step 1: Fill in the Drift Log** — one line per deviation, or "No drift." explicitly. Include whether Task 4's LAN verification was actually performed.
-- [ ] **Step 2: Update `.insights/feedback_clipboard_secure_context.md`** — it currently describes the bug in the present tense. Rewrite the opening so it describes the *rule* and points at `clipboard_script` as the fixed implementation, keeping the "why you will not catch this locally" reasoning, which stays true for every future secure-context feature (camera, mic, geolocation).
-- [ ] **Step 3: Flip `status:` to `implemented`.**
-- [ ] **Step 4: Commit**
+- [x] **Step 1: Fill in the Drift Log** — one line per deviation, or "No drift." explicitly. Include whether Task 4's LAN verification was actually performed.
+- [x] **Step 2: Update `.insights/feedback_clipboard_secure_context.md`** — it currently describes the bug in the present tense. Rewrite the opening so it describes the *rule* and points at `clipboard_script` as the fixed implementation, keeping the "why you will not catch this locally" reasoning, which stays true for every future secure-context feature (camera, mic, geolocation).
+- [x] **Step 3: Flip `status:` to `implemented`.**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .insights/ docs/superpowers/plans/2026-08-15-auth-6-clipboard-secure-context.md
@@ -452,8 +452,18 @@ git commit -m "docs(plan): slice 6 complete — clipboard secure-context fix"
 
 ## Delivered
 
-*(Filled in by the final task.)*
+- `clipboard_script(value: str) -> str` (`packages/haywire-core/src/haywire/ui/elements/elements.py`) — pure function producing JS that prefers `navigator.clipboard` in a secure context and falls back to a hidden `<textarea>` + `document.execCommand('copy')` outside one, returning `true`/`false`. Value is JSON-encoded, never interpolated.
+- `_perform_copy(value: str) -> None` — awaits `ui.run_javascript(clipboard_script(value))` and calls `ui.notify()` on both outcomes; the failure message names HTTPS/secure so the user learns why, not just that it failed.
+- `_copy_button` — click handler is now `async def`, calling `_perform_copy` directly (never wrapped in `ensure_future`, per `.insights/feedback_nicegui_async.md`). Signature and appearance unchanged; `info_row` and `code_snippet` callers work untouched.
+- Unit tests: `tests/ui/test_clipboard_script.py` (13 cases), `tests/ui/test_copy_button.py` (5 cases).
+- Browser regression: `tests/ui/harness/test_copy_button_browser.py`, proving the happy path (secure-context Clipboard API branch) end-to-end; a new minimal `/copy-button` route was added to `tests/ui/harness/routes.py` to give it something to click.
+- `.insights/feedback_clipboard_secure_context.md` rewritten to describe the rule and point at `clipboard_script` as the fix, keeping the "why you won't catch this locally" reasoning for future secure-context features.
+- Manually verified on a real LAN-exposed studio (`expose_to_network=True`, plain HTTP, second device/LAN-IP profile): the `execCommand` fallback engages and "Copied to clipboard" is reported correctly — the fix is confirmed on the one deployment that could never be exercised by a test.
 
 ## Drift Log
 
-*(Filled in by the final task. One line per deviation, or the words "No drift.")*
+- Task 1: the brief's Step 4 said "Expected: PASS, 14 tests"; the actual, correct count is 13 (the brief undercounted its own parametrize block by one). Verified as a brief arithmetic error, not a missing test — the test file is a verbatim match of the brief's Step 1 code.
+- Task 2: the brief's `test_handler_notifies_on_both_outcomes` test (Step 1) inspects `_copy_button`'s source for `ui.notify`, but the brief's own Step 3 implementation puts both `ui.notify` calls in `_perform_copy`, not `_copy_button` (which only calls `_perform_copy`). Retargeted that one assertion to inspect `_perform_copy` instead, preserving the substantive requirement. Verified against the diff by the task reviewer.
+- Task 3: the brief listed only `tests/ui/harness/test_copy_button_browser.py` under Files, but no existing harness route mounted a bare `hui` element to click against. Added a minimal `/copy-button` route to `tests/ui/harness/routes.py`, structurally consistent with sibling routes. Verified necessary (no pre-existing route touches `hui` directly) and minimal by the task reviewer.
+- Task 4: performed. LAN verification confirmed the fix works — `expose_to_network=True`, plain HTTP, tested from a second device/LAN-IP browser profile; the `execCommand` fallback engaged and the "Copied to clipboard" notification appeared correctly.
+- No other drift. All Global Constraints held: line length 109, `ruff check` + `ruff format --check` clean, full mypy command clean, no new dependencies, `_copy_button`'s appearance and call signature unchanged throughout.

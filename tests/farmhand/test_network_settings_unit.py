@@ -121,6 +121,8 @@ def test_field_declaration_order_advanced_last_and_contiguous():
         "allowed_remote_ranges",
         "public_hostname",
         "trusted_proxies",
+        "ssl_certfile",
+        "ssl_keyfile",
     ]
 
 
@@ -130,4 +132,9 @@ def test_restrict_to_loopback_removed_from_network_settings():
 
 def test_expose_to_network_default_is_false():
     assert NetworkSettings.__dict__["expose_to_network"]._default is False
-    
+
+
+def test_tls_settings_default_to_empty():
+    settings = NetworkSettings()
+    assert settings.ssl_certfile == ""
+    assert settings.ssl_keyfile == ""

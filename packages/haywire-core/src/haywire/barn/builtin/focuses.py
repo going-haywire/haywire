@@ -35,3 +35,22 @@ class CanvasFocus(Focus):
     @classmethod
     def available(cls, ctx: SessionContext) -> bool:
         return True
+
+
+class AccountFocus(Focus):
+    """The account menu behind the ``account_circle`` icon in the ACTION bar footer.
+
+    Always available — the menu itself is access-filtered by
+    ``visible_panels()``, and ``_open_menu`` refuses to open when nothing is
+    visible. So a principal with no entries simply gets no menu, with no
+    special case here.
+    """
+
+    id = "account"
+    label = "Account"
+    icon = "account_circle"
+    order = 10
+
+    @classmethod
+    def available(cls, ctx: SessionContext) -> bool:
+        return True

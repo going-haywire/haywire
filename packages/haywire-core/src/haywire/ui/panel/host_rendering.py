@@ -25,6 +25,7 @@ import logging
 from functools import partial
 from typing import TYPE_CHECKING, Any, Callable
 
+from haywire.core.access import required_access
 from haywire.core.errors.haywire_exception import HaywireException
 from haywire.ui import elements as hui
 
@@ -68,6 +69,20 @@ def _panel_name(panel_cls: type["BasePanel"]) -> str:
     return getattr(panel_cls, "__name__", repr(panel_cls))
 
 
+def _accessible(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
+    """Whether ``ctx``'s principal may see this panel at all.
+
+    Checked *before* poll(), deliberately: a denied panel's poll() may read
+    state the principal has no business touching, and running it would be doing
+    work on behalf of someone not allowed to see the result.
+
+    The missing-identity fallback lives in ``required_access`` (Slice 1), shared
+    with the editor and Farmhand gates so all three cannot disagree about the
+    rule.
+    """
+    return bool(ctx.can_access(required_access(panel_cls)))
+
+
 def _poll_panel(panel_cls: type["BasePanel"], ctx: "SessionContext") -> bool:
     """Poll a single panel for visibility under the error boundary.
 
@@ -89,12 +104,14 @@ def visible_panels(
 ) -> list[type["BasePanel"]]:
     """Poll-filter ``panel_classes`` down to the panels to show, in order.
 
-    The single visibility gate shared by both hosts. A panel whose poll()
-    returns ``False`` — or raises — is dropped (raises are logged via the
-    error boundary). Hosts use this to decide what to mount, and the
-    context-menu host to decide whether to open at all.
+    The single visibility gate shared by all three hosts (PropertiesEditor, the
+    context-menu provider, the selection toolbar). A panel is dropped when its
+    ``access=`` tier is above the principal's, or when its poll() returns
+    ``False`` — or raises, which is logged via the error boundary.
+
+    Access is checked first, so a denied panel's poll() never runs.
     """
-    return [cls for cls in panel_classes if _poll_panel(cls, context)]
+    return [cls for cls in panel_classes if _accessible(cls, context) and _poll_panel(cls, context)]
 
 
 def render_panel(
@@ -116,6 +133,12 @@ def render_panel(
     Callers poll-filter first via :func:`visible_panels`, so this assumes the
     panel is already known visible.
     """
+
+    # Callers are expected to poll-filter through visible_panels() first, but
+    # this is public API and a new host can reach it directly. Refusing here
+    # makes the access rule a fact rather than a docstring request.
+    if not _accessible(panel_cls, context):
+        return False
 
     def _draw() -> None:
         instance = panel_cls()

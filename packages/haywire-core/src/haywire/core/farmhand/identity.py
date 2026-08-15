@@ -5,6 +5,7 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 
+from haywire.core.access import AccessTier
 from haywire.core.registry.identity import BaseIdentity
 
 
@@ -40,4 +41,5 @@ class FarmhandIdentity(BaseIdentity):
     """
 
     annotations: ToolAnnotations = field(default_factory=ToolAnnotations)
+    access: AccessTier = AccessTier.VIEW
     instructions: str = field(kw_only=True)

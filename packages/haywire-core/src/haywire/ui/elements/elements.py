@@ -988,13 +988,89 @@ def dialog_actions(
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def _copy_button(value: str) -> ui.button:
-    """Small copy-to-clipboard button used internally by info_row and code_block."""
-    return (
-        ui.button(
-            icon=AppIcon.copy,
-            on_click=lambda _v=value: ui.run_javascript(f"navigator.clipboard.writeText({_json.dumps(_v)})"),
+def clipboard_script(value: str) -> str:
+    """JS that copies ``value``, returning ``true`` on success.
+
+    ``navigator.clipboard`` is restricted to **secure contexts**. ``localhost``
+    and ``127.0.0.1`` qualify even over plain ``http://``; a LAN address does
+    not. So on a studio reached at ``http://192.168.1.5:8124`` — the exposed
+    deployment, the one where copying an agent token actually matters — the
+    Clipboard API is ``undefined``, the click throws inside the browser, and
+    the user sees no copy, no error and no log line.
+
+    You will not catch this locally: ``uv run haywire`` binds 127.0.0.1,
+    ``ui.run(show=True)`` opens ``localhost``, and the Playwright harness drives
+    localhost too. Every development path is a secure context.
+
+    The fallback is a hidden ``<textarea>`` plus ``document.execCommand('copy')``,
+    which still works outside a secure context. It is deprecated and can itself
+    be refused, which is why this returns a boolean rather than assuming success
+    — see :func:`_perform_copy`, which reports the result.
+
+    The value is JSON-encoded, never interpolated: it may be a token, a
+    filesystem path, or arbitrary source text containing quotes and newlines.
+    """
+    encoded = _json.dumps(value)
+    return f"""(function () {{
+    const text = {encoded};
+    if (navigator.clipboard && window.isSecureContext) {{
+        navigator.clipboard.writeText(text);
+        return true;
+    }}
+    try {{
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.top = '-1000px';
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        return ok;
+    }} catch (error) {{
+        return false;
+    }}
+}})()"""
+
+
+async def _perform_copy(value: str) -> None:
+    """Run the clipboard script and tell the user what happened.
+
+    Separate from the button so the outcome handling is testable without
+    driving a browser — and because the failure path is the one that matters
+    and is the hardest to reach in a test environment (every local run is a
+    secure context).
+    """
+    try:
+        copied = await ui.run_javascript(clipboard_script(value))
+    except Exception:
+        copied = False
+
+    if copied:
+        ui.notify("Copied to clipboard")
+    else:
+        ui.notify(
+            "Could not copy — your browser blocks clipboard access on this "
+            "connection. Select the text and copy it manually, or serve the "
+            "studio over HTTPS.",
+            type="negative",
         )
+
+
+def _copy_button(value: str) -> ui.button:
+    """Small copy-to-clipboard button used internally by info_row and code_snippet.
+
+    The click handler is async and awaits the result: a silent no-op is this
+    feature's known failure mode outside a secure context (see
+    ``clipboard_script``), so the outcome is always reported.
+    """
+
+    async def _on_click(_event=None, _value: str = value) -> None:
+        await _perform_copy(_value)
+
+    return (
+        ui.button(icon=AppIcon.copy, on_click=_on_click)
         .props("flat round dense size=xs")
         .tooltip("Copy to clipboard")
     )

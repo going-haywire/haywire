@@ -3,6 +3,7 @@
 import asyncio
 import threading
 
+from haywire.core.access import AccessTier
 from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
 
 
@@ -14,6 +15,7 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, fa
     "real capability.",
     registry_id="affinity",
     annotations=ToolAnnotations(read_only_hint=True),
+    access=AccessTier.VIEW,
 )
 class AffinityTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:

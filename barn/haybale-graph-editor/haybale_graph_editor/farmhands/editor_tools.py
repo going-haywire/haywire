@@ -15,6 +15,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from haywire.core.access import AccessTier
 from haywire.core.farmhand import (
     Farmhand,
     FarmhandContext,
@@ -508,6 +509,7 @@ def _edge_row(edge, detail: bool = False) -> dict:
     ),
     registry_id="query_graph",
     annotations=_READ_ONLY,
+    access=AccessTier.VIEW,
 )
 class GraphEditorQueryGraphTool(Farmhand):
     async def run(
@@ -595,6 +597,7 @@ _DIRECTIONS = ("inlet", "outlet", "config")
     "silently by the framework; set_property verifies the write and reports the rejection.",
     registry_id="inspect_node",
     annotations=_READ_ONLY,
+    access=AccessTier.VIEW,
 )
 class GraphEditorInspectNodeTool(Farmhand):
     input_schema_override = {
@@ -763,6 +766,7 @@ class GraphEditorInspectNodeTool(Farmhand):
     "node's ports/settings before wiring or setting them.",
     registry_id="add_node",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorAddNodeTool(Farmhand):
     async def run(
@@ -804,6 +808,7 @@ class GraphEditorAddNodeTool(Farmhand):
     "connect_failed. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="connect",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorConnectTool(Farmhand):
     async def run(
@@ -854,6 +859,7 @@ class GraphEditorConnectTool(Farmhand):
     "own edges. Opens one undo fence and broadcasts to open studio UIs on success.",
     registry_id="remove_elements",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorRemoveElementsTool(Farmhand):
     async def run(
@@ -889,6 +895,7 @@ class GraphEditorRemoveElementsTool(Farmhand):
     "fence and broadcasts to open studio UIs on success.",
     registry_id="move_nodes",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorMoveNodesTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, positions: dict) -> dict:
@@ -929,6 +936,7 @@ def _read_property(node, name: str):
     "succeeds, so respect the bounds inspect_node reports.",
     registry_id="set_property",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorSetPropertyTool(Farmhand):
     async def run(
@@ -978,6 +986,7 @@ class GraphEditorSetPropertyTool(Farmhand):
     "join the undo timeline (UI parity gap, tracked for later work).",
     registry_id="promote_setting",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorPromoteSettingTool(Farmhand):
     async def run(
@@ -1017,6 +1026,7 @@ class GraphEditorPromoteSettingTool(Farmhand):
     "removed along with it. Broadcasts to open studio UIs on success.",
     registry_id="demote_setting",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorDemoteSettingTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str, node_id: str, port_id: str) -> dict:
@@ -1036,6 +1046,7 @@ class GraphEditorDemoteSettingTool(Farmhand):
     "Broadcasts to open studio UIs only when a change was actually undone.",
     registry_id="undo",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorUndoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:
@@ -1058,6 +1069,7 @@ class GraphEditorUndoTool(Farmhand):
     "UIs only when a change was actually redone.",
     registry_id="redo",
     annotations=_MUTATING,
+    access=AccessTier.EDIT,
 )
 class GraphEditorRedoTool(Farmhand):
     async def run(self, ctx: FarmhandContext, binding_id: str) -> dict:

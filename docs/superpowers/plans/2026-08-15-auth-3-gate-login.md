@@ -1,5 +1,5 @@
 ---
-status: planned
+status: implemented
 slice: 3 of 6
 feature: studio-authentication
 adr: docs/adr/0027-studio-authentication.md
@@ -1800,8 +1800,145 @@ git commit -m "docs(plan): slice 3 complete — gate and login"
 
 ## Delivered
 
-*(Filled in by the final task.)*
+Public surface Slice 4 consumes:
+
+```python
+# haywire_studio.auth.cookies
+COOKIE_NAME = "haywire_session"
+def secret_path() -> Path: ...
+def load_or_create_secret(path: Path | None = None) -> bytes: ...
+def rotate_secret(path: Path | None = None) -> bytes: ...
+def sign_session(principal: str, *, secret: bytes, days: int, now: float | None = None) -> str: ...
+def verify_session(token: str, *, secret: bytes, now: float | None = None) -> str | None: ...
+
+# haywire_studio.auth.gate
+EXEMPT_PATHS: frozenset[str]          # {"/login"}
+PRINCIPAL_SCOPE_KEY = "haywire_principal"
+
+class AuthGateMiddleware:
+    def __init__(self, app, *, cache: RosterCache, secret: bytes, workspace_root: str = "") -> None: ...
+    async def __call__(self, scope, receive, send) -> None: ...
+
+def last_seen() -> dict[str, float]: ...
+def record_seen(name: str) -> None: ...
+
+# haywire_studio.auth.login
+LOGIN_FAILURE_DELAY_SECONDS = 1.0
+def login_page_html(error: str = "") -> str: ...
+def register_login_routes(*, cache: RosterCache, secret: bytes, app=None) -> None: ...
+# ^ registers GET/POST /login AND POST /logout. /logout is deliberately NOT
+# in gate.EXEMPT_PATHS — logging out still requires a valid existing session.
+
+# haywire_studio.auth.eviction
+def evict_principal(session_manager, name: str) -> int: ...
+def evict_all(session_manager) -> int: ...
+
+# haywire_studio.network.settings.NetworkSettings
+ssl_certfile = setting[STRING]("")   # category="advanced"
+ssl_keyfile = setting[STRING]("")    # category="advanced"
+
+# haywire_studio.app.HaywireApp
+def _install_auth(self) -> bool: ...   # installs gate/routes/resolver iff roster.enabled; sets self._auth_cache
+```
+
+**`ctx.principal` is populated.** `HaywireApp.create_ui()`'s `main_page(request: Request)`
+sets `haywire_session.context.principal = request.scope.get(PRINCIPAL_SCOPE_KEY)`
+right after session creation — `None` when auth is off (resolves to ADMIN via
+the Slice 1 resolver default), the authenticated principal's name otherwise.
+
+**`_install_auth()` is called from `HaywireApp.run()`** before
+`setup_farmhand()`, so the gate covers `/mcp` too. `_ssl_kwargs()` (module-level
+in `app.py`) and `_origin_scheme(*, tls: bool)` (module-level in
+`farmhand/host.py`) handle TLS passthrough; `FarmhandHost.mount()` gained a
+keyword-only `tls: bool = False` parameter.
+
+Test counts (all green): cookies 19, gate 19, login 9, eviction 5, network
+settings +1 (22 total in that file), app wiring 9, end-to-end 4 — 65 new
+tests for this slice; full repo gate `pytest -m "not browser and not perf"`
+— 3774 passed, 68 deselected, 2 xfailed; browser suite (`tests/ui/harness/`)
+— 61 passed, confirming no regression from the `main_page(request: Request)`
+signature change.
 
 ## Drift Log
 
-*(Filled in by the final task. One line per deviation, or the words "No drift.")*
+- **Task 3:** the implementer subagent hit the account's monthly spend limit
+  mid-task, after creating `tests/auth/test_login.py` but before creating
+  `login.py`. The controlling session verified the partial test file matched
+  the brief exactly and completed the remaining steps directly. No code or
+  spec impact — purely an execution/operational interruption.
+- **Task 6 review found two Important, plan-mandated defects in the brief's
+  own reference code for `_install_auth`, both fixed:**
+  1. The `except RosterError: raise SystemExit(1)` branch around
+     `cache.roster()` was dead code — `RosterCache.roster()` (Slice 2)
+     swallows `RosterError` internally and never re-raises, by design (it
+     keeps serving the last-good roster once the studio is running). Fixed
+     by calling `load_roster(cache.path)` directly first (which does raise
+     on a corrupt/unreadable/version-mismatched file) to get a real
+     fail-loud check on the first-ever startup read, then using
+     `cache.roster()` afterward for the actual value.
+  2. `_install_auth()`'s enabled-path (admin present → gate installed;
+     admin absent → `SystemExit`) had zero direct test coverage — the
+     `enabled`/`disabled` fixtures in the brief's own `test_app_wiring.py`
+     were defined but never referenced by any test. Added 4 tests exercising
+     `_install_auth` directly via `HaywireApp.__new__(HaywireApp)` against a
+     `Path.home()`-redirected temp roster.
+  Both fixes were re-reviewed and confirmed closed with no new issues.
+- **Task 7:** running the full CLAUDE.md mypy command (which includes
+  `tests/`) for the first time in this slice surfaced 6 pre-existing errors
+  that no earlier task's narrower `mypy packages/haywire-studio/src/`
+  invocation had caught: `_Recorder.scope` in `test_gate.py` (Task 2's own
+  verbatim brief code) needed an explicit `dict | None` annotation plus
+  `assert ... is not None` before two indexing uses; the 4 `_install_auth`
+  tests added during the Task 6 fix used an untyped `SimpleNamespace` as a
+  fake `self`, which mypy correctly rejected against `_install_auth`'s real
+  instance-method signature — switched to `HaywireApp.__new__(HaywireApp)`,
+  matching the existing precedent in `test_ip_allowlist_wiring.py`. Neither
+  fix changed any test's assertions; both were verified as pre-existing
+  (not introduced by Task 7's own diff) and reviewed clean.
+- **Task 8 (manual verification), performed by the human operator against a
+  real machine, not from a fresh/loopback-only environment:** the operator's
+  `NetworkSettings.expose_to_network` was already `True` locally, so both the
+  auth-off and auth-on runs additionally printed the `expose_to_network`
+  warnings (`trusted_proxies` empty, plain-HTTP-beyond-loopback) — expected
+  given that pre-existing local setting, not a defect in this slice. The
+  auth-on run's rejected-bearer-token log lines came from the operator's
+  Farmhand agent token being presented to the studio from a *different*
+  workspace (`testbed`) than the one it was scoped to
+  (`.worktrees/auth-1-core-access`) — this is `AuthGateMiddleware`'s
+  workspace-scoping behavior (Task 2) working as designed, not a bug; the
+  operator did not separately re-run the plan's literal `curl -w
+  "%{http_code}"` sequence for Step 2, but did confirm the gate's JSON
+  `{"error": "unauthorized"}` 401 response body directly, and confirmed the
+  full browser login flow (login page → sign in → interactive studio) and
+  `auth disable` restoring the machine.
+- **Final whole-branch review (Opus, empirical — live ASGI probes, not just
+  static reading) found the security core sound: no path-traversal bypass of
+  `EXEMPT_PATHS`, no credential-parsing path can 500, cookie signing meets
+  every stated invariant, revocation is immediate (no stale-cache window),
+  TLS fails loudly on a half-configured pair.** It found and this session
+  fixed two Important availability bugs in `gate.py` (both fail-closed, not
+  auth bypasses — an attacker gains nothing, but a legitimate user could be
+  spuriously logged out):
+  1. `_header()` returned only the first matching header, so a `Cookie`
+     header split across multiple lines (HTTP/2 permits this per RFC 9113
+     §8.2.3; some proxies do the same) silently lost the session cookie.
+     Fixed with a new `_cookie_header()` that joins every `cookie` header
+     line before parsing. Covered by
+     `test_session_cookie_is_found_across_multiple_cookie_headers`.
+  2. A present-but-invalid bearer token short-circuited `_resolve_principal`
+     before it ever checked the cookie, so a stray/expired `Authorization`
+     header could lock out an otherwise-valid session cookie. Fixed so a bad
+     bearer token only hard-rejects when there is no cookie to fall back to;
+     with a cookie present, the cookie decides. Covered by
+     `test_bad_bearer_token_falls_back_to_a_valid_cookie` and
+     `test_bad_bearer_token_with_no_cookie_is_still_rejected` (the latter
+     confirms the original `test_unknown_bearer_token_is_rejected` semantics
+     — no cookie, bad token, still 401 — are unchanged).
+  Also flagged, deliberately left for a later slice rather than built now:
+  `_LAST_SEEN` (gate.py) never prunes a removed principal's entry — cosmetic
+  today, becomes visible once Slice 5 renders it as presence UI; that slice
+  should have `evict_principal` (or its own presence read) drop the stale
+  key. `/logout`'s registration was undocumented in this plan's Delivered
+  section — added above. No CSRF token on `POST /login` was flagged and
+  accepted as-is: `SameSite=Lax` covers the practical threat, and ADR 0027's
+  stated model ("tiers guard ignorance not malice") does not warrant more.

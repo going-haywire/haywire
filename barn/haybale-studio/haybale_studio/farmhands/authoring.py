@@ -12,6 +12,7 @@ from __future__ import annotations
 import inspect
 from pathlib import Path
 
+from haywire.core.access import AccessTier
 from haywire.core.docs.canons import canon_uri
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.farmhand import (
@@ -73,6 +74,7 @@ def _template(kind: str, name: str) -> str:
     "via the farmhand://docs/_manifest index (e.g. components/nodes/node-canon.md).",
     registry_id="scaffold_component",
     annotations=ToolAnnotations(),
+    access=AccessTier.ADMIN,
 )
 class StudioScaffoldComponentTool(Farmhand):
     async def run(self, ctx: FarmhandContext, kind: str, name: str, library: str | None = None) -> dict:
@@ -118,6 +120,7 @@ numbering stays absolute, so a windowed read can be cited and edited directly.""
     "for the entire file. Truncated results say so in the summary and report total_lines.",
     registry_id="read_component_source",
     annotations=ToolAnnotations(read_only_hint=True),
+    access=AccessTier.VIEW,
 )
 class StudioReadComponentSourceTool(Farmhand):
     async def run(
@@ -163,6 +166,7 @@ class StudioReadComponentSourceTool(Farmhand):
     "hot-reloaded by the file watcher; follow with studio_verify_component.",
     registry_id="write_component_source",
     annotations=ToolAnnotations(destructive_hint=True),
+    access=AccessTier.ADMIN,
 )
 class StudioWriteComponentSourceTool(Farmhand):
     async def run(
@@ -212,6 +216,7 @@ class StudioWriteComponentSourceTool(Farmhand):
     "error-ledger entries from the failing stage are attached.",
     registry_id="verify_component",
     annotations=ToolAnnotations(read_only_hint=True),
+    access=AccessTier.VIEW,
 )
 class StudioVerifyComponentTool(Farmhand):
     async def run(self, ctx: FarmhandContext, registry_key: str) -> dict:

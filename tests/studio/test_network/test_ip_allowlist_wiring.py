@@ -27,12 +27,16 @@ def _settings(
     allowed_remote_ranges: str = "",
     trusted_proxies: str = "",
     port: int = 8124,
+    ssl_certfile: str = "",
+    ssl_keyfile: str = "",
 ):
     return SimpleNamespace(
         port=port,
         expose_to_network=expose_to_network,
         allowed_remote_ranges=allowed_remote_ranges,
         trusted_proxies=trusted_proxies,
+        ssl_certfile=ssl_certfile,
+        ssl_keyfile=ssl_keyfile,
     )
 
 
@@ -62,7 +66,8 @@ def test_run_installs_middleware_only_when_expose_to_network_true(monkeypatch):
     instance._is_shutting_down = True  # skip cleanup() path
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port: None)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda: False)
 
     install_calls = []
     monkeypatch.setattr(
@@ -86,7 +91,8 @@ def test_run_skips_middleware_install_when_expose_to_network_false(monkeypatch):
     instance._is_shutting_down = True
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port: None)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda: False)
 
     install_calls = []
     monkeypatch.setattr(
@@ -178,7 +184,8 @@ def test_proxy_warning_does_not_fire_when_expose_to_network_false(monkeypatch, c
     instance._is_shutting_down = True
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port: None)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda: False)
 
     with (
         patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from importlib.metadata import version as pkg_version
 
+from haywire.core.access import AccessTier
 from haywire.core.farmhand import Farmhand, FarmhandContext, ToolAnnotations, farmhand
 from haywire.core.library.registry import LibraryRegistry
 
@@ -22,6 +23,7 @@ def _version(dist: str) -> str:
     "URI. Call this first when connecting — the summary points at how to find documentation.",
     registry_id="status",
     annotations=ToolAnnotations(read_only_hint=True),
+    access=AccessTier.VIEW,
 )
 class StudioStatusTool(Farmhand):
     async def run(self, ctx: FarmhandContext) -> dict:

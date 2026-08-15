@@ -266,7 +266,7 @@ def _group_by_category(
 
 
 def _render_grouped(
-    sorted_items: list[setting], category_of, render_one, group_wrappers: dict[str, Any] | None = None
+    sorted_items: list, category_of, render_one, group_wrappers: dict[str, Any] | None = None
 ) -> Any:
     """Lay out *sorted_items* as a settings column, grouped into category sections.
 

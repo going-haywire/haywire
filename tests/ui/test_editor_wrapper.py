@@ -91,7 +91,9 @@ class _FakeEditorCls:
 
 
 def _make_session():
-    return SimpleNamespace(context=SimpleNamespace())
+    # can_access always grants — these tests aren't about access control, so
+    # Slot.add_binding's admission gate (Slice 4) should never refuse here.
+    return SimpleNamespace(context=SimpleNamespace(can_access=lambda required: True))
 
 
 def test_wrapper_construction_with_class_sets_imported():

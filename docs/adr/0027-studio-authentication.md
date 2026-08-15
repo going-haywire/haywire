@@ -117,7 +117,16 @@ the canvas hot path to catch.
   enum would make core import studio.
 - **`haywire_studio.auth`** — roster I/O, scrypt, cookie signing, the gate, the
   login routes, the `haywire user` / `haywire auth` CLI.
-- **`haybale-studio`** — the `RosterEditor` and the account menu.
+- **Core** (`haywire.barn.builtin.focuses.AccountFocus`,
+  `haywire.ui.app.account_menu.AccountMenuProvider`, and the footer icon /
+  StatusBar identity label / TopBar presence chips in `haywire.ui.app.shell`)
+  — the account menu's chrome. None of this is a registerable component, so
+  it lives beside the other bar/shell chrome in core rather than in a
+  library.
+- **`haybale-studio`** — the account menu's *contents* (`LogoutPanel`,
+  `OpenRosterPanel`, `RotateSecretPanel` — ordinary panels against
+  `AccountFocus`) and the `RosterEditor`, because only a library can register
+  a panel or an editor.
 
 **The gate is app-owned and never library-owned.** Libraries are disableable,
 hot-reloadable, and installable from a marketplace; a library that owned the

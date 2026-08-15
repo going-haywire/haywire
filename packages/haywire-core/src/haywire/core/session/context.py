@@ -3,6 +3,7 @@ from __future__ import annotations
 
 from typing import Any, Optional, TYPE_CHECKING
 
+from haywire.core.access import AccessTier, resolve_tier
 from haywire.core.session.signals import Signal, SignalSource, signal_field
 from haywire.core.session.signals.descriptor import _seed_signal_fields
 
@@ -40,6 +41,7 @@ class SessionContext(SignalSource):
     session: "Session"  # set by Session.__init__ immediately after construction
     app_data: "AppDataNamespace"
     data: "SessionDataNamespace"
+    principal: Optional[str]  # set by the studio page handler; None when auth is off
 
     # --- Signal fields ---
     active_file: Optional[Any] = signal_field(None)
@@ -60,6 +62,10 @@ class SessionContext(SignalSource):
         self.app = app
         self.app_data = AppDataNamespace(app.library_state_container)
         self.data = SessionDataNamespace(app.library_state_container, session_id)
+        # None means "authentication is not in play for this session" — the
+        # resolver then answers ADMIN. The studio's page handler sets this from
+        # the verified cookie when authentication is enabled.
+        self.principal = None
 
         # Plain attributes set above; signal fields seeded below, so a signal-field
         # initializer can read from self.app_data or similar.
@@ -73,3 +79,36 @@ class SessionContext(SignalSource):
         by Session.__init__ before SessionContext is used.
         """
         self.session.publish(signal)
+
+    # ------------------------------------------------------------------
+    # Access (ADR 0027)
+    # ------------------------------------------------------------------
+
+    def can_access(self, required: AccessTier) -> bool:
+        """Whether this session's principal currently holds at least ``required``.
+
+        Reads live authority through the resolver on every call rather than a
+        tier stamped at login, so removing or demoting a principal takes effect
+        on their next action with no eviction and no re-login. Use this when the
+        tier arrives as data (e.g. ``editor.class_identity.access``); use
+        :meth:`can_view` / :meth:`can_edit` / :meth:`can_admin` when it is literal.
+        """
+        return resolve_tier(self.principal).satisfies(required)
+
+    def can_view(self) -> bool:
+        """True whenever the principal holds any tier at all — the lowest gate.
+
+        This is an authorization check, not an authentication one: it presumes
+        identity was already established at the ASGI gate. With authentication
+        disabled (no resolver installed, the state of every existing install)
+        this is always True, including for ``principal is None``.
+        """
+        return self.can_access(AccessTier.VIEW)
+
+    def can_edit(self) -> bool:
+        """True for ``edit`` and ``admin``. Gates every mutating affordance."""
+        return self.can_access(AccessTier.EDIT)
+
+    def can_admin(self) -> bool:
+        """True for ``admin`` only. Gates roster management and destructive tools."""
+        return self.can_access(AccessTier.ADMIN)

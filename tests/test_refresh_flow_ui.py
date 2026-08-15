@@ -71,6 +71,21 @@ class _FakeState:
 
         record_preference(self.global_path, source_url=source_url, haybale_name=name)
 
+    def installed_row(self, name: str):
+        # Nothing is installed against these test-owned paths — no library
+        # manager to consult, unlike the real MarketplaceState.
+        return None
+
+    def block_source(self, name: str, *, source_url: str) -> None:
+        from haywire.core.marketstall import record_block_on_source
+
+        record_block_on_source(self.global_path, source_url=source_url, haybale_name=name)
+
+    def unblock_source(self, name: str, *, source_url: str) -> None:
+        from haywire.core.marketstall import remove_block_on_source
+
+        remove_block_on_source(self.global_path, source_url=source_url, haybale_name=name)
+
 
 def _flow(root: Path):
     """A RefreshFlow with no popup — the state machine under test."""
