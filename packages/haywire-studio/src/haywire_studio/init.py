@@ -918,3 +918,5 @@ def init_project(
     print("  git remote add origin <your-repo-url>")
     print("  git push -u origin master")
     print("  uv run haywire share --save")
+    print("\nCheck your current security exposure:")
+    print("  uv run haywire security status")

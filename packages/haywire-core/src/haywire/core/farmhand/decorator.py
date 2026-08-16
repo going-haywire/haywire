@@ -43,6 +43,7 @@ def farmhand(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             snake_case registry_id (e.g. registry_id="save_graph").
         annotations (ToolAnnotations): MCP consent hints
             (read_only_hint/destructive_hint/...). Default: ToolAnnotations()
+        access (AccessTier | str): Access tier for this tool. Default: AccessTier.VIEW
         hidden (bool): Exclude from author-facing selection UIs. Default: False
         deprecation_warning (str): Advisory message. Default: ""
 

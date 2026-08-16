@@ -21,6 +21,7 @@ dependencies = [
     "fastapi",
     "mcp>=1.28,<2",
     "psutil",
+    "cryptography>=42",
 ]
 
 [project.scripts]

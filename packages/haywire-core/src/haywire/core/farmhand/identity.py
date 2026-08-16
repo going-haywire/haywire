@@ -33,11 +33,13 @@ class FarmhandIdentity(BaseIdentity):
     hidden/class_name/module from BaseIdentity; adds MCP consent annotations
     and agent-facing instructions.
 
-    ``description`` (inherited): short human-facing blurb (docs, catalog).
-    ``instructions``: required, sent verbatim as MCP ``Tool.description`` —
-    see ``@farmhand`` decorator docstring for authoring guidance.
-    ``kw_only`` needed since BaseIdentity's fields all have defaults and
-    ``instructions`` doesn't; decorator only ever constructs via kwargs.
+        description (inherited): short human-facing blurb (docs, catalog).
+    
+        instructions: required, sent verbatim as MCP ``Tool.description`` —
+            see ``@farmhand`` decorator docstring for authoring guidance.
+            ``kw_only`` needed since BaseIdentity's fields all have defaults and
+            ``instructions`` doesn't; decorator only ever constructs via kwargs.
+        access: access tier for this tool, defaulting to AccessTier.VIEW
     """
 
     annotations: ToolAnnotations = field(default_factory=ToolAnnotations)

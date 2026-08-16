@@ -374,7 +374,7 @@ class HaywireApp:
                 logger.warning(
                     "Network: serving plain HTTP beyond loopback — session cookies and "
                     "passwords travel unencrypted and a captured cookie is a valid cookie. "
-                    "Set ssl_certfile/ssl_keyfile, or terminate TLS at a reverse proxy."
+                    "Run 'haywire ssl setup' to serve HTTPS, or terminate TLS at a reverse proxy."
                 )
 
         try:
@@ -482,13 +482,17 @@ def _ssl_kwargs(certfile: str, keyfile: str) -> dict[str, str]:
     if bool(certfile) != bool(keyfile):
         print(
             "ERROR: Haywire cannot start — incomplete TLS configuration.\n"
-            "  Set BOTH 'ssl_certfile' and 'ssl_keyfile' under Network settings, or neither."
+            "  Set BOTH 'ssl_certfile' and 'ssl_keyfile' under Network settings, or neither.\n"
+            "  Run 'haywire ssl status' to see the current state."
         )
         raise SystemExit(1)
 
     for label, value in (("ssl_certfile", certfile), ("ssl_keyfile", keyfile)):
         if not Path(value).is_file():
-            print(f"ERROR: Haywire cannot start — {label} does not point at a file: {value}")
+            print(
+                f"ERROR: Haywire cannot start — {label} does not point at a file: {value}\n"
+                "  Run 'haywire ssl status' to see the current state."
+            )
             raise SystemExit(1)
 
     return {"ssl_certfile": certfile, "ssl_keyfile": keyfile}

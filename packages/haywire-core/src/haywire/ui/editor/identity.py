@@ -60,7 +60,8 @@ class EditorIdentity(BaseIdentity):
 
     Set once at class-definition time; survives hot-reload.
 
-    Inherits from BaseIdentity:
+        Inherits from BaseIdentity:
+        
         registry_id: Short unique ID, e.g. 'graph_editor'.
         registry_key: Fully-qualified registry key; set by decorator via reg_key().
         label: Human-readable display name, e.g. 'Graph Editor'.
@@ -68,7 +69,8 @@ class EditorIdentity(BaseIdentity):
         class_name: Python class name — set by decorator.
         module: Python module name — set by decorator.
 
-    Additional attributes:
+        Additional attributes:
+
         icon: Material Design icon name, e.g. 'account_tree'.
         default_slot: Which workspace slot this editor belongs in by default.
             A :class:`SlotName` — one of ACTION, CONTEXT, EDIT, INFO.
@@ -76,6 +78,10 @@ class EditorIdentity(BaseIdentity):
         order: Sort priority within a slot (lower = earlier in the bar).
             Editors without an explicit order default to 100; ties fall back
             to registration order.
+        access: Minimum AccessTier needed to see this editor — an
+            :class:`AccessTier` or its string value ('view', 'edit', 'admin').
+            Defaults to 'view'. An unknown value raises ``ValueError`` at
+            class-definition time.
     """
 
     icon: str = "extension"

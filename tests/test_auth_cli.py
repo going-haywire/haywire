@@ -31,6 +31,18 @@ def path(tmp_path):
     return tmp_path / "auth.json"
 
 
+@pytest.fixture(autouse=True)
+def _neutral_workspace(tmp_path, monkeypatch):
+    """Run from a workspace with no Farmhand token.
+
+    ``_offer_token_import`` reads ``<cwd>/.haywire/farmhand_token``, so without
+    this the suite picks up the *repo's own* token and blocks on the interactive
+    import prompt. The tests that exercise the import opt out by chdir-ing to a
+    workspace they set up themselves.
+    """
+    monkeypatch.chdir(tmp_path)
+
+
 def test_enable_with_valid_admin_credentials(monkeypatch, path):
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     assert _run(["auth", "enable"], monkeypatch, path, "alice", STRONG) == 0

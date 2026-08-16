@@ -1036,6 +1036,7 @@ name = "haywire-studio"
 version = "0.1.2"
 source = { editable = "packages/haywire-studio" }
 dependencies = [
+    { name = "cryptography" },
     { name = "fastapi" },
     { name = "haywire-core" },
     { name = "jedi" },
@@ -1047,6 +1048,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "cryptography", specifier = ">=42" },
     { name = "fastapi" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "jedi", specifier = ">=0.19" },

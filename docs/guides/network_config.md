@@ -35,12 +35,12 @@ connection before any application-level check runs.
 with no guard at all. If you relied on that for LAN access (a Farmhand agent
 on another machine, a colleague's laptop), you now need to opt in explicitly:
 set `expose_to_network` to `True` and, in almost every case, populate
-`allowed_remote_ranges` too (see [§2](#2-the-five-settings)). Nothing is
+`allowed_remote_ranges` too (see [§2](#2-the-seven-settings)). Nothing is
 migrated automatically — the new default is loopback-only for everyone.
 
-## 2. The five settings
+## 2. The seven settings
 
-All five live in `NetworkSettings`
+All seven live in `NetworkSettings`
 (`packages/haywire-studio/src/haywire_studio/network/settings.py`). Every one
 of them is read once at process startup — **changing any of these requires
 restarting the studio**; there is no live-reload path.
@@ -52,8 +52,10 @@ restarting the studio**; there is no live-reload path.
 | `allowed_remote_ranges` | `network` | `""` (empty) | Comma-separated CIDR ranges allowed to reach the studio once `expose_to_network` is on (e.g. `192.168.1.0/24, 10.0.0.0/8`). Only takes effect when `expose_to_network` is `True`; loopback is always allowed regardless. |
 | `public_hostname` | `advanced` | `""` (empty) | The hostname (optionally `host:port`) the studio is reachable at from outside — e.g. behind a reverse proxy. Feeds the MCP `allowed_hosts`/`allowed_origins` lists (see [§5](#5-running-on-a-server)). |
 | `trusted_proxies` | `advanced` | `""` (empty) | Comma-separated CIDR ranges of reverse proxies whose `X-Forwarded-For` header is trusted for resolving the real client IP. |
+| `ssl_certfile` | `advanced` | `""` (empty) | Path to a TLS certificate. Set together with the key to serve HTTPS directly. Easiest to configure with `haywire ssl setup` (see [§9](#9-serving-https)) rather than by hand. |
+| `ssl_keyfile` | `advanced` | `""` (empty) | Path to the private key matching `ssl_certfile`. Both must be set, or neither — exactly one is a misconfiguration the studio refuses to start with. |
 
-A sixth setting, `restrict_to_loopback`, is easy to expect in this table and
+Another setting, `restrict_to_loopback`, is easy to expect in this table and
 isn't here — it lives on `FarmhandSettings`
 (`packages/haywire-studio/src/haywire_studio/farmhand/settings.py`), category
 `farmhand`, not on `NetworkSettings`. It only governs the `/mcp` mount, not
@@ -82,8 +84,14 @@ Multiple entries are comma-separated in one field:
 **Loopback is implicit.** `127.0.0.1`/`::1` are allowed unconditionally by
 `IPAllowlistMiddleware`, before any list membership check runs. You never
 need to list loopback yourself, and — importantly — there is no way to
-*exclude* it either: an empty `allowed_remote_ranges` doesn't mean "deny
-all," it means "no further restriction beyond loopback." This is deliberate:
+*exclude* it either.
+
+Be careful reading the empty case the other way round, though: an empty
+`allowed_remote_ranges` does **not** mean "allow everyone." Membership is
+`any(ip in network for network in allowed_ranges)`, which over an empty list
+is always `False`, so with `expose_to_network` on and no ranges set, every
+remote peer receives a `403` and only loopback gets through. The socket is
+bound wide; the filter in front of it is shut. This is deliberate:
 `ui.run(show=True)` opens a local browser against the studio it just started,
 and a filter that could reject that connection would lock the operator out of
 the only UI that could fix the misconfigured setting.
@@ -195,7 +203,7 @@ traffic on the remote end. No studio-side configuration at all.
 
 ## 6. Machine-wide defaults: the global settings tier
 
-The settings in [§2](#2-the-five-settings) are editable in the studio UI, but
+The settings in [§2](#2-the-seven-settings) are editable in the studio UI, but
 on a head server that is often the wrong place for them. `public_hostname`
 and `trusted_proxies` describe *the deployment* — the reverse proxy in front
 of this machine — not the preferences of whoever happens to be drawing
@@ -299,7 +307,7 @@ Notes on the format:
 
 ### Applying and verifying
 
-These are startup-only reads ([§2](#2-the-five-settings)), so **restart the
+These are startup-only reads ([§2](#2-the-seven-settings)), so **restart the
 studio** after editing. Two things worth knowing about failure modes:
 
 - **Invalid CIDR refuses to start.** A malformed entry in
@@ -381,3 +389,122 @@ possibly-stale online/offline flag).
 
 Every mutation — CLI or UI — goes through the same roster file, so the two
 surfaces can never disagree about who's allowed in.
+
+## 9. Serving HTTPS
+
+Everything above controls *where* the studio can be reached and *who* may
+connect. This section covers whether the traffic in between is encrypted.
+
+Without TLS the studio serves plain HTTP. On a loopback-only studio that is
+fine — the traffic never leaves the machine. Once `expose_to_network` is on,
+two things follow:
+
+- The session cookie that *is* a principal's identity travels in cleartext on
+  every request, as do passwords at login and agent bearer tokens. Anyone who
+  can observe one request can replay it.
+- **Browser features that require a secure context are unavailable.**
+  `http://192.168.…` is not a
+  [secure context](https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts)
+  (`http://localhost` is, which is why this never reproduces on the machine you
+  develop on), and there is no override.
+
+    In practice this costs Haywire nothing today. `navigator.clipboard` is
+    restricted this way, but the copy helper falls back to
+    `document.execCommand`, so copy buttons still work. Camera and microphone
+    are not affected at all — Haywire captures video server-side in Python
+    (`cv2.VideoCapture`, `depthai`), so no browser permission is involved. The
+    rule only starts to bite if a library reaches for `navigator.mediaDevices`,
+    geolocation, notifications or a service worker from the front end.
+
+### One command
+
+```sh
+uv run haywire ssl setup
+```
+
+This generates a self-signed certificate, stores it in `~/.haywire/certs/`
+(key `0600`, certificate `0644`), and writes `ssl_certfile` / `ssl_keyfile`
+into the global settings tier. Restart the studio and it serves HTTPS.
+
+The certificate covers `localhost`, `127.0.0.1`, `::1`, every non-link-local
+address the machine currently has, the machine's hostname, its `<host>.local`
+mDNS name, and `public_hostname` if you have set one. Add more with
+`--also`, repeatable:
+
+```sh
+uv run haywire ssl setup --also studio.example.com --also 10.21.136.88
+```
+
+### What the browser does
+
+A self-signed certificate produces a full-page warning on first visit —
+`NET::ERR_CERT_AUTHORITY_INVALID` in Chrome, `SEC_ERROR_UNKNOWN_ISSUER` in
+Firefox, "This Connection Is Not Private" in Safari. This is **not** about
+weak encryption. The connection is fully encrypted either way; the browser is
+telling you it cannot verify *who* is on the other end, because the only thing
+vouching for the certificate is the certificate itself.
+
+You can click through ("Advanced" → proceed), and the origin then counts as a
+secure context. But the exception is per-browser and
+per-device, and non-browser clients (an MCP agent, `curl`, `httpx`) reject the
+certificate outright with no interstitial to click.
+
+To remove the warning entirely, make the machine trust the certificate:
+
+```sh
+uv run haywire ssl trust
+```
+
+That prints the platform command — `security add-trusted-cert` on macOS,
+`update-ca-certificates` on Linux, `Import-Certificate` on Windows. Haywire
+prints it rather than running it: it needs `sudo` and it modifies a system
+trust store, which is not something a subcommand should do unannounced. Run it
+once per machine that connects.
+
+### Checking what you have
+
+```sh
+uv run haywire ssl status
+```
+
+Reports whether TLS is configured, which names the certificate covers, when it
+expires, and — importantly — whether the address you are currently reachable at
+is one of them. It always exits `0`; it reports rather than judges, and
+"loopback only, no TLS" is reported as the correct configuration it is.
+
+It also catches the three states that make the studio refuse to start:
+a missing certificate file, only one of the pair configured, and a key that
+does not match its certificate.
+
+### Moving between networks
+
+A certificate is valid only for the names baked into it when it was signed. A
+laptop that moves between a home LAN and a university network gets a different
+IP in each, so a certificate listing only the home address will be rejected at
+the other one.
+
+Two things handle this. First, the `<host>.local` mDNS name is covered by
+default and follows the machine, so `https://your-machine.local:8124` often
+keeps working with no change at all — `ssl status` tells you when that applies.
+Second, when you do need the new address in the certificate:
+
+```sh
+uv run haywire ssl update --refresh
+```
+
+`update` re-signs **reusing the existing private key** and preserves names you
+added by hand, so it amends the certificate rather than starting over. Use
+`--add` / `--remove` to change the list explicitly. Loopback names cannot be
+removed.
+
+Because trust stores pin the certificate rather than the key, anyone who ran
+`ssl trust` must run it again after an update. The command says so.
+
+### When a real certificate is the better answer
+
+`haywire ssl setup` is deliberately limited to self-signed certificates, which
+suit a LAN. If the studio is reachable from the public internet under a real
+domain name, terminate TLS at a reverse proxy with a CA-issued certificate
+instead (see [§5](#5-running-on-a-server)) and leave `ssl_certfile` /
+`ssl_keyfile` empty — a proxy-terminated setup has no browser warning and needs
+no per-machine trust step.
