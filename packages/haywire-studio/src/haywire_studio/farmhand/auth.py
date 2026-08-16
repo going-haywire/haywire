@@ -1,8 +1,9 @@
 """Static bearer-token auth for the Farmhand mount.
 
 Token lives gitignored at <workspace>/.haywire/farmhand_token; delete the
-file to rotate. Layered with 127.0.0.1 binding and the SDK's
-TransportSecuritySettings (host task) per spec §4.
+file to rotate. Layered with NetworkSettings.expose_to_network (loopback
+bind by default) and the SDK's TransportSecuritySettings, gated by
+FarmhandSettings.restrict_to_loopback (host task) per spec §4.
 """
 
 from __future__ import annotations

@@ -29,12 +29,10 @@ class FarmhandSettings(FrameworkSettings, namespace="farmhand"):
     )
     restrict_to_loopback = setting[BOOL](
         True,
-        label="Restrict Farmhand to Loopback",
+        label="Local only",
         description=(
-            "DNS-rebinding protection: reject Farmhand MCP requests (/mcp) whose "
-            "Host/Origin header isn't 127.0.0.1/localhost, even if the studio's own "
-            "port is reachable from the network. Not a defence against a forged "
-            "header — an attacker who can set arbitrary headers bypasses this check. "
+            "Protection against DNS-rebinding. Turn off if an MCP client "
+            "needs to connect from another machine — but pair with the auth token."
             "Read once at startup; restart to apply."
         ),
         category="farmhand",

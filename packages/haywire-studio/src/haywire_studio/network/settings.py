@@ -35,7 +35,9 @@ class NetworkSettings(FrameworkSettings, namespace="network"):
         False,
         label="Expose",
         description=(
-            "Expose the studio to the wider network instead only the local machine. "
+            "Expose the studio to the wider network. "
+            "This comes with severe security implications. "
+            "It is strongly recommended to pair this with enabled authentication and TLS. "
             "Read once at startup; restart to apply."
         ),
         category="network",
