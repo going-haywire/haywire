@@ -57,6 +57,19 @@ def test_missing_file_resolves_to_an_empty_roster(path):
     assert RosterCache(path).roster().principals == []
 
 
+def test_stamp_changes_after_a_write(path):
+    add_user("alice", STRONG, AccessTier.VIEW, path=path)
+    cache = RosterCache(path)
+    first = cache.stamp()
+
+    set_tier("alice", AccessTier.ADMIN, path=path)
+    assert cache.stamp() != first
+
+
+def test_stamp_is_none_for_a_missing_file(path):
+    assert RosterCache(path).stamp() is None
+
+
 def test_resolver_answers_the_principals_tier(path):
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     add_user("bob", STRONG + "z", AccessTier.EDIT, path=path)

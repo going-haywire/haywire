@@ -341,9 +341,14 @@ class HaywireApp:
 
         # Install the gate BEFORE the Farmhand mount so the root wrapper covers
         # /mcp too — one boundary, not a boundary with a documented hole beside it.
-        self._install_auth(document)
+        auth_enabled = self._install_auth(document)
 
         self.setup_farmhand(port, document, tls=bool(ssl_kwargs))
+
+        # Wired after both exist: a tier edit while an MCP session is open pushes
+        # list_changed instead of leaving the client's cached tools/list stale.
+        if auth_enabled and hasattr(self, "farmhand_host"):
+            self.farmhand_host.add_roster_cache(self._auth_cache)
 
         if network.exposed:
             self._install_ip_allowlist(network)

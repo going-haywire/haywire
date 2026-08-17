@@ -20,7 +20,7 @@ import json
 import logging
 import weakref
 from pathlib import Path
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
 
 import mcp.types as types
 from mcp.server.lowlevel import NotificationOptions, Server
@@ -35,6 +35,9 @@ from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
 from .auth import connection_command
+
+if TYPE_CHECKING:
+    from haywire_studio.auth.live import RosterCache
 
 logger = logging.getLogger(__name__)
 
@@ -125,12 +128,25 @@ class FarmhandHost:
         self._started: Optional[asyncio.Event] = None
         self._stop: Optional[asyncio.Event] = None
         self._runner: Optional[asyncio.Task] = None
+        self._roster_cache: Optional["RosterCache"] = None
+        self._roster_stamp: tuple[float, int] | None = None
 
         # Libraries (including haybale-studio's studio_* baseline) enabled
         # before the host exists — seed from the registry, then follow events.
         self._seed_tools()
         self._registry.add_batch_event_subscriber(self._on_lifecycle_batch)
         self._register_handlers()
+
+    def add_roster_cache(self, cache: "RosterCache") -> None:
+        """Wire in the auth roster cache so a live tier edit can push list_changed.
+
+        Optional: only set when authentication is enabled (see ``app.py``'s
+        ``_install_auth``). Without it, tier enforcement on each tool call still
+        works (``_caller_tier`` re-resolves per request) — this only adds the
+        proactive nudge that refreshes a connected client's tool list.
+        """
+        self._roster_cache = cache
+        self._roster_stamp = cache.stamp()
 
     # -- tool table -----------------------------------------------------
 
@@ -194,6 +210,7 @@ class FarmhandHost:
         @self._server.list_tools()
         async def list_tools() -> list[types.Tool]:
             self._track_session()
+            await self._check_roster_freshness()
             tier = self._caller_tier()
             visible = set(tools_for_tier(self._tools, tier))
             return [
@@ -210,6 +227,7 @@ class FarmhandHost:
         @self._server.call_tool()
         async def call_tool(name: str, arguments: dict) -> tuple[list[types.TextContent], dict[str, Any]]:
             self._track_session()
+            await self._check_roster_freshness()
             cls = self._tools.get(name)
             if cls is None:
                 raise Exception(
@@ -327,6 +345,25 @@ class FarmhandHost:
             self._sessions.add(self._server.request_context.session)
         except Exception:
             pass
+
+    async def _check_roster_freshness(self) -> None:
+        """Piggyback on in-flight traffic to notice a roster edit and push list_changed.
+
+        Enforcement (``_caller_tier`` inside ``call_tool``) is already correct on
+        every request regardless of this check — a demoted token is rejected
+        live. This only closes the *visibility* gap: without it, a connected
+        client's cached ``tools/list`` stays stale until it happens to re-fetch.
+        Piggybacking on existing request traffic avoids a dedicated write-hook
+        from ``auth/operations.py`` into Farmhand, keeping that boundary
+        resolver-mediated per ADR 0027.
+        """
+        if self._roster_cache is None:
+            return
+        stamp = self._roster_cache.stamp()
+        if stamp == self._roster_stamp:
+            return
+        self._roster_stamp = stamp
+        await self._notify_list_changed()
 
     # -- mount + lifespan ----------------------------------------------
 

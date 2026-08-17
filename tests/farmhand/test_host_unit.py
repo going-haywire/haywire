@@ -103,6 +103,63 @@ def test_tool_table_seed_and_evict():
     assert host._tools == {}
 
 
+def test_add_roster_cache_seeds_the_stamp(tmp_path):
+    from haywire_studio.auth.live import RosterCache
+
+    host = FarmhandHost.__new__(FarmhandHost)
+    cache = RosterCache(tmp_path / "security.json")
+
+    host.add_roster_cache(cache)
+    assert host._roster_cache is cache
+    assert host._roster_stamp == cache.stamp()
+
+
+@pytest.mark.anyio
+async def test_check_roster_freshness_is_noop_without_a_cache():
+    host = FarmhandHost.__new__(FarmhandHost)
+    host._roster_cache = None
+    host._roster_stamp = None
+    # Would raise if it tried to call _notify_list_changed with no _sessions set up.
+    await host._check_roster_freshness()
+
+
+@pytest.mark.anyio
+async def test_check_roster_freshness_notifies_on_a_changed_stamp(tmp_path, monkeypatch):
+    from haywire_studio.auth.live import RosterCache
+
+    host = FarmhandHost.__new__(FarmhandHost)
+    cache = RosterCache(tmp_path / "security.json")
+    host.add_roster_cache(cache)
+
+    notified = False
+
+    async def _fake_notify():
+        nonlocal notified
+        notified = True
+
+    monkeypatch.setattr(host, "_notify_list_changed", _fake_notify)
+    monkeypatch.setattr(cache, "stamp", lambda: (999.0, 1))
+
+    await host._check_roster_freshness()
+    assert notified is True
+    assert host._roster_stamp == (999.0, 1)
+
+
+@pytest.mark.anyio
+async def test_check_roster_freshness_is_noop_when_stamp_is_unchanged(tmp_path, monkeypatch):
+    from haywire_studio.auth.live import RosterCache
+
+    host = FarmhandHost.__new__(FarmhandHost)
+    cache = RosterCache(tmp_path / "security.json")
+    host.add_roster_cache(cache)
+
+    async def _boom():
+        raise AssertionError("should not notify when the stamp has not changed")
+
+    monkeypatch.setattr(host, "_notify_list_changed", _boom)
+    await host._check_roster_freshness()
+
+
 class _FakeAppTarget:
     """Records what mount() wires up, without needing a real FastAPI/NiceGUI app."""
 
