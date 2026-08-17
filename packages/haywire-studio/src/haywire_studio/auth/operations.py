@@ -49,16 +49,22 @@ def _require_present(roster: Roster, name: str) -> Principal:
 
 
 def _require_not_last_admin(roster: Roster, principal: Principal) -> None:
-    """Refuse a change that would leave an enabled roster with no admin.
+    """Refuse a change that would leave an enabled roster with no human admin.
 
     Only enforced while ``enabled`` is set: with authentication off there is no
     lockout to protect against, and forcing an admin to exist would be noise.
+
+    Counts :meth:`Roster.user_admins`, not :meth:`Roster.admins`: an
+    agent-only admin can never pass :func:`authenticate` (no password), so it
+    does not protect against a human lockout. A principal who is not a user
+    admin themselves (an agent, or a non-admin user) is never the one holding
+    the roster together, so demoting or removing them always passes.
     """
     if not roster.enabled:
         return
-    if principal.tier is not AccessTier.ADMIN:
+    if not (principal.is_user and principal.tier is AccessTier.ADMIN):
         return
-    if len(roster.admins()) <= 1:
+    if len(roster.user_admins()) <= 1:
         raise SecurityError(
             f"{principal.name!r} is the last admin and authentication is enabled — "
             "removing or demoting them would lock everyone out. Add another admin first, "
@@ -139,7 +145,7 @@ def authenticate(username: str, password: str, *, path: Path | None = None) -> P
 
 def _require_admin_credentials(username: str, password: str, path: Path | None) -> None:
     doc = load_document(path)
-    if not doc.auth.admins():
+    if not doc.auth.user_admins():
         raise SecurityError(
             "No admin principal exists yet. Create one first:\n  haywire user add <name> --tier admin"
         )

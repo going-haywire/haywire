@@ -47,3 +47,35 @@ def test_logout_panel_hidden_when_authentication_is_off():
 
     ctx.principal = "alice"
     assert LogoutPanel.poll(ctx) is True
+
+
+def test_set_tier_refuses_to_change_the_acting_principals_own_tier():
+    """A logged-in admin must not be able to demote themselves from the roster UI."""
+    from unittest.mock import MagicMock, patch
+
+    from haybale_studio.editors.roster_editor import RosterEditor
+
+    editor = RosterEditor(MagicMock())
+    with (
+        patch("haybale_studio.editors.roster_editor.set_tier") as mock_set_tier,
+        patch("haybale_studio.editors.roster_editor.ui.notify"),
+    ):
+        editor._set_tier("alice", "view", acting_as="alice")
+
+    mock_set_tier.assert_not_called()
+
+
+def test_set_tier_allows_changing_another_principals_tier():
+    from unittest.mock import MagicMock, patch
+
+    from haywire.core.access import AccessTier
+    from haybale_studio.editors.roster_editor import RosterEditor
+
+    editor = RosterEditor(MagicMock())
+    with (
+        patch("haybale_studio.editors.roster_editor.set_tier") as mock_set_tier,
+        patch("haybale_studio.editors.roster_editor.ui.notify"),
+    ):
+        editor._set_tier("bob", "view", acting_as="alice")
+
+    mock_set_tier.assert_called_once_with("bob", AccessTier.VIEW)

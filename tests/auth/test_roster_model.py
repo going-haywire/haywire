@@ -102,6 +102,28 @@ def test_admins_lists_only_admin_tier():
     assert [p.name for p in roster.admins()] == ["a", "c"]
 
 
+def test_user_admins_excludes_agent_admins():
+    """An agent can hold ADMIN tier but can never authenticate() as a human."""
+    roster = Roster(
+        principals=[
+            Principal(name="a", kind="user", tier=AccessTier.ADMIN),
+            Principal(name="b", kind="user", tier=AccessTier.EDIT),
+            Principal(name="c", kind="agent", tier=AccessTier.ADMIN),
+        ]
+    )
+    assert [p.name for p in roster.user_admins()] == ["a"]
+
+
+def test_user_admins_empty_when_only_agents_are_admins():
+    roster = Roster(
+        principals=[
+            Principal(name="c", kind="agent", tier=AccessTier.ADMIN, token="secret"),
+        ]
+    )
+    assert roster.user_admins() == []
+    assert roster.admins() != []
+
+
 def test_is_user_and_is_agent():
     user = Principal(name="a", kind="user", tier=AccessTier.VIEW)
     agent = Principal(name="b", kind="agent", tier=AccessTier.VIEW)

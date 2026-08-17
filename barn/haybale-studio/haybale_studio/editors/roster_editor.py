@@ -22,6 +22,7 @@ from haywire_studio.auth.operations import (
 )
 from haywire_studio.security.document import load_document
 from haywire_studio.security.errors import SecurityError
+from haywire_studio.security.roster import Principal, Roster
 from nicegui import ui
 
 
@@ -40,17 +41,17 @@ class RosterEditor(BaseEditor):
         container.clear()
         with container:
             with ui.column().classes("w-full gap-4 p-4"):
-                self._draw_roster()
+                self._draw_roster(context.principal)
                 self._draw_add_form()
 
     # -- table ----------------------------------------------------------
 
     _GRID_COLUMNS = "grid-cols-[24px_1fr_8rem_auto_auto]"
 
-    def _draw_roster(self) -> None:
+    def _draw_roster(self, acting_as: str | None) -> None:
         try:
             document = load_document()
-            roster = document.auth
+            roster: Roster = document.auth
         except SecurityError as exc:
             hui.error_label(f"Roster unreadable: {exc}")
             return
@@ -65,7 +66,7 @@ class RosterEditor(BaseEditor):
         with ui.column().classes("w-full gap-0 hw-panel"):
             self._draw_header_row()
             for principal in roster.principals:
-                self._draw_row(principal, roster)
+                self._draw_row(principal, roster, acting_as)
 
     def _draw_header_row(self) -> None:
         with ui.row().classes(f"grid {self._GRID_COLUMNS} w-full items-center gap-2 px-2 py-1"):
@@ -75,8 +76,12 @@ class RosterEditor(BaseEditor):
             ui.label()
             ui.label()
 
-    def _draw_row(self, principal, roster) -> None:
-        is_last_admin = principal.tier is AccessTier.ADMIN and len(roster.admins()) <= 1
+    def _draw_row(self, principal: Principal, roster: Roster, acting_as: str | None) -> None:
+        is_last_admin = (
+            principal.is_user and principal.tier is AccessTier.ADMIN and len(roster.user_admins()) <= 1
+        )
+        is_self = principal.name == acting_as
+        tier_locked = is_last_admin or is_self
 
         with ui.row().classes(
             f"grid {self._GRID_COLUMNS} w-full items-center gap-2 px-2 py-1 hw-list-item-hover"
@@ -87,10 +92,20 @@ class RosterEditor(BaseEditor):
             tier_select = ui.select([tier.value for tier in AccessTier], value=principal.tier.value).props(
                 "dense outlined"
             )
-            tier_select.on(
-                "update:modelValue",
-                lambda event, name=principal.name, select=tier_select: self._set_tier(name, select.value),
-            )
+            if tier_locked:
+                tier_select.props("disable")
+                tier_select.tooltip(
+                    "Last admin — add another admin before changing this tier"
+                    if is_last_admin
+                    else "You cannot change your own tier"
+                )
+            else:
+                tier_select.on(
+                    "update:modelValue",
+                    lambda event, name=principal.name, select=tier_select: self._set_tier(
+                        name, select.value, acting_as
+                    ),
+                )
 
             if principal.is_agent:
                 hui.icon_action(
@@ -108,7 +123,7 @@ class RosterEditor(BaseEditor):
             delete_button = ui.button(
                 icon="delete", on_click=lambda name=principal.name: self._confirm_remove(name)
             ).props("flat dense round")
-            if is_last_admin:
+            if is_last_admin or tier_locked:
                 delete_button.props("disable")
                 delete_button.tooltip("Last admin — add another admin before removing this one")
             else:
@@ -116,7 +131,11 @@ class RosterEditor(BaseEditor):
 
     # -- mutations ------------------------------------------------------
 
-    def _set_tier(self, name: str, value) -> None:
+    def _set_tier(self, name: str, value, acting_as: str | None) -> None:
+        if name == acting_as:
+            ui.notify("You cannot change your own tier.", type="negative")
+            self.wrapper.redraw()
+            return
         try:
             set_tier(name, AccessTier(value))
         except (SecurityError, ValueError) as exc:

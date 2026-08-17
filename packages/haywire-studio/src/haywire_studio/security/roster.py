@@ -112,6 +112,19 @@ class Roster:
     def admins(self) -> list[Principal]:
         return [p for p in self.principals if p.tier is AccessTier.ADMIN]
 
+    def user_admins(self) -> list[Principal]:
+        """Admin-tier principals who can actually authenticate as a human.
+
+        An agent can hold ``ADMIN`` tier, but it authenticates with a bearer
+        token, not a password — :func:`authenticate` never succeeds for one.
+        Counting agents toward "an admin exists" lets the last human admin get
+        locked out (or demoted/removed) while the roster still looks staffed.
+        Use this, not :meth:`admins`, wherever the question is "can a person
+        still get in and fix things" — last-admin protection, and the
+        enabled-requires-admin document invariant.
+        """
+        return [p for p in self.admins() if p.is_user]
+
     def to_dict(self) -> dict:
         return {
             "enabled": self.enabled,

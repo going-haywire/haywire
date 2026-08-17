@@ -109,6 +109,24 @@ def test_cannot_demote_the_last_admin_while_auth_is_enabled(path):
         set_tier("alice", AccessTier.VIEW, path=path)
 
 
+def test_cannot_demote_the_last_human_admin_even_with_an_agent_admin_present(path):
+    """An agent admin can't authenticate() as a human, so it must not count as
+    "another admin" that makes demoting the last human admin safe."""
+    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
+    add_agent("bot", AccessTier.ADMIN, path=path)
+    enable_auth("alice", STRONG, path=path)
+    with pytest.raises(SecurityError, match="last admin"):
+        set_tier("alice", AccessTier.VIEW, path=path)
+
+
+def test_cannot_remove_the_last_human_admin_even_with_an_agent_admin_present(path):
+    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
+    add_agent("bot", AccessTier.ADMIN, path=path)
+    enable_auth("alice", STRONG, path=path)
+    with pytest.raises(SecurityError, match="last admin"):
+        remove_principal("alice", path=path)
+
+
 def test_set_password_changes_the_hash_and_still_verifies(path):
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     set_password("alice", OTHER, path=path)

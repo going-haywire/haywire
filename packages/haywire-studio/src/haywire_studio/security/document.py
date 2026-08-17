@@ -185,7 +185,7 @@ def validate(doc: SecurityDocument) -> list[str]:
     """
     problems: list[str] = []
 
-    if doc.auth.enabled and not doc.auth.admins():
+    if doc.auth.enabled and not doc.auth.user_admins():
         problems.append(
             "Authentication is enabled but no admin principal exists — "
             "the roster editor and account panel are ADMIN-gated, so nobody could open them."
@@ -252,7 +252,7 @@ def sanitize(doc: SecurityDocument) -> tuple[SecurityDocument, list[str]]:
         network.tls_keyfile = ""
 
     auth = doc.auth
-    if auth.enabled and not auth.admins():
+    if auth.enabled and not auth.user_admins():
         auth.enabled = False
 
     if not auth.enabled or not network.tls_configured or not network.allowlist_open:
