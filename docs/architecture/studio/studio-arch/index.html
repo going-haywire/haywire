@@ -1247,6 +1247,8 @@
       
         
       
+        
+      
     
     
     
@@ -1519,6 +1521,41 @@
     
   
     Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
   
 
     
@@ -2596,6 +2633,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#45-serving-one-asgi-app-several-mounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Serving — one ASGI app, several mounts
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3496,6 +3544,17 @@
   
 </li>
         
+          <li class="md-nav__item">
+  <a href="#45-serving-one-asgi-app-several-mounts" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4.5 Serving — one ASGI app, several mounts
+      
+    </span>
+  </a>
+  
+</li>
+        
       </ul>
     </nav>
   
@@ -3766,6 +3825,41 @@
 <li><strong>Execution</strong> — interpreters and assembly run server-side, independent of UI presence.</li>
 </ul>
 <p>The studio is a presentation and orchestration layer: it owns <em>which editor is in which slot, when does each get redrawn</em>. Everything else flows through the shared project state and the per-session signal bus.</p>
+<h3 id="45-serving-one-asgi-app-several-mounts">4.5 Serving — one ASGI app, several mounts<a class="headerlink" href="#45-serving-one-asgi-app-several-mounts" title="Permanent link">&para;</a></h3>
+<p><code>HaywireApp.run()</code> builds a single ASGI application and hands it to <code>ui.run()</code>. Everything the studio serves lives inside it:</p>
+<table>
+<thead>
+<tr>
+<th>Path</th>
+<th>What it is</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>/</code></td>
+<td>The <code>@ui.page</code> handler that creates the <code>Session</code> and renders <code>AppShell</code></td>
+</tr>
+<tr>
+<td><code>/_nicegui_ws/</code></td>
+<td>NiceGUI's Socket.IO mount — <strong>all</strong> UI traffic after the initial page load</td>
+</tr>
+<tr>
+<td><code>/_nicegui/&lt;version&gt;/*</code></td>
+<td>NiceGUI static assets, libraries, components</td>
+</tr>
+<tr>
+<td><code>/api/code-intel/{complete,info,hover}</code></td>
+<td>jedi completion/hover endpoints</td>
+</tr>
+<tr>
+<td><code>/mcp</code></td>
+<td>The Farmhand MCP server, mounted by <code>FarmhandHost.mount()</code></td>
+</tr>
+</tbody>
+</table>
+<p>Because these are mounts on one app rather than separate servers, middleware installed via <code>nicegui.app.add_middleware</code> wraps <em>all</em> of them — including <code>/mcp</code>, and including <code>websocket</code> scopes through the Socket.IO mount. That is what makes a single process-wide gate possible; it is also why any such middleware must be pure-ASGI rather than a <code>BaseHTTPMiddleware</code> subclass. See <a href="../../../adr/0026-studio-network-exposure/">ADR 0026</a> (bind address, peer allowlist) and <a href="../../../adr/0027-studio-authentication/">ADR 0027</a> (authentication).</p>
+<p><strong>TLS.</strong> <code>ui.run()</code> ends in <code>**kwargs</code>, which NiceGUI forwards to uvicorn — and it recognises the <code>ssl_certfile</code> / <code>ssl_keyfile</code> pair explicitly, using it to build the <code>https://</code> URL for the <code>show=True</code> auto-open browser. So HTTPS needs no patching: <code>NetworkSettings.ssl_certfile</code> / <code>ssl_keyfile</code> pass straight through. Leaving them empty (the default) serves plain HTTP exactly as before.</p>
+<p>Two things follow from serving TLS that are easy to miss: <code>FarmhandHost.mount()</code> builds <code>allowed_origins</code> for the MCP DNS-rebinding check with a hardcoded scheme, so it must follow the TLS setting or <code>/mcp</code> rejects its own origin; and browser features gated behind a <em>secure context</em> — clipboard, camera/mic, geolocation — only work on <code>localhost</code> or under real TLS, never on a plain-HTTP LAN address (see <code>.insights/feedback_clipboard_secure_context.md</code>).</p>
 <h2 id="5-extensibility">5. Extensibility<a class="headerlink" href="#5-extensibility" title="Permanent link">&para;</a></h2>
 <p>A library extends the studio by adding any of:</p>
 <ul>

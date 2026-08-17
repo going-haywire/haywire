@@ -10,13 +10,13 @@
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/guides/sharing-libraries/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/guides/security/">
       
       
-        <link rel="prev" href="../rename-library/">
+        <link rel="prev" href="../subscribing-to-marketplaces/">
       
       
-        <link rel="next" href="../publish-to-pypi/">
+        <link rel="next" href="../../architecture/overview/overview-arch/">
       
       
         
@@ -27,7 +27,7 @@
     
     
       
-        <title>Sharing libraries - Haywire Documentation</title>
+        <title>Security - Haywire Documentation</title>
       
     
     
@@ -78,7 +78,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#sharing-libraries-author-guide" class="md-skip">
+        <a href="#you-are-safe-but" class="md-skip">
           Skip to content
         </a>
       
@@ -114,7 +114,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Sharing libraries
+              Security
             
           </span>
         </div>
@@ -1443,44 +1443,10 @@
                 
   
   
-    
   
   
-  
-    <li class="md-nav__item md-nav__item--active">
-      
-      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
-      
-      
-        
-      
-      
-        <label class="md-nav__link md-nav__link--active" for="__toc">
-          
-  
-  
-  <span class="md-ellipsis">
-    
-  
-    Sharing libraries
-  
-
-    
-  </span>
-  
-  
-    
-  
-  
-    <span class="md-status md-status--draft"></span>
-  
-
-  
-
-          <span class="md-nav__icon md-icon"></span>
-        </label>
-      
-      <a href="./" class="md-nav__link md-nav__link--active">
+    <li class="md-nav__item">
+      <a href="../sharing-libraries/" class="md-nav__link">
         
   
   
@@ -1503,231 +1469,6 @@
   
 
       </a>
-      
-        
-
-<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
-  
-  
-  
-    
-  
-  
-    <label class="md-nav__title" for="__toc">
-      <span class="md-nav__icon md-icon"></span>
-      Table of contents
-    </label>
-    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
-      
-        <li class="md-nav__item">
-  <a href="#1-the-short-version" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        1. The short version
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#2-publishing" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2. Publishing
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Publishing">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-the-share-editor" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 The Share editor
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#22-the-cli" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.2 The CLI
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#3-what-gets-published" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        3. What gets published
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-what-has-to-be-true-before-you-publish" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. What has to be true before you publish
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. What has to be true before you publish">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#41-git-requirements" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.1 Git requirements
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#42-publish-from-the-default-branch" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4.2 Publish from the default branch
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#5-hosting-your-marketstall" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        5. Hosting your marketstall
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6-under-the-hood" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Under the hood
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="6. Under the hood">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#61-what-sharing-actually-requires" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6.1 What sharing actually requires
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#62-the-shape-of-a-haybale-library" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6.2 The shape of a haybale library
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#63-keeping-the-manifests-honest" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6.3 Keeping the manifests honest
-      
-    </span>
-  </a>
-  
-</li>
-        
-          <li class="md-nav__item">
-  <a href="#64-versioning-in-the-haywire-monorepo" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6.4 Versioning in the haywire monorepo
-      
-    </span>
-  </a>
-  
-</li>
-        
-      </ul>
-    </nav>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#7-the-full-author-cycle" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        7. The full author cycle
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#8-common-pitfalls" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        8. Common pitfalls
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#9-reading-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        9. Reading on
-      
-    </span>
-  </a>
-  
-</li>
-      
-    </ul>
-  
-</nav>
-      
     </li>
   
 
@@ -1807,10 +1548,44 @@
                 
   
   
+    
   
   
-    <li class="md-nav__item">
-      <a href="../security/" class="md-nav__link">
+  
+    <li class="md-nav__item md-nav__item--active">
+      
+      <input class="md-nav__toggle md-toggle" type="checkbox" id="__toc">
+      
+      
+        
+      
+      
+        <label class="md-nav__link md-nav__link--active" for="__toc">
+          
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+          <span class="md-nav__icon md-icon"></span>
+        </label>
+      
+      <a href="./" class="md-nav__link md-nav__link--active">
         
   
   
@@ -1833,6 +1608,292 @@
   
 
       </a>
+      
+        
+
+<nav class="md-nav md-nav--secondary" aria-label="Table of contents">
+  
+  
+  
+    
+  
+  
+    <label class="md-nav__title" for="__toc">
+      <span class="md-nav__icon md-icon"></span>
+      Table of contents
+    </label>
+    <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
+      
+        <li class="md-nav__item">
+  <a href="#1-default-local-only" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1. Default: local only
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#2-the-four-axes" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2. The four axes
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#3-what-you-are-exposing" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        3. What you are exposing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-opening-the-studio-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Opening the studio up
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-cidr-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. CIDR syntax
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-the-mcp-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. The MCP endpoint
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. The MCP endpoint">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restrict_to_loopback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restrict_to_loopback
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#7-running-on-a-server" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        7. Running on a server
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="7. Running on a server">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#vpn-tailscale-recommended" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        VPN / Tailscale (recommended)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#reverse-proxy-with-auth-in-front" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Reverse proxy with auth in front
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssh-l-zero-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ssh -L (zero config)
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#8-serving-https" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8. Serving HTTPS
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="8. Serving HTTPS">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#one-command" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        One command
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-the-browser-does" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What the browser does
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#checking-what-you-have" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Checking what you have
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#moving-between-networks" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Moving between networks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-a-real-certificate-is-the-better-answer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a real certificate is the better answer
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#9-managing-principals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        9. Managing principals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Managing principals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enabling-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managing-principals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managing principals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-the-security-document" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. The security document
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#11-no-sandbox-no-multi-tenancy" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        11. No sandbox, no multi-tenancy
+      
+    </span>
+  </a>
+  
+</li>
+      
+    </ul>
+  
+</nav>
+      
     </li>
   
 
@@ -3317,10 +3378,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#1-the-short-version" class="md-nav__link">
+  <a href="#1-default-local-only" class="md-nav__link">
     <span class="md-ellipsis">
       
-        1. The short version
+        1. Default: local only
       
     </span>
   </a>
@@ -3328,33 +3389,66 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#2-publishing" class="md-nav__link">
+  <a href="#2-the-four-axes" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2. Publishing
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="2. Publishing">
-      <ul class="md-nav__list">
-        
-          <li class="md-nav__item">
-  <a href="#21-the-share-editor" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        2.1 The Share editor
+        2. The four axes
       
     </span>
   </a>
   
 </li>
-        
-          <li class="md-nav__item">
-  <a href="#22-the-cli" class="md-nav__link">
+      
+        <li class="md-nav__item">
+  <a href="#3-what-you-are-exposing" class="md-nav__link">
     <span class="md-ellipsis">
       
-        2.2 The CLI
+        3. What you are exposing
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#4-opening-the-studio-up" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        4. Opening the studio up
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#5-cidr-syntax" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        5. CIDR syntax
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#6-the-mcp-endpoint" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        6. The MCP endpoint
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="6. The MCP endpoint">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#restrict_to_loopback" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        restrict_to_loopback
       
     </span>
   </a>
@@ -3367,33 +3461,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#3-what-gets-published" class="md-nav__link">
+  <a href="#7-running-on-a-server" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3. What gets published
+        7. Running on a server
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#4-what-has-to-be-true-before-you-publish" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        4. What has to be true before you publish
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="4. What has to be true before you publish">
+    <nav class="md-nav" aria-label="7. Running on a server">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#41-git-requirements" class="md-nav__link">
+  <a href="#vpn-tailscale-recommended" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.1 Git requirements
+        VPN / Tailscale (recommended)
       
     </span>
   </a>
@@ -3401,10 +3484,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#42-publish-from-the-default-branch" class="md-nav__link">
+  <a href="#reverse-proxy-with-auth-in-front" class="md-nav__link">
     <span class="md-ellipsis">
       
-        4.2 Publish from the default branch
+        Reverse proxy with auth in front
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ssh-l-zero-config" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        ssh -L (zero config)
       
     </span>
   </a>
@@ -3417,33 +3511,22 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-hosting-your-marketstall" class="md-nav__link">
+  <a href="#8-serving-https" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Hosting your marketstall
+        8. Serving HTTPS
       
     </span>
   </a>
   
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#6-under-the-hood" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        6. Under the hood
-      
-    </span>
-  </a>
-  
-    <nav class="md-nav" aria-label="6. Under the hood">
+    <nav class="md-nav" aria-label="8. Serving HTTPS">
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#61-what-sharing-actually-requires" class="md-nav__link">
+  <a href="#one-command" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.1 What sharing actually requires
+        One command
       
     </span>
   </a>
@@ -3451,10 +3534,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#62-the-shape-of-a-haybale-library" class="md-nav__link">
+  <a href="#what-the-browser-does" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.2 The shape of a haybale library
+        What the browser does
       
     </span>
   </a>
@@ -3462,10 +3545,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#63-keeping-the-manifests-honest" class="md-nav__link">
+  <a href="#checking-what-you-have" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.3 Keeping the manifests honest
+        Checking what you have
       
     </span>
   </a>
@@ -3473,10 +3556,21 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#64-versioning-in-the-haywire-monorepo" class="md-nav__link">
+  <a href="#moving-between-networks" class="md-nav__link">
     <span class="md-ellipsis">
       
-        6.4 Versioning in the haywire monorepo
+        Moving between networks
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#when-a-real-certificate-is-the-better-answer" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        When a real certificate is the better answer
       
     </span>
   </a>
@@ -3489,10 +3583,49 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#7-the-full-author-cycle" class="md-nav__link">
+  <a href="#9-managing-principals" class="md-nav__link">
     <span class="md-ellipsis">
       
-        7. The full author cycle
+        9. Managing principals
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="9. Managing principals">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#enabling-it" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Enabling it
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#managing-principals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Managing principals
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#10-the-security-document" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        10. The security document
       
     </span>
   </a>
@@ -3500,21 +3633,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#8-common-pitfalls" class="md-nav__link">
+  <a href="#11-no-sandbox-no-multi-tenancy" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8. Common pitfalls
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
-  <a href="#9-reading-on" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        9. Reading on
+        11. No sandbox, no multi-tenancy
       
     </span>
   </a>
@@ -3538,366 +3660,468 @@
 
 
 
-<h1 id="sharing-libraries-author-guide">Sharing libraries — Author guide<a class="headerlink" href="#sharing-libraries-author-guide" title="Permanent link">&para;</a></h1>
-<p>Publishing a library is one command, or one wizard. This guide starts there.
-Later sections cover the things that can stop a publish (§4), and what the
-pipeline is doing on your behalf (§6 onward) — worth reading once, not before
-your first share.</p>
-<p>For the consumer side, see <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a>.</p>
-<h2 id="1-the-short-version">1. The short version<a class="headerlink" href="#1-the-short-version" title="Permanent link">&para;</a></h2>
-<p>Sharing a library is easy. If you followed the standard way of setting up a
-haywire project, your project already contains its own library: every node,
-widget, type and other component you built for your graphs is already in it.
-All that is left is to share it.</p>
-<p>Before you start though you have to make a decision about your library name. You might have noticed that the folder inside <code>barn/</code> is called <code>haybale-your-lib</code> and the package inside it is called <code>haybale_your_lib</code>. This naming scheme was not chosen arbitrarily — it is the canonical form for haybale libraries because haybale-<em> is a namespae in [<a href="https://pypi.org">pypi</a>] (where all the python packages live) that is not used by any other project so far - the only haybale-</em> libraries there are, are the ones that are part of the haywire project (at least at the time of this writing). If you want to share your library with others, it is recommended to follow this naming scheme and use a name that is not already taken in pypi.org. You can check if a name is available by searching for it on pypi.org. But this only applies if you choose to share your library on pypi.org. If you choose to share it only via git (which this guide will cover) and amongst you friends, you can use any name you like, but it is still recommended to follow the haybale-* naming scheme to avoid confusion.</p>
-<p>If you do plan to share your library along a wider audience and want to avoid the painfull (for you and your library users) experience of having to rename your library later, it is recommended to choose a name you want that is available on pypi.org before you start with this process. Because if you don't, and your library name is already taken, your library and the other libary (that has a pypi package) will never be able to coexist in the same graph. Ever. Which would be a shame. But if you do, then once you have successfully shared your library with the approach described in this guide, you can follow the steps described in <a href="../publish-to-pypi/">publish-to-pypi</a> to publish your library on pypi.org as well.</p>
-<p>The process:</p>
-<ul>
-<li>
-<p>Document your components: write descriptions, tags, class docstrings.</p>
-</li>
-<li>
-<p>In the Marketplace browser → select your local library → in the Overview
-  editor press <strong>Edit</strong> and update the metadata.</p>
-</li>
-<li>
-<p>The <strong>haybale-share</strong> library (installable via the Marketplace) gives you a
-  wizard that steps you through the share process interactively. All you need
-  is a cloud account for a git repository.</p>
-</li>
-<li>
-<p>Once the wizard completes, your library is online for others to subscribe to.</p>
-</li>
-</ul>
-<p>You need a clean working tree, an <code>origin</code> remote on a recognised host, and to
-be on the default branch. The wizard checks all of it up front and offers a fix
-button where the repair is unambiguous — §4 has the details if a check stops
-you.</p>
-<h2 id="2-publishing">2. Publishing<a class="headerlink" href="#2-publishing" title="Permanent link">&para;</a></h2>
-<p>Publishing is <code>haywire share</code>. It publishes the whole <strong>project</strong>, not one
-library: every <code>barn/*</code> library is bumped to the same version (lockstep), docs
-are regenerated, <code>marketstall.toml</code> is rebuilt, and the result is committed,
-tagged <code>v&lt;version&gt;</code>, and pushed. See <a href="../../adr/0023-project-scoped-lockstep-sharing/">ADR-0023</a> for why the unit of sharing is the project.</p>
-<p>The same pipeline is available two ways — a wizard and a CLI.</p>
-<h3 id="21-the-share-editor">2.1 The Share editor<a class="headerlink" href="#21-the-share-editor" title="Permanent link">&para;</a></h3>
-<p>Open <strong>Share</strong> from the studio's left toolbar. It shows the project's
-publishing status — the barn libraries, their lockstep version — and a
-<strong>Share…</strong> button that opens the flow.</p>
-<p>Three screens:</p>
-<ol>
-<li><strong>Preflight</strong> runs the moment it opens and reports the earliest problem
-   it finds, with the repair inline where one is safe (see <a href="#4-what-has-to-be-true-before-you-publish">§4</a>).</li>
-<li><strong>Review</strong> carries every dependency decision and the version on one
-   screen. Findings with nothing to report collapse to a single ✓ line, so a
-   clean project is one screen and one click. Nothing is written until you
-   confirm here.</li>
-<li><strong>Publish</strong> regenerates docs, rebuilds the marketstall, then commits, tags
-   and pushes — one authorized action, with the subprocess output streamed.</li>
-</ol>
-<h3 id="22-the-cli">2.2 The CLI<a class="headerlink" href="#22-the-cli" title="Permanent link">&para;</a></h3>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--dry-run<span class="w">      </span><span class="c1"># report only; writes nothing</span>
-</span></code></pre></div>
-<p>One mode, non-interactive. Every answer comes from a flag or takes its inert
-default. Requires <code>--bump</code> (<code>patch|minor|major</code> or an explicit <code>X.Y.Z</code>).</p>
-<p>It does not refuse over dependency drift. An <strong>undeclared import</strong> is declared
-for you — that one breaks a consumer's install and declaring it is
-unambiguously correct — while <strong>unused declarations</strong> and <strong>version floor lag</strong>
-are left untouched, because removing is lossy and nothing here can compute the
-oldest version that still works. Use the Share editor when you want to decide
-those.</p>
-<p><code>--dry-run</code> reports preconditions, findings and the version it would cut, and
-writes nothing. Preconditions are <em>reported</em> rather than enforced there, so it
-stays useful on a feature branch or a PR checkout.</p>
-<h2 id="3-what-gets-published">3. What gets published<a class="headerlink" href="#3-what-gets-published" title="Permanent link">&para;</a></h2>
-<p>Each <code>barn/*</code> library becomes one <code>[[haybales]]</code> entry in the generated
-<code>marketstall.toml</code> — mostly a verbatim copy of your <code>haybale.toml</code>, plus the
-coordinates a library cannot state about itself (<code>install_spec</code>, <code>source</code>,
-<code>require</code>). You never author this file; publishing writes it.</p>
-<p>Two things worth knowing as an author:</p>
-<ul>
-<li><code>install_spec</code> pins to the release tag <code>v&lt;version&gt;</code> created by this run — not
-  the branch you published from — so it stays correct even after your branch is
-  deleted.</li>
-<li><code>require</code> (<code>haywire-core&gt;=0.0.31</code>) comes from your library's own
-  <code>pyproject.toml</code>. Keep it as low as your library actually allows: a floor
-  restricts <em>consumers</em>, and raising it forces every one of them to update
-  before they can install you.</li>
-</ul>
-<p>Field by field: <a href="../../reference/files/marketstall-toml/">marketstall.toml</a>.</p>
-<h2 id="4-what-has-to-be-true-before-you-publish">4. What has to be true before you publish<a class="headerlink" href="#4-what-has-to-be-true-before-you-publish" title="Permanent link">&para;</a></h2>
-<p>Any precondition failure stops <code>haywire share</code> and reports the single earliest
-problem it found — checks run in the order below, and an earlier failure makes
-a later one moot, so fixing one and re-running can surface the next. In the
-Share editor this renders on the <strong>Preflight screen</strong>: message and remedy text,
-plus — for failures with a safe, unambiguous repair — a button that performs
-the fix right there, with your permission. Every one ends with <strong>Check again</strong>,
-which re-runs every check from the top.</p>
-<h3 id="41-git-requirements">4.1 Git requirements<a class="headerlink" href="#41-git-requirements" title="Permanent link">&para;</a></h3>
-<p><code>haywire share</code> needs four things from your git setup before it will publish anything, checked in this order:</p>
-<ol>
-<li>
-<p><strong>The working tree is clean.</strong> <code>git status --porcelain</code> must be empty —
-   no staged, unstaged, or untracked changes anywhere in the repo, not just
-   under <code>barn/</code>. This is deliberately strict: if a later step fails
-   partway through, the publish pipeline reverts everything it has written
-   by resetting the whole working tree, and that revert is only safe
-   because nothing else could have been sitting there dirty when the run
-   started. Commit or stash first. This applies to <code>haywire share</code> on the
-   command line exactly as it does in the Share editor — both run the same
-   checks. (A step-1 failure itself never mutates anything and never
-   triggers a revert — there's nothing yet to revert.)</p>
-</li>
-<li>
-<p><strong>An <code>origin</code> remote is configured.</strong> <code>git remote add origin &lt;url&gt;</code> if it isn't. The Share editor's Preflight screen offers this as an <strong>Add origin remote</strong> fix (§8).</p>
-</li>
-<li>
-<p><strong>The remote's host is recognized.</strong> GitHub and GitLab (<code>github.com</code>, <code>gitlab.com</code>) work out of the box. A self-hosted GitLab or GitHub Enterprise instance — anything on a different hostname — needs one entry in <code>~/.haywire/config.toml</code>:</p>
-</li>
-</ol>
-<div class="language-toml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="k">[[hosts]]</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="n">hostname</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab.example.com&quot;</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a><span class="n">provider</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;gitlab&quot;</span><span class="w">   </span><span class="c1"># or &quot;github&quot;</span>
-</span></code></pre></div>
-<p>This only teaches haywire how to build browser-friendly URLs (blob links, raw-content links) for that host — it has nothing to do with push access, which is check 4. A remote pointing at a local filesystem path (a sibling clone, a shared network drive) skips this check entirely — it isn't an unrecognized host, since there's no hostname to recognize or fail to recognize.</p>
-<ol>
-<li>
-<p><strong>The push will be accepted.</strong> <code>haywire share</code>'s commit step runs a <code>git push --dry-run</code> before it commits or tags anything, so a credential problem surfaces before anything is written. Because both the Share editor and the CLI push non-interactively, git cannot fall back to an interactive username/password prompt — there is no terminal for it to prompt on. This means:</p>
-</li>
-<li>
-<p>An <strong>HTTPS</strong> remote (<code>https://gitlab.example.com/...</code>) needs a credential cached ahead of time — a personal access token stored via a credential helper (<code>git config --global credential.helper osxkeychain</code> on macOS, then push once by hand to seed it) is the common approach.</p>
-</li>
-<li>An <strong>SSH</strong> remote (<code>git@gitlab.example.com:...</code>) needs a key registered with the host and <code>ssh-agent</code> running, so no passphrase prompt blocks the push either.</li>
-</ol>
-<p>Setting up either is entirely between you and your git host — see your host's own documentation: <a href="https://docs.github.com/en/authentication">GitHub's guide to authenticating with the CLI/HTTPS</a> or <a href="https://docs.gitlab.com/auth/">GitLab's guide to credentials</a> cover both paths and the most common failures. This guide only covers what haywire itself checks, not general git credential troubleshooting.</p>
-<h3 id="42-publish-from-the-default-branch">4.2 Publish from the default branch<a class="headerlink" href="#42-publish-from-the-default-branch" title="Permanent link">&para;</a></h3>
-<p><code>haywire share</code> refuses to publish from anything but the repository's default
-branch. There is no escape hatch — the rule is unconditional. It guarantees
-every published entry reflects a state that will still exist and keep
-receiving fixes after the run. For the full rationale, and why tag-pinning
-did not relax the rule, see
-<a href="../../architecture/sharing/share-pipeline-arch/#5-the-default-branch-publishing-rule">share-pipeline-arch §5</a>.</p>
-<p>If <code>haywire share</code> reports that you're on the wrong branch, e.g.:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Currently on `feature-x`, but the repository&#39;s default branch is `main`.
-</span></code></pre></div>
-<p>switch to the default branch and publish from there: <code>git switch main</code>.</p>
-<p>This check, along with a companion check that HEAD isn't detached, always
-runs — there's no flag to skip it.</p>
-<h2 id="5-hosting-your-marketstall">5. Hosting your marketstall<a class="headerlink" href="#5-hosting-your-marketstall" title="Permanent link">&para;</a></h2>
-<p>A marketstall is just a TOML file. Wherever consumers can reach by URL, you can host one. Common patterns:</p>
+<h1 id="you-are-safe-but">You are safe ... but<a class="headerlink" href="#you-are-safe-but" title="Permanent link">&para;</a></h1>
+<p>If you are running the studio without any special configuration described in this guide means: You are safe.</p>
+<p>Nevertheless, there is no way to sugar coat the fact, that haywire is from a computer security perspective one big code injection surface. Whoever can reach the studio can execute arbitrary Python through the graph editor. This is by design: It assumes that whoever is using it is trusted to do so.</p>
+<p>But if you choose to leave the safe default configuration because you want to give access to the studio from outside the local machine, it is thus of paramount importance to understand the security model and to configure it correctly. Haywire Studio comes with a set of CLI commands to configure its security. They are designed to make it hard to misconfigure the setup in a way that would leave it exposed to untrusted users (or whatever lurks nowadays in the dark corners of the internet).</p>
+<p>This guide covers everything that decides <em>who that is</em> and <em>what
+they can prove before they get in</em>: where the studio can be reached from, who
+may connect once it's reachable, whether the wire between them is encrypted,
+and what the Farmhand MCP mount adds on top. For the design rationale behind
+the shape of these controls, see <a href="../../adr/0028-security-document/">ADR-0028</a>;
+for the network-layer mechanics specifically, see
+<a href="../../adr/0026-studio-network-exposure/">ADR-0026</a>; for the authentication
+gate, see <a href="../../adr/0027-studio-authentication/">ADR-0027</a>.</p>
+<p>Sandboxing the graph editor is out of scope for all of it — a principal who
+can edit a graph holds the authority of the studio process, by design. See
+<a href="#11-no-sandbox-no-multi-tenancy">§11</a>.</p>
+<h2 id="1-default-local-only">1. Default: local only<a class="headerlink" href="#1-default-local-only" title="Permanent link">&para;</a></h2>
+<p>Out of the box, <code>uv run haywire</code> binds to <code>127.0.0.1</code> only. Nothing off-box
+can reach the studio, the code-intelligence endpoints, or the Farmhand MCP
+server, regardless of what else is configured — the OS refuses the
+connection before any application-level check runs.</p>
+<p>Every control that decides who can reach this studio lives in one file,
+<code>~/.haywire/security.json</code>, changed only from the command line, with the
+studio stopped. The default is loopback-only, authentication off,
+for every fresh installation.</p>
+<h2 id="2-the-four-axes">2. The four axes<a class="headerlink" href="#2-the-four-axes" title="Permanent link">&para;</a></h2>
+<p>Everything in this guide is one of four independent axes, each read once at
+process startup — <strong>changing any of them requires restarting the studio</strong>;
+there is no live-reload path for any of them.</p>
 <table>
 <thead>
 <tr>
-<th>Hosting</th>
-<th>URL shape</th>
-<th>Notes</th>
+<th>Axis</th>
+<th>Question it answers</th>
+<th>Command</th>
+<th>Covered in</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td>GitHub Pages</td>
-<td><code>https://&lt;you&gt;.github.io/&lt;repo&gt;/marketstall.toml</code></td>
-<td>Free, persistent, served as raw bytes. Standard for monorepo libraries.</td>
+<td>Network location</td>
+<td>Which machines can open a connection at all?</td>
+<td><code>haywire network</code></td>
+<td><a href="#4-opening-the-studio-up">§4</a>, <a href="#5-cidr-syntax">§5</a>, <a href="#7-running-on-a-server">§7</a></td>
 </tr>
 <tr>
-<td>GitHub raw</td>
-<td><code>https://raw.githubusercontent.com/&lt;you&gt;/&lt;repo&gt;/main/marketstall.toml</code></td>
-<td>Works without Pages setup. Counts against GitHub's rate limit; less appropriate for high-traffic.</td>
+<td>Authentication</td>
+<td>Who, once connected, is let in?</td>
+<td><code>haywire auth</code>, <code>haywire user</code></td>
+<td><a href="#9-managing-principals">§9</a></td>
 </tr>
 <tr>
-<td>GitLab Pages</td>
-<td><code>https://&lt;you&gt;.gitlab.io/&lt;repo&gt;/marketstall.toml</code></td>
-<td>Same shape as GitHub Pages.</td>
+<td>TLS</td>
+<td>Is the traffic between them encrypted?</td>
+<td><code>haywire ssl</code></td>
+<td><a href="#8-serving-https">§8</a></td>
 </tr>
 <tr>
-<td>Your own static host</td>
-<td>Any URL serving TOML</td>
-<td>No haywire-specific requirements; just must be reachable.</td>
+<td>Farmhand</td>
+<td>Is the MCP tool endpoint served, and to whom?</td>
+<td><code>haywire farmhand</code></td>
+<td><a href="#6-the-mcp-endpoint">§6</a></td>
 </tr>
 </tbody>
 </table>
-<p>The haywire team publishes the official marketstall at <code>https://going-haywire.github.io/haywire/marketplace.toml</code> (a marketplace aggregating multiple marketstalls — see <a href="../../reference/files/marketplace-toml/">marketplace.toml</a> for the distinction). Your file is structurally the same.</p>
-<p>Once hosted, share the URL. Per spec §4.2 a consumer can paste any of four forms into the Library Manager's Add Source dialog — the GitHub <em>blob</em> URL of your <code>marketstall.toml</code> (e.g. <code>https://github.com/you/repo/blob/main/marketstall.toml</code>) is the recommended canonical form. The runtime recognizes the host, derives the raw URL, fetches the body, sees one <code>[[haybales]]</code> section, and writes a <code>[[stalls]]</code> subscription to the user's global marketplace. The next refresh picks up your library. See <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> for the consumer side.</p>
-<h2 id="6-under-the-hood">6. Under the hood<a class="headerlink" href="#6-under-the-hood" title="Permanent link">&para;</a></h2>
-<p>Nothing below is something you have to do. The share pipeline handles all of
-it; this is what it is handling, for when you want to know — or when something
-went wrong and the message mentions a manifest.</p>
-<h3 id="61-what-sharing-actually-requires">6.1 What sharing actually requires<a class="headerlink" href="#61-what-sharing-actually-requires" title="Permanent link">&para;</a></h3>
-<p>A <strong>haybale library</strong> is a Python package containing one <code>BaseLibrary</code> subclass plus the components it contributes (nodes, types, widgets, skins, adapters, themes, panels, editors, states, settings). Sharing one means making it findable and installable by other people without going through a central registry. The mechanism is a small TOML file you host yourself, called a <strong>marketstall</strong>, that lists what you publish and how to install it.</p>
-<p>Three things have to be true for a shared library to land cleanly in someone else's project:</p>
-<ol>
-<li>The library's manifests (<code>linked_libraries</code> in <code>haybale.toml</code> and <code>dependencies</code> in the library's own <code>pyproject.toml</code>) accurately describe what the source actually imports.</li>
-<li>The marketstall file contains a valid entry pointing at the library's git location.</li>
-<li>The marketstall is hosted somewhere a consumer can reach by URL.</li>
-</ol>
-<p>The tooling in this guide makes all three easy.</p>
-<h3 id="62-the-shape-of-a-haybale-library">6.2 The shape of a haybale library<a class="headerlink" href="#62-the-shape-of-a-haybale-library" title="Permanent link">&para;</a></h3>
-<p>A haybale library is a Python package with a specific layout. <code>haywire init</code> produces this for you; if you're starting from scratch, see <a href="../../haybale/haybale-canon/">haybale-canon</a> for the full canon. The relevant parts for sharing:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>haybale-my-lib/
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>├── pyproject.toml          ← pip manifest (travels to PyPI / pip)
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>└── haybale_my_lib/
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    ├── haybale.toml        ← library metadata (ships INSIDE the wheel)
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    └── __init__.py         ← @library(...) declares the haywire runtime contract
+<p>All four are fields of one document, <code>~/.haywire/security.json</code>
+(<a href="#10-the-security-document">§10</a>), and none of them is a checkbox in a
+settings panel. That is not an accident of implementation — a checkbox
+cannot express "you may only turn this on if the other three axes are
+already in a safe state," and three of these four axes have exactly that
+kind of precondition. <code>haywire security status</code> reads all four together and
+reports the combinations a single-axis view cannot see — see
+<a href="../../adr/0028-security-document/">ADR-0028</a> for why the axes were split out
+of the settings system that used to hold them.</p>
+<h2 id="3-what-you-are-exposing">3. What you are exposing<a class="headerlink" href="#3-what-you-are-exposing" title="Permanent link">&para;</a></h2>
+<p>This is the honest inventory. Turning on network exposure (and widening the
+allowlist beyond your own machine) puts the following in front of anyone in
+the allowed range:</p>
+<ul>
+<li><strong>The studio UI itself.</strong> Full graph editing is <strong>arbitrary code
+  execution</strong> — a graph runs Python in-process. Anyone who can reach the UI
+  and authenticate as an  <code>view</code>, <code>edit</code> or <code>admin</code> principal is a full operator.
+  There is no sandbox around what a graph can do. <code>view</code>, <code>edit</code> or <code>admin</code> are only UI roles, not fine granular execution permissions. They are meant to prevent accidental changes, not to prevent malicious intent.</li>
+<li><strong><code>/api/code-intel/complete</code>, <code>/info</code>, <code>/hover</code>.</strong> Unauthenticated by
+  design (they back inline editor autocomplete). <code>_confined_path()</code>
+  (<code>code_intelligence.py</code>) restricts the <code>path</code> argument to the current
+  workspace root plus everything on <code>sys.path</code> — a caller cannot walk the
+  filesystem to arbitrary locations. Within those roots, though, the
+  endpoints will happily disclose names, signatures, and docstrings via
+  jedi's static analysis. This is not new capability beyond what a graph node
+  could already obtain by importing the same modules, but it's reachable
+  without going through the graph editor at all.</li>
+<li><strong><code>/mcp</code> (the Farmhand MCP server).</strong> Behind the same authentication gate
+  as everything else once the studio is exposed — see
+  <a href="#6-the-mcp-endpoint">§6</a> for what guards it and why a second, MCP-specific
+  credential is no longer part of the picture.</li>
+</ul>
+<h2 id="4-opening-the-studio-up">4. Opening the studio up<a class="headerlink" href="#4-opening-the-studio-up" title="Permanent link">&para;</a></h2>
+<p><code>haywire network expose</code> is a verb, not a switch, because safe exposure is
+three coordinated preconditions and a checkbox cannot enforce any of them:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="c1"># with the studio stopped</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span><span class="nb">enable</span><span class="w">          </span><span class="c1"># need at least one admin first</span>
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>ssl<span class="w"> </span>setup<span class="w">            </span><span class="c1"># need TLS configured</span>
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>network<span class="w"> </span>expose<span class="w"> </span>--ranges<span class="w"> </span><span class="m">192</span>.168.1.0/24
 </span></code></pre></div>
-<p>The two manifests answer different questions:</p>
+<p>Each of the three refusals below names the command that clears it, and
+<code>expose</code> checks all three every time it runs — there is no way to end up
+with a network binding wider than loopback while any one of them is false:</p>
+<ul>
+<li><strong>"the studio cannot be exposed with authentication off"</strong> — run
+  <code>haywire auth enable</code> first. Anyone who could reach an unauthenticated,
+  exposed studio would be a full operator with no login required; see
+  <a href="#9-managing-principals">§9</a>.</li>
+<li><strong>"the studio cannot be exposed without TLS"</strong> — run <code>haywire ssl setup</code>
+  first. Passwords and session cookies would otherwise cross the network in
+  cleartext the moment authentication has anything to protect; see
+  <a href="#8-serving-https">§8</a>.</li>
+<li><strong>"the studio cannot be exposed with an empty allowlist"</strong> — pass
+  <code>--ranges</code> naming at least one CIDR block. An exposed studio with no
+  allowed ranges rejects every remote peer, which is real but not what
+  "expose" plausibly means to type; see <a href="#5-cidr-syntax">§5</a>.</li>
+</ul>
+<p><code>haywire network seal</code> reverses the bind — the studio answers on loopback
+again — and <strong>keeps the allowlist you configured</strong>. Sealing is the usual
+temporary case (a laptop leaving the venue, a demo that just ended); keeping
+the ranges means opening back up later is <code>haywire network expose --ranges
+&lt;same subnet&gt;</code> again, not re-deriving the CIDR block from memory.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>network<span class="w"> </span>status<span class="w">       </span><span class="c1"># where the studio can currently be reached from</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>security<span class="w"> </span>status<span class="w">      </span><span class="c1"># the full four-axis picture</span>
+</span></code></pre></div>
+<h2 id="5-cidr-syntax">5. CIDR syntax<a class="headerlink" href="#5-cidr-syntax" title="Permanent link">&para;</a></h2>
+<p>The <code>--ranges</code> and <code>--trusted-proxies</code> arguments both take CIDR ranges,
+validated with Python's <code>ipaddress.ip_network(entry, strict=False)</code>. A few
+worked examples:</p>
 <table>
 <thead>
 <tr>
-<th>Manifest</th>
-<th>Audience</th>
-<th>Answers</th>
+<th>Entry</th>
+<th>Meaning</th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>pyproject.toml</code> <code>[project] dependencies</code></td>
-<td>pip / PyPI / <code>uv pip install</code></td>
-<td>"What Python distributions does this library need installed?"</td>
+<td><code>192.168.1.42/32</code></td>
+<td>A single host — <code>/32</code> matches exactly one address.</td>
 </tr>
 <tr>
-<td><code>haybale.toml</code> <code>linked_libraries</code></td>
-<td>haywire's runtime (LibraryManager)</td>
-<td>"Which <em>other haywire libraries</em> must be enabled for this one to enable?"</td>
+<td><code>192.168.1.0/24</code></td>
+<td>A subnet — the whole <code>192.168.1.x</code> range.</td>
+</tr>
+<tr>
+<td><code>10.21.36.0/21</code></td>
+<td>A subnet — the whole <code>10.21.36.x</code> - <code>10.21.43.x</code> range.</td>
+</tr>
+<tr>
+<td><code>10.0.0.0/8</code></td>
+<td>The entire RFC-1918 <code>10.x.x.x</code> block.</td>
 </tr>
 </tbody>
 </table>
-<p>Note the spelling difference: <code>dependencies</code> takes pip <strong>distribution</strong> names (<code>haybale-core</code>), <code>linked_libraries</code> takes Python <strong>module</strong> names (<code>haybale_core</code>).</p>
-<p><code>haybale.toml</code> also carries everything descriptive a subscriber sees before installing — <code>label</code>, <code>description</code>, <code>tags</code>, <code>os</code>, and the URL fields — which is why it lives <em>inside</em> the package and ships in the wheel. Publishing copies it almost verbatim into your marketstall, and generates <code>pyproject.toml</code>'s descriptive <code>[project]</code> fields from it, so you never write those twice. Full field list: <a href="../../reference/files/haybale-toml/">reference/files/haybale.toml</a>.</p>
-<p>The library's source imports are a third, implicit layer. The three have to agree at publish time — if your source <code>from haybale_core import types</code> but neither manifest declares it, the published library will fail to install or to enable for consumers.</p>
-<h3 id="63-keeping-the-manifests-honest">6.3 Keeping the manifests honest<a class="headerlink" href="#63-keeping-the-manifests-honest" title="Permanent link">&para;</a></h3>
-<p>As you add imports to your library's source, you'll add lines like <code>from haywire.ui.elements import elements as hui</code> or <code>from haybale_haystack.states import HaystackState</code>. Each new import is a new dependency — and the two manifests need to follow.</p>
-<p>You don't have to track this by hand. <code>haywire share</code>'s <strong>Detect</strong> step does it for you, and <code>uv run haywire deps check</code> runs the same detection non-interactively (useful in CI).</p>
-<p>What happens:</p>
-<ol>
-<li>The runtime statically scans every <code>.py</code> file in your library's source tree.</li>
-<li>It resolves every top-level import to its installed Python distribution.</li>
-<li>It classifies each one: framework (<code>haywire-core</code>, <code>haywire-studio</code>), registered haywire library (anything declaring a <code>haywire.libraries</code> entry point), or third-party (<code>numpy</code>, <code>requests</code>, etc.).</li>
-<li>It diffs the result against what your two manifests currently declare.</li>
-<li>The Share flow's screens ask you about each finding, one kind at a time.</li>
-</ol>
-<p>How each finding is handled:</p>
-<table>
-<thead>
-<tr>
-<th>Finding</th>
-<th>What happens</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td>An import your library pyproject doesn't declare</td>
-<td>You choose the pin per item: no pin, floor at installed, custom, or skip. This is the only finding that blocks a publish — it breaks a consumer's install.</td>
-</tr>
-<tr>
-<td>An imported haywire library missing from <code>linked_libraries</code></td>
-<td>Added for you, and reported. There is nothing to decide: it carries no version and narrows nothing.</td>
-</tr>
-<tr>
-<td>A declaration the source no longer imports</td>
-<td>Reported, never removed on its own. A dynamic import looks exactly like an unused declaration, so dropping it is your call.</td>
-</tr>
-<tr>
-<td>A declared floor below the installed version</td>
-<td>Left alone by default. "Newer is installed" only means time passed, not that your floor is wrong.</td>
-</tr>
-</tbody>
-</table>
-<p>Nothing is ever removed without you asking for it, so a hand-added entry for a
-dynamic import survives every publish.</p>
-<p>Because the share pipeline runs this detection itself, a publish never ships a
-manifest that lies about the source. Running <code>deps check</code> as you go just means
-the publish has nothing left to report.</p>
-<h3 id="64-versioning-in-the-haywire-monorepo">6.4 Versioning in the haywire monorepo<a class="headerlink" href="#64-versioning-in-the-haywire-monorepo" title="Permanent link">&para;</a></h3>
-<blockquote>
-<p><code>haywire share</code> (<a href="#2-publishing">§2</a>) is the tool for a project you scaffolded with <code>haywire init</code> — a uv workspace root with a <code>barn/</code> of libraries that publish in lockstep. The haywire <strong>monorepo itself</strong> uses a related but separate lockstep flow described below.</p>
-</blockquote>
-<p>Versions are managed at the monorepo level by <code>scripts/bump_version.py</code>, invoked through <code>/haywire-release</code>. See <a href="../../reference/publish_releases/">publish_releases</a> for the operational flow. The short version:</p>
-<ul>
-<li>The repo declares which packages release in lockstep (<code>[tool.haywire.release]</code> in the repo root <code>pyproject.toml</code>).</li>
-<li>A release bumps every member's <code>[project] version</code> to the same value.</li>
-<li>Inter-package dependencies use <code>&gt;=</code> floor operators (<code>haywire-core&gt;=0.0.1</code>) so any later release is acceptable. A <code>~=X.Y.Z</code> compatible-release constraint would also stamp a <em>ceiling</em> — <code>~=0.0.37</code> excludes 0.1.0 — and a bound written by tooling is not an author's policy.</li>
-<li>CI publishes to PyPI; the marketstall in <code>gh-pages</code> is regenerated from <code>scripts/generate_marketstall.py</code> as part of the same workflow.</li>
-</ul>
-<p>Authors outside the official monorepo can use any versioning scheme they like — the marketstall format doesn't require lockstep. The <code>&gt;=</code> convention is a haywire-team practice.</p>
-<h2 id="7-the-full-author-cycle">7. The full author cycle<a class="headerlink" href="#7-the-full-author-cycle" title="Permanent link">&para;</a></h2>
-<p>End-to-end, the flow is:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>write code, build components
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>        │
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>        ▼
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>document them — descriptions, tags, docstrings
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>        │
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>        ▼
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>git commit &amp;&amp; git push          (the tree must be clean — §4.1)
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>        │
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>        ▼
-</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>uv run haywire share --bump patch
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>  or: Share… in the Share editor
-</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>        │
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>        ├─▶ preflight: tree, remote, host, push, branch      §4
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        ├─▶ dependency drift detected and reconciled         §6.3
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        ├─▶ barn/* bumped in lockstep, docs regenerated      §6.4
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>        └─▶ marketstall.toml rebuilt, committed, tagged, pushed
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>        │
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        ▼
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>marketstall hosted at a URL      §5
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        │
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>        ▼
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>consumer subscribes via Add Source
+<p>Multiple entries are comma-separated in one argument:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>network<span class="w"> </span>expose<span class="w"> </span>--ranges<span class="w"> </span><span class="s2">&quot;192.168.1.0/24, 10.0.0.0/8&quot;</span>
 </span></code></pre></div>
-<p>Everything in the indented block happens inside the one command. The only steps
-that are yours are writing the code, documenting it, and committing.</p>
-<p>Two separate commands cover the CI side — there's no single <code>--check</code> gate.
-Run <code>haywire deps check</code> as a PR gate to catch manifest drift before merging,
-and <code>haywire docs --all --json &lt;path&gt;</code> on merge to keep generated docs current,
-committing whatever it produces. What each one exits with, and why neither is a
-staleness gate, is in
-<a href="../../architecture/sharing/share-pipeline-arch/#6-the-current-ci-story">share-pipeline-arch §6</a>.</p>
-<h2 id="8-common-pitfalls">8. Common pitfalls<a class="headerlink" href="#8-common-pitfalls" title="Permanent link">&para;</a></h2>
-<p><strong>You want to review dependency findings before publishing.</strong>
-The CLI does not stop for them — it declares undeclared imports and leaves the
-judgement calls alone. Run <code>haywire share --dry-run</code> to see every finding
-without writing anything, or open the <strong>Share</strong> editor and use its Review
-screen, which offers each finding with a per-item choice.</p>
-<p><strong>Your marketstall has an entry but consumers don't see the library after subscribing.</strong>
-Three causes worth checking:</p>
-<ol>
-<li>Their <code>Refresh</code> hasn't run. Subscriptions are passive; the catalog updates only on refresh.</li>
-<li>The library's name collides with one they already have from another feed. They'll see a conflict prompt at Add Source time; if they picked the other source, that source holds the <code>preference</code>. Every later refresh lists the collision on its resolve step, so they can switch to your copy in one click.</li>
-<li>The git URL in your <code>install_spec</code> is unreachable. Test with <code>uv pip install '&lt;install_spec&gt;'</code> directly.</li>
-</ol>
-<p><strong>Detection didn't pick up an import.</strong>
-The scan is static AST analysis, so dynamic imports (<code>importlib.import_module(name)</code>, <code>__import__(...)</code>) are invisible to it. Declare those manually in both manifests. Nothing removes a declaration on its own — a declaration the scan can't see is reported as unused and left alone unless you choose to drop it — so a hand-added entry for a dynamic import survives.</p>
-<p><strong><code>haywire share</code> fails with "Working tree is not clean.".</strong>
-You have uncommitted changes somewhere in the repo — not just under <code>barn/</code>. The publish pipeline reverts everything it writes if a later step fails partway through, by resetting the whole working tree, and that's only safe when nothing else was dirty to begin with. Commit or stash your changes, then retry.</p>
-<p><strong><code>haywire share</code> produces a URL with <code>&lt;REPO_URL&gt;</code> placeholder.</strong>
-The library has no git remote (<code>git remote -v</code> returns nothing). Add a remote: <code>git remote add origin &lt;url&gt;</code>. In the Share editor, Preflight offers an <strong>Add origin remote</strong> fix — type the URL, click it, then <strong>Check again</strong>.</p>
-<p><strong><code>haywire share</code> fails with "Host '\&lt;hostname&gt;' is not recognized.".</strong>
-Your <code>origin</code> remote points at a host haywire doesn't ship built-in support for — anything other than <code>github.com</code>/<code>gitlab.com</code>, typically a self-hosted GitLab or GitHub Enterprise instance. In the Share editor, the Preflight screen offers to write the needed <code>~/.haywire/config.toml</code> entry for you — click the fix, then Check again. From the CLI, add it by hand per <a href="#41-git-requirements">§4.1</a> and retry. This is unrelated to push access — see the next entry if the push itself also fails.</p>
-<p><strong><code>haywire share</code> fails with "Push failed: ... terminal prompts disabled".</strong>
-git tried to prompt for a username/password and couldn't — both the Share editor and the CLI push non-interactively, so there's no terminal to prompt on. Preflight catches this before anything is written, and links your host's own authentication docs directly (SSH keys or tokens, whichever your remote uses). You need a credential cached <em>before</em> running share: either switch the remote to SSH (<code>git remote set-url origin git@&lt;host&gt;:&lt;owner&gt;/&lt;repo&gt;.git</code>) with a key registered on the host and <code>ssh-agent</code> running, or keep HTTPS and cache a personal access token via a git credential helper. See <a href="#41-git-requirements">§4.1</a> for both paths and links to your host's own credential docs — this is a general git-auth problem, not something haywire's pipeline can resolve for you.</p>
-<p><strong><code>haywire share</code> fails with "Could not read <code>barn/&lt;lib&gt;/pyproject.toml</code>: ...".</strong>
-That library's <code>pyproject.toml</code> doesn't parse as TOML. Fix the TOML in <code>barn/&lt;lib&gt;/pyproject.toml</code> so it parses, then try again.</p>
-<p><strong><code>haywire share</code> fails with "Invalid manifest at <code>barn/&lt;lib&gt;/pyproject.toml</code>: ...".</strong>
-The library's <code>[tool.haywire]</code> <code>os</code> list declares something other than <code>macos</code>, <code>windows</code>, or <code>linux</code>. <code>other</code> is a runtime sentinel for platforms that don't map to one of those three — it's set automatically and must never be declared by hand. Remove it (or the whole invalid entry) from the <code>os</code> list. In the Share editor, Preflight offers a fix button (<strong>Remove invalid values</strong>, or <strong>Correct to macos</strong>/<strong>Correct to windows</strong> when every bad value maps unambiguously) that rewrites the field for you — click it, then <strong>Check again</strong>.</p>
-<p><strong><code>haywire share</code> fails with "HEAD is detached — no branch is currently checked out.".</strong>
-You're not on a branch. If the remedy names one or more branches (e.g. <code>This commit is on `main`, `feature-x` — run `git switch main`.</code>), switch to the first one it lists. If it instead says the commit isn't on any branch, create one and publish from there: <code>git switch -c my-branch</code>.</p>
-<p><strong><code>haywire share</code> fails with "Currently on <code>&lt;branch&gt;</code>, but the repository's default branch is <code>&lt;default&gt;</code>.".</strong>
-See <a href="#42-publish-from-the-default-branch">§4.2 Publish from the default branch</a>: switch to the default branch (<code>git switch &lt;default&gt;</code>).</p>
-<p><strong><code>haywire deps check</code> exits non-zero in CI.</strong>
-One or more <code>barn/*</code> libraries have actionable dependency-manifest drift. The
-command prints which library and which manifest entries are missing. Resolve it
-with <code>haywire share</code> (interactive) or the Library Overview Editor's Detect
-Dependencies button (<a href="#63-keeping-the-manifests-honest">§6.3</a>).</p>
-<p><strong>You're working in <code>--dev</code> mode and want to share a library that has dev-repo dependencies.</strong>
-<code>haywire share</code>'s output uses <code>source = "git"</code> for haywire's <code>dependencies</code> field, which is correct — consumers don't have your dev workspace. But the dev-repo path-style <code>pyproject.toml</code> won't survive <code>pip install</code>. Make sure the published version of your library declares versioned dependencies (<code>haybale-core&gt;=0.0.1</code>), not editable path sources. <code>haywire share</code> handles this correctly when the dependencies are listed in the library's <code>pyproject.toml</code> rather than in the project root's <code>pyproject.toml</code>.</p>
-<h2 id="9-reading-on">9. Reading on<a class="headerlink" href="#9-reading-on" title="Permanent link">&para;</a></h2>
+<p><strong>Loopback is implicit.</strong> <code>127.0.0.1</code>/<code>::1</code> are allowed unconditionally by
+<code>IPAllowlistMiddleware</code>, before any list membership check runs. You never
+need to list loopback yourself, and — importantly — there is no way to
+<em>exclude</em> it either.</p>
+<p>Be careful reading the empty case the other way round, though: an
+unreachable-by-others allowlist does <strong>not</strong> mean "allow everyone."
+Membership is <code>any(ip in network for network in allowed_ranges)</code>, which over
+an empty list is always <code>False</code> — this is exactly why <code>--ranges</code> is a
+required argument to <code>expose</code> rather than an optional one, so the confusing
+empty-list state is never reachable through the CLI at all. An invalid entry
+refuses the write, with a clear error naming the offending value, rather
+than a silently-unprotected process or a failure buried until the first
+request.</p>
+<h2 id="6-the-mcp-endpoint">6. The MCP endpoint<a class="headerlink" href="#6-the-mcp-endpoint" title="Permanent link">&para;</a></h2>
+<p><code>haywire farmhand</code> configures the Farmhand MCP mount at <code>/mcp</code>:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>farmhand<span class="w"> </span><span class="nb">enable</span><span class="w">          </span><span class="c1"># serve /mcp</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>farmhand<span class="w"> </span>disable<span class="w">         </span><span class="c1"># stop serving it</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>farmhand<span class="w"> </span>local-only<span class="w">      </span><span class="c1"># reject requests whose Host isn&#39;t loopback (default)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>farmhand<span class="w"> </span>allow-remote<span class="w">    </span><span class="c1"># accept requests from any Host</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>farmhand<span class="w"> </span>status
+</span></code></pre></div>
+<p><code>/mcp</code> is mounted inside the same ASGI app as the rest of the studio, so it
+sits behind the same authentication gate as everything else: a bearer token
+is required whenever authentication is on, and the studio cannot be exposed
+with authentication off (<a href="#4-opening-the-studio-up">§4</a>). An agent
+connects with a roster token, minted by <code>haywire user add &lt;name&gt; --agent
+--tier edit</code>, the same roster that authenticates a browser session.</p>
+<h3 id="restrict_to_loopback"><code>restrict_to_loopback</code><a class="headerlink" href="#restrict_to_loopback" title="Permanent link">&para;</a></h3>
+<p>This is the setting most likely to matter to you without your knowing it
+exists, so it gets called out explicitly rather than left to a settings
+table.</p>
+<p><strong>What DNS rebinding is.</strong> A page open in your browser — any page, not one
+you'd suspect — can be scripted to resolve an attacker-controlled domain
+name to <code>127.0.0.1</code> <em>after</em> it has already loaded, then issue requests to
+that domain from JavaScript. Your browser sees a same-origin request to
+<code>127.0.0.1</code> and attaches cookies and local trust to it exactly as it would
+for any other request to localhost. If a local MCP server happens to be
+listening on that port, the malicious page can talk to it as if it were an
+invited client.</p>
+<p><strong>Why a header check defeats it.</strong> <code>restrict_to_loopback</code> configures the MCP
+SDK's <code>TransportSecuritySettings</code> to reject any <code>/mcp</code> request whose <code>Host</code>
+or <code>Origin</code> header is not loopback. A browser sets that header honestly on
+requests it issues itself — it is the one signal in this whole system a
+browser cannot be talked into lying about — so a rebinding attempt shows up
+with a <code>Host</code> value the browser wrote truthfully, and it's rejected.</p>
+<p><strong>Why it does not stop <code>curl</code>.</strong> The header is client-supplied, full stop.
+<code>curl -H 'Host: 127.0.0.1:8124' http://&lt;lan-ip&gt;:8124/mcp</code> sails straight
+through the check, because nothing about the header contradicts itself —
+the check has no way to know the <code>Host</code> value doesn't match how the request
+actually arrived. <code>restrict_to_loopback</code> is not a network-location control
+and was never meant to be one; the peer-address allowlist
+(<a href="#5-cidr-syntax">§5</a>) and the authentication gate are what actually decide
+who can reach <code>/mcp</code> at all. This setting closes exactly one specific
+attack — a browser talked into betraying itself — and nothing wider.</p>
+<p><strong>When you would legitimately turn it off.</strong> An MCP client running on
+another machine — a colleague's laptop, a CI runner, an agent host that
+isn't this box — needs the studio to accept a <code>Host</code> header that genuinely
+isn't loopback, because from that client's point of view the studio's
+address isn't <code>127.0.0.1</code>. That is exactly what <code>haywire farmhand
+allow-remote</code> is for.</p>
+<p><strong>Why doing so requires authentication.</strong> With the header check off, the one
+thing standing between an arbitrary web page and this studio's MCP tools —
+including a tool that can add and execute a Python node — is whatever
+guards <code>/mcp</code> otherwise. Without authentication, that is nothing.
+<code>set_farmhand_loopback</code> therefore refuses to turn the check off while
+<code>auth.enabled</code> is <code>false</code>: run <code>haywire auth enable</code> first. This is a
+constraint on the <em>transition</em>, not on the resulting state — a document
+that already has both off is not treated as corrupt on load, since that
+combination can be reached by disabling authentication afterward, and
+refusing to boot over it would be a lockout. <code>haywire security status</code>
+reports it if it happens.</p>
+<h2 id="7-running-on-a-server">7. Running on a server<a class="headerlink" href="#7-running-on-a-server" title="Permanent link">&para;</a></h2>
+<p>If you want to reach the studio from somewhere other than the machine it
+runs on, three approaches work with today's trust model — all three keep
+the studio itself talking loopback-only or allowlisted-only, rather than
+trusting the open network directly.</p>
+<h3 id="vpn-tailscale-recommended">VPN / Tailscale (recommended)<a class="headerlink" href="#vpn-tailscale-recommended" title="Permanent link">&para;</a></h3>
+<p>Put the studio's host on a VPN or a Tailscale/WireGuard-style mesh network,
+and leave network exposure off (or scope <code>--ranges</code> to just the VPN's own
+subnet). Every peer on the VPN is implicitly trusted at the network layer,
+which matches the studio's own trust model — anyone who can reach it is a
+full operator either way, once authenticated. No studio-side change beyond
+what's already required to expose at all.</p>
+<h3 id="reverse-proxy-with-auth-in-front">Reverse proxy with auth in front<a class="headerlink" href="#reverse-proxy-with-auth-in-front" title="Permanent link">&para;</a></h3>
+<p>Put nginx (or similar) in front of the studio, terminate TLS and
+authentication there, and forward to the studio's loopback port. Two
+arguments to <code>haywire network expose</code> matter for this shape:</p>
 <ul>
-<li>The <strong>consumer side</strong> of this flow: <a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a>.</li>
-<li>Why the model is shaped this way: <a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a>.</li>
-<li>The <strong>library manager architecture</strong> these tools plug into: <a href="../../haybale/marketplace/haybale-marketplace-arch/">haybale-marketplace-arch</a>.</li>
-<li>The <strong>operational release flow</strong> for the monorepo (<code>/haywire-release</code>, CI, PyPI Trusted Publisher): <a href="../../reference/publish_releases/">publish_releases</a>.</li>
-<li>The <strong>per-author canon</strong> for the package itself (folder layout, pyproject shape, build/test/publish): <a href="../../haybale/haybale-canon/">haybale-canon</a>.</li>
+<li><strong><code>--trusted-proxies</code></strong> — set to the proxy's own peer IP (or CIDR range)
+  so <code>IPAllowlistMiddleware</code> will honor <code>X-Forwarded-For</code> from it when
+  deciding the real client IP. Leaving it unset while exposed means every
+  request appears to originate from the proxy itself — <code>haywire security
+  status</code> flags this as a NOTE.</li>
+<li><strong><code>--hostname</code></strong> — set to the hostname the proxy fronts, e.g.
+  <code>haywire.example.com</code> or <code>haywire.example.com:443</code>. When
+  <code>restrict_to_loopback</code> is on (the default), <code>FarmhandHost.mount()</code>
+  (<code>farmhand/host.py</code>) adds this hostname to the MCP <code>allowed_hosts</code> and
+  <code>allowed_origins</code> lists so the DNS-rebinding check doesn't reject
+  legitimate proxied traffic. Concretely, it adds both the bare hostname and
+  a <code>:port</code>-qualified form (skipping the port-qualified duplicate if you
+  already included a port) to <code>allowed_hosts</code>, and both <code>http://</code> and
+  <code>https://</code> origin forms to <code>allowed_origins</code> — the studio can't know which
+  scheme the proxy terminates as, so it allows both. Leave <code>--hostname</code>
+  unset and this list stays loopback-only, exactly as before.</li>
 </ul>
+<p>The usual failure mode proxying this app specifically is the WebSocket
+upgrade: the studio's entire live UI runs over Socket.IO after the initial
+page load, so a proxy config that only forwards plain HTTP will load the
+page and then go dead on every interaction. Make sure <code>Upgrade</code>/<code>Connection</code>
+headers are forwarded:</p>
+<div class="language-nginx highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">location</span><span class="w"> </span><span class="s">/</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="w">    </span><span class="kn">proxy_pass</span><span class="w"> </span><span class="s">http://127.0.0.1:8124</span><span class="p">;</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a><span class="w">    </span><span class="kn">proxy_http_version</span><span class="w"> </span><span class="mi">1</span><span class="s">.1</span><span class="p">;</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Upgrade</span><span class="w"> </span><span class="nv">$http_upgrade</span><span class="p">;</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Connection</span><span class="w"> </span><span class="s">&quot;upgrade&quot;</span><span class="p">;</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">Host</span><span class="w"> </span><span class="nv">$host</span><span class="p">;</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="w">    </span><span class="kn">proxy_set_header</span><span class="w"> </span><span class="s">X-Forwarded-For</span><span class="w"> </span><span class="nv">$proxy_add_x_forwarded_for</span><span class="p">;</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="p">}</span>
+</span></code></pre></div>
+<p>See <a href="../../adr/0026-studio-network-exposure/#pure-asgi-over-basehttpmiddleware-the-socketio-hole">ADR-0026</a>
+for why this matters at the ASGI layer, not just for nginx configuration.</p>
+<h3 id="ssh-l-zero-config"><code>ssh -L</code> (zero config)<a class="headerlink" href="#ssh-l-zero-config" title="Permanent link">&para;</a></h3>
+<p><code>ssh -L 8124:localhost:8124 user@host</code> tunnels a local port to the studio's
+loopback port on the remote machine. Works today with the default settings
+— network exposure can stay off, since the tunnel presents as loopback
+traffic on the remote end. No studio-side configuration at all.</p>
+<h2 id="8-serving-https">8. Serving HTTPS<a class="headerlink" href="#8-serving-https" title="Permanent link">&para;</a></h2>
+<p>Without TLS the studio serves plain HTTP. On a loopback-only studio that is
+fine — the traffic never leaves the machine, and this is reported as the
+correct configuration it is, not as a warning. Once the studio is exposed,
+<code>haywire network expose</code> already refuses to run without TLS configured
+first, so this section covers how to configure it.</p>
+<p>Two things follow once traffic does cross the network unencrypted (which
+<code>expose</code> no longer permits, but is worth understanding as the reason the
+precondition exists):</p>
+<ul>
+<li>The session cookie that <em>is</em> a principal's identity travels in cleartext
+  on every request, as do passwords at login and agent bearer tokens.
+  Anyone who can observe one request can replay it.</li>
+<li>
+<p><strong>Browser features that require a secure context are unavailable.</strong>
+  <code>http://192.168.…</code> is not a
+  <a href="https://developer.mozilla.org/en-US/docs/Web/Security/Secure_Contexts">secure context</a>
+  (<code>http://localhost</code> is, which is why this never reproduces on the machine
+  you develop on), and there is no override.</p>
+<p>In practice this costs Haywire nothing today. <code>navigator.clipboard</code> is
+restricted this way, but the copy helper falls back to
+<code>document.execCommand</code>, so copy buttons still work. Camera and
+microphone are not affected at all — Haywire captures video server-side
+in Python (<code>cv2.VideoCapture</code>, <code>depthai</code>), so no browser permission is
+involved. The rule only starts to bite if a library reaches for
+<code>navigator.mediaDevices</code>, geolocation, notifications or a service worker
+from the front end.</p>
+</li>
+</ul>
+<h3 id="one-command">One command<a class="headerlink" href="#one-command" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>ssl<span class="w"> </span>setup
+</span></code></pre></div>
+<p>This generates a self-signed certificate, stores it in <code>~/.haywire/certs/</code>
+(key <code>0600</code>, certificate <code>0644</code>), and writes the certificate and key paths
+into <code>~/.haywire/security.json</code>. Restart the studio and it serves HTTPS.</p>
+<p>The certificate covers <code>localhost</code>, <code>127.0.0.1</code>, <code>::1</code>, every non-link-local
+address the machine currently has, the machine's hostname, its <code>&lt;host&gt;.local</code>
+mDNS name, and the hostname you passed to <code>haywire network expose
+--hostname</code>, if any. Add more with <code>--also</code>, repeatable:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>ssl<span class="w"> </span>setup<span class="w"> </span>--also<span class="w"> </span>studio.example.com<span class="w"> </span>--also<span class="w"> </span><span class="m">10</span>.21.136.88
+</span></code></pre></div>
+<h3 id="what-the-browser-does">What the browser does<a class="headerlink" href="#what-the-browser-does" title="Permanent link">&para;</a></h3>
+<p>A self-signed certificate produces a full-page warning on first visit —
+<code>NET::ERR_CERT_AUTHORITY_INVALID</code> in Chrome, <code>SEC_ERROR_UNKNOWN_ISSUER</code> in
+Firefox, "This Connection Is Not Private" in Safari. This is <strong>not</strong> about
+weak encryption. The connection is fully encrypted either way; the browser
+is telling you it cannot verify <em>who</em> is on the other end, because the only
+thing vouching for the certificate is the certificate itself.</p>
+<p>You can click through ("Advanced" → proceed), and the origin then counts as
+a secure context. But the exception is per-browser and per-device, and
+non-browser clients (an MCP agent, <code>curl</code>, <code>httpx</code>) reject the certificate
+outright with no interstitial to click.</p>
+<p>To remove the warning entirely, make the machine trust the certificate:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>ssl<span class="w"> </span>trust
+</span></code></pre></div>
+<p>That prints the platform command — <code>security add-trusted-cert</code> on macOS,
+<code>update-ca-certificates</code> on Linux, <code>Import-Certificate</code> on Windows. Haywire
+prints it rather than running it: it needs <code>sudo</code> and it modifies a system
+trust store, which is not something a subcommand should do unannounced. Run
+it once per machine that connects.</p>
+<h3 id="checking-what-you-have">Checking what you have<a class="headerlink" href="#checking-what-you-have" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>ssl<span class="w"> </span>status
+</span></code></pre></div>
+<p>Reports whether TLS is configured, which names the certificate covers, when
+it expires, and — importantly — whether the address you are currently
+reachable at is one of them. It always exits <code>0</code>; it reports rather than
+judges, and "loopback only, no TLS" is reported as the correct configuration
+it is.</p>
+<p>It also catches the three states that make the studio refuse to start: a
+missing certificate file, only one of the pair configured, and a key that
+does not match its certificate.</p>
+<h3 id="moving-between-networks">Moving between networks<a class="headerlink" href="#moving-between-networks" title="Permanent link">&para;</a></h3>
+<p>A certificate is valid only for the names baked into it when it was signed.
+A laptop that moves between a home LAN and a university network gets a
+different IP in each, so a certificate listing only the home address will
+be rejected at the other one.</p>
+<p>Two things handle this. First, the <code>&lt;host&gt;.local</code> mDNS name is covered by
+default and follows the machine, so <code>https://your-machine.local:8124</code> often
+keeps working with no change at all — <code>ssl status</code> tells you when that
+applies. Second, when you do need the new address in the certificate:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>ssl<span class="w"> </span>update<span class="w"> </span>--refresh
+</span></code></pre></div>
+<p><code>update</code> re-signs <strong>reusing the existing private key</strong> and preserves names
+you added by hand, so it amends the certificate rather than starting over.
+Use <code>--add</code> / <code>--remove</code> to change the list explicitly. Loopback names
+cannot be removed.</p>
+<p>Because trust stores pin the certificate rather than the key, anyone who
+ran <code>ssl trust</code> must run it again after an update. The command says so.</p>
+<h3 id="when-a-real-certificate-is-the-better-answer">When a real certificate is the better answer<a class="headerlink" href="#when-a-real-certificate-is-the-better-answer" title="Permanent link">&para;</a></h3>
+<p><code>haywire ssl setup</code> is deliberately limited to self-signed certificates,
+which suit a LAN. If the studio is reachable from the public internet under
+a real domain name, terminate TLS at a reverse proxy with a CA-issued
+certificate instead (see <a href="#7-running-on-a-server">§7</a>) and leave the
+certificate/key paths unset — a proxy-terminated setup has no browser
+warning and needs no per-machine trust step.</p>
+<h2 id="9-managing-principals">9. Managing principals<a class="headerlink" href="#9-managing-principals" title="Permanent link">&para;</a></h2>
+<p>Authentication is a separate, independent layer from network location — off
+by default. With it off, anyone who can reach the studio is a full
+operator, and <code>haywire network expose</code> will not let you turn on network
+exposure until it's on.</p>
+<h3 id="enabling-it">Enabling it<a class="headerlink" href="#enabling-it" title="Permanent link">&para;</a></h3>
+<p>Authentication needs at least one admin principal before it can be turned
+on — the roster is empty otherwise and nobody could sign back in.</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="c1"># with the studio stopped</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>alice<span class="w"> </span>--tier<span class="w"> </span>admin
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span><span class="nb">enable</span>
+</span></code></pre></div>
+<p><code>auth enable</code> prompts for an admin username and password and verifies them
+before writing the flag — a proof of recoverability, not a barrier against
+an attacker (anyone who can run the command can also edit the JSON by
+hand). It makes the realistic failure unreachable: turning on authentication
+with a roster whose passwords nobody remembers, on a machine whose UI is
+now the only way to fix it.</p>
+<h3 id="managing-principals">Managing principals<a class="headerlink" href="#managing-principals" title="Permanent link">&para;</a></h3>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,edit,admin<span class="o">}</span><span class="w">              </span><span class="c1"># a password-holding user</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span><span class="o">{</span>view,edit,admin<span class="o">}</span><span class="w">      </span><span class="c1"># a token-holding agent</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>add<span class="w"> </span>&lt;name&gt;<span class="w"> </span>--agent<span class="w"> </span>--tier<span class="w"> </span>edit<span class="w"> </span>--workspace<span class="w"> </span>&lt;path&gt;<span class="w"> </span><span class="c1"># scoped to one project</span>
+</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>list
+</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>tier<span class="w"> </span>&lt;name&gt;<span class="w"> </span><span class="o">{</span>view,edit,admin<span class="o">}</span>
+</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>passwd<span class="w"> </span>&lt;name&gt;
+</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>user<span class="w"> </span>remove<span class="w"> </span>&lt;name&gt;
+</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>status
+</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>auth<span class="w"> </span>disable
+</span></code></pre></div>
+<p>Once signed in, an admin can do all of this from the studio itself — the
+account menu behind the <code>account_circle</code> icon at the bottom of the action
+bar opens a roster editor with the same add/remove/re-tier/re-key
+operations, plus live effect: a re-tiered or removed principal's open
+session is evicted immediately, no re-login needed to see it take hold. The
+account menu also shows who else is currently connected (both browser
+sessions and MCP agents, the latter by last-seen time rather than a
+possibly-stale online/offline flag).</p>
+<p>Every mutation — CLI or UI — goes through the same document, so the two
+surfaces can never disagree about who's allowed in.</p>
+<p>An agent principal's token is the credential an MCP client presents; connect
+with <code>claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp
+--header "Authorization: Bearer &lt;token&gt;"</code>, or with no header at all when
+authentication is off.</p>
+<h2 id="10-the-security-document">10. The security document<a class="headerlink" href="#10-the-security-document" title="Permanent link">&para;</a></h2>
+<p>Everything in this guide is one axis of <code>~/.haywire/security.json</code>: mode
+<code>0600</code>, three blocks (<code>auth</code>, <code>network</code>, <code>farmhand</code>), one file. It is
+<strong>machine-global</strong>, never per-project, and it must never be committed to a
+repository — nothing under <code>~/.haywire/</code> belongs in a project's version
+control, and this file specifically holds password hashes, agent tokens,
+and this machine's exposure decisions.</p>
+<p>You do not normally edit it by hand — every CLI command in this guide reads
+and writes it for you, validating as it goes so an invalid combination
+(exposed with authentication off, TLS half-configured, an unparseable CIDR
+entry) is refused before it's written. If you do edit it by hand anyway, or
+it's touched by a bad merge or a partial write, the studio does not refuse
+to start over it. At boot, the document is <strong>sanitized</strong>: any violation is
+repaired in the safe direction (exposure off, TLS off, authentication off),
+the reasons are logged at <code>CRITICAL</code>, and the same list is available on
+demand:</p>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>security<span class="w"> </span>status
+</span></code></pre></div>
+<p>This is the one command that reads all four axes together and reports the
+combinations a single-axis view can't — authentication on with TLS off, for
+instance, which turns "enabling auth" into "putting a password on a wire
+that reads in cleartext," a finding that <code>auth status</code> and <code>ssl status</code>
+alone cannot each independently produce.</p>
+<h2 id="11-no-sandbox-no-multi-tenancy">11. No sandbox, no multi-tenancy<a class="headerlink" href="#11-no-sandbox-no-multi-tenancy" title="Permanent link">&para;</a></h2>
+<p>The studio is one process, one filesystem, with no sandbox between whoever
+reaches it and the host machine it runs on. Authentication adds <em>who</em> a
+connection is — separate view/edit/admin principals with their own
+identity — but not <em>isolation</em>: there is no "read-only copy of the studio"
+and no per-graph, per-node or per-file permission. Every principal who can
+reach the studio sees the same live graphs, the same running execution and
+the same haystack; a <code>view</code> principal simply cannot mutate them. None of the
+settings in this guide add a sandbox around the graph editor — a principal
+who can edit a graph holds the authority of the studio process, by design.
+See <a href="../../adr/0026-studio-network-exposure/#consequences">ADR-0026</a> and
+<a href="../../adr/0027-studio-authentication/#explicit-non-goals">ADR-0027's non-goals</a>
+for the full framing.</p>
 
 
 

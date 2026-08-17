@@ -1247,6 +1247,8 @@
       
         
       
+        
+      
     
     
     
@@ -1519,6 +1521,41 @@
     
   
     Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../guides/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
   
 
     
@@ -2801,6 +2838,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#access-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access &amp; Authentication
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#settings-system" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3534,6 +3582,17 @@
     <span class="md-ellipsis">
       
         Dependency manifests &amp; drift (new)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#access-authentication" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Access &amp; Authentication
       
     </span>
   </a>
@@ -4378,13 +4437,18 @@
 </tr>
 <tr>
 <td><strong>Farmhand proxy</strong></td>
-<td>The stdio MCP server Claude Code spawns at session start that bridges to the Farmhand server's HTTP <code>/mcp</code>, forwarding tool/resource calls and re-emitting <code>list_changed</code> so studio tools appear mid-session with no reconnect. Reads the bearer token lazily from <code>&lt;ws&gt;/.haywire/farmhand_token</code>; runs in down-mode (a <code>farmhand_studio_status</code> sentinel) until the studio comes up.</td>
+<td>The stdio MCP server Claude Code spawns at session start that bridges to the Farmhand server's HTTP <code>/mcp</code>, forwarding tool/resource calls and re-emitting <code>list_changed</code> so studio tools appear mid-session with no reconnect. Reads <code>auth_required</code> from <code>&lt;ws&gt;/.haywire/studio.json</code> and sends no <code>Authorization</code> header when it is <code>false</code>; when <code>true</code>, the operator supplies a roster agent token out of band. There is no token file any more (ADR 0028) — runs in down-mode (a <code>farmhand_studio_status</code> sentinel) until the studio comes up.</td>
 <td>bridge, gateway (gateway is the SDK's word for the pattern, not this component)</td>
 </tr>
 <tr>
 <td><strong>Studio identity sidecar</strong> (<code>studio.json</code>)</td>
-<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code>, <code>host</code>, <code>role</code>, <code>url</code>. Lets a later process (the farmhand4claude plugin's startup script) identify which project owns the studio on a port and decide to reuse / ask / clean up. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. Sits beside <code>farmhand_token</code>.</td>
+<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code>, <code>host</code>, <code>role</code>, <code>url</code>, <code>auth_required</code>. Lets a later process (the farmhand4claude plugin's startup script) identify which project owns the studio on a port, decide to reuse / ask / clean up, and know whether to attach a bearer token without a probe request. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. <code>auth_required</code> is a hint, never a credential — it says whether a token is expected, not what it is.</td>
 <td>pid file (studioctl's is a bare integer; this is structured identity)</td>
+</tr>
+<tr>
+<td><strong>Security document</strong> (<code>security.json</code>)</td>
+<td>The single global file (<code>~/.haywire/security.json</code>, <code>0600</code>) holding every startup-read control that decides who can reach the studio and how: the <code>auth</code> block (the <strong>Roster</strong>), the <code>network</code> block (exposure, allowlist, TLS paths), and the <code>farmhand</code> block (<code>/mcp</code> enabled, <code>restrict_to_loopback</code>). Writes go through <code>save_document</code>, which refuses on any invariant violation (e.g. exposed with authentication off); a hand-edited violation is repaired at boot by <code>sanitize</code> rather than refusing to start. See <a href="../../adr/0028-security-document/">ADR-0028</a>.</td>
+<td>auth.json (superseded — the roster is now one block of this document), settings (these are not settings-tier fields)</td>
 </tr>
 <tr>
 <td><strong>farmhand</strong></td>
@@ -4721,6 +4785,62 @@
 </tr>
 </tbody>
 </table>
+<hr />
+<h2 id="access-authentication">Access &amp; Authentication<a class="headerlink" href="#access-authentication" title="Permanent link">&para;</a></h2>
+<p>Off by default. When enabled, these terms describe <em>who may reach the studio</em> and <em>what surfaces they see</em>. The watertight boundary is <strong>no-access vs access</strong>; the tiers within access guard against ignorance, not malice — an <code>edit</code> <strong>Principal</strong> can author a Python node, which is arbitrary code execution on the host.</p>
+<table>
+<thead>
+<tr>
+<th>Term</th>
+<th>Definition</th>
+<th>Aliases to avoid</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Principal</strong></td>
+<td>Anything that can authenticate to the studio — a <strong>User Principal</strong> or an <strong>Agent Principal</strong>. The unit listed in the <strong>Roster</strong> and the unit an <strong>Access Tier</strong> is attached to</td>
+<td>Account, identity, login</td>
+</tr>
+<tr>
+<td><strong>User Principal</strong></td>
+<td>A <strong>Principal</strong> that authenticates with a username and password and receives a signed cookie; reaches the studio through a browser</td>
+<td>User (bare — ambiguous with the human operating the machine)</td>
+</tr>
+<tr>
+<td><strong>Agent Principal</strong></td>
+<td>A <strong>Principal</strong> that authenticates with a bearer token; reaches the studio through the Farmhand <code>/mcp</code> mount. May be scoped to one workspace</td>
+<td>Bot, service account, API key</td>
+</tr>
+<tr>
+<td><strong>Roster</strong></td>
+<td>The <code>auth</code> block of the <strong>Security document</strong> (<code>~/.haywire/security.json</code>), holding every <strong>Principal</strong> and the auth-enabled flag. One block of one document, so "auth is on" and "an admin exists" cannot disagree</td>
+<td>User list, user database, credentials file, auth.json (superseded — see <strong>Security document</strong>)</td>
+</tr>
+<tr>
+<td><strong>Access Tier</strong></td>
+<td>One of <code>view</code> ⊂ <code>edit</code> ⊂ <code>admin</code>, cumulative — an <code>admin</code> passes every <code>view</code> check. Carried by a <strong>Principal</strong> and required by an <strong>Access-Gated Surface</strong></td>
+<td>Role, permission, access rights (plural — implies a set, not one level)</td>
+</tr>
+<tr>
+<td><strong>Access-Gated Surface</strong></td>
+<td>A component whose identity declares <code>access=</code> and which is therefore hidden from <strong>Principals</strong> below that tier: <strong>Panels</strong>, <strong>Editors</strong>, and <strong>Farmhands</strong>. Nodes, skins, widgets and themes are never access-gated — hiding their identity would not restrict the graph that already uses them</td>
+<td>Protected component, secured panel</td>
+</tr>
+<tr>
+<td><strong>Gate</strong></td>
+<td>The pure-ASGI middleware wrapping the whole studio app, which accepts a valid cookie or a valid bearer token and rejects everything else on both <code>http</code> and <code>websocket</code> scopes. App-owned, never library-owned</td>
+<td>Auth middleware, login check</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Relationships</strong></p>
+<ul>
+<li>A <strong>Roster</strong> holds zero or more <strong>Principals</strong>; each carries exactly one <strong>Access Tier</strong></li>
+<li>A <strong>User Principal</strong> maps onto exactly one <strong>SessionContext</strong> per browser tab; <code>ctx.can_view()</code> / <code>can_edit()</code> / <code>can_admin()</code> / <code>can_access(tier)</code> answer from it</li>
+<li>An <strong>Agent Principal</strong> has no <strong>SessionContext</strong> — its tier filters the Farmhand tool list instead</li>
+<li>An <strong>Access-Gated Surface</strong> is never rendered for a <strong>Principal</strong> below its tier; it vanishes rather than appearing disabled</li>
+</ul>
 <hr />
 <h2 id="settings-system">Settings System<a class="headerlink" href="#settings-system" title="Permanent link">&para;</a></h2>
 <p>See <a href="../../architecture/settings/settings-arch/">architecture/settings</a> for the resolution chain and registry mechanics; see <a href="../../components/settings/setting-canon/">components/settings</a> for authoring.</p>

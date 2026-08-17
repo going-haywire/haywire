@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread">
+        <meta name="description" content="One watertight no-access/access boundary at a pure-ASGI gate, with view/edit/admin tiers inside it that guard against ignorance rather than malice — because an edit principal can author a Python node">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0002-validation-scheduler-injection/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0027-studio-authentication/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Inject the validation debounce scheduler instead of hardcoding threading.Timer - Haywire Documentation</title>
+        <title>Studio authentication - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" class="md-skip">
+        <a href="#studio-authentication" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inject the validation debounce scheduler instead of hardcoding threading.Timer
+              Studio authentication
             
           </span>
         </div>
@@ -3049,10 +3049,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-the-timer-caused" class="md-nav__link">
+  <a href="#the-boundary-and-the-thing-that-is-not-a-boundary" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem the timer caused
+        The boundary, and the thing that is not a boundary
       
     </span>
   </a>
@@ -3060,10 +3060,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-injection-not-just-marshal-the-broadcast" class="md-nav__link">
+  <a href="#one-gate-two-credentials" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why injection, not "just marshal the broadcast"
+        One gate, two credentials
       
     </span>
   </a>
@@ -3071,10 +3071,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-inject-not-import-nicegui-into-core" class="md-nav__link">
+  <a href="#the-unauthenticated-surface-is-two-routes-and-neither-is-nicegui" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why inject, not import NiceGUI into core
+        The unauthenticated surface is two routes, and neither is NiceGUI
       
     </span>
   </a>
@@ -3082,10 +3082,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-loopscheduler-lives-in-haybale-studio" class="md-nav__link">
+  <a href="#the-cookie-carries-identity-it-never-carries-authority" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why LoopScheduler lives in haybale-studio
+        The cookie carries identity; it never carries authority
       
     </span>
   </a>
@@ -3093,10 +3093,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-synchronous-reentrancy-subtlety" class="md-nav__link">
+  <a href="#layering-vocabulary-in-core-mechanism-in-studio-ui-in-a-library" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The synchronous-reentrancy subtlety
+        Layering: vocabulary in core, mechanism in studio, UI in a library
       
     </span>
   </a>
@@ -3104,10 +3104,32 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-alternatives" class="md-nav__link">
+  <a href="#access-lives-on-three-identities-not-on-baseidentity" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered alternatives
+        access= lives on three identities, not on BaseIdentity
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#users-and-agents-are-both-principals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Users and agents are both principals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#the-roster-is-one-document-and-enabling-it-requires-proving-you-can-get-in" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The roster is one document, and enabling it requires proving you can get in
       
     </span>
   </a>
@@ -3119,6 +3141,39 @@
     <span class="md-ellipsis">
       
         Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#explicit-non-goals" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Explicit non-goals
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatives-considered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatives considered
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
       
     </span>
   </a>
@@ -3142,50 +3197,287 @@
 
 
 
-<h1 id="inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer">Inject the validation debounce scheduler instead of hardcoding <code>threading.Timer</code><a class="headerlink" href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" title="Permanent link">&para;</a></h1>
-<p><code>ValidationManager</code> (haywire-core) debounces graph validation: a burst of <code>mark_*_dirty</code> calls (a drag emitting many <code>NODE_MOVED</code>, a multi-node delete) is coalesced into a single <code>_validate_batch</code> pass. That debounce was implemented with a raw <code>threading.Timer</code>. This ADR replaces the hardcoded timer with an injected <code>ValidationScheduler</code>, so the <em>application</em> — not pure core — decides which thread the validation pass runs on. The default stays the legacy timer; the studio injects an event-loop scheduler.</p>
-<h2 id="the-problem-the-timer-caused">The problem the timer caused<a class="headerlink" href="#the-problem-the-timer-caused" title="Permanent link">&para;</a></h2>
-<p><code>_validate_batch</code> runs on whatever thread fires the timer. With <code>threading.Timer</code> that is a background daemon thread, ~50 ms after the mutation. But <code>_validate_batch</code> notifies its subscribers inline, and those subscribers touch the UI:</p>
+<h1 id="studio-authentication">Studio authentication<a class="headerlink" href="#studio-authentication" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Amended by <a href="../0028-security-document/">ADR 0028</a>.</strong> The boundary, the gate,
+and the tier model below are unchanged and still current. Three things named
+here moved or disappeared: the roster document is <code>~/.haywire/security.json</code>
+(its <code>auth</code> block), not <code>~/.haywire/auth.json</code>; the workspace
+<code>&lt;workspace&gt;/.haywire/farmhand_token</code> file and the <code>BearerTokenMiddleware</code>
+that checked it are deleted, because <code>/mcp</code> sits behind the same gate as
+every other route and a studio can no longer be exposed with authentication
+off; and <code>FarmhandSettings.require_auth</code> is deleted along with it — there is
+no longer a flag to turn the <code>/mcp</code> guard off independently of the gate.</p>
+</blockquote>
+<p>The studio has no notion of who is using it. <code>expose_to_network</code> and the peer
+allowlist (ADR 0026) decide <em>from where</em> the studio can be reached; nothing
+decides <em>who</em> is reaching it. This adds that, off by default.</p>
+<h2 id="the-boundary-and-the-thing-that-is-not-a-boundary">The boundary, and the thing that is not a boundary<a class="headerlink" href="#the-boundary-and-the-thing-that-is-not-a-boundary" title="Permanent link">&para;</a></h2>
+<p><strong>There is exactly one watertight line: <code>no-access</code> vs <code>access</code>.</strong> Everything
+behind it — <code>view</code>, <code>edit</code>, <code>admin</code> — is a guard against ignorance, not
+against malice.</p>
+<p>This is not modesty about the implementation; it follows from what the product
+is. A graph executes arbitrary Python in-process. A principal who can add a
+node can therefore read <code>~/.haywire/auth.json</code>, rewrite the hashes, reach into
+<code>SessionContext</code>, or do anything else the studio process can do. So <code>edit</code> is
+already <code>admin</code> at the machine level, and any design that spent effort
+enforcing <code>edit &lt; admin</code> as a containment boundary would be spending it on a
+wall with no building attached.</p>
+<p>What the tiers <em>do</em> buy is real and worth building: a <code>view</code> principal cannot
+mutate anything, because every mutating path is server-side and every
+affordance that reaches one is hidden. During a live show, that is the property
+that matters — the wrong click cannot happen because the control is not there.</p>
+<p>The corollary is that the front door carries all the weight, and it has to have
+no side entrances.</p>
+<h2 id="one-gate-two-credentials">One gate, two credentials<a class="headerlink" href="#one-gate-two-credentials" title="Permanent link">&para;</a></h2>
+<p><code>AuthGateMiddleware</code> is a <strong>pure-ASGI callable</strong> on the root app, installed in
+<code>HaywireApp.run()</code> beside <code>_install_ip_allowlist</code>. It admits a request carrying
+either a valid signed cookie (browser) or a valid bearer token (agent), and
+rejects everything else on both <code>http</code> and <code>websocket</code> scopes.</p>
+<p>Pure-ASGI for the reason ADR 0026 gives at length: <code>BaseHTTPMiddleware</code> never
+sees <code>scope["type"] == "websocket"</code>, and NiceGUI's entire UI runs over
+Socket.IO at <code>/_nicegui_ws/</code>. A gate built on it would guard the login page and
+let the whole application through underneath.</p>
+<p><strong>Accepting both credentials at one gate, rather than exempting <code>/mcp</code></strong>, is
+what keeps the line single. <code>/mcp</code> is mounted inside the same ASGI app
+(<code>FarmhandHost.mount()</code> → <code>nicegui_app.mount("/mcp", …)</code>), so a root-level
+wrapper covers it whether or not that is intended. Exempting it would make the
+boundary's correctness depend on <code>FarmhandSettings.require_auth</code> staying
+<code>True</code> — a settings flag as a security control. Under the combined gate, that
+flag becomes an optimization: <code>BearerTokenMiddleware</code> stays mounted beneath as
+defence in depth, and neither guard's failure is fatal alone. (Superseded by
+ADR 0028: <code>BearerTokenMiddleware</code> is deleted outright, not merely optional —
+see the amendment note above.)</p>
+<p>The token the gate matches is the <strong>roster's</strong>, not the workspace
+<code>farmhand_token</code> file. Those are two credentials with two lifetimes, and only
+one of them carries a tier. With authentication off, <code>ensure_token()</code> and
+<code>&lt;workspace&gt;/.haywire/farmhand_token</code> behave exactly as before, so existing
+agent configurations are untouched. With it on, the roster is authoritative —
+and <code>haywire auth enable</code> offers to import an existing workspace token as an
+agent principal, so a working Farmhand setup survives the flip instead of going
+dark at the moment authentication is switched on.</p>
+<h2 id="the-unauthenticated-surface-is-two-routes-and-neither-is-nicegui">The unauthenticated surface is two routes, and neither is NiceGUI<a class="headerlink" href="#the-unauthenticated-surface-is-two-routes-and-neither-is-nicegui" title="Permanent link">&para;</a></h2>
+<p><code>GET /login</code> and <code>POST /login</code> are <strong>plain FastAPI routes returning
+self-contained HTML</strong> — no <code>ui.page</code>, no <code>hui</code>, no theme tokens, no external
+assets.</p>
+<p>This looks like a gratuitous deviation from the rest of the studio's UI, and it
+is load-bearing. A NiceGUI login page runs its submit handler <em>server-side over
+the websocket</em>, so unauthenticated clients would need <code>/_nicegui_ws/</code> open in
+order to log in — the exact transport carrying the entire application. The
+exemption would swallow the gate. Because the login page is plain HTTP, the
+unauthenticated surface is exactly those two routes; <code>/_nicegui_ws/</code>, every
+<code>/_nicegui/&lt;version&gt;/*</code> asset route, and <code>/api/code-intel/*</code> all stay behind
+the gate.</p>
+<p>The login page is therefore the one place in the codebase that hardcodes colour
+values instead of using <code>--hw-*</code> tokens, because none of that machinery exists
+before the socket connects.</p>
+<h2 id="the-cookie-carries-identity-it-never-carries-authority">The cookie carries identity; it never carries authority<a class="headerlink" href="#the-cookie-carries-identity-it-never-carries-authority" title="Permanent link">&para;</a></h2>
+<p>The signed cookie holds a principal name, an issued-at, and an expiry. It does
+<strong>not</strong> hold a tier. The tier — and the principal's continued existence — is
+read from the roster at the moment it is used, through an mtime-cached read.</p>
+<p>This is what makes "remove a principal" an actual revocation rather than a
+request. Had the cookie carried the tier, a removed principal would keep full
+access until expiry and a demoted admin would stay admin until re-login: the
+roster UI would have a Remove button that does not remove, which is worse than
+having none, because it reads as a control.</p>
+<p>Because a WebSocket is <strong>one ASGI scope</strong>, the gate runs once per connection at
+the handshake, not per frame. That makes the check free, and it means an open
+socket is never re-examined. Revocation therefore reaches live sessions by
+push: removing a principal walks <code>SessionManager.active_sessions</code>, matches on
+<code>ctx.principal</code>, and evicts those clients. Demotion needs no push at all —
+<code>ctx.can_edit()</code> reads live authority, so the next action already sees it, and
+the surfaces stop rendering on the next redraw. There is no polling, no timer,
+and nothing wrapping <code>receive</code>.</p>
+<p>The only uncovered case is hand-editing the roster on a running studio, which
+resolves when that client reconnects. That is an admin editing a file by hand
+instead of using the UI that exists, and it was not worth a per-frame hook on
+the canvas hot path to catch.</p>
+<h2 id="layering-vocabulary-in-core-mechanism-in-studio-ui-in-a-library">Layering: vocabulary in core, mechanism in studio, UI in a library<a class="headerlink" href="#layering-vocabulary-in-core-mechanism-in-studio-ui-in-a-library" title="Permanent link">&para;</a></h2>
 <ul>
-<li>the graph canvas redraw (<code>visual_layer.on_validated</code>), and</li>
-<li><code>HaystackState._on_entry_validation</code>, which sets <code>entry.unsaved = True</code> and <strong>broadcasts <code>GraphDataMutated</code></strong> through the session signal bus.</li>
+<li><strong><code>haywire.core.access</code></strong> — the <code>AccessTier</code> enum, <code>SessionContext.principal</code>,
+  and <code>can_view()</code> / <code>can_edit()</code> / <code>can_admin()</code> / <code>can_access(tier)</code>. No
+  files, no crypto, no ASGI. Core must own the vocabulary because
+  <code>@panel(access=…)</code> and <code>@editor(access=…)</code> are core decorators; a studio-owned
+  enum would make core import studio.</li>
+<li><strong><code>haywire_studio.auth</code></strong> — roster I/O, scrypt, cookie signing, the gate, the
+  login routes, the <code>haywire user</code> / <code>haywire auth</code> CLI.</li>
+<li><strong>Core</strong> (<code>haywire.barn.builtin.focuses.AccountFocus</code>,
+  <code>haywire.ui.app.account_menu.AccountMenuProvider</code>, and the footer icon /
+  StatusBar identity label / TopBar presence chips in <code>haywire.ui.app.shell</code>)
+  — the account menu's chrome. None of this is a registerable component, so
+  it lives beside the other bar/shell chrome in core rather than in a
+  library.</li>
+<li><strong><code>haybale-studio</code></strong> — the account menu's <em>contents</em> (<code>LogoutPanel</code>,
+  <code>OpenRosterPanel</code>, <code>RotateSecretPanel</code> — ordinary panels against
+  <code>AccountFocus</code>) and the <code>RosterEditor</code>, because only a library can register
+  a panel or an editor.</li>
 </ul>
-<p>The signal bus is documented as main-thread-only (<em>"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"</em>). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.</p>
-<p>In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread <code>asyncio.Event.set()</code> that should wake the outbox immediately is not called thread-safely.</p>
-<p>The key realization: <strong>the timer was never a concurrency mechanism — it was only a debounce.</strong> <code>_validate_batch</code> is pure synchronous CPU work (<code>build()</code>, <code>link()</code>, <code>_housekeeping()</code>) with no <code>await</code>, no I/O, and no concurrency requirement. Validation is triggered <em>only</em> by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.</p>
-<h2 id="why-injection-not-just-marshal-the-broadcast">Why injection, not "just marshal the broadcast"<a class="headerlink" href="#why-injection-not-just-marshal-the-broadcast" title="Permanent link">&para;</a></h2>
-<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
-<h2 id="why-inject-not-import-nicegui-into-core">Why inject, not import NiceGUI into core<a class="headerlink" href="#why-inject-not-import-nicegui-into-core" title="Permanent link">&para;</a></h2>
-<p><code>ValidationManager</code> lives in <code>haywire-core</code>, which is deliberately framework-free — it has <strong>zero</strong> NiceGUI imports today. The alternative of importing <code>nicegui.core</code> directly into <code>ValidationManager</code> (to call <code>call_soon_threadsafe</code> / <code>ui.timer</code>) would invert that dependency: pure graph-validation logic would depend on the web UI framework.</p>
-<p>Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:</p>
-<ul>
-<li><strong><code>ValidationScheduler</code></strong> protocol (core): <code>schedule(delay_seconds, fn) -&gt; handle</code>, where the handle has an idempotent <code>cancel()</code>. Re-scheduling is the caller's job — <code>ValidationManager</code> cancels the previous handle and schedules a fresh one on every dirty mark, which is what produces the debounce.</li>
-<li><strong><code>ThreadingTimerScheduler</code></strong> (core): the legacy daemon-<code>threading.Timer</code> behavior, kept as the <strong>default</strong> so every construction site that does not inject behaves exactly as before. This change is therefore behavior-preserving by default.</li>
-<li><strong><code>SyncScheduler</code></strong> (core): runs the callback inline. Deterministic; intended for tests and headless use, where it removes the need to call <code>force_immediate_validation()</code> after a mutation.</li>
-<li><strong><code>LoopScheduler</code></strong> (haybale-studio, where NiceGUI is permitted): debounces on <code>nicegui.core.loop</code>. The live graph factory (<code>HaystackState._make_graph_and_editor</code>) injects it, which is what moves validation and the <code>GraphDataMutated</code> broadcast onto the main thread in the running app.</li>
-</ul>
-<h2 id="why-loopscheduler-lives-in-haybale-studio">Why <code>LoopScheduler</code> lives in <code>haybale-studio</code><a class="headerlink" href="#why-loopscheduler-lives-in-haybale-studio" title="Permanent link">&para;</a></h2>
-<p>It needs <code>nicegui.core.loop</code>, so it cannot live in core. <code>haybale-haystack</code> (which owns the live graph factory) already depends on <code>haybale-studio</code> and already imports NiceGUI, so placing the scheduler there is reachable from the one construction site that matters without adding a new dependency edge.</p>
-<p><code>LoopScheduler</code> handles two realities the protocol implies:</p>
-<ul>
-<li><strong>Off-loop callers.</strong> <code>schedule</code> may be invoked from a non-loop thread (a hot-reload watcher marking nodes dirty via <code>NODE_HOT_RELOADED</code>). <code>call_later</code> is loop-affine, so it hops via <code>call_soon_threadsafe</code> first. The returned handle is cancellable from any thread, and cancellation that races the deferred arming is resolved under a lock.</li>
-<li><strong>No loop yet.</strong> During pre-<code>ui.run</code> startup (workspace rehydrate constructs graphs before the loop exists) it runs the callback inline. Safe, because validation is pure CPU work; it only forgoes debouncing for that early window.</li>
-</ul>
-<h2 id="the-synchronous-reentrancy-subtlety">The synchronous-reentrancy subtlety<a class="headerlink" href="#the-synchronous-reentrancy-subtlety" title="Permanent link">&para;</a></h2>
-<p><code>SyncScheduler.schedule</code> runs <code>_validate_batch</code> <em>inside</em> the <code>schedule()</code> call, re-entrant under the manager's <code>RLock</code>. That batch clears <code>_pending_handle</code>, but then <code>_schedule_validation</code> would overwrite it with the (inert) handle the scheduler returned — leaving <code>pending_validation</code> reporting <code>True</code> when nothing is pending. <code>ValidationManager</code> guards this with a monotonic <code>_batch_generation</code> counter: it snapshots the generation before scheduling and only adopts the returned handle if the generation did not advance during <code>schedule()</code> (i.e. no inline batch ran). This keeps the synchronous path honest without special-casing scheduler types.</p>
-<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level: it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops.</li>
-<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).</li>
-<li><strong>Replace the debounce with a loop-native <code>ui.timer</code> everywhere, no abstraction.</strong> Forces a NiceGUI dependency on every <code>BaseGraph</code> construction, breaking headless/test/CI use that has no running loop.</li>
-<li><strong>Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.</strong> Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.</li>
-</ul>
+<p><strong>The gate is app-owned and never library-owned.</strong> Libraries are disableable,
+hot-reloadable, and installable from a marketplace; a library that owned the
+gate could be disabled to open the door.</p>
+<p>Core resolves to <code>admin</code> for everybody when auth is disabled, so existing
+loopback installs are unchanged.</p>
+<h2 id="access-lives-on-three-identities-not-on-baseidentity"><code>access=</code> lives on three identities, not on <code>BaseIdentity</code><a class="headerlink" href="#access-lives-on-three-identities-not-on-baseidentity" title="Permanent link">&para;</a></h2>
+<p><code>PanelIdentity</code>, <code>EditorIdentity</code> and <code>FarmhandIdentity</code> carry <code>access</code>. Nodes,
+skins, widgets, themes and adapters do not, and this is deliberate rather than
+an omission to be tidied up later.</p>
+<p>A component identity governs whether the component appears in an authoring
+surface. For a panel, editor or Farmhand tool, that <em>is</em> the capability — hide
+the identity and the capability is gone. For a node it is not: the identity
+governs the Add Nodes menu, while the node instances already sitting in a
+<code>.graph</code> file execute regardless of who is watching. <code>@node(access=admin)</code>
+would look like a restriction and restrict nothing.</p>
+<p>Enforcement sits at the seams every consumer already funnels through:</p>
+<table>
+<thead>
+<tr>
+<th>Surface</th>
+<th>Seam</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Panels (properties, context menus, selection toolbar)</td>
+<td><code>visible_panels()</code> filters; <code>render_panel()</code> refuses</td>
+</tr>
+<tr>
+<td>Editors</td>
+<td><code>Slot._accessible_bindings()</code> plus an admission check in <code>add_binding()</code> / <code>populate_from_snapshot()</code></td>
+</tr>
+<tr>
+<td>Farmhand tools</td>
+<td><code>list_tools</code> filters; <code>call_tool</code> re-checks</td>
+</tr>
+</tbody>
+</table>
+<p>The slot needs both admission and render checks because they close different
+doors: a render-only filter leaves the binding in <code>_bindings</code>, where
+<code>to_snapshot()</code> would persist it into the principal's <code>workspace_state.json</code>
+and <code>reveal()</code> could still activate it via <code>find_binding()</code>.</p>
+<p>A denied surface <strong>vanishes</strong> — it is never rendered disabled. A greyed-out
+control is still something to click and wonder about during the one moment
+nobody can debug it. The StatusBar carries a passive identity label so the
+absence is explained once, globally, instead of per control.</p>
+<h2 id="users-and-agents-are-both-principals">Users and agents are both principals<a class="headerlink" href="#users-and-agents-are-both-principals" title="Permanent link">&para;</a></h2>
+<p>The roster does not distinguish "people" from "machines" at the model level.
+A <strong>User Principal</strong> authenticates with a password and receives a cookie; an
+<strong>Agent Principal</strong> authenticates with a bearer token and may be scoped to one
+workspace. Both carry one <code>AccessTier</code>. One roster answers "who can reach this
+studio" completely.</p>
+<p>Tiers are enforced <em>more</em> strongly on the agent side, which is initially
+counter-intuitive. An agent's surface is an <strong>enumerated API</strong>: a <code>view</code> agent
+never receives the write tools from <code>list_tools</code>, so it is not being asked to
+restrain itself — the surface is absent, and <code>call_tool</code> re-checks for a client
+holding a cached list. There is no equivalent for a browser principal, whose
+<code>edit</code> tier includes a Python node. So for agents, <code>view</code> is a genuine
+containment boundary; for browsers it is a boundary against mutation but not
+against the machine.</p>
+<p>A tool's tier is declared, not derived from <code>ToolAnnotations.read_only_hint</code>.
+Those are orthogonal axes: <code>read_only_hint</code> describes <em>behaviour</em> and is
+addressed to the client for confirmation prompts, while <code>access</code> is <em>policy</em>
+set by the operator. Deriving one from the other would mean an author tuning a
+UX hint silently changed who can see the tool.</p>
+<p>Agent tokens are stored in plaintext while passwords are hashed. The asymmetry
+is deliberate: passwords are hashed because humans reuse them, so a leaked
+roster must not compromise unrelated services. A 256-bit token exists nowhere
+but this studio, so hashing it would protect nothing beyond a machine that is
+already lost — while costing the ability to re-copy the connection command.</p>
+<h2 id="the-roster-is-one-document-and-enabling-it-requires-proving-you-can-get-in">The roster is one document, and enabling it requires proving you can get in<a class="headerlink" href="#the-roster-is-one-document-and-enabling-it-requires-proving-you-can-get-in" title="Permanent link">&para;</a></h2>
+<p><code>~/.haywire/auth.json</code> (<code>0600</code>) holds the enabled flag, every principal, and
+the auth tunables. Not a settings bag, and not split across files.</p>
+<p><strong>One document, so "auth is enabled" and "an admin exists" cannot disagree.</strong>
+Split across two files they are independently editable, so <code>enabled: true</code> with
+an empty roster is a reachable state that every guard against it is a check
+someone must remember to write and keep working. As fields of one document
+validated on one write path, the state does not exist.</p>
+<p>Not a settings bag because the UI writes the <strong>workspace tier</strong>
+(<code>&lt;workspace&gt;/.haywire/settings.json</code>), a per-project file that travels with
+the project into git and onto other machines. Session lifetime is
+machine-and-operator policy, not project data. The global tier avoids that but
+is hand-edit-only, so an <code>AuthSettings</code> bag would render fields in the settings
+UI that silently do nothing when edited.</p>
+<p><code>haywire auth enable</code> prompts for an admin username and password and verifies
+them before writing the flag. Anyone who can run that command can also edit the
+JSON, so this is not a barrier against an attacker — it is a <strong>proof of
+recoverability</strong>. It makes the realistic failure unreachable: turning on
+authentication with a roster whose passwords nobody remembers, on a machine
+whose UI is now the only way to fix it.</p>
+<p>Auth is read once at startup; enabling or disabling requires a restart.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>BaseGraph(..., validation_scheduler=None)</code> and <code>ValidationManager(..., scheduler=None)</code> gain an optional parameter; omitting it preserves the prior <code>threading.Timer</code> behavior exactly.</li>
-<li>The live app (graphs created through <code>HaystackState</code>) now validates on the event-loop thread, so the header dirty dot and undo/redo enablement update promptly and on the correct thread. This pairs with the <code>GraphEditor</code> change that adds <code>@react_on(GraphDataMutated)</code> — the scheduler delivers the signal safely; the <code>react_on</code> handler is what makes the editor chrome listen for it.</li>
-<li>Tests may construct graphs with <code>SyncScheduler()</code> for deterministic, inline validation. Existing tests that call <code>force_immediate_validation()</code> to flush the timer continue to work; sweeping them onto <code>SyncScheduler</code> is possible follow-up cleanup, intentionally not done here.</li>
-<li><code>ValidationManager.get_statistics()["pending_validation"]</code> now means "a debounced run is pending" derived from the handle, not from <code>threading.Timer.is_alive()</code>.</li>
+<li><strong>Off by default, and orthogonal to <code>expose_to_network</code>.</strong> Existing loopback
+  installs are unchanged; existing LAN deployments relying on the peer
+  allowlist keep working. Startup logs a WARNING when the studio is exposed
+  with auth off. Coupling the two — or refusing to start — would break a
+  configuration ADR 0026 endorses, and would turn an upgrade into a lockout
+  whose fix requires the UI it just took away.</li>
+<li><strong>Credentials are sniffable over plain HTTP.</strong> A replayed cookie is a valid
+  cookie and the gate cannot tell. <code>NetworkSettings.ssl_certfile</code> /
+  <code>ssl_keyfile</code> pass through <code>ui.run(**kwargs)</code> to uvicorn (NiceGUI recognises
+  both explicitly and builds the <code>https://</code> auto-open URL), so TLS is a
+  configuration choice rather than an unavailable one. Setting exactly one of
+  the pair refuses to start. The <code>Secure</code> cookie flag follows actual TLS
+  presence, never unconditional, or the cookie breaks on loopback.
+  <code>FarmhandHost.mount()</code> must build its <code>allowed_origins</code> with the matching
+  scheme, or <code>/mcp</code> rejects its own origin under TLS.</li>
+<li><strong>Zero new dependencies.</strong> <code>hashlib.scrypt</code> (≈36 ms) for passwords, <code>hmac</code> +
+  <code>secrets.compare_digest</code> for the cookie. The signer must sign the entire
+  payload including the expiry and validate it from the signed payload — never
+  from the cookie's client-controlled <code>Max-Age</code> — and encode unambiguously
+  (base64url JSON, not delimiter-joined fields). Rotating the secret is the
+  "log everyone out" lever.</li>
+<li><strong>No account lockout.</strong> A fixed 1 s delay on failure, and always hashing even
+  for unknown usernames so timing does not enumerate the roster. Lockout is a
+  self-denial-of-service vector: anyone who can reach <code>/login</code> could lock out
+  the admin trying to fix a show.</li>
+<li><strong>Presence is displayed, never managed.</strong> TopBar chips per connected
+  principal, driven by a <code>PresenceChanged</code> cross-session signal. Agents show
+  <em>last seen</em>, stamped in the gate on every <code>/mcp</code> request — MCP's <code>ping</code> is an
+  optional protocol message, so a binary indicator could be wrong while a
+  relative timestamp cannot. There is no kill-session UI.</li>
+</ul>
+<h2 id="explicit-non-goals">Explicit non-goals<a class="headerlink" href="#explicit-non-goals" title="Permanent link">&para;</a></h2>
+<p>No password reset, email verification, or self-service recovery — the CLI is
+the recovery path. No per-graph, per-node or per-file permissions. No audit
+log. No SSO/OAuth/LDAP. No sandboxing. No protection of files on disk. No
+account lockout. No tier enforcement inside node code: a graph runs at its own
+authority, not the viewer's.</p>
+<p><strong>And no multi-tenancy.</strong> A <code>view</code> principal does not get a filtered copy of
+the studio — they see the same live graphs, the same running execution and the
+same haystack as everyone else, and simply cannot mutate them. "These users see
+only these graphs" is a different and far larger feature, and nothing here is a
+step toward it.</p>
+<h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<p><strong><code>app.storage.user</code> plus the documented NiceGUI auth pattern.</strong> Rejected: it
+is <code>BaseHTTPMiddleware</code>-based, so it gates the page load and not the socket.
+The gate also verifies its own cookie rather than reading <code>app.storage.user</code>,
+which is served by Starlette's <code>SessionMiddleware</code> <em>inside</em> the NiceGUI app —
+a root-level wrapper runs outside it and would re-implement the unsealing
+anyway, while acquiring an ordering dependency on NiceGUI internals.</p>
+<p><strong>Snapshotting the tier onto the session at login.</strong> Rejected — it puts
+authority where it can go stale, and makes demotion a disruptive eviction
+rather than a quiet change of what renders.</p>
+<p><strong>Periodic re-validation</strong> (a <code>receive</code> wrapper, or a per-session timer).
+Rejected: the only case it uniquely catches is a hand-edited roster on a
+running studio, and the gate-level form is a Python call per websocket frame on
+the canvas hot path.</p>
+<p><strong><code>bcrypt</code> / <code>argon2-cffi</code>.</strong> Rejected: a compiled dependency on every install
+of a wheel distributed through the marketplace, for a hash that is not holding
+the boundary.</p>
+<p><strong>A separate <code>haybale-auth</code> library for the roster UI.</strong> Rejected: an editor
+with a user list does not earn a package in the lockstep release, a pyproject,
+entry points and generated docs. <code>access=admin</code> already hides it.</p>
+<p><strong>Merging the agent token into the global roster unscoped.</strong> Rejected: the
+Farmhand token is workspace-scoped today, and folding it in unscoped would
+silently promote one project's agent credential into a machine-wide key.</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li>ADR 0026 — studio network exposure (bind address, peer allowlist, jedi confinement)</li>
+<li><code>docs/reference/glossary.md</code> — Access &amp; Authentication vocabulary</li>
+<li><code>packages/haywire-studio/src/haywire_studio/network/ip_filter.py</code> — the pure-ASGI precedent</li>
+<li><code>packages/haywire-studio/src/haywire_studio/farmhand/auth.py</code> — <code>connection_command()</code>;
+  <code>BearerTokenMiddleware</code> described here was deleted by ADR 0028</li>
+<li><code>packages/haywire-core/src/haywire/ui/panel/host_rendering.py</code> — <code>visible_panels()</code>, the single panel gate</li>
 </ul>
 
 

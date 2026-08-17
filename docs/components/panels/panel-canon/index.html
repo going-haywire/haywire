@@ -1420,6 +1420,8 @@
       
         
       
+        
+      
     
     
     
@@ -1692,6 +1694,41 @@
     
   
     Subscribing to marketplaces
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../guides/security/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Security
   
 
     
@@ -3440,6 +3477,27 @@
 <li><strong><code>@panel</code> decorator</strong> — runs at import time, attaches <code>class_identity</code> (a <code>PanelIdentity</code> carrying <code>focus</code>, <code>label</code>, <code>order</code>, <code>action_protocol</code>, etc.).</li>
 </ul>
 <p><strong>Boundaries.</strong> Editors that <em>host</em> panels — see <a href="../../editors/editor-canon/">components/editors</a>. The studio shell that owns the Properties editor — see <a href="../../../architecture/studio/studio-arch/">architecture/studio</a>. Library/session state read inside panels — see <a href="../../states/state-canon/">components/states</a>.</p>
+<p><strong>One shared gate for every host.</strong> No host implements the poll/draw loop itself. <code>haywire.ui.panel.host_rendering</code> owns it, and all three panel hosts funnel through the same two functions:</p>
+<table>
+<thead>
+<tr>
+<th>Function</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>visible_panels(classes, ctx)</code></td>
+<td>The single visibility gate. Poll-filters a list down to what should show, in order. A panel whose <code>poll()</code> returns <code>False</code> — or raises — is dropped, with raises logged through the error boundary.</td>
+</tr>
+<tr>
+<td><code>render_panel(cls, ctx, layout, actions_host=...)</code></td>
+<td>Instantiates one panel, injects <code>panel.actions</code>, and draws it under the same error boundary. A panel that raises renders an inline <code>error_label</code> instead of crashing its host.</td>
+</tr>
+</tbody>
+</table>
+<p>The three hosts are <code>PropertiesEditor</code> (persistent display panels), <code>BaseContextMenuProvider</code> (right-click menus), and the graph canvas <code>SelectionToolbarProvider</code>. Because the filter is shared, anything that decides <em>whether a panel may show</em> — <code>poll()</code>, and <code>access=</code> under <a href="../../../adr/0027-studio-authentication/">ADR 0027</a> — is written once in <code>visible_panels()</code> and takes effect in all three at once.</p>
+<p>Two consequences worth knowing when authoring a host: <code>_open_menu()</code> refuses to build a popup at all when <code>visible_panels()</code> returns empty (so a menu with nothing to show never appears as an empty box), and <code>render_panel()</code> assumes its caller already poll-filtered — a new host that calls it directly without <code>visible_panels()</code> bypasses the gate.</p>
 <h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
 <p><strong>The <code>@panel</code> decorator.</strong> Required on every panel class. Two parameters are mandatory: <code>focus=</code> (a <code>Focus</code> subclass that determines visibility) and <code>label=</code> (display label).</p>
 <table>

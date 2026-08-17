@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread">
+        <meta name="description" content="Every startup-read control that decides who can reach the studio and what they can do once there moves into one 0600 document, ~/.haywire/security.json, because splitting it was the defect">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0002-validation-scheduler-injection/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0028-security-document/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Inject the validation debounce scheduler instead of hardcoding threading.Timer - Haywire Documentation</title>
+        <title>The security document - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" class="md-skip">
+        <a href="#the-security-document" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inject the validation debounce scheduler instead of hardcoding threading.Timer
+              The security document
             
           </span>
         </div>
@@ -3049,10 +3049,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-the-timer-caused" class="md-nav__link">
+  <a href="#the-defect" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem the timer caused
+        The defect
       
     </span>
   </a>
@@ -3060,10 +3060,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-injection-not-just-marshal-the-broadcast" class="md-nav__link">
+  <a href="#one-document" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why injection, not "just marshal the broadcast"
+        One document
       
     </span>
   </a>
@@ -3071,10 +3071,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-inject-not-import-nicegui-into-core" class="md-nav__link">
+  <a href="#writes-refuse-loads-fail-closed" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why inject, not import NiceGUI into core
+        Writes refuse, loads fail closed
       
     </span>
   </a>
@@ -3082,10 +3082,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-loopscheduler-lives-in-haybale-studio" class="md-nav__link">
+  <a href="#exposure-is-a-verb" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why LoopScheduler lives in haybale-studio
+        Exposure is a verb
       
     </span>
   </a>
@@ -3093,10 +3093,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-synchronous-reentrancy-subtlety" class="md-nav__link">
+  <a href="#the-mcp-rule" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The synchronous-reentrancy subtlety
+        The MCP rule
       
     </span>
   </a>
@@ -3104,10 +3104,21 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-alternatives" class="md-nav__link">
+  <a href="#restrict_to_loopback-survives-as-a-cli-only-control" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered alternatives
+        restrict_to_loopback survives as a CLI-only control
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#what-adr-0026-keeps" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What ADR 0026 keeps
       
     </span>
   </a>
@@ -3119,6 +3130,28 @@
     <span class="md-ellipsis">
       
         Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatives-considered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatives considered
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
       
     </span>
   </a>
@@ -3142,50 +3175,301 @@
 
 
 
-<h1 id="inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer">Inject the validation debounce scheduler instead of hardcoding <code>threading.Timer</code><a class="headerlink" href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" title="Permanent link">&para;</a></h1>
-<p><code>ValidationManager</code> (haywire-core) debounces graph validation: a burst of <code>mark_*_dirty</code> calls (a drag emitting many <code>NODE_MOVED</code>, a multi-node delete) is coalesced into a single <code>_validate_batch</code> pass. That debounce was implemented with a raw <code>threading.Timer</code>. This ADR replaces the hardcoded timer with an injected <code>ValidationScheduler</code>, so the <em>application</em> — not pure core — decides which thread the validation pass runs on. The default stays the legacy timer; the studio injects an event-loop scheduler.</p>
-<h2 id="the-problem-the-timer-caused">The problem the timer caused<a class="headerlink" href="#the-problem-the-timer-caused" title="Permanent link">&para;</a></h2>
-<p><code>_validate_batch</code> runs on whatever thread fires the timer. With <code>threading.Timer</code> that is a background daemon thread, ~50 ms after the mutation. But <code>_validate_batch</code> notifies its subscribers inline, and those subscribers touch the UI:</p>
-<ul>
-<li>the graph canvas redraw (<code>visual_layer.on_validated</code>), and</li>
-<li><code>HaystackState._on_entry_validation</code>, which sets <code>entry.unsaved = True</code> and <strong>broadcasts <code>GraphDataMutated</code></strong> through the session signal bus.</li>
-</ul>
-<p>The signal bus is documented as main-thread-only (<em>"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"</em>). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.</p>
-<p>In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread <code>asyncio.Event.set()</code> that should wake the outbox immediately is not called thread-safely.</p>
-<p>The key realization: <strong>the timer was never a concurrency mechanism — it was only a debounce.</strong> <code>_validate_batch</code> is pure synchronous CPU work (<code>build()</code>, <code>link()</code>, <code>_housekeeping()</code>) with no <code>await</code>, no I/O, and no concurrency requirement. Validation is triggered <em>only</em> by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.</p>
-<h2 id="why-injection-not-just-marshal-the-broadcast">Why injection, not "just marshal the broadcast"<a class="headerlink" href="#why-injection-not-just-marshal-the-broadcast" title="Permanent link">&para;</a></h2>
-<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
-<h2 id="why-inject-not-import-nicegui-into-core">Why inject, not import NiceGUI into core<a class="headerlink" href="#why-inject-not-import-nicegui-into-core" title="Permanent link">&para;</a></h2>
-<p><code>ValidationManager</code> lives in <code>haywire-core</code>, which is deliberately framework-free — it has <strong>zero</strong> NiceGUI imports today. The alternative of importing <code>nicegui.core</code> directly into <code>ValidationManager</code> (to call <code>call_soon_threadsafe</code> / <code>ui.timer</code>) would invert that dependency: pure graph-validation logic would depend on the web UI framework.</p>
-<p>Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:</p>
-<ul>
-<li><strong><code>ValidationScheduler</code></strong> protocol (core): <code>schedule(delay_seconds, fn) -&gt; handle</code>, where the handle has an idempotent <code>cancel()</code>. Re-scheduling is the caller's job — <code>ValidationManager</code> cancels the previous handle and schedules a fresh one on every dirty mark, which is what produces the debounce.</li>
-<li><strong><code>ThreadingTimerScheduler</code></strong> (core): the legacy daemon-<code>threading.Timer</code> behavior, kept as the <strong>default</strong> so every construction site that does not inject behaves exactly as before. This change is therefore behavior-preserving by default.</li>
-<li><strong><code>SyncScheduler</code></strong> (core): runs the callback inline. Deterministic; intended for tests and headless use, where it removes the need to call <code>force_immediate_validation()</code> after a mutation.</li>
-<li><strong><code>LoopScheduler</code></strong> (haybale-studio, where NiceGUI is permitted): debounces on <code>nicegui.core.loop</code>. The live graph factory (<code>HaystackState._make_graph_and_editor</code>) injects it, which is what moves validation and the <code>GraphDataMutated</code> broadcast onto the main thread in the running app.</li>
-</ul>
-<h2 id="why-loopscheduler-lives-in-haybale-studio">Why <code>LoopScheduler</code> lives in <code>haybale-studio</code><a class="headerlink" href="#why-loopscheduler-lives-in-haybale-studio" title="Permanent link">&para;</a></h2>
-<p>It needs <code>nicegui.core.loop</code>, so it cannot live in core. <code>haybale-haystack</code> (which owns the live graph factory) already depends on <code>haybale-studio</code> and already imports NiceGUI, so placing the scheduler there is reachable from the one construction site that matters without adding a new dependency edge.</p>
-<p><code>LoopScheduler</code> handles two realities the protocol implies:</p>
-<ul>
-<li><strong>Off-loop callers.</strong> <code>schedule</code> may be invoked from a non-loop thread (a hot-reload watcher marking nodes dirty via <code>NODE_HOT_RELOADED</code>). <code>call_later</code> is loop-affine, so it hops via <code>call_soon_threadsafe</code> first. The returned handle is cancellable from any thread, and cancellation that races the deferred arming is resolved under a lock.</li>
-<li><strong>No loop yet.</strong> During pre-<code>ui.run</code> startup (workspace rehydrate constructs graphs before the loop exists) it runs the callback inline. Safe, because validation is pure CPU work; it only forgoes debouncing for that early window.</li>
-</ul>
-<h2 id="the-synchronous-reentrancy-subtlety">The synchronous-reentrancy subtlety<a class="headerlink" href="#the-synchronous-reentrancy-subtlety" title="Permanent link">&para;</a></h2>
-<p><code>SyncScheduler.schedule</code> runs <code>_validate_batch</code> <em>inside</em> the <code>schedule()</code> call, re-entrant under the manager's <code>RLock</code>. That batch clears <code>_pending_handle</code>, but then <code>_schedule_validation</code> would overwrite it with the (inert) handle the scheduler returned — leaving <code>pending_validation</code> reporting <code>True</code> when nothing is pending. <code>ValidationManager</code> guards this with a monotonic <code>_batch_generation</code> counter: it snapshots the generation before scheduling and only adopts the returned handle if the generation did not advance during <code>schedule()</code> (i.e. no inline batch ran). This keeps the synchronous path honest without special-casing scheduler types.</p>
-<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level: it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops.</li>
-<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).</li>
-<li><strong>Replace the debounce with a loop-native <code>ui.timer</code> everywhere, no abstraction.</strong> Forces a NiceGUI dependency on every <code>BaseGraph</code> construction, breaking headless/test/CI use that has no running loop.</li>
-<li><strong>Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.</strong> Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.</li>
-</ul>
+<h1 id="the-security-document">The security document<a class="headerlink" href="#the-security-document" title="Permanent link">&para;</a></h1>
+<h2 id="the-defect">The defect<a class="headerlink" href="#the-defect" title="Permanent link">&para;</a></h2>
+<p>ADR 0027 gave two reasons the authentication roster could not be a settings
+bag. The settings UI writes the <strong>workspace tier</strong>
+(<code>&lt;workspace&gt;/.haywire/settings.json</code>), a per-project file that travels with
+the project into git and onto other machines — so a panel that writes a
+security decision commits that decision into a project. And the <strong>global
+tier</strong> avoids that, but is hand-edit-only, so a settings bag would render
+fields in the UI that silently do nothing when a human clicks them.</p>
+<p>Both reasons apply verbatim to every network knob, and neither was applied.
+<code>expose_to_network</code>, <code>allowed_remote_ranges</code>, <code>public_hostname</code>,
+<code>trusted_proxies</code>, <code>ssl_certfile</code> and <code>ssl_keyfile</code> all lived on
+<code>NetworkSettings</code>, an ordinary <code>FrameworkSettings</code> schema rendered by the
+Network settings panel. <code>expose_to_network</code> was one checkbox in that panel,
+and clicking it did exactly what ADR 0027 already warned a settings bag would
+do: it wrote <code>&lt;workspace&gt;/.haywire/settings.json</code>, committing a machine's
+exposure decision into a project file that ships to every collaborator, every
+fork, and — if the <code>.haywire/</code> directory is not scrupulously gitignored —
+every clone. A laptop opened once at a conference with the studio bound wide
+leaves that fact sitting in source control, attached to the project rather
+than the machine, indistinguishable from any other settings change in the
+diff.</p>
+<p>The roster got the special-case treatment ADR 0027 built for it. The rest of
+the studio's exposure surface did not, because it predates that ADR and
+nobody went back to apply the same reasoning to it. This document is that
+application, generalized: not "auth is special," but "every control whose
+correctness depends on which machine it runs on is special," and that
+description covers the whole network surface, not just the roster.</p>
+<h2 id="one-document">One document<a class="headerlink" href="#one-document" title="Permanent link">&para;</a></h2>
+<p><code>~/.haywire/security.json</code>, mode <code>0600</code>, three top-level blocks: <code>auth</code> (the
+roster — principals, the enabled flag, session lifetime), <code>network</code>
+(exposure, the peer allowlist, TLS paths, the proxy list), <code>farmhand</code>
+(whether <code>/mcp</code> is mounted, and whether it restricts to loopback). One file,
+one owner, one write path.</p>
+<p>The invariants live inside <code>save_document</code>, not in each caller, and that
+placement is the point rather than an implementation detail. "Authentication
+is enabled but no admin exists," "TLS is half-configured," "the studio is
+exposed with an empty allowlist" — these are not properties of the <code>auth</code>
+block or the <code>network</code> block in isolation; they are properties of the
+<em>document</em>, checked by reading more than one block at once. A CLI command
+that validated only the block it was about to write could produce a document
+that is individually plausible in every field and collectively broken —
+exposed, authenticated with no admin, TLS half-configured — because nothing
+ever looked at the whole thing together. Centralizing validation in
+<code>save_document</code> means every writer, present or future, gets the same checks
+for free and cannot forget to call them; a second validation path is a second
+place for the rules to drift out of step with the one the studio actually
+boots against.</p>
+<p>This is also why the document is one file rather than three. Split across
+<code>auth.json</code>, <code>network.json</code> and <code>farmhand.json</code>, "auth is enabled" and "the
+studio is exposed" become independently editable facts, and every invariant
+that spans them — "exposed implies authenticated," in particular — becomes a
+cross-file check that some future write path can simply not perform, because
+nothing forces it to open the other two files to validate the one it's
+writing. As fields of one document behind one function, the invalid
+combination is not a case the code has to catch; it is a state the format
+cannot represent.</p>
+<h2 id="writes-refuse-loads-fail-closed">Writes refuse, loads fail closed<a class="headerlink" href="#writes-refuse-loads-fail-closed" title="Permanent link">&para;</a></h2>
+<p><code>save_document</code> raises <code>SecurityError</code> on any invariant violation. There is
+no way to write a security document that describes an unreachable studio as
+if it were exposed and defended, or an exposed studio as if it required no
+login. Every writer — <code>haywire network expose</code>, <code>haywire auth enable</code>, the
+CLI in general — goes through this one function, so a bad state cannot enter
+the file through code.</p>
+<p>A hand-edited file is a different problem, and <code>sanitize</code> is a different
+function for it. It runs once, at startup, against whatever
+<code>load_document</code> returns, and it <strong>never refuses to start</strong>. A violation is
+repaired in the safe direction — exposure off, TLS off, authentication off —
+and every reason is logged at <code>CRITICAL</code>, reportable afterward with
+<code>haywire security status</code>.</p>
+<p>The asymmetry is deliberate, and it is ADR 0027's lockout reasoning applied
+again rather than a new argument. That ADR rejected refusing to start on a
+roster with authentication enabled and no admin, because a studio that will
+not boot has taken away the only UI that could fix the roster that is
+blocking it — the failure mode becomes unrecoverable without editing a JSON
+file blind, on a machine that may not even be the one the operator is
+sitting at. The security document generalizes the same shape to every field
+in it: a corrupt or self-contradictory <code>security.json</code>, whether from a typo,
+a bad merge, or an interrupted write, must degrade toward "nobody but this
+machine can reach the studio and there is nothing to configure," never
+toward "the studio refuses to exist until someone fixes a file by hand." The
+API can refuse — that is what <code>save_document</code> is for, and it is the only
+path a human interacting through the CLI or the UI ever takes. The boot path
+cannot, because refusing there has no operator on the other end who agreed
+to be locked out.</p>
+<h2 id="exposure-is-a-verb">Exposure is a verb<a class="headerlink" href="#exposure-is-a-verb" title="Permanent link">&para;</a></h2>
+<p><code>expose_to_network</code> used to be a boolean field with a tooltip. Under the
+document, there is no boolean to flip — <code>haywire network expose --ranges
+&lt;cidr&gt;</code> is the only way to turn exposure on, and it is a function
+(<code>haywire_studio.security.operations.expose</code>) that assembles a candidate
+document and hands it to <code>save_document</code>, which is where the actual
+enforcement lives.</p>
+<p>A checkbox cannot express a precondition, and safe exposure has three:
+authentication must already be on, TLS must already be configured, and the
+allowlist must not be empty. A UI toggle can only be flipped; it cannot
+refuse to flip until three other things are true first, short of disabling
+itself with a tooltip explaining why — which is exactly the "hidden field
+that does nothing" failure mode ADR 0027 already rejected, aimed at a
+different control. <code>expose</code> is a verb specifically so that it can say no:
+call it against a document with authentication off, or TLS unset, or no
+<code>--ranges</code>, and <code>validate</code> rejects the write with a message naming the one
+command that clears it. There is no state in which the flag reads <code>true</code>
+in the file while one of its preconditions is false, because the write that
+would have produced that state never completes.</p>
+<p><code>--ranges</code> is required, not merely recommended, for the same reason an empty
+<code>allowed_remote_ranges</code> was already the correct-but-confusing default before
+this change: <code>IPAllowlistMiddleware</code>'s membership check is <code>any(ip in
+network for network in allowed_ranges)</code>, which over an empty sequence is
+always <code>False</code>. Exposing the studio with no ranges configured does not open
+it — it binds the socket wide and then rejects every remote peer at the
+allowlist, which is real but is not what "expose" plausibly means to
+someone typing the command. Requiring at least one range up front turns a
+silent no-op into an immediate, explicit choice.</p>
+<p><code>haywire network seal</code> reverses the bind — the studio answers on loopback
+again — and <strong>keeps the allowlist</strong>. Sealing is the temporary case: a laptop
+leaving the venue, a demo that just ended, an operator who wants the studio
+quiet for an hour. Discarding the ranges on seal would turn every return
+trip into re-typing the same CIDR block, punishing the operator for doing
+the safe thing. Exposure is the bit that decides whether the ranges matter
+at all; while it is off, the ranges are inert and harmless to keep.</p>
+<h2 id="the-mcp-rule">The MCP rule<a class="headerlink" href="#the-mcp-rule" title="Permanent link">&para;</a></h2>
+<p><code>/mcp</code> is mounted inside the same ASGI app the rest of the studio runs
+under, behind <code>AuthGateMiddleware</code> (ADR 0027) exactly like every other route.
+That gate demands a valid cookie or a valid bearer token whenever
+authentication is on, and admits everyone when it is off. Two more facts
+close the matrix completely. First, the document's own invariants require
+<code>auth.enabled</code> before <code>network.exposed</code> can be <code>true</code> — the same check
+described above. Second, the gate covers <code>/mcp</code> unconditionally, because it
+wraps the whole app rather than exempting any one mount. Put together:
+<strong>exposed implies authenticated, and authenticated implies gated</strong> — so
+there is no reachable configuration in which <code>/mcp</code> is open to another
+machine without a roster token.</p>
+<p>That closure is what makes <code>require_auth</code>, <code>BearerTokenMiddleware</code>, and the
+workspace <code>farmhand_token</code> file deletable rather than merely redundant. They
+were a second, independent guard built for a world in which <code>/mcp</code> might be
+reachable from off-box while the rest of the studio's authentication story
+said nothing about it — a world where "is <code>/mcp</code> protected" had its own
+answer, separate from "is the studio protected." Once exposure structurally
+requires authentication, that second answer cannot diverge from the first
+one, and a mechanism that exists only to prevent divergence between two
+things that cannot diverge is not defence in depth — it is a second copy of
+a rule, with its own file, its own credential, and its own chance to go
+stale relative to the original. Deleting it removes a place the two stories
+could disagree, not a layer of protection.</p>
+<p>The <code>studio.json</code> sidecar (<code>write_identity</code> in
+<code>haywire_studio/farmhand/identity.py</code>) carries an <code>auth_required</code> field,
+mirroring <code>document.auth.enabled</code> at the moment the studio mounted
+Farmhand. This is a <strong>hint</strong>, read by a later process — the farmhand4claude
+proxy's startup script — deciding whether to attach an <code>Authorization</code>
+header before it has made a single request. It is not, and must never
+become, a credential: it says whether a token is expected, never what the
+token is. A <code>studio.json</code> carrying a token would be the workspace-file
+problem all over again — machine-and-session secret material committed
+alongside project files — and the sidecar is already gitignored specifically
+so that even the hint travels no further than this machine.</p>
+<h2 id="restrict_to_loopback-survives-as-a-cli-only-control"><code>restrict_to_loopback</code> survives as a CLI-only control<a class="headerlink" href="#restrict_to_loopback-survives-as-a-cli-only-control" title="Permanent link">&para;</a></h2>
+<p>Not everything network-shaped moved for the same reason. <code>restrict_to_loopback</code>
+stays, on <code>FarmhandPolicy</code>, changed only by <code>haywire farmhand local-only</code> /
+<code>allow-remote</code> — no settings panel ever rendered it and none does now.</p>
+<p>It survives because it is not a network-location control at all, and
+folding it into the exposure story would misdescribe what it does.
+<code>IPAllowlistMiddleware</code> reads the TCP peer address, supplied by the kernel
+and unforgeable by anything the client sends. <code>restrict_to_loopback</code>
+configures the MCP SDK's <code>TransportSecuritySettings</code> to reject a request
+whose <code>Host</code> or <code>Origin</code> <strong>header</strong> is not loopback — a value the client
+sets, and can set to anything. <code>curl -H 'Host: 127.0.0.1:8124'
+http://&lt;lan-ip&gt;:8124/mcp</code> sails straight through it, exactly as it did
+before this document existed. What it defeats is narrower and specific: DNS
+rebinding, where a malicious page already open in the operator's own
+browser resolves an attacker-controlled domain to <code>127.0.0.1</code> after the
+page loads, and then issues same-origin-looking requests that the browser
+will happily attach cookies to. A header check is precisely the tool for
+that attack, because a browser's <code>Host</code> header is the one signal in this
+whole system that a browser sets honestly on its own requests — it is also
+precisely the wrong tool for anything a peer-address or a bearer-token
+check should be doing instead, which is why it stays scoped to exactly the
+threat it answers.</p>
+<p>Turning it off — <code>haywire farmhand allow-remote</code> — is a legitimate
+operation, not a foot-gun disabled by omission: an MCP client running on
+another machine needs the studio to accept a <code>Host</code> header that isn't
+loopback, because from that client's perspective the studio's hostname
+genuinely isn't <code>127.0.0.1</code>. <code>set_farmhand_loopback</code> demands that
+authentication already be on before it allows this, and that check lives in
+<code>operations.py</code> rather than in <code>validate</code>, deliberately. It constrains a
+<strong>transition</strong> — you may not <em>turn off</em> loopback-restriction while
+unauthenticated — not a <strong>state</strong>: a document that already has the
+restriction off and authentication off is not corrupt, it's simply what
+results when authentication is disabled afterward by someone who forgot
+this was on, and refusing to <em>load</em> that document would be exactly the
+lockout <code>sanitize</code> exists to avoid. <code>haywire security status</code> reports the
+combination if it is ever reached by that path, rather than the load path
+refusing to boot over it.</p>
+<h2 id="what-adr-0026-keeps">What ADR 0026 keeps<a class="headerlink" href="#what-adr-0026-keeps" title="Permanent link">&para;</a></h2>
+<p>Everything ADR 0026 calls "the layered model" is architecture, and none of
+it moved. <code>IPAllowlistMiddleware</code> is still a pure-ASGI callable rather than
+a <code>BaseHTTPMiddleware</code> subclass, for the same reason: NiceGUI's entire live
+UI runs over Socket.IO after the initial page load, and a filter that only
+sees <code>scope["type"] == "http"</code> would guard the login page and wave the
+websocket carrying the actual application straight through. The
+<code>X-Forwarded-For</code> rightmost-untrusted resolution is unchanged — XFF is
+still read only when the direct TCP peer is itself a trusted proxy, still
+scanned from the right to find the first hop the deployment didn't insert
+itself. Loopback's unconditional exemption from the allowlist is unchanged
+— <code>127.0.0.1</code>/<code>::1</code> still bypass the check before any list membership is
+consulted, and there is still no way to configure that away, because doing
+so would risk locking the operator out of the one UI that could undo the
+mistake. jedi path confinement in <code>code_intelligence.py</code> is untouched.</p>
+<p>What moved is <em>where the controls live</em>, not what they do or why. Every
+field ADR 0026 described as living on <code>NetworkSettings</code> now lives on
+<code>SecurityDocument.network</code>, read from <code>~/.haywire/security.json</code> instead of
+<code>~/.haywire/settings.json</code>, changed through <code>haywire network</code> /
+<code>haywire ssl</code> instead of a settings panel. The placement changed because
+the placement was the defect this document fixes; the mechanism did not
+change because nothing about the mechanism was wrong.</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
+<p><strong>Hard break, no migration.</strong> A workspace's old <code>&lt;workspace&gt;/.haywire/settings.json</code>
+<code>network</code> block, and a global <code>~/.haywire/settings.json</code> machine-wide
+override, are both simply not read any more — <code>NetworkSettings</code> no longer
+declares the fields that block would have populated. There is no
+code path that copies an old value forward into <code>security.json</code>, and there
+is deliberately no code path: a value that traveled into a workspace file is
+exactly the thing this document exists to stop trusting. An operator who
+relied on the old global-tier <code>public_hostname</code>/<code>trusted_proxies</code> pattern
+must re-enter it through <code>haywire network expose --hostname ... --trusted-proxies ...</code>.</p>
+<p><code>NetworkSettings</code> keeps exactly one field: <code>port</code>. A port number is not a
+security control — binding <code>8125</code> instead of <code>8124</code> exposes nothing that
+<code>8124</code> didn't — so it is genuinely a local, project-agnostic convenience
+with none of the reasons the rest of the schema had to leave.</p>
+<p>The settings panel that used to render the network schema is now
+<strong>read-only and admin-gated</strong> (<code>SecurityPanel</code>, <code>access=AccessTier.ADMIN</code>).
+It shows the four-axis posture — network, auth, TLS, Farmhand — and every
+finding <code>haywire security status</code> would print, with the fix command for
+each one shown as copyable text, because the moment someone is reading this
+panel with the studio running is exactly the moment they cannot paste that
+fix command into the CLI that would apply it. <code>NetworkSettings</code> (just
+<code>port</code>) is the only editable schema still rendered there.</p>
+<p><strong>The farmhand4claude proxy must change, and this ADR does not change it.</strong>
+The proxy is a separate repository. It currently reads
+<code>&lt;ws&gt;/.haywire/farmhand_token</code> lazily and attaches it as a bearer token; that
+file no longer exists after this change. It must instead read
+<code>auth_required</code> from <code>&lt;ws&gt;/.haywire/studio.json</code> and send no <code>Authorization</code>
+header when that is <code>false</code>. Until the proxy ships that change, it will
+attach no header at all — correct against an unauthenticated studio,
+rejected with a <code>401</code> against an authenticated one. That is a coordinated,
+cross-repo release, not a silent regression this plan can absorb by itself.</p>
+<h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<p><strong>Hiding the fields instead of deleting them.</strong> Keep <code>NetworkSettings</code>
+declaring <code>expose_to_network</code> and friends, but stop rendering them in the
+panel. Rejected: the workspace-tier JSON path stays open regardless of
+whether a panel draws a checkbox for it. Anyone who writes
+<code>&lt;workspace&gt;/.haywire/settings.json</code> by hand, via a script, or via a future
+panel that forgets the memo, still commits an exposure decision into the
+project. Hiding a field changes what the UI shows; it does not change what
+the file format allows.</p>
+<p><strong>A read-only setting kind in the settings system.</strong> Add a schema-level
+"admin can view, nobody can write through the UI" flavour, so
+<code>NetworkSettings</code> could keep declaring these fields and the framework would
+enforce their immutability. Rejected: this is a new concept in the settings
+framework, built to solve a <em>placement</em> problem — these values belong to
+the machine, not the project — that the settings system's tier model has no
+notion of. Inventing framework machinery to make a wrong home look right is
+solving the symptom; the actual fix is moving the data out of a system whose
+tiers were never the right shape for machine-scoped, security-sensitive
+state.</p>
+<p><strong><code>haywire mcp</code> instead of <code>haywire farmhand</code>.</strong> Name the CLI subcommand
+after the protocol rather than the component, on the theory that "MCP" is
+what an operator searches for. Rejected on glossary consistency: the
+glossary is explicit that "Farmhand" names the component and "MCP" names
+the protocol it speaks, the same distinction <code>FarmhandHost</code>,
+<code>farmhand://</code> resource URIs, and every other surface in this codebase
+already draw. A CLI subcommand named for the protocol would be the one
+place in the system using the wrong noun for what it configures.</p>
+<p><strong>Refusing to start on a contradictory document.</strong> Make the studio exit
+rather than sanitize a document that fails <code>validate</code>. Rejected for the
+reason given above under "Writes refuse, loads fail closed": a studio that
+will not boot has taken away the only interface that could fix the file
+that's blocking it. This is the same lockout argument ADR 0027 already
+made for the roster specifically, generalized here to the whole document.</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>BaseGraph(..., validation_scheduler=None)</code> and <code>ValidationManager(..., scheduler=None)</code> gain an optional parameter; omitting it preserves the prior <code>threading.Timer</code> behavior exactly.</li>
-<li>The live app (graphs created through <code>HaystackState</code>) now validates on the event-loop thread, so the header dirty dot and undo/redo enablement update promptly and on the correct thread. This pairs with the <code>GraphEditor</code> change that adds <code>@react_on(GraphDataMutated)</code> — the scheduler delivers the signal safely; the <code>react_on</code> handler is what makes the editor chrome listen for it.</li>
-<li>Tests may construct graphs with <code>SyncScheduler()</code> for deterministic, inline validation. Existing tests that call <code>force_immediate_validation()</code> to flush the timer continue to work; sweeping them onto <code>SyncScheduler</code> is possible follow-up cleanup, intentionally not done here.</li>
-<li><code>ValidationManager.get_statistics()["pending_validation"]</code> now means "a debounced run is pending" derived from the handle, not from <code>threading.Timer.is_alive()</code>.</li>
+<li>ADR 0026 — studio network exposure (bind address, peer allowlist, XFF
+  resolution, jedi confinement) — superseded in part by this ADR</li>
+<li>ADR 0027 — studio authentication (the roster, the gate, the "not a
+  settings bag" reasoning this ADR generalizes)</li>
+<li><code>packages/haywire-studio/src/haywire_studio/security/document.py</code> —
+  <code>SecurityDocument</code>, <code>validate</code>, <code>sanitize</code>, <code>load_document</code>, <code>save_document</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/security/operations.py</code> —
+  <code>expose</code>, <code>seal</code>, <code>set_farmhand_loopback</code>, <code>write_tls_paths</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/security/posture.py</code> — the
+  joined four-axis assessment behind <code>haywire security status</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/cli/networkcmd.py</code>,
+  <code>securitycmd.py</code>, <code>farmhandcmd.py</code>, <code>authcmd.py</code>, <code>sslcmd.py</code>, <code>user.py</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/farmhand/identity.py</code> —
+  <code>studio.json</code>, the <code>auth_required</code> hint</li>
+<li><code>docs/guides/security.md</code> — the operator-facing guide this ADR backs</li>
 </ul>
 
 

@@ -6,11 +6,11 @@
       <meta charset="utf-8">
       <meta name="viewport" content="width=device-width,initial-scale=1">
       
-        <meta name="description" content="Replace ValidationManager's hardcoded threading.Timer debounce with an injected ValidationScheduler, so the app chooses the execution thread">
+        <meta name="description" content="The studio defaults to loopback-only; opening it to the network layers a bind-address switch, a pure-ASGI peer-IP allowlist, and jedi path confinement — each closing a distinct hole the others don't">
       
       
       
-        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0002-validation-scheduler-injection/">
+        <link rel="canonical" href="https://going-haywire.github.io/haywire/docs/adr/0026-studio-network-exposure/">
       
       
       
@@ -23,7 +23,7 @@
     
     
       
-        <title>Inject the validation debounce scheduler instead of hardcoding threading.Timer - Haywire Documentation</title>
+        <title>Studio network exposure - Haywire Documentation</title>
       
     
     
@@ -74,7 +74,7 @@
     <div data-md-component="skip">
       
         
-        <a href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" class="md-skip">
+        <a href="#studio-network-exposure" class="md-skip">
           Skip to content
         </a>
       
@@ -110,7 +110,7 @@
         <div class="md-header__topic" data-md-component="header-topic">
           <span class="md-ellipsis">
             
-              Inject the validation debounce scheduler instead of hardcoding threading.Timer
+              Studio network exposure
             
           </span>
         </div>
@@ -3049,10 +3049,10 @@
     <ul class="md-nav__list" data-md-component="toc" data-md-scrollfix>
       
         <li class="md-nav__item">
-  <a href="#the-problem-the-timer-caused" class="md-nav__link">
+  <a href="#the-layered-model" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The problem the timer caused
+        The layered model
       
     </span>
   </a>
@@ -3060,10 +3060,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-injection-not-just-marshal-the-broadcast" class="md-nav__link">
+  <a href="#pure-asgi-over-basehttpmiddleware-the-socketio-hole" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why injection, not "just marshal the broadcast"
+        Pure-ASGI over BaseHTTPMiddleware — the Socket.IO hole
       
     </span>
   </a>
@@ -3071,10 +3071,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-inject-not-import-nicegui-into-core" class="md-nav__link">
+  <a href="#three-guards-three-threat-models" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why inject, not import NiceGUI into core
+        Three guards, three threat models
       
     </span>
   </a>
@@ -3082,10 +3082,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#why-loopscheduler-lives-in-haybale-studio" class="md-nav__link">
+  <a href="#no-x-forwarded-for-without-trusted_proxies" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Why LoopScheduler lives in haybale-studio
+        No X-Forwarded-For without trusted_proxies
       
     </span>
   </a>
@@ -3093,10 +3093,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#the-synchronous-reentrancy-subtlety" class="md-nav__link">
+  <a href="#loopback-is-outside-the-allowlists-jurisdiction" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The synchronous-reentrancy subtlety
+        Loopback is outside the allowlist's jurisdiction
       
     </span>
   </a>
@@ -3104,10 +3104,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#considered-alternatives" class="md-nav__link">
+  <a href="#jedi-path-confinement" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Considered alternatives
+        jedi path confinement
       
     </span>
   </a>
@@ -3119,6 +3119,28 @@
     <span class="md-ellipsis">
       
         Consequences
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#alternatives-considered" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Alternatives considered
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#references" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        References
       
     </span>
   </a>
@@ -3142,50 +3164,286 @@
 
 
 
-<h1 id="inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer">Inject the validation debounce scheduler instead of hardcoding <code>threading.Timer</code><a class="headerlink" href="#inject-the-validation-debounce-scheduler-instead-of-hardcoding-threadingtimer" title="Permanent link">&para;</a></h1>
-<p><code>ValidationManager</code> (haywire-core) debounces graph validation: a burst of <code>mark_*_dirty</code> calls (a drag emitting many <code>NODE_MOVED</code>, a multi-node delete) is coalesced into a single <code>_validate_batch</code> pass. That debounce was implemented with a raw <code>threading.Timer</code>. This ADR replaces the hardcoded timer with an injected <code>ValidationScheduler</code>, so the <em>application</em> — not pure core — decides which thread the validation pass runs on. The default stays the legacy timer; the studio injects an event-loop scheduler.</p>
-<h2 id="the-problem-the-timer-caused">The problem the timer caused<a class="headerlink" href="#the-problem-the-timer-caused" title="Permanent link">&para;</a></h2>
-<p><code>_validate_batch</code> runs on whatever thread fires the timer. With <code>threading.Timer</code> that is a background daemon thread, ~50 ms after the mutation. But <code>_validate_batch</code> notifies its subscribers inline, and those subscribers touch the UI:</p>
-<ul>
-<li>the graph canvas redraw (<code>visual_layer.on_validated</code>), and</li>
-<li><code>HaystackState._on_entry_validation</code>, which sets <code>entry.unsaved = True</code> and <strong>broadcasts <code>GraphDataMutated</code></strong> through the session signal bus.</li>
-</ul>
-<p>The signal bus is documented as main-thread-only (<em>"Not thread-safe by design — all session work runs on the NiceGUI event loop's main thread"</em>). So the dirty-state broadcast that drives the header dirty dot and the undo/redo button enablement was being emitted from a thread the UI layer says it cannot be emitted from.</p>
-<p>In practice NiceGUI tolerates this — building elements off-loop lands in the no-task slot stack (<code>Slot.stacks[0]</code>), and <code>element.update()</code> enqueues into the outbox, which the main-loop poll flushes within ≤1 s — which is why nothing crashed and the off-thread-ness went unnoticed. But the tolerance is fragile and adds ~1 s of latency: the cross-thread <code>asyncio.Event.set()</code> that should wake the outbox immediately is not called thread-safely.</p>
-<p>The key realization: <strong>the timer was never a concurrency mechanism — it was only a debounce.</strong> <code>_validate_batch</code> is pure synchronous CPU work (<code>build()</code>, <code>link()</code>, <code>_housekeeping()</code>) with no <code>await</code>, no I/O, and no concurrency requirement. Validation is triggered <em>only</em> by user edits, which originate on the main loop (the execution interpreter does not mark the graph dirty during a run). Running it on a background thread bought nothing and cost the thread-safety hazard above.</p>
-<h2 id="why-injection-not-just-marshal-the-broadcast">Why injection, not "just marshal the broadcast"<a class="headerlink" href="#why-injection-not-just-marshal-the-broadcast" title="Permanent link">&para;</a></h2>
-<p>The narrow fix would have been to wrap the one off-thread emitter (<code>HaystackState._broadcast_data_mutated</code>) in <code>loop.call_soon_threadsafe</code>. Rejected as symptom-level treatment — see "Considered alternatives" below. Moving the debounce onto the event loop fixes the root cause once, for every current and future subscriber, and keeps loop-awareness in exactly one place.</p>
-<h2 id="why-inject-not-import-nicegui-into-core">Why inject, not import NiceGUI into core<a class="headerlink" href="#why-inject-not-import-nicegui-into-core" title="Permanent link">&para;</a></h2>
-<p><code>ValidationManager</code> lives in <code>haywire-core</code>, which is deliberately framework-free — it has <strong>zero</strong> NiceGUI imports today. The alternative of importing <code>nicegui.core</code> directly into <code>ValidationManager</code> (to call <code>call_soon_threadsafe</code> / <code>ui.timer</code>) would invert that dependency: pure graph-validation logic would depend on the web UI framework.</p>
-<p>Injection preserves the boundary. Core defines a tiny protocol and a default; the application supplies the loop-aware implementation:</p>
-<ul>
-<li><strong><code>ValidationScheduler</code></strong> protocol (core): <code>schedule(delay_seconds, fn) -&gt; handle</code>, where the handle has an idempotent <code>cancel()</code>. Re-scheduling is the caller's job — <code>ValidationManager</code> cancels the previous handle and schedules a fresh one on every dirty mark, which is what produces the debounce.</li>
-<li><strong><code>ThreadingTimerScheduler</code></strong> (core): the legacy daemon-<code>threading.Timer</code> behavior, kept as the <strong>default</strong> so every construction site that does not inject behaves exactly as before. This change is therefore behavior-preserving by default.</li>
-<li><strong><code>SyncScheduler</code></strong> (core): runs the callback inline. Deterministic; intended for tests and headless use, where it removes the need to call <code>force_immediate_validation()</code> after a mutation.</li>
-<li><strong><code>LoopScheduler</code></strong> (haybale-studio, where NiceGUI is permitted): debounces on <code>nicegui.core.loop</code>. The live graph factory (<code>HaystackState._make_graph_and_editor</code>) injects it, which is what moves validation and the <code>GraphDataMutated</code> broadcast onto the main thread in the running app.</li>
-</ul>
-<h2 id="why-loopscheduler-lives-in-haybale-studio">Why <code>LoopScheduler</code> lives in <code>haybale-studio</code><a class="headerlink" href="#why-loopscheduler-lives-in-haybale-studio" title="Permanent link">&para;</a></h2>
-<p>It needs <code>nicegui.core.loop</code>, so it cannot live in core. <code>haybale-haystack</code> (which owns the live graph factory) already depends on <code>haybale-studio</code> and already imports NiceGUI, so placing the scheduler there is reachable from the one construction site that matters without adding a new dependency edge.</p>
-<p><code>LoopScheduler</code> handles two realities the protocol implies:</p>
-<ul>
-<li><strong>Off-loop callers.</strong> <code>schedule</code> may be invoked from a non-loop thread (a hot-reload watcher marking nodes dirty via <code>NODE_HOT_RELOADED</code>). <code>call_later</code> is loop-affine, so it hops via <code>call_soon_threadsafe</code> first. The returned handle is cancellable from any thread, and cancellation that races the deferred arming is resolved under a lock.</li>
-<li><strong>No loop yet.</strong> During pre-<code>ui.run</code> startup (workspace rehydrate constructs graphs before the loop exists) it runs the callback inline. Safe, because validation is pure CPU work; it only forgoes debouncing for that early window.</li>
-</ul>
-<h2 id="the-synchronous-reentrancy-subtlety">The synchronous-reentrancy subtlety<a class="headerlink" href="#the-synchronous-reentrancy-subtlety" title="Permanent link">&para;</a></h2>
-<p><code>SyncScheduler.schedule</code> runs <code>_validate_batch</code> <em>inside</em> the <code>schedule()</code> call, re-entrant under the manager's <code>RLock</code>. That batch clears <code>_pending_handle</code>, but then <code>_schedule_validation</code> would overwrite it with the (inert) handle the scheduler returned — leaving <code>pending_validation</code> reporting <code>True</code> when nothing is pending. <code>ValidationManager</code> guards this with a monotonic <code>_batch_generation</code> counter: it snapshots the generation before scheduling and only adopts the returned handle if the generation did not advance during <code>schedule()</code> (i.e. no inline batch ran). This keeps the synchronous path honest without special-casing scheduler types.</p>
-<h2 id="considered-alternatives">Considered alternatives<a class="headerlink" href="#considered-alternatives" title="Permanent link">&para;</a></h2>
-<ul>
-<li><strong>Marshal only <code>_broadcast_data_mutated</code> with <code>call_soon_threadsafe</code>.</strong> Smallest diff, but symptom-level: it leaves <code>_validate_batch</code> and the canvas redraw on the timer thread, so the <em>next</em> off-thread subscriber re-introduces the same class of bug, and it scatters event-loop awareness into <code>HaystackState</code>, which has no business knowing about asyncio loops.</li>
-<li><strong>Import <code>nicegui.core</code> directly into <code>ValidationManager</code>.</strong> Couples pure-core validation to the web framework, inverting a boundary the codebase otherwise holds (core has no NiceGUI imports).</li>
-<li><strong>Replace the debounce with a loop-native <code>ui.timer</code> everywhere, no abstraction.</strong> Forces a NiceGUI dependency on every <code>BaseGraph</code> construction, breaking headless/test/CI use that has no running loop.</li>
-<li><strong>Move the debounce up to the edit layer (coalesce drag deltas before they reach the graph) and make validation purely synchronous.</strong> Arguably the cleanest end state, but a larger rethink of the edit→graph boundary; deferred.</li>
-</ul>
+<h1 id="studio-network-exposure">Studio network exposure<a class="headerlink" href="#studio-network-exposure" title="Permanent link">&para;</a></h1>
+<blockquote>
+<p><strong>Superseded in part by <a href="../0028-security-document/">ADR 0028</a>.</strong> The layered
+model below — pure-ASGI filtering, <code>X-Forwarded-For</code> resolution, loopback's
+exemption from the allowlist, jedi path confinement — is unchanged and still
+current. What moved is <em>where the controls live</em>: <code>NetworkSettings</code> no longer
+carries <code>expose_to_network</code>, <code>allowed_remote_ranges</code>, <code>public_hostname</code>,
+<code>trusted_proxies</code>, <code>ssl_certfile</code> or <code>ssl_keyfile</code>. Read every mention of
+those as fields of <code>~/.haywire/security.json</code>.</p>
+</blockquote>
+<p><code>ui.run()</code> in <code>HaywireApp.run()</code> used to pass no <code>host</code>, so NiceGUI bound
+<code>0.0.0.0</code> — the studio was reachable from the LAN with no socket-level guard
+at all. Reachable on that port: the full graph editor (arbitrary Python
+execution, by design), <code>/mcp</code> (guarded by <code>require_auth</code> and
+<code>restrict_to_loopback</code>), and three unauthenticated jedi endpoints
+(<code>/api/code-intel/{complete,info,hover}</code>) that accepted a caller-controlled
+filesystem path. <code>farmhand/auth.py</code> already documented Farmhand as "Layered
+with 127.0.0.1 binding" — a layer that had never existed. This change
+supplies it.</p>
+<p><strong>Framing, stated plainly:</strong> these are network-location controls. They govern
+<em>from where</em> the studio can be reached, never <em>what a reachable caller may do</em>
+— a graph executes arbitrary Python in-process, so any principal who can edit
+a graph holds the authority of the studio process itself. Deciding <em>which</em>
+principals may connect at all is a separate layer (ADR 0027).</p>
+<h2 id="the-layered-model">The layered model<a class="headerlink" href="#the-layered-model" title="Permanent link">&para;</a></h2>
+<p>Two independent controls, both in <code>NetworkSettings</code>
+(<code>packages/haywire-studio/src/haywire_studio/network/settings.py</code>):</p>
+<ol>
+<li><strong>Bind address</strong> (<code>expose_to_network</code>, default <code>False</code>) — <code>HaywireApp.run()</code>
+   picks <code>host = "0.0.0.0" if settings.expose_to_network else "127.0.0.1"</code>.
+   The OS refuses off-box connections unless this is explicitly flipped.</li>
+<li><strong>Peer allowlist</strong> (<code>allowed_remote_ranges</code>, default <code>""</code>) — a CIDR filter
+   on the real TCP peer, enforced by <code>IPAllowlistMiddleware</code>, installed only
+   when <code>expose_to_network</code> is on.</li>
+</ol>
+<p>The bind address alone is not enough because it is binary: once flipped, the
+studio is reachable from <em>any</em> address on <em>any</em> attached network, with no way
+to scope it to "just my other machine" or "just the office subnet." A
+Farmhand agent, a colleague's laptop, and an unrelated device on the same
+Wi-Fi are equally reachable. The allowlist is the only knob that discriminates
+between them once the socket is open — bind address decides <em>whether</em> the
+studio is reachable beyond loopback at all, the allowlist decides <em>from
+where</em>.</p>
+<h2 id="pure-asgi-over-basehttpmiddleware-the-socketio-hole">Pure-ASGI over <code>BaseHTTPMiddleware</code> — the Socket.IO hole<a class="headerlink" href="#pure-asgi-over-basehttpmiddleware-the-socketio-hole" title="Permanent link">&para;</a></h2>
+<p>This is the headline, and the reason a future "simplify this" pass could
+silently reopen the gap.</p>
+<p>NiceGUI runs its entire UI over Socket.IO, mounted at <code>/_nicegui_ws/</code> with
+<code>cors_allowed_origins='*'</code>. Socket.IO negotiates its handshake over HTTP
+polling, then upgrades to a WebSocket. Every button click, graph edit, and
+node execution in the studio travels over that WebSocket after the initial
+page load — the page load itself is a small fraction of the traffic.</p>
+<p>Starlette's <code>BaseHTTPMiddleware</code> only sees ASGI scopes where
+<code>scope["type"] == "http"</code>. It has no hook for <code>scope["type"] ==
+"websocket"</code> at all. A filter built on <code>BaseHTTPMiddleware</code> would correctly
+block (or allow) the <em>initial page load</em>, then let every subsequent
+WebSocket frame — i.e. the entire live application — through completely
+unfiltered, for any peer that happened to load the page once (or opened the
+socket directly, skipping the page load entirely).</p>
+<p><code>IPAllowlistMiddleware</code>
+(<code>packages/haywire-studio/src/haywire_studio/network/ip_filter.py</code>) is
+instead a <strong>pure-ASGI callable</strong>: a plain class with <code>__call__(self, scope,
+receive, send)</code>, handling <code>http</code>, <code>websocket</code>, and <code>lifespan</code> scopes itself,
+with no Starlette middleware base class in the hierarchy. <code>lifespan</code> passes
+through untouched; <code>http</code> and <code>websocket</code> both run the same peer check before
+either reaches the wrapped app. This mirrors the existing
+<code>BearerTokenMiddleware</code> in <code>farmhand/auth.py</code>, which is itself pure-ASGI for
+the same reason (though it wraps only the <code>/mcp</code> sub-app, not the whole
+process — see below).</p>
+<p><strong>If you are reading this because you're about to rewrite
+<code>IPAllowlistMiddleware</code> as a <code>BaseHTTPMiddleware</code> subclass to "simplify" it:
+don't.</strong> The <code>http</code>-only code path would keep working in manual testing
+(the page still loads) while every WebSocket frame — the actual UI — sails
+through unfiltered. The bug is invisible in a browser and invisible in a
+casual <code>curl</code> check against <code>/</code>; it only shows up as "the allowlist doesn't
+actually block anyone."</p>
+<p><strong>A websocket is one scope, checked once.</strong> Covering <code>scope["type"] ==
+"websocket"</code> does not mean the filter runs per frame: ASGI calls the
+application exactly once per connection, and the whole connection lifetime
+then happens <em>inside</em> that call via <code>receive</code> / <code>send</code>. So the peer check runs
+at the handshake and never again for that socket — the cost is per connection,
+not per interaction, and a filter cannot revoke a socket it has already
+admitted. Anything needing mid-connection enforcement has to wrap <code>receive</code>
+(paying a Python call per frame on the UI hot path) or act out-of-band on the
+session, which is what ADR 0027 does for principal revocation.</p>
+<h2 id="three-guards-three-threat-models">Three guards, three threat models<a class="headerlink" href="#three-guards-three-threat-models" title="Permanent link">&para;</a></h2>
+<p>Three distinct checks exist across this feature and Farmhand, and none is
+redundant because each answers a question the others cannot:</p>
+<table>
+<thead>
+<tr>
+<th>Guard</th>
+<th>Enforces on</th>
+<th>Signal</th>
+<th>Forgeable?</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>IPAllowlistMiddleware</code> (peer IP)</td>
+<td>every HTTP/WS request when <code>expose_to_network</code> is on</td>
+<td>TCP peer address (<code>scope["client"]</code>)</td>
+<td>No — the kernel supplies it</td>
+</tr>
+<tr>
+<td><code>restrict_to_loopback</code> (Host/Origin)</td>
+<td><code>/mcp</code> only, via <code>TransportSecuritySettings</code></td>
+<td><code>Host</code>/<code>Origin</code> <strong>headers</strong></td>
+<td>Yes — client-supplied</td>
+</tr>
+<tr>
+<td><code>require_auth</code> (bearer token)</td>
+<td><code>/mcp</code> only, via <code>BearerTokenMiddleware</code></td>
+<td><code>Authorization: Bearer &lt;token&gt;</code></td>
+<td>Only by possessing the token</td>
+</tr>
+</tbody>
+</table>
+<p>Peer IP is the strongest signal available at the ASGI layer: it comes from
+the OS socket, not from anything the client sends, so it cannot be spoofed
+by a browser or a <code>curl</code> invocation. Its weakness is granularity — it says
+<em>where the request came from</em>, nothing about <em>who</em> or <em>whether they should
+be trusted</em>, and it says nothing at all when <code>expose_to_network</code> is off,
+because the middleware isn't installed.</p>
+<p><code>Host</code>/<code>Origin</code> headers are the opposite: trivially forgeable by any HTTP
+client, but they are exactly what a <strong>browser</strong> sets honestly during a
+same-origin request, which is the one thing DNS-rebinding attacks exploit.
+<code>restrict_to_loopback</code> is not a network-location check and does not claim to
+be — it defeats the specific attack where a malicious page in the victim's
+own browser resolves an attacker DNS name to <code>127.0.0.1</code> after the fact and
+tries to talk to the local MCP server as if it were same-origin. <strong>It does
+not stop <code>curl</code>:</strong> <code>curl -H 'Host: 127.0.0.1:8124' http://&lt;lan-ip&gt;:8124/mcp</code>
+passes the check trivially, because the header check has no way to know the
+<code>Host</code> value it received doesn't match how the request actually arrived.</p>
+<p>The bearer token is the only one of the three that is an actual
+authentication check — possession of a secret, not a claim about the
+request's shape. It is the guard that actually carries the enforcement
+weight on <code>/mcp</code>. <code>restrict_to_loopback</code> and <code>require_auth</code> are read a few
+lines apart in <code>FarmhandHost.mount()</code>
+(<code>packages/haywire-studio/src/haywire_studio/farmhand/host.py</code>) precisely
+because they close different vectors: the token stops an attacker who can
+reach <code>/mcp</code> at all; <code>restrict_to_loopback</code> stops a browser-based rebinding
+attack that never needs a token because it rides the victim's own trusted
+session.</p>
+<p>None of the three is redundant: turn off the allowlist (leave
+<code>expose_to_network</code> off) and the other two are moot because nothing off-box
+can connect. Turn on network exposure without an allowlist entry and the
+peer check still blocks everyone not listed. Reach <code>/mcp</code> specifically and
+the token is still required regardless of what the peer IP or headers say.</p>
+<h2 id="no-x-forwarded-for-without-trusted_proxies">No <code>X-Forwarded-For</code> without <code>trusted_proxies</code><a class="headerlink" href="#no-x-forwarded-for-without-trusted_proxies" title="Permanent link">&para;</a></h2>
+<p><code>IPAllowlistMiddleware</code> never trusts <code>X-Forwarded-For</code> unconditionally.
+<code>_resolve_client()</code> only consults it when the <em>direct TCP peer</em> is itself
+inside <code>trusted_proxies</code>; if <code>trusted_proxies</code> is empty, XFF is never read
+and the raw peer IP is used. An unconditionally honoured XFF would make the
+allowlist decorative: any client can set that header to any value, so if it
+were trusted by default, a rejected peer could simply claim to be
+<code>127.0.0.1</code> or any allowed address and walk straight through.</p>
+<p>When a proxy <em>is</em> trusted, the resolution is rightmost-untrusted: XFF
+entries are appended left-to-right as a request hops through proxies (the
+leftmost entry is the first hop's claim about itself, which is
+attacker-controlled — anyone can set that header before it ever reaches the
+first real proxy). Scanning from the right and skipping entries that are
+themselves listed in <code>trusted_proxies</code> finds the first hop the deployment
+didn't put there itself — the most trustworthy signal available in a chain
+that a client partially controls.</p>
+<p><code>HaywireApp._install_ip_allowlist</code> logs a one-line WARNING at startup when
+<code>expose_to_network</code> is on and <code>trusted_proxies</code> is empty: behind a reverse
+proxy in that configuration, every real client arrives from the proxy's own
+peer address, so <code>allowed_remote_ranges</code> degenerates to "allow the proxy or
+allow nothing."</p>
+<h2 id="loopback-is-outside-the-allowlists-jurisdiction">Loopback is outside the allowlist's jurisdiction<a class="headerlink" href="#loopback-is-outside-the-allowlists-jurisdiction" title="Permanent link">&para;</a></h2>
+<p><code>allowed_remote_ranges</code> names <em>remote</em> machines. In <code>IPAllowlistMiddleware</code>,
+a peer whose address <code>is_loopback</code> is allowed immediately, before any list
+membership check runs, and this is not configurable — there is no way to
+list <code>127.0.0.1</code>/<code>::1</code> in <code>allowed_remote_ranges</code> to have it mean anything
+different, and no way to exclude loopback either. This makes self-lockout
+structurally unreachable: <code>ui.run(show=True)</code> opens a local browser against
+the studio the operator just started, and a filter that could reject that
+connection would lock the operator out of the only UI that could fix the
+misconfigured setting. An empty <code>allowed_remote_ranges</code> list means "no
+further restriction beyond loopback," not "deny all" — with
+<code>expose_to_network</code> on and no ranges configured, the practical effect is
+loopback-only despite the wider bind, which is a safe default direction for
+an unconfigured allowlist.</p>
+<h2 id="jedi-path-confinement">jedi path confinement<a class="headerlink" href="#jedi-path-confinement" title="Permanent link">&para;</a></h2>
+<p><code>code_intelligence.py</code> registers three POST endpoints that carry no
+authentication of their own —
+<code>/api/code-intel/complete</code>, <code>/info</code>, <code>/hover</code> — that each construct
+<code>jedi.Script(body.get("code", ""), path=_confined_path(body.get("path")))</code>.
+Before confinement, <code>path</code> went straight from the request body into
+<code>jedi.Script</code>, and jedi resolves imports relative to it — a caller could walk
+the filesystem by supplying arbitrary paths and reading back completions,
+signatures, and docstrings (including, via the <code>name.description</code> fallback
+for names jedi can't otherwise describe, literal source text such as a
+module-level assignment's value).</p>
+<p><code>_confined_path()</code> resolves <code>Path(raw).resolve()</code> — collapsing <code>../</code>
+traversal and symlinks — then accepts it only if it falls under one of the
+allowed roots: the current workspace root (read fresh per call via
+<code>get_workspace_root()</code>, falling back to sys.path-only roots if the workspace
+isn't set up yet, e.g. during early import) plus every entry of
+<code>sys.path</code>, resolved once at module import into <code>_SYS_PATH_ROOTS</code> since
+<code>sys.path</code> doesn't change for the life of the interpreter. A path outside
+those roots returns <code>None</code> rather than raising — <code>jedi.Script(code,
+path=None)</code> still works, just without relative-import resolution — and all
+three endpoints already wrap their body in <code>try</code>/<code>except Exception</code> and
+return an empty payload on failure, so a rejected path degrades quietly
+instead of 500ing. Rejections log at WARNING as the signal that someone is
+probing.</p>
+<p><strong><code>code</code> is deliberately left unbounded</strong>, and this is not an oversight.
+jedi performs purely <em>static</em> analysis on <code>code</code> — no execution — and the
+allowed roots are exactly what this interpreter could import anyway, so
+confinement grants the caller no disclosure beyond importable-module
+structure that any node running in the studio could already obtain by
+importing the same modules. Restricting <code>code</code> itself would not remove a
+capability an attacker doesn't already have through the graph editor, which
+is unauthenticated-by-design at this trust tier (see Consequences).</p>
 <h2 id="consequences">Consequences<a class="headerlink" href="#consequences" title="Permanent link">&para;</a></h2>
 <ul>
-<li><code>BaseGraph(..., validation_scheduler=None)</code> and <code>ValidationManager(..., scheduler=None)</code> gain an optional parameter; omitting it preserves the prior <code>threading.Timer</code> behavior exactly.</li>
-<li>The live app (graphs created through <code>HaystackState</code>) now validates on the event-loop thread, so the header dirty dot and undo/redo enablement update promptly and on the correct thread. This pairs with the <code>GraphEditor</code> change that adds <code>@react_on(GraphDataMutated)</code> — the scheduler delivers the signal safely; the <code>react_on</code> handler is what makes the editor chrome listen for it.</li>
-<li>Tests may construct graphs with <code>SyncScheduler()</code> for deterministic, inline validation. Existing tests that call <code>force_immediate_validation()</code> to flush the timer continue to work; sweeping them onto <code>SyncScheduler</code> is possible follow-up cleanup, intentionally not done here.</li>
-<li><code>ValidationManager.get_statistics()["pending_validation"]</code> now means "a debounced run is pending" derived from the handle, not from <code>threading.Timer.is_alive()</code>.</li>
+<li><strong>The default flips to loopback-only.</strong> <code>expose_to_network</code> defaults to
+  <code>False</code>, so <code>ui.run()</code> binds <code>127.0.0.1</code> unless an operator explicitly
+  opts in — a behavior change from the previous unconditional <code>0.0.0.0</code>
+  bind. Anyone who relied on unauthenticated LAN access must now set
+  <code>expose_to_network</code> (and almost certainly <code>allowed_remote_ranges</code>)
+  explicitly.</li>
+<li><strong>All three settings are read once at startup; changing any of them
+  requires a restart.</strong> <code>NetworkSettings</code> and <code>FarmhandSettings</code> fields all
+  carry the house phrase "Read once at startup; restart to apply." in their
+  description. <code>IPAllowlistMiddleware</code> parses its CIDR lists once in
+  <code>__init__</code>; there is no runtime-live allowlist.</li>
+<li><strong>An invalid CIDR entry refuses to start the process, not fail open.</strong>
+  <code>HaywireApp._install_ip_allowlist</code> constructs a throwaway
+  <code>IPAllowlistMiddleware</code> purely to run its constructor's CIDR parsing
+  eagerly (Starlette's <code>add_middleware</code> only records <code>(cls, args, kwargs)</code>
+  and would otherwise defer the same <code>ValueError</code> until the first request,
+  or never raise it if the server received none). A parse failure prints a
+  clear error naming the offending setting and exits via
+  <code>SystemExit(1)</code> rather than silently starting unprotected.</li>
+<li><strong><code>NetworkSettings.public_hostname</code> feeds the MCP <code>allowed_hosts</code>/
+  <code>allowed_origins</code> lists.</strong> <code>FarmhandHost.mount()</code> builds
+  <code>TransportSecuritySettings</code> from the request port plus, when
+  <code>restrict_to_loopback</code> is on and <code>public_hostname</code> is set, the configured
+  hostname — in both its bare and <code>:port</code>-qualified forms (skipping the
+  bare-plus-port duplication if the setting already names a port), and both
+  <code>http://</code> and <code>https://</code> origin forms, since this module cannot know which
+  scheme a fronting reverse proxy terminates as. Leaving <code>public_hostname</code>
+  empty (the default) leaves the loopback-only list exactly as before. This
+  is what lets a reverse-proxy deployment with <code>restrict_to_loopback</code> still
+  on pass the DNS-rebinding <code>Host</code>/<code>Origin</code> check for the proxy's own
+  hostname.</li>
+<li><strong>These are network controls, not authorization.</strong> They narrow <em>who can
+  reach the process</em>; they do not change what a reachable caller can do once
+  in. The graph editor is full arbitrary-code-execution surface for anyone who
+  gets past the bind address and allowlist, by design — a principal who can
+  edit a graph holds the authority of the studio process. Authenticating
+  principals is ADR 0027; these two layers are independent and neither
+  substitutes for the other.</li>
+</ul>
+<h2 id="alternatives-considered">Alternatives considered<a class="headerlink" href="#alternatives-considered" title="Permanent link">&para;</a></h2>
+<p><strong><code>BaseHTTPMiddleware</code> subclass for the IP filter.</strong> Rejected outright — see
+"Pure-ASGI over <code>BaseHTTPMiddleware</code>" above. This is not a style preference;
+it is the difference between a filter that works and one that silently
+doesn't cover the WebSocket transport carrying the actual application.</p>
+<p><strong>Trusting <code>X-Forwarded-For</code> unconditionally.</strong> Rejected: any client can set
+that header, so honoring it without a <code>trusted_proxies</code> check would let a
+rejected peer simply claim an allowed address.</p>
+<p><strong>Making <code>restrict_to_loopback</code> a true bind-level check.</strong> Not pursued
+because it configures the MCP SDK's <code>TransportSecuritySettings</code>, which
+validates headers by design — reworking it into a socket-level restriction
+would duplicate the bind-address/allowlist layers this ADR already
+describes for the rest of the studio, for one mount, using a different
+mechanism than the SDK it's layered onto provides.</p>
+<h2 id="references">References<a class="headerlink" href="#references" title="Permanent link">&para;</a></h2>
+<ul>
+<li>Plan: <code>docs/superpowers/plans/2026-08-14-studio-network-exposure.md</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/network/settings.py</code> — <code>NetworkSettings</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/network/ip_filter.py</code> — <code>IPAllowlistMiddleware</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/farmhand/settings.py</code> — <code>FarmhandSettings</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/farmhand/auth.py</code> — <code>BearerTokenMiddleware</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/farmhand/host.py</code> — <code>FarmhandHost.mount()</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/app.py</code> — <code>HaywireApp.run()</code>, <code>_install_ip_allowlist</code></li>
+<li><code>packages/haywire-studio/src/haywire_studio/code_intelligence.py</code> — <code>_confined_path</code></li>
 </ul>
 
 
