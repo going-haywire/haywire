@@ -34,7 +34,7 @@ class FarmhandIdentity(BaseIdentity):
     and agent-facing instructions.
 
         description (inherited): short human-facing blurb (docs, catalog).
-    
+
         instructions: required, sent verbatim as MCP ``Tool.description`` —
             see ``@farmhand`` decorator docstring for authoring guidance.
             ``kw_only`` needed since BaseIdentity's fields all have defaults and

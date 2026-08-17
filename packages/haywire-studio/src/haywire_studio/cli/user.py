@@ -22,7 +22,8 @@ from haywire_studio.auth.operations import (
     set_tier,
 )
 from haywire_studio.auth.passwords import POLICY_HELP
-from haywire_studio.auth.roster import RosterError, load_roster
+from haywire_studio.security.document import load_document
+from haywire_studio.security.errors import SecurityError
 
 _TIERS = [tier.value for tier in AccessTier]
 
@@ -30,9 +31,9 @@ _TIERS = [tier.value for tier in AccessTier]
 def register(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("user", help="Manage studio principals (users and agents)")
     parser.add_argument(
-        "--roster",
+        "--document",
         default=None,
-        help="Roster file to operate on (default: ~/.haywire/auth.json). Mainly for testing.",
+        help="Security document to operate on (default: ~/.haywire/security.json). Mainly for testing.",
     )
     actions = parser.add_subparsers(dest="user_command", required=True)
 
@@ -62,8 +63,8 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     tier.set_defaults(handler=_tier)
 
 
-def _roster_path(args: argparse.Namespace) -> Path | None:
-    raw = getattr(args, "roster", None)
+def _document_path(args: argparse.Namespace) -> Path | None:
+    raw = getattr(args, "document", None)
     return Path(raw) if raw else None
 
 
@@ -73,12 +74,12 @@ def _prompt_password(name: str) -> str:
     first = getpass.getpass(f"New password for {name}: ")
     second = getpass.getpass("Repeat: ")
     if first != second:
-        raise RosterError("The two passwords did not match.")
+        raise SecurityError("The two passwords did not match.")
     return first
 
 
 def _add(args: argparse.Namespace) -> int:
-    path = _roster_path(args)
+    path = _document_path(args)
     tier = AccessTier(args.tier)
     try:
         if args.agent:
@@ -86,10 +87,11 @@ def _add(args: argparse.Namespace) -> int:
             print(f"Created agent principal {agent.name!r} ({tier.value}).")
             print(f"  Token: {agent.token}")
             print("  Give this to the agent — it is stored in the roster and can be re-read at any time.")
+            print("  Connect with:  haywire farmhand status")
         else:
             add_user(args.name, _prompt_password(args.name), tier, path=path)
             print(f"Created user principal {args.name!r} ({tier.value}).")
-    except RosterError as exc:
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
         return 1
     return 0
@@ -97,8 +99,8 @@ def _add(args: argparse.Namespace) -> int:
 
 def _remove(args: argparse.Namespace) -> int:
     try:
-        remove_principal(args.name, path=_roster_path(args))
-    except RosterError as exc:
+        remove_principal(args.name, path=_document_path(args))
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
         return 1
     print(f"Removed {args.name!r}.")
@@ -107,8 +109,8 @@ def _remove(args: argparse.Namespace) -> int:
 
 def _list(args: argparse.Namespace) -> int:
     try:
-        roster = load_roster(_roster_path(args))
-    except RosterError as exc:
+        roster = load_document(_document_path(args)).auth
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
         return 1
 
@@ -122,8 +124,8 @@ def _list(args: argparse.Namespace) -> int:
 
 def _passwd(args: argparse.Namespace) -> int:
     try:
-        set_password(args.name, _prompt_password(args.name), path=_roster_path(args))
-    except RosterError as exc:
+        set_password(args.name, _prompt_password(args.name), path=_document_path(args))
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
         return 1
     print(f"Password updated for {args.name!r}.")
@@ -132,8 +134,8 @@ def _passwd(args: argparse.Namespace) -> int:
 
 def _tier(args: argparse.Namespace) -> int:
     try:
-        set_tier(args.name, AccessTier(args.tier), path=_roster_path(args))
-    except RosterError as exc:
+        set_tier(args.name, AccessTier(args.tier), path=_document_path(args))
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
         return 1
     print(f"{args.name!r} is now {args.tier}.")

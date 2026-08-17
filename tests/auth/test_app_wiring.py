@@ -1,4 +1,4 @@
-"""HaywireApp wiring — gate installed only when the roster says so; TLS passthrough."""
+"""HaywireApp wiring — gate installed only when the document says so; TLS passthrough."""
 
 from __future__ import annotations
 
@@ -8,7 +8,8 @@ import pytest
 
 from haywire.core.access import AccessTier, access_resolver, set_access_resolver
 from haywire_studio.auth.operations import add_user, enable_auth
-from haywire_studio.auth.roster import Roster, save_roster
+from haywire_studio.security.document import SecurityDocument, save_document
+from haywire_studio.security.roster import Roster
 
 if TYPE_CHECKING:
     from haywire_studio.app import HaywireApp
@@ -29,7 +30,7 @@ def _restore_resolver():
 
 @pytest.fixture
 def enabled(tmp_path):
-    path = tmp_path / "auth.json"
+    path = tmp_path / "security.json"
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     enable_auth("alice", STRONG, path=path)
     return path
@@ -37,18 +38,18 @@ def enabled(tmp_path):
 
 @pytest.fixture
 def disabled(tmp_path):
-    path = tmp_path / "auth.json"
-    save_roster(Roster(enabled=False), path)
+    path = tmp_path / "security.json"
+    save_document(SecurityDocument(auth=Roster(enabled=False)), path)
     return path
 
 
 def _isolated_home(tmp_path, monkeypatch):
-    """Point roster_path()/secret_path() (both ``~/.haywire/...``) at tmp_path.
+    """Point security_path()/secret_path() (both ``~/.haywire/...``) at tmp_path.
 
     ``_install_auth`` hardcodes the real global paths (no path injection), so
     isolating it from the developer's actual ``~/.haywire`` requires
     redirecting ``Path.home()`` for the duration of the test. Returns the
-    ``~/.haywire`` dir so a test can drop a roster file at the exact path
+    ``~/.haywire`` dir so a test can drop a security document at the exact path
     ``_install_auth`` will read.
     """
     home = tmp_path / "home"
@@ -113,22 +114,24 @@ def _bare_app(workspace_root: str = "") -> "HaywireApp":
     return instance
 
 
-def test_disabled_roster_installs_nothing_and_returns_false(tmp_path, monkeypatch, disabled):
+def test_disabled_document_installs_nothing_and_returns_false(tmp_path, monkeypatch, disabled):
     _isolated_home(tmp_path, monkeypatch)
-    from haywire_studio.auth.roster import roster_path
+    from haywire_studio.security.document import load_document, security_path
 
-    roster_path().write_bytes(disabled.read_bytes())
+    security_path().write_bytes(disabled.read_bytes())
+    document = load_document(security_path())
 
     instance = _bare_app()
-    assert instance._install_auth() is False
+    assert instance._install_auth(document) is False
     assert not hasattr(instance, "_auth_cache")
 
 
-def test_enabled_roster_with_admin_installs_gate_and_returns_true(tmp_path, monkeypatch, enabled):
+def test_enabled_document_with_admin_installs_gate_and_returns_true(tmp_path, monkeypatch, enabled):
     _isolated_home(tmp_path, monkeypatch)
-    from haywire_studio.auth.roster import roster_path
+    from haywire_studio.security.document import load_document, security_path
 
-    roster_path().write_bytes(enabled.read_bytes())
+    security_path().write_bytes(enabled.read_bytes())
+    document = load_document(security_path())
 
     installed = {}
 
@@ -139,33 +142,38 @@ def test_enabled_roster_with_admin_installs_gate_and_returns_true(tmp_path, monk
     monkeypatch.setattr("nicegui.app.add_middleware", _fake_add_middleware)
 
     instance = _bare_app()
-    assert instance._install_auth() is True
+    assert instance._install_auth(document) is True
     assert hasattr(instance, "_auth_cache")
     assert installed["middleware_cls"].__name__ == "AuthGateMiddleware"
     assert installed["kwargs"]["cache"] is instance._auth_cache
 
 
-def test_enabled_roster_without_admin_exits(tmp_path, monkeypatch):
-    _isolated_home(tmp_path, monkeypatch)
-    from haywire_studio.auth.roster import Roster, roster_path, save_roster
+def test_no_admin_disables_auth_instead_of_exiting(tmp_path, monkeypatch):
+    """The old behaviour was SystemExit; sanitize() makes that unreachable."""
+    from haywire_studio.security.document import SecurityDocument, sanitize
+    from haywire_studio.security.roster import Roster
 
-    # enabled=True with no principals at all — no admin exists.
-    save_roster(Roster(enabled=True), roster_path())
-
-    instance = _bare_app()
-    with pytest.raises(SystemExit):
-        instance._install_auth()
+    doc, reasons = sanitize(SecurityDocument(auth=Roster(enabled=True, principals=[])))
+    assert doc.auth.enabled is False
+    assert reasons
 
 
-def test_unreadable_roster_exits_loudly_at_startup(tmp_path, monkeypatch):
+# -- _load_security_document ---------------------------------------------
+#
+# _install_auth() no longer reads the file itself (it takes the already-loaded
+# document); the "unreadable file must fail startup loudly" behaviour moved to
+# _load_security_document(), which run() calls before _install_auth().
+
+
+def test_unreadable_security_document_exits_loudly_at_startup(tmp_path, monkeypatch):
     """The first-ever read must fail startup, unlike RosterCache.roster()'s
     later swallow-and-keep-last-good behaviour (live.py) which is correct
     only once a good copy already exists."""
     _isolated_home(tmp_path, monkeypatch)
-    from haywire_studio.auth.roster import roster_path
+    from haywire_studio.security.document import security_path
 
-    roster_path().write_text("not valid json")
+    security_path().write_text("not valid json")
 
     instance = _bare_app()
     with pytest.raises(SystemExit):
-        instance._install_auth()
+        instance._load_security_document()

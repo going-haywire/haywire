@@ -35,6 +35,7 @@ def _make_server(tmp_root: Path, library_paths: list[str]):
     from haywire.core.di.context import set_workspace_root
     from haywire.core.di.test_config import create_test_library_system
     from haywire_studio.farmhand.host import FarmhandHost
+    from haywire_studio.security.document import SecurityDocument
 
     snap = _snapshot_ambient_di()
     # Set the ambient workspace_root BEFORE building the library system: AppState
@@ -61,7 +62,8 @@ def _make_server(tmp_root: Path, library_paths: list[str]):
         await host._on_shutdown()
 
     app = FastAPI(lifespan=lifespan)
-    host.mount(port, app_target=app)
+    document = SecurityDocument()
+    host.mount(port, document, app_target=app)
 
     config = uvicorn.Config(app, host="127.0.0.1", port=port, log_level="warning")
     server = uvicorn.Server(config)
@@ -73,11 +75,9 @@ def _make_server(tmp_root: Path, library_paths: list[str]):
             raise RuntimeError("Farmhand test server failed to start")
         time.sleep(0.05)
 
-    from haywire_studio.farmhand.auth import ensure_token
-
     handle = SimpleNamespace(
         base_url=f"http://127.0.0.1:{port}/mcp",
-        token=ensure_token(tmp_root),
+        token=None,
         service=service,
         port=port,
         host=host,
@@ -130,7 +130,7 @@ def make_caller(handle):
 
     def farmhand_call(async_fn, message_handler=None):
         async def runner():
-            headers = {"Authorization": f"Bearer {handle.token}"}
+            headers = {"Authorization": f"Bearer {handle.token}"} if handle.token else {}
             async with streamablehttp_client(handle.base_url, headers=headers) as (read, write, _):
                 kwargs = {"message_handler": message_handler} if message_handler else {}
                 async with ClientSession(read, write, **kwargs) as session:

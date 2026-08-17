@@ -29,7 +29,7 @@
 - `studio:panel:EditorZoomPanSettingsPanel` — Zoom & Pan — 
 - `studio:panel:ExecutionSettingsPanel` — Execution — 
 - `studio:panel:MinimapSettingsPanel` — Minimap — 
-- `studio:panel:NetworkSettingsPanel` — Network — 
+- `studio:panel:SecurityPanel` — Security — 
 - `studio:panel:NodeSkinDefaultPanel` — Default Skins — 
 - `studio:panel:NodeSkinSettingsPanel` — Skins — Skin Configuration:Node dimensions, typography and label visibility.
 - `studio:panel:OpenInCodeEditorMenuPanel` — Open in Code Editor — 

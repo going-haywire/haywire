@@ -1,16 +1,16 @@
-"""The joined view of the studio's three defence axes.
+"""The joined view of the studio's four defence axes (ADR 0028).
 
-``expose_to_network``, authentication and TLS are not independent settings that
-happen to sit near each other — they are a **chain**. Exposure decides whether
-the other two matter at all: on loopback, an empty roster and plain HTTP are
-both correct, and warning about them there trains users to ignore the warning.
-Exposed, the same two facts are the difference between a private tool and an
-open one.
+Exposure, authentication, TLS and the Farmhand mount are not independent
+settings that happen to sit near each other — they are a chain. Exposure
+decides whether the others matter at all: on loopback, an empty roster and
+plain HTTP are both correct, and warning about them there trains users to
+ignore the warning.
 
-That is why the assessment lives here rather than in either subcommand.
-``ssl status`` already reads ``expose_to_network`` to choose between its two
-"no TLS" states, so the joining had already begun; this module finishes it
-instead of letting a second, differently-worded copy grow in ``authcmd``.
+Two entry points, one rule set. :func:`assess_document` is pure and takes the
+document the studio actually booted with — that is what the settings panel
+renders. :func:`assess` reads the files, for a CLI running against a stopped
+studio. Splitting them is what lets the panel report what is *in force* rather
+than what happens to be on disk.
 
 The interesting findings are the *combinations*, and one of them is invisible
 to either axis alone: authentication ON with TLS OFF is worse than it looks,
@@ -31,10 +31,10 @@ from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 
-from haywire_studio.auth.roster import Roster, RosterError, load_roster
 from haywire_studio.network.tls_operations import TlsState, TlsStatus
 from haywire_studio.network.tls_operations import status as tls_status
-from haywire_studio.network.tls_settings import read_network_setting
+from haywire_studio.security.document import SecurityDocument, load_document, validate
+from haywire_studio.security.errors import SecurityError
 
 
 class Severity(Enum):
@@ -73,17 +73,52 @@ class Finding:
 class Posture:
     """The whole security picture, gathered without printing any of it."""
 
-    exposed: bool
-    reachable_at: str | None
-    auth_enabled: bool
-    principals: int
-    admins: int
+    document: SecurityDocument
     tls: TlsStatus
-    allowed_ranges: str
-    trusted_proxies: str
     findings: tuple[Finding, ...]
-    roster_error: str = ""
+    document_error: str = ""
     studio_running: bool = False
+
+    @property
+    def exposed(self) -> bool:
+        return self.document.network.exposed
+
+    @property
+    def reachable_at(self) -> str | None:
+        return self.tls.reachable_at
+
+    @property
+    def auth_enabled(self) -> bool:
+        return self.document.auth.enabled
+
+    @property
+    def principals(self) -> int:
+        return len(self.document.auth.principals)
+
+    @property
+    def admins(self) -> int:
+        return len(self.document.auth.admins())
+
+    @property
+    def farmhand_enabled(self) -> bool:
+        return self.document.farmhand.enabled
+
+    @property
+    def farmhand_loopback(self) -> bool:
+        return self.document.farmhand.restrict_to_loopback
+
+    @property
+    def ranges(self) -> tuple[str, ...]:
+        return self.document.network.allowed_ranges
+
+    @property
+    def allowed_ranges(self) -> str:
+        """The ranges as one comma-joined string, for printing."""
+        return ", ".join(self.ranges)
+
+    @property
+    def trusted_proxies(self) -> str:
+        return ", ".join(self.document.network.trusted_proxies)
 
     @property
     def worst(self) -> Severity | None:
@@ -101,11 +136,6 @@ class Posture:
         return self.tls.state in (TlsState.OK, TlsState.NOT_COVERED, TlsState.EXPIRING)
 
     @property
-    def ranges(self) -> tuple[str, ...]:
-        """The parsed ``allowed_remote_ranges`` entries."""
-        return tuple(entry.strip() for entry in self.allowed_ranges.split(",") if entry.strip())
-
-    @property
     def fenced(self) -> bool:
         """Bound beyond loopback, but the allowlist admits nobody."""
         if not self.exposed:
@@ -116,21 +146,14 @@ class Posture:
     def allowlist_open(self) -> bool:
         """True when the allowlist permits addresses beyond loopback.
 
-        **This mirrors** ``IPAllowlistMiddleware``; it does not consult it. The
-        middleware's ``_is_allowed`` is ``any(ip in network ...)`` over the
-        parsed ranges, which for an empty sequence is always False — so an
-        empty list is **closed**, not open, and only loopback bypasses it. That
-        is the opposite of the usual "unset means unrestricted" convention, and
-        getting it backwards is how this report came to warn that an empty list
-        allowed everyone.
-
-        The duplication is deliberate: the CLI runs with the studio stopped, so
-        there is no middleware instance to ask. It is also the risk — if
-        ``_is_allowed`` ever grows a rule (a default range, a deny list), this
-        property goes quietly stale. ``tests/studio/test_network`` pins both
-        against the same cases to make that divergence fail loudly.
+        **This mirrors** ``IPAllowlistMiddleware``; it does not consult it. An
+        empty list is **closed**, not open — the opposite of the usual "unset
+        means unrestricted" convention, and getting it backwards is how this
+        report once came to warn that an empty list allowed everyone.
+        ``tests/security/test_allowlist_agreement.py`` pins both against the
+        same cases so a divergence fails loudly.
         """
-        return bool(self.ranges)
+        return self.document.network.allowlist_open
 
     @property
     def reachable_by_others(self) -> bool:
@@ -138,24 +161,10 @@ class Posture:
 
         **The single most load-bearing value in this module.** Most rules are
         gated on it, so a wrong ``True`` costs a spurious finding while a wrong
-        ``False`` hides real ones — the failure this command must not have.
-
-        Written as two sequential rejections rather than ``exposed and
-        allowlist_open`` so each precondition is separately readable and
-        separately testable. Both must hold; the complete truth table is
-        exhaustively asserted in ``test_allowlist_agreement.py``:
-
-            exposed  allowlist_open  reachable_by_others
-            False    False           False   (loopback bind)
-            False    True            False   (ranges set, but bound to loopback)
-            True     False           False   (bound wide, allowlist rejects all)
-            True     True            True    (the only reachable case)
+        ``False`` hides real ones — the failure this command must not have. The
+        complete truth table is asserted in ``test_posture.py``.
         """
-        if not self.exposed:
-            return False
-        if not self.allowlist_open:
-            return False
-        return True
+        return self.document.network.reachable_by_others
 
     def covers_own_address(self) -> bool | None:
         """Whether this machine's *LAN* address is inside the allowlist.
@@ -183,63 +192,52 @@ class Posture:
         return False
 
 
-def assess(
-    *, directory: Path | None = None, settings_path: Path | None = None, roster_path: Path | None = None
+def assess_document(
+    doc: SecurityDocument,
+    tls: TlsStatus,
+    *,
+    document_error: str = "",
+    studio_running: bool = False,
 ) -> Posture:
-    """Read all three axes and classify the result. Never raises.
-
-    A corrupt roster is carried as :attr:`Posture.roster_error` rather than
-    propagated: this command's entire job is to report on a broken security
-    setup, so failing to run because the setup is broken would be exactly
-    backwards.
-    """
-    tls = tls_status(directory=directory, settings_path=settings_path)
-    roster, roster_error = _load_roster_quietly(roster_path)
-
-    exposed = tls.exposed
-    allowed_ranges = _text(read_network_setting("allowed_remote_ranges", path=settings_path))
-    trusted_proxies = _text(read_network_setting("trusted_proxies", path=settings_path))
-
+    """Classify an already-loaded document. Pure — no file reads, never raises."""
     posture = Posture(
-        exposed=exposed,
-        reachable_at=tls.reachable_at,
-        auth_enabled=roster.enabled,
-        principals=len(roster.principals),
-        admins=len(roster.admins()),
+        document=doc,
         tls=tls,
-        allowed_ranges=allowed_ranges,
-        trusted_proxies=trusted_proxies,
         findings=(),
-        roster_error=roster_error,
+        document_error=document_error,
+        studio_running=studio_running,
     )
     return _with_findings(posture)
 
 
-def _load_roster_quietly(path: Path | None) -> tuple[Roster, str]:
+def assess(*, directory: Path | None = None, path: Path | None = None) -> Posture:
+    """Read every axis off disk and classify it. Never raises.
+
+    A corrupt document is carried as :attr:`Posture.document_error` rather than
+    propagated: this command's entire job is to report on a broken security
+    setup, so failing to run because the setup is broken would be exactly
+    backwards.
+    """
+    doc, error = _load_quietly(path)
+    tls = tls_status(directory=directory, document=doc)
+    return assess_document(doc, tls, document_error=error)
+
+
+def _load_quietly(path: Path | None) -> tuple[SecurityDocument, str]:
     try:
-        return load_roster(path), ""
-    except RosterError as exc:
-        return Roster(), str(exc)
-
-
-def _text(value: object) -> str:
-    return value.strip() if isinstance(value, str) else ""
+        return load_document(path), ""
+    except SecurityError as exc:
+        return SecurityDocument(), str(exc)
 
 
 def _with_findings(posture: Posture) -> Posture:
     """Attach the ordered finding list to a gathered posture."""
     findings = sorted(_findings(posture), key=lambda f: _ORDER[f.severity])
     return Posture(
-        exposed=posture.exposed,
-        reachable_at=posture.reachable_at,
-        auth_enabled=posture.auth_enabled,
-        principals=posture.principals,
-        admins=posture.admins,
+        document=posture.document,
         tls=posture.tls,
-        allowed_ranges=posture.allowed_ranges,
-        trusted_proxies=posture.trusted_proxies,
         findings=tuple(findings),
-        roster_error=posture.roster_error,
+        document_error=posture.document_error,
         studio_running=posture.studio_running,
     )
 
@@ -278,21 +276,21 @@ def _findings(posture: Posture) -> list[Finding]:
 # ---------------------------------------------------------------------------
 
 
-def _rule_roster_unreadable(posture: Posture) -> list[Finding]:
-    """A roster that cannot be parsed means authentication state is UNKNOWN.
+def _rule_document_unreadable(posture: Posture) -> list[Finding]:
+    """A document that cannot be parsed means authentication state is UNKNOWN.
 
-    Reported as CRITICAL rather than assumed-safe: an unreadable roster could
+    Reported as CRITICAL rather than assumed-safe: an unreadable document could
     equally be a disabled one, and guessing the benign reading is precisely the
     false negative this command must not produce.
     """
-    if not posture.roster_error:
+    if not posture.document_error:
         return []
     return [
         Finding(
             Severity.CRITICAL,
             "The roster cannot be read, so authentication state is unknown.",
-            (posture.roster_error,),
-            "Fix ~/.haywire/auth.json by hand, or move it aside and run 'haywire auth enable'.",
+            (posture.document_error,),
+            "Fix ~/.haywire/security.json by hand, or move it aside and run 'haywire auth enable'.",
         )
     ]
 
@@ -301,8 +299,8 @@ def _rule_auth_off_while_reachable(posture: Posture) -> list[Finding]:
     """No login required, and somebody other than this machine can connect."""
     if not posture.reachable_by_others:
         return []
-    if posture.roster_error:
-        return []  # already reported as UNKNOWN by _rule_roster_unreadable
+    if posture.document_error:
+        return []  # already reported as UNKNOWN by _rule_document_unreadable
     if posture.auth_enabled:
         return []
     return [
@@ -330,6 +328,7 @@ def _rule_plain_http_while_reachable(posture: Posture) -> list[Finding]:
     if posture.tls_on:
         return []
 
+    detail: tuple[str, ...]
     if posture.auth_enabled:
         detail = (
             "Authentication is on, so passwords and session cookies are what is exposed.",
@@ -344,13 +343,7 @@ def _rule_plain_http_while_reachable(posture: Posture) -> list[Finding]:
         # cameras are server-side Python). A finding must name something that
         # actually happens; one the user can disprove and one that cannot occur
         # fail that test the same way.
-        detail = (
-            "Traffic crosses the network unencrypted.",
-            # NOT "on every Farmhand call": the token only exists when
-            # FarmhandSettings.require_auth is on (farmhand/host.py passes
-            # token=None otherwise, and the middleware is not installed).
-            "Any Farmhand bearer token in use is readable on the wire.",
-        )
+        detail = ("Traffic crosses the network unencrypted.",)
         severity = Severity.WARNING
 
     return [
@@ -369,7 +362,7 @@ def _rule_no_admin(posture: Posture) -> list[Finding]:
     Not gated on reachability: this locks the operator out of the roster editor
     (``AccessTier.ADMIN``) whether or not anyone else can connect.
     """
-    if posture.roster_error:
+    if posture.document_error:
         return []
     if not posture.auth_enabled:
         return []
@@ -434,7 +427,7 @@ def _rule_broad_allowlist(posture: Posture) -> list[Finding]:
             Severity.WARNING,
             f"The allowlist is very broad: {', '.join(wide)}.",
             ("That admits millions of addresses — barely narrower than allowing everyone.",),
-            "Narrow 'allowed_remote_ranges' to the subnet you actually use.",
+            "haywire network expose --ranges <a tighter subnet>",
         )
     ]
 
@@ -452,7 +445,7 @@ def _rule_no_trusted_proxies(posture: Posture) -> list[Finding]:
             Severity.NOTE,
             "No trusted proxies are configured — X-Forwarded-For headers are ignored.",
             ("Only matters behind a reverse proxy; there, every client appears to be the proxy.",),
-            "Set 'trusted_proxies' under Network settings if this studio sits behind one.",
+            "haywire network expose --ranges <cidr> --trusted-proxies <cidr>",
         )
     ]
 
@@ -476,7 +469,86 @@ def _rule_closed_allowlist(posture: Posture) -> list[Finding]:
                 "A remote peer gets a 403; only loopback gets through. The studio",
                 "behaves as if it were loopback-only.",
             ),
-            "Add your subnet to 'allowed_remote_ranges' to actually reach it from elsewhere.",
+            "haywire network expose --ranges <your subnet>",
+        )
+    ]
+
+
+def _rule_invariants_violated(posture: Posture) -> list[Finding]:
+    """The document on disk describes a state the studio will not enter.
+
+    Only reachable by hand-editing: every write path validates. Reported as
+    CRITICAL because the gap between what the file says and what the studio
+    does is exactly the misunderstanding that gets someone exposed — they read
+    the file, believe it, and are wrong.
+    """
+    if posture.document_error:
+        return []  # already reported; a default document has no violations to find
+    problems = validate(posture.document)
+    if not problems:
+        return []
+    return [
+        Finding(
+            Severity.CRITICAL,
+            "The security document contradicts itself, so parts of it are not in force.",
+            tuple(problems),
+            "haywire network seal, then re-apply the settings you want through the CLI.",
+        )
+    ]
+
+
+def _rule_farmhand_remote_without_auth(posture: Posture) -> list[Finding]:
+    """The DNS-rebinding check is off and nothing else is guarding /mcp.
+
+    CRITICAL without authentication, because with the check off and no token a
+    web page the operator visits can drive this studio's tools. A NOTE with
+    authentication on, where the gate demands a roster token regardless of what
+    Host header the request carried.
+    """
+    if not posture.farmhand_enabled:
+        return []
+    if posture.farmhand_loopback:
+        return []
+    if posture.auth_enabled:
+        return [
+            Finding(
+                Severity.NOTE,
+                "Farmhand accepts MCP requests from any Host (DNS-rebinding check off).",
+                ("Authentication is on, so a bearer token is still required.",),
+                "haywire farmhand local-only  (to turn the check back on)",
+            )
+        ]
+    return [
+        Finding(
+            Severity.CRITICAL,
+            "Farmhand's DNS-rebinding check is off with authentication off.",
+            (
+                "Any web page you visit can post to this studio's /mcp endpoint and",
+                "run its tools — including adding and executing a Python node.",
+            ),
+            "haywire farmhand local-only",
+        )
+    ]
+
+
+def _rule_farmhand_reachable(posture: Posture) -> list[Finding]:
+    """The MCP endpoint is served on a studio others can reach.
+
+    A NOTE, not a warning: the gate requires a roster token here (exposure
+    implies authentication), so this is a fact worth knowing rather than a gap.
+    It exists because "the studio is exposed" and "an agent API is exposed with
+    it" are not the same sentence in most operators' heads.
+    """
+    if not posture.farmhand_enabled:
+        return []
+    if not posture.reachable_by_others:
+        return []
+    return [
+        Finding(
+            Severity.NOTE,
+            "The Farmhand MCP endpoint is reachable from the network at /mcp.",
+            ("Agent principals with a roster token can drive this studio remotely.",),
+            "haywire farmhand disable  (if no remote agent needs it)",
         )
     ]
 
@@ -484,14 +556,17 @@ def _rule_closed_allowlist(posture: Posture) -> list[Finding]:
 #: Every check this command performs, in evaluation order (output is sorted by
 #: severity afterwards, so this order is for reading, not for precedence).
 RULES: tuple[Callable[[Posture], list[Finding]], ...] = (
-    _rule_roster_unreadable,
+    _rule_document_unreadable,
+    _rule_invariants_violated,
     _rule_broken_tls,
     _rule_auth_off_while_reachable,
     _rule_plain_http_while_reachable,
     _rule_no_admin,
+    _rule_farmhand_remote_without_auth,
     _rule_broad_allowlist,
     _rule_no_trusted_proxies,
     _rule_closed_allowlist,
+    _rule_farmhand_reachable,
 )
 
 

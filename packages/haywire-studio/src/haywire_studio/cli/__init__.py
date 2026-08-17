@@ -26,7 +26,9 @@ from haywire_studio.cli import (
     authcmd,
     deps,
     docs,
+    farmhandcmd,
     init,
+    networkcmd,
     rename,
     securitycmd,
     share,
@@ -52,6 +54,8 @@ SUBCOMMANDS: Sequence[_SubcommandModule] = (
     user,
     authcmd,
     sslcmd,
+    networkcmd,
+    farmhandcmd,
     securitycmd,
 )
 

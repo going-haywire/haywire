@@ -8,12 +8,15 @@ mirrors ``network/ip_filter.py``, which is pure-ASGI for exactly the same
 reason. If you are about to "simplify" this into a Starlette middleware class:
 don't. See ADR 0026.
 
-**One gate, two credentials.** ``/mcp`` is mounted *inside* this same ASGI app,
-so a root-level wrapper covers it whether or not that was intended. Rather than
-carving it out — which would make the boundary's correctness depend on
-``FarmhandSettings.require_auth`` staying True — the gate accepts a valid
-session cookie *or* a valid agent bearer token. ``BearerTokenMiddleware`` stays
-mounted underneath as defence in depth.
+**One gate, one credential.** ``/mcp`` is mounted *inside* this same ASGI app,
+so this root-level wrapper covers it too — the gate accepts a valid session
+cookie *or* a valid agent bearer token, and that is the only check `/mcp` gets.
+ADR 0028 removed the Farmhand mount's own bearer middleware: a second token
+check beneath this one would be a settings flag (``FarmhandSettings.require_auth``)
+acting as a security control, which is exactly the shape this gate exists to
+avoid. The document invariant "exposed implies auth enabled" is what makes
+that safe — an unauthenticated studio is loopback-only, so there is no
+configuration where `/mcp` is reachable off-box without a token.
 
 **A websocket is one scope.** ASGI calls the app once per connection; the whole
 connection lifetime then happens inside that call. So this check runs at the

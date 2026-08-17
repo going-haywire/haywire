@@ -1,4 +1,4 @@
-"""Live roster reads behind core's resolver hook (ADR 0027).
+"""Live document reads behind core's resolver hook (ADR 0027, ADR 0028).
 
 The cookie carries identity; it never carries authority. So every
 ``ctx.can_edit()`` and every gate check asks the roster *now* rather than
@@ -17,7 +17,9 @@ from pathlib import Path
 
 from haywire.core.access import AccessTier, set_access_resolver
 
-from haywire_studio.auth.roster import Roster, RosterError, load_roster, roster_path
+from haywire_studio.security.document import load_document, security_path
+from haywire_studio.security.errors import SecurityError
+from haywire_studio.security.roster import Roster
 
 logger = logging.getLogger(__name__)
 
@@ -31,7 +33,7 @@ class RosterCache:
     """
 
     def __init__(self, path: Path | None = None) -> None:
-        self._path = path or roster_path()
+        self._path = path or security_path()
         self._stamp: tuple[float, int] | None = None
         self._roster: Roster = Roster()
 
@@ -43,10 +45,13 @@ class RosterCache:
         stamp = self._current_stamp()
         if stamp != self._stamp:
             try:
-                self._roster = load_roster(self._path)
+                self._roster = load_document(self._path).auth
                 self._stamp = stamp
-            except RosterError:
-                logger.warning("Roster at %s could not be read; keeping the last good copy", self._path)
+            except SecurityError:
+                logger.warning(
+                    "Security document at %s could not be read; keeping the last good roster",
+                    self._path,
+                )
         return self._roster
 
     def invalidate(self) -> None:

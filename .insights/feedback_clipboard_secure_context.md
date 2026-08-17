@@ -22,10 +22,11 @@ type: feedback
 **The rule:** the Clipboard API (`navigator.clipboard`) is **restricted to
 secure contexts**. `localhost` and `127.0.0.1` count as secure even over plain
 `http://`; a LAN address does not. On `http://192.168.1.5:8080` —  a studio
-with `expose_to_network` on — `navigator.clipboard` is `undefined`. Any code
-that reaches for it unconditionally throws inside the browser and fails
-**silently**: no copy, no error dialog, no server-side exception, no log line.
-The user clicks, sees no feedback, and assumes it worked.
+exposed to the network (`haywire network expose`, ADR 0028) — `navigator.clipboard`
+is `undefined`. Any code that reaches for it unconditionally throws inside the
+browser and fails **silently**: no copy, no error dialog, no server-side
+exception, no log line. The user clicks, sees no feedback, and assumes it
+worked.
 
 **Why you will not catch this in normal development:** every way you normally
 run the studio is a secure context. `uv run haywire` binds `127.0.0.1`,
@@ -57,9 +58,10 @@ before it is called done. Configuring `NetworkSettings.ssl_certfile` /
 `ssl_keyfile` makes the studio a secure context and all of them return.
 
 **The fix is one command.** `haywire ssl setup` generates a self-signed
-certificate covering this machine's names and writes both settings; restart and
-the LAN origin is secure, clipboard included. Clicking through the browser's
-first-visit warning is enough to earn secure-context status — `haywire ssl
-trust` removes the warning itself. `haywire ssl status` reports whether TLS is
-on and, when it is, whether the address you are actually reachable at is one
-the certificate covers. See `docs/guides/network_config.md` §9.
+certificate covering this machine's names and writes the certificate/key paths
+into `~/.haywire/security.json`; restart and the LAN origin is secure,
+clipboard included. Clicking through the browser's first-visit warning is
+enough to earn secure-context status — `haywire ssl trust` removes the
+warning itself. `haywire ssl status` reports whether TLS is on and, when it
+is, whether the address you are actually reachable at is one the certificate
+covers. See `docs/guides/security.md` §8.

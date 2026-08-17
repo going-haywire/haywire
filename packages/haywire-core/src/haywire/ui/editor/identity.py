@@ -61,7 +61,7 @@ class EditorIdentity(BaseIdentity):
     Set once at class-definition time; survives hot-reload.
 
         Inherits from BaseIdentity:
-        
+
         registry_id: Short unique ID, e.g. 'graph_editor'.
         registry_key: Fully-qualified registry key; set by decorator via reg_key().
         label: Human-readable display name, e.g. 'Graph Editor'.

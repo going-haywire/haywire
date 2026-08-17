@@ -7,6 +7,16 @@ level: architectural
 
 # Studio authentication
 
+> **Amended by [ADR 0028](0028-security-document.md).** The boundary, the gate,
+> and the tier model below are unchanged and still current. Three things named
+> here moved or disappeared: the roster document is `~/.haywire/security.json`
+> (its `auth` block), not `~/.haywire/auth.json`; the workspace
+> `<workspace>/.haywire/farmhand_token` file and the `BearerTokenMiddleware`
+> that checked it are deleted, because `/mcp` sits behind the same gate as
+> every other route and a studio can no longer be exposed with authentication
+> off; and `FarmhandSettings.require_auth` is deleted along with it — there is
+> no longer a flag to turn the `/mcp` guard off independently of the gate.
+
 The studio has no notion of who is using it. `expose_to_network` and the peer
 allowlist (ADR 0026) decide *from where* the studio can be reached; nothing
 decides *who* is reaching it. This adds that, off by default.
@@ -52,7 +62,9 @@ wrapper covers it whether or not that is intended. Exempting it would make the
 boundary's correctness depend on `FarmhandSettings.require_auth` staying
 `True` — a settings flag as a security control. Under the combined gate, that
 flag becomes an optimization: `BearerTokenMiddleware` stays mounted beneath as
-defence in depth, and neither guard's failure is fatal alone.
+defence in depth, and neither guard's failure is fatal alone. (Superseded by
+ADR 0028: `BearerTokenMiddleware` is deleted outright, not merely optional —
+see the amendment note above.)
 
 The token the gate matches is the **roster's**, not the workspace
 `farmhand_token` file. Those are two credentials with two lifetimes, and only
@@ -304,5 +316,6 @@ silently promote one project's agent credential into a machine-wide key.
 - ADR 0026 — studio network exposure (bind address, peer allowlist, jedi confinement)
 - `docs/reference/glossary.md` — Access & Authentication vocabulary
 - `packages/haywire-studio/src/haywire_studio/network/ip_filter.py` — the pure-ASGI precedent
-- `packages/haywire-studio/src/haywire_studio/farmhand/auth.py` — `BearerTokenMiddleware`
+- `packages/haywire-studio/src/haywire_studio/farmhand/auth.py` — `connection_command()`;
+  `BearerTokenMiddleware` described here was deleted by ADR 0028
 - `packages/haywire-core/src/haywire/ui/panel/host_rendering.py` — `visible_panels()`, the single panel gate

@@ -51,6 +51,7 @@ class HaywireApp:
         self.setup_shared_services()
 
         self._is_shutting_down = False
+        self.security_document = None
         self._shells: dict[str, "AppShell"] = {}
         # Maps NiceGUI client.id → haywire session_id so on_disconnect can
         # resolve which session to tear down without monkey-patching the
@@ -199,26 +200,22 @@ class HaywireApp:
 
         print("Shared services configured successfully.")
 
-    def setup_farmhand(self, port: int, *, tls: bool = False) -> None:
-        """Mount the Farmhand MCP server if enabled (flag read once; restart to apply)."""
+    def setup_farmhand(self, port: int, document, *, tls: bool = False) -> None:
+        """Mount the Farmhand MCP server if enabled (read once; restart to apply)."""
         from haywire_studio.farmhand.host import FarmhandHost
-        from haywire_studio.farmhand.settings import FarmhandSettings
 
-        if not FarmhandSettings().enabled:
-            logging.getLogger(__name__).info("Farmhand: disabled by settings (farmhand.enabled = false)")
+        if not document.farmhand.enabled:
+            logging.getLogger(__name__).info("Farmhand: disabled (farmhand.enabled = false)")
             return
         self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root)
-        self.farmhand_host.mount(port, tls=tls)
+        self.farmhand_host.mount(port, document, tls=tls)
 
-        # Write the sidecar identity file so a later process (the farmhand4claude
-        # plugin startup script) can identify which project owns this studio on
-        # this port. Must never break studio launch.
         from pathlib import Path
 
         from haywire_studio.farmhand.identity import write_identity
 
         try:
-            write_identity(Path(self.workspace_root), port)
+            write_identity(Path(self.workspace_root), port, auth_required=document.auth.enabled)
         except Exception:
             logging.getLogger(__name__).warning(
                 "Farmhand: failed to write studio identity sidecar", exc_info=True
@@ -292,12 +289,16 @@ class HaywireApp:
         """Manual cleanup fallback."""
         self.on_app_shutdown()
 
-    def _install_auth(self) -> bool:
+    def _install_auth(self, document) -> bool:
         """Install the gate, the login routes and the tier resolver, if enabled.
 
-        Returns whether authentication is on. Everything here is skipped when the
-        roster says disabled, so an auth-off install runs exactly the code it ran
-        before this feature existed.
+        Returns whether authentication is on. Everything here is skipped when
+        the document says disabled, so an auth-off install runs exactly the code
+        it ran before this feature existed.
+
+        The *document* argument is the sanitized one ``run()`` already read and
+        validated; the cache below re-reads the same file live, which is what
+        makes "remove a principal" an actual revocation rather than a request.
         """
         from nicegui import app as nicegui_app
 
@@ -305,33 +306,11 @@ class HaywireApp:
         from haywire_studio.auth.gate import AuthGateMiddleware
         from haywire_studio.auth.live import RosterCache, install_resolver
         from haywire_studio.auth.login import register_login_routes
-        from haywire_studio.auth.roster import RosterError, load_roster
 
-        cache = RosterCache()
-        try:
-            # RosterCache.roster() deliberately swallows RosterError to keep
-            # serving the last-good copy once the studio is already running —
-            # exactly the wrong behaviour for this first-ever read, where a
-            # corrupt or unreadable file must fail startup loudly rather than
-            # silently degrade to "no roster" (enabled=False). Read once
-            # directly to surface that error, then let the cache take over.
-            load_roster(cache.path)
-        except RosterError as exc:
-            print(f"ERROR: Haywire cannot start — the roster is unreadable.\n  {exc}")
-            raise SystemExit(1) from exc
-        roster = cache.roster()
-
-        if not roster.enabled:
+        if not document.auth.enabled:
             return False
 
-        if not roster.admins():
-            print(
-                "ERROR: Haywire cannot start — authentication is enabled but no admin exists.\n"
-                "  Run 'haywire auth disable', add an admin with 'haywire user add <name> "
-                "--tier admin', then 'haywire auth enable'."
-            )
-            raise SystemExit(1)
-
+        cache = RosterCache()
         secret = load_or_create_secret()
         install_resolver(cache)
         register_login_routes(cache=cache, secret=secret)
@@ -342,40 +321,32 @@ class HaywireApp:
             workspace_root=self.workspace_root,
         )
         self._auth_cache = cache
-        print(f"🔒 Authentication enabled — {len(roster.principals)} principal(s)")
+        print(f"🔒 Authentication enabled — {len(document.auth.principals)} principal(s)")
         return True
 
     def run(self, *, open_browser: bool = True):
         """Run the application."""
         print("Starting Haywire...")
         self.create_ui()
+
         from haywire_studio.network.settings import NetworkSettings
 
-        settings = NetworkSettings()
-        port = settings.port
-        host = "0.0.0.0" if settings.expose_to_network else "127.0.0.1"
-        ssl_kwargs = _ssl_kwargs(settings.ssl_certfile, settings.ssl_keyfile)
+        port = NetworkSettings().port
+        document = self._load_security_document()
+        self.security_document = document
+
+        network = document.network
+        host = "0.0.0.0" if network.exposed else "127.0.0.1"
+        ssl_kwargs = _ssl_kwargs(network.tls_certfile, network.tls_keyfile)
 
         # Install the gate BEFORE the Farmhand mount so the root wrapper covers
         # /mcp too — one boundary, not a boundary with a documented hole beside it.
-        auth_enabled = self._install_auth()
+        self._install_auth(document)
 
-        self.setup_farmhand(port, tls=bool(ssl_kwargs))
+        self.setup_farmhand(port, document, tls=bool(ssl_kwargs))
 
-        if settings.expose_to_network:
-            self._install_ip_allowlist(settings)
-            if not auth_enabled:
-                logger.warning(
-                    "Network: the studio is exposed beyond loopback with authentication OFF. "
-                    "Anyone who can reach it is a full operator. Run 'haywire auth enable' to "
-                    "require a login."
-                )
-            if not ssl_kwargs:
-                logger.warning(
-                    "Network: serving plain HTTP beyond loopback — session cookies and "
-                    "passwords travel unencrypted and a captured cookie is a valid cookie. "
-                    "Run 'haywire ssl setup' to serve HTTPS, or terminate TLS at a reverse proxy."
-                )
+        if network.exposed:
+            self._install_ip_allowlist(network)
 
         try:
             ui.run(
@@ -393,9 +364,38 @@ class HaywireApp:
                 self.cleanup()
 
     @staticmethod
-    def _install_ip_allowlist(settings) -> None:
+    def _load_security_document():
+        """Read the security document, repairing a hand-edited one loudly.
+
+        An unreadable document is fatal — it could equally be a disabled one,
+        and guessing the benign reading is how a studio comes up unprotected.
+        A *contradictory* document is not: it is repaired in the safe direction
+        and every reason is logged at CRITICAL. Refusing to start there would be
+        a lockout whose fix needs the UI it just took away.
+        """
+        from haywire_studio.security.document import load_document, sanitize
+        from haywire_studio.security.errors import SecurityError
+
+        try:
+            raw = load_document()
+        except SecurityError as exc:
+            print(f"ERROR: Haywire cannot start — the security document is unreadable.\n  {exc}")
+            raise SystemExit(1) from exc
+
+        document, reasons = sanitize(raw)
+        for reason in reasons:
+            logger.critical("Security: %s", reason)
+        if reasons:
+            logger.critical(
+                "Security: the document above was applied in its safe form. "
+                "Run 'haywire security status' to see what is actually in force."
+            )
+        return document
+
+    @staticmethod
+    def _install_ip_allowlist(network) -> None:
         """Install IPAllowlistMiddleware on the root ASGI app (only called when
-        expose_to_network is on — see run()).
+        the document says exposed — see run()).
 
         Uses ``nicegui.app.add_middleware`` (nicegui.app is a FastAPI instance):
         Starlette's middleware stack wraps the whole ASGI callable, including
@@ -424,10 +424,8 @@ class HaywireApp:
         """
         from haywire_studio.network.ip_filter import IPAllowlistMiddleware
 
-        allowed_ranges = [
-            entry.strip() for entry in settings.allowed_remote_ranges.split(",") if entry.strip()
-        ]
-        trusted_proxies = [entry.strip() for entry in settings.trusted_proxies.split(",") if entry.strip()]
+        allowed_ranges = list(network.allowed_ranges)
+        trusted_proxies = list(network.trusted_proxies)
 
         if not trusted_proxies:
             logger.warning(
@@ -446,9 +444,7 @@ class HaywireApp:
             print(
                 "ERROR: Haywire cannot start — invalid network settings.\n"
                 f"  {e}\n"
-                "Check 'allowed_remote_ranges' and 'trusted_proxies' under Network "
-                "settings (settings.json): every entry must be a valid CIDR range "
-                "(e.g. '192.168.1.0/24')."
+                "Run 'haywire security status' to see the current configuration."
             )
             raise SystemExit(1) from e
 
@@ -482,7 +478,7 @@ def _ssl_kwargs(certfile: str, keyfile: str) -> dict[str, str]:
     if bool(certfile) != bool(keyfile):
         print(
             "ERROR: Haywire cannot start — incomplete TLS configuration.\n"
-            "  Set BOTH 'ssl_certfile' and 'ssl_keyfile' under Network settings, or neither.\n"
+            "  Set BOTH the certificate and key, or neither.\n"
             "  Run 'haywire ssl status' to see the current state."
         )
         raise SystemExit(1)

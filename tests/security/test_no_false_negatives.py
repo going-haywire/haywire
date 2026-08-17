@@ -23,15 +23,19 @@ import itertools
 
 import pytest
 
+from haywire.core.access import AccessTier
+
 from haywire_studio.network.names import LocalNames
-from haywire_studio.network.security import (
+from haywire_studio.network.tls_operations import TlsState, TlsStatus
+from haywire_studio.security.document import FarmhandPolicy, NetworkPolicy, SecurityDocument
+from haywire_studio.security.posture import (
     RULES,
     Posture,
     Severity,
     _findings,
-    _with_findings,
+    assess_document,
 )
-from haywire_studio.network.tls_operations import TlsState, TlsStatus
+from haywire_studio.security.roster import KIND_USER, Principal, Roster
 
 pytestmark = pytest.mark.unit
 
@@ -57,20 +61,25 @@ def _posture(
         fingerprint=None,
         detail="detail",
     )
-    return _with_findings(
-        Posture(
+    principals = [
+        Principal(name=f"p{i}", kind=KIND_USER, tier=AccessTier.ADMIN, password_hash="x")
+        for i in range(admins)
+    ]
+    if auth and not admins:
+        # A roster that is enabled but has no admin — distinct from "no auth".
+        principals = [Principal(name="p0", kind=KIND_USER, tier=AccessTier.EDIT, password_hash="x")]
+    doc = SecurityDocument(
+        auth=Roster(enabled=auth, principals=principals),
+        network=NetworkPolicy(
             exposed=exposed,
-            reachable_at="10.0.0.5",
-            auth_enabled=auth,
-            principals=1 if auth else 0,
-            admins=admins,
-            tls=tls,
-            allowed_ranges=ranges,
-            trusted_proxies=trusted_proxies,
-            findings=(),
-            roster_error=roster_error,
-        )
+            allowed_ranges=tuple(e.strip() for e in ranges.split(",") if e.strip()),
+            trusted_proxies=tuple(e.strip() for e in trusted_proxies.split(",") if e.strip()),
+            tls_certfile=tls.certfile,
+            tls_keyfile=tls.keyfile,
+        ),
+        farmhand=FarmhandPolicy(enabled=False),
     )
+    return assess_document(doc, tls, document_error=roster_error)
 
 
 # ---------------------------------------------------------------------------
@@ -140,8 +149,18 @@ def test_the_only_clean_reachable_configuration_is_fully_defended():
         reachable = exposed and bool(ranges)
         has_critical = posture.worst is Severity.CRITICAL
 
+        # exposed=True with an empty allowlist is not a state save_document()
+        # would ever write — validate() rejects it (D28: exposure demands a
+        # non-empty allowlist), so it is only reachable by hand-editing the
+        # file, and _rule_invariants_violated is right to flag it CRITICAL
+        # regardless of the (also-false) reachable verdict.
+        hand_edited_violation = exposed and not ranges
+
         if not reachable:
-            assert not has_critical, f"CRITICAL on an unreachable studio: {posture.findings}"
+            if hand_edited_violation:
+                assert has_critical, f"no CRITICAL on a self-contradictory document: {posture.findings}"
+            else:
+                assert not has_critical, f"CRITICAL on an unreachable studio: {posture.findings}"
             continue
 
         defended = auth and tls_state in _TLS_ON

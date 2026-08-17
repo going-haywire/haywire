@@ -91,11 +91,12 @@ these are the same facts a manual `farmhand_studio_connect` call needs:
 - **Port**: `.haywire/studio.json` in the project root — a JSON sidecar the
   studio writes on startup (`pid`, `port`, `url`, …). Written only when
   `farmhand.enabled`.
-- **Token**: `.haywire/farmhand_token` in the project root — a plain-text
-  bearer token, stable across restarts (delete the file to rotate it). If
-  the project was scaffolded into a *subdirectory* of the open workspace,
-  check there too — the proxy checks one level down automatically, but a
-  manual read doesn't.
+- **Token**: `/mcp` needs no `Authorization` header when `studio.json` has
+  `auth_required: false`. When `true`, use a roster agent token — mint one
+  with `haywire user add <name> --agent --tier edit`. If the project was
+  scaffolded into a *subdirectory* of the open workspace, check
+  `.haywire/studio.json` there too — the proxy checks one level down
+  automatically, but a manual read doesn't.
 - **Trailing slash is mandatory** if you ever hand-roll a request outside the
   proxy: the endpoint is `/mcp/`. A bare `POST /mcp` 307-redirects, and most
   POST clients drop the body on redirect.

@@ -7,7 +7,8 @@ from haywire_studio.auth.cookies import COOKIE_NAME, sign_session
 from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY, AuthGateMiddleware
 from haywire_studio.auth.live import RosterCache
 from haywire_studio.auth.operations import add_agent, add_user, enable_auth
-from haywire_studio.auth.roster import Roster, save_roster
+from haywire_studio.security.document import SecurityDocument, save_document
+from haywire_studio.security.roster import Roster
 
 SECRET = b"0" * 32
 STRONG = "Correct-Horse9"
@@ -15,7 +16,7 @@ STRONG = "Correct-Horse9"
 
 @pytest.fixture
 def path(tmp_path):
-    return tmp_path / "auth.json"
+    return tmp_path / "security.json"
 
 
 @pytest.fixture
@@ -77,7 +78,7 @@ def _gate(path, inner=None):
 
 @pytest.mark.anyio
 async def test_disabled_roster_lets_everything_through(path):
-    save_roster(Roster(enabled=False), path)
+    save_document(SecurityDocument(auth=Roster(enabled=False)), path)
     inner = _Recorder()
     await _call(_gate(path, inner), _http("/"))
     assert inner.reached is True

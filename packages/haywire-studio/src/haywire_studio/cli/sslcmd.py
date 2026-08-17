@@ -33,11 +33,7 @@ from haywire_studio.network.tls_operations import (
     trust_command,
     update,
 )
-from haywire_studio.network.tls_settings import (
-    SettingsWriteError,
-    workspace_overrides,
-    workspace_path,
-)
+from haywire_studio.security.errors import SecurityError
 
 _GUARD_SUBJECT = "TLS configuration"
 
@@ -48,6 +44,11 @@ def register(subparsers: argparse._SubParsersAction) -> None:
         "--dir",
         default=None,
         help="Certificate directory (default: ~/.haywire/certs). Mainly for testing.",
+    )
+    parser.add_argument(
+        "--document",
+        default=None,
+        help="Security document to operate on (default: ~/.haywire/security.json). Mainly for testing.",
     )
     actions = parser.add_subparsers(dest="ssl_command", required=True)
 
@@ -83,12 +84,17 @@ def _directory(args: argparse.Namespace) -> Path | None:
     return Path(raw) if raw else None
 
 
+def _document(args: argparse.Namespace) -> Path | None:
+    raw = getattr(args, "document", None)
+    return Path(raw) if raw else None
+
+
 def _setup(args: argparse.Namespace) -> int:
     if guard_running_studio(_GUARD_SUBJECT):
         return 1
     try:
-        result = setup(getattr(args, "also", []), directory=_directory(args))
-    except (CertError, SettingsWriteError) as exc:
+        result = setup(getattr(args, "also", []), directory=_directory(args), path=_document(args))
+    except (CertError, SecurityError) as exc:
         print(f"ERROR: {exc}")
         return 1
 
@@ -99,7 +105,6 @@ def _setup(args: argparse.Namespace) -> int:
         print("Certificate created and configured.\n")
 
     _print_summary(result)
-    _warn_if_shadowed()
     print("\nRestart the studio, then visit https://… (note the s).")
     print(_BROWSER_WARNING)
     return 0
@@ -114,14 +119,14 @@ def _update(args: argparse.Namespace) -> int:
             remove=getattr(args, "remove", []),
             refresh=getattr(args, "refresh", False),
             directory=_directory(args),
+            path=_document(args),
         )
-    except (CertError, SettingsWriteError) as exc:
+    except (CertError, SecurityError) as exc:
         print(f"ERROR: {exc}")
         return 1
 
     print("Certificate updated (the private key was reused).\n")
     _print_summary(result)
-    _warn_if_shadowed()
     # Trust stores pin the certificate, not the key, so re-signing invalidates
     # every previous 'ssl trust'. Saying so is mandatory: otherwise the user
     # meets the interstitial again and believes the command failed.
@@ -134,15 +139,19 @@ def _update(args: argparse.Namespace) -> int:
 
 def _status(args: argparse.Namespace) -> int:
     """Always exits 0. ``status`` reports; it does not judge."""
-    result = status(directory=_directory(args))
+    document_path = _document(args)
+    result = status(directory=_directory(args), path=document_path)
     printer = _PRINTERS.get(result.state, _print_generic)
-    printer(result)
+    if result.state is TlsState.OFF_EXPOSED:
+        _print_off_exposed(result, path=document_path)
+    else:
+        printer(result)
     return 0
 
 
 def _trust(args: argparse.Namespace) -> int:
     directory = _directory(args)
-    result = status(directory=directory)
+    result = status(directory=directory, path=_document(args))
     # An orphan has files on disk that nothing points at — trustable, so it is
     # not "no certificate yet". Split from the configured check because the two
     # reasons to continue are unrelated.
@@ -174,25 +183,6 @@ is fully encrypted either way.
   To use it as-is:              click "Advanced" and continue"""
 
 
-def _warn_if_shadowed() -> None:
-    """Say so when the workspace tier will win over what was just written.
-
-    Settings resolve workspace-over-global and these commands write global, so
-    without this the command reports success and the studio then refuses to
-    start on a path the user was never shown.
-    """
-    shadowed = workspace_overrides("ssl_certfile", "ssl_keyfile")
-    if not shadowed:
-        return
-    print(
-        f"\nWARNING: {workspace_path()} also sets "
-        f"{' and '.join(shadowed)}.\n"
-        "  Workspace settings win over the global ones just written, so the studio\n"
-        "  will keep using the workspace values. Remove them from that file for\n"
-        "  this certificate to take effect."
-    )
-
-
 def _print_summary(result: SetupResult) -> None:
     print(f"  Covers:  {_names(result.covered)}")
     print(f"  Expires: {result.expires:%Y-%m-%d}")
@@ -214,8 +204,8 @@ def _print_off_loopback(result: TlsStatus) -> None:
     print("  haywire ssl setup")
 
 
-def _print_off_exposed(result: TlsStatus) -> None:
-    """Plain HTTP with ``expose_to_network`` on.
+def _print_off_exposed(result: TlsStatus, *, path: Path | None = None) -> None:
+    """Plain HTTP with ``network.exposed`` on.
 
     ``TlsState`` only knows the bind address, so this state does NOT by itself
     mean anyone can connect: the allowlist may reject every remote peer. Asking
@@ -224,15 +214,15 @@ def _print_off_exposed(result: TlsStatus) -> None:
     positive ``security status`` was built to avoid.
     """
     print("TLS is not configured — the studio serves plain HTTP.\n")
-    print(f"  Reachable at:      {result.reachable_at or 'this machine'}")
-    print("  expose_to_network: on\n")
+    print(f"  Reachable at:  {result.reachable_at or 'this machine'}")
+    print("  network.exposed: on\n")
 
-    if not _reachable_by_others():
+    if not _reachable_by_others(path):
         print("The allowlist is empty, so every remote address is rejected and")
         print("only loopback can connect. Nothing crosses the network today, so")
         print("there is nothing to encrypt yet.\n")
-        print("Before opening it up (adding 'allowed_remote_ranges'), run:")
-        print("  haywire ssl setup")
+        print("Before opening it up, run:  haywire network expose --ranges <your subnet>")
+        print("Then:  haywire ssl setup")
         return
 
     print("What that means right now:")
@@ -241,16 +231,16 @@ def _print_off_exposed(result: TlsStatus) -> None:
     print("  Fix:  haywire ssl setup")
 
 
-def _reachable_by_others() -> bool:
+def _reachable_by_others(path: Path | None = None) -> bool:
     """Whether any machine but this one can open a connection.
 
-    Delegates to :mod:`haywire_studio.network.security` so the reachability
+    Delegates to :mod:`haywire_studio.security.posture` so the reachability
     rule lives in exactly one place. A second copy here is how the two commands
     would drift into disagreeing about the same studio.
     """
-    from haywire_studio.network.security import assess
+    from haywire_studio.security.posture import assess
 
-    return assess().reachable_by_others
+    return assess(path=path).reachable_by_others
 
 
 def _print_ok(result: TlsStatus) -> None:
@@ -289,22 +279,15 @@ def _print_orphaned(result: TlsStatus) -> None:
 def _print_half_configured(result: TlsStatus) -> None:
     print("TLS is half-configured — the studio will refuse to start.\n")
     print(f"  {result.detail}\n")
-    print("Set both 'ssl_certfile' and 'ssl_keyfile' under Network settings, or neither.")
+    print("Set both 'tls_certfile' and 'tls_keyfile' in ~/.haywire/security.json, or neither.")
     print("  Recreate both:  haywire ssl setup")
 
 
 def _print_file_missing(result: TlsStatus) -> None:
     print("TLS is configured, but a file is missing — the studio will refuse to start.\n")
     print(f"  {result.detail}\n")
-    # Name the file that actually holds the value. Pointing at the global file
-    # when the workspace tier is the one winning sends the user to edit a
-    # setting that was never in force.
-    shadowed = workspace_overrides("ssl_certfile", "ssl_keyfile")
-    source = workspace_path() if shadowed else "~/.haywire/settings.json"
-    if shadowed:
-        print(f"  That value comes from {source} (workspace settings win).\n")
     print("  Recreate:  haywire ssl setup")
-    print(f"  Or clear:  remove ssl_certfile / ssl_keyfile from {source}")
+    print("  Or clear:  remove tls_certfile / tls_keyfile from ~/.haywire/security.json")
 
 
 def _print_key_mismatch(result: TlsStatus) -> None:

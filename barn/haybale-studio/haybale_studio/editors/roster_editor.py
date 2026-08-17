@@ -19,7 +19,8 @@ from haywire_studio.auth.operations import (
     set_password,
     set_tier,
 )
-from haywire_studio.auth.roster import RosterError, load_roster
+from haywire_studio.security.document import load_document
+from haywire_studio.security.errors import SecurityError
 from nicegui import ui
 
 
@@ -45,8 +46,9 @@ class RosterEditor(BaseEditor):
 
     def _draw_roster(self) -> None:
         try:
-            roster = load_roster()
-        except RosterError as exc:
+            document = load_document()
+            roster = document.auth
+        except SecurityError as exc:
             hui.error_label(f"Roster unreadable: {exc}")
             return
 
@@ -89,7 +91,7 @@ class RosterEditor(BaseEditor):
     def _set_tier(self, name: str, value) -> None:
         try:
             set_tier(name, AccessTier(value))
-        except (RosterError, ValueError) as exc:
+        except (SecurityError, ValueError) as exc:
             ui.notify(str(exc), type="negative")
             return
         ui.notify(f"{name} is now {value}")
@@ -107,7 +109,7 @@ class RosterEditor(BaseEditor):
 
         try:
             remove_principal(name)
-        except RosterError as exc:
+        except SecurityError as exc:
             ui.notify(str(exc), type="negative")
             return
 
@@ -127,7 +129,7 @@ class RosterEditor(BaseEditor):
     def _set_password(self, dialog, name: str, value: str) -> None:
         try:
             set_password(name, value or "")
-        except RosterError as exc:
+        except SecurityError as exc:
             ui.notify(str(exc), type="negative")
             return
         dialog.close()
@@ -157,7 +159,7 @@ class RosterEditor(BaseEditor):
             else:
                 add_user(name, password or "", AccessTier(tier))
                 ui.notify(f"Created user {name}")
-        except (RosterError, ValueError) as exc:
+        except (SecurityError, ValueError) as exc:
             ui.notify(str(exc), type="negative")
             return
         self.wrapper.redraw()

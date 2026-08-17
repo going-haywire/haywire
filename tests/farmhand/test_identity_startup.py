@@ -5,6 +5,7 @@ from typing import Any, cast
 import pytest
 
 from haywire_studio.farmhand.identity import IDENTITY_FILENAME, read_identity
+from haywire_studio.security.document import SecurityDocument
 
 pytestmark = pytest.mark.unit
 
@@ -13,7 +14,7 @@ class _FakeHost:
     def __init__(self, *args, **kwargs):
         pass
 
-    def mount(self, port, *, tls: bool = False):  # no real network mount in a unit test
+    def mount(self, port, document, *, tls: bool = False):  # no real network mount in a unit test
         self.mounted_port = port
 
 
@@ -35,21 +36,12 @@ def app_state(tmp_path, monkeypatch):
     return state, tmp_path, app_module
 
 
-def _set_enabled(monkeypatch, app_module, value: bool):
-    class _Settings:
-        enabled = value
-
-    # setup_farmhand imports FarmhandSettings locally from farmhand.settings.
-    import haywire_studio.farmhand.settings as settings_module
-
-    monkeypatch.setattr(settings_module, "FarmhandSettings", _Settings)
-
-
-def test_sidecar_written_when_enabled(app_state, monkeypatch):
+def test_sidecar_written_when_enabled(app_state):
     state, tmp_path, app_module = app_state
-    _set_enabled(monkeypatch, app_module, True)
+    document = SecurityDocument()
+    document.farmhand.enabled = True
 
-    state.setup_farmhand(8082)
+    state.setup_farmhand(8082, document)
 
     ident = read_identity(tmp_path)
     assert ident is not None
@@ -57,10 +49,11 @@ def test_sidecar_written_when_enabled(app_state, monkeypatch):
     assert (tmp_path / ".haywire" / IDENTITY_FILENAME).exists()
 
 
-def test_no_sidecar_when_disabled(app_state, monkeypatch):
+def test_no_sidecar_when_disabled(app_state):
     state, tmp_path, app_module = app_state
-    _set_enabled(monkeypatch, app_module, False)
+    document = SecurityDocument()
+    document.farmhand.enabled = False
 
-    state.setup_farmhand(8082)
+    state.setup_farmhand(8082, document)
 
     assert read_identity(tmp_path) is None

@@ -127,40 +127,17 @@ def _post(url: str, headers: dict) -> int:
         return exc.code
 
 
-def _assert_auth_required():
-    from haywire_studio.farmhand.settings import FarmhandSettings
-
-    assert FarmhandSettings().require_auth is True, (
-        "these tests assert 401 on missing/wrong token, which only holds when "
-        "FarmhandSettings.require_auth is True — check the schema default and "
-        "that nothing upstream flipped it"
-    )
-
-
-def test_missing_token_is_401(farmhand_server):
-    _assert_auth_required()
-    assert _post(farmhand_server.base_url, {}) == 401
-
-
-def test_wrong_token_is_401(farmhand_server):
-    _assert_auth_required()
-    assert _post(farmhand_server.base_url, {"Authorization": "Bearer wrong"}) == 401
-
-
 def test_disallowed_origin_rejected(farmhand_server):
     status = _post(
         farmhand_server.base_url,
-        {"Authorization": f"Bearer {farmhand_server.token}", "Origin": "http://evil.example"},
+        {"Origin": "http://evil.example"},
     )
     assert status in (400, 403, 421)
 
 
-def test_token_file_created_gitignored_on_first_start(farmhand_server):
-    """ensure_token ran during server mount against the session workspace."""
+def test_mount_writes_no_token_file(farmhand_server):
+    """ADR 0028: /mcp carries no credential of its own."""
     from pathlib import Path
 
-    from haywire_studio.farmhand.auth import TOKEN_FILENAME
-
     workspace = Path(farmhand_server.host._workspace_root)
-    assert (workspace / ".haywire" / TOKEN_FILENAME).exists()
-    assert TOKEN_FILENAME in (workspace / ".haywire" / ".gitignore").read_text()
+    assert not (workspace / ".haywire" / "farmhand_token").exists()

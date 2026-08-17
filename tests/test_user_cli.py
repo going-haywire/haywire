@@ -6,8 +6,8 @@ import pytest
 
 from haywire.core.access import AccessTier
 from haywire_studio.auth.operations import add_user
-from haywire_studio.auth.roster import load_roster
 from haywire_studio.cli import user as user_cli
+from haywire_studio.security.document import load_document
 
 STRONG = "Correct-Horse9"
 
@@ -21,26 +21,26 @@ def _run(argv, monkeypatch, path, answers=None):
     subparsers = parser.add_subparsers()
     user_cli.register(subparsers)
     args = parser.parse_args(argv)
-    args.roster = str(path)
+    args.document = str(path)
     return args.handler(args)
 
 
 @pytest.fixture
 def path(tmp_path):
-    return tmp_path / "auth.json"
+    return tmp_path / "security.json"
 
 
 def test_add_user_creates_the_principal(monkeypatch, path, capsys):
     code = _run(["user", "add", "alice", "--tier", "admin"], monkeypatch, path, answers=[STRONG])
     assert code == 0
-    found = load_roster(path).find("alice")
+    found = load_document(path).auth.find("alice")
     assert found is not None
     assert found.tier is AccessTier.ADMIN
 
 
 def test_add_user_defaults_to_view_tier(monkeypatch, path):
     _run(["user", "add", "bob"], monkeypatch, path, answers=[STRONG])
-    found = load_roster(path).find("bob")
+    found = load_document(path).auth.find("bob")
     assert found is not None
     assert found.tier is AccessTier.VIEW
 
@@ -48,14 +48,14 @@ def test_add_user_defaults_to_view_tier(monkeypatch, path):
 def test_add_user_rejects_weak_password_with_exit_1(monkeypatch, path, capsys):
     code = _run(["user", "add", "alice"], monkeypatch, path, answers=["weak"])
     assert code == 1
-    assert load_roster(path).find("alice") is None
+    assert load_document(path).auth.find("alice") is None
     assert "12" in capsys.readouterr().out
 
 
 def test_add_agent_prints_the_token(monkeypatch, path, capsys):
     code = _run(["user", "add", "builder", "--agent", "--tier", "edit"], monkeypatch, path)
     assert code == 0
-    agent = load_roster(path).find("builder")
+    agent = load_document(path).auth.find("builder")
     assert agent is not None
     assert agent.is_agent
     assert agent.token in capsys.readouterr().out
@@ -64,7 +64,7 @@ def test_add_agent_prints_the_token(monkeypatch, path, capsys):
 def test_remove_user(monkeypatch, path):
     add_user("bob", STRONG, AccessTier.VIEW, path=path)
     assert _run(["user", "remove", "bob"], monkeypatch, path) == 0
-    assert load_roster(path).find("bob") is None
+    assert load_document(path).auth.find("bob") is None
 
 
 def test_remove_unknown_user_exits_1(monkeypatch, path):
@@ -98,6 +98,6 @@ def test_passwd_changes_the_password(monkeypatch, path):
 def test_tier_change(monkeypatch, path):
     add_user("bob", STRONG, AccessTier.VIEW, path=path)
     assert _run(["user", "tier", "bob", "edit"], monkeypatch, path) == 0
-    found = load_roster(path).find("bob")
+    found = load_document(path).auth.find("bob")
     assert found is not None
     assert found.tier is AccessTier.EDIT

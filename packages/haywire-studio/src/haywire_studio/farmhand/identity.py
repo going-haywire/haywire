@@ -4,10 +4,10 @@ Written when the studio mounts the Farmhand MCP endpoint so a later process
 (the farmhand4claude plugin's startup script) can identify WHICH project owns
 the studio on a given port — reuse it, ask the user, or clean up a stale one.
 
-Sits beside farmhand_token (see auth.py) and follows the same .haywire/ +
-.gitignore discipline. The recycled-pid guard is best-effort: os.kill(pid, 0)
-proves liveness; a matching create_time (via psutil, when obtainable) proves
-it is the same process, but its absence never blocks.
+Follows the same .haywire/ + .gitignore discipline as the rest of the
+workspace's machine-local state. The recycled-pid guard is best-effort:
+os.kill(pid, 0) proves liveness; a matching create_time (via psutil, when
+obtainable) proves it is the same process, but its absence never blocks.
 """
 
 from __future__ import annotations
@@ -29,8 +29,13 @@ def _ensure_gitignored(haywire_dir: Path) -> None:
             fh.write(f"{IDENTITY_FILENAME}\n")
 
 
-def write_identity(workspace_root: Path | str, port: int) -> dict:
+def write_identity(workspace_root: Path | str, port: int, *, auth_required: bool = False) -> dict:
     """Write the current process's studio identity to <workspace>/.haywire/studio.json.
+
+    ``auth_required`` mirrors the security document's ``auth.enabled`` at the
+    moment the studio mounted Farmhand, so a later process (the
+    farmhand4claude plugin's startup script) can tell whether this studio
+    expects a credential without opening a connection first.
 
     Returns the dict written. Ensures the sidecar is gitignored.
     """
@@ -48,6 +53,7 @@ def write_identity(workspace_root: Path | str, port: int) -> dict:
         "host": socket.gethostname(),
         "role": "haywire-studio",
         "url": f"http://127.0.0.1:{port}",
+        "auth_required": auth_required,
     }
     (haywire_dir / IDENTITY_FILENAME).write_text(json.dumps(ident, indent=2), encoding="utf-8")
     return ident

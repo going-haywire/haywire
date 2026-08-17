@@ -1,4 +1,4 @@
-"""The roster document — ~/.haywire/auth.json, one file, atomic writes."""
+"""The roster document — ~/.haywire/security.json, one file, atomic writes."""
 
 import json
 import stat
@@ -7,22 +7,18 @@ import pytest
 
 from haywire.core.access import AccessTier
 from haywire_studio.auth.passwords import hash_password
-from haywire_studio.auth.roster import (
-    Principal,
-    Roster,
-    RosterError,
-    load_roster,
-    save_roster,
-)
+from haywire_studio.security.document import SecurityDocument, load_document, save_document
+from haywire_studio.security.errors import SecurityError
+from haywire_studio.security.roster import Principal, Roster
 
 
 @pytest.fixture
 def path(tmp_path):
-    return tmp_path / "auth.json"
+    return tmp_path / "security.json"
 
 
 def test_load_missing_file_returns_disabled_empty_roster(path):
-    roster = load_roster(path)
+    roster = load_document(path).auth
     assert roster.enabled is False
     assert roster.principals == []
     assert roster.session_days == 30
@@ -39,8 +35,8 @@ def test_round_trip(path):
             Principal(name="agent1", kind="agent", tier=AccessTier.EDIT, token="tok", workspace="/w"),
         ],
     )
-    save_roster(roster, path)
-    loaded = load_roster(path)
+    save_document(SecurityDocument(auth=roster), path)
+    loaded = load_document(path).auth
 
     assert loaded.enabled is True
     assert loaded.session_days == 7
@@ -54,25 +50,25 @@ def test_round_trip(path):
 
 
 def test_saved_file_is_0600(path):
-    save_roster(Roster(), path)
+    save_document(SecurityDocument(auth=Roster()), path)
     assert stat.S_IMODE(path.stat().st_mode) == 0o600
 
 
 def test_saved_file_carries_a_version(path):
-    save_roster(Roster(), path)
+    save_document(SecurityDocument(auth=Roster()), path)
     assert json.loads(path.read_text())["version"] == 1
 
 
 def test_unknown_version_refuses_to_load(path):
     path.write_text(json.dumps({"version": 99, "enabled": True, "principals": []}))
-    with pytest.raises(RosterError, match="version"):
-        load_roster(path)
+    with pytest.raises(SecurityError, match="version"):
+        load_document(path)
 
 
 def test_corrupt_json_refuses_to_load_rather_than_defaulting_open(path):
     path.write_text("{not json")
-    with pytest.raises(RosterError):
-        load_roster(path)
+    with pytest.raises(SecurityError):
+        load_document(path)
 
 
 def test_find_is_exact_not_case_folded(path):
@@ -114,13 +110,13 @@ def test_is_user_and_is_agent():
 
 
 def test_save_leaves_no_temp_file_behind(path):
-    save_roster(Roster(), path)
-    assert [p.name for p in path.parent.iterdir()] == ["auth.json"]
+    save_document(SecurityDocument(auth=Roster()), path)
+    assert [p.name for p in path.parent.iterdir()] == ["security.json"]
 
 
 def test_save_creates_the_parent_directory(tmp_path):
-    nested = tmp_path / "deep" / "auth.json"
-    save_roster(Roster(), nested)
+    nested = tmp_path / "deep" / "security.json"
+    save_document(SecurityDocument(auth=Roster()), nested)
     assert nested.exists()
 
 
@@ -129,10 +125,12 @@ def test_unknown_tier_string_refuses_to_load(path):
         json.dumps(
             {
                 "version": 1,
-                "enabled": True,
-                "principals": [{"name": "a", "kind": "user", "tier": "superuser"}],
+                "auth": {
+                    "enabled": True,
+                    "principals": [{"name": "a", "kind": "user", "tier": "superuser"}],
+                },
             }
         )
     )
-    with pytest.raises(RosterError):
-        load_roster(path)
+    with pytest.raises(SecurityError):
+        load_document(path)

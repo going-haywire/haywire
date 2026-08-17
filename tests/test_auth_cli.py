@@ -6,8 +6,8 @@ import pytest
 
 from haywire.core.access import AccessTier
 from haywire_studio.auth.operations import add_user, enable_auth
-from haywire_studio.auth.roster import load_roster
 from haywire_studio.cli import authcmd
+from haywire_studio.security.document import load_document
 
 STRONG = "Correct-Horse9"
 
@@ -22,37 +22,25 @@ def _run(argv, monkeypatch, path, username=None, password=None):
     subparsers = parser.add_subparsers()
     authcmd.register(subparsers)
     args = parser.parse_args(argv)
-    args.roster = str(path)
+    args.document = str(path)
     return args.handler(args)
 
 
 @pytest.fixture
 def path(tmp_path):
-    return tmp_path / "auth.json"
-
-
-@pytest.fixture(autouse=True)
-def _neutral_workspace(tmp_path, monkeypatch):
-    """Run from a workspace with no Farmhand token.
-
-    ``_offer_token_import`` reads ``<cwd>/.haywire/farmhand_token``, so without
-    this the suite picks up the *repo's own* token and blocks on the interactive
-    import prompt. The tests that exercise the import opt out by chdir-ing to a
-    workspace they set up themselves.
-    """
-    monkeypatch.chdir(tmp_path)
+    return tmp_path / "security.json"
 
 
 def test_enable_with_valid_admin_credentials(monkeypatch, path):
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     assert _run(["auth", "enable"], monkeypatch, path, "alice", STRONG) == 0
-    assert load_roster(path).enabled is True
+    assert load_document(path).auth.enabled is True
 
 
 def test_enable_with_wrong_password_exits_1_and_does_not_enable(monkeypatch, path):
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     assert _run(["auth", "enable"], monkeypatch, path, "alice", "Wrong-Horse9!") == 1
-    assert load_roster(path).enabled is False
+    assert load_document(path).auth.enabled is False
 
 
 def test_enable_with_no_admin_exits_1(monkeypatch, path, capsys):
@@ -64,7 +52,7 @@ def test_disable_requires_credentials(monkeypatch, path):
     add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     enable_auth("alice", STRONG, path=path)
     assert _run(["auth", "disable"], monkeypatch, path, "alice", STRONG) == 0
-    assert load_roster(path).enabled is False
+    assert load_document(path).auth.enabled is False
 
 
 def test_status_reports_disabled(monkeypatch, path, capsys):
@@ -91,53 +79,56 @@ def test_enable_refuses_while_a_studio_is_running(monkeypatch, path):
     subparsers = parser.add_subparsers()
     authcmd.register(subparsers)
     args = parser.parse_args(["auth", "enable"])
-    args.roster = str(path)
+    args.document = str(path)
 
     assert args.handler(args) == 1
-    assert load_roster(path).enabled is False
+    assert load_document(path).auth.enabled is False
 
 
-def test_enable_imports_an_existing_farmhand_token(monkeypatch, path, tmp_path, capsys):
-    from haywire_studio.auth.roster import load_roster
+def _ready_and_exposed(path, tmp_path):
+    """Auth on with an admin, TLS configured, and exposed — the one state in
+    which 'auth disable' must be refused."""
+    from haywire.core.access import AccessTier
 
-    workspace = tmp_path / "proj"
-    (workspace / ".haywire").mkdir(parents=True)
-    (workspace / ".haywire" / "farmhand_token").write_text("legacy-token-value")
+    from haywire_studio.auth.passwords import hash_password
+    from haywire_studio.security.document import (
+        NetworkPolicy,
+        SecurityDocument,
+        save_document,
+    )
+    from haywire_studio.security.operations import expose
+    from haywire_studio.security.roster import KIND_USER, Principal, Roster
 
-    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
-    monkeypatch.chdir(workspace)
-    monkeypatch.setattr(authcmd, "_confirm", lambda prompt: True)
-
-    assert _run(["auth", "enable"], monkeypatch, path, "alice", STRONG) == 0
-
-    imported = load_roster(path).find_by_token("legacy-token-value")
-    assert imported is not None
-    assert imported.is_agent
-    assert imported.tier is AccessTier.EDIT
-    assert imported.workspace == str(workspace.resolve())
-
-
-def test_enable_skips_the_import_when_declined(monkeypatch, path, tmp_path):
-    from haywire_studio.auth.roster import load_roster
-
-    workspace = tmp_path / "proj"
-    (workspace / ".haywire").mkdir(parents=True)
-    (workspace / ".haywire" / "farmhand_token").write_text("legacy-token-value")
-
-    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
-    monkeypatch.chdir(workspace)
-    monkeypatch.setattr(authcmd, "_confirm", lambda prompt: False)
-
-    assert _run(["auth", "enable"], monkeypatch, path, "alice", STRONG) == 0
-    assert load_roster(path).find_by_token("legacy-token-value") is None
+    cert, key = tmp_path / "c.pem", tmp_path / "k.pem"
+    cert.write_text("c")
+    key.write_text("k")
+    save_document(
+        SecurityDocument(
+            auth=Roster(
+                enabled=True,
+                principals=[
+                    Principal(
+                        name="root",
+                        kind=KIND_USER,
+                        tier=AccessTier.ADMIN,
+                        # STRONG, module-level — the password policy rejects weak ones
+                        # and add_user is not on this path to check it for us.
+                        password_hash=hash_password(STRONG),
+                    )
+                ],
+            ),
+            network=NetworkPolicy(tls_certfile=str(cert), tls_keyfile=str(key)),
+        ),
+        path,
+    )
+    expose(["192.168.1.0/24"], path=path)
 
 
-def test_enable_without_a_farmhand_token_asks_nothing(monkeypatch, path, tmp_path):
-    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
-    monkeypatch.chdir(tmp_path)
+def test_disable_refuses_while_exposed(path, tmp_path, monkeypatch, capsys):
+    """The exposure invariant makes 'disable auth on an exposed studio' unwritable."""
+    from haywire_studio.security.document import load_document
 
-    def _should_not_be_called(prompt):
-        raise AssertionError("no token to import — must not prompt")
-
-    monkeypatch.setattr(authcmd, "_confirm", _should_not_be_called)
-    assert _run(["auth", "enable"], monkeypatch, path, "alice", STRONG) == 0
+    _ready_and_exposed(path, tmp_path)
+    assert _run(["auth", "disable"], monkeypatch, path, username="root", password=STRONG) == 1
+    assert "haywire network seal" in capsys.readouterr().out
+    assert load_document(path).auth.enabled is True

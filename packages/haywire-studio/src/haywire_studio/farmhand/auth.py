@@ -1,70 +1,31 @@
-"""Static bearer-token auth for the Farmhand mount.
+"""How an agent connects to the Farmhand mount.
 
-Token lives gitignored at <workspace>/.haywire/farmhand_token; delete the
-file to rotate. Layered with NetworkSettings.expose_to_network (loopback
-bind by default) and the SDK's TransportSecuritySettings, gated by
-FarmhandSettings.restrict_to_loopback (host task) per spec §4.
+**There is no separate MCP credential.** `/mcp` is mounted inside the studio's
+own ASGI app, so ``AuthGateMiddleware`` (ADR 0027) already demands a roster
+bearer token on every request when authentication is on. When it is off, the
+security document's invariants guarantee the studio is loopback-only — so the
+matrix is closed: no configuration exists in which `/mcp` is reachable from
+another machine without a token.
+
+The workspace token file this module used to mint (`<ws>/.haywire/farmhand_token`)
+is gone with ADR 0028. It was a second credential with a second lifetime,
+guarding an endpoint the bind address already guarded, and its existence made
+"is /mcp protected?" a question with two answers.
 """
 
 from __future__ import annotations
 
-import json
-import secrets
-from pathlib import Path
 
-TOKEN_FILENAME = "farmhand_token"
+def connection_command(port: int, token: str | None, *, tls: bool = False) -> str:
+    """The ``claude mcp add`` line for this studio.
 
-
-def ensure_token(workspace_root: Path) -> str:
-    haywire_dir = Path(workspace_root) / ".haywire"
-    haywire_dir.mkdir(parents=True, exist_ok=True)
-
-    gitignore = haywire_dir / ".gitignore"
-    if not gitignore.exists() or TOKEN_FILENAME not in gitignore.read_text(encoding="utf-8"):
-        with gitignore.open("a", encoding="utf-8") as fh:
-            fh.write(f"{TOKEN_FILENAME}\n")
-
-    token_file = haywire_dir / TOKEN_FILENAME
-    if token_file.exists():
-        return token_file.read_text(encoding="utf-8").strip()
-    token = secrets.token_urlsafe(32)
-    token_file.write_text(token, encoding="utf-8")
-    token_file.chmod(0o600)
-    return token
-
-
-def connection_command(port: int, token: str | None) -> str:
-    base = f"claude mcp add --transport http farmhand http://127.0.0.1:{port}/mcp"
+    *token* is a roster agent's token, or ``None`` when authentication is off
+    and no header is needed. The scheme follows actual TLS, because a client
+    told ``http://`` against an HTTPS studio fails in a way that looks like the
+    server is down.
+    """
+    scheme = "https" if tls else "http"
+    base = f"claude mcp add --transport http farmhand {scheme}://127.0.0.1:{port}/mcp"
     if token is None:
         return base
     return f'{base} --header "Authorization: Bearer {token}"'
-
-
-class BearerTokenMiddleware:
-    """Pure-ASGI bearer check wrapping the Farmhand mount only."""
-
-    def __init__(self, app, token: str):
-        self.app = app
-        self.token = token
-
-    async def __call__(self, scope, receive, send):
-        if scope["type"] != "http":
-            await self.app(scope, receive, send)
-            return
-        auth = ""
-        for key, value in scope.get("headers", []):
-            if key == b"authorization":
-                auth = value.decode("latin-1")
-                break
-        if auth != f"Bearer {self.token}":
-            body = json.dumps({"error": "unauthorized"}).encode()
-            await send(
-                {
-                    "type": "http.response.start",
-                    "status": 401,
-                    "headers": [(b"content-type", b"application/json")],
-                }
-            )
-            await send({"type": "http.response.body", "body": body})
-            return
-        await self.app(scope, receive, send)

@@ -74,3 +74,13 @@ def test_status_dead_for_unused_pid(tmp_path):
     ident = write_identity(tmp_path, port=8082)
     ident["pid"] = 999999  # not a live pid
     assert identity_status(ident) == "dead"
+
+
+def test_identity_records_auth_required(tmp_path):
+    ident = write_identity(tmp_path, 8124, auth_required=True)
+    assert ident["auth_required"] is True
+    assert json.loads((tmp_path / ".haywire" / "studio.json").read_text())["auth_required"] is True
+
+
+def test_identity_defaults_auth_required_false(tmp_path):
+    assert write_identity(tmp_path, 8124)["auth_required"] is False

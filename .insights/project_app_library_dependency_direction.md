@@ -64,12 +64,15 @@ no settings panels and no `studio_*` MCP tools.
 
 ## Worked example — the cycle that existed
 
-`NetworkSettingsPanel` in
+`SecurityPanel` in
 `barn/haybale-studio/haybale_studio/panels/properties/setting/app.py` renders
-`FarmhandSettings` and `NetworkSettings` (MCP enable/auth, studio port/loopback)
-— app-owned settings, consumed by `haywire_studio/app.py` and
-`haywire_studio/farmhand/host.py`. Only a library can host a panel, so the panel
-sits in `haybale-studio` and imports up. Correct by the rule above.
+the read-only, admin-gated security posture (network/auth/TLS/Farmhand,
+ADR 0028) plus `NetworkSettings` (just `port` now) — app-owned state, consumed
+by `haywire_studio/app.py` and `haywire_studio/farmhand/host.py`. Only a
+library can host a panel, so the panel sits in `haybale-studio` and imports
+up. Correct by the rule above. (`FarmhandSettings` no longer exists — its
+fields moved into `~/.haywire/security.json`'s `farmhand` block, changed only
+via `haywire farmhand`, never rendered in a panel.)
 
 The bug was the *other* edge: `haywire-studio`'s pyproject listed
 `haybale-studio`, added in `5340fc61` to make the nine `studio_*` farmhand tools

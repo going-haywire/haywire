@@ -1,30 +1,14 @@
 """Host mechanics that need no transport: capability advertisement, tool table, error format."""
 
-from unittest.mock import patch
-
 from typing import Any, cast
 
 import pytest
 
 from haywire.core.farmhand import FarmhandError
-from haywire_studio.farmhand import host as host_module
-from haywire_studio.farmhand.auth import BearerTokenMiddleware
 from haywire_studio.farmhand.host import FarmhandHost, _FarmhandServer, _format_tool_error
-from haywire_studio.farmhand.settings import FarmhandSettings
+from haywire_studio.security.document import SecurityDocument
 
 pytestmark = pytest.mark.unit
-
-
-def test_require_auth_descriptor_default_is_true():
-    # Security-relevant default: the raw descriptor default (independent of any
-    # registry/TOML override picked up by other tests in this session) must
-    # require a bearer token unless a user explicitly opts out. Guards against
-    # silent flips of this default.
-    assert FarmhandSettings.__dict__["require_auth"]._default is True
-
-
-def test_restrict_to_loopback_descriptor_default_is_true():
-    assert FarmhandSettings.__dict__["restrict_to_loopback"]._default is True
 
 
 def test_initialization_options_advertise_tools_list_changed():
@@ -136,49 +120,36 @@ def _bare_host(tmp_path) -> FarmhandHost:
     return host
 
 
-def test_mount_wraps_with_bearer_middleware_when_require_auth(tmp_path):
+def test_mount_installs_no_bearer_middleware(tmp_path):
+    """ADR 0028: the root AuthGateMiddleware is the only credential check; mount()
+    wires the bare ASGI app straight in, with nothing wrapping it."""
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with patch.object(host_module, "FarmhandSettings") as settings_cls:
-        settings_cls.return_value.require_auth = True
-        settings_cls.return_value.restrict_to_loopback = True
-        host.mount(8082, app_target=target)
-    assert isinstance(target.mounted["/mcp"], BearerTokenMiddleware)
-
-
-def test_mount_skips_bearer_middleware_when_require_auth_false(tmp_path):
-    host = _bare_host(tmp_path)
-    target = _FakeAppTarget()
-    with patch.object(host_module, "FarmhandSettings") as settings_cls:
-        settings_cls.return_value.require_auth = False
-        settings_cls.return_value.restrict_to_loopback = True
-        host.mount(8082, app_target=target)
-    assert not isinstance(target.mounted["/mcp"], BearerTokenMiddleware)
-    # No token generated at all — nothing written under .haywire/.
+    document = SecurityDocument()
+    host.mount(8082, document, app_target=target)
+    mounted = target.mounted["/mcp"]
+    assert mounted.__class__.__name__ != "BearerTokenMiddleware"
+    assert not hasattr(mounted, "token")
+    # No token file generated at all — nothing written under .haywire/.
     assert not (tmp_path / ".haywire" / "farmhand_token").exists()
 
 
 def test_mount_disables_dns_rebinding_protection_when_loopback_unrestricted(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with patch.object(host_module, "FarmhandSettings") as settings_cls:
-        settings_cls.return_value.require_auth = True
-        settings_cls.return_value.restrict_to_loopback = False
-        host.mount(8082, app_target=target)
+    document = SecurityDocument()
+    document.farmhand.restrict_to_loopback = False
+    host.mount(8082, document, app_target=target)
     assert cast(Any, host._session_manager).security_settings.enable_dns_rebinding_protection is False
 
 
 def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
-        settings_cls.return_value.require_auth = True
-        settings_cls.return_value.restrict_to_loopback = True
-        network_cls.return_value.public_hostname = ""
-        host.mount(8082, app_target=target)
+    document = SecurityDocument()
+    document.farmhand.restrict_to_loopback = True
+    document.network.public_hostname = ""
+    host.mount(8082, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert security.enable_dns_rebinding_protection is True
     assert "127.0.0.1:8082" in security.allowed_hosts
@@ -192,14 +163,10 @@ def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
 def test_mount_extends_allowed_hosts_and_origins_with_public_hostname(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
-        settings_cls.return_value.require_auth = True
-        settings_cls.return_value.restrict_to_loopback = True
-        network_cls.return_value.public_hostname = "haywire.example.com"
-        host.mount(8082, app_target=target)
+    document = SecurityDocument()
+    document.farmhand.restrict_to_loopback = True
+    document.network.public_hostname = "haywire.example.com"
+    host.mount(8082, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     # Existing loopback entries are untouched.
     assert security.allowed_hosts[:4] == ["127.0.0.1:8082", "localhost:8082", "127.0.0.1", "localhost"]
@@ -215,14 +182,10 @@ def test_mount_extends_allowed_hosts_and_origins_with_public_hostname(tmp_path):
 def test_mount_public_hostname_with_explicit_port_not_doubled_up(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
-        settings_cls.return_value.require_auth = True
-        settings_cls.return_value.restrict_to_loopback = True
-        network_cls.return_value.public_hostname = "haywire.example.com:443"
-        host.mount(8082, app_target=target)
+    document = SecurityDocument()
+    document.farmhand.restrict_to_loopback = True
+    document.network.public_hostname = "haywire.example.com:443"
+    host.mount(8082, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert "haywire.example.com:443" in security.allowed_hosts
     # No extra port-appended duplicate since the hostname already carries one.
@@ -235,17 +198,41 @@ def test_mount_public_hostname_with_explicit_port_not_doubled_up(tmp_path):
 def test_mount_public_hostname_ignored_when_loopback_unrestricted(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
-    with (
-        patch.object(host_module, "FarmhandSettings") as settings_cls,
-        patch.object(host_module, "NetworkSettings") as network_cls,
-    ):
-        settings_cls.return_value.require_auth = True
-        settings_cls.return_value.restrict_to_loopback = False
-        network_cls.return_value.public_hostname = "haywire.example.com"
-        host.mount(8082, app_target=target)
+    document = SecurityDocument()
+    document.farmhand.restrict_to_loopback = False
+    document.network.public_hostname = "haywire.example.com"
+    host.mount(8082, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert security.enable_dns_rebinding_protection is False
     # public_hostname has no effect on this branch — DNS-rebinding protection
     # is off entirely, so there's nothing to extend.
     assert security.allowed_hosts == []
     assert security.allowed_origins == []
+
+
+def test_connection_hint_returns_plain_command_when_auth_disabled(tmp_path):
+    document = SecurityDocument()
+    document.auth.enabled = False
+    hint = FarmhandHost._connection_hint(8082, document, tls=False)
+    assert hint == "claude mcp add --transport http farmhand http://127.0.0.1:8082/mcp"
+
+
+def test_connection_hint_names_first_agent_token_when_auth_enabled(tmp_path):
+    from haywire.core.access import AccessTier
+    from haywire_studio.security.roster import Principal
+
+    document = SecurityDocument()
+    document.auth.enabled = True
+    document.auth.principals.append(Principal(name="alice", kind="user", tier=AccessTier.ADMIN))
+    document.auth.principals.append(
+        Principal(name="bot", kind="agent", tier=AccessTier.EDIT, token="agenttoken")
+    )
+    hint = FarmhandHost._connection_hint(8082, document, tls=False)
+    assert "agenttoken" in hint
+
+
+def test_connection_hint_explains_missing_agent_when_auth_enabled(tmp_path):
+    document = SecurityDocument()
+    document.auth.enabled = True
+    hint = FarmhandHost._connection_hint(8082, document, tls=False)
+    assert "no agent principal exists" in hint

@@ -17,19 +17,17 @@ import argparse
 import getpass
 from pathlib import Path
 
-from haywire.core.access import AccessTier
-
 from haywire_studio.auth.operations import disable_auth, enable_auth
-from haywire_studio.auth.roster import Principal, RosterError, save_roster
 from haywire_studio.cli._guards import studio_is_running
+from haywire_studio.security.errors import SecurityError
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:
     parser = subparsers.add_parser("auth", help="Enable or disable studio authentication")
     parser.add_argument(
-        "--roster",
+        "--document",
         default=None,
-        help="Roster file to operate on (default: ~/.haywire/auth.json). Mainly for testing.",
+        help="Security document to operate on (default: ~/.haywire/security.json). Mainly for testing.",
     )
     actions = parser.add_subparsers(dest="auth_command", required=True)
 
@@ -43,8 +41,8 @@ def register(subparsers: argparse._SubParsersAction) -> None:
     status.set_defaults(handler=_status)
 
 
-def _roster_path(args: argparse.Namespace) -> Path | None:
-    raw = getattr(args, "roster", None)
+def _document_path(args: argparse.Namespace) -> Path | None:
+    raw = getattr(args, "document", None)
     return Path(raw) if raw else None
 
 
@@ -81,65 +79,14 @@ def _guard_running_studio() -> bool:
     return False
 
 
-def _offer_token_import(roster_path_arg: Path | None) -> None:
-    """Offer to bring this workspace's existing Farmhand token into the roster.
-
-    With authentication off, the token lives in ``<workspace>/.haywire/farmhand_token``
-    and the gate is not involved. Once on, the roster is authoritative — so an
-    agent configured before the flip would stop working with no obvious cause.
-    Imported at EDIT and scoped to this workspace, matching the blast radius the
-    token already had.
-    """
-    from haywire_studio.auth.roster import KIND_AGENT, load_roster
-
-    workspace = Path.cwd().resolve()
-    token_file = workspace / ".haywire" / "farmhand_token"
-    if not token_file.exists():
-        return
-
-    token = token_file.read_text(encoding="utf-8").strip()
-    if not token:
-        return
-
-    roster = load_roster(roster_path_arg)
-    if roster.find_by_token(token) is not None:
-        return
-
-    print(f"\nThis workspace has a Farmhand token at {token_file}.")
-    print("Agents using it will stop working once authentication is on unless it")
-    print("becomes a roster principal.")
-    if not _confirm("Import it as an 'edit' agent principal scoped to this workspace?"):
-        print("Skipped. Create one later with: haywire user add <name> --agent --tier edit")
-        return
-
-    name = f"farmhand-{workspace.name}"
-    suffix = 2
-    while roster.find(name) is not None:
-        name = f"farmhand-{workspace.name}-{suffix}"
-        suffix += 1
-
-    roster.principals.append(
-        Principal(
-            name=name,
-            kind=KIND_AGENT,
-            tier=AccessTier.EDIT,
-            token=token,
-            workspace=str(workspace),
-        )
-    )
-    save_roster(roster, roster_path_arg)
-    print(f"Imported as agent principal {name!r} (edit, scoped to {workspace}).")
-
-
 def _enable(args: argparse.Namespace) -> int:
     if _guard_running_studio():
         return 1
-    roster_path_arg = _roster_path(args)
+    document_path_arg = _document_path(args)
     try:
         username, password = _prompt_username(), _prompt_password()
-        _offer_token_import(roster_path_arg)
-        enable_auth(username, password, path=roster_path_arg)
-    except RosterError as exc:
+        enable_auth(username, password, path=document_path_arg)
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
         return 1
     print("Authentication enabled. Start the studio and sign in at /login.")
@@ -150,9 +97,11 @@ def _disable(args: argparse.Namespace) -> int:
     if _guard_running_studio():
         return 1
     try:
-        disable_auth(_prompt_username(), _prompt_password(), path=_roster_path(args))
-    except RosterError as exc:
+        disable_auth(_prompt_username(), _prompt_password(), path=_document_path(args))
+    except SecurityError as exc:
         print(f"ERROR: {exc}")
+        if "exposed" in str(exc):
+            print("  Run 'haywire network seal' first.")
         return 1
     print("Authentication disabled. Everyone who can reach the studio is now a full operator.")
     return 0
@@ -167,11 +116,11 @@ def _status(args: argparse.Namespace) -> int:
     with unusable authentication is precisely when that warning matters most,
     so no failure may sit between reading the roster and printing it.
     """
-    from haywire_studio.network.security import assess
+    from haywire_studio.security.posture import assess
 
-    posture = assess(roster_path=_roster_path(args))
+    posture = assess(path=_document_path(args))
 
-    if posture.roster_error:
+    if posture.document_error:
         # Headline only — the detail arrives below as a CRITICAL finding, with
         # a fix command attached. Printing the parse error twice would read as
         # two unrelated problems.
@@ -185,7 +134,7 @@ def _status(args: argparse.Namespace) -> int:
         )
 
     _print_findings(posture)
-    return 1 if posture.roster_error else 0
+    return 1 if posture.document_error else 0
 
 
 def _print_findings(posture) -> None:
@@ -202,7 +151,7 @@ def _print_findings(posture) -> None:
     Suppressing a CRITICAL because of an unrelated condition is the false
     negative this whole feature is built to avoid.
     """
-    from haywire_studio.network.security import Severity
+    from haywire_studio.security.posture import Severity
 
     relevant = [f for f in posture.findings if f.severity is Severity.CRITICAL]
     if not relevant:

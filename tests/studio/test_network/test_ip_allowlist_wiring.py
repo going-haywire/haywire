@@ -1,56 +1,57 @@
 """HaywireApp._install_ip_allowlist: wiring IPAllowlistMiddleware into the
-root ASGI app (Task 2b).
+root ASGI app (Task 2b; signature updated to take a NetworkPolicy in Task 5).
 
 Covers:
-  - middleware only installed when expose_to_network is on
+  - middleware only installed when the document says exposed
   - invalid CIDR at startup refuses to start (SystemExit), not a silent skip
-  - proxy warning fires only when expose_to_network is on and trusted_proxies
-    is empty
+  - proxy warning fires only when exposed and trusted_proxies is empty
 """
 
 from __future__ import annotations
 
-from types import SimpleNamespace
 from unittest.mock import patch
 
 import pytest
 
 from haywire_studio.app import HaywireApp
 from haywire_studio.network.ip_filter import IPAllowlistMiddleware
+from haywire_studio.security.document import SecurityDocument, NetworkPolicy
 
 pytestmark = pytest.mark.unit
 
 
-def _settings(
+def _network(
     *,
-    expose_to_network: bool = True,
-    allowed_remote_ranges: str = "",
-    trusted_proxies: str = "",
-    port: int = 8124,
-    ssl_certfile: str = "",
-    ssl_keyfile: str = "",
-):
-    return SimpleNamespace(
-        port=port,
-        expose_to_network=expose_to_network,
-        allowed_remote_ranges=allowed_remote_ranges,
+    exposed: bool = True,
+    allowed_ranges: tuple[str, ...] = (),
+    trusted_proxies: tuple[str, ...] = (),
+    tls_certfile: str = "",
+    tls_keyfile: str = "",
+) -> NetworkPolicy:
+    return NetworkPolicy(
+        exposed=exposed,
+        allowed_ranges=allowed_ranges,
         trusted_proxies=trusted_proxies,
-        ssl_certfile=ssl_certfile,
-        ssl_keyfile=ssl_keyfile,
+        tls_certfile=tls_certfile,
+        tls_keyfile=tls_keyfile,
     )
 
 
-# --- installed only when expose_to_network is on --------------------------
+def _document(network: NetworkPolicy) -> SecurityDocument:
+    return SecurityDocument(network=network)
+
+
+# --- installed only when the document says exposed --------------------------
 
 
 def test_install_ip_allowlist_calls_add_middleware_with_parsed_ranges():
-    settings = _settings(
-        allowed_remote_ranges="192.168.1.0/24, 10.0.0.0/8",
-        trusted_proxies="172.16.0.0/12",
+    network = _network(
+        allowed_ranges=("192.168.1.0/24", "10.0.0.0/8"),
+        trusted_proxies=("172.16.0.0/12",),
     )
 
     with patch("haywire_studio.app.app") as mock_app:
-        HaywireApp._install_ip_allowlist(settings)
+        HaywireApp._install_ip_allowlist(network)
 
     mock_app.add_middleware.assert_called_once_with(
         IPAllowlistMiddleware,
@@ -59,26 +60,27 @@ def test_install_ip_allowlist_calls_add_middleware_with_parsed_ranges():
     )
 
 
-def test_run_installs_middleware_only_when_expose_to_network_true(monkeypatch):
+def test_run_installs_middleware_only_when_exposed_true(monkeypatch):
     """Drive through run() itself (not just the helper) so the conditional
     gate in run() is exercised, not only _install_ip_allowlist's own logic."""
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True  # skip cleanup() path
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
-    monkeypatch.setattr(instance, "_install_auth", lambda: False)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda document: False)
+    monkeypatch.setattr(instance, "_load_security_document", lambda: _document(_network(exposed=True)))
 
     install_calls = []
     monkeypatch.setattr(
-        HaywireApp, "_install_ip_allowlist", staticmethod(lambda settings: install_calls.append(settings))
+        HaywireApp, "_install_ip_allowlist", staticmethod(lambda network: install_calls.append(network))
     )
 
     with (
         patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
         patch("haywire_studio.app.ui") as mock_ui,
     ):
-        MockSettings.return_value = _settings(expose_to_network=True)
+        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert len(install_calls) == 1
@@ -86,24 +88,25 @@ def test_run_installs_middleware_only_when_expose_to_network_true(monkeypatch):
     assert mock_ui.run.call_args.kwargs["host"] == "0.0.0.0"
 
 
-def test_run_skips_middleware_install_when_expose_to_network_false(monkeypatch):
+def test_run_skips_middleware_install_when_exposed_false(monkeypatch):
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
-    monkeypatch.setattr(instance, "_install_auth", lambda: False)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda document: False)
+    monkeypatch.setattr(instance, "_load_security_document", lambda: _document(_network(exposed=False)))
 
     install_calls = []
     monkeypatch.setattr(
-        HaywireApp, "_install_ip_allowlist", staticmethod(lambda settings: install_calls.append(settings))
+        HaywireApp, "_install_ip_allowlist", staticmethod(lambda network: install_calls.append(network))
     )
 
     with (
         patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
         patch("haywire_studio.app.ui") as mock_ui,
     ):
-        MockSettings.return_value = _settings(expose_to_network=False)
+        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert install_calls == []
@@ -115,11 +118,11 @@ def test_run_skips_middleware_install_when_expose_to_network_false(monkeypatch):
 
 
 def test_invalid_cidr_in_allowed_ranges_raises_system_exit(capsys):
-    settings = _settings(allowed_remote_ranges="not-a-cidr")
+    network = _network(allowed_ranges=("not-a-cidr",))
 
     with patch("haywire_studio.app.app") as mock_app:
         with pytest.raises(SystemExit) as exc_info:
-            HaywireApp._install_ip_allowlist(settings)
+            HaywireApp._install_ip_allowlist(network)
         # Must never install a middleware after a failed validation — that
         # would be a fail-open bug even if the exception below made the
         # error visible.
@@ -132,22 +135,22 @@ def test_invalid_cidr_in_allowed_ranges_raises_system_exit(capsys):
 
 
 def test_invalid_cidr_in_trusted_proxies_raises_system_exit():
-    settings = _settings(trusted_proxies="also-not-a-cidr")
+    network = _network(trusted_proxies=("also-not-a-cidr",))
 
     with patch("haywire_studio.app.app") as mock_app:
         with pytest.raises(SystemExit):
-            HaywireApp._install_ip_allowlist(settings)
+            HaywireApp._install_ip_allowlist(network)
         mock_app.add_middleware.assert_not_called()
 
 
 def test_invalid_cidr_does_not_raise_raw_value_error():
     """The ValueError from the constructor must be caught and converted —
     never surface as a raw, unhandled traceback to the operator."""
-    settings = _settings(allowed_remote_ranges="not-a-cidr")
+    network = _network(allowed_ranges=("not-a-cidr",))
 
     with patch("haywire_studio.app.app"):
         try:
-            HaywireApp._install_ip_allowlist(settings)
+            HaywireApp._install_ip_allowlist(network)
             pytest.fail("expected SystemExit")
         except SystemExit:
             pass
@@ -159,33 +162,38 @@ def test_invalid_cidr_does_not_raise_raw_value_error():
 
 
 def test_proxy_warning_fires_when_trusted_proxies_empty(caplog):
-    settings = _settings(trusted_proxies="")
+    network = _network(trusted_proxies=())
 
     with patch("haywire_studio.app.app"), caplog.at_level("WARNING", logger="haywire_studio.app"):
-        HaywireApp._install_ip_allowlist(settings)
+        HaywireApp._install_ip_allowlist(network)
 
     assert any("trusted_proxies is empty" in record.message for record in caplog.records)
     assert any("X-Forwarded-For" in record.message for record in caplog.records)
 
 
 def test_no_proxy_warning_when_trusted_proxies_set(caplog):
-    settings = _settings(trusted_proxies="172.16.0.0/12")
+    network = _network(trusted_proxies=("172.16.0.0/12",))
 
     with patch("haywire_studio.app.app"), caplog.at_level("WARNING", logger="haywire_studio.app"):
-        HaywireApp._install_ip_allowlist(settings)
+        HaywireApp._install_ip_allowlist(network)
 
     assert not any("trusted_proxies is empty" in record.message for record in caplog.records)
 
 
-def test_proxy_warning_does_not_fire_when_expose_to_network_false(monkeypatch, caplog):
+def test_proxy_warning_does_not_fire_when_exposed_false(monkeypatch, caplog):
     """The warning lives inside _install_ip_allowlist, which run() only calls
-    when expose_to_network is True — assert that gating from run()'s side."""
+    when the document says exposed — assert that gating from run()'s side."""
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True
 
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
-    monkeypatch.setattr(instance, "_install_auth", lambda: False)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda document: False)
+    monkeypatch.setattr(
+        instance,
+        "_load_security_document",
+        lambda: _document(_network(exposed=False, trusted_proxies=())),
+    )
 
     with (
         patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
@@ -193,7 +201,7 @@ def test_proxy_warning_does_not_fire_when_expose_to_network_false(monkeypatch, c
         patch("haywire_studio.app.app"),
         caplog.at_level("WARNING", logger="haywire_studio.app"),
     ):
-        MockSettings.return_value = _settings(expose_to_network=False, trusted_proxies="")
+        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert not any("trusted_proxies is empty" in record.message for record in caplog.records)

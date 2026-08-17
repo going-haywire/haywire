@@ -18,9 +18,10 @@ import ipaddress
 import pytest
 
 from haywire_studio.network.ip_filter import IPAllowlistMiddleware
-from haywire_studio.network.security import Posture
-from haywire_studio.network.tls_operations import TlsState, TlsStatus
 from haywire_studio.network.names import LocalNames
+from haywire_studio.network.tls_operations import TlsState, TlsStatus
+from haywire_studio.security.document import NetworkPolicy, SecurityDocument
+from haywire_studio.security.posture import Posture, assess_document
 
 pytestmark = pytest.mark.unit
 
@@ -38,17 +39,13 @@ def _posture(ranges: str, *, exposed: bool = True, reachable_at: str | None = "1
         fingerprint=None,
         detail="",
     )
-    return Posture(
-        exposed=exposed,
-        reachable_at=reachable_at,
-        auth_enabled=False,
-        principals=0,
-        admins=0,
-        tls=tls,
-        allowed_ranges=ranges,
-        trusted_proxies="",
-        findings=(),
+    doc = SecurityDocument(
+        network=NetworkPolicy(
+            exposed=exposed,
+            allowed_ranges=tuple(e.strip() for e in ranges.split(",") if e.strip()),
+        )
     )
+    return assess_document(doc, tls)
 
 
 def _middleware_allows(ranges: str, peer: str) -> bool:

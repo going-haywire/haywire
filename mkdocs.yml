@@ -7,8 +7,13 @@ site_url: https://going-haywire.github.io/haywire/docs/
 docs_dir: docs
 
 # Exclude migration audit tables from the rendered site (they reference deleted
-# archive paths and are interesting only as historical record).
+# archive paths and are interesting only as historical record). Also exclude
+# superpowers/plans/: working implementation plans, never wired into nav:, that
+# link into packages/ and .insights/ with paths relative to their own location
+# rather than docs_dir — those links break mkdocs --strict without meaning
+# anything was actually broken in the published site.
 exclude_docs: |
+  superpowers/plans/
 
 
 # Material for MkDocs theme.
@@ -118,7 +123,7 @@ nav:
       - Sharing libraries: guides/sharing-libraries.md
       - Publishing to PyPI: guides/publish-to-pypi.md
       - Subscribing to marketplaces: guides/subscribing-to-marketplaces.md
-      - Network configuration: guides/network_config.md
+      - Security: guides/security.md
 
   - Architecture:
       - Overview: architecture/overview/overview-arch.md

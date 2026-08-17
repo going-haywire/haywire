@@ -1,11 +1,19 @@
 ---
 name: studio-network-exposure
 description: The studio defaults to loopback-only; opening it to the network layers a bind-address switch, a pure-ASGI peer-IP allowlist, and jedi path confinement — each closing a distinct hole the others don't
-status: accepted
+status: superseded-in-part
 level: architectural
 ---
 
 # Studio network exposure
+
+> **Superseded in part by [ADR 0028](0028-security-document.md).** The layered
+> model below — pure-ASGI filtering, `X-Forwarded-For` resolution, loopback's
+> exemption from the allowlist, jedi path confinement — is unchanged and still
+> current. What moved is *where the controls live*: `NetworkSettings` no longer
+> carries `expose_to_network`, `allowed_remote_ranges`, `public_hostname`,
+> `trusted_proxies`, `ssl_certfile` or `ssl_keyfile`. Read every mention of
+> those as fields of `~/.haywire/security.json`.
 
 `ui.run()` in `HaywireApp.run()` used to pass no `host`, so NiceGUI bound
 `0.0.0.0` — the studio was reachable from the LAN with no socket-level guard

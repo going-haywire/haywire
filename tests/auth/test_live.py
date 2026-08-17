@@ -5,7 +5,6 @@ import pytest
 from haywire.core.access import AccessTier, access_resolver, resolve_tier, set_access_resolver
 from haywire_studio.auth.live import RosterCache, install_resolver
 from haywire_studio.auth.operations import add_agent, add_user, enable_auth, set_tier
-from haywire_studio.auth.roster import Roster, save_roster
 
 STRONG = "Correct-Horse9"
 
@@ -19,7 +18,7 @@ def _restore_resolver():
 
 @pytest.fixture
 def path(tmp_path):
-    return tmp_path / "auth.json"
+    return tmp_path / "security.json"
 
 
 def test_cache_returns_the_roster(path):
@@ -50,7 +49,7 @@ def test_cache_does_not_reparse_when_unchanged(path, monkeypatch):
     def _boom(_p):
         raise AssertionError("should not re-parse an unchanged roster")
 
-    monkeypatch.setattr(live, "load_roster", _boom)
+    monkeypatch.setattr(live, "load_document", _boom)
     assert cache.roster().find("alice") is not None
 
 
@@ -67,13 +66,15 @@ def test_resolver_answers_the_principals_tier(path):
 
 
 def test_resolver_denies_an_unknown_principal_to_view(path):
-    save_roster(Roster(enabled=True), path)
+    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
+    enable_auth("alice", STRONG, path=path)
     install_resolver(RosterCache(path))
     assert resolve_tier("ghost") is AccessTier.VIEW
 
 
 def test_resolver_denies_none_principal_to_view_when_auth_is_on(path):
-    save_roster(Roster(enabled=True), path)
+    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
+    enable_auth("alice", STRONG, path=path)
     install_resolver(RosterCache(path))
     assert resolve_tier(None) is AccessTier.VIEW
 
@@ -97,9 +98,8 @@ def test_demotion_is_visible_to_the_resolver_without_reinstalling(path):
 
 
 def test_agents_resolve_like_users(path):
+    add_user("alice", STRONG, AccessTier.ADMIN, path=path)
     add_agent("builder", AccessTier.EDIT, path=path)
-    save_roster_enabled = RosterCache(path).roster()
-    save_roster_enabled.enabled = True
-    save_roster(save_roster_enabled, path)
+    enable_auth("alice", STRONG, path=path)
     install_resolver(RosterCache(path))
     assert resolve_tier("builder") is AccessTier.EDIT

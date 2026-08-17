@@ -1,4 +1,4 @@
-"""``haywire security`` — the three defence axes in one answer.
+"""``haywire security`` — the four defence axes in one answer.
 
 ``auth status`` and ``ssl status`` each report one axis correctly and neither
 can report the thing that actually matters, which is the *combination*:
@@ -23,8 +23,8 @@ import argparse
 from pathlib import Path
 
 from haywire_studio.cli._guards import studio_is_running
-from haywire_studio.network.security import Finding, Posture, Severity, assess
 from haywire_studio.network.tls_operations import TlsState
+from haywire_studio.security.posture import Finding, Posture, Severity, assess
 
 _MARKERS = {
     Severity.CRITICAL: "CRITICAL",
@@ -34,11 +34,13 @@ _MARKERS = {
 
 
 def register(subparsers: argparse._SubParsersAction) -> None:
-    parser = subparsers.add_parser("security", help="Show exposure, authentication and TLS together")
+    parser = subparsers.add_parser(
+        "security", help="Show exposure, authentication, TLS and Farmhand together"
+    )
     parser.add_argument(
-        "--roster",
+        "--document",
         default=None,
-        help="Roster file to read (default: ~/.haywire/auth.json). Mainly for testing.",
+        help="Security document to read (default: ~/.haywire/security.json). Mainly for testing.",
     )
     parser.add_argument(
         "--dir",
@@ -68,7 +70,7 @@ def _status(args: argparse.Namespace) -> int:
     considers a NOTE a failure, and would make it useless in a shell that stops
     on error. The severity markers carry the judgement.
     """
-    posture = assess(directory=_path(args, "dir"), roster_path=_path(args, "roster"))
+    posture = assess(directory=_path(args, "dir"), path=_path(args, "document"))
     _print_posture(posture, running=_studio_is_running())
     return 0
 
@@ -91,7 +93,7 @@ def _print_posture(posture: Posture, *, running: bool) -> None:
 
 
 def _print_axes(posture: Posture) -> None:
-    """The verdict first, then the three axes as facts behind it."""
+    """The verdict first, then the four axes as facts behind it."""
     print("-" * 60)
     print(f" Security status: {_general_assesment(posture)}")
     print("-" * 60)
@@ -99,6 +101,15 @@ def _print_axes(posture: Posture) -> None:
     print(f"  Network:  {_network_line(posture)}")
     print(f"  Auth:     {_auth_line(posture)}")
     print(f"  TLS:      {_tls_line(posture)}")
+    print(f"  Farmhand: {_farmhand_line(posture)}")
+
+
+def _farmhand_line(posture: Posture) -> str:
+    if not posture.farmhand_enabled:
+        return "disabled — /mcp is not served"
+    hosts = "loopback only" if posture.farmhand_loopback else "ANY host (rebinding check off)"
+    token = "roster token required" if posture.auth_enabled else "no token (studio is loopback-only)"
+    return f"enabled at /mcp — {hosts}, {token}"
 
 
 def _general_assesment(posture: Posture) -> str:
@@ -110,7 +121,7 @@ def _general_assesment(posture: Posture) -> str:
     exposure, "hardened" is fine because the exposure is defended, and a user
     deciding whether to expose the studio needs to know which one they have.
     """
-    if posture.roster_error:
+    if posture.document_error:
         return "UNKNOWN — the roster could not be read"
 
     worst = posture.worst
@@ -149,7 +160,7 @@ def _network_line(posture: Posture) -> str:
 
 
 def _auth_line(posture: Posture) -> str:
-    if posture.roster_error:
+    if posture.document_error:
         return "UNREADABLE — the roster could not be parsed"
     if not posture.auth_enabled:
         if not posture.reachable_by_others:
@@ -211,6 +222,7 @@ def _clean_verdict(posture: Posture) -> str:
         return (
             f"Nothing to fix. The studio is {reason}, so there is no network\n"
             "exposure to defend against.\n\n"
-            "Before opening it up, run:  haywire auth enable  and  haywire ssl setup"
+            "Before opening it up, run:  haywire auth enable  and  haywire ssl setup\n"
+            "Then:  haywire network expose --ranges <your subnet>"
         )
     return "Nothing to fix. The studio is exposed, but requires a login and serves HTTPS."

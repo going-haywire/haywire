@@ -34,9 +34,7 @@ from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, Farm
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
 
-from ..network.settings import NetworkSettings
-from .auth import BearerTokenMiddleware, connection_command, ensure_token
-from .settings import FarmhandSettings
+from .auth import connection_command
 
 logger = logging.getLogger(__name__)
 
@@ -332,17 +330,22 @@ class FarmhandHost:
 
     # -- mount + lifespan ----------------------------------------------
 
-    def mount(self, port: int, app_target: Any = None, *, tls: bool = False) -> None:
-        target = app_target if app_target is not None else nicegui_app
-        require_auth = FarmhandSettings().require_auth
-        token = ensure_token(Path(self._workspace_root)) if require_auth else None
+    def mount(self, port: int, document, app_target: Any = None, *, tls: bool = False) -> None:
+        """Mount /mcp on the studio app.
 
-        if FarmhandSettings().restrict_to_loopback:
+        No bearer middleware of its own: the root ``AuthGateMiddleware`` covers
+        this mount, and a second token check beneath it would be a settings flag
+        acting as a security control — the exact shape ADR 0027 set out to avoid.
+        """
+        target = app_target if app_target is not None else nicegui_app
+        policy = document.farmhand
+
+        if policy.restrict_to_loopback:
             allowed_hosts = [f"127.0.0.1:{port}", f"localhost:{port}", "127.0.0.1", "localhost"]
             scheme = _origin_scheme(tls=tls)
             allowed_origins = [f"{scheme}://127.0.0.1:{port}", f"{scheme}://localhost:{port}"]
 
-            public_hostname = NetworkSettings().public_hostname
+            public_hostname = document.network.public_hostname
             if public_hostname:
                 allowed_hosts.append(public_hostname)
                 if ":" not in public_hostname:
@@ -362,17 +365,36 @@ class FarmhandHost:
             assert self._session_manager is not None
             await self._session_manager.handle_request(scope, receive, send)
 
-        mounted = BearerTokenMiddleware(asgi, token) if token is not None else asgi
-        target.mount("/mcp", mounted)
+        target.mount("/mcp", asgi)
         # The NiceGUI app drives the runner via its own lifespan hooks; a test
         # harness (FastAPI app_target) drives _on_startup/_on_shutdown itself.
         if target is nicegui_app:
             nicegui_app.on_startup(self._on_startup)
             nicegui_app.on_shutdown(self._on_shutdown)
 
-        hint = connection_command(port, token)
+        hint = self._connection_hint(port, document, tls=tls)
         logger.info(f"Farmhand MCP server will serve at /mcp — connect with:\n  {hint}")
         print(f"🤝 Farmhand: {hint}")
+
+    @staticmethod
+    def _connection_hint(port: int, document, *, tls: bool) -> str:
+        """The connect line, naming a real agent token when one exists.
+
+        With authentication on, printing a header-less command would hand the
+        operator something that returns 401. Printing the *first* agent
+        principal's token is right far more often than not — most studios have
+        exactly one — and when there is none, saying so beats a command that
+        cannot work.
+        """
+        if not document.auth.enabled:
+            return connection_command(port, None, tls=tls)
+        agents = [p for p in document.auth.principals if p.is_agent]
+        if not agents:
+            return (
+                "authentication is on but no agent principal exists — create one with:\n"
+                "  haywire user add <name> --agent --tier edit"
+            )
+        return connection_command(port, agents[0].token, tls=tls)
 
     async def _runner_main(self) -> None:
         assert self._session_manager is not None and self._started is not None and self._stop is not None

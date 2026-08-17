@@ -82,27 +82,20 @@ def test_run_app_defaults_open_browser_true():
 
 def test_haywire_app_run_threads_open_browser_to_ui_run_show(monkeypatch):
     from haywire_studio.app import HaywireApp
+    from haywire_studio.security.document import SecurityDocument
 
     instance = HaywireApp.__new__(HaywireApp)
     instance._is_shutting_down = True
     monkeypatch.setattr(instance, "create_ui", lambda: None)
-    monkeypatch.setattr(instance, "setup_farmhand", lambda port, *, tls=False: None)
-    monkeypatch.setattr(instance, "_install_auth", lambda: False)
+    monkeypatch.setattr(instance, "setup_farmhand", lambda port, document, *, tls=False: None)
+    monkeypatch.setattr(instance, "_install_auth", lambda document: False)
+    monkeypatch.setattr(instance, "_load_security_document", lambda: SecurityDocument())
 
     with (
         patch("haywire_studio.network.settings.NetworkSettings") as MockSettings,
         patch("haywire_studio.app.ui") as mock_ui,
     ):
-        from types import SimpleNamespace
-
-        MockSettings.return_value = SimpleNamespace(
-            port=8124,
-            expose_to_network=False,
-            allowed_remote_ranges="",
-            trusted_proxies="",
-            ssl_certfile="",
-            ssl_keyfile="",
-        )
+        MockSettings.return_value.port = 8124
         instance.run(open_browser=False)
 
     assert mock_ui.run.call_args.kwargs["show"] is False
