@@ -12,6 +12,7 @@ from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
+from haywire.ui.modals import confirm_modal
 from haywire_studio.auth.operations import (
     add_agent,
     add_user,
@@ -25,7 +26,7 @@ from nicegui import ui
 
 
 @editor(
-    label="Principals",
+    label="Accounts",
     icon="manage_accounts",
     default_slot="edit",
     opens="on_context",
@@ -44,6 +45,8 @@ class RosterEditor(BaseEditor):
 
     # -- table ----------------------------------------------------------
 
+    _GRID_COLUMNS = "grid-cols-[24px_1fr_8rem_auto_auto]"
+
     def _draw_roster(self) -> None:
         try:
             document = load_document()
@@ -59,32 +62,57 @@ class RosterEditor(BaseEditor):
                 "hw-text-muted text-xs"
             )
 
-        for principal in roster.principals:
-            self._draw_row(principal)
+        with ui.column().classes("w-full gap-0 hw-panel"):
+            self._draw_header_row()
+            for principal in roster.principals:
+                self._draw_row(principal, roster)
 
-    def _draw_row(self, principal) -> None:
-        with ui.row().classes("w-full items-center gap-2 hw-panel p-2"):
+    def _draw_header_row(self) -> None:
+        with ui.row().classes(f"grid {self._GRID_COLUMNS} w-full items-center gap-2 px-2 py-1"):
+            ui.label()
+            ui.label("Name").classes("text-xs hw-text-dim")
+            ui.label("Tier").classes("text-xs hw-text-dim")
+            ui.label()
+            ui.label()
+
+    def _draw_row(self, principal, roster) -> None:
+        is_last_admin = principal.tier is AccessTier.ADMIN and len(roster.admins()) <= 1
+
+        with ui.row().classes(
+            f"grid {self._GRID_COLUMNS} w-full items-center gap-2 px-2 py-1 hw-list-item-hover"
+        ):
             ui.icon("smart_toy" if principal.is_agent else "person")
-            ui.label(principal.name).classes("font-medium")
+            ui.label(principal.name).classes("font-medium truncate")
 
             tier_select = ui.select([tier.value for tier in AccessTier], value=principal.tier.value).props(
                 "dense outlined"
             )
             tier_select.on(
                 "update:modelValue",
-                lambda event, name=principal.name: self._set_tier(name, event.args),
+                lambda event, name=principal.name, select=tier_select: self._set_tier(name, select.value),
             )
 
             if principal.is_agent:
-                hui.code_snippet(principal.token)
+                hui.icon_action(
+                    "content_copy",
+                    tooltip="Copy token",
+                    on_click=lambda token=principal.token: hui.perform_copy(token),
+                )
             else:
-                ui.button(icon="key", on_click=lambda name=principal.name: self._ask_password(name)).props(
-                    "flat dense round"
-                ).tooltip("Set password")
+                hui.icon_action(
+                    "key",
+                    tooltip="Set password",
+                    on_click=lambda name=principal.name: self._ask_password(name),
+                )
 
-            ui.button(icon="delete", on_click=lambda name=principal.name: self._remove(name)).props(
-                "flat dense round"
-            ).tooltip("Remove")
+            delete_button = ui.button(
+                icon="delete", on_click=lambda name=principal.name: self._confirm_remove(name)
+            ).props("flat dense round")
+            if is_last_admin:
+                delete_button.props("disable")
+                delete_button.tooltip("Last admin — add another admin before removing this one")
+            else:
+                delete_button.tooltip("Remove")
 
     # -- mutations ------------------------------------------------------
 
@@ -96,6 +124,15 @@ class RosterEditor(BaseEditor):
             return
         ui.notify(f"{name} is now {value}")
         self.wrapper.redraw()
+
+    def _confirm_remove(self, name: str) -> None:
+        confirm_modal(
+            title="Remove principal",
+            message=f"Remove {name!r}? This immediately ends any of their live sessions.",
+            confirm_label="Remove",
+            danger=True,
+            on_confirm=lambda: self._remove(name),
+        )
 
     def _remove(self, name: str) -> None:
         """Remove a principal and evict their live sessions immediately.
@@ -119,7 +156,11 @@ class RosterEditor(BaseEditor):
 
     def _ask_password(self, name: str) -> None:
         with ui.dialog() as dialog, hui.dialog_card():
-            field = ui.input("New password", password=True).classes("w-full")
+            field = (
+                ui.input("New password", password=True)
+                .classes("w-full")
+                .props('autocomplete="new-password"')
+            )
             hui.dialog_actions(
                 on_confirm=lambda: self._set_password(dialog, name, field.value),
                 on_cancel=dialog.close,
@@ -139,17 +180,24 @@ class RosterEditor(BaseEditor):
 
     def _draw_add_form(self) -> None:
         hui.section_label("Add a principal")
-        with ui.row().classes("w-full items-end gap-2"):
-            name = ui.input("Name").props("dense outlined")
-            tier = ui.select([t.value for t in AccessTier], value=AccessTier.VIEW.value).props(
-                "dense outlined"
+        with ui.row().classes("w-full items-end gap-2 flex-wrap"):
+            kind = ui.select(["user", "agent"], value="user").classes("min-w-[6rem]").props("dense outlined")
+            tier = (
+                ui.select([t.value for t in AccessTier], value=AccessTier.VIEW.value)
+                .classes("min-w-[6rem]")
+                .props("dense outlined")
             )
-            kind = ui.select(["user", "agent"], value="user").props("dense outlined")
-            password = ui.input("Password", password=True).props("dense outlined")
+            name = ui.input("Name").classes("min-w-[8rem] flex-1").props('dense outlined autocomplete="off"')
+            password = (
+                ui.input("Password", password=True)
+                .classes("min-w-[8rem] flex-1")
+                .props('dense outlined autocomplete="new-password"')
+            )
+            password.bind_visibility_from(kind, "value", lambda value: value != "agent")
             ui.button(
-                "Add",
                 on_click=lambda: self._add(name.value, kind.value, tier.value, password.value),
-            ).props("flat dense")
+                icon="add",
+            ).classes("flex-shrink-0").props("flat dense")
 
     def _add(self, name: str, kind: str, tier: str, password: str) -> None:
         try:

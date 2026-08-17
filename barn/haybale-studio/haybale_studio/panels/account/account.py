@@ -57,9 +57,9 @@ class OpenRosterPanel(BasePanel):
 
         with layout:
             hui.button(
-                "Manage principals",
+                "Manage accounts",
                 icon="manage_accounts",
-                on_click=lambda: self.actions.reveal(RosterEditor, None, "Principals"),
+                on_click=lambda: self.actions.reveal(RosterEditor, None, RosterEditor.class_identity.label),
             )
 
 

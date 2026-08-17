@@ -9,10 +9,15 @@ see-also:
   - ../reference/glossary.md
 ---
 
-# Security
+# You are safe ... but
 
-Whoever can reach the studio can execute arbitrary Python through the graph
-editor. This guide covers everything that decides *who that is* and *what
+If you are running the studio without any special configuration described in this guide means: You are safe.
+
+Nevertheless, there is no way to sugar coat the fact, that haywire is from a computer security perspective one big code injection surface. Whoever can reach the studio can execute arbitrary Python through the graph editor. This is by design: It assumes that whoever is using it is trusted to do so.
+
+But if you choose to leave the safe default configuration because you want to give access to the studio from outside the local machine, it is thus of paramount importance to understand the security model and to configure it correctly. Haywire Studio comes with a set of CLI commands to configure its security. They are designed to make it hard to misconfigure the setup in a way that would leave it exposed to untrusted users (or whatever lurks nowadays in the dark corners of the internet).
+
+This guide covers everything that decides *who that is* and *what
 they can prove before they get in*: where the studio can be reached from, who
 may connect once it's reachable, whether the wire between them is encrypted,
 and what the Farmhand MCP mount adds on top. For the design rationale behind
@@ -32,17 +37,10 @@ can reach the studio, the code-intelligence endpoints, or the Farmhand MCP
 server, regardless of what else is configured — the OS refuses the
 connection before any application-level check runs.
 
-**This changed, twice.** Earlier versions of the studio called `ui.run()`
-with no `host` argument, which made NiceGUI bind `0.0.0.0` — reachable from
-the LAN with no guard at all. A later version introduced `expose_to_network`
-as a settings-panel checkbox. Neither shape survives. Every control that
-decides who can reach this studio now lives in one file,
+Every control that decides who can reach this studio lives in one file,
 `~/.haywire/security.json`, changed only from the command line, with the
-studio stopped. Nothing is migrated automatically from either earlier shape
-— the default is loopback-only, authentication off, for every fresh
-installation, exactly as it always has been. If you relied on network
-access, TLS, or authentication under an older version, you need to
-reconfigure it with the commands in this guide.
+studio stopped. The default is loopback-only, authentication off,
+for every fresh installation.
 
 ## 2. The four axes
 
@@ -75,8 +73,8 @@ the allowed range:
 
 - **The studio UI itself.** Full graph editing is **arbitrary code
   execution** — a graph runs Python in-process. Anyone who can reach the UI
-  and authenticate as an `edit` or `admin` principal is a full operator.
-  There is no sandbox around what a graph can do.
+  and authenticate as an  `view`, `edit` or `admin` principal is a full operator.
+  There is no sandbox around what a graph can do. `view`, `edit` or `admin` are only UI roles, not fine granular execution permissions. They are meant to prevent accidental changes, not to prevent malicious intent.
 - **`/api/code-intel/complete`, `/info`, `/hover`.** Unauthenticated by
   design (they back inline editor autocomplete). `_confined_path()`
   (`code_intelligence.py`) restricts the `path` argument to the current
@@ -180,8 +178,7 @@ uv run haywire farmhand status
 `/mcp` is mounted inside the same ASGI app as the rest of the studio, so it
 sits behind the same authentication gate as everything else: a bearer token
 is required whenever authentication is on, and the studio cannot be exposed
-with authentication off ([§4](#4-opening-the-studio-up)). There is no
-separate MCP credential and no workspace token file any more — an agent
+with authentication off ([§4](#4-opening-the-studio-up)). An agent
 connects with a roster token, minted by `haywire user add <name> --agent
 --tier edit`, the same roster that authenticates a browser session.
 

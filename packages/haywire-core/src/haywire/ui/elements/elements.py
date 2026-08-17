@@ -1034,13 +1034,15 @@ def clipboard_script(value: str) -> str:
 }})()"""
 
 
-async def _perform_copy(value: str) -> None:
+async def perform_copy(value: str) -> None:
     """Run the clipboard script and tell the user what happened.
 
     Separate from the button so the outcome handling is testable without
     driving a browser — and because the failure path is the one that matters
     and is the hardest to reach in a test environment (every local run is a
-    secure context).
+    secure context). Public so callers building a custom copy affordance
+    (e.g. an ``icon_action`` in a table row) get the same success/failure
+    notify behaviour as :func:`code_snippet` and :func:`info_row`.
     """
     try:
         copied = await ui.run_javascript(clipboard_script(value))
@@ -1067,7 +1069,7 @@ def _copy_button(value: str) -> ui.button:
     """
 
     async def _on_click(_event=None, _value: str = value) -> None:
-        await _perform_copy(_value)
+        await perform_copy(_value)
 
     return (
         ui.button(icon=AppIcon.copy, on_click=_on_click)

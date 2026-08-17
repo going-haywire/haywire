@@ -22,7 +22,7 @@ def test_handler_is_async_so_it_can_await_the_result():
 def test_handler_notifies_on_both_outcomes():
     from haywire.ui.elements import elements
 
-    source = inspect.getsource(elements._perform_copy)
+    source = inspect.getsource(elements.perform_copy)
     assert source.count("ui.notify") >= 2
 
 
@@ -46,7 +46,7 @@ async def test_copy_handler_notifies_success(monkeypatch):
 
     monkeypatch.setattr(elements.ui, "run_javascript", _fake_run_javascript)
 
-    await elements._perform_copy("secret")
+    await elements.perform_copy("secret")
 
     assert notified
     assert "Copied" in notified[0][0]
@@ -64,7 +64,7 @@ async def test_copy_handler_notifies_failure(monkeypatch):
 
     monkeypatch.setattr(elements.ui, "run_javascript", _fake_run_javascript)
 
-    await elements._perform_copy("secret")
+    await elements.perform_copy("secret")
 
     assert notified
     assert notified[0][1].get("type") == "negative"
@@ -83,7 +83,7 @@ async def test_copy_handler_notifies_failure_when_javascript_raises(monkeypatch)
 
     monkeypatch.setattr(elements.ui, "run_javascript", _boom)
 
-    await elements._perform_copy("secret")
+    await elements.perform_copy("secret")
 
     assert notified
     assert notified[0][1].get("type") == "negative"

@@ -29,7 +29,7 @@ def test_copy_button_click_shows_copied_notification(page: Page, harness):
 
     localhost is a secure context, so the click drives the real
     navigator.clipboard.writeText() branch of clipboard_script() (not the
-    execCommand fallback) through _perform_copy()'s async handler.
+    execCommand fallback) through perform_copy()'s async handler.
     """
     goto_ready(page, _COPY_BUTTON_URL)
 
