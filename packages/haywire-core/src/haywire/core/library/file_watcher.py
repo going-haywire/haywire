@@ -186,9 +186,16 @@ class LibraryFileHandler(FileSystemEventHandler):
         pending DELETED event for the destination file that may have been
         queued when the editor truncated/replaced the original.
 
-        The two are told apart by whether the source was *tracked*: a real file
-        that moved was seeded into ``_known_files`` or arrived as a CREATE,
-        whereas an editor's scratch file was never seen before it vanished.
+        The two are told apart by whether the move *lands on an existing file*.
+        A rename gives a file a new name, so the destination did not exist; an
+        atomic write promotes a scratch file over a target that did. Source
+        tracking alone is not enough: a tool that writes its temp file inside
+        the watched folder gets it into ``_known_files`` via that file's own
+        CREATE, which made every such save look like a rename — emitting a
+        DELETED the destination never recovered from, because the recreate
+        arrives as MODIFIED (``on_created`` downgrades a known path) and only
+        a CREATED re-registers a module. See
+        ``test_atomic_write_from_a_tracked_temp_file_in_the_watched_folder``.
 
         Args:
             event: FileMovedEvent with src_path and dest_path
@@ -200,8 +207,9 @@ class LibraryFileHandler(FileSystemEventHandler):
 
         with self._lock:
             src_was_tracked = event.src_path in self._known_files
+            dest_existed = event.dest_path in self._known_files
 
-        if src_was_tracked:
+        if src_was_tracked and not dest_existed:
             # True rename: a file we knew about moved to a new name.
             with self._lock:
                 self._known_files.discard(event.src_path)
@@ -209,11 +217,15 @@ class LibraryFileHandler(FileSystemEventHandler):
             self._handle_file_change(event.src_path, FileEventType.DELETED)
             self._handle_file_change(event.dest_path, FileEventType.CREATED)
         else:
-            # Atomic write: an untracked temp file promoted over the target —
+            # Atomic write: a temp file promoted over an existing target —
             # treat as a modification of the destination. Suppress any spurious
             # DELETE the OS may deliver for dest_path after this move event
-            # (observed on macOS/kqueue).
+            # (observed on macOS/kqueue). The source path is dropped because it
+            # no longer exists: a temp file written inside the watched folder
+            # was tracked by its own CREATE, and leaving it behind would make
+            # the next save reuse a stale entry.
             with self._lock:
+                self._known_files.discard(event.src_path)
                 self._known_files.add(event.dest_path)
                 self._atomic_write_suppress[event.dest_path] = time.time() + 2.0
             self._handle_file_change(event.dest_path, FileEventType.MODIFIED)

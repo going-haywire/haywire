@@ -422,6 +422,20 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
 
             if event.dependency_event or event.event_type == FileEventType.MODIFIED:
                 if module_name in sys.modules:
+                    # A component module that lost its managed status is
+                    # re-promoted before the reload, so the change below takes
+                    # the managed path (which re-registers the classes) instead
+                    # of a bare importlib.reload that leaves the registry
+                    # pointing at the old ones.
+                    if self._is_demoted_component(module_name, event.file_path):
+                        self.logger.warning(
+                            f"Library '{event.library_identity.label}': module '{module_name}' is no "
+                            f"longer tracked as managed but its file is still present — re-promoting "
+                            f"it so its classes are re-registered."
+                        )
+                        self._dependency_graph.add_managed_module(
+                            module_name, self._get_tracking_scopes(event.library_identity)
+                        )
                     self._on_change(module_name, event.library_identity, event)
                 else:
                     # covering an edge case where a module is modified but
@@ -629,6 +643,22 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
         Catches ModuleNotFoundError to log dependency errors.
         Called by the _on_change method.
         """
+        if self._is_demoted_component(module_name):
+            # A bare importlib.reload here would rebuild the class object but
+            # leave the registry pointing at the old one — a reload that logs
+            # success and changes nothing the app can see. Re-register instead.
+            self.logger.warning(
+                f"Library '{library_identity.label}': module '{module_name}' owns registry keys but "
+                f"was not tracked as managed — re-registering it instead of reloading it as a helper."
+            )
+            self._reload_managed_module(module_name, library_identity)
+            self._dependency_graph.add_managed_module(
+                module_name, self._get_tracking_scopes(library_identity)
+            )
+            if event:
+                event.reloaded_modules.add(module_name)
+            return
+
         try:
             self.logger.info(
                 f"Library '{library_identity.label}': Reloading helper module '{module_name}'..."
@@ -797,6 +827,35 @@ class BaseRegistry(HotReloadRegistry, FolderScanMixin, Generic[T]):
             if snapshot is not None:
                 self._rollback_snapshot(module_name, snapshot, library_identity)
             raise
+
+    def _is_demoted_component(self, module_name: str, file_path: str | None = None) -> bool:
+        """True when a module this registry owns lost its managed status.
+
+        ``_on_delete`` drops a module from the dependency graph, and only
+        ``_on_creation`` puts it back. A spurious DELETE — an atomic write the
+        watcher misread, or a delete that debounce ordered last — therefore
+        latches the module as a "helper" forever: every later edit reloads it
+        with a bare ``importlib.reload`` that never re-registers its classes,
+        while the log still reports success.
+
+        Two shapes of the same latch, so both signals count:
+
+        * the module still owns registry keys (the delete never ran, but the
+          module fell out of the managed set some other way), or
+        * this registry's folder scan claimed the file and it is still on disk
+          (``_on_delete`` already unregistered the classes, so no keys remain
+          to point at — but a file that exists was never really deleted).
+
+        A genuine helper satisfies neither: it owns no keys and lives outside
+        the folders this registry claimed, so it keeps taking ``_on_change``.
+        """
+        if module_name in self._dependency_graph._managed_modules:
+            return False
+        if self._module_to_registry_keys.get(module_name):
+            return True
+        if file_path is None or not Path(file_path).exists():
+            return False
+        return any(file_path.startswith(folder) for folder in self._folder_to_library)
 
     def _on_delete(self, module_name: str, library_identity: LibraryIdentity):
         """Called when a module is deleted or unloaded.

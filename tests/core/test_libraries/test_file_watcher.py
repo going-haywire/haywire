@@ -335,6 +335,52 @@ class TestTrueRenames:
         assert registry.events[0].event_type == FileEventType.MODIFIED
         assert registry.events[0].file_path == f"{base}/bar.py"
 
+    def test_atomic_write_from_a_tracked_temp_file_in_the_watched_folder(
+        self, wired_handler, identity, registry
+    ):
+        """A temp file written *inside* the watched folder is still an atomic write.
+
+        The temp file gets into ``_known_files`` through its own CREATE, so
+        source-tracking alone reads the rename as a true rename and emits a
+        DELETED the destination never recovers from. Landing on a file that
+        already exists is what makes it a write rather than a rename.
+        """
+        base = identity.folder_path
+        # The temp file is inside the watched folder, so it lands in
+        # _known_files via its own CREATE — the condition that used to make the
+        # following move look like a rename. Let that event drain first.
+        wired_handler.on_created(FileCreatedEvent(f"{base}/existing.py.tmp"))
+        assert registry.wait_for_event()
+        registry.clear()
+
+        wired_handler.on_moved(FileMovedEvent(f"{base}/existing.py.tmp", f"{base}/existing.py"))
+        assert registry.wait_for_event()
+        time.sleep(0.1)
+
+        assert [e.event_type for e in registry.events] == [FileEventType.MODIFIED]
+        assert registry.events[0].file_path == f"{base}/existing.py"
+        # The promoted temp path must not linger, or the next save reuses it.
+        assert f"{base}/existing.py.tmp" not in wired_handler._known_files
+
+    def test_spurious_delete_after_tracked_temp_atomic_write_is_suppressed(
+        self, wired_handler, identity, registry
+    ):
+        """The suppression window must arm on this path too.
+
+        macOS/kqueue delivers a DELETE for the destination after the move; when
+        it lands last, debounce keeps only that DELETE and the module is
+        unregistered by a save that never removed anything.
+        """
+        base = identity.folder_path
+        wired_handler.on_created(FileCreatedEvent(f"{base}/existing.py.tmp"))
+        wired_handler.on_moved(FileMovedEvent(f"{base}/existing.py.tmp", f"{base}/existing.py"))
+        assert registry.wait_for_n_events(2)
+        registry.clear()
+
+        wired_handler.on_deleted(FileDeletedEvent(f"{base}/existing.py"))
+        time.sleep(0.15)
+        assert registry.events == []
+
 
 # ---------------------------------------------------------------------------
 # Debounce coalescing
