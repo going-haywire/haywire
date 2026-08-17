@@ -173,7 +173,7 @@ could disagree, not a layer of protection.
 The `studio.json` sidecar (`write_identity` in
 `haywire_studio/farmhand/identity.py`) carries an `auth_required` field,
 mirroring `document.auth.enabled` at the moment the studio mounted
-Farmhand. This is a **hint**, read by a later process — the farmhand4claude
+Farmhand. This is a **hint**, read by a later process — the farmhand
 proxy's startup script — deciding whether to attach an `Authorization`
 header before it has made a single request. It is not, and must never
 become, a credential: it says whether a token is expected, never what the
@@ -274,7 +274,7 @@ panel with the studio running is exactly the moment they cannot paste that
 fix command into the CLI that would apply it. `NetworkSettings` (just
 `port`) is the only editable schema still rendered there.
 
-**The farmhand4claude proxy must change, and this ADR does not change it.**
+**The farmhand proxy must change, and this ADR does not change it.**
 The proxy is a separate repository. It currently reads
 `<ws>/.haywire/farmhand_token` lazily and attaches it as a bearer token; that
 file no longer exists after this change. It must instead read

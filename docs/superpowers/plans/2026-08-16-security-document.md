@@ -2555,7 +2555,7 @@ In `packages/haywire-studio/src/haywire_studio/farmhand/identity.py`, change the
 def write_identity(workspace_root: Path | str, port: int, *, auth_required: bool = False) -> dict:
     """Write the current process's studio identity to <workspace>/.haywire/studio.json.
 
-    ``auth_required`` tells an out-of-process client (the farmhand4claude proxy)
+    ``auth_required`` tells an out-of-process client (the farmhand proxy)
     whether `/mcp` will demand a bearer token, so it can connect header-less
     against an unauthenticated studio instead of guessing. It is a *hint*, never
     a credential — the sidecar is machine-local and gitignored, but it is not
@@ -3644,7 +3644,7 @@ Co-Authored-By: Claude Opus 5 <noreply@anthropic.com>"
 5. **The MCP rule.** `/mcp` requires a roster token iff auth is enabled; `exposed ⇒ auth enabled` closes the matrix; therefore `require_auth` and `BearerTokenMiddleware` and the workspace token are all deleted rather than merely redundant. Note the `studio.json` `auth_required` hint and that it must never carry a token.
 6. **`restrict_to_loopback` survives as a CLI-only control.** It is a header check, not a network control; it defeats DNS rebinding specifically; turning it off demands authentication because that is a transition constraint, not a state invariant.
 7. **What ADR 0026 keeps.** Pure-ASGI over `BaseHTTPMiddleware` (with the Socket.IO argument intact), the XFF rightmost-untrusted resolution, loopback's exemption from the allowlist, jedi path confinement. Only the *placement* of the controls changes.
-8. **Consequences.** Hard break, no migration. `NetworkSettings` keeps `port`. The settings panel is read-only and admin-gated. The farmhand4claude proxy must read `auth_required` from `studio.json` and stop reading `farmhand_token` — a cross-repo change this ADR does not make.
+8. **Consequences.** Hard break, no migration. `NetworkSettings` keeps `port`. The settings panel is read-only and admin-gated. The farmhand proxy must read `auth_required` from `studio.json` and stop reading `farmhand_token` — a cross-repo change this ADR does not make.
 9. **Alternatives considered.** (a) Hiding the fields rather than deleting them — rejected, the workspace-tier JSON path stays open. (b) A read-only setting kind in the settings system — rejected, a new framework concept to solve a placement problem. (c) `haywire mcp` instead of `haywire farmhand` — rejected on glossary consistency. (d) Refusing to start on a contradictory document — rejected, lockout.
 
 - [ ] **Step 2: Write `docs/guides/security.md`**
@@ -3754,4 +3754,4 @@ Expected: `exit=0`. The Security panel is admin-gated and the harness runs auth-
 
 ## Follow-up, out of scope for this plan
 
-**farmhand4claude proxy (separate repo).** It reads `<ws>/.haywire/farmhand_token` lazily; that file no longer exists. It must instead read `auth_required` from `<ws>/.haywire/studio.json` and send no `Authorization` header when it is `false`. When `true`, the operator supplies a roster agent token out of band (`haywire user add <name> --agent --tier edit` prints it). Until that change ships, the proxy will attach no header — which is correct against an unauthenticated studio and will 401 against an authenticated one. Raise this with the user when this plan lands; it is a coordinated release, not a silent break.
+**farmhand proxy (separate repo).** It reads `<ws>/.haywire/farmhand_token` lazily; that file no longer exists. It must instead read `auth_required` from `<ws>/.haywire/studio.json` and send no `Authorization` header when it is `false`. When `true`, the operator supplies a roster agent token out of band (`haywire user add <name> --agent --tier edit` prints it). Until that change ships, the proxy will attach no header — which is correct against an unauthenticated studio and will 401 against an authenticated one. Raise this with the user when this plan lands; it is a coordinated release, not a silent break.

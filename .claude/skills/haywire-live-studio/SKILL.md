@@ -16,11 +16,7 @@ description: >
 
 The studio serves both the NiceGUI app and the **Farmhand MCP server** on
 `http://127.0.0.1:<port>/mcp/` (port defaults to 8124, `NetworkSettings.port`).
-This repo's [.mcp.json](../../../.mcp.json) registers the **farmhand4claude
-proxy** as an MCP server for Claude Code — it bridges stdio to that HTTP
-endpoint, so studio tools (`studio_*`, `haystack_*`, `graph_editor_*`,
-`marketplace_*`, `testing_*`) appear directly in this session once the studio
-is up, with no reconnect needed.
+The **farmhand proxy** as an MCP server for Claude Code — it bridges stdio to that HTTP endpoint, so studio tools (`studio_*`, `haystack_*`, `graph_editor_*`, `marketplace_*`, `testing_*`) appear directly in this session once the studio is up, with no reconnect needed.
 
 The proxy bridges to a studio, it doesn't launch one — bring the studio itself
 up/down with `scripts/studioctl`.
@@ -108,7 +104,7 @@ these are the same facts a manual `farmhand_studio_connect` call needs:
 If `farmhand_studio_status` isn't available at all, the MCP server itself
 didn't start — check `.mcp.json` is present at the repo root and that `npx`
 can reach the npm registry (the proxy is fetched as
-`@going-haywire/farmhand4claude@latest` on every session start).
+`@going-haywire/farmhand@latest` on every session start).
 
 ## Files
 
