@@ -4431,18 +4431,18 @@
 <td>MCP server (ambiguous — any third-party MCP server)</td>
 </tr>
 <tr>
-<td><strong>Farmhand plugin</strong> (<code>farmhand4claude</code>)</td>
-<td>The <strong>Claude-Code-only</strong> plugin distributed from <code>github.com/going-haywire/farmhand4claude</code> (npm <code>@going-haywire/farmhand4claude</code>): the <strong>Farmhand proxy</strong> (stdio↔HTTP MCP bridge) plus beginner <strong>onboarding skills</strong>. A graduating on-ramp (bootstrap → first graph → first library → first share), not a permanent power-user surface — that remains the <code>haywire-live-studio</code> skill. The "4claude" scopes the <em>plugin</em>, not the concept: skills are CC-specific, so the plugin is too; the proxy alone is portable to any MCP harness but is not the advertised path.</td>
+<td><strong>Claude plugin</strong> (<code>claude-plugin</code>)</td>
+<td>The <strong>Claude-Code-only</strong> plugin distributed from <code>github.com/going-haywire/claude-plugin</code>: the <strong>Farmhand proxy</strong> plus beginner <strong>onboarding skills</strong>. A graduating on-ramp (bootstrap → first graph → first library → first share), not a permanent power-user surface — that remains the <code>haywire-live-studio</code> skill. The proxy alone is portable to any MCP harness.</td>
 <td>Farmhand (unqualified, when the plugin specifically is meant)</td>
 </tr>
 <tr>
 <td><strong>Farmhand proxy</strong></td>
-<td>The stdio MCP server Claude Code spawns at session start that bridges to the Farmhand server's HTTP <code>/mcp</code>, forwarding tool/resource calls and re-emitting <code>list_changed</code> so studio tools appear mid-session with no reconnect. Reads <code>auth_required</code> from <code>&lt;ws&gt;/.haywire/studio.json</code> and sends no <code>Authorization</code> header when it is <code>false</code>; when <code>true</code>, the operator supplies a roster agent token out of band. There is no token file any more (ADR 0028) — runs in down-mode (a <code>farmhand_studio_status</code> sentinel) until the studio comes up.</td>
+<td>stdio MCP server (npm <code>@going-haywire/farmhand-proxy</code>). Claude Code spawns it at session start to bridge the Farmhand server's HTTP <code>/mcp</code>, forwarding tool/resource calls and re-emitting <code>list_changed</code> so studio tools appear mid-session with no reconnect. Reads <code>auth_required</code> from <code>&lt;ws&gt;/.haywire/studio.json</code> and sends no <code>Authorization</code> header when it is <code>false</code>; when <code>true</code>, the operator supplies a roster agent token out of band. There is no token file any more (ADR 0028) — runs in down-mode (a <code>farmhand_studio_status</code> sentinel) until the studio comes up.</td>
 <td>bridge, gateway (gateway is the SDK's word for the pattern, not this component)</td>
 </tr>
 <tr>
 <td><strong>Studio identity sidecar</strong> (<code>studio.json</code>)</td>
-<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code>, <code>host</code>, <code>role</code>, <code>url</code>, <code>auth_required</code>. Lets a later process (the farmhand4claude plugin's startup script) identify which project owns the studio on a port, decide to reuse / ask / clean up, and know whether to attach a bearer token without a probe request. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. <code>auth_required</code> is a hint, never a credential — it says whether a token is expected, not what it is.</td>
+<td>The self-describing JSON the studio writes to <code>&lt;workspace&gt;/.haywire/studio.json</code> when it mounts the Farmhand endpoint: <code>pid</code>, <code>port</code>, <code>project</code>, <code>project_path</code>, <code>started_at</code>, <code>host</code>, <code>role</code>, <code>url</code>, <code>auth_required</code>. Lets a later process (the farmhand-plugin's startup script) identify which project owns the studio on a port, decide to reuse / ask / clean up, and know whether to attach a bearer token without a probe request. Gitignored, machine-local; written only when <code>farmhand.enabled</code>. <code>auth_required</code> is a hint, never a credential — it says whether a token is expected, not what it is.</td>
 <td>pid file (studioctl's is a bare integer; this is structured identity)</td>
 </tr>
 <tr>

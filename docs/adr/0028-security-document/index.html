@@ -3322,7 +3322,7 @@ could disagree, not a layer of protection.</p>
 <p>The <code>studio.json</code> sidecar (<code>write_identity</code> in
 <code>haywire_studio/farmhand/identity.py</code>) carries an <code>auth_required</code> field,
 mirroring <code>document.auth.enabled</code> at the moment the studio mounted
-Farmhand. This is a <strong>hint</strong>, read by a later process — the farmhand4claude
+Farmhand. This is a <strong>hint</strong>, read by a later process — the farmhand
 proxy's startup script — deciding whether to attach an <code>Authorization</code>
 header before it has made a single request. It is not, and must never
 become, a credential: it says whether a token is expected, never what the
@@ -3411,7 +3411,7 @@ each one shown as copyable text, because the moment someone is reading this
 panel with the studio running is exactly the moment they cannot paste that
 fix command into the CLI that would apply it. <code>NetworkSettings</code> (just
 <code>port</code>) is the only editable schema still rendered there.</p>
-<p><strong>The farmhand4claude proxy must change, and this ADR does not change it.</strong>
+<p><strong>The farmhand proxy must change, and this ADR does not change it.</strong>
 The proxy is a separate repository. It currently reads
 <code>&lt;ws&gt;/.haywire/farmhand_token</code> lazily and attaches it as a bearer token; that
 file no longer exists after this change. It must instead read
