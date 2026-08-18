@@ -149,6 +149,7 @@ export default {
     if (this.startVisible) {
       this._initPosition();
       this.visible = true;
+      this._clampAfterRender();
     }
     document.addEventListener('mousemove', this.handleDragMove);
     document.addEventListener('mouseup',   this.handleDragUp);
@@ -164,9 +165,6 @@ export default {
       if (this.isPositioned) {
         this.currentX = this.initialX;
         this.currentY = this.initialY;
-        if (this.clampToViewport) {
-          this._clamp();
-        }
       }
     },
 
@@ -178,10 +176,20 @@ export default {
       this.currentY = Math.max(0, Math.min(this.currentY, window.innerHeight - h));
     },
 
+    /** Clamp on the next tick — `card.offsetWidth` is 0 while `v-show`
+     *  still has the card at `display: none`, so a same-frame clamp (right
+     *  after `visible = true`) always falls back to the hardcoded 300/200
+     *  guess and can leave a wide menu overhanging the viewport edge. */
+    _clampAfterRender() {
+      if (!this.clampToViewport) return;
+      this.$nextTick(() => this._clamp());
+    },
+
     open() {
       if (this.visible) return;
       this._initPosition();
       this.visible = true;
+      this._clampAfterRender();
     },
 
     close() {

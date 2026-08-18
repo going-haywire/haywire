@@ -628,14 +628,7 @@ class AppShell:
                 .style("flex: 1; overflow: hidden; min-height: 0; flex-wrap: nowrap;")
             ):
                 # ---------------- Action slot (left edge) ----------------
-                # Always built: the account_circle footer icon lives in this
-                # bar regardless of whether any ACTION-slot editor is bound,
-                # so the bar itself is never truly empty.
-                from haywire.ui.app.icon_slot import IconSlot as _IconSlot
-
                 left_slot = self._build_managed_slot(SlotName.ACTION, bar_place="left")
-                assert isinstance(left_slot, _IconSlot)
-                left_slot.set_footer(self._render_account_icon)
                 # Slot wrapper lives inside main_content_row; slot renders bar + area into it.
                 left_wrapper = ui.element("div").style("height: 100%;")
                 left_slot.render(left_wrapper)
@@ -735,6 +728,8 @@ class AppShell:
             self._presence_row = ui.row().classes("items-center gap-1")
             self._render_presence()
 
+            self._render_account_icon()
+
     def _render_statusbar(self) -> None:
         """Render the status bar at the bottom."""
         with (
@@ -781,7 +776,7 @@ class AppShell:
         button.on(
             "click",
             lambda event: provider.open(
-                (event.args.get("clientX", 0), event.args.get("clientY", 0))
+                (event.args.get("clientX", 0), event.args.get("clientY", 0) + 20)
                 if isinstance(event.args, dict)
                 else (0, 0)
             ),

@@ -45,8 +45,18 @@ class BaseContextMenuProvider:
         self._open_popup: Optional[Popup] = None
 
     def _build_popup(self, pos: Tuple[float, float]) -> Popup:
-        """Build a Popup at the given position. Extracted for testability."""
-        return Popup(position_x=pos[0], position_y=pos[1], backdrop_click_close=True)
+        """Build a Popup at the given position. Extracted for testability.
+
+        ``clamp_to_viewport`` keeps the menu on-screen when ``pos`` sits near
+        an edge — e.g. the account menu, which opens from a header icon
+        pinned at the far-right edge and would otherwise overshoot.
+        """
+        return Popup(
+            position_x=pos[0],
+            position_y=pos[1],
+            backdrop_click_close=True,
+            clamp_to_viewport=True,
+        )
 
     def _open_menu(
         self,
