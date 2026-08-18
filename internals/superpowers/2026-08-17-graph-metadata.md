@@ -8,7 +8,7 @@ stamped; `name` was set inconsistently (`"Untitled N"` for new graphs, the full
 path for opened ones) and read by nothing but one info row.
 
 Vocabulary for everything below is canon in
-[reference/glossary.md](../../reference/glossary.md) — see `graph_id`,
+[reference/glossary.md](../../docs/reference/glossary.md) — see `graph_id`,
 `graph_uuid`, `origin_hash`, graph `filestem`, and **graph metadata**.
 
 ---
