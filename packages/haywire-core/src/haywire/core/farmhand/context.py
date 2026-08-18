@@ -18,6 +18,7 @@ import asyncio
 from pathlib import Path
 from typing import Any, Awaitable, Callable, Optional, TYPE_CHECKING, TypeVar, cast
 
+from haywire.core.access import AccessTier, resolve_tier
 from haywire.core.di.context import (
     get_library_state_container,
     get_session_manager,
@@ -32,8 +33,41 @@ S = TypeVar("S", bound="AppState")
 
 
 class FarmhandContext:
-    def __init__(self, progress_reporter: Optional[Callable[[str], Awaitable[None]]] = None):
+    def __init__(
+        self,
+        progress_reporter: Optional[Callable[[str], Awaitable[None]]] = None,
+        principal: Optional[str] = None,
+    ):
         self._progress_reporter = progress_reporter
+        #: Who is calling. Set by the Farmhand host from the ASGI scope the auth
+        #: gate stamped; ``None`` when authentication is off, which resolves to
+        #: ADMIN exactly as it does for a browser session.
+        self.principal = principal
+
+    # -- access (ADR 0027) ----------------------------------------------
+
+    def can_access(self, required: AccessTier) -> bool:
+        """Whether the calling principal currently holds at least ``required``.
+
+        The host already refused this call if the tool's own ``access=`` tier
+        was too high, so this is for finer checks *inside* a tool — a branch
+        that writes when the caller may write, and reports instead when it may
+        not. Reads live authority per call, like ``SessionContext.can_access``,
+        so a demotion lands without a reconnect.
+        """
+        return resolve_tier(self.principal).satisfies(required)
+
+    def can_view(self) -> bool:
+        """True whenever the caller holds any tier at all."""
+        return self.can_access(AccessTier.VIEW)
+
+    def can_edit(self) -> bool:
+        """True for ``edit`` and ``admin``."""
+        return self.can_access(AccessTier.EDIT)
+
+    def can_admin(self) -> bool:
+        """True for ``admin`` only."""
+        return self.can_access(AccessTier.ADMIN)
 
     def state(self, state_cls: type[S]) -> S:
         """Resolve an AppState instance (e.g. HaystackState) from the DI container."""

@@ -168,6 +168,24 @@ class PresenceChanged(Signal):
     cross_session: ClassVar[bool] = True
 
 
+@dataclass(frozen=True)
+class FarmhandActivity(Signal):
+    """An agent principal started or finished an MCP tool call.
+
+    Cross-session like :class:`PresenceChanged`, and payload-free for the same
+    reason: a tool call that finished between publish and delivery would make a
+    carried snapshot a lie. Subscribers re-read the live tracker
+    (``haywire_studio.farmhand.activity.activity_tracker()``) instead.
+
+    Emitted by the Farmhand host around every tool invocation — NOT by the tools
+    themselves. The host is the only layer that knows which principal is
+    calling, and emitting there covers read-only tools and third-party library
+    tools without asking either to opt in. See ``FarmhandHost._register_handlers``.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
 # ---------------------------------------------------------------------------
 # Imperative commands
 # ---------------------------------------------------------------------------
@@ -249,6 +267,8 @@ __all__ = [
     "LibraryCatalogChanged",
     "ErrorLogged",
     "ErrorLedgerChanged",
+    "PresenceChanged",
+    "FarmhandActivity",
     # Imperative commands
     "Reveal",
     "Close",

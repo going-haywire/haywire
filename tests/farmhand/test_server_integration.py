@@ -141,3 +141,60 @@ def test_mount_writes_no_token_file(farmhand_server):
 
     workspace = Path(farmhand_server.host._workspace_root)
     assert not (workspace / ".haywire" / "farmhand_token").exists()
+
+
+# ---------------------------------------------------------------------------
+# Activity tracking (the presence row's "what is that agent doing?" source)
+# ---------------------------------------------------------------------------
+
+
+def test_successful_tool_call_is_recorded_as_finished_activity(farmhand_call):
+    """The host records every call, not just mutating ones — echo is read-only."""
+    from haywire_studio.farmhand.activity import activity_tracker
+
+    activity_tracker().clear()
+
+    async def scenario(session, init):
+        return await session.call_tool("haybale-testing_echo", {"text": "hi"})
+
+    farmhand_call(scenario)
+
+    recent = activity_tracker().recent()
+    assert [r.tool for r in recent] == ["haybale-testing_echo"]
+    assert recent[0].ok is True
+    assert recent[0].running is False
+    # Auth is off in this harness, so the principal is None — the same value a
+    # browser session's context.principal carries, resolving to ADMIN.
+    assert recent[0].principal is None
+
+
+def test_failing_tool_call_is_recorded_with_its_error(farmhand_call):
+    from haywire_studio.farmhand.activity import activity_tracker
+
+    activity_tracker().clear()
+
+    async def scenario(session, init):
+        return await session.call_tool("haybale-testing_fail", {})
+
+    farmhand_call(scenario)
+
+    recent = activity_tracker().recent()
+    assert [r.tool for r in recent] == ["haybale-testing_fail"]
+    assert recent[0].ok is False
+    assert "[testing_failure]" in (recent[0].error or "")
+
+
+def test_no_call_is_left_pinned_as_running(farmhand_call):
+    """Both outcomes must clear the in-flight set, or the chip lies forever."""
+    from haywire_studio.farmhand.activity import activity_tracker
+
+    activity_tracker().clear()
+
+    async def scenario(session, init):
+        await session.call_tool("haybale-testing_echo", {"text": "hi"})
+        return await session.call_tool("haybale-testing_fail", {})
+
+    farmhand_call(scenario)
+
+    assert activity_tracker().current(None) is None
+    assert len(activity_tracker().recent()) == 2

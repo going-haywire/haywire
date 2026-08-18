@@ -20,6 +20,7 @@ from haywire.core.access import AccessTier
 
 from haywire_studio.auth.gate import last_seen
 from haywire_studio.auth.live import RosterCache
+from haywire_studio.farmhand.activity import activity_tracker
 
 #: An agent quieter than this drops out of the presence row.
 AGENT_IDLE_TIMEOUT_SECONDS = 300.0
@@ -34,6 +35,15 @@ class PresenceEntry:
     tier: AccessTier
     sessions: int = 0
     last_seen_seconds: float = 0.0
+
+    #: Tool this agent is running right now, or "" when idle. Always "" for a
+    #: user — a browser principal's actions are already visible on screen.
+    running_tool: str = ""
+    #: Tool this agent finished most recently, or "". Kept separate from
+    #: ``running_tool`` so a fast call still leaves something readable behind.
+    last_tool: str = ""
+    #: Whether that most recent finished call succeeded.
+    last_ok: bool = True
 
 
 def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]:
@@ -65,6 +75,19 @@ def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]
         idle = now - stamp
         if idle > AGENT_IDLE_TIMEOUT_SECONDS:
             continue
-        agents.append(PresenceEntry(name=name, kind="agent", tier=principal.tier, last_seen_seconds=idle))
+        tracker = activity_tracker()
+        running = tracker.current(name)
+        finished = tracker.last(name)
+        agents.append(
+            PresenceEntry(
+                name=name,
+                kind="agent",
+                tier=principal.tier,
+                last_seen_seconds=idle,
+                running_tool=running.tool if running is not None else "",
+                last_tool=finished.tool if finished is not None else "",
+                last_ok=finished.ok if finished is not None else True,
+            )
+        )
 
     return users + agents

@@ -21,6 +21,7 @@ from .vocabulary import (
     ErrorLogged,
     ErrorLedgerChanged,
     PresenceChanged,
+    FarmhandActivity,
     Reveal,
     Close,
     BroadcastClose,
@@ -45,6 +46,7 @@ __all__ = [
     "ErrorLogged",
     "ErrorLedgerChanged",
     "PresenceChanged",
+    "FarmhandActivity",
     # Imperative commands
     "Reveal",
     "Close",

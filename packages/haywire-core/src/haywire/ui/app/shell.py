@@ -26,6 +26,7 @@ from haywire.ui import elements as hui
 from haywire.core.session.signals import (
     BroadcastClose,
     Close,
+    FarmhandActivity,
     PresenceChanged,
     Reveal,
 )
@@ -517,6 +518,12 @@ class AppShell:
         self._lifecycle_unsubs.append(
             self.session.subscribe(PresenceChanged, lambda _s: self._render_presence())
         )
+        # An agent principal starting or finishing a tool call. Same row, same
+        # redraw: FarmhandActivity carries no payload precisely so that both
+        # signals can share one "re-read and repaint" handler.
+        self._lifecycle_unsubs.append(
+            self.session.subscribe(FarmhandActivity, lambda _s: self._render_presence())
+        )
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript
         # to set inline styles on the fly for immediate response and to avoid conflicts
@@ -814,7 +821,16 @@ class AppShell:
                 with ui.row().classes("items-center gap-1 px-2 hw-presence-chip"):
                     ui.icon(icon).classes("text-xs")
                     ui.label(entry.name).classes("text-xs")
-                ui.tooltip(f"{entry.tier.value} · {detail}")
+                    # Only while a tool is actually in flight. An idle agent's
+                    # chip stays exactly as wide as it was before this feature,
+                    # so the TopBar does not reflow on every call.
+                    if entry.running_tool:
+                        ui.label(entry.running_tool).classes("text-xs hw-text-dim")
+                    # The tooltip stays a one-liner: identity and liveness only.
+                    # Anything list-shaped goes to the activity editor, reached
+                    # from the account menu — the chip is core's and must not
+                    # know which library owns that editor.
+                    ui.tooltip(f"{entry.tier.value} · {detail}")
 
     def _build_managed_slot(
         self,

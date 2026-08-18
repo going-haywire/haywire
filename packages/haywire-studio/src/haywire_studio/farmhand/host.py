@@ -33,7 +33,9 @@ from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+from haywire.core.session.signals import FarmhandActivity
 
+from .activity import activity_tracker
 from .auth import connection_command
 
 if TYPE_CHECKING:
@@ -96,23 +98,28 @@ def tools_for_tier(tools: dict[str, Any], tier: AccessTier) -> list[str]:
     return [name for name, cls in tools.items() if tier.satisfies(required_access(cls))]
 
 
-def caller_tier(request: Any) -> AccessTier:
-    """The tier of whoever is making this MCP call.
+def caller_principal(request: Any) -> str | None:
+    """The principal name behind this MCP call, or ``None``.
 
     The gate stamped the resolved principal onto the ASGI scope, and the MCP
-    SDK's ``RequestContext.request`` carries that same scope through. With
-    authentication off there is no stamp and the resolver answers ADMIN, which
-    is what keeps Farmhand behaving exactly as it did before this feature.
+    SDK's ``RequestContext.request`` carries that same scope through. ``None``
+    means authentication is off — the resolver then answers ADMIN, which is what
+    keeps Farmhand behaving exactly as it did before authentication existed.
     """
-    from haywire.core.access import resolve_tier
-
     from haywire_studio.auth.gate import PRINCIPAL_SCOPE_KEY
 
-    principal = None
     scope = getattr(request, "scope", None)
     if isinstance(scope, dict):
         principal = scope.get(PRINCIPAL_SCOPE_KEY)
-    return resolve_tier(principal)
+        return principal if isinstance(principal, str) else None
+    return None
+
+
+def caller_tier(request: Any) -> AccessTier:
+    """The tier of whoever is making this MCP call."""
+    from haywire.core.access import resolve_tier
+
+    return resolve_tier(caller_principal(request))
 
 
 class FarmhandHost:
@@ -196,13 +203,35 @@ class FarmhandHost:
             except Exception as exc:  # dead session — WeakSet will drop it
                 logger.debug(f"Farmhand: list_changed notification failed: {exc}")
 
+    def _request(self) -> Any:
+        """The in-flight MCP request, or ``None`` outside a request context."""
+        try:
+            return self._server.request_context.request
+        except Exception:
+            return None
+
     def _caller_tier(self) -> AccessTier:
         """Tier of the in-flight MCP request; ADMIN when there is no request context."""
+        return caller_tier(self._request())
+
+    def _caller_principal(self) -> str | None:
+        """Principal of the in-flight MCP request; ``None`` when auth is off."""
+        return caller_principal(self._request())
+
+    def _publish_activity(self) -> None:
+        """Nudge every open browser session to re-read the activity tracker.
+
+        Best-effort by design: a studio with no SessionManager (tests, headless
+        embedding) or a subscriber that raises must never turn into a failed
+        tool call. ``FarmhandActivity`` carries no payload, so a dropped one
+        costs a stale chip until the next call, not a wrong one.
+        """
         try:
-            request = self._server.request_context.request
-        except Exception:
-            return caller_tier(None)
-        return caller_tier(request)
+            from haywire.core.di.context import get_session_manager
+
+            get_session_manager().broadcast(FarmhandActivity())
+        except Exception as exc:
+            logger.debug(f"Farmhand: activity broadcast skipped: {exc}")
 
     # -- MCP handlers ---------------------------------------------------
 
@@ -262,26 +291,50 @@ class FarmhandHost:
                 except Exception:
                     pass
 
-            ctx = FarmhandContext(progress_reporter=reporter)
+            principal = self._caller_principal()
+            ctx = FarmhandContext(progress_reporter=reporter, principal=principal)
+
+            # Attribution for open browser sessions. Every mutating tool already
+            # broadcasts its own data signal (GraphDataMutated and friends), so
+            # the UI refreshes without this — what this adds is *who*, plus the
+            # only visibility read-only tools ever get. Recorded here rather than
+            # per-tool: see the module docstring in activity.py.
+            tracker = activity_tracker()
+            token = tracker.start(principal, name)
+            self._publish_activity()
             try:
-                result = await cls().run(ctx, **arguments)
-            except Exception as exc:
-                raise Exception(_format_tool_error(exc)) from None
-            if isinstance(result, dict) and "summary" not in result:
-                result = {"summary": f"{name}: ok", **result}
-            # Return BOTH halves (the SDK's CombinationContent form): the text
-            # block keeps text-only clients working, while structuredContent
-            # hands structure-aware ones the object without a string parse.
-            #
-            # We serialize the text ourselves rather than letting the SDK's
-            # dict-only branch do it, because that branch calls plain
-            # json.dumps() — a non-serializable value (a mesh, a frame) would
-            # raise there. `default=str` degrades it to a repr instead, which is
-            # the documented contract tools are written against (canon §168).
-            text = json.dumps(result, default=str)
-            # structuredContent must be JSON-safe too; round-trip through the
-            # text we just built so both halves carry identical values.
-            return [types.TextContent(type="text", text=text)], json.loads(text)
+                try:
+                    result = await cls().run(ctx, **arguments)
+                except Exception as exc:
+                    tracker.finish(token, ok=False, error=_format_tool_error(exc))
+                    raise Exception(_format_tool_error(exc)) from None
+                if isinstance(result, dict) and "summary" not in result:
+                    result = {"summary": f"{name}: ok", **result}
+                # Return BOTH halves (the SDK's CombinationContent form): the
+                # text block keeps text-only clients working, while
+                # structuredContent hands structure-aware ones the object
+                # without a string parse.
+                #
+                # We serialize the text ourselves rather than letting the SDK's
+                # dict-only branch do it, because that branch calls plain
+                # json.dumps() — a non-serializable value (a mesh, a frame)
+                # would raise there. `default=str` degrades it to a repr
+                # instead, which is the documented contract tools are written
+                # against (canon §168).
+                text = json.dumps(result, default=str)
+                tracker.finish(token, ok=True)
+                # structuredContent must be JSON-safe too; round-trip through
+                # the text we just built so both halves carry identical values.
+                return [types.TextContent(type="text", text=text)], json.loads(text)
+            finally:
+                # Catches the one path neither branch above covers: a cancelled
+                # request (client disconnect) unwinds straight past both, and
+                # would otherwise strand the call as forever-running. A no-op
+                # whenever the call already recorded its own outcome.
+                tracker.finish_if_running(token)
+                # One publish per call, on every exit path — success, failure
+                # and cancellation alike.
+                self._publish_activity()
 
         @self._server.list_resources()
         async def list_resources() -> list[types.Resource]:
