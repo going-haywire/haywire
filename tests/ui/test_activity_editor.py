@@ -96,3 +96,47 @@ def test_format_age(seconds, expected):
     from haybale_studio.editors.activity_editor import format_age
 
     assert format_age(seconds) == expected
+
+
+# -- _safe_loads (detail popup payload parsing) -------------------------------
+
+
+def test_safe_loads_parses_valid_json():
+    from haybale_studio.editors.activity_editor import _safe_loads
+
+    assert _safe_loads('{"a": 1}') == {"a": 1}
+
+
+def test_safe_loads_falls_back_to_raw_text_on_truncated_json():
+    """Truncation (see activity.py) can cut mid-token — the popup must still render."""
+    from haybale_studio.editors.activity_editor import _safe_loads
+
+    truncated = '{"a": "aaaa...[truncated]'
+    assert _safe_loads(truncated) == truncated
+
+
+# -- clear button --------------------------------------------------------------
+
+
+def test_clear_button_wipes_history_and_redraws_without_touching_running_calls():
+    from unittest.mock import MagicMock
+
+    from haybale_studio.editors.activity_editor import ActivityEditor
+    from haywire_studio.farmhand.activity import activity_tracker
+
+    tracker = activity_tracker()
+    tracker.clear()
+    try:
+        tracker.start("builder", "still_going")
+        tracker.finish(tracker.start("builder", "done"))
+        assert tracker.recent() != []
+
+        editor = ActivityEditor.__new__(ActivityEditor)
+        editor.wrapper = MagicMock()
+        editor._clear()
+
+        assert tracker.recent() == []
+        assert tracker.current("builder") is not None  # running call untouched
+        editor.wrapper.redraw.assert_called_once()
+    finally:
+        tracker.clear()

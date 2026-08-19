@@ -144,16 +144,26 @@ class FarmhandHost:
         self._registry.add_batch_event_subscriber(self._on_lifecycle_batch)
         self._register_handlers()
 
+    # -- roster freshness -----------------------------------------------------
+
     def add_roster_cache(self, cache: "RosterCache") -> None:
         """Wire in the auth roster cache so a live tier edit can push list_changed.
 
-        Optional: only set when authentication is enabled (see ``app.py``'s
-        ``_install_auth``). Without it, tier enforcement on each tool call still
-        works (``_caller_tier`` re-resolves per request) — this only adds the
-        proactive nudge that refreshes a connected client's tool list.
+        Optional: this adds the proactive nudge that refreshes a connected client's tool list.
         """
         self._roster_cache = cache
         self._roster_stamp = cache.stamp()
+
+    async def _check_roster_freshness(self) -> None:
+        """Piggyback on in-flight traffic to notice a roster edit and push list_changed.
+        """
+        if self._roster_cache is None:
+            return
+        stamp = self._roster_cache.stamp()
+        if stamp == self._roster_stamp:
+            return
+        self._roster_stamp = stamp
+        await self._notify_list_changed()
 
     # -- tool table -----------------------------------------------------
 
@@ -300,7 +310,7 @@ class FarmhandHost:
             # only visibility read-only tools ever get. Recorded here rather than
             # per-tool: see the module docstring in activity.py.
             tracker = activity_tracker()
-            token = tracker.start(principal, name)
+            token = tracker.start(principal, name, arguments)
             self._publish_activity()
             try:
                 try:
@@ -322,7 +332,7 @@ class FarmhandHost:
                 # instead, which is the documented contract tools are written
                 # against (canon §168).
                 text = json.dumps(result, default=str)
-                tracker.finish(token, ok=True)
+                tracker.finish(token, ok=True, result=result)
                 # structuredContent must be JSON-safe too; round-trip through
                 # the text we just built so both halves carry identical values.
                 return [types.TextContent(type="text", text=text)], json.loads(text)
@@ -398,25 +408,6 @@ class FarmhandHost:
             self._sessions.add(self._server.request_context.session)
         except Exception:
             pass
-
-    async def _check_roster_freshness(self) -> None:
-        """Piggyback on in-flight traffic to notice a roster edit and push list_changed.
-
-        Enforcement (``_caller_tier`` inside ``call_tool``) is already correct on
-        every request regardless of this check — a demoted token is rejected
-        live. This only closes the *visibility* gap: without it, a connected
-        client's cached ``tools/list`` stays stale until it happens to re-fetch.
-        Piggybacking on existing request traffic avoids a dedicated write-hook
-        from ``auth/operations.py`` into Farmhand, keeping that boundary
-        resolver-mediated per ADR 0027.
-        """
-        if self._roster_cache is None:
-            return
-        stamp = self._roster_cache.stamp()
-        if stamp == self._roster_stamp:
-            return
-        self._roster_stamp = stamp
-        await self._notify_list_changed()
 
     # -- mount + lifespan ----------------------------------------------
 

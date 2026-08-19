@@ -1,6 +1,7 @@
 from .properties.setting.app import ThemeSettingsPanel
 from .properties.setting.app import NodeSkinDefaultPanel
 from .properties.setting.app import EditorSettingsPanel
+from .properties.setting.app import ActivitySettingsPanel
 from .properties.setting.canvas import CanvasSettingsPanel
 from .properties.setting.canvas import NodeSkinSettingsPanel
 from .properties.setting.canvas import EdgeUISettingsPanel
@@ -17,6 +18,7 @@ OpenInCodeEditorPanel = OpenInCodeEditorMenuPanel
 OpenInFileViewerPanel = OpenInFileViewerMenuPanel
 
 __all__ = [
+    "ActivitySettingsPanel",
     "CanvasSettingsPanel",
     "DebugOverlaySettingsPanel",
     "DebugSettingsPanel",

@@ -5,6 +5,7 @@ Application-scope settings panels (AppFocus).
 ThemeSettingsPanel    — active workbench theme
 NodeSkinDefaultPanel  — default node skin settings
 EditorSettingsPanel   — undo, auto-save, interaction, clipboard, node creation
+ActivitySettingsPanel — Farmhand activity tracker: history size, audit log path
 SecurityPanel         — read-only posture report plus the studio port
 """
 
@@ -21,6 +22,7 @@ from haywire.ui.panel.render_utils import render_schema
 from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
 from haywire.core.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
+from haywire_studio.farmhand.settings import ActivitySettings
 
 from haywire.barn.builtin.focuses import AppFocus
 
@@ -90,6 +92,29 @@ class EditorSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(EditorSettings, registry)
+
+
+@panel(
+    focus=AppFocus,
+    label="Activity",
+    icon="smart_toy",  # matches ActivityEditor/OpenActivityPanel's icon
+    order=35,
+    default_open=False,
+)
+class ActivitySettingsPanel(BasePanel):
+    """Farmhand activity tracker: in-memory history size, audit log path.
+
+    See ``haywire_studio.farmhand.settings.ActivitySettings`` and
+    ``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``.
+    """
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        registry = ctx.app.library_service.get_settings_registry()
+        render_schema(ActivitySettings, registry)
 
 
 _MARKERS = {

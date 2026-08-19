@@ -5,6 +5,7 @@ from pathlib import Path
 from typing import Callable, Optional, TYPE_CHECKING
 
 from fastapi import Request
+from haywire_studio.security.document import SecurityDocument
 from nicegui import ui, app
 
 # Core imports
@@ -200,19 +201,16 @@ class HaywireApp:
 
         print("Shared services configured successfully.")
 
-    def setup_farmhand(self, port: int, document, *, tls: bool = False) -> None:
+    def setup_farmhand(self, port: int, document: SecurityDocument, *, tls: bool = False) -> None:
         """Mount the Farmhand MCP server if enabled (read once; restart to apply)."""
         from haywire_studio.farmhand.host import FarmhandHost
+        from haywire_studio.farmhand.identity import write_identity
 
         if not document.farmhand.enabled:
             logging.getLogger(__name__).info("Farmhand: disabled (farmhand.enabled = false)")
             return
         self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root)
         self.farmhand_host.mount(port, document, tls=tls)
-
-        from pathlib import Path
-
-        from haywire_studio.farmhand.identity import write_identity
 
         try:
             write_identity(Path(self.workspace_root), port, auth_required=document.auth.enabled)
@@ -289,7 +287,7 @@ class HaywireApp:
         """Manual cleanup fallback."""
         self.on_app_shutdown()
 
-    def _install_auth(self, document) -> bool:
+    def _install_auth(self, document: SecurityDocument) -> bool:
         """Install the gate, the login routes and the tier resolver, if enabled.
 
         Returns whether authentication is on. Everything here is skipped when
@@ -310,8 +308,8 @@ class HaywireApp:
         if not document.auth.enabled:
             return False
 
-        cache = RosterCache()
-        secret = load_or_create_secret()
+        cache: RosterCache = RosterCache()
+        secret: bytes = load_or_create_secret()
         install_resolver(cache)
         register_login_routes(cache=cache, secret=secret)
         nicegui_app.add_middleware(
@@ -332,7 +330,7 @@ class HaywireApp:
         from haywire_studio.network.settings import NetworkSettings
 
         port = NetworkSettings().port
-        document = self._load_security_document()
+        document: SecurityDocument = self._load_security_document()
         self.security_document = document
 
         network = document.network

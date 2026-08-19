@@ -137,15 +137,21 @@ proves *who* called *which tool*, *when*, and *whether it succeeded* — but not
       `EdgeInfoPopup`'s canvas-contextual placement, a list row has no
       spatial meaning worth preserving, and avoids off-screen risk for rows
       near the bottom of a scrolled list.
-    - **Fixed size** (e.g. ~800×500px), not `"auto"` (Q22) — two side-by-side
-      JSON viewers need a stable height to manage their own internal scroll;
-      the truncation cap (§5) already bounds the worst case.
+    - **Fixed size**, not `"auto"` (Q22) — two JSON viewers need a stable
+      height to manage their own internal scroll (confirmed:
+      `svelte-jsoneditor` scrolls internally when its container height is
+      bounded); the truncation cap (§5) already bounds the worst case.
+      Originally ~800×500px for a side-by-side layout; changed to
+      ~560×640px (narrower, taller) when the layout below flipped to
+      stacked.
     - **Bare chrome** — just the two viewers, no repeated header info (Q20);
       the triggering row is still visible in the list.
 
-19. **Two `ui.json_editor` instances, side-by-side** (Q19, user override of
-    the initial single-combined-object recommendation), labeled "Arguments" /
-    "Result".
+19. **Two `ui.json_editor` instances**, labeled "Arguments" / "Result".
+    Originally **side-by-side** (Q19, user override of the initial
+    single-combined-object recommendation); changed to **stacked
+    (Arguments over Result)** in a later session at the user's request —
+    same two-instance, two-label decision, layout axis flipped.
 
     - **Read-only mode** (`{'mode': 'view'}` or equivalent) (Q17) — matches
       the editor's own stated purpose ("supplementary output you glance at,
@@ -174,8 +180,8 @@ proves *who* called *which tool*, *when*, and *whether it succeeded* — but not
 - **Retention/rotation for the persisted JSONL file.** It grows forever as
   specified. Explicitly accepted as a known gap, not an oversight — worth
   revisiting if it becomes an operational problem.
-- Changing the entry point (TopBar agent-chip click) or the newest-first,
-  30-row-capped list shape.
+- Changing the entry point (the "Agent activity" account-menu panel) or the
+  newest-first, 30-row-capped list shape.
 
 ## Facts confirmed via codegraph during this session (not decisions)
 

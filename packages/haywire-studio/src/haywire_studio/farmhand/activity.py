@@ -9,7 +9,8 @@ A browser principal's actions are visible as they happen — the human doing the
 is looking at the same screen. An agent's are not: its tool calls mutate graphs
 under a human collaborator's cursor with nothing on screen to explain the
 change. Every mutating Farmhand tool already broadcasts ``GraphDataMutated``, so
-the *data* refreshes live; what was missing is *attribution*.
+the *data* refreshes live; what was missing is *attribution* — and, now,
+*content*: what the call actually sent and got back.
 
 Recording happens in one place — the Farmhand host's ``call_tool`` wrapper —
 rather than in the tools. That is deliberate:
@@ -23,31 +24,94 @@ Threading: every mutation runs on the NiceGUI event loop, from the MCP request
 task. Tools may ``ctx.offload`` blocking work to a thread, but the tracker is
 never touched from inside that work. Module-level global rather than a
 ContextVar, for the reason in ``.insights/project_di_context.md``.
+
+Two tiers of record (settled 2026-08-18, see
+``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``):
+
+* An in-memory, bounded history (this module's ``ActivityTracker``) — serves
+  live-awareness and short-term debugging. Wiped on restart.
+* An optional, per-project, append-only JSONL audit log, written alongside
+  the in-memory record whenever ``ActivitySettings.log_path`` is non-empty.
+  Never trimmed by anything in this module — a UI "clear" or a history-size
+  cap must never touch it, or it stops being an audit trail.
+
+Arguments/result are stored as already-JSON-serialized text (the same
+``json.dumps(..., default=str)`` shape the host computes for the MCP
+response), truncated to a fixed character cap. No redaction: VIEW-tier access
+to this data discloses nothing a VIEW principal could not already inspect by
+other means (graph contents, library state, …).
 """
 
 from __future__ import annotations
 
 import itertools
+import json
+import logging
 import time
 from collections import deque
 from dataclasses import dataclass, field
-from typing import Deque, Iterator, Optional
+from pathlib import Path
+from typing import Any, Deque, Iterator, Optional
 
-#: How many finished calls to remember. Feeds "what did it just do?" in the
-#: presence tooltip; a fast tool would otherwise flash past unread.
+logger = logging.getLogger(__name__)
+
+#: Default cap on remembered finished calls — overridden per-instance by
+#: ``ActivitySettings.history_size`` where a registry is available (the
+#: process-wide tracker picks it up in ``activity_tracker()``). Kept as a
+#: plain constant so a bare ``ActivityTracker()`` (tests, embedding without
+#: the studio settings registry) still behaves sensibly.
 HISTORY_LIMIT = 50
+
+#: Arguments/result text longer than this is cut, with a marker appended.
+#: Applies uniformly to the in-memory record and the persisted log line —
+#: there is no framework-level cap upstream of this on the Farmhand call
+#: path (tool-level pagination like ``truncation_note`` is opt-in, not a
+#: guarantee), so this is the first real backstop.
+PAYLOAD_CHAR_CAP = 4000
+_TRUNCATION_MARKER = "...[truncated]"
+
+
+def _serialize(value: Any) -> str:
+    """JSON-encode arguments/result the same way the host encodes tool results.
+
+    ``default=str`` mirrors ``host.py``'s own serialization (see its
+    docstring on why: a non-serializable value like a mesh or frame degrades
+    to a repr instead of raising).
+    """
+    try:
+        text = json.dumps(value, default=str)
+    except Exception as exc:  # pragma: no cover - defensive; json.dumps(default=str) rarely raises
+        return f'"<unserializable: {exc}>"'
+    if len(text) > PAYLOAD_CHAR_CAP:
+        return text[:PAYLOAD_CHAR_CAP] + _TRUNCATION_MARKER
+    return text
 
 
 @dataclass(frozen=True)
 class ActivityRecord:
-    """One Farmhand tool call by one principal."""
+    """One Farmhand tool call by one principal.
+
+    ``started_at``/``finished_at`` are ``time.monotonic()`` — correct for
+    elapsed-time math (immune to clock adjustments) but meaningless across a
+    restart. ``started_wall`` is a ``time.time()`` companion, carried only so
+    a persisted log line has a real-world timestamp to show; nothing in this
+    module does duration math with it.
+
+    ``arguments``/``result`` are pre-serialized JSON text (see ``_serialize``),
+    already truncated to ``PAYLOAD_CHAR_CAP`` — never raw Python objects, so
+    every consumer (in-memory render, JSONL line, popup) treats them
+    uniformly as strings.
+    """
 
     principal: Optional[str]
     tool: str
     started_at: float
+    started_wall: float
+    arguments: str = "{}"
     finished_at: Optional[float] = None
     ok: bool = True
     error: Optional[str] = None
+    result: Optional[str] = None
 
     @property
     def running(self) -> bool:
@@ -57,6 +121,34 @@ class ActivityRecord:
         """Seconds this call has been running, or took."""
         end = self.finished_at if self.finished_at is not None else (now or time.monotonic())
         return max(0.0, end - self.started_at)
+
+    def to_json_line(self) -> str:
+        """This record as one JSONL line for the persisted audit log."""
+        return json.dumps(
+            {
+                "principal": self.principal,
+                "tool": self.tool,
+                "started_at": self.started_wall,
+                "finished_at": self.finished_wall,
+                "ok": self.ok,
+                "error": self.error,
+                "arguments": self.arguments,
+                "result": self.result,
+            }
+        )
+
+    @property
+    def finished_wall(self) -> Optional[float]:
+        """Wall-clock finish time, derived from the monotonic elapsed duration.
+
+        There is no separately-stored ``finished_at`` wall-clock field —
+        deriving it from ``started_wall + elapsed()`` avoids a second
+        ``time.time()`` call that could disagree with ``elapsed()`` if the
+        system clock stepped between the two calls.
+        """
+        if self.finished_at is None:
+            return None
+        return self.started_wall + self.elapsed()
 
 
 @dataclass
@@ -73,32 +165,78 @@ class ActivityTracker:
     _history: Deque[ActivityRecord] = field(default_factory=lambda: deque(maxlen=HISTORY_LIMIT))
     _tokens: Iterator[int] = field(default_factory=lambda: itertools.count(1))
 
-    def start(self, principal: Optional[str], tool: str) -> int:
-        """Record a call beginning. Returns the token to pass to :meth:`finish`."""
+    def start(self, principal: Optional[str], tool: str, arguments: Any = None) -> int:
+        """Record a call beginning. Returns the token to pass to :meth:`finish`.
+
+        ``arguments`` is the tool's raw call arguments (a dict off the MCP
+        transport); serialized+truncated immediately so every stored record —
+        running or finished — carries text, never a live object.
+        """
         token = next(self._tokens)
-        self._running[token] = ActivityRecord(principal=principal, tool=tool, started_at=time.monotonic())
+        self._running[token] = ActivityRecord(
+            principal=principal,
+            tool=tool,
+            started_at=time.monotonic(),
+            started_wall=time.time(),
+            arguments=_serialize(arguments if arguments is not None else {}),
+        )
         return token
 
-    def finish(self, token: int, *, ok: bool = True, error: Optional[str] = None) -> None:
+    def finish(
+        self,
+        token: int,
+        *,
+        ok: bool = True,
+        error: Optional[str] = None,
+        result: Any = None,
+    ) -> None:
         """Record a call ending. Unknown tokens are ignored.
 
         Tolerating an unknown token keeps a bookkeeping slip from turning into a
         second exception on the failure path, where ``finish`` is called from an
         ``except`` block that is about to re-raise the real error.
+
+        ``result`` is the tool's raw return value; serialized+truncated the
+        same way as ``arguments``. Appends to the in-memory history and, if
+        persistence is configured, to the audit log — in that order, so a
+        write failure in one never blocks the other.
         """
         record = self._running.pop(token, None)
         if record is None:
             return
-        self._history.append(
-            ActivityRecord(
-                principal=record.principal,
-                tool=record.tool,
-                started_at=record.started_at,
-                finished_at=time.monotonic(),
-                ok=ok,
-                error=error,
-            )
+        finished = ActivityRecord(
+            principal=record.principal,
+            tool=record.tool,
+            started_at=record.started_at,
+            started_wall=record.started_wall,
+            arguments=record.arguments,
+            finished_at=time.monotonic(),
+            ok=ok,
+            error=error,
+            result=_serialize(result) if result is not None else None,
         )
+        self._sync_history_size()
+        self._history.append(finished)
+        self._persist(finished)
+
+    def _sync_history_size(self) -> None:
+        """Pick up a live ``ActivitySettings.history_size`` edit before the next append.
+
+        Checked per-append rather than via a settings subscription: this
+        tracker is a bare module-level global constructed at import time,
+        before ``ActivitySettings`` is necessarily registered, so a
+        subscription would have nowhere reliable to attach at construction.
+        Resolving lazily (and tolerating absence, like ``_resolve_log_path``)
+        avoids that ordering problem entirely.
+        """
+        try:
+            from .settings import ActivitySettings
+
+            configured = ActivitySettings().history_size
+        except Exception:
+            return
+        if configured != self._history.maxlen:
+            self.resize_history(configured)
 
     def finish_if_running(self, token: int, *, error: str = "cancelled") -> bool:
         """Close out a call only if nothing has closed it yet. Returns whether it did.
@@ -138,14 +276,86 @@ class ActivityTracker:
         """
         return sorted(self._running.values(), key=lambda r: r.started_at, reverse=True)
 
-    def recent(self, limit: int = HISTORY_LIMIT) -> list[ActivityRecord]:
-        """Finished calls, newest first."""
-        return list(reversed(self._history))[:limit]
+    def recent(self, limit: Optional[int] = None) -> list[ActivityRecord]:
+        """Finished calls, newest first.
+
+        ``limit`` caps the returned page; ``None`` (default) returns
+        everything ``_history`` holds, which is itself already capped at
+        ``ActivitySettings.history_size`` (synced on every :meth:`finish`).
+        """
+        items = list(reversed(self._history))
+        return items if limit is None else items[:limit]
 
     def clear(self) -> None:
-        """Drop all state — for tests, and for a studio restart in-process."""
+        """Drop all state — for tests, and for a studio restart in-process.
+
+        Wipes ``_running`` too — unlike :meth:`clear_history`, which the UI's
+        Clear button calls. This one is not reachable from the UI.
+        """
         self._running.clear()
         self._history.clear()
+
+    def clear_history(self) -> None:
+        """Drop finished calls only — what the Activity editor's Clear button does.
+
+        Deliberately leaves ``_running`` untouched: clearing an in-flight call
+        out from under itself would strand it with no way to ever be seen
+        finishing. Never touches the persisted audit log (see module
+        docstring) — a UI action that could erase durable audit history would
+        defeat the reason that log exists.
+        """
+        self._history.clear()
+
+    def resize_history(self, maxlen: int) -> None:
+        """Rebuild ``_history`` with a new cap, keeping the most recent entries.
+
+        Called when ``ActivitySettings.history_size`` changes. ``deque`` has
+        no in-place maxlen change, so this replaces the deque, keeping
+        whichever tail still fits.
+        """
+        self._history = deque(self._history, maxlen=maxlen)
+
+    def _persist(self, record: ActivityRecord) -> None:
+        """Append ``record`` to the audit log, if one is configured.
+
+        Best-effort: a misconfigured path or a full disk must not turn a
+        successful tool call into a failed one. Resolves the path fresh on
+        every call rather than caching it, so a live settings edit (path
+        changed, or cleared to turn logging off) takes effect on the very
+        next call with no restart.
+        """
+        path = _resolve_log_path()
+        if path is None:
+            return
+        try:
+            path.parent.mkdir(parents=True, exist_ok=True)
+            with path.open("a", encoding="utf-8") as f:
+                f.write(record.to_json_line() + "\n")
+        except Exception as exc:
+            logger.debug(f"Farmhand activity: audit log write skipped: {exc}")
+
+
+def _resolve_log_path() -> Optional[Path]:
+    """The audit log's absolute path, or ``None`` when logging is off.
+
+    ``ActivitySettings.log_path`` is empty-means-off, non-empty-means-a-path-
+    relative-to-the-workspace-root (see ``settings.py``). Reached via DI
+    rather than threaded through every ``finish()`` call, matching how
+    ``host.py``'s own ``_publish_activity`` reaches ``get_session_manager()``
+    lazily and tolerates its absence.
+    """
+    try:
+        from haywire.core.di.context import get_workspace_root
+
+        from .settings import ActivitySettings
+
+        relative = ActivitySettings().log_path
+        if not relative:
+            return None
+        return (get_workspace_root() / relative).resolve()
+    except Exception as exc:
+        logger.debug(f"Farmhand activity: audit log path unavailable: {exc}")
+        return None
 
 
 _tracker = ActivityTracker()

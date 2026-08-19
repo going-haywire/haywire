@@ -198,3 +198,22 @@ def test_no_call_is_left_pinned_as_running(farmhand_call):
 
     assert activity_tracker().current(None) is None
     assert len(activity_tracker().recent()) == 2
+
+
+def test_a_real_call_records_its_arguments_and_result(farmhand_call):
+    """End-to-end through host.py's real call_tool wrapper, not a direct tracker call."""
+    import json
+
+    from haywire_studio.farmhand.activity import activity_tracker
+
+    activity_tracker().clear()
+
+    async def scenario(session, init):
+        return await session.call_tool("haybale-testing_echo", {"text": "roundtrip"})
+
+    farmhand_call(scenario)
+
+    record = activity_tracker().recent()[0]
+    assert json.loads(record.arguments) == {"text": "roundtrip"}
+    assert record.result is not None
+    assert json.loads(record.result)["echo"] == "roundtrip"
