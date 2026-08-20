@@ -22,8 +22,41 @@ rather than in the tools. That is deliberate:
 
 Threading: every mutation runs on the NiceGUI event loop, from the MCP request
 task. Tools may ``ctx.offload`` blocking work to a thread, but the tracker is
-never touched from inside that work. Module-level global rather than a
-ContextVar, for the reason in ``.insights/project_di_context.md``.
+never touched from inside that work. Reached through the ambient accessor in
+``core/di/context.py`` (a module-level global rather than a ContextVar, for the
+reason in ``.insights/project_di_context.md``) — never as a module-level
+instance here, so a test can swap it and so construction is deferred until a
+settings registry exists.
+
+**Observable store.** This is the second implementation of the pattern
+``ErrorLedger`` established, and the two are deliberately identical in shape:
+an ambient ``get_/set_`` accessor that survives hot-reload, a zero-arg listener
+list fired on every state change, an app-side bridge that turns those fires
+into a cross-session signal, and a payload-free signal whose subscribers
+re-read this store.
+
+Why the listener seam rather than having this store call
+``get_session_manager().broadcast(...)`` itself — which it *could*, since
+``FarmhandContext.broadcast`` does exactly that from this same package:
+
+* **Thread safety by default.** ``SessionManager.broadcast`` dispatches
+  synchronously into the single-threaded SignalBus. This tracker happens to be
+  touched only from the loop, but ``ErrorLedger`` is not — ``.log()`` fires
+  from watchdog and timer threads, which is why it holds a lock and this does
+  not. A self-broadcasting store would have to capture an event loop at startup
+  and hold it as state. Keeping the hop in the bridge means the *pattern* is
+  safe wherever it is copied, instead of safe only where someone checked.
+* **Isolation.** A bare ``ActivityTracker()`` is inert — no session manager, no
+  DI, no running loop — so the tests exercise ``start``/``finish`` directly.
+* **Signal choice is the application's.** The store records that state changed;
+  that this means ``FarmhandActivity``, cross-session, to every open browser is
+  a policy a headless embedding or a second host may answer differently.
+
+What this store deliberately does *not* copy from ``ErrorLedger`` is the triage
+half: no ``seen`` flag, no stable per-record sequence, no second "triage
+changed" signal. An error is a task — someone must notice and act on it, so
+"have I acknowledged this" is real state. A finished tool call is a fact; there
+is nothing to acknowledge.
 
 Two tiers of record (settled 2026-08-18, see
 ``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``):
@@ -51,7 +84,9 @@ import time
 from collections import deque
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Deque, Iterator, Optional
+from typing import Any, Callable, Deque, Iterator, Optional
+
+from haywire.core.di.context import activity_tracker, set_activity_tracker
 
 logger = logging.getLogger(__name__)
 
@@ -69,6 +104,12 @@ HISTORY_LIMIT = 50
 #: guarantee), so this is the first real backstop.
 PAYLOAD_CHAR_CAP = 4000
 _TRUNCATION_MARKER = "...[truncated]"
+
+# A tracker listener is a zero-arg callback fired after each state change
+# (start / finish / clear). It carries no payload — listeners re-read the
+# tracker, matching the "signals carry no payload, subscribers re-read state"
+# convention shared with ErrorLedger and the SignalBus.
+ActivityListener = Callable[[], None]
 
 
 def _serialize(value: Any) -> str:
@@ -164,6 +205,36 @@ class ActivityTracker:
     _running: dict[int, ActivityRecord] = field(default_factory=dict)
     _history: Deque[ActivityRecord] = field(default_factory=lambda: deque(maxlen=HISTORY_LIMIT))
     _tokens: Iterator[int] = field(default_factory=lambda: itertools.count(1))
+    # Instance state (not a module global) so a fresh ActivityTracker per test
+    # starts with no listeners — leakage across tests is structurally
+    # impossible. Mirrors ErrorLedger._listeners for the same reason.
+    _listeners: list[ActivityListener] = field(default_factory=list)
+
+    def add_listener(self, listener: ActivityListener) -> None:
+        """Register a zero-arg callback fired after each state change. Idempotent per object."""
+        if listener not in self._listeners:
+            self._listeners.append(listener)
+
+    def remove_listener(self, listener: ActivityListener) -> None:
+        """Unregister a previously added listener. No-op if not present."""
+        try:
+            self._listeners.remove(listener)
+        except ValueError:
+            pass
+
+    def _notify(self) -> None:
+        """Fire every listener, isolating failures.
+
+        Snapshot the list so a listener that unsubscribes mid-notify cannot
+        mutate what we are iterating. Each listener is isolated — one raising
+        must not abort the rest, and must never turn a successful tool call
+        into a failed one (this runs inside the host's call path).
+        """
+        for listener in tuple(self._listeners):
+            try:
+                listener()
+            except Exception:
+                logger.debug("ActivityTracker listener %r raised; continuing", listener, exc_info=True)
 
     def start(self, principal: Optional[str], tool: str, arguments: Any = None) -> int:
         """Record a call beginning. Returns the token to pass to :meth:`finish`.
@@ -180,6 +251,7 @@ class ActivityTracker:
             started_wall=time.time(),
             arguments=_serialize(arguments if arguments is not None else {}),
         )
+        self._notify()
         return token
 
     def finish(
@@ -200,6 +272,10 @@ class ActivityTracker:
         same way as ``arguments``. Appends to the in-memory history and, if
         persistence is configured, to the audit log — in that order, so a
         write failure in one never blocks the other.
+
+        Listeners fire only when a call actually moved from running to
+        finished: an unknown token returns before any state changed, so it
+        must not wake subscribers to re-read an unchanged store.
         """
         record = self._running.pop(token, None)
         if record is None:
@@ -218,6 +294,7 @@ class ActivityTracker:
         self._sync_history_size()
         self._history.append(finished)
         self._persist(finished)
+        self._notify()
 
     def _sync_history_size(self) -> None:
         """Pick up a live ``ActivitySettings.history_size`` edit before the next append.
@@ -291,6 +368,10 @@ class ActivityTracker:
 
         Wipes ``_running`` too — unlike :meth:`clear_history`, which the UI's
         Clear button calls. This one is not reachable from the UI.
+
+        Deliberately does NOT notify: this is teardown, not a state change any
+        subscriber should redraw for, and firing here would push a listener
+        registered by a previous app instance during test teardown.
         """
         self._running.clear()
         self._history.clear()
@@ -303,8 +384,12 @@ class ActivityTracker:
         finishing. Never touches the persisted audit log (see module
         docstring) — a UI action that could erase durable audit history would
         defeat the reason that log exists.
+
+        Notifies: the clearing session redraws itself, but every *other* open
+        session is showing history that no longer exists.
         """
         self._history.clear()
+        self._notify()
 
     def resize_history(self, maxlen: int) -> None:
         """Rebuild ``_history`` with a new cap, keeping the most recent entries.
@@ -358,9 +443,12 @@ def _resolve_log_path() -> Optional[Path]:
         return None
 
 
-_tracker = ActivityTracker()
-
-
-def activity_tracker() -> ActivityTracker:
-    """The process-wide tracker. Mirrors ``auth.gate.last_seen()``'s shape."""
-    return _tracker
+__all__ = [
+    "ActivityListener",
+    "ActivityRecord",
+    "ActivityTracker",
+    "HISTORY_LIMIT",
+    "PAYLOAD_CHAR_CAP",
+    "activity_tracker",
+    "set_activity_tracker",
+]

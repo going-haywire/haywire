@@ -150,7 +150,7 @@ def test_mount_writes_no_token_file(farmhand_server):
 
 def test_successful_tool_call_is_recorded_as_finished_activity(farmhand_call):
     """The host records every call, not just mutating ones — echo is read-only."""
-    from haywire_studio.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import activity_tracker
 
     activity_tracker().clear()
 
@@ -169,7 +169,7 @@ def test_successful_tool_call_is_recorded_as_finished_activity(farmhand_call):
 
 
 def test_failing_tool_call_is_recorded_with_its_error(farmhand_call):
-    from haywire_studio.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import activity_tracker
 
     activity_tracker().clear()
 
@@ -186,7 +186,7 @@ def test_failing_tool_call_is_recorded_with_its_error(farmhand_call):
 
 def test_no_call_is_left_pinned_as_running(farmhand_call):
     """Both outcomes must clear the in-flight set, or the chip lies forever."""
-    from haywire_studio.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import activity_tracker
 
     activity_tracker().clear()
 
@@ -204,7 +204,7 @@ def test_a_real_call_records_its_arguments_and_result(farmhand_call):
     """End-to-end through host.py's real call_tool wrapper, not a direct tracker call."""
     import json
 
-    from haywire_studio.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import activity_tracker
 
     activity_tracker().clear()
 

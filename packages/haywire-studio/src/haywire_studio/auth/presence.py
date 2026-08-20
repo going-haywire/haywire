@@ -20,7 +20,7 @@ from haywire.core.access import AccessTier
 
 from haywire_studio.auth.gate import last_seen
 from haywire_studio.auth.live import RosterCache
-from haywire_studio.farmhand.activity import activity_tracker
+from haywire.core.farmhand.activity import activity_tracker
 
 #: An agent quieter than this drops out of the presence row.
 AGENT_IDLE_TIMEOUT_SECONDS = 300.0

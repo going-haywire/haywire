@@ -33,9 +33,8 @@ from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
-from haywire.core.session.signals import FarmhandActivity
 
-from .activity import activity_tracker
+from haywire.core.farmhand.activity import activity_tracker
 from .auth import connection_command
 
 if TYPE_CHECKING:
@@ -155,8 +154,7 @@ class FarmhandHost:
         self._roster_stamp = cache.stamp()
 
     async def _check_roster_freshness(self) -> None:
-        """Piggyback on in-flight traffic to notice a roster edit and push list_changed.
-        """
+        """Piggyback on in-flight traffic to notice a roster edit and push list_changed."""
         if self._roster_cache is None:
             return
         stamp = self._roster_cache.stamp()
@@ -228,21 +226,6 @@ class FarmhandHost:
         """Principal of the in-flight MCP request; ``None`` when auth is off."""
         return caller_principal(self._request())
 
-    def _publish_activity(self) -> None:
-        """Nudge every open browser session to re-read the activity tracker.
-
-        Best-effort by design: a studio with no SessionManager (tests, headless
-        embedding) or a subscriber that raises must never turn into a failed
-        tool call. ``FarmhandActivity`` carries no payload, so a dropped one
-        costs a stale chip until the next call, not a wrong one.
-        """
-        try:
-            from haywire.core.di.context import get_session_manager
-
-            get_session_manager().broadcast(FarmhandActivity())
-        except Exception as exc:
-            logger.debug(f"Farmhand: activity broadcast skipped: {exc}")
-
     # -- MCP handlers ---------------------------------------------------
 
     def _register_handlers(self) -> None:
@@ -308,10 +291,11 @@ class FarmhandHost:
             # broadcasts its own data signal (GraphDataMutated and friends), so
             # the UI refreshes without this — what this adds is *who*, plus the
             # only visibility read-only tools ever get. Recorded here rather than
-            # per-tool: see the module docstring in activity.py.
+            # per-tool: see the module docstring in activity.py. The tracker
+            # broadcasts its own state changes through the app-side bridge, so
+            # there is nothing to publish here.
             tracker = activity_tracker()
             token = tracker.start(principal, name, arguments)
-            self._publish_activity()
             try:
                 try:
                     result = await cls().run(ctx, **arguments)
@@ -340,11 +324,10 @@ class FarmhandHost:
                 # Catches the one path neither branch above covers: a cancelled
                 # request (client disconnect) unwinds straight past both, and
                 # would otherwise strand the call as forever-running. A no-op
-                # whenever the call already recorded its own outcome.
+                # whenever the call already recorded its own outcome — and in
+                # that no-op case nothing is broadcast either, because the
+                # tracker only notifies on a real state change.
                 tracker.finish_if_running(token)
-                # One publish per call, on every exit path — success, failure
-                # and cancellation alike.
-                self._publish_activity()
 
         @self._server.list_resources()
         async def list_resources() -> list[types.Resource]:

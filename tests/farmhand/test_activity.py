@@ -6,7 +6,7 @@ from unittest.mock import MagicMock
 import pytest
 
 from haywire.core.access import AccessTier
-from haywire_studio.farmhand.activity import HISTORY_LIMIT, PAYLOAD_CHAR_CAP, ActivityTracker
+from haywire.core.farmhand.activity import HISTORY_LIMIT, PAYLOAD_CHAR_CAP, ActivityTracker
 
 pytestmark = pytest.mark.unit
 
@@ -161,7 +161,7 @@ def seen_builder():
 @pytest.fixture
 def clean_tracker():
     """The presence row reads the process-wide tracker; isolate it per test."""
-    from haywire_studio.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import activity_tracker
 
     activity_tracker().clear()
     yield activity_tracker()
@@ -376,7 +376,7 @@ def test_resize_history_to_a_larger_cap_keeps_everything(tracker):
 
 def test_finish_picks_up_a_live_history_size_setting_change(tracker, monkeypatch):
     """The process-wide tracker syncs its cap from ActivitySettings on every finish()."""
-    from haywire_studio.farmhand import settings as settings_mod
+    from haywire.core.farmhand import settings as settings_mod
 
     class _Fake:
         history_size = 2
@@ -407,7 +407,7 @@ def workspace_root(tmp_path):
 @pytest.fixture
 def activity_settings():
     """A fresh ActivitySettings for each test — log_path defaults to off."""
-    from haywire_studio.farmhand.settings import ActivitySettings
+    from haywire.core.farmhand.settings import ActivitySettings
 
     settings = ActivitySettings()
     settings.log_path = ""

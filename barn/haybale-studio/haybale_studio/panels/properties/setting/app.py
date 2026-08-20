@@ -22,7 +22,7 @@ from haywire.ui.panel.render_utils import render_schema
 from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
 from haywire.core.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
-from haywire_studio.farmhand.settings import ActivitySettings
+from haywire.core.farmhand.settings import ActivitySettings
 
 from haywire.barn.builtin.focuses import AppFocus
 
@@ -104,7 +104,7 @@ class EditorSettingsPanel(BasePanel):
 class ActivitySettingsPanel(BasePanel):
     """Farmhand activity tracker: in-memory history size, audit log path.
 
-    See ``haywire_studio.farmhand.settings.ActivitySettings`` and
+    See ``haywire.core.farmhand.settings.ActivitySettings`` and
     ``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``.
     """
 

@@ -173,14 +173,19 @@ class FarmhandActivity(Signal):
     """An agent principal started or finished an MCP tool call.
 
     Cross-session like :class:`PresenceChanged`, and payload-free for the same
-    reason: a tool call that finished between publish and delivery would make a
-    carried snapshot a lie. Subscribers re-read the live tracker
-    (``haywire_studio.farmhand.activity.activity_tracker()``) instead.
+    reason: the tracker is the single source of truth and this signal is only a
+    wake-up, so subscribers re-read the live tracker
+    (``haywire.core.farmhand.activity.activity_tracker()``) instead. Carrying
+    the tracker itself would be exactly as fresh and buy nothing; carrying its
+    history *list* would be worse than useless, because ``resize_history()``
+    rebinds that deque and a held reference silently detaches.
 
-    Emitted by the Farmhand host around every tool invocation — NOT by the tools
-    themselves. The host is the only layer that knows which principal is
-    calling, and emitting there covers read-only tools and third-party library
-    tools without asking either to opt in. See ``FarmhandHost._register_handlers``.
+    Emitted by the app-side bridge that observes the tracker, not by the
+    Farmhand host and not by the tools — the tracker fires a zero-arg listener
+    on every state change and ``HaywireApp._wire_store_broadcasts`` turns that
+    into this broadcast. Recording still happens in the host, the only layer
+    that knows which principal is calling, which is what covers read-only tools
+    and third-party library tools without asking either to opt in.
     """
 
     cross_session: ClassVar[bool] = True

@@ -20,6 +20,7 @@ if TYPE_CHECKING:
     from ..session.session_manager import SessionManager
     from ..state import LibraryStateContainer
     from ..errors.ledger import ErrorLedger
+    from ..farmhand.activity import ActivityTracker
 
 
 # Module-level globals (not ContextVar): these are true app-wide singletons that must
@@ -33,9 +34,13 @@ _settings_registry: Optional["SettingsRegistry"] = None
 _session_manager: Optional["SessionManager"] = None
 _workspace_root: Optional[Path] = None
 _library_state_container: Optional["LibraryStateContainer"] = None
-# Process-wide diagnostic buffer, deliberately NOT reset on injector/hot-reload
-# rebuilds (unlike the singletons above) — see errors/ledger.py module docstring.
+# Process-wide diagnostic buffers, deliberately NOT reset on injector/hot-reload
+# rebuilds (unlike the singletons above) — a reload must not erase the record of
+# what happened before it. Both are "observable stores": lazily constructed on
+# first access, they own a listener list that an app-side bridge turns into a
+# cross-session signal. See errors/ledger.py and farmhand/activity.py.
 _error_ledger: Optional["ErrorLedger"] = None
+_activity_tracker: Optional["ActivityTracker"] = None
 
 
 # ---------------------------------------------------------------------------
@@ -80,9 +85,24 @@ def set_library_state_container(container: "LibraryStateContainer") -> None:
 
 
 def set_error_ledger(ledger: Optional["ErrorLedger"]) -> None:
-    """Replace the ambient ledger (tests use this for isolation)."""
+    """Replace the ambient ledger; ``None`` restores lazy construction.
+
+    Provided for isolation — pass a fresh ``ErrorLedger()`` to sever a test
+    from process-wide diagnostic state, then ``None`` (or the snapshot taken
+    beforehand) to restore it.
+    """
     global _error_ledger
     _error_ledger = ledger
+
+
+def set_activity_tracker(tracker: Optional["ActivityTracker"]) -> None:
+    """Replace the ambient activity tracker; ``None`` restores lazy construction.
+
+    Same contract as :func:`set_error_ledger` — the two diagnostic buffers are
+    deliberately identical in shape.
+    """
+    global _activity_tracker
+    _activity_tracker = tracker
 
 
 # ---------------------------------------------------------------------------
@@ -158,3 +178,21 @@ def get_error_ledger() -> "ErrorLedger":
 
         _error_ledger = ErrorLedger()
     return _error_ledger
+
+
+def activity_tracker() -> "ActivityTracker":
+    """Return the ambient Farmhand activity tracker, lazily creating the default.
+
+    Lazy on purpose: constructing at import time would build the tracker before
+    ``ActivitySettings`` is registered, which is what forced the tracker to
+    re-resolve its history cap on every append.
+
+    Named without a ``get_`` prefix, unlike its neighbours, because that is the
+    name every existing call site already uses.
+    """
+    global _activity_tracker
+    if _activity_tracker is None:
+        from ..farmhand.activity import ActivityTracker
+
+        _activity_tracker = ActivityTracker()
+    return _activity_tracker

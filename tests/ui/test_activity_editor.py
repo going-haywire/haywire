@@ -122,7 +122,7 @@ def test_clear_button_wipes_history_and_redraws_without_touching_running_calls()
     from unittest.mock import MagicMock
 
     from haybale_studio.editors.activity_editor import ActivityEditor
-    from haywire_studio.farmhand.activity import activity_tracker
+    from haywire.core.farmhand.activity import activity_tracker
 
     tracker = activity_tracker()
     tracker.clear()
