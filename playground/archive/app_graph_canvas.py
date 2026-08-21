@@ -1565,7 +1565,7 @@ class UndoRedoTestAppWithCanvasManager:
         
         try:
             ui.run(
-                port=8082,
+                port=8124,
                 show=True, 
                 title="Enhanced Haywire Test with Canvas Manager", 
                 reload=False

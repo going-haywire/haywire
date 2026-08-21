@@ -46,7 +46,7 @@ This spec is the assembled, binding summary.
   changes take effect on restart.
 - **Endpoint**: `/mcp` on the studio's port. SDK internal path `/`, full prefix in the
   mount (307-trap avoidance). No SSE endpoint. Client setup:
-  `claude mcp add --transport http farmhand http://127.0.0.1:8082/mcp --header "Authorization: Bearer <token>"`.
+  `claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp --header "Authorization: Bearer <token>"`.
 - **Stack**: official `mcp` SDK v1.x, pinned **`mcp>=1.28,<2`** in haywire-studio;
   protocol 2025-11-25; low-level `NotificationOptions(tools_changed=True,
   prompts_changed=True, resources_changed=True)` so `listChanged` is advertised

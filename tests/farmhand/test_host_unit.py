@@ -274,7 +274,7 @@ def test_mount_installs_no_bearer_middleware(tmp_path):
     host = _bare_host(tmp_path)
     target = _FakeAppTarget()
     document = SecurityDocument()
-    host.mount(8082, document, app_target=target)
+    host.mount(8124, document, app_target=target)
     mounted = target.mounted["/mcp"]
     assert mounted.__class__.__name__ != "BearerTokenMiddleware"
     assert not hasattr(mounted, "token")
@@ -287,7 +287,7 @@ def test_mount_disables_dns_rebinding_protection_when_loopback_unrestricted(tmp_
     target = _FakeAppTarget()
     document = SecurityDocument()
     document.farmhand.restrict_to_loopback = False
-    host.mount(8082, document, app_target=target)
+    host.mount(8124, document, app_target=target)
     assert cast(Any, host._session_manager).security_settings.enable_dns_rebinding_protection is False
 
 
@@ -297,15 +297,15 @@ def test_mount_keeps_dns_rebinding_protection_by_default(tmp_path):
     document = SecurityDocument()
     document.farmhand.restrict_to_loopback = True
     document.network.public_hostname = ""
-    host.mount(8082, document, app_target=target)
+    host.mount(8124, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert security.enable_dns_rebinding_protection is True
-    assert "127.0.0.1:8082" in security.allowed_hosts
+    assert "127.0.0.1:8124" in security.allowed_hosts
     # Regression guard: empty public_hostname (default) must produce
     # byte-identical allowed_hosts/allowed_origins to the shipped behavior —
     # no extra entries leak in.
-    assert security.allowed_hosts == ["127.0.0.1:8082", "localhost:8082", "127.0.0.1", "localhost"]
-    assert security.allowed_origins == ["http://127.0.0.1:8082", "http://localhost:8082"]
+    assert security.allowed_hosts == ["127.0.0.1:8124", "localhost:8124", "127.0.0.1", "localhost"]
+    assert security.allowed_origins == ["http://127.0.0.1:8124", "http://localhost:8124"]
 
 
 def test_mount_extends_allowed_hosts_and_origins_with_public_hostname(tmp_path):
@@ -314,14 +314,14 @@ def test_mount_extends_allowed_hosts_and_origins_with_public_hostname(tmp_path):
     document = SecurityDocument()
     document.farmhand.restrict_to_loopback = True
     document.network.public_hostname = "haywire.example.com"
-    host.mount(8082, document, app_target=target)
+    host.mount(8124, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     # Existing loopback entries are untouched.
-    assert security.allowed_hosts[:4] == ["127.0.0.1:8082", "localhost:8082", "127.0.0.1", "localhost"]
+    assert security.allowed_hosts[:4] == ["127.0.0.1:8124", "localhost:8124", "127.0.0.1", "localhost"]
     # Bare hostname (no port given) gets both bare and port-qualified forms,
     # matching the dual-form convention used for the loopback entries.
     assert "haywire.example.com" in security.allowed_hosts
-    assert "haywire.example.com:8082" in security.allowed_hosts
+    assert "haywire.example.com:8124" in security.allowed_hosts
     # Both schemes allowed since this module can't know which the proxy terminates as.
     assert "http://haywire.example.com" in security.allowed_origins
     assert "https://haywire.example.com" in security.allowed_origins
@@ -333,11 +333,11 @@ def test_mount_public_hostname_with_explicit_port_not_doubled_up(tmp_path):
     document = SecurityDocument()
     document.farmhand.restrict_to_loopback = True
     document.network.public_hostname = "haywire.example.com:443"
-    host.mount(8082, document, app_target=target)
+    host.mount(8124, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert "haywire.example.com:443" in security.allowed_hosts
     # No extra port-appended duplicate since the hostname already carries one.
-    assert "haywire.example.com:443:8082" not in security.allowed_hosts
+    assert "haywire.example.com:443:8124" not in security.allowed_hosts
     assert security.allowed_hosts.count("haywire.example.com:443") == 1
     assert "http://haywire.example.com:443" in security.allowed_origins
     assert "https://haywire.example.com:443" in security.allowed_origins
@@ -349,7 +349,7 @@ def test_mount_public_hostname_ignored_when_loopback_unrestricted(tmp_path):
     document = SecurityDocument()
     document.farmhand.restrict_to_loopback = False
     document.network.public_hostname = "haywire.example.com"
-    host.mount(8082, document, app_target=target)
+    host.mount(8124, document, app_target=target)
     security = cast(Any, host._session_manager).security_settings
     assert security.enable_dns_rebinding_protection is False
     # public_hostname has no effect on this branch — DNS-rebinding protection
@@ -361,8 +361,8 @@ def test_mount_public_hostname_ignored_when_loopback_unrestricted(tmp_path):
 def test_connection_hint_returns_plain_command_when_auth_disabled(tmp_path):
     document = SecurityDocument()
     document.auth.enabled = False
-    hint = FarmhandHost._connection_hint(8082, document, tls=False)
-    assert hint == "claude mcp add --transport http farmhand http://127.0.0.1:8082/mcp"
+    hint = FarmhandHost._connection_hint(8124, document, tls=False)
+    assert hint == "claude mcp add --transport http farmhand http://127.0.0.1:8124/mcp"
 
 
 def test_connection_hint_names_first_agent_token_when_auth_enabled(tmp_path):
@@ -375,12 +375,12 @@ def test_connection_hint_names_first_agent_token_when_auth_enabled(tmp_path):
     document.auth.principals.append(
         Principal(name="bot", kind="agent", tier=AccessTier.EDIT, token="agenttoken")
     )
-    hint = FarmhandHost._connection_hint(8082, document, tls=False)
+    hint = FarmhandHost._connection_hint(8124, document, tls=False)
     assert "agenttoken" in hint
 
 
 def test_connection_hint_explains_missing_agent_when_auth_enabled(tmp_path):
     document = SecurityDocument()
     document.auth.enabled = True
-    hint = FarmhandHost._connection_hint(8082, document, tls=False)
+    hint = FarmhandHost._connection_hint(8124, document, tls=False)
     assert "no agent principal exists" in hint

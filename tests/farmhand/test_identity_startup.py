@@ -41,11 +41,11 @@ def test_sidecar_written_when_enabled(app_state):
     document = SecurityDocument()
     document.farmhand.enabled = True
 
-    state.setup_farmhand(8082, document)
+    state.setup_farmhand(8124, document)
 
     ident = read_identity(tmp_path)
     assert ident is not None
-    assert ident["port"] == 8082
+    assert ident["port"] == 8124
     assert (tmp_path / ".haywire" / IDENTITY_FILENAME).exists()
 
 
@@ -54,6 +54,6 @@ def test_no_sidecar_when_disabled(app_state):
     document = SecurityDocument()
     document.farmhand.enabled = False
 
-    state.setup_farmhand(8082, document)
+    state.setup_farmhand(8124, document)
 
     assert read_identity(tmp_path) is None

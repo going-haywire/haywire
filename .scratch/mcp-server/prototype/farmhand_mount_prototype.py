@@ -19,7 +19,7 @@ from nicegui import app, ui
 
 from mcp.server.fastmcp import FastMCP
 
-PORT = 8099  # prototype port — leaves a real studio on 8082 untouched
+PORT = 8099  # prototype port — leaves a real studio on 8124 untouched
 
 # --- MCP server (the Farmhand stand-in) -----------------------------------
 # streamable_http_path="/" + full prefix in the mount = the 307-trap avoidance

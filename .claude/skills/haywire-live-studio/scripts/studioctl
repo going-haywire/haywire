@@ -3,7 +3,7 @@
 
 The studio serves the NiceGUI app AND the Farmhand MCP endpoint on one port
 (``/mcp``), read from the studio's own ``NetworkSettings.port`` (default 8124 —
-8082 collides with too many tutorials/other tools). This tool lets an agent
+8124 collides with too many tutorials/other tools). This tool lets an agent
 (or a human) bring that server up and down without touching Claude Code's own
 MCP client — Farmhand is then driven over HTTP by the sibling ``farmhand``
 script.
