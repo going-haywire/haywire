@@ -34,7 +34,7 @@ Interpreter / VM  (execution/interpreter.py + execution/vm.py)
 Node behaviors fire   (node/behavior.py + node/node_wrapper.py)
      │       — emit signals on completion / state change
      ▼
-Signal bus  (core/session/signals/bus.py) → UI updates
+Signal bus  (core/signals/bus.py) → UI updates
 ```
 
 ## Key Files

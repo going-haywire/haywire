@@ -1,4 +1,4 @@
-# packages/haywire-core/src/haywire/core/session/signals/vocabulary.py
+# packages/haywire-core/src/haywire/core/signals/vocabulary.py
 """
 Concrete hand-authored signals dispatched through the per-session SignalBus.
 
@@ -19,7 +19,7 @@ authors, not type machinery in the dispatcher. Emit with
 Cross-session routing is a class-level property: set
 ``cross_session: ClassVar[bool] = True`` on a subclass and
 ``Session.publish(...)`` delegates to
-``SessionManager.broadcast(...)`` instead of dispatching locally.
+``SignalDispatcher.broadcast(...)`` instead of dispatching locally.
 
 Library authors who declare their own signal classes that other libraries
 subscribe to MUST list the signal-declaring library in their own
@@ -127,7 +127,7 @@ class ErrorLogged(Signal):
     Emission does NOT come from a normal ``session.publish`` on a UI action.
     The ledger records from arbitrary threads (watchdog/scan) and is
     UI-ignorant; the studio app bridges its zero-arg listener hook to this
-    signal via ``SessionManager.broadcast`` (marshalled onto the event loop
+    signal via ``SignalDispatcher.broadcast`` (marshalled onto the event loop
     with ``call_soon_threadsafe``). Wiring lives in ``HaywireApp.on_startup``.
 
     Distinct from ``ErrorLedgerChanged`` (a *triage* mutation) — this fires only

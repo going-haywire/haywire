@@ -10,7 +10,7 @@ from haywire.core.signals.descriptor import _seed_signal_fields
 from haywire.core.state.identity import LibraryStateClassIdentity
 
 if TYPE_CHECKING:
-    from haywire.core.session.session_manager import SessionManager
+    from haywire.core.signals import SignalDispatcher
 
 
 class LibraryState(SignalSource):
@@ -65,11 +65,15 @@ class AppState(LibraryState):
     before teardown; both default to no-op on the base class.
     """
 
-    # Set by LibraryStateContainer.bind_session_manager (and re-stamped by
+    # Set by LibraryStateContainer.bind_dispatcher (and re-stamped by
     # _add_app_class for AppStates added after binding). Weakref so AppState
-    # lifetime doesn't extend the SessionManager. May be None-resolving if
-    # the manager has been torn down.
-    _session_manager: "weakref.ReferenceType[SessionManager]"
+    # lifetime doesn't extend the SignalDispatcher. May be None-resolving if
+    # the dispatcher has been torn down.
+    #
+    # A weakref rather than the ambient `get_signal_dispatcher()`: binding is
+    # per-container, so a test that builds its own container + dispatcher gets
+    # real isolation instead of leaking through a module-level global.
+    _dispatcher: "weakref.ReferenceType[SignalDispatcher]"
 
     def __init__(self) -> None:
         """Seed per-instance storage for every `signal_field` descriptor.
@@ -80,18 +84,22 @@ class AppState(LibraryState):
         _seed_signal_fields(self)
 
     def _signal_emit(self, signal: Signal) -> None:
-        """Broadcast a signal across every active session.
+        """Broadcast a signal to every registered peer.
 
-        If the SessionManager has been torn down (e.g. app shutdown), the
+        An AppState owns no peer of its own — it is app-global, not bound to
+        any one browser tab or agent — so it emits straight through the
+        dispatcher rather than through a peer's ``publish``.
+
+        If the SignalDispatcher has been torn down (e.g. app shutdown), the
         weakref returns None and we silently drop the signal. This is
-        correct, not a swallowed error: there are no sessions left to
-        notify. Outside shutdown, ``_session_manager`` is always set by
-        ``LibraryStateContainer.bind_session_manager``.
+        correct, not a swallowed error: there is nobody left to notify.
+        Outside shutdown, ``_dispatcher`` is always set by
+        ``LibraryStateContainer.bind_dispatcher``.
         """
-        manager = self._session_manager()
-        if manager is None:
+        dispatcher = self._dispatcher()
+        if dispatcher is None:
             return
-        manager.broadcast(signal)
+        dispatcher.broadcast(signal)
 
 
 class SessionState(LibraryState):

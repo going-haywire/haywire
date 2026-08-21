@@ -5,6 +5,7 @@ from unittest.mock import MagicMock
 
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry, SessionState
 from haywire.core.session.session_manager import SessionManager
+from haywire.core.signals import SignalDispatcher
 
 
 class TestSessionManagerAttachDetach:
@@ -16,7 +17,7 @@ class TestSessionManagerAttachDetach:
 
     def test_create_session_attaches_to_container(self):
         container = LibraryStateContainer(LibraryStateRegistry())
-        manager = SessionManager(container=container)
+        manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
 
         session = manager.create_session(**self._make_session_kwargs(container))
 
@@ -24,7 +25,7 @@ class TestSessionManagerAttachDetach:
 
     def test_remove_session_detaches_from_container(self):
         container = LibraryStateContainer(LibraryStateRegistry())
-        manager = SessionManager(container=container)
+        manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
         session = manager.create_session(**self._make_session_kwargs(container))
 
         manager.remove_session(session.session_id)
@@ -57,7 +58,7 @@ class TestSessionManagerAttachDetach:
         container._sessions[key] = {}
         container._class_by_registry_key[key] = TimelineCursor
 
-        manager = SessionManager(container=container)
+        manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
         session = manager.create_session(**self._make_session_kwargs(container))
 
         # on_enable fired for the new session.
@@ -88,7 +89,7 @@ class TestSessionManagerAttachDetach:
         container._sessions[key] = {}
         container._class_by_registry_key[key] = Cursor
 
-        manager = SessionManager(container=container)
+        manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
         session = manager.create_session(**self._make_session_kwargs(container))
 
         manager.remove_session(session.session_id)

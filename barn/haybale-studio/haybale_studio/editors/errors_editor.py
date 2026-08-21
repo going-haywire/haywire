@@ -38,7 +38,7 @@ from haybale_studio.editors.error_navigation import (
 from haywire.core.errors.haywire_exception import ErrorSeverity, HaywireException
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.session.handlers import react_on
-from haywire.core.session.signals import ErrorLedgerChanged, ErrorLogged, Signal
+from haywire.core.signals import ErrorLedgerChanged, ErrorLogged, Signal
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor

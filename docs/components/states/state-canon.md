@@ -69,7 +69,7 @@ Three architectural slots state fills, distinct from anything else:
 
 ```python
 from haywire.core.state import AppState, SessionState, state
-from haywire.core.session.signals import signal_field
+from haywire.core.signals import signal_field
 
 @state(label='MIDI Pool')
 class MidiPool(AppState): ...
@@ -182,7 +182,7 @@ from haywire.core.state import (
     state,                  # decorator
     LibraryStateRegistry,   # for register_components()
 )
-from haywire.core.session.signals import signal_field
+from haywire.core.signals import signal_field
 ```
 
 **Per-library persistent storage.** If your `AppState` needs to read or write files that should survive across sessions (a cache, a database, saved state), use `library_storage_dir(__name__)` from `haywire.core.storage`. It returns (and lazily creates) `~/.haywire/db/<your_top_package>/` — a directory that belongs to your library and is never touched by the framework on uninstall.
@@ -206,7 +206,7 @@ A library `haybale_midi` that exercises both scopes: an `AppState` (`MidiPool`) 
 # haybale_midi/state/midi_pool.py — AppState
 
 from haywire.core.state import AppState, state
-from haywire.core.session.signals import signal_field
+from haywire.core.signals import signal_field
 
 # Companion settings (covered in components/settings/setting-canon.md).
 # Lives in the same library so on_enable can find the wired registry.
@@ -244,7 +244,7 @@ class MidiPool(AppState):
 # haybale_midi/state/midi_selection.py — SessionState
 
 from haywire.core.state import SessionState, state
-from haywire.core.session.signals import signal_field
+from haywire.core.signals import signal_field
 
 @state(label='MIDI Selection (session)')
 class MidiSelection(SessionState):
@@ -395,7 +395,7 @@ For the framework mechanics — `LibraryStateRegistry`, `LibraryStateContainer`,
 from haywire.core.state import (
     AppState, SessionState, state, LibraryStateRegistry,
 )
-from haywire.core.session.signals import signal_field
+from haywire.core.signals import signal_field
 ```
 
 ### Access patterns

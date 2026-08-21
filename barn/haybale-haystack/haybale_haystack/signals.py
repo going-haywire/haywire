@@ -15,7 +15,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import ClassVar
 
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 
 
 @dataclass(frozen=True)

@@ -22,7 +22,7 @@ from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     LibraryCatalogChanged,
     Reveal,
 )
@@ -327,7 +327,7 @@ class LibraryBrowserEditor(BaseEditor):
         the user repair such files. Click Refresh after saving to re-apply.
         """
         from haybale_studio.editors.code_editor import CodeEditor
-        from haywire.core.session.signals import Reveal
+        from haywire.core.signals import Reveal
         from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
 
         mp = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"

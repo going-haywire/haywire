@@ -9,7 +9,7 @@ from typing import TYPE_CHECKING
 
 from nicegui import ui
 
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     ActiveGraphMoved,
     GraphDataMutated,
     SelectionMoved,

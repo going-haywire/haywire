@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 @state(label="Haystack State")
 class HaystackState(AppState):
     """In-memory registry of open graphs (one entry per file path)
-    Validation broadcast goes directly via``SessionManager``.
+    Validation broadcast goes directly via ``SignalDispatcher``.
     Haystack file load/dump live in ``persistence.py``
     """
 
@@ -34,9 +34,9 @@ class HaystackState(AppState):
         self._entries: dict[str, GraphEntry] = {}
         self._haystack_dirty: bool = False
 
-        # Dependencies resolved in on_enable. _session_manager is NOT among
+        # Dependencies resolved in on_enable. _dispatcher is NOT among
         # them: AppState's base class provides it as a container-stamped
-        # weakref (see state/base.py), dereffed via self._session_manager().
+        # weakref (see state/base.py), dereffed via self._dispatcher().
         self._workspace_root: Optional[Path] = None
         self._node_factory: Optional[NodeFactory] = None
         self._library_state_container: Optional[LibraryStateContainer] = None
@@ -87,12 +87,12 @@ class HaystackState(AppState):
         # Announce that the haystack is back. HaystackEditor reacts by
         # re-rendering its list against the (new) registry. Cross-session,
         # so peer sessions also refresh.
-        session_manager = self._session_manager()
-        if session_manager is not None:
+        dispatcher = self._dispatcher()
+        if dispatcher is not None:
             from haybale_haystack.signals import HaystackReloaded
 
             try:
-                session_manager.broadcast(HaystackReloaded())
+                dispatcher.broadcast(HaystackReloaded())
             except Exception as exc:
                 logger.warning(f"HaystackState.on_enable: HaystackReloaded broadcast failed: {exc}")
 
@@ -109,12 +109,12 @@ class HaystackState(AppState):
 
         entry_ids = tuple(self._entries.keys())
 
-        session_manager = self._session_manager()
-        if session_manager is not None and entry_ids:
+        dispatcher = self._dispatcher()
+        if dispatcher is not None and entry_ids:
             from haybale_haystack.signals import HaystackTeardown
 
             try:
-                session_manager.broadcast(HaystackTeardown(entry_ids=entry_ids))
+                dispatcher.broadcast(HaystackTeardown(entry_ids=entry_ids))
             except Exception as exc:
                 logger.warning(f"HaystackState.on_disable: HaystackTeardown broadcast failed: {exc}")
 
@@ -144,13 +144,13 @@ class HaystackState(AppState):
         sessions automatically — no need for individual UI handlers
         to remember.
         """
-        session_manager = self._session_manager()
-        if session_manager is None:
+        dispatcher = self._dispatcher()
+        if dispatcher is None:
             return
-        from haywire.core.session.signals import GraphDataMutated
+        from haywire.core.signals import GraphDataMutated
 
         try:
-            session_manager.broadcast(GraphDataMutated())
+            dispatcher.broadcast(GraphDataMutated())
         except Exception as exc:
             logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 

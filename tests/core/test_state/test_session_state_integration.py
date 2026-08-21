@@ -21,6 +21,7 @@ from haywire.core.state import (
 )
 from haywire.core.state.data_namespace import SessionDataNamespace
 from haywire.core.session.session_manager import SessionManager
+from haywire.core.signals import SignalDispatcher
 
 
 @pytest.mark.integration
@@ -79,7 +80,7 @@ class TestSessionStateIntegration:
         assert calls == []
 
         # Construct a SessionManager wired to this container.
-        manager = SessionManager(container=container)
+        manager = SessionManager(dispatcher=SignalDispatcher(), container=container)
         app_state = MagicMock()
         app_state.library_state_container = container
         session = manager.create_session(

@@ -26,7 +26,7 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.handlers import react_on
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     ActiveGraphMoved,
     GraphDataMutated,
     Reveal,

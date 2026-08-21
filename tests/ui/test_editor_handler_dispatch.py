@@ -79,7 +79,7 @@ def _make_session() -> Session:
     session = Session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
-        session_manager=MagicMock(),
+        dispatcher=MagicMock(),
     )
     # Decouple the wrapper's panel-registry resolution chain from the
     # auto-mock — these tests don't host panels; we want the wrapper to

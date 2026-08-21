@@ -25,11 +25,11 @@ def state_with_mocked_deps(settings_registry_wired):
     from haybale_haystack.state.haystack_state import HaystackState
 
     state = HaystackState()
-    # AppState's _session_manager is a weakref dereffed via self._session_manager().
-    # A mock returning itself lets the existing `_session_manager.broadcast`
+    # AppState's _dispatcher is a weakref dereffed via self._dispatcher().
+    # A mock returning itself lets the existing `_dispatcher.broadcast`
     # assertions target the same object the code calls broadcast on.
-    state._session_manager = MagicMock()
-    state._session_manager.return_value = state._session_manager
+    state._dispatcher = MagicMock()
+    state._dispatcher.return_value = state._dispatcher
     state._workspace_root = Path("/tmp/ws")
     state._node_factory = MagicMock()
     state._library_state_container = MagicMock()
@@ -69,12 +69,12 @@ def test_create_new_broadcasts_graph_data_mutated(state_with_mocked_deps):
     from haywire.core.signals import GraphDataMutated
 
     state = state_with_mocked_deps
-    state._session_manager.broadcast.reset_mock()
+    state._dispatcher.broadcast.reset_mock()
 
     state.create_new()
 
-    state._session_manager.broadcast.assert_called_once()
-    (event,), _ = state._session_manager.broadcast.call_args
+    state._dispatcher.broadcast.assert_called_once()
+    (event,), _ = state._dispatcher.broadcast.call_args
     assert isinstance(event, GraphDataMutated)
 
 
@@ -314,7 +314,7 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     assert entry.unsaved is False
     # create_new() itself broadcasts (every mutator does). Reset so this
     # test only observes what _on_entry_validation broadcasts.
-    state._session_manager.broadcast.reset_mock()
+    state._dispatcher.broadcast.reset_mock()
 
     # Build a result with .nodes/.edges truthy and has_changes True.
     result = MagicMock()
@@ -327,8 +327,8 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     state._on_entry_validation(entry, result)
 
     assert entry.unsaved is True
-    state._session_manager.broadcast.assert_called_once()
-    (event,), _ = state._session_manager.broadcast.call_args
+    state._dispatcher.broadcast.assert_called_once()
+    (event,), _ = state._dispatcher.broadcast.call_args
     from haywire.core.signals import GraphDataMutated
 
     assert isinstance(event, GraphDataMutated)
@@ -340,7 +340,7 @@ def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps
     # create_new() now broadcasts GraphDataMutated itself (every mutator
     # does). Reset the mock so this test only observes what
     # _on_entry_validation does with no-change results.
-    state._session_manager.broadcast.reset_mock()
+    state._dispatcher.broadcast.reset_mock()
 
     result = MagicMock()
     result.has_changes.return_value = False
@@ -350,7 +350,7 @@ def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps
 
     state._on_entry_validation(entry, result)
 
-    state._session_manager.broadcast.assert_not_called()
+    state._dispatcher.broadcast.assert_not_called()
 
 
 def test_validation_callback_stops_execution_on_reassembly(state_with_mocked_deps):

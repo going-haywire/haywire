@@ -30,7 +30,7 @@ from haywire.ui import elements as hui
 from haywire.core.library.utils import get_registry_id_from_key
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -348,7 +348,7 @@ class ComponentSourceEditor(BaseEditor):
         if session is None:
             return
         from haybale_studio.editors.code_editor import CodeEditor
-        from haywire.core.session.signals import Reveal
+        from haywire.core.signals import Reveal
 
         session.context.active_file = self._path
         session.publish(

@@ -13,18 +13,51 @@ from haywire.core.session.session import Session
 from haywire.core.signals import SelectionMoved
 
 
-def _make_session(session_manager=None):
+def _make_session(dispatcher=None):
     return Session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
-        session_manager=session_manager or MagicMock(),
+        dispatcher=dispatcher or MagicMock(),
     )
 
 
-def test_session_stores_session_manager():
-    sm = MagicMock()
-    session = _make_session(session_manager=sm)
-    assert session._session_manager is sm
+def test_session_stores_dispatcher():
+    dispatcher = MagicMock()
+    session = _make_session(dispatcher=dispatcher)
+    assert session._dispatcher is dispatcher
+
+
+def test_session_is_a_signal_peer():
+    """Bus mechanics are inherited, not reimplemented on Session."""
+    from haywire.core.signals import SignalPeer
+
+    assert issubclass(Session, SignalPeer)
+
+
+def test_session_id_aliases_peer_id():
+    """One identity under two names — they must never diverge."""
+    session = _make_session()
+    assert session.session_id == session.peer_id
+
+
+def test_session_registers_itself_with_the_dispatcher():
+    from haywire.core.signals import SignalDispatcher
+
+    dispatcher = SignalDispatcher()
+    session = _make_session(dispatcher=dispatcher)
+
+    assert dispatcher.peers[session.session_id] is session
+
+
+def test_session_cleanup_unregisters_from_the_dispatcher():
+    from haywire.core.signals import SignalDispatcher
+
+    dispatcher = SignalDispatcher()
+    session = _make_session(dispatcher=dispatcher)
+
+    session.cleanup()
+
+    assert dispatcher.peer_count == 0
 
 
 def test_session_has_no_shell_attr():

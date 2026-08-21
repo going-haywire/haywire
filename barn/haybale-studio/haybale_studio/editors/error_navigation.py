@@ -55,7 +55,7 @@ def open_component_docs(registry_key: str, context: "SessionContext") -> None:
     component row in the library overview), not error triage.
     """
     from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
-    from haywire.core.session.signals import Reveal
+    from haywire.core.signals import Reveal
 
     context.active_component = registry_key
     context.session.publish(Reveal(editor=ComponentDocsEditor))
@@ -68,7 +68,7 @@ def open_component_source(registry_key: str, context: "SessionContext") -> None:
     HaywireException's ``registry_key``.
     """
     from haybale_studio.editors.component_source_editor import ComponentSourceEditor
-    from haywire.core.session.signals import Reveal
+    from haywire.core.signals import Reveal
 
     context.active_component = registry_key
     context.session.publish(Reveal(editor=ComponentSourceEditor))
@@ -81,7 +81,7 @@ def open_file_in_studio(filepath: str, line_number: "int | None", context: "Sess
     Reveal the CodeEditor bound to the path. line_number is accepted for a
     future goto; the CodeEditor binds by path today."""
     from haybale_studio.editors.code_editor import CodeEditor
-    from haywire.core.session.signals import Reveal
+    from haywire.core.signals import Reveal
 
     path = Path(filepath)
     context.active_file = path
@@ -101,7 +101,7 @@ def reveal_instance(error: "HaywireException", context: "SessionContext") -> Non
     if not error.can_reveal_instance():
         return
 
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     assert error.graph_id is not None  # can_reveal_instance guarantees it
     context.session.publish(

@@ -37,7 +37,7 @@ class MyEditor(BaseEditor):              registers class                instanti
 
 Editors *host* panels (in panel-aware editors like `PropertiesEditor`) but they don't own panel content — that's [components/panels](../panels/panel-canon.md). Editors don't render themselves into the canvas — that's the studio's job. They render into the NiceGUI `Element` that AppShell hands to `draw()`.
 
-**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Signal classes (`Signal` base, `CommandSignal` for imperatives) — see `haywire/core/session/signals/`.
+**Boundaries.** What slots are, how the AppShell works, the workspace snapshot system — see [architecture/studio](../../architecture/studio/studio-arch.md). Panels — see [components/panels](../panels/panel-canon.md). Library/session state accessed inside editors (e.g. `EditState` for selection) — see [components/states](../states/state-canon.md). Signal classes (`Signal` base, `CommandSignal` for imperatives) — see `haywire/core/signals/`.
 
 ## 3. Important concepts
 
@@ -128,7 +128,7 @@ See [components/states](../states/state-canon.md) for the full state model.
 **Driving other slots — lifecycle commands on the signal bus.** To open or focus a tab in another slot, publish a `Reveal` command on `context.session`:
 
 ```python
-from haywire.core.session.signals import Reveal
+from haywire.core.signals import Reveal
 
 context.session.publish(Reveal(
     editor=LibraryDetailEditor,
@@ -138,10 +138,10 @@ context.session.publish(Reveal(
 
 `Reveal`, `Close`, and `BroadcastClose` are `CommandSignal` payloads — the imperative half of the signal vocabulary. They travel on the same per-session typed bus as observation signals and are emitted with the same `session.publish(...)` call. The AppShell subscribes to each command type and routes it: `Reveal` resolves `editor.class_identity.default_slot` and dispatches to that slot; `Close(binding_id=...)` closes every tab bound to a `binding_id` across all slots in the issuing session.
 
-Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-session fan-out by setting `cross_session: ClassVar[bool] = True` (same class-level flag used by `Signal`); `Session.publish(...)` then delegates to `SessionManager.broadcast(...)` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
+Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-peer fan-out by setting `cross_session: ClassVar[bool] = True` (same class-level flag used by `Signal`); `Session.publish(...)` then delegates to `SignalDispatcher.broadcast(...)` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
-from haywire.core.session.signals import BroadcastClose
+from haywire.core.signals import BroadcastClose
 
 # Underlying entry removed everywhere — close any GraphEditor tab bound
 # to it, in this session AND every peer session.
@@ -165,7 +165,7 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName   # for code that inspects the enum
 from haywire.core.session.handlers import redraw_on, react_on
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
     Reveal, Close, BroadcastClose,                        # lifecycle commands
@@ -242,7 +242,7 @@ from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 from haywire.core.session.handlers import redraw_on, react_on
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
     Reveal, Close, BroadcastClose,

@@ -11,6 +11,8 @@ Public surface:
 from .signal import Signal, CommandSignal
 from .bus import SignalBus, SignalHandler
 from .host import SignalSource
+from .dispatcher import SignalDispatcher
+from .peer import SignalPeer
 from .descriptor import signal_field
 from .vocabulary import (
     ActiveGraphMoved,
@@ -35,6 +37,9 @@ __all__ = [
     "SignalBus",
     "SignalHandler",
     "SignalSource",
+    # Fan-out
+    "SignalDispatcher",
+    "SignalPeer",
     # Descriptor
     "signal_field",
     # Observations

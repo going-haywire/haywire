@@ -39,7 +39,7 @@ import time
 from haywire.core.access import AccessTier
 from haywire.core.farmhand.activity import activity_tracker
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals import FarmhandActivity
+from haywire.core.signals import FarmhandActivity
 from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
 from haywire.ui.editor.base import BaseEditor

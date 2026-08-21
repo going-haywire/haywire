@@ -1,6 +1,6 @@
 # Cross-cut: Signals & Reactive Properties
 
-> Haywire's UI/engine event plumbing: a typed signal bus in `core/session/signals/` plus reactive property descriptors (`shadow()` / `watch()`) used throughout settings and node properties.
+> Haywire's UI/engine event plumbing: a typed signal bus in `core/signals/` plus reactive property descriptors (`shadow()` / `watch()`) used throughout settings and node properties.
 
 ## Overview
 
@@ -23,18 +23,34 @@ The two combine: a property change typically fires a signal on the bus, panels s
 ## Flow
 
 ```
-Producer (node / setting / state container)
+Producer (node / setting / state container / agent tool)
     │
-    │  emit("vocabulary.key", payload)
+    │  peer.publish(SomeSignal())      — typed, payload-free by convention
     ▼
-SignalBus (core/session/signals/bus.py)
-    │   — typed dispatch, vocabulary in vocabulary.py
+SignalPeer (core/signals/peer.py)
+    │
+    ├─ cross_session=False ──▶ own SignalBus only
+    │
+    └─ cross_session=True  ──▶ SignalDispatcher (core/signals/dispatcher.py)
+                                   │  — fans out to EVERY registered peer
+                                   ▼
+                               each peer._dispatch → its SignalBus
     ▼
-Subscribers (panels, editors, signal_handler_decorators)
+SignalBus (core/signals/bus.py)
+    │   — exact-class dispatch, vocabulary in vocabulary.py
+    ▼
+Subscribers (panels, editors, @redraw_on / @react_on)
     │   — invoke ui callbacks; rebind reactive props
     ▼
 NiceGUI re-render
 ```
+
+A `Session` is one *kind* of `SignalPeer` (the browser-tab kind). The transport
+imports nothing but `Signal` — no NiceGUI, no browser assumptions — so a
+non-browser peer (agent-facing MCP host, CLI, headless embedding) joins the same
+fan-out. Emitters that own no peer reach the dispatcher directly: `AppState`
+via a container-stamped `_dispatcher` weakref, `FarmhandContext` via ambient
+`get_signal_dispatcher()`.
 
 Reactive descriptor path (cell-authoritative model, see [ADR 0013](../../docs/adr/0013-settings-single-cell.md)):
 
@@ -49,9 +65,12 @@ Settings class defines shadow("foo") / watch("bar")
 
 ## Key Files
 
-- `packages/haywire-core/src/haywire/core/session/signals/bus.py` — the SignalBus.
-- `packages/haywire-core/src/haywire/core/session/signals/vocabulary.py` — canonical signal names.
-- `packages/haywire-core/src/haywire/core/session/signals/descriptor.py` — host/descriptor protocol.
+- `packages/haywire-core/src/haywire/core/signals/bus.py` — the SignalBus.
+- `packages/haywire-core/src/haywire/core/signals/peer.py` — SignalPeer: bus owner + fan-out member.
+- `packages/haywire-core/src/haywire/core/signals/dispatcher.py` — SignalDispatcher: cross-peer fan-out.
+- `packages/haywire-core/src/haywire/core/signals/vocabulary.py` — canonical signal names.
+- `packages/haywire-core/src/haywire/core/signals/descriptor.py` — host/descriptor protocol.
+- `tests/core/test_signals/test_dispatcher_and_peer.py` — the transport in isolation (no Session, no DI).
 - `packages/haywire-core/src/haywire/core/settings/descriptor.py` — `shadow()` / `watch()`.
 - `packages/haywire-core/src/haywire/core/settings/registry.py` — SettingsRegistry.
 - `tests/ui/test_signal_bus.py`, `tests/ui/test_signal_handler_decorators.py`, `tests/ui/test_signals_vocabulary.py` — test patterns to follow.

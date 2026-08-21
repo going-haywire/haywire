@@ -14,7 +14,7 @@ from typing import TYPE_CHECKING, Optional
 
 from nicegui import ui
 
-from haywire.core.session.signals import LibraryCatalogChanged
+from haywire.core.signals import LibraryCatalogChanged
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor

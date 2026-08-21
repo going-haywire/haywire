@@ -1,12 +1,11 @@
-# packages/haywire-core/src/haywire/ui/session_manager.py
+# packages/haywire-core/src/haywire/core/session/session_manager.py
 
 import logging
 from typing import Dict, Optional, TYPE_CHECKING
 
-from haywire.core.signals import Signal
-
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
+    from haywire.core.signals import SignalDispatcher
     from haywire.core.state import LibraryStateContainer
 
 
@@ -15,18 +14,31 @@ logger = logging.getLogger(__name__)
 
 class SessionManager:
     """
-    Manages all active Sessions across browser connections::
+    Manages all active browser Sessions::
 
-        manager = SessionManager(container=app.library_state_container)
+        manager = SessionManager(dispatcher=dispatcher, container=app.library_state_container)
         session = manager.create_session(app_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
-        manager.broadcast(signal)
+
+    Lifecycle only. Signal fan-out is
+    :class:`~haywire.core.signals.dispatcher.SignalDispatcher`'s job — this
+    class used to own a ``broadcast`` method, but of the five call paths that
+    reached it only ``Session.publish`` had anything to do with sessions. The
+    rest (``AppState._signal_emit``, ``FarmhandContext.broadcast``, the studio
+    error/activity/presence bridges) wanted a channel and were handed a
+    registry. They now call ``SignalDispatcher.broadcast`` directly.
+
+    Sessions are not registered with the dispatcher here: ``SignalPeer``
+    registers itself on construction and unregisters in ``cleanup()``, which
+    :meth:`remove_session` already calls. That keeps eviction (ADR 0027)
+    correct for free — see ``auth/eviction.py``, which needs no knowledge of
+    peers at all.
     """
 
-    def __init__(self, container: "LibraryStateContainer"):
+    def __init__(self, dispatcher: "SignalDispatcher", container: "LibraryStateContainer"):
         self._sessions: Dict[str, "Session"] = {}
+        self._dispatcher = dispatcher
         self._container = container
-        self._container.bind_session_manager(self)
 
     # ------------------------------------------------------------------
     # Session lifecycle
@@ -37,8 +49,8 @@ class SessionManager:
         Create a new Session and register it.
 
         All keyword arguments are forwarded to the Session constructor.
-        ``session_manager=self`` is injected automatically so callers do
-        not pass it.
+        ``dispatcher=self._dispatcher`` is injected automatically so callers do
+        not pass it — and so every session lands in the same fan-out.
 
         After Session construction, the LibraryStateContainer is told to
         attach this session_id — every registered SessionState class gets
@@ -49,7 +61,7 @@ class SessionManager:
         """
         from haywire.core.session.session import Session
 
-        session = Session(session_manager=self, **session_kwargs)
+        session = Session(dispatcher=self._dispatcher, **session_kwargs)
         self._sessions[session.session_id] = session
         # Attach AFTER Session is fully constructed so SessionContext exists
         # and SessionDataNamespace can immediately resolve lookups.
@@ -60,6 +72,10 @@ class SessionManager:
     def remove_session(self, session_id: str) -> None:
         """
         Clean up and remove a session by ID.
+
+        ``Session.cleanup()`` unregisters the session from the dispatcher, so
+        a removed session stops receiving broadcasts immediately — including
+        when the caller is ``evict_principal``.
 
         Args:
             session_id: The full session ID string.
@@ -84,42 +100,19 @@ class SessionManager:
 
     @property
     def active_sessions(self) -> Dict[str, "Session"]:
-        """Read-only view of all active sessions keyed by session_id."""
+        """Read-only view of all active browser sessions keyed by session_id.
+
+        Only ever contains :class:`Session` instances — non-browser peers
+        (the Farmhand host, a CLI) live in the dispatcher's registry, never
+        here. Presence and eviction rely on that: both read ``.context``,
+        which a bare peer does not have.
+        """
         return dict(self._sessions)
 
     @property
     def session_count(self) -> int:
         """Number of currently active sessions."""
         return len(self._sessions)
-
-    # ------------------------------------------------------------------
-    # Broadcast helpers
-    # ------------------------------------------------------------------
-
-    def broadcast(self, signal: Signal) -> None:
-        """Fan a :class:`Signal` out to every registered session.
-
-        Callers normally reach this path via ``Session.publish(signal)``
-        when ``type(signal).cross_session is True``. Used both for
-        observations (e.g. ``GraphDataMutated`` so peer sessions refresh
-        their views) and imperatives (e.g. ``BroadcastClose`` so peer
-        sessions close tabs bound to a vanishing entity).
-
-        Per-peer exceptions are swallowed and logged — a subscriber
-        raising in one session does not abort delivery to others.
-
-        Args:
-            signal: The :class:`Signal` to fan out.
-        """
-        failed = []
-        for session_id, session in list(self._sessions.items()):
-            try:
-                session._dispatch(signal)
-            except Exception as e:
-                logger.warning(f"SessionManager: broadcast failed for session {session_id[:8]}: {e}")
-                failed.append(session_id)
-        if failed:
-            logger.warning(f"SessionManager: {len(failed)} session(s) failed during broadcast")
 
     def cleanup_all(self) -> None:
         """Clean up all sessions (call on application shutdown)."""

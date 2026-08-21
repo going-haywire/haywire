@@ -24,6 +24,7 @@ def app_under_test():
     app._shells = {}
     app._client_to_session = {}
     app.session_manager = MagicMock()
+    app.signal_dispatcher = MagicMock()
     return app
 
 

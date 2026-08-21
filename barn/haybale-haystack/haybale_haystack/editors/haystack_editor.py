@@ -14,7 +14,7 @@ from haywire.core.session import (
     react_on,
     redraw_on,
 )
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,

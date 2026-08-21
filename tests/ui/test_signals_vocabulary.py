@@ -37,6 +37,7 @@ from haywire.core.signals import (
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.session import Session
 from haywire.core.session.session_manager import SessionManager
+from haywire.core.signals import SignalDispatcher
 
 
 # ----------------------------------------------------------------------
@@ -132,17 +133,17 @@ def test_broadcast_close_cross_session():
 # ----------------------------------------------------------------------
 
 
-def _make_session(session_manager=None):
+def _make_session(dispatcher=None):
     return Session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
-        session_manager=session_manager or MagicMock(),
+        dispatcher=dispatcher or MagicMock(),
     )
 
 
 def test_publish_local_only_for_cross_session_false_signal():
     sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    session = _make_session(dispatcher=sm)
     handler = MagicMock()
     session.subscribe(SelectionMoved, handler)
 
@@ -156,7 +157,7 @@ def test_publish_local_only_for_cross_session_false_signal():
 def test_publish_local_only_for_cross_session_false_command():
     """A local Close goes only to local subscribers — no broadcast."""
     sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    session = _make_session(dispatcher=sm)
     handler = MagicMock()
     session.subscribe(Close, handler)
 
@@ -174,7 +175,7 @@ def test_publish_broadcasts_for_cross_session_true_signal():
     the broadcast path reaches them via _dispatch.
     """
     sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    session = _make_session(dispatcher=sm)
     handler = MagicMock()
     session.subscribe(GraphDataMutated, handler)
 
@@ -189,7 +190,7 @@ def test_publish_broadcasts_for_cross_session_true_command():
     """A BroadcastClose flows through SessionManager.broadcast, just like
     cross-session observation signals."""
     sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    session = _make_session(dispatcher=sm)
     handler = MagicMock()
     session.subscribe(BroadcastClose, handler)
 
@@ -202,7 +203,7 @@ def test_publish_broadcasts_for_cross_session_true_command():
 
 def test_publish_swallows_handler_exceptions():
     sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    session = _make_session(dispatcher=sm)
     handler = MagicMock(side_effect=RuntimeError("boom"))
     session.subscribe(SelectionMoved, handler)
 
@@ -212,7 +213,7 @@ def test_publish_swallows_handler_exceptions():
 
 def test_publish_no_handler_is_noop():
     sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    session = _make_session(dispatcher=sm)
     # No subscriber registered — must not raise.
     session.publish(SelectionMoved())
 
@@ -277,7 +278,8 @@ def test_observation_runs_before_command_when_published_in_order():
 def test_broadcast_delivers_to_every_session_including_origin():
     """Every registered session — including the origin — receives the
     signal exactly once."""
-    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    dispatcher = SignalDispatcher()
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer_a = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer_b = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
@@ -288,7 +290,7 @@ def test_broadcast_delivers_to_every_session_including_origin():
     peer_b.subscribe(GraphDataMutated, lambda s: received[peer_b.session_id].append(s))
 
     s = GraphDataMutated()
-    sm.broadcast(s)
+    dispatcher.broadcast(s)
 
     for sid in (origin.session_id, peer_a.session_id, peer_b.session_id):
         assert received[sid] == [s]
@@ -296,7 +298,8 @@ def test_broadcast_delivers_to_every_session_including_origin():
 
 def test_broadcast_swallows_per_peer_exceptions():
     """A subscriber raising in one session does not abort delivery to others."""
-    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    dispatcher = SignalDispatcher()
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     bad = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     good = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
@@ -306,7 +309,7 @@ def test_broadcast_swallows_per_peer_exceptions():
     bad.subscribe(GraphDataMutated, MagicMock(side_effect=RuntimeError("boom")))
     good.subscribe(GraphDataMutated, lambda s: delivered.append(("good", s)))
 
-    sm.broadcast(GraphDataMutated())
+    dispatcher.broadcast(GraphDataMutated())
 
     delivered_kinds = {kind for kind, _ in delivered}
     assert "origin" in delivered_kinds
@@ -316,7 +319,8 @@ def test_broadcast_swallows_per_peer_exceptions():
 def test_publish_end_to_end_with_session_manager():
     """A cross_session=True signal published via Session.publish() reaches
     every peer's bus subscribers."""
-    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    dispatcher = SignalDispatcher()
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
@@ -335,7 +339,8 @@ def test_publish_end_to_end_with_session_manager():
 def test_broadcast_close_end_to_end_with_session_manager():
     """A BroadcastClose published on one session reaches every session's
     BroadcastClose subscribers."""
-    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    dispatcher = SignalDispatcher()
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
     origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     peer = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
@@ -359,7 +364,8 @@ def test_error_ledger_listener_broadcasts_to_every_session():
     """
     from haywire.core.errors.ledger import ErrorLedger
 
-    sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    dispatcher = SignalDispatcher()
+    sm = SessionManager(dispatcher=dispatcher, container=LibraryStateContainer(LibraryStateRegistry()))
     a = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
     b = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
@@ -369,7 +375,7 @@ def test_error_ledger_listener_broadcasts_to_every_session():
     b.subscribe(ErrorLogged, b_received.append)
 
     ledger = ErrorLedger()
-    ledger.add_listener(lambda: sm.broadcast(ErrorLogged()))
+    ledger.add_listener(lambda: dispatcher.broadcast(ErrorLogged()))
 
     from haywire.core.errors.haywire_exception import HaywireException
 

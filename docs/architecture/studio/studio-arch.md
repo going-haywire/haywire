@@ -111,7 +111,7 @@ This separation keeps the framework's `SessionContext` stable while each library
 
 ### 2.5 The signal bus — observations and imperatives on one channel
 
-The studio runs a single per-session typed pub/sub bus (`packages/haywire-core/src/haywire/core/session/signals/bus.py`). Every payload subclasses `Signal` from `packages/haywire-core/src/haywire/core/session/signals/`. Authors emit with `Session.publish(s)` and listen with `Session.subscribe(SignalType, handler)`. Subscribers match by exact type — subclasses do not inherit subscriptions.
+The studio runs a single per-session typed pub/sub bus (`packages/haywire-core/src/haywire/core/signals/bus.py`). Every payload subclasses `Signal` from `packages/haywire-core/src/haywire/core/signals/`. Authors emit with `Session.publish(s)` and listen with `Session.subscribe(SignalType, handler)`. Subscribers match by exact type — subclasses do not inherit subscriptions.
 
 Two payload flavours share the bus; the split is vocabulary, not transport:
 
@@ -130,7 +130,9 @@ Editors and panels declare interest via `@redraw_on(...)` / `@react_on(...)` on 
 - `Close(binding_id=...)` — close every tab bound to `binding_id` across all slots in the issuing session. Used for session-local close decisions.
 - `BroadcastClose(binding_id=...)` — cross-session sibling of `Close`. Each receiving session's AppShell closes matching tabs. Used when the underlying entity is gone for everyone (e.g. a graph entry was removed from the haystack).
 
-**Cross-session routing.** Independent of observation/imperative: set `cross_session: ClassVar[bool] = True` on any `Signal` subclass and `Session.publish(...)` delegates to `SessionManager.broadcast(...)`, which fans out to every session (including the origin). Among the built-ins, `GraphDataMutated`, `LibraryCatalogChanged`, and `BroadcastClose` are cross-session; everything else is local-only.
+**Cross-peer routing.** Independent of observation/imperative: set `cross_session: ClassVar[bool] = True` on any `Signal` subclass and `Session.publish(...)` delegates to `SignalDispatcher.broadcast(...)`, which fans out to every registered peer (including the origin). Among the built-ins, `GraphDataMutated`, `LibraryCatalogChanged`, and `BroadcastClose` are cross-session; everything else is local-only.
+
+The transport is deliberately not browser-specific. `SignalPeer` owns the bus and the dispatcher membership; `Session` is the browser-tab kind of peer, adding a `SessionContext`, a `WorkspaceManager`, and the shared app state. Anything else that needs bidirectional access to live app state — an agent-facing MCP host, a CLI, a headless embedding — subclasses `SignalPeer` directly and joins the same fan-out. `SessionManager` owns browser-session *lifecycle* only; it has no `broadcast`.
 
 Library authors who declare their own `Signal` subclasses that other libraries subscribe to **must** list the declaring library in their own `LibraryIdentity.dependencies`, so hot-reload reloads them as a pair. Without this, an `isinstance` check after a library reload can spuriously return `False` when the subscriber holds a stale class reference.
 
@@ -183,17 +185,20 @@ User clicks a node in the graph canvas
 
 The `SelectionMoved` signal carries no payload (pointer-by-default rule, §6.3 of the design doc). Subscribers re-read `ctx.data[EditState]` to discover what the new selection is. Both `@redraw_on` and `@react_on` handlers fire regardless of whether their editor's wrapper is the active tab — backgrounded editors stay current (kept alive by Quasar `ui.tab_panels` keep-alive); on focus they're already drawn correctly.
 
-### 3.3 Cross-session broadcast (graph mutation)
+### 3.3 Cross-peer broadcast (graph mutation)
 
 ```text
 Session A: user edits a node's setting
   ├─ NodeWrapper.update_setting(...)
   ├─ session.publish(GraphDataMutated())
-  └─ Session.publish — cross_session=True path:
-      └─ session_manager.broadcast(signal)
-          └─ For every session (A, B, C):
-              └─ session._dispatch(signal) → SignalBus.publish → subscribers
+  └─ SignalPeer.publish — cross_session=True path:
+      └─ signal_dispatcher.broadcast(signal)
+          └─ For every registered peer (Session A, B, C, and any
+             non-browser peer such as an agent-facing host):
+              └─ peer._dispatch(signal) → SignalBus.publish → subscribers
 ```
+
+Emitters that own no peer of their own reach the same channel directly: `AppState._signal_emit` derefs a container-stamped `_dispatcher` weakref, and `FarmhandContext.broadcast` reads the ambient `get_signal_dispatcher()`. Neither goes through `SessionManager`.
 
 Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for `GraphDataMutated` that's the entry in `ctx.app_data[HaystackState].get_by_id(<entry_id>)`. Peer-session state, if needed, can be reached through `session_manager.get_session(peer_id).context`.
 

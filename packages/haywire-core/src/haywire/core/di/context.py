@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from ..types.registry import TypeRegistry
     from ..settings import SettingsRegistry
     from ..session.session_manager import SessionManager
+    from ..signals import SignalDispatcher
     from ..state import LibraryStateContainer
     from ..errors.ledger import ErrorLedger
     from ..farmhand.activity import ActivityTracker
@@ -32,6 +33,7 @@ _adapter_factory: Optional["AdapterFactory"] = None
 _type_registry: Optional["TypeRegistry"] = None
 _settings_registry: Optional["SettingsRegistry"] = None
 _session_manager: Optional["SessionManager"] = None
+_signal_dispatcher: Optional["SignalDispatcher"] = None
 _workspace_root: Optional[Path] = None
 _library_state_container: Optional["LibraryStateContainer"] = None
 # Process-wide diagnostic buffers, deliberately NOT reset on injector/hot-reload
@@ -71,6 +73,11 @@ def set_settings_registry(registry: "SettingsRegistry") -> None:
 def set_session_manager(manager: "SessionManager") -> None:
     global _session_manager
     _session_manager = manager
+
+
+def set_signal_dispatcher(dispatcher: "SignalDispatcher") -> None:
+    global _signal_dispatcher
+    _signal_dispatcher = dispatcher
 
 
 def set_workspace_root(path) -> None:
@@ -150,6 +157,23 @@ def get_session_manager() -> "SessionManager":
             "Ensure HaywireApp has been initialised before requesting it."
         )
     return _session_manager
+
+
+def get_signal_dispatcher() -> "SignalDispatcher":
+    """The process-wide signal fan-out channel.
+
+    Read by emitters that own no peer of their own and cannot receive one by
+    injection — ``FarmhandContext.broadcast`` (constructed per MCP call) and
+    the studio's error/activity bridges. Code holding a ``SignalPeer`` should
+    use ``peer.publish(...)`` instead; code holding an ``AppState`` already has
+    the per-container weakref, which is isolated where this global is not.
+    """
+    if _signal_dispatcher is None:
+        raise RuntimeError(
+            "SignalDispatcher not set in ambient context. "
+            "Ensure HaywireApp has been initialised before requesting it."
+        )
+    return _signal_dispatcher
 
 
 def get_workspace_root() -> Path:

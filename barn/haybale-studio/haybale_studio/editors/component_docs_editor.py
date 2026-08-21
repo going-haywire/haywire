@@ -18,7 +18,7 @@ from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals import SelectionMoved
+from haywire.core.signals import SelectionMoved
 
 if TYPE_CHECKING:
     from nicegui.element import Element

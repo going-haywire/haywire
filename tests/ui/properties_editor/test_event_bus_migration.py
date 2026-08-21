@@ -62,7 +62,7 @@ def _make_session_with_panel_registry(
     session = Session(
         app_state=app,
         workspace_manager=MagicMock(),
-        session_manager=MagicMock(),
+        dispatcher=MagicMock(),
     )
     session.context.app = app
     return session
@@ -231,7 +231,7 @@ def test_no_coordinator_when_chain_is_missing():
     session = Session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
-        session_manager=MagicMock(),
+        dispatcher=MagicMock(),
     )
     session.context.app = SimpleNamespace()
 
@@ -252,7 +252,7 @@ def test_no_coordinator_when_get_panel_registry_raises():
     session = Session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
-        session_manager=MagicMock(),
+        dispatcher=MagicMock(),
     )
     session.context.app = SimpleNamespace(library_service=library_service)
 

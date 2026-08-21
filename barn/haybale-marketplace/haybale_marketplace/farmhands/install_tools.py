@@ -10,7 +10,7 @@ from haywire.core.farmhand import (
     ToolAnnotations,
     farmhand,
 )
-from haywire.core.session.signals import LibraryCatalogChanged
+from haywire.core.signals import LibraryCatalogChanged
 
 from .catalog_tools import _library_manager, _progress_cb
 

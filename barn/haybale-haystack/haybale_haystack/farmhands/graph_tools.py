@@ -11,7 +11,7 @@ from haywire.core.farmhand import (
     farmhand,
     truncation_note,
 )
-from haywire.core.session.signals import GraphDataMutated
+from haywire.core.signals import GraphDataMutated
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)
 _MUTATING = ToolAnnotations()

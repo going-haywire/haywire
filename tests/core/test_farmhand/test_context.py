@@ -49,18 +49,18 @@ def test_fence_delegates_to_editor():
     assert editor.fences == 1
 
 
-def test_broadcast_uses_ambient_session_manager(monkeypatch):
+def test_broadcast_uses_ambient_signal_dispatcher(monkeypatch):
     from haywire.core.di import context as di_context
 
-    class FakeManager:
+    class FakeDispatcher:
         def __init__(self):
             self.signals = []
 
         def broadcast(self, signal):
             self.signals.append(signal)
 
-    fake = FakeManager()
-    monkeypatch.setattr(di_context, "_session_manager", fake)
+    fake = FakeDispatcher()
+    monkeypatch.setattr(di_context, "_signal_dispatcher", fake)
     sentinel = object()
     FarmhandContext().broadcast(sentinel)
     assert fake.signals == [sentinel]

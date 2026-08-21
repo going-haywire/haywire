@@ -21,7 +21,7 @@ from typing import Any, Awaitable, Callable, Optional, TYPE_CHECKING, TypeVar, c
 from haywire.core.access import AccessTier, resolve_tier
 from haywire.core.di.context import (
     get_library_state_container,
-    get_session_manager,
+    get_signal_dispatcher,
     get_workspace_root,
 )
 
@@ -85,8 +85,8 @@ class FarmhandContext:
         return cast(T, injector.get(registry_cls))
 
     def broadcast(self, signal: Any) -> None:
-        """Emit a cross-session signal so open browser UIs update (caller-owned, gap 5)."""
-        get_session_manager().broadcast(signal)
+        """Emit a cross-peer signal so open browser UIs update (caller-owned, gap 5)."""
+        get_signal_dispatcher().broadcast(signal)
 
     async def offload(self, fn: Callable[..., T], *args: Any, **kwargs: Any) -> T:
         """Run blocking work off the shared NiceGUI loop."""

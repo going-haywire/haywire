@@ -12,7 +12,7 @@ from haywire.core.farmhand import (
     farmhand,
     truncation_note,
 )
-from haywire.core.session.signals import ErrorLedgerChanged
+from haywire.core.signals import ErrorLedgerChanged
 
 
 @farmhand(

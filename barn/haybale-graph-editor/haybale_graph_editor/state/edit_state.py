@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any, Optional, Set
 
-from haywire.core.session.signals import signal_field
+from haywire.core.signals import signal_field
 from haywire.core.state import SessionState, state
 
 if TYPE_CHECKING:

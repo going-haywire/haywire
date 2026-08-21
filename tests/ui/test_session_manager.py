@@ -1,7 +1,7 @@
 """Tests for SessionManager session lifecycle.
 
-Cross-session broadcast (``broadcast``) is covered by
-``tests/ui/test_signals_and_lifecycle.py``.
+Cross-peer fan-out lives on SignalDispatcher, not here — see
+``tests/core/test_signals/test_dispatcher_and_peer.py``.
 """
 
 from unittest.mock import MagicMock
@@ -9,15 +9,23 @@ from unittest.mock import MagicMock
 
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.session_manager import SessionManager
+from haywire.core.signals import SignalDispatcher
+
+
+def _make_manager() -> SessionManager:
+    return SessionManager(
+        dispatcher=SignalDispatcher(),
+        container=LibraryStateContainer(LibraryStateRegistry()),
+    )
 
 
 def test_session_manager_starts_empty():
-    manager = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    manager = _make_manager()
     assert manager.session_count == 0
 
 
 def test_create_session_registers_session():
-    manager = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    manager = _make_manager()
     session = manager.create_session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
@@ -27,7 +35,7 @@ def test_create_session_registers_session():
 
 
 def test_remove_session_calls_cleanup_and_drops_it():
-    manager = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
+    manager = _make_manager()
     session = manager.create_session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
@@ -38,3 +46,27 @@ def test_remove_session_calls_cleanup_and_drops_it():
 
     assert manager.get_session(sid) is None
     assert manager.session_count == 0
+
+
+def test_created_session_joins_the_dispatcher_fan_out():
+    """SessionManager injects its dispatcher, so every session is a peer."""
+    manager = _make_manager()
+    session = manager.create_session(
+        app_state=MagicMock(),
+        workspace_manager=MagicMock(),
+    )
+
+    assert manager._dispatcher.peers[session.session_id] is session
+
+
+def test_remove_session_unregisters_the_peer():
+    """Via Session.cleanup() — which is why eviction needs no peer knowledge."""
+    manager = _make_manager()
+    session = manager.create_session(
+        app_state=MagicMock(),
+        workspace_manager=MagicMock(),
+    )
+
+    manager.remove_session(session.session_id)
+
+    assert manager._dispatcher.peer_count == 0

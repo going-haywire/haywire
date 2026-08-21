@@ -25,7 +25,7 @@ class SignalSource(ABC):
         """Emit `signal` to whatever subscribers this host fans out to.
 
         SessionContext / SessionState: forward to `Session.publish`.
-        AppState: forward to `SessionManager.broadcast`.
+        AppState: forward to `SignalDispatcher.broadcast`.
         """
         raise NotImplementedError
 

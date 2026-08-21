@@ -29,7 +29,7 @@ sessions — triage-driven UI refresh (ErrorLedgerChanged) is the caller's job.
 
 The listener seam is load-bearing here, not stylistic: ``.log()`` fires from
 watchdog and timer threads (hence the lock below), while
-``SessionManager.broadcast`` dispatches synchronously into the single-threaded
+``SignalDispatcher.broadcast`` dispatches synchronously into the single-threaded
 SignalBus. This store therefore *cannot* broadcast for itself — from a watchdog
 thread there is no running loop to fetch — so the studio-side bridge owns the
 ``call_soon_threadsafe`` hop. ``ActivityTracker``, the other observable store,

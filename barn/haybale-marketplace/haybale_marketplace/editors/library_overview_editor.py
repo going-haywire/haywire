@@ -52,7 +52,7 @@ from haywire.ui.skin.registry import SkinRegistry
 from haywire.ui.themes import ThemeRegistry
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals import LibraryCatalogChanged
+from haywire.core.signals import LibraryCatalogChanged
 
 from haywire.core.library.info import LibraryInfo
 from haywire.core.library.haybale import Haybale

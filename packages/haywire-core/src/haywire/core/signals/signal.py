@@ -22,7 +22,7 @@ class Signal:
     no framework-side identity machinery beyond `type(signal)` matching.
 
     `cross_session: ClassVar[bool] = False` opts a signal into
-    SessionManager.broadcast routing when True.
+    SignalDispatcher.broadcast routing when True.
     """
 
     cross_session: ClassVar[bool] = False

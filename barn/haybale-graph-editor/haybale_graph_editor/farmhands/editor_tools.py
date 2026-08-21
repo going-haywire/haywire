@@ -26,7 +26,7 @@ from haywire.core.farmhand import (
 )
 from haywire.core.node.inspector import NodeInstanceInspector, PortInfo, SettingInfo, _port_type_key
 from haywire.core.node.promotion import demote_setting, promote_setting
-from haywire.core.session.signals import GraphDataMutated
+from haywire.core.signals import GraphDataMutated
 from haywire.core.types.enums import PortType
 
 _READ_ONLY = ToolAnnotations(read_only_hint=True)

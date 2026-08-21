@@ -106,7 +106,7 @@ hash-mismatch and stability on hash-match.
 
 ## Task 2 — `GraphSaved` signal
 
-`packages/haywire-core/src/haywire/core/session/signals/vocabulary.py`
+`packages/haywire-core/src/haywire/core/signals/vocabulary.py`
 
 ```python
 @dataclass(frozen=True)

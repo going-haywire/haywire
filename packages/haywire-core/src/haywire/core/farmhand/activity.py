@@ -36,10 +36,10 @@ into a cross-session signal, and a payload-free signal whose subscribers
 re-read this store.
 
 Why the listener seam rather than having this store call
-``get_session_manager().broadcast(...)`` itself — which it *could*, since
+``get_signal_dispatcher().broadcast(...)`` itself — which it *could*, since
 ``FarmhandContext.broadcast`` does exactly that from this same package:
 
-* **Thread safety by default.** ``SessionManager.broadcast`` dispatches
+* **Thread safety by default.** ``SignalDispatcher.broadcast`` dispatches
   synchronously into the single-threaded SignalBus. This tracker happens to be
   touched only from the loop, but ``ErrorLedger`` is not — ``.log()`` fires
   from watchdog and timer threads, which is why it holds a lock and this does
@@ -426,8 +426,8 @@ def _resolve_log_path() -> Optional[Path]:
     ``ActivitySettings.log_path`` is empty-means-off, non-empty-means-a-path-
     relative-to-the-workspace-root (see ``settings.py``). Reached via DI
     rather than threaded through every ``finish()`` call, matching how
-    ``host.py``'s own ``_publish_activity`` reaches ``get_session_manager()``
-    lazily and tolerates its absence.
+    ``FarmhandContext.broadcast`` reaches ``get_signal_dispatcher()`` lazily
+    and tolerates its absence.
     """
     try:
         from haywire.core.di.context import get_workspace_root

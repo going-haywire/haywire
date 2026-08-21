@@ -46,11 +46,11 @@ class _CrossSignal(Signal):
     cross_session: ClassVar[bool] = True
 
 
-def _make_session(session_manager=None) -> Session:
+def _make_session(dispatcher=None) -> Session:
     return Session(
         app_state=MagicMock(),
         workspace_manager=MagicMock(),
-        session_manager=session_manager or MagicMock(),
+        dispatcher=dispatcher or MagicMock(),
     )
 
 
@@ -264,31 +264,31 @@ def test_session_subscribe_and_publish_pass_through():
     assert received == [signal]
 
 
-def test_session_publish_local_event_skips_session_manager():
-    sm = MagicMock()
-    session = _make_session(session_manager=sm)
+def test_session_publish_local_event_skips_dispatcher():
+    dispatcher = MagicMock()
+    session = _make_session(dispatcher=dispatcher)
     session.publish(_LocalSignalA())
-    sm.broadcast.assert_not_called()
+    dispatcher.broadcast.assert_not_called()
 
 
-def test_session_publish_cross_session_event_delegates_to_manager():
-    sm = MagicMock()
-    session = _make_session(session_manager=sm)
+def test_session_publish_cross_session_event_delegates_to_dispatcher():
+    dispatcher = MagicMock()
+    session = _make_session(dispatcher=dispatcher)
     signal = _CrossSignal()
 
     session.publish(signal)
 
-    sm.broadcast.assert_called_once_with(signal)
+    dispatcher.broadcast.assert_called_once_with(signal)
 
 
 def test_session_publish_cross_session_skips_local_bus_directly():
-    """For cross_session events, Session.publish delegates to the manager;
+    """For cross_session events, Session.publish delegates to the dispatcher;
     local bus subscribers are reached via _dispatch on broadcast
     back, not via the direct publish path. This avoids double-delivery to
     the origin session.
     """
-    sm = MagicMock()
-    session = _make_session(session_manager=sm)
+    dispatcher = MagicMock()
+    session = _make_session(dispatcher=dispatcher)
     received: list[Signal] = []
     session.subscribe(cast(Any, _CrossSignal), received.append)
 
@@ -297,7 +297,7 @@ def test_session_publish_cross_session_skips_local_bus_directly():
     # Local bus not called directly; broadcast is responsible for
     # fanning back to origin via _dispatch.
     assert received == []
-    sm.broadcast.assert_called_once()
+    dispatcher.broadcast.assert_called_once()
 
 
 def test_session_dispatch_reaches_bus_subscribers():

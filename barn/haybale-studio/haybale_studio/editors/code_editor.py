@@ -13,7 +13,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.core.session.context import SessionContext
 from haywire.core.session.handlers import redraw_on
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName

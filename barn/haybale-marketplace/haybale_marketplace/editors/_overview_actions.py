@@ -9,7 +9,7 @@ from nicegui import ui
 from nicegui.element import Element
 
 from haywire.core.library.info import LibraryInfo
-from haywire.core.session.signals import LibraryCatalogChanged
+from haywire.core.signals import LibraryCatalogChanged
 from haywire.ui import elements as hui
 
 if TYPE_CHECKING:

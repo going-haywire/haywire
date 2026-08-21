@@ -14,13 +14,22 @@ Public API for editor / panel authors:
 ``signal_field`` is the unified reactive primitive: declared on bases that
 inherit ``SignalSource`` (``SessionContext``, ``AppState``, ``SessionState``).
 Class access yields a synthetic ``Signal`` subclass used as a subscription
-key on the per-session bus; instance access yields the stored value; writes
+key on the per-peer bus; instance access yields the stored value; writes
 auto-emit the synthetic signal.
 
+The transport itself lives in :mod:`haywire.core.signals` and is not
+browser-specific: a ``Session`` is one *kind* of ``SignalPeer`` (the
+browser-tab kind). Non-browser peers — an agent-facing MCP host, a CLI, a
+headless embedding — join the same fan-out without a ``WorkspaceManager`` or a
+``SessionContext``. The names are re-exported here for authors who already
+import their signal vocabulary from this package.
+
 Framework / library internals:
-    SessionManager      — per-process session registry; broadcasts signals
-                          across sessions
-    IProjectState       — protocol the studio app implements (used by
+    SessionManager      — per-process registry of browser sessions; lifecycle
+                          only (fan-out belongs to SignalDispatcher)
+    SignalDispatcher    — cross-peer fan-out channel
+    SignalPeer          — base for anything that owns a bus and joins fan-out
+    IAppState           — protocol the studio app implements (used by
                           editors that need to reach the project root)
     WorkspaceManager    — per-session layout snapshot (which editor in
                           which slot); persisted to workspace_state.json
@@ -38,6 +47,9 @@ from haywire.core.signals import (
     SignalBus,
     SignalHandler,
     SignalSource,
+    # Fan-out
+    SignalDispatcher,
+    SignalPeer,
     # Descriptor
     signal_field,
     # Observations
@@ -67,6 +79,9 @@ __all__ = [
     "SignalBus",
     "SignalHandler",
     "SignalSource",
+    # Fan-out
+    "SignalDispatcher",
+    "SignalPeer",
     # Descriptor
     "signal_field",
     # Signals — focus

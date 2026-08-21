@@ -1,7 +1,7 @@
 """Tests for _signal_emit on each of the three host bases.
 
 Verifies routing: SessionContext/SessionState publish to the local bus;
-AppState broadcasts to every session via SessionManager."""
+AppState broadcasts to every peer via SignalDispatcher."""
 
 from typing import Any, cast
 
@@ -74,21 +74,21 @@ def test_session_state_signal_emit_silent_when_session_gone():
     state._signal_emit(Tick())
 
 
-def test_app_state_signal_emit_via_weakref_manager():
+def test_app_state_signal_emit_via_weakref_dispatcher():
     class Tick(Signal):
         pass
 
     class MyAppState(AppState):
         pass
 
-    mock_mgr = MagicMock()
+    mock_dispatcher = MagicMock()
     state = MyAppState()
-    state._session_manager = weakref.ref(mock_mgr)
+    state._dispatcher = weakref.ref(mock_dispatcher)
     state._signal_emit(Tick())
-    mock_mgr.broadcast.assert_called_once()
+    mock_dispatcher.broadcast.assert_called_once()
 
 
-def test_app_state_signal_emit_silent_when_manager_gone():
+def test_app_state_signal_emit_silent_when_dispatcher_gone():
     class Tick(Signal):
         pass
 
@@ -98,8 +98,8 @@ def test_app_state_signal_emit_silent_when_manager_gone():
     class _Disposable:
         pass
 
-    mgr = _Disposable()
+    dispatcher = _Disposable()
     state = MyAppState()
-    state._session_manager = weakref.ref(cast(Any, mgr))
-    del mgr
+    state._dispatcher = weakref.ref(cast(Any, dispatcher))
+    del dispatcher
     state._signal_emit(Tick())  # must not raise

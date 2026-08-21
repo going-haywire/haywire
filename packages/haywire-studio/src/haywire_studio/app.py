@@ -83,7 +83,7 @@ class HaywireApp:
         zero-arg listener may fire on any thread (the ledger's from watchdog and
         registry scans); we hop back onto the loop with ``call_soon_threadsafe``
         before touching the single-threaded SignalBus via
-        ``SessionManager.broadcast``.
+        ``SignalDispatcher.broadcast``.
 
         The activity tracker is only ever mutated from the MCP request task on
         this loop, so it alone could broadcast directly. It is bridged the same
@@ -94,10 +94,10 @@ class HaywireApp:
         loop = asyncio.get_running_loop()
 
         def _on_error_logged() -> None:
-            loop.call_soon_threadsafe(lambda: self.session_manager.broadcast(ErrorLogged()))
+            loop.call_soon_threadsafe(lambda: self.signal_dispatcher.broadcast(ErrorLogged()))
 
         def _on_activity() -> None:
-            loop.call_soon_threadsafe(lambda: self.session_manager.broadcast(FarmhandActivity()))
+            loop.call_soon_threadsafe(lambda: self.signal_dispatcher.broadcast(FarmhandActivity()))
 
         self._error_ledger_listener = _on_error_logged
         get_error_ledger().add_listener(_on_error_logged)
@@ -160,7 +160,7 @@ class HaywireApp:
                 print(f"  Error cleaning up shell for session {session_id[:8]}: {e}")
 
         self.session_manager.remove_session(session_id)
-        self.session_manager.broadcast(PresenceChanged())
+        self.signal_dispatcher.broadcast(PresenceChanged())
 
     # ------------------------------------------------------------------
     # Shared services setup
@@ -198,6 +198,7 @@ class HaywireApp:
         """Setup services shared across all sessions."""
         from haywire.core.state import LibraryStateContainer
         from haywire.core.session.session_manager import SessionManager
+        from haywire.core.signals import SignalDispatcher
 
         # Registries and factories (from DI)
         self.node_registry = self.library_service.get_node_registry()
@@ -208,8 +209,11 @@ class HaywireApp:
         self.panel_registry = self.library_service.get_panel_registry()
         self.library_state_container = self.library_service.injector.get(LibraryStateContainer)
 
-        # SessionManager comes from the DI container; provide_session_manager()
-        # also publishes it via set_session_manager() into the ambient context.
+        # Both come from the DI container; each provider also publishes its
+        # instance into the ambient context (set_session_manager /
+        # set_signal_dispatcher). The dispatcher is the fan-out channel; the
+        # manager owns browser-session lifecycle only.
+        self.signal_dispatcher = self.library_service.injector.get(SignalDispatcher)
         self.session_manager = self.library_service.injector.get(SessionManager)
 
         from haywire.core.session.workspace.manager import WorkspaceManager

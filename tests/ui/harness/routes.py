@@ -189,12 +189,15 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str):
     """
     from haywire.core.di.context import get_workspace_root
     from haywire.core.session.session_manager import SessionManager
+    from haywire.core.signals import SignalDispatcher
     from haywire.core.session.workspace.manager import WorkspaceManager
     from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
     from haybale_graph_editor.state.edit_state import EditState
 
     app_state = _HarnessProjectState(library_service)
-    session_manager = SessionManager(container=app_state.library_state_container)
+    session_manager = SessionManager(
+        dispatcher=SignalDispatcher(), container=app_state.library_state_container
+    )
     workspace_manager = WorkspaceManager(project_path=get_workspace_root())
     session = session_manager.create_session(
         app_state=app_state,

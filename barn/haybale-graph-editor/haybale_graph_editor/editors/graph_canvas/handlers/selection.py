@@ -13,7 +13,7 @@ from nicegui import ui
 
 from haywire.core.graph.clipboard import build_clipboard_payload, is_haywire_payload
 from haywire.core.undo.actions.graph_actions import ClipboardData
-from haywire.core.session.signals import SelectionMoved
+from haywire.core.signals import SelectionMoved
 
 from haywire.ui.components.graph.event_definitions import (
     SelectionChangedEvent,
