@@ -75,7 +75,7 @@ class RosterCache:
         """
         get the current stats if the file
 
-        returns: 
+        returns:
             tuple with time of modification and size in bytes
         """
         try:

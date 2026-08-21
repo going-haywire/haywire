@@ -53,7 +53,9 @@ class HaywireApp:
         self.setup_shared_services()
 
         self._is_shutting_down = False
-        self.security_document = None
+        # None until run() loads it. The Security settings panel reads it
+        # defensively (getattr(..., None)) for exactly that window.
+        self.security_document: Optional[SecurityDocument] = None
         self._shells: dict[str, "AppShell"] = {}
         # Maps NiceGUI client.id → haywire session_id so on_disconnect can
         # resolve which session to tear down without monkey-patching the

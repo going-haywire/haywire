@@ -11,11 +11,14 @@ from __future__ import annotations
 from typing import Protocol, TYPE_CHECKING
 
 if TYPE_CHECKING:
+    from pathlib import Path
+
     from haywire.core.di.config import LibrarySystemService
     from haywire.core.session.session_manager import SessionManager
     from haywire.core.state import LibraryStateContainer
     from haywire.core.node.registry import NodeRegistry
     from haywire.core.node.factory import NodeFactory
+    from haywire.ui.app.shell import AppShell
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.skin.factory import SkinFactory
     from haywire.ui.widget.factory import WidgetFactory
@@ -38,3 +41,20 @@ class IAppState(Protocol):
     widget_factory: "WidgetFactory"
     library_state_container: "LibraryStateContainer"
     """Pool of live LibraryState instances."""
+
+    def save_workspace(
+        self,
+        shell: "AppShell | None" = None,
+        active_graph_path: "Path | None" = None,
+    ) -> None:
+        """Persist the workspace layout snapshot.
+
+        Declared here because the framework calls it: the topbar's save button
+        in ``AppShell._render_topbar`` reaches it through ``session.app_state``,
+        which is typed as this protocol. The implementation lives on the host
+        application (``HaywireApp.save_workspace``).
+
+        ``shell`` collects the current slot snapshot when provided; ``None``
+        re-saves the existing one.
+        """
+        ...
