@@ -425,9 +425,8 @@ def _resolve_log_path() -> Optional[Path]:
 
     ``ActivitySettings.log_path`` is empty-means-off, non-empty-means-a-path-
     relative-to-the-workspace-root (see ``settings.py``). Reached via DI
-    rather than threaded through every ``finish()`` call, matching how
-    ``FarmhandContext.broadcast`` reaches ``get_signal_dispatcher()`` lazily
-    and tolerates its absence.
+    rather than threaded through every ``finish()`` call, and tolerant of
+    absence like ``FarmhandContext.broadcast``.
     """
     try:
         from haywire.core.di.context import get_workspace_root

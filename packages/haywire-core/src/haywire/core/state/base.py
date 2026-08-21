@@ -67,12 +67,9 @@ class AppState(LibraryState):
 
     # Set by LibraryStateContainer.bind_dispatcher (and re-stamped by
     # _add_app_class for AppStates added after binding). Weakref so AppState
-    # lifetime doesn't extend the SignalDispatcher. May be None-resolving if
-    # the dispatcher has been torn down.
-    #
-    # A weakref rather than the ambient `get_signal_dispatcher()`: binding is
-    # per-container, so a test that builds its own container + dispatcher gets
-    # real isolation instead of leaking through a module-level global.
+    # lifetime doesn't extend the SignalDispatcher; may resolve to None once
+    # the dispatcher is torn down. Per-container rather than the ambient
+    # accessor, so a test with its own container stays isolated.
     _dispatcher: "weakref.ReferenceType[SignalDispatcher]"
 
     def __init__(self) -> None:
@@ -86,15 +83,11 @@ class AppState(LibraryState):
     def _signal_emit(self, signal: Signal) -> None:
         """Broadcast a signal to every registered peer.
 
-        An AppState owns no peer of its own — it is app-global, not bound to
-        any one browser tab or agent — so it emits straight through the
-        dispatcher rather than through a peer's ``publish``.
+        An AppState is app-global and owns no peer, so it emits straight
+        through the dispatcher.
 
-        If the SignalDispatcher has been torn down (e.g. app shutdown), the
-        weakref returns None and we silently drop the signal. This is
-        correct, not a swallowed error: there is nobody left to notify.
-        Outside shutdown, ``_dispatcher`` is always set by
-        ``LibraryStateContainer.bind_dispatcher``.
+        A dead weakref (app shutdown) drops the signal silently — there is
+        nobody left to notify.
         """
         dispatcher = self._dispatcher()
         if dispatcher is None:

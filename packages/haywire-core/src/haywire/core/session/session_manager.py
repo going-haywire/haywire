@@ -20,19 +20,11 @@ class SessionManager:
         session = manager.create_session(app_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
 
-    Lifecycle only. Signal fan-out is
-    :class:`~haywire.core.signals.dispatcher.SignalDispatcher`'s job — this
-    class used to own a ``broadcast`` method, but of the five call paths that
-    reached it only ``Session.publish`` had anything to do with sessions. The
-    rest (``AppState._signal_emit``, ``FarmhandContext.broadcast``, the studio
-    error/activity/presence bridges) wanted a channel and were handed a
-    registry. They now call ``SignalDispatcher.broadcast`` directly.
+    Lifecycle only — signal fan-out belongs to ``SignalDispatcher``.
 
     Sessions are not registered with the dispatcher here: ``SignalPeer``
     registers itself on construction and unregisters in ``cleanup()``, which
-    :meth:`remove_session` already calls. That keeps eviction (ADR 0027)
-    correct for free — see ``auth/eviction.py``, which needs no knowledge of
-    peers at all.
+    :meth:`remove_session` already calls.
     """
 
     def __init__(self, dispatcher: "SignalDispatcher", container: "LibraryStateContainer"):
@@ -48,9 +40,9 @@ class SessionManager:
         """
         Create a new Session and register it.
 
-        All keyword arguments are forwarded to the Session constructor.
-        ``dispatcher=self._dispatcher`` is injected automatically so callers do
-        not pass it — and so every session lands in the same fan-out.
+        All keyword arguments are forwarded to the Session constructor;
+        ``dispatcher`` is injected automatically so every session lands in the
+        same fan-out.
 
         After Session construction, the LibraryStateContainer is told to
         attach this session_id — every registered SessionState class gets
@@ -73,9 +65,8 @@ class SessionManager:
         """
         Clean up and remove a session by ID.
 
-        ``Session.cleanup()`` unregisters the session from the dispatcher, so
-        a removed session stops receiving broadcasts immediately — including
-        when the caller is ``evict_principal``.
+        ``Session.cleanup()`` unregisters it from the dispatcher, so a removed
+        session stops receiving broadcasts immediately.
 
         Args:
             session_id: The full session ID string.
@@ -102,10 +93,9 @@ class SessionManager:
     def active_sessions(self) -> Dict[str, "Session"]:
         """Read-only view of all active browser sessions keyed by session_id.
 
-        Only ever contains :class:`Session` instances — non-browser peers
-        (the Farmhand host, a CLI) live in the dispatcher's registry, never
-        here. Presence and eviction rely on that: both read ``.context``,
-        which a bare peer does not have.
+        Only ever :class:`Session` instances — non-browser peers live in the
+        dispatcher's registry. Presence and eviction depend on that, since both
+        read ``.context``, which a bare peer lacks.
         """
         return dict(self._sessions)
 

@@ -162,11 +162,10 @@ def get_session_manager() -> "SessionManager":
 def get_signal_dispatcher() -> "SignalDispatcher":
     """The process-wide signal fan-out channel.
 
-    Read by emitters that own no peer of their own and cannot receive one by
-    injection — ``FarmhandContext.broadcast`` (constructed per MCP call) and
-    the studio's error/activity bridges. Code holding a ``SignalPeer`` should
-    use ``peer.publish(...)`` instead; code holding an ``AppState`` already has
-    the per-container weakref, which is isolated where this global is not.
+    For emitters that own no peer and cannot be injected — e.g.
+    ``FarmhandContext``, built fresh per MCP call. Code holding a
+    ``SignalPeer`` should use ``peer.publish(...)``; an ``AppState`` already
+    has its own per-container weakref.
     """
     if _signal_dispatcher is None:
         raise RuntimeError(

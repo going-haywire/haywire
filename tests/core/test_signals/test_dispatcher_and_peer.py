@@ -1,8 +1,6 @@
 """SignalDispatcher fan-out and SignalPeer membership.
 
-These exercise the transport in isolation — no Session, no SessionManager, no
-DI, no container. That a peer needs none of those is the point of the split:
-anything can join the fan-out.
+Exercised in isolation — no Session, no SessionManager, no DI, no container.
 """
 
 from dataclasses import dataclass
@@ -137,7 +135,7 @@ def test_broadcast_swallows_per_peer_exceptions():
 
 
 def test_unregistered_peer_stops_receiving_broadcasts():
-    """The property eviction (ADR 0027) depends on, reached via cleanup()."""
+    """What eviction (ADR 0027) relies on, reached via cleanup()."""
     dispatcher = SignalDispatcher()
     stays, leaves = SignalPeer(dispatcher), SignalPeer(dispatcher)
 
@@ -189,7 +187,7 @@ def test_broadcast_with_no_peers_is_a_noop():
 
 
 def test_dispatcher_broadcast_reaches_peers_directly():
-    """AppState / FarmhandContext emit through the dispatcher, owning no peer."""
+    """AppState / FarmhandContext own no peer and emit through the dispatcher."""
     dispatcher = SignalDispatcher()
     peer = SignalPeer(dispatcher)
     seen: list[Signal] = []
@@ -207,12 +205,9 @@ def test_dispatcher_broadcast_reaches_peers_directly():
 
 def test_non_session_peer_receives_a_browser_sessions_signal():
     """A bare peer — no WorkspaceManager, no SessionContext, no SessionState —
-    sits in the same fan-out as a real browser Session.
+    sits in the same fan-out as a browser Session.
 
-    This is the property the whole seam exists for: it is what will let
-    FarmhandHost observe UI-originated changes bidirectionally, without being
-    a browser session. Written against ``SignalPeer`` directly so it keeps
-    holding for a CLI or a headless embedding too.
+    Written against ``SignalPeer`` so it holds for any non-browser peer.
     """
     from unittest.mock import MagicMock
 
@@ -235,7 +230,7 @@ def test_non_session_peer_receives_a_browser_sessions_signal():
 
 
 def test_browser_session_receives_a_non_session_peers_signal():
-    """The other direction — an agent-side peer's signal reaches open tabs."""
+    """The other direction: a non-browser peer's signal reaches open tabs."""
     from unittest.mock import MagicMock
 
     from haywire.core.session.session import Session

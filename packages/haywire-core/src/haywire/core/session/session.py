@@ -29,20 +29,14 @@ class Session(SignalPeer):
     The Session is the bridge between the shared server-side data model
     and the per-client NiceGUI UI tree.
 
-    Signal mechanics live on :class:`~haywire.core.signals.peer.SignalPeer`:
-    ``publish`` / ``subscribe`` / ``_dispatch`` / ``cleanup``, plus membership
-    in the :class:`~haywire.core.signals.dispatcher.SignalDispatcher` fan-out.
-    A Session is one *kind* of peer — the browser-tab kind — adding exactly
-    three things a bare peer has not: a ``SessionContext``, a
-    ``WorkspaceManager``, and a reference to the shared app state.
+    Signal mechanics come from :class:`~haywire.core.signals.peer.SignalPeer`:
+    ``publish`` / ``subscribe`` / ``_dispatch`` / ``cleanup``, plus dispatcher
+    membership. A Session is the browser-tab kind of peer, adding a
+    ``SessionContext``, a ``WorkspaceManager``, and the shared app state.
 
-    Editors auto-wire their ``@redraw_on`` / ``@react_on`` decorated methods at
-    instantiation; panels contribute signal types via ``redraw_on=`` on
-    ``@panel(...)``; the AppShell subscribes its workspace-mutation handlers
-    (``Reveal``, ``Close``) directly. Signals whose ``cross_session`` is True
-    travel to every registered peer through the dispatcher — including
-    non-browser peers, which is how an agent-facing host observes changes that
-    originated in a browser tab.
+    Editors auto-wire their ``@redraw_on`` / ``@react_on`` methods at
+    instantiation; panels contribute types via ``redraw_on=`` on ``@panel(...)``;
+    the AppShell subscribes ``Reveal`` / ``Close`` directly.
     """
 
     def __init__(
@@ -57,11 +51,8 @@ class Session(SignalPeer):
         Args:
             app_state: The shared project state (graph data, settings, etc.).
             workspace_manager: Pre-configured WorkspaceManager for this session.
-            dispatcher: The process-wide SignalDispatcher. Handed to
-                ``SignalPeer``, which registers this session for cross-peer
-                fan-out. Replaces the former ``session_manager`` argument —
-                a session needs a channel to broadcast on, not a registry of
-                its siblings.
+            dispatcher: The process-wide SignalDispatcher; ``SignalPeer``
+                registers this session for cross-peer fan-out.
         """
         super().__init__(dispatcher)
 
@@ -77,21 +68,18 @@ class Session(SignalPeer):
     def session_id(self) -> str:
         """This session's id — an alias of ``SignalPeer.peer_id``.
 
-        Kept under the name the rest of the framework already uses:
-        ``SessionManager`` keys its registry by it, ``LibraryStateContainer``
-        bags per-session state by it, presence and eviction read it. One
-        identity under two names — a session's peer identity *is* its session
-        identity, so they must never diverge.
+        The rest of the framework keys on this name: ``SessionManager``'s
+        registry, ``LibraryStateContainer``'s per-session bags, presence,
+        eviction. One identity under two names.
         """
         return self.peer_id
 
     def cleanup(self) -> None:
         """Tear down per-session state.
 
-        Leaves the dispatcher fan-out and drops every signal-bus subscription
-        (both inherited from ``SignalPeer``). AppShell teardown is driven
-        upstream by studio.app.on_disconnect (Q7A: shell-upstream model) —
-        Session is not involved in chrome cleanup.
+        Leaves the fan-out and drops every subscription (both from
+        ``SignalPeer``). AppShell teardown is driven upstream by
+        ``studio.app.on_disconnect`` — Session is not involved in chrome cleanup.
         """
         super().cleanup()
         logger.info(f"Session cleaned up: {self.session_id}")

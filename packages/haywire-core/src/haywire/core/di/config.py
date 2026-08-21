@@ -257,14 +257,9 @@ class HaywireModule(Module):
     def provide_signal_dispatcher(self, container: LibraryStateContainer) -> SignalDispatcher:
         """Provide the singleton SignalDispatcher — the cross-peer fan-out channel.
 
-        The container binding happens HERE rather than in
-        ``SignalDispatcher.__init__`` so the dispatcher stays dependency-free
-        (it imports nothing but ``Signal``): wiring is a DI concern, not a
-        constructor side effect. ``bind_dispatcher`` stamps the weakref every
-        ``AppState`` uses in ``_signal_emit``.
-
-        Also published to the ambient context for emitters that own no peer and
-        cannot be injected — ``FarmhandContext``, built fresh per MCP call.
+        Binds the container here rather than in ``SignalDispatcher.__init__``
+        so the dispatcher stays dependency-free; ``bind_dispatcher`` stamps the
+        weakref every ``AppState`` uses in ``_signal_emit``.
         """
         dispatcher = SignalDispatcher()
         container.bind_dispatcher(dispatcher)
@@ -278,13 +273,11 @@ class HaywireModule(Module):
     ) -> SessionManager:
         """Provide singleton SessionManager — browser-session lifecycle only.
 
-        Takes the dispatcher so every Session it creates lands in the same
-        fan-out, and so resolving SessionManager pulls the dispatcher
-        transitively (which is what guarantees ``bind_dispatcher`` has run
-        before any ``AppState.on_enable`` fires).
+        Takes the dispatcher so every Session lands in the same fan-out, and so
+        resolving this pulls the dispatcher transitively — which guarantees
+        ``bind_dispatcher`` runs before any ``AppState.on_enable``.
 
-        Also publishes the instance to the ambient DI context so deep callers
-        (AppState.on_enable) can read it without constructor injection.
+        Also publishes to the ambient DI context for deep callers.
         """
         manager = SessionManager(dispatcher=dispatcher, container=container)
         set_session_manager(manager)
@@ -405,7 +398,7 @@ class LibrarySystemService:
         self.injector.get(AdapterFactory)  # sets ambient context for EdgeWrapper
         self.injector.get(NodeFactory)  # sets ambient context for NodeWrapper
         # Pulls SignalDispatcher transitively, which runs bind_dispatcher —
-        # AppState._signal_emit needs that weakref stamped before on_enable.
+        # AppState._signal_emit needs that weakref before on_enable.
         self.injector.get(SessionManager)  # sets ambient context for AppState.on_enable
 
         # Link registries to library registry for management

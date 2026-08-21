@@ -170,18 +170,12 @@ class LibraryStateContainer:
     def bind_dispatcher(self, dispatcher: "SignalDispatcher") -> None:
         """Stamp `_dispatcher` weakref on every present and future AppState.
 
-        Called once by the DI provider that builds the SignalDispatcher —
-        deliberately not from `SignalDispatcher.__init__`, so the dispatcher
-        itself stays dependency-free (it imports nothing but `Signal`) and
-        wiring stays a DI concern.
+        Called once by the DI provider that builds the SignalDispatcher, not by
+        the dispatcher itself — that keeps it dependency-free.
 
-        A second call is permitted and idempotent in effect — it replaces
-        `self._dispatcher_ref` and re-stamps every existing AppState with the
-        new ref. This is intentional: a test or a hot-restart path that
-        rebuilds the dispatcher can re-bind without churn.
-
-        After this call, `_add_app_class` stamps newly-added AppStates with
-        the same ref.
+        A second call is permitted and re-stamps every existing AppState, so a
+        test or hot-restart path can rebind. Afterwards `_add_app_class` stamps
+        newly-added AppStates with the same ref.
         """
         self._dispatcher_ref = weakref.ref(dispatcher)
         for app_state in self._app.values():

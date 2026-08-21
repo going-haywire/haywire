@@ -60,7 +60,7 @@ def test_created_session_joins_the_dispatcher_fan_out():
 
 
 def test_remove_session_unregisters_the_peer():
-    """Via Session.cleanup() — which is why eviction needs no peer knowledge."""
+    """Via Session.cleanup(), which is why eviction needs no peer knowledge."""
     manager = _make_manager()
     session = manager.create_session(
         app_state=MagicMock(),
