@@ -2772,17 +2772,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#error-navigation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Navigation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#clipboard-copypaste-new" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3523,17 +3512,6 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#error-navigation" class="md-nav__link">
-    <span class="md-ellipsis">
-      
-        Error Navigation
-      
-    </span>
-  </a>
-  
-</li>
-      
-        <li class="md-nav__item">
   <a href="#clipboard-copypaste-new" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4168,24 +4146,6 @@
 </tbody>
 </table>
 <hr />
-<h2 id="error-navigation">Error Navigation<a class="headerlink" href="#error-navigation" title="Permanent link">&para;</a></h2>
-<table>
-<thead>
-<tr>
-<th>Term</th>
-<th>Definition</th>
-<th>Aliases to avoid</th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><strong>error locator</strong></td>
-<td>The set of stable <strong>string ids</strong> a <code>HaywireException</code> optionally carries so the UI can navigate back to what the error was about: <code>registry_key</code> (<code>&lt;library&gt;:&lt;kind&gt;:&lt;id&gt;</code> — the component <em>definition</em>), <code>graph_id</code> (the graph's <code>binding_id</code>), <code>node_id</code> / <code>edge_id</code> (the offending <em>instance</em>). Locators are ids, never live wrapper/graph objects — the exception outlives them (hot-reload, graph close, off-thread logging), so navigation re-resolves the live target at click time and degrades gracefully when it is gone.</td>
-<td>—</td>
-</tr>
-</tbody>
-</table>
-<hr />
 <h2 id="clipboard-copypaste-new">Clipboard &amp; Copy/Paste <em>(new)</em><a class="headerlink" href="#clipboard-copypaste-new" title="Permanent link">&para;</a></h2>
 <p>The copy/paste subsystem moves a selection of nodes and edges between graphs — within a session, across sessions, and across separate Studio processes on the same machine — by serializing a slice of the graph to JSON on the OS system clipboard.</p>
 <table>
@@ -4457,8 +4417,18 @@
 </tr>
 <tr>
 <td><strong>Error ledger</strong></td>
-<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>studio_get_errors</code> and <code>studio_verify_component</code>.</td>
+<td>A bounded, in-memory, sequence-numbered collection where every <code>HaywireException</code> registers at <code>.log()</code> time (registry-scan import errors wrapped in), queryable "since sequence N". First consumers are Farmhand's <code>studio_get_errors</code> and <code>studio_verify_component</code>. An <strong>Observable store</strong>.</td>
 <td>error log (file logs are unqueryable), exception history</td>
+</tr>
+<tr>
+<td><strong>Activity tracker</strong></td>
+<td>A bounded, in-memory record of Farmhand tool calls — those in flight, and a capped history of finished ones with their arguments and result. Recorded by the Farmhand host (the only layer that knows the calling principal), so read-only and third-party tools are covered without opting in. An <strong>Observable store</strong>, and deliberately without the Error ledger's triage half: an error is a task someone must acknowledge, a finished tool call is a fact.</td>
+<td>activity log (the optional JSONL audit log is a separate, never-trimmed tier), activity ledger</td>
+</tr>
+<tr>
+<td><strong>Observable store</strong></td>
+<td>Process-wide mutable state reached through an ambient <code>get_</code>/<code>set_</code> accessor in <code>core/di/context.py</code>, which fires a zero-arg listener on every state change; an app-side bridge turns those fires into a cross-session <strong>Signal</strong>. The store never broadcasts itself — not a layering rule (core <em>can</em> reach the dispatcher) but a safety one: <code>SignalDispatcher.broadcast</code> dispatches into the single-threaded bus, and a store like the <strong>Error ledger</strong> fires from watchdog threads with no running loop to hop from. The bridge owns that hop, so the pattern is safe wherever it is copied. It also keeps the store inert in tests and leaves the choice of <em>which</em> signal to the application. Instances: <strong>Error ledger</strong>, <strong>Activity tracker</strong>. Distinct from a <strong>strategy hook</strong> (e.g. <code>access_resolver</code>), which holds a <em>callable</em> whose absence is a valid operating mode.</td>
+<td>global, singleton (both true but they miss the listener/bridge half)</td>
 </tr>
 </tbody>
 </table>
@@ -4992,6 +4962,11 @@
 <td>Graph host, graph holder</td>
 </tr>
 <tr>
+<td><strong>binding_id</strong></td>
+<td>A <strong>runtime address</strong> for one open graph — <code>str(path)</code> when file-backed, the <code>__unsaved_N__</code> token otherwise. A computed property with no storage of its own (<a href="../../barn/haybale-haystack/haybale_haystack/graph_entry.py"><code>GraphEntry.binding_id</code></a>), so it re-derives whenever <code>path</code> is assigned on save-as or rename. <strong>Never persisted</strong>: the haystack TOML records the workspace-<em>relative</em> <code>path</code> instead and reconstructs the key at load, which is what lets a workspace move without breaking. The general rule — a runtime address (<code>binding_id</code>, <strong><code>graph_id</code></strong>) is never written to disk; a portable pointer (relative <code>path</code>) and a content identity (<strong><code>graph_uuid</code></strong>) are.</td>
+<td>Graph identity (a location is not an identity — see <code>graph_uuid</code>)</td>
+</tr>
+<tr>
 <td><strong>GraphAppState</strong></td>
 <td>The app-wide registry mapping <code>binding_id</code> → <strong>GraphContainer</strong>. Source libraries (haystack, future cloud-graph libraries) <code>register</code> / <code>unregister</code> / <code>rekey</code> their containers here; <strong>GraphEditor</strong> reads from it on every render. Lives at <code>app_data[GraphAppState]</code></td>
 <td>Graph registry, graph index</td>
@@ -5010,6 +4985,31 @@
 <td><strong>GraphRunSettings</strong></td>
 <td>A purely-local (never registry-backed) <code>Settings</code> bag owned by a <strong>GraphEntry</strong> that records <em>how</em> the entry runs within its <strong>Haystack</strong> — e.g. the <code>autorestart</code> flag. Persisted per-entry in the haystack TOML, not in the <code>.haywire</code> graph file. Distinct from the <strong>Execution Pipeline</strong> vocabulary (Assembly/VM/Flow), which is about <em>running</em> a graph, not <em>policy for whether/how</em> an entry runs</td>
 <td>Execution settings (collides with the VM/Assembly engine vocabulary), entry config</td>
+</tr>
+<tr>
+<td><strong><code>graph_id</code></strong></td>
+<td>A graph's <strong>runtime location key</strong> — where this graph currently <em>is</em>, equal to the <strong>binding_id</strong> (<code>str(path)</code> when file-backed, the <code>__unsaved_N__</code> token otherwise). Used by every <strong>error locator</strong> and by <code>RevealGraphInstance</code> matching. <strong>Never serialized and never read back from a <code>.haywire</code> file</strong>: it describes location, and a file that records its own location lies as soon as it is copied or moved. Answers "which open graph do I navigate to", never "which graph is this" — that is <strong><code>graph_uuid</code></strong>. <em>(new)</em></td>
+<td>Graph identity / content id (that's <code>graph_uuid</code>); do not derive it from <code>path.stem</code> — two folders may hold the same stem</td>
+</tr>
+<tr>
+<td><strong><code>graph_uuid</code></strong></td>
+<td>A graph's <strong>persisted content identity</strong> — a UUID minted once when the graph is created, carried in the <code>.haywire</code> file, and stable across saves and renames. On load the graph compares <code>sha256</code> of its own absolute path against the stored <strong><code>origin_hash</code></strong>; when they differ the file is treated as a fork (a copy) and a <strong>fresh uuid is minted</strong>, so a duplicated graph never shares its ancestor's identity. A plain move hashes differently and also re-mints — an accepted false positive. Answers "which graph is this", never "where is it" — that is <strong><code>graph_id</code></strong>. <em>(new)</em></td>
+<td>graph_id (that is the runtime location key), revision id (a uuid is not bumped per save)</td>
+</tr>
+<tr>
+<td><strong><code>origin_hash</code></strong></td>
+<td><code>sha256</code> of the absolute path a graph was last <strong>saved</strong> to, stored in the <code>.haywire</code> file solely so a load can tell "same place" from "somewhere else" and drive the <strong><code>graph_uuid</code></strong> re-mint. Hashed rather than stored plainly because a <code>.haywire</code> file travels between users, and a readable path would ship one user's home directory to everyone who opens the graph. One-way by construction: nothing ever needs to recover the path, only to compare.</td>
+<td>origin_path (a readable path leaks private directory structure); scrambled/obfuscated path (reversible encodings are not privacy)</td>
+</tr>
+<tr>
+<td><strong>graph <code>filestem</code></strong></td>
+<td>The graph's own copy of its <strong>filename without extension</strong> (<code>graphs/face_tracker.haywire</code> → <code>face_tracker</code>), stamped by <code>save_to_file</code> on every save and <code>"Untitled N"</code> while unsaved. Machine-maintained and <strong>read-only to the user</strong>: it exists so a <code>.haywire</code> file is self-describing outside the studio, and so tab labels and generated Python function names have a stable source. Distinct from <strong><code>label</code></strong>, the user's free-text title, which never drives navigation. <em>(new)</em></td>
+<td><code>name</code> (the pre-rename field name — ambiguous with <code>label</code>); filename (this carries no <code>.haywire</code> extension)</td>
+</tr>
+<tr>
+<td><strong>graph metadata</strong></td>
+<td>The descriptive, user-facing facts a graph carries about <em>itself</em>, persisted at the top level of the <code>.haywire</code> file. Split by who owns them: <strong>user-editable</strong> — <code>label</code> (free-text title), <code>description</code>, <code>author</code>, <code>version</code>; <strong>machine-maintained, read-only</strong> — <strong><code>filestem</code></strong>, <code>created_at</code>, <code>modified_at</code>, <strong><code>graph_uuid</code></strong>, <strong><code>origin_hash</code></strong>. Edited through the Graph Metadata panel or the <code>set_metadata</code> Farmhand tool, written straight onto the graph object and persisted by the next save — <strong>not undoable</strong>, matching every other row in the Properties Editor. Distinct from <strong><code>graph.props</code></strong> (the <strong>GraphProperties</strong> settings bag, serialized under <code>props</code>), which carries <em>behavioural</em> opinions the graph tier imposes on its nodes. Metadata describes the document; props configure the program. <em>(new)</em></td>
+<td>Graph props / graph settings (those are the <code>GraphProperties</code> bag); graph info (that is one panel that renders metadata)</td>
 </tr>
 </tbody>
 </table>
@@ -5349,7 +5349,7 @@
 <tbody>
 <tr>
 <td><strong>Signal</strong></td>
-<td>The base class for everything dispatched on the per-session bus. Frozen dataclass with <code>kw_only=True</code>; <code>cross_session: ClassVar[bool] = False</code> controls broadcast routing. See <code>session/signals/signal.py</code></td>
+<td>The base class for everything dispatched on the per-peer bus. Frozen dataclass with <code>kw_only=True</code>; <code>cross_session: ClassVar[bool] = False</code> controls broadcast routing. See <code>core/signals/signal.py</code></td>
 <td>Event (deprecated; was the old base class), message</td>
 </tr>
 <tr>
@@ -5359,7 +5359,7 @@
 </tr>
 <tr>
 <td><strong>SignalBus</strong></td>
-<td>Per-session typed pub/sub. One instance per <strong>Session</strong>; subscribers register a handler for an exact <code>Signal</code> subclass; publishes fan out by <code>type(signal)</code> exact match. See <code>session/signals/bus.py</code></td>
+<td>Per-peer typed pub/sub. One instance per <strong>SignalPeer</strong> (and therefore one per <strong>Session</strong>); subscribers register a handler for an exact <code>Signal</code> subclass; publishes fan out by <code>type(signal)</code> exact match. See <code>core/signals/bus.py</code></td>
 <td>EventBus (deprecated)</td>
 </tr>
 <tr>
@@ -5368,8 +5368,18 @@
 <td>—</td>
 </tr>
 <tr>
+<td><strong>SignalPeer</strong></td>
+<td>Base class for anything that owns a <strong>SignalBus</strong> and joins the cross-peer fan-out: one endpoint through which an outside entity (a person at a browser tab, an agent over MCP, a CLI) reaches live app state. Owns <code>publish</code> / <code>subscribe</code> / <code>_dispatch</code> / <code>cleanup</code>. <strong>Registers itself</strong> with the <strong>SignalDispatcher</strong> on construction and unregisters in <code>cleanup()</code> — no call site registers a peer, so none can forget. <code>Session</code> is the browser-tab kind of peer. See <code>core/signals/peer.py</code></td>
+<td>Session (a Session <em>is</em> a peer, but not every peer is a Session); SignalNode (rejected — "node" means graph node here)</td>
+</tr>
+<tr>
+<td><strong>SignalDispatcher</strong></td>
+<td>The process-wide cross-peer fan-out channel: <code>register</code> / <code>unregister</code> / <code>broadcast</code>. Dependency-free — imports nothing but <code>Signal</code>. Emitters owning no peer reach it directly (<code>AppState._signal_emit</code> via a container-stamped weakref; <code>FarmhandContext.broadcast</code> via ambient <code>get_signal_dispatcher()</code>). Replaced <code>SessionManager.broadcast</code>, which conflated fan-out with session lifecycle. See <code>core/signals/dispatcher.py</code></td>
+<td>SessionManager (lifecycle only now — it has no <code>broadcast</code>)</td>
+</tr>
+<tr>
 <td><strong>signal_field</strong></td>
-<td>Descriptor declaring a reactive field on a <code>SignalSource</code> subclass. Writes emit a synthetic <code>Signal</code> subclass keyed by the field reference; reads return the stored value via bare attribute access. See <code>session/signals/descriptor.py</code></td>
+<td>Descriptor declaring a reactive field on a <code>SignalSource</code> subclass. Writes emit a synthetic <code>Signal</code> subclass keyed by the field reference; reads return the stored value via bare attribute access. See <code>core/signals/descriptor.py</code></td>
 <td>reactive_field (deprecated)</td>
 </tr>
 <tr>
@@ -5384,12 +5394,12 @@
 </tr>
 <tr>
 <td><strong><code>_signal_emit</code></strong></td>
-<td>The publish method on <code>SignalSource</code> subclasses. <code>SessionContext</code> forwards to <code>self.session.publish</code>; <code>SessionState</code> derefs <code>self.session()</code> weakref; <code>AppState</code> derefs <code>self._session_manager()</code> and calls <code>broadcast</code>. Internal — never called directly by author code</td>
+<td>The publish method on <code>SignalSource</code> subclasses. <code>SessionContext</code> forwards to <code>self.session.publish</code>; <code>SessionState</code> derefs <code>self.session()</code> weakref; <code>AppState</code> derefs <code>self._dispatcher()</code> and calls <code>broadcast</code>. Internal — never called directly by author code</td>
 <td>—</td>
 </tr>
 <tr>
 <td><strong><code>cross_session</code></strong></td>
-<td><code>ClassVar[bool]</code> on a <code>Signal</code> subclass; when <code>True</code>, <code>Session.publish</code> routes via <code>SessionManager.broadcast</code> so every session receives the signal. Auto-set to <code>True</code> for synthetic signals on <code>AppState</code> hosts</td>
+<td><code>ClassVar[bool]</code> on a <code>Signal</code> subclass; when <code>True</code>, <code>SignalPeer.publish</code> routes via <code>SignalDispatcher.broadcast</code> so every registered peer receives the signal. Auto-set to <code>True</code> for synthetic signals on <code>AppState</code> hosts</td>
 <td>—</td>
 </tr>
 <tr>
@@ -5452,10 +5462,10 @@
 <li>A <strong>Haystack</strong> references zero or more <strong>GraphEntries</strong> by relative file path; it also records which graph is active and which graphs should auto-execute on load.</li>
 <li><code>workspace_state.json</code> stores the last-loaded <strong>Haystack</strong> name; on startup, <strong>HaywireApp</strong> auto-loads it if present.</li>
 <li>The <strong>HaystackEditor</strong> displays a <strong>Haystack</strong>'s entries and provides save/load <strong>Haystack</strong> actions and per-entry execution controls.</li>
-<li>A <strong>Signal</strong> travels on the <strong>SignalBus</strong>; one <strong>SignalBus</strong> per <strong>Session</strong>.</li>
+<li>A <strong>Signal</strong> travels on the <strong>SignalBus</strong>; one <strong>SignalBus</strong> per <strong>SignalPeer</strong> — and a <strong>Session</strong> is one kind of peer.</li>
 <li>A <strong>signal_field</strong> lives on a <strong>SignalSource</strong> subclass (<strong>SessionContext</strong>, <strong>SessionState</strong>, <strong>AppState</strong>); writes emit a <strong>synthetic signal class</strong> keyed by the field reference.</li>
 <li><strong>Hand-authored signals</strong> (<code>Signal</code> / <code>CommandSignal</code> subclasses) and synthetic ones from <strong>signal_field</strong> travel the same bus and use the same <code>@redraw_on</code> / <code>@react_on</code> subscription.</li>
-<li>A <strong>Signal</strong> subclass with <code>cross_session: ClassVar[bool] = True</code> routes through <code>SessionManager.broadcast</code> and is received by every active <strong>Session</strong>.</li>
+<li>A <strong>Signal</strong> subclass with <code>cross_session: ClassVar[bool] = True</code> routes through <strong>SignalDispatcher</strong><code>.broadcast</code> and is received by every registered <strong>SignalPeer</strong> — every active <strong>Session</strong>, plus any non-browser peer.</li>
 <li>A library that subscribes to another library's <strong>Signal</strong> must list the <strong>signal-defining library</strong> in its own <code>LibraryIdentity.dependencies</code>.</li>
 <li>The <strong>Global marketplace</strong> holds only what the user opts into (<code>[[markets]]</code> and <code>[[stalls]]</code> subscriptions, optional inline <code>[[haybales]]</code>); the <strong>Project marketplace</strong> holds the project's own <code>[[heaps]]</code> plus the refresh <code>[[caches]]</code>. <code>haywire init</code> writes only the project marketplace. <em>(new)</em></li>
 <li><strong>Refresh</strong> reads the <strong>Global marketplace</strong>, fetches every <strong>Subscription</strong> (one-level-deep), and writes the resolved candidates to the <strong>Project marketplace</strong>'s <code>[[caches]]</code>. <strong>Conflict resolution</strong> applies <code>blocked</code>, then heaps shadow, then preference-aware dedup (first-come-first-served where no preference exists). <em>(new)</em></li>

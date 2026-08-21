@@ -3771,7 +3771,7 @@
 </table>
 <p>A reader sees <code>class HaystackState(AppState):</code> and knows signal fields on it reach every session — the same way they know <code>ctx.app_data[HaystackState]</code> returns a shared instance. No flag at the field site re-states this; the base class already does.</p>
 <h3 id="declaring">Declaring<a class="headerlink" href="#declaring" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_field</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_field</span>
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="k">class</span><span class="w"> </span><span class="nc">EditState</span><span class="p">(</span><span class="n">SessionState</span><span class="p">):</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    <span class="n">active_node</span><span class="p">:</span> <span class="n">Optional</span><span class="p">[</span><span class="n">NodeWrapper</span><span class="p">]</span> <span class="o">=</span> <span class="n">signal_field</span><span class="p">(</span><span class="kc">None</span><span class="p">)</span>
@@ -3905,10 +3905,11 @@
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span> <span class="o">=</span> <span class="n">node_wrapper</span>
 </span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="n">ctx</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">SelectionMoved</span><span class="p">())</span>
 </span></code></pre></div>
-<p><code>Session.publish</code> routes the signal based on the class's <code>cross_session</code> flag — local signals go to this session's bus, cross-session signals delegate to <code>SessionManager.broadcast</code> which dispatches to every session (including the originator).</p>
+<p><code>Session.publish</code> routes the signal based on the class's <code>cross_session</code> flag — local signals go to this session's own bus, cross-session signals delegate to <code>SignalDispatcher.broadcast</code> which dispatches to every registered <strong>peer</strong> (including the originator).</p>
+<p><code>publish</code> / <code>subscribe</code> are not <code>Session</code>'s own — they come from <code>SignalPeer</code>, and a <code>Session</code> is one <em>kind</em> of peer (the browser-tab kind). Non-browser peers — an agent-facing MCP host, a CLI, a headless embedding — join the same fan-out without a <code>WorkspaceManager</code> or a <code>SessionContext</code>. Nothing in <code>haywire.core.signals</code> imports NiceGUI or knows a browser exists.</p>
 <p><code>CommandSignal</code> subclasses travel the same way. The AppShell subscribes to each command type and routes it (e.g. <code>Reveal</code> opens the editor in its default slot).</p>
 <h3 id="before-you-declare-one-the-framework-vocabulary">Before you declare one: the framework vocabulary<a class="headerlink" href="#before-you-declare-one-the-framework-vocabulary" title="Permanent link">&para;</a></h3>
-<p>Check this list first. It is <strong>not</strong> a catalogue of every signal in a running app — any library may declare its own, and most do. It is the set defined by the framework in <code>haywire.core.session.signals.vocabulary</code>, which is the set every library can rely on being present. Reaching for one of these instead of inventing a near-duplicate is what keeps subscribers from having to listen for two signals that mean the same thing.</p>
+<p>Check this list first. It is <strong>not</strong> a catalogue of every signal in a running app — any library may declare its own, and most do. It is the set defined by the framework in <code>haywire.core.signals.vocabulary</code>, which is the set every library can rely on being present. Reaching for one of these instead of inventing a near-duplicate is what keeps subscribers from having to listen for two signals that mean the same thing.</p>
 <p><strong>Observations</strong> — "X happened"; fan-out, anyone may subscribe:</p>
 <table>
 <thead>
@@ -3990,7 +3991,7 @@
 </ul>
 <div class="admonition note">
 <p class="admonition-title">Three of these are not exported from the package root</p>
-<p><code>RevealGraphInstance</code>, <code>ErrorLogged</code>, and <code>ErrorLedgerChanged</code> are absent from <code>vocabulary.__all__</code> despite being used across the codebase. Import them from <code>haywire.core.session.signals</code> as usual — the omission is in <code>__all__</code>, not the module.</p>
+<p><code>RevealGraphInstance</code>, <code>ErrorLogged</code>, and <code>ErrorLedgerChanged</code> are absent from <code>vocabulary.__all__</code> despite being used across the codebase. Import them from <code>haywire.core.signals</code> as usual — the omission is in <code>__all__</code>, not the module.</p>
 </div>
 <h3 id="navigating-the-studio-with-reveal">Navigating the studio with <code>Reveal</code><a class="headerlink" href="#navigating-the-studio-with-reveal" title="Permanent link">&para;</a></h3>
 <p>The most common <code>Reveal</code> use is not "open an editor" on its own — it is <strong>point an editor at something and make sure the user is looking at it</strong>. Those are two steps, and doing only the first is a common bug: the panel updates correctly while collapsed, and the user sees nothing happen.</p>
@@ -4001,7 +4002,7 @@
 </span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a><span class="sd">    HaywireException&#39;s ``registry_key``.</span>
 </span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="sd">    &quot;&quot;&quot;</span>
 </span><span id="__span-13-6"><a id="__codelineno-13-6" name="__codelineno-13-6" href="#__codelineno-13-6"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.editors.component_source_editor</span><span class="w"> </span><span class="kn">import</span> <span class="n">ComponentSourceEditor</span>
-</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reveal</span>
+</span><span id="__span-13-7"><a id="__codelineno-13-7" name="__codelineno-13-7" href="#__codelineno-13-7"></a>    <span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">Reveal</span>
 </span><span id="__span-13-8"><a id="__codelineno-13-8" name="__codelineno-13-8" href="#__codelineno-13-8"></a>
 </span><span id="__span-13-9"><a id="__codelineno-13-9" name="__codelineno-13-9" href="#__codelineno-13-9"></a>    <span class="n">context</span><span class="o">.</span><span class="n">active_component</span> <span class="o">=</span> <span class="n">registry_key</span>
 </span><span id="__span-13-10"><a id="__codelineno-13-10" name="__codelineno-13-10" href="#__codelineno-13-10"></a>    <span class="n">context</span><span class="o">.</span><span class="n">session</span><span class="o">.</span><span class="n">publish</span><span class="p">(</span><span class="n">Reveal</span><span class="p">(</span><span class="n">editor</span><span class="o">=</span><span class="n">ComponentSourceEditor</span><span class="p">))</span>
@@ -4073,7 +4074,7 @@
 <h3 id="i-want-to-add-reactive-state-to-my-library">"I want to add reactive state to my library"<a class="headerlink" href="#i-want-to-add-reactive-state-to-my-library" title="Permanent link">&para;</a></h3>
 <p>Use <code>signal_field</code> on a <code>SessionState</code> or <code>AppState</code> subclass:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.state</span><span class="w"> </span><span class="kn">import</span> <span class="n">SessionState</span>
-</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.session.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_field</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.signals</span><span class="w"> </span><span class="kn">import</span> <span class="n">signal_field</span>
 </span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
 </span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a>
 </span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a><span class="nd">@state</span>
@@ -4119,7 +4120,7 @@
 <p><strong>Shadowing <code>signal_field</code>s in subclasses is forbidden.</strong> A subclass that redeclares a parent's signal field raises <code>TypeError</code> at class-definition. If a subclass needs different per-class behavior, model it as two different fields.</p>
 </li>
 <li>
-<p><strong>Don't write <code>signal_field</code>s in <code>__init__</code>.</strong> Container weakref wiring (the <code>self.session</code> / <code>self._session_manager</code> references that <code>_signal_emit</code> derefs) is stamped between <code>cls()</code> and <code>on_enable()</code>. Writes during <code>__init__</code> predate the wiring and raise. Write in <code>on_enable()</code> or later.</p>
+<p><strong>Don't write <code>signal_field</code>s in <code>__init__</code>.</strong> Container weakref wiring (the <code>self.session</code> / <code>self._dispatcher</code> references that <code>_signal_emit</code> derefs) is stamped between <code>cls()</code> and <code>on_enable()</code>. Writes during <code>__init__</code> predate the wiring and raise. Write in <code>on_enable()</code> or later.</p>
 </li>
 <li>
 <p><strong>Hand-authored signals must be frozen dataclasses with <code>kw_only=True</code>.</strong> This matches the framework's signal vocabulary; non-frozen or positional dataclasses won't interoperate cleanly with re-entrant write detection or the synthesis path.</p>

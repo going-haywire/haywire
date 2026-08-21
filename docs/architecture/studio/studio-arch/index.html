@@ -2562,10 +2562,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#33-cross-session-broadcast-graph-mutation" class="md-nav__link">
+  <a href="#33-cross-peer-broadcast-graph-mutation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.3 Cross-session broadcast (graph mutation)
+        3.3 Cross-peer broadcast (graph mutation)
       
     </span>
   </a>
@@ -3473,10 +3473,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#33-cross-session-broadcast-graph-mutation" class="md-nav__link">
+  <a href="#33-cross-peer-broadcast-graph-mutation" class="md-nav__link">
     <span class="md-ellipsis">
       
-        3.3 Cross-session broadcast (graph mutation)
+        3.3 Cross-peer broadcast (graph mutation)
       
     </span>
   </a>
@@ -3665,7 +3665,7 @@
 </ul>
 <p>Sessions are created and tracked by <code>SessionManager</code> (<code>packages/haywire-core/src/haywire/core/session/session_manager.py</code>). When a browser connects, <code>SessionManager.create_session(...)</code> constructs the <code>Session</code>, attaches its <code>session_id</code> to the global <code>LibraryStateContainer</code> (which fan-instantiates every registered <code>SessionState</code> class for the new session), and returns it. <code>SessionManager.remove_session(session_id)</code> reverses the dance: <code>Session.cleanup()</code> first, then <code>LibraryStateContainer.detach_session(...)</code>. Cleanup-before-detach is deliberate so editors that read <code>ctx.data[X]</code> during their own cleanup still see live state.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a><span class="n">manager</span> <span class="o">=</span> <span class="n">SessionManager</span><span class="p">(</span><span class="n">container</span><span class="o">=</span><span class="n">app</span><span class="o">.</span><span class="n">library_state_container</span><span class="p">)</span>
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">session</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">create_session</span><span class="p">(</span><span class="n">project_state</span><span class="o">=</span><span class="n">app</span><span class="p">,</span> <span class="n">workspace_manager</span><span class="o">=</span><span class="n">ws</span><span class="p">)</span>
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a><span class="n">session</span> <span class="o">=</span> <span class="n">manager</span><span class="o">.</span><span class="n">create_session</span><span class="p">(</span><span class="n">app_state</span><span class="o">=</span><span class="n">app</span><span class="p">,</span> <span class="n">workspace_manager</span><span class="o">=</span><span class="n">ws</span><span class="p">)</span>
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a><span class="n">manager</span><span class="o">.</span><span class="n">broadcast</span><span class="p">(</span><span class="n">some_signal</span><span class="p">)</span>
 </span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a><span class="n">manager</span><span class="o">.</span><span class="n">remove_session</span><span class="p">(</span><span class="n">session</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
 </span></code></pre></div>
@@ -3740,7 +3740,7 @@
 </span></code></pre></div>
 <p>This separation keeps the framework's <code>SessionContext</code> stable while each library owns the reactive surface its editors need. See <a href="../../../components/states/state-canon/">components/states</a> for the full state model and <a href="../../session-and-state/session-and-state-arch/">session-and-state</a> for the container's two-namespace asymmetry.</p>
 <h3 id="25-the-signal-bus-observations-and-imperatives-on-one-channel">2.5 The signal bus — observations and imperatives on one channel<a class="headerlink" href="#25-the-signal-bus-observations-and-imperatives-on-one-channel" title="Permanent link">&para;</a></h3>
-<p>The studio runs a single per-session typed pub/sub bus (<code>packages/haywire-core/src/haywire/core/session/signals/bus.py</code>). Every payload subclasses <code>Signal</code> from <code>packages/haywire-core/src/haywire/core/session/signals/</code>. Authors emit with <code>Session.publish(s)</code> and listen with <code>Session.subscribe(SignalType, handler)</code>. Subscribers match by exact type — subclasses do not inherit subscriptions.</p>
+<p>The studio runs a single per-session typed pub/sub bus (<code>packages/haywire-core/src/haywire/core/signals/bus.py</code>). Every payload subclasses <code>Signal</code> from <code>packages/haywire-core/src/haywire/core/signals/</code>. Authors emit with <code>Session.publish(s)</code> and listen with <code>Session.subscribe(SignalType, handler)</code>. Subscribers match by exact type — subclasses do not inherit subscriptions.</p>
 <p>Two payload flavours share the bus; the split is vocabulary, not transport:</p>
 <p><strong>Observations (concrete <code>Signal</code> subclasses).</strong> Describe a state move that already happened. Concrete subclasses include:</p>
 <ul>
@@ -3756,7 +3756,8 @@
 <li><code>Close(binding_id=...)</code> — close every tab bound to <code>binding_id</code> across all slots in the issuing session. Used for session-local close decisions.</li>
 <li><code>BroadcastClose(binding_id=...)</code> — cross-session sibling of <code>Close</code>. Each receiving session's AppShell closes matching tabs. Used when the underlying entity is gone for everyone (e.g. a graph entry was removed from the haystack).</li>
 </ul>
-<p><strong>Cross-session routing.</strong> Independent of observation/imperative: set <code>cross_session: ClassVar[bool] = True</code> on any <code>Signal</code> subclass and <code>Session.publish(...)</code> delegates to <code>SessionManager.broadcast(...)</code>, which fans out to every session (including the origin). Among the built-ins, <code>GraphDataMutated</code>, <code>LibraryCatalogChanged</code>, and <code>BroadcastClose</code> are cross-session; everything else is local-only.</p>
+<p><strong>Cross-peer routing.</strong> Independent of observation/imperative: set <code>cross_session: ClassVar[bool] = True</code> on any <code>Signal</code> subclass and <code>Session.publish(...)</code> delegates to <code>SignalDispatcher.broadcast(...)</code>, which fans out to every registered peer (including the origin). Among the built-ins, <code>GraphDataMutated</code>, <code>LibraryCatalogChanged</code>, and <code>BroadcastClose</code> are cross-session; everything else is local-only.</p>
+<p>The transport is deliberately not browser-specific. <code>SignalPeer</code> owns the bus and the dispatcher membership; <code>Session</code> is the browser-tab kind of peer, adding a <code>SessionContext</code>, a <code>WorkspaceManager</code>, and the shared app state. Anything else that needs bidirectional access to live app state — an agent-facing MCP host, a CLI, a headless embedding — subclasses <code>SignalPeer</code> directly and joins the same fan-out. <code>SessionManager</code> owns browser-session <em>lifecycle</em> only; it has no <code>broadcast</code>.</p>
 <p>Library authors who declare their own <code>Signal</code> subclasses that other libraries subscribe to <strong>must</strong> list the declaring library in their own <code>LibraryIdentity.dependencies</code>, so hot-reload reloads them as a pair. Without this, an <code>isinstance</code> check after a library reload can spuriously return <code>False</code> when the subscriber holds a stale class reference.</p>
 <h3 id="26-editors-and-panels">2.6 Editors and panels<a class="headerlink" href="#26-editors-and-panels" title="Permanent link">&para;</a></h3>
 <p>Editors fill slots; panels fill the inside of panel-aware editors. Both register via DI registries:</p>
@@ -3769,7 +3770,7 @@
 <h3 id="31-page-render-at-session-connect">3.1 Page render at session connect<a class="headerlink" href="#31-page-render-at-session-connect" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Browser opens NiceGUI page
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>  ├─ studio app.py page handler
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ├─ SessionManager.create_session(project_state=app, workspace_manager=ws)
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>  ├─ SessionManager.create_session(app_state=app, workspace_manager=ws)
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>  │   ├─ Session() — constructs SessionContext + per-session SignalBus, registers session_id
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>  │   └─ container.attach_session(session_id) — fan-instantiates SessionStates
 </span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a>  ├─ AppShell(session, editor_registry)
@@ -3797,15 +3798,17 @@
 </span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>                 exactly once (slot clears area, calls editor.draw(ctx, area))
 </span></code></pre></div>
 <p>The <code>SelectionMoved</code> signal carries no payload (pointer-by-default rule, §6.3 of the design doc). Subscribers re-read <code>ctx.data[EditState]</code> to discover what the new selection is. Both <code>@redraw_on</code> and <code>@react_on</code> handlers fire regardless of whether their editor's wrapper is the active tab — backgrounded editors stay current (kept alive by Quasar <code>ui.tab_panels</code> keep-alive); on focus they're already drawn correctly.</p>
-<h3 id="33-cross-session-broadcast-graph-mutation">3.3 Cross-session broadcast (graph mutation)<a class="headerlink" href="#33-cross-session-broadcast-graph-mutation" title="Permanent link">&para;</a></h3>
+<h3 id="33-cross-peer-broadcast-graph-mutation">3.3 Cross-peer broadcast (graph mutation)<a class="headerlink" href="#33-cross-peer-broadcast-graph-mutation" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>Session A: user edits a node&#39;s setting
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>  ├─ NodeWrapper.update_setting(...)
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>  ├─ session.publish(GraphDataMutated())
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  └─ Session.publish — cross_session=True path:
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>      └─ session_manager.broadcast(signal)
-</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>          └─ For every session (A, B, C):
-</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>              └─ session._dispatch(signal) → SignalBus.publish → subscribers
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>  └─ SignalPeer.publish — cross_session=True path:
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>      └─ signal_dispatcher.broadcast(signal)
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>          └─ For every registered peer (Session A, B, C, and any
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>             non-browser peer such as an agent-facing host):
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>              └─ peer._dispatch(signal) → SignalBus.publish → subscribers
 </span></code></pre></div>
+<p>Emitters that own no peer of their own reach the same channel directly: <code>AppState._signal_emit</code> derefs a container-stamped <code>_dispatcher</code> weakref, and <code>FarmhandContext.broadcast</code> reads the ambient <code>get_signal_dispatcher()</code>. Neither goes through <code>SessionManager</code>.</p>
 <p>Cross-session signals never carry payload data either. Receivers re-read the relevant state from the shared project — for <code>GraphDataMutated</code> that's the entry in <code>ctx.app_data[HaystackState].get_by_id(&lt;entry_id&gt;)</code>. Peer-session state, if needed, can be reached through <code>session_manager.get_session(peer_id).context</code>.</p>
 <h2 id="4-performance-errors-and-boundaries">4. Performance, errors, and boundaries<a class="headerlink" href="#4-performance-errors-and-boundaries" title="Permanent link">&para;</a></h2>
 <h3 id="41-per-session-memory">4.1 Per-session memory<a class="headerlink" href="#41-per-session-memory" title="Permanent link">&para;</a></h3>
