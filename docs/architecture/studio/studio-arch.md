@@ -76,7 +76,7 @@ Sessions are created and tracked by `SessionManager` (`packages/haywire-core/src
 
 ```python
 manager = SessionManager(container=app.library_state_container)
-session = manager.create_session(project_state=app, workspace_manager=ws)
+session = manager.create_session(app_state=app, workspace_manager=ws)
 manager.broadcast(some_signal)
 manager.remove_session(session.session_id)
 ```
@@ -150,7 +150,7 @@ For the editor authoring surface — `BaseEditor`, `draw`, the `@redraw_on` / `@
 ```text
 Browser opens NiceGUI page
   ├─ studio app.py page handler
-  ├─ SessionManager.create_session(project_state=app, workspace_manager=ws)
+  ├─ SessionManager.create_session(app_state=app, workspace_manager=ws)
   │   ├─ Session() — constructs SessionContext + per-session SignalBus, registers session_id
   │   └─ container.attach_session(session_id) — fan-instantiates SessionStates
   ├─ AppShell(session, editor_registry)

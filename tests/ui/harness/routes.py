@@ -157,7 +157,7 @@ def _build_size_graph(node_factory):
 class _HarnessProjectState:
     """Minimal IProjectState stand-in for harness routes that need a Session.
 
-    The studio's HaywireApp is the real project_state; sessions read only a few
+    The studio's HaywireApp is the real app_state; sessions read only a few
     attributes off it (``library_state_container`` and ``on_disconnect`` on the
     session path, plus the factories on ``IProjectState``). This pulls those
     from the booted library_service so a session can be created without the full
@@ -193,11 +193,11 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str):
     from haybale_graph_editor.editors.graph_canvas.graph_canvas_manager import GraphCanvasManager
     from haybale_graph_editor.state.edit_state import EditState
 
-    project_state = _HarnessProjectState(library_service)
-    session_manager = SessionManager(container=project_state.library_state_container)
+    app_state = _HarnessProjectState(library_service)
+    session_manager = SessionManager(container=app_state.library_state_container)
     workspace_manager = WorkspaceManager(project_path=get_workspace_root())
     session = session_manager.create_session(
-        project_state=project_state,
+        app_state=app_state,
         workspace_manager=workspace_manager,
     )
     # Context-menu providers resolve wrappers off active_graph.

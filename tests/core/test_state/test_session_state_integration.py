@@ -80,10 +80,10 @@ class TestSessionStateIntegration:
 
         # Construct a SessionManager wired to this container.
         manager = SessionManager(container=container)
-        project_state = MagicMock()
-        project_state.library_state_container = container
+        app_state = MagicMock()
+        app_state.library_state_container = container
         session = manager.create_session(
-            project_state=project_state,
+            app_state=app_state,
             workspace_manager=MagicMock(),
         )
 

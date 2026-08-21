@@ -9,7 +9,7 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.ui.editor import BaseEditor, SlotName, editor
 from haywire.core.session import (
-    IProjectState,
+    IAppState,
     SessionContext,
     react_on,
     redraw_on,
@@ -532,7 +532,7 @@ class HaystackEditor(BaseEditor):
 
     def _on_new(self, context: "SessionContext") -> None:
         """Create a new unnamed graph and activate it."""
-        app: IProjectState = context.app
+        app: IAppState = context.app
         session = context.session
         if app is None or session is None:
             return
@@ -596,7 +596,7 @@ class HaystackEditor(BaseEditor):
 
     def _on_save_haystack(self, context: "SessionContext") -> None:
         """Save the current set of open graphs as a haystack ("Save As…")."""
-        app: IProjectState = context.app
+        app: IAppState = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
@@ -629,7 +629,7 @@ class HaystackEditor(BaseEditor):
             self._on_save_haystack(context)
             return
 
-        app: IProjectState = context.app
+        app: IAppState = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
             return
@@ -647,7 +647,7 @@ class HaystackEditor(BaseEditor):
 
     def _on_load_haystack(self, context: "SessionContext") -> None:
         """Load a haystack, replacing all currently open graphs."""
-        app: IProjectState = context.app
+        app: IAppState = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
             return

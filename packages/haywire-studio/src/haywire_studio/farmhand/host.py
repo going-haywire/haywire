@@ -22,6 +22,7 @@ import weakref
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Optional
 
+from haywire.core.di.config import LibrarySystemService
 import mcp.types as types
 from mcp.server.lowlevel import NotificationOptions, Server
 from mcp.server.streamable_http_manager import StreamableHTTPSessionManager
@@ -122,10 +123,10 @@ def caller_tier(request: Any) -> AccessTier:
 
 
 class FarmhandHost:
-    def __init__(self, library_service: Any, workspace_root: str):
+    def __init__(self, library_service: LibrarySystemService, workspace_root: str):
         self._library_service = library_service
         self._workspace_root = workspace_root
-        self._registry: FarmhandRegistry = library_service.injector.get(FarmhandRegistry)
+        self._registry: FarmhandRegistry = library_service.get_farmhand_registry()
         self._tools: dict[str, type[Farmhand]] = {}
         self._sessions: "weakref.WeakSet" = weakref.WeakSet()
         self._loop: Optional[asyncio.AbstractEventLoop] = None
@@ -350,7 +351,7 @@ class FarmhandHost:
                 )
                 for rel_path in list_docs()
             ]
-            registry = self._library_service.injector.get(LibraryRegistry)
+            registry: LibraryRegistry = self._library_service.get_library_registry()
             for lib_id in registry.list_names():
                 if not registry.is_library_enabled(lib_id):
                     continue
@@ -379,7 +380,7 @@ class FarmhandHost:
                 _, _, rest = text.partition("farmhand://library/")
                 lib_id, _, slug = rest.partition("/")
                 filename = {"overview": "OVERVIEW.md", "quickref": "QUICKREF.md"}.get(slug)
-                registry = self._library_service.injector.get(LibraryRegistry)
+                registry: LibraryRegistry = self._library_service.get_library_registry()
                 if filename and lib_id in registry.list_names():
                     path = Path(registry.get_library_identity(lib_id).folder_path) / filename
                     if path.exists():

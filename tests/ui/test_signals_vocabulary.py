@@ -134,7 +134,7 @@ def test_broadcast_close_cross_session():
 
 def _make_session(session_manager=None):
     return Session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=session_manager or MagicMock(),
     )
@@ -278,9 +278,9 @@ def test_broadcast_delivers_to_every_session_including_origin():
     """Every registered session — including the origin — receives the
     signal exactly once."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
-    origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    peer_a = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    peer_b = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+    origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    peer_a = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    peer_b = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
     received: dict[str, list] = {origin.session_id: [], peer_a.session_id: [], peer_b.session_id: []}
     origin.subscribe(GraphDataMutated, lambda s: received[origin.session_id].append(s))
@@ -297,9 +297,9 @@ def test_broadcast_delivers_to_every_session_including_origin():
 def test_broadcast_swallows_per_peer_exceptions():
     """A subscriber raising in one session does not abort delivery to others."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
-    origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    bad = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    good = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+    origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    bad = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    good = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
     delivered: list[tuple[str, Signal]] = []
     origin.subscribe(GraphDataMutated, lambda s: delivered.append(("origin", s)))
@@ -317,8 +317,8 @@ def test_publish_end_to_end_with_session_manager():
     """A cross_session=True signal published via Session.publish() reaches
     every peer's bus subscribers."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
-    origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    peer = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+    origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    peer = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
     origin_received: list[GraphDataMutated] = []
     peer_received: list[GraphDataMutated] = []
@@ -336,8 +336,8 @@ def test_broadcast_close_end_to_end_with_session_manager():
     """A BroadcastClose published on one session reaches every session's
     BroadcastClose subscribers."""
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
-    origin = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    peer = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+    origin = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    peer = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
     origin_received: list[BroadcastClose] = []
     peer_received: list[BroadcastClose] = []
@@ -360,8 +360,8 @@ def test_error_ledger_listener_broadcasts_to_every_session():
     from haywire.core.errors.ledger import ErrorLedger
 
     sm = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
-    a = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
-    b = sm.create_session(project_state=MagicMock(), workspace_manager=MagicMock())
+    a = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
+    b = sm.create_session(app_state=MagicMock(), workspace_manager=MagicMock())
 
     a_received: list[ErrorLogged] = []
     b_received: list[ErrorLogged] = []

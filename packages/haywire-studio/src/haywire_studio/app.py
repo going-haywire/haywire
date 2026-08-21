@@ -278,7 +278,7 @@ class HaywireApp:
             editor_registry = self.library_service.injector.get(EditorTypeRegistry)
 
             haywire_session = self.session_manager.create_session(
-                project_state=self,
+                app_state=self,
                 workspace_manager=self.workspace_manager,
             )
 

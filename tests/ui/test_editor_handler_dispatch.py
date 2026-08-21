@@ -77,7 +77,7 @@ class _SignalC(Signal):
 
 def _make_session() -> Session:
     session = Session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=MagicMock(),
     )

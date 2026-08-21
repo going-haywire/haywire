@@ -9,7 +9,7 @@ from haywire.core.session.signals.descriptor import _seed_signal_fields
 
 if TYPE_CHECKING:
     from haywire.core.library.info import LibraryInfo
-    from haywire.core.session.protocols import IProjectState
+    from haywire.core.session.protocols import IAppState
     from haywire.core.session.session import Session
     from haywire.core.state.data_namespace import AppDataNamespace, SessionDataNamespace
 
@@ -37,7 +37,7 @@ class SessionContext(SignalSource):
 
     # --- Plain fields (non-reactive) ---
     session_id: str
-    app: "IProjectState"
+    app: "IAppState"
     session: "Session"  # set by Session.__init__ immediately after construction
     app_data: "AppDataNamespace"
     data: "SessionDataNamespace"
@@ -51,7 +51,7 @@ class SessionContext(SignalSource):
     active_workbench_theme_key: Optional[str] = signal_field(None)
     active_node_theme_key: Optional[str] = signal_field(None)
 
-    def __init__(self, session_id: str, app: "IProjectState") -> None:
+    def __init__(self, session_id: str, app: "IAppState") -> None:
         # Lazy import: state.data_namespace transitively imports state.base,
         # which imports session.signals (for SignalSource). Importing it at
         # module top would close the cycle: session.signals → session.context

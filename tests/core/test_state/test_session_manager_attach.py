@@ -10,9 +10,9 @@ from haywire.core.session.session_manager import SessionManager
 class TestSessionManagerAttachDetach:
     def _make_session_kwargs(self, container: LibraryStateContainer) -> dict:
         """Build kwargs that satisfy Session.__init__."""
-        project_state = MagicMock()
-        project_state.library_state_container = container
-        return {"project_state": project_state, "workspace_manager": MagicMock()}
+        app_state = MagicMock()
+        app_state.library_state_container = container
+        return {"app_state": app_state, "workspace_manager": MagicMock()}
 
     def test_create_session_attaches_to_container(self):
         container = LibraryStateContainer(LibraryStateRegistry())

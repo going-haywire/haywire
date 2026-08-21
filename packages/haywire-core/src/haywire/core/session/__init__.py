@@ -29,7 +29,7 @@ Framework / library internals:
 from .session import Session
 from .session_manager import SessionManager
 from .context import SessionContext
-from .protocols import IProjectState
+from .protocols import IAppState
 from .signals import (
     # Bases
     Signal,
@@ -59,7 +59,7 @@ __all__ = [
     "SessionManager",
     "SessionContext",
     # Protocols
-    "IProjectState",
+    "IAppState",
     # Bus payload bases
     "Signal",
     "CommandSignal",

@@ -48,7 +48,7 @@ class _CrossSignal(Signal):
 
 def _make_session(session_manager=None) -> Session:
     return Session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=session_manager or MagicMock(),
     )

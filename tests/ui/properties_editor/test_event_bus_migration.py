@@ -60,7 +60,7 @@ def _make_session_with_panel_registry(
     app.library_service = library_service
 
     session = Session(
-        project_state=app,
+        app_state=app,
         workspace_manager=MagicMock(),
         session_manager=MagicMock(),
     )
@@ -229,7 +229,7 @@ def test_no_coordinator_when_chain_returns_none():
 def test_no_coordinator_when_chain_is_missing():
     """A context whose app lacks library_service → no coordinator."""
     session = Session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=MagicMock(),
     )
@@ -250,7 +250,7 @@ def test_no_coordinator_when_get_panel_registry_raises():
         get_panel_registry=MagicMock(side_effect=RuntimeError("intentional bad lookup"))
     )
     session = Session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
         session_manager=MagicMock(),
     )

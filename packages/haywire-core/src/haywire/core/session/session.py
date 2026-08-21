@@ -8,6 +8,7 @@ import uuid
 import logging
 
 from haywire.core.session.context import SessionContext
+from haywire.core.session.protocols import IAppState
 from haywire.core.session.signals import Signal, SignalBus
 from haywire.core.session.workspace.manager import WorkspaceManager
 
@@ -46,23 +47,23 @@ class Session:
     """
 
     def __init__(
-        self, project_state, workspace_manager: WorkspaceManager, session_manager: "SessionManager"
+        self, app_state: "IAppState", workspace_manager: WorkspaceManager, session_manager: "SessionManager"
     ):
         """
         Create a new session.
 
         Args:
-            project_state: The shared project state (graph data, settings, etc.).
+            app_state: The shared project state (graph data, settings, etc.).
             workspace_manager: Pre-configured WorkspaceManager for this session.
             session_manager: The SessionManager that owns this session, used for
                 cross-session signal broadcasting.
         """
         self.session_id = str(uuid.uuid4())
-        self.project_state = project_state
+        self.app_state: "IAppState" = app_state
         self.workspace_manager: WorkspaceManager = workspace_manager
         self._session_manager: "SessionManager" = session_manager
 
-        self.context = SessionContext(session_id=self.session_id, app=project_state)
+        self.context = SessionContext(session_id=self.session_id, app=app_state)
         self.context.session = self
 
         # Per-session typed signal bus — the only intra-session dispatch

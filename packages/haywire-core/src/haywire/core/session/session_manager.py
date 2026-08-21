@@ -18,7 +18,7 @@ class SessionManager:
     Manages all active Sessions across browser connections::
 
         manager = SessionManager(container=app.library_state_container)
-        session = manager.create_session(project_state=app, workspace_manager=ws)
+        session = manager.create_session(app_state=app, workspace_manager=ws)
         manager.remove_session(session.session_id)
         manager.broadcast(signal)
     """

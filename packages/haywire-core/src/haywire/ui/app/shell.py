@@ -712,7 +712,7 @@ class AppShell:
             ui.label("Haywire").classes("font-bold text-lg hw-text-body")
 
             def _on_save() -> None:
-                self.session.project_state.save_workspace(shell=self)
+                self.session.app_state.save_workspace(shell=self)
                 ui.notify("Workspace saved", position="top-right")
 
             ui.button(

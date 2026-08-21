@@ -19,7 +19,7 @@ def test_session_manager_starts_empty():
 def test_create_session_registers_session():
     manager = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     session = manager.create_session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
     )
     assert manager.get_session(session.session_id) is session
@@ -29,7 +29,7 @@ def test_create_session_registers_session():
 def test_remove_session_calls_cleanup_and_drops_it():
     manager = SessionManager(container=LibraryStateContainer(LibraryStateRegistry()))
     session = manager.create_session(
-        project_state=MagicMock(),
+        app_state=MagicMock(),
         workspace_manager=MagicMock(),
     )
     sid = session.session_id

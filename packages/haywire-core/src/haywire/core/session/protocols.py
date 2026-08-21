@@ -21,7 +21,7 @@ if TYPE_CHECKING:
     from haywire.ui.widget.factory import WidgetFactory
 
 
-class IProjectState(Protocol):
+class IAppState(Protocol):
     """
     Structural interface the framework expects from the host application.
 

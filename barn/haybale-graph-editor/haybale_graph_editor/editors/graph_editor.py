@@ -42,7 +42,7 @@ from ..protocols import GraphContainer  # noqa: F401  (used in type annotations)
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
-    from haywire.core.session.protocols import IProjectState
+    from haywire.core.session.protocols import IAppState
     from nicegui.element import Element
 
 logger = logging.getLogger(__name__)
@@ -85,7 +85,7 @@ class GraphEditor(BaseEditor):
     def __init__(self, wrapper):
         super().__init__(wrapper)
         self._canvas_manager: Optional[GraphCanvasManager] = None
-        self._project_state: Optional["IProjectState"] = None
+        self._project_state: Optional["IAppState"] = None
         self._context: Optional["SessionContext"] = None
         self._canvas_wrapper = None  # ui.element — cleared on graph switch
         self._graph_name_label = None  # ui.label in the header
