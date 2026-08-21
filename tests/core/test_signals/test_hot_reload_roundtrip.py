@@ -45,7 +45,7 @@ def test_hot_reload_creates_fresh_signal_class():
     assert OldState is not NewState
     assert OldSignal is not NewSignal
     # Both still inherit Signal.
-    from haywire.core.session.signals import Signal
+    from haywire.core.signals import Signal
 
     assert issubclass(cast(Any, OldSignal), Signal)
     assert issubclass(cast(Any, NewSignal), Signal)
@@ -57,7 +57,7 @@ def test_old_class_subscribers_do_not_receive_new_class_emits():
     to NewSignal DOES fire. This is the end-to-end Q15 contract: hot-reload
     produces fresh subscription targets that compose normally with the bus."""
     import tests.core.test_signals._hot_reload_target as target
-    from haywire.core.session.signals import SignalBus
+    from haywire.core.signals import SignalBus
 
     OldState = target.MyState
     OldSignal = OldState.x

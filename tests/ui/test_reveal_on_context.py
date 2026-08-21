@@ -3,7 +3,7 @@
 from types import SimpleNamespace
 from typing import Any, cast
 
-from haywire.core.session.signals import Reveal
+from haywire.core.signals import Reveal
 from haywire.ui.app.shell import AppShell
 from haywire.ui.app.tab_slot import TabSlot
 from haywire.ui.editor.identity import OpenBehavior

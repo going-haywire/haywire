@@ -8,7 +8,7 @@ from typing import Any, cast
 import weakref
 from unittest.mock import MagicMock
 
-from haywire.core.session.signals import Signal, SignalSource
+from haywire.core.signals import Signal, SignalSource
 from haywire.core.state.base import AppState, SessionState
 
 

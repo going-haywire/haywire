@@ -43,7 +43,7 @@ class AccountMenuProvider(BaseContextMenuProvider):
             self._open_popup.close()
 
     def reveal(self, editor_cls: type, binding_id: Any, label: str) -> None:
-        from haywire.core.session.signals import Reveal
+        from haywire.core.signals import Reveal
 
         self._session.publish(Reveal(editor=editor_cls, binding_id=binding_id, label=label))
         if self._open_popup is not None:

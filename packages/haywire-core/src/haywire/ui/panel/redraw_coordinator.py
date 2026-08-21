@@ -5,7 +5,7 @@ from typing import Callable, TYPE_CHECKING
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
-    from haywire.core.session.signals import Signal
+    from haywire.core.signals import Signal
     from haywire.ui.panel.focus import Focus
     from haywire.ui.panel.registry import PanelRegistry
 

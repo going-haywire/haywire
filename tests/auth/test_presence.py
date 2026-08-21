@@ -101,6 +101,6 @@ def test_users_sort_before_agents(path):
 
 
 def test_presence_changed_is_cross_session():
-    from haywire.core.session.signals import PresenceChanged
+    from haywire.core.signals import PresenceChanged
 
     assert PresenceChanged.cross_session is True

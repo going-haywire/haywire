@@ -23,7 +23,7 @@ from typing import Callable, Literal, TYPE_CHECKING
 from nicegui import ui
 
 from haywire.ui import elements as hui
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     BroadcastClose,
     Close,
     FarmhandActivity,

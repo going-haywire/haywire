@@ -65,7 +65,7 @@ def test_account_panel_button_reveals_the_activity_editor(monkeypatch):
 
 def test_editor_redraws_on_farmhand_activity():
     from haybale_studio.editors.activity_editor import ActivityEditor
-    from haywire.core.session.signals import FarmhandActivity
+    from haywire.core.signals import FarmhandActivity
 
     # The @redraw_on decorator stamps `_haywire_redraw_on`; the framework reads
     # it at editor instantiation to build the subscription set.

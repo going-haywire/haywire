@@ -22,7 +22,7 @@ from typing import Any, cast
 
 import haywire.core.graph.editor as graph_editor_module
 from haywire.ui.app.shell import AppShell
-from haywire.core.session.signals import Close, Reveal
+from haywire.core.signals import Close, Reveal
 from haywire.ui.editor.identity import OpenBehavior, SlotName
 
 

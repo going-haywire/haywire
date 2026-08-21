@@ -2,7 +2,7 @@
 """
 Method-level signal-handler decorators for editors.
 
-Editor authors declare which :class:`~haywire.core.session.signals.Signal`
+Editor authors declare which :class:`~haywire.core.signals.Signal`
 subclasses a handler method should fire on by decorating the method:
 
     from haywire.core.session import Signal, SelectionMoved, GraphDataMutated
@@ -45,7 +45,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any, Callable, Dict, List, Literal, Tuple
 
-from .signals import Signal
+from haywire.core.signals import Signal
 
 
 # The two kinds of decorated handler. Tagged on each (method, signal_type)

@@ -4,8 +4,8 @@ from __future__ import annotations
 from typing import Any, Optional, TYPE_CHECKING
 
 from haywire.core.access import AccessTier, resolve_tier
-from haywire.core.session.signals import Signal, SignalSource, signal_field
-from haywire.core.session.signals.descriptor import _seed_signal_fields
+from haywire.core.signals import Signal, SignalSource, signal_field
+from haywire.core.signals.descriptor import _seed_signal_fields
 
 if TYPE_CHECKING:
     from haywire.core.library.info import LibraryInfo

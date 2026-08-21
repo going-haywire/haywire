@@ -30,7 +30,7 @@ from .session import Session
 from .session_manager import SessionManager
 from .context import SessionContext
 from .protocols import IAppState
-from .signals import (
+from haywire.core.signals import (
     # Bases
     Signal,
     CommandSignal,

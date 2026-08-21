@@ -2,7 +2,7 @@ import haywire.core.graph.editor  # noqa: F401  (circular-import guard)
 
 from unittest.mock import MagicMock
 
-from haywire.core.session.signals import GraphDataMutated
+from haywire.core.signals import GraphDataMutated
 from haywire.ui.components.graph.event_definitions import UserResizeEndEvent
 from haybale_graph_editor.editors.graph_canvas.handlers.interaction import InteractionHandlers
 

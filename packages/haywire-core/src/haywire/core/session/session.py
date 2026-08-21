@@ -9,7 +9,7 @@ import logging
 
 from haywire.core.session.context import SessionContext
 from haywire.core.session.protocols import IAppState
-from haywire.core.session.signals import Signal, SignalBus
+from haywire.core.signals import Signal, SignalBus
 from haywire.core.session.workspace.manager import WorkspaceManager
 
 S = TypeVar("S", bound=Signal)

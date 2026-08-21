@@ -4,7 +4,7 @@ from typing import Any, cast
 
 import pytest
 
-from haywire.core.session.signals import Signal, SignalBus
+from haywire.core.signals import Signal, SignalBus
 
 
 def test_signal_is_concrete_dataclass_base():

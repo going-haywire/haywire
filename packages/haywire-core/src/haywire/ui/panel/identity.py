@@ -11,7 +11,7 @@ from haywire.core.access import AccessTier
 from haywire.core.registry.identity import BaseIdentity
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals import Signal
+    from haywire.core.signals import Signal
 
 
 @dataclass

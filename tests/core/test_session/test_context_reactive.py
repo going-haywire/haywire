@@ -18,7 +18,7 @@ from typing import Any, cast
 from unittest.mock import MagicMock
 
 from haywire.core.session.context import SessionContext
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 
 
 def _make_ctx() -> SessionContext:

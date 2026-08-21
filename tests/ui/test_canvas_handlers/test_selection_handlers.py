@@ -156,7 +156,7 @@ def test_selection_changed_notifies_session(register_edit_state):
         session=session,
     )
     handler.process_selection_change(SelectionChangedEvent(selectedNodes=["n1"], selectedEdges=["e1"]))
-    from haywire.core.session.signals import SelectionMoved
+    from haywire.core.signals import SelectionMoved
 
     published = [call.args[0] for call in session.publish.call_args_list]
     assert any(isinstance(s, SelectionMoved) for s in published)

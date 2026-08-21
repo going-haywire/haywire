@@ -34,7 +34,7 @@ from haywire.core.session.handlers import (
     redraw_on,
 )
 from haywire.core.session.session import Session
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.registry import EditorTypeRegistry

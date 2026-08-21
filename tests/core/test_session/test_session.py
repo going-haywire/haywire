@@ -10,7 +10,7 @@ from unittest.mock import MagicMock
 
 
 from haywire.core.session.session import Session
-from haywire.core.session.signals import SelectionMoved
+from haywire.core.signals import SelectionMoved
 
 
 def _make_session(session_manager=None):

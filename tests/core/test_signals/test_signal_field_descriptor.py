@@ -6,8 +6,8 @@ default deep-copy seeding."""
 from typing import Any, cast
 
 import pytest
-from haywire.core.session.signals import Signal, SignalSource, signal_field
-from haywire.core.session.signals.descriptor import (
+from haywire.core.signals import Signal, SignalSource, signal_field
+from haywire.core.signals.descriptor import (
     iter_signal_fields,
     _seed_signal_fields,
 )

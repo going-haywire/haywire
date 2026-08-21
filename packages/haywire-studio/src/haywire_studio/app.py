@@ -15,7 +15,7 @@ from haywire.core.di.context import set_workspace_root
 from haywire.core.errors.ledger import get_error_ledger
 from haywire.core.farmhand.activity import activity_tracker
 from haywire.core.host import HostStore
-from haywire.core.session.signals import ErrorLogged, FarmhandActivity, PresenceChanged
+from haywire.core.signals import ErrorLogged, FarmhandActivity, PresenceChanged
 
 # UI imports
 from haywire.ui.console_bridge import get_stdout_tee

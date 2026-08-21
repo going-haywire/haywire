@@ -21,7 +21,7 @@ from haywire.core.library.identity import LibraryIdentity
 from .base import BasePanel
 
 if TYPE_CHECKING:
-    from haywire.core.session.signals import Signal
+    from haywire.core.signals import Signal
     from .focus import Focus
 
 logger = logging.getLogger(__name__)

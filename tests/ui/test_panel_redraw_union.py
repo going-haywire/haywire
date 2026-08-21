@@ -14,7 +14,7 @@ from dataclasses import dataclass
 
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 from haywire.ui.panel import BasePanel, panel
 from haywire.ui.panel.focus import Focus
 from haywire.ui.panel.registry import PanelRegistry

@@ -208,7 +208,7 @@ def _seed_signal_fields(instance: "SignalSource") -> None:
 
 # _seed_signal_fields and iter_signal_fields are framework-internal: only
 # host bases' __init__ and tests reach for them via the full module path
-# (`from haywire.core.session.signals.descriptor import _seed_signal_fields`).
+# (`from haywire.core.signals.descriptor import _seed_signal_fields`).
 # Keep them out of __all__ so `from ... import *` consumers see only the
 # author-facing surface.
 __all__ = ["signal_field"]

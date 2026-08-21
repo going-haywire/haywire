@@ -5,8 +5,8 @@ from abc import abstractmethod
 from typing import TYPE_CHECKING, ClassVar
 
 from haywire.core.library.identity import LibraryIdentity
-from haywire.core.session.signals import Signal, SignalSource
-from haywire.core.session.signals.descriptor import _seed_signal_fields
+from haywire.core.signals import Signal, SignalSource
+from haywire.core.signals.descriptor import _seed_signal_fields
 from haywire.core.state.identity import LibraryStateClassIdentity
 
 if TYPE_CHECKING:

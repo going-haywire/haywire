@@ -16,7 +16,7 @@ from dataclasses import dataclass
 from typing import Any, Callable, cast
 
 
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 from haywire.ui.panel.redraw_coordinator import PanelRedrawCoordinator
 
 

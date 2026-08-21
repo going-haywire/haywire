@@ -18,9 +18,9 @@ from unittest.mock import MagicMock
 import pytest
 
 
-from haywire.core.session.signals import SignalBus
+from haywire.core.signals import SignalBus
 from haywire.core.session.session import Session
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     Signal,
     GraphDataMutated,
 )

@@ -3,8 +3,8 @@
 Holds a minimal SignalSource so the test can exercise the reload path
 without setting up a full Session/Container."""
 
-from haywire.core.session.signals import Signal, SignalSource, signal_field
-from haywire.core.session.signals.descriptor import _seed_signal_fields
+from haywire.core.signals import Signal, SignalSource, signal_field
+from haywire.core.signals.descriptor import _seed_signal_fields
 
 
 class MyState(SignalSource):

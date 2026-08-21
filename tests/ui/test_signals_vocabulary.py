@@ -1,7 +1,7 @@
 """Tests for the Signal / CommandSignal vocabulary.
 
 Both observation (plain ``Signal``) and imperative (``CommandSignal``)
-payloads share the :class:`~haywire.core.session.signals.Signal` base and
+payloads share the :class:`~haywire.core.signals.Signal` base and
 travel through the same per-session bus. ``Session.publish(...)`` routes
 either; ``Session.subscribe(SignalType, handler)`` listens for either.
 
@@ -21,7 +21,7 @@ from unittest.mock import MagicMock
 import pytest
 
 
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,

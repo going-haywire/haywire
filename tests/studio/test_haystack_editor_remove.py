@@ -7,7 +7,7 @@ import pytest
 
 
 from haybale_haystack.editors import haystack_editor as haystack_editor_module
-from haywire.core.session.signals import (
+from haywire.core.signals import (
     ActiveGraphMoved,
     BroadcastClose,
     Close,

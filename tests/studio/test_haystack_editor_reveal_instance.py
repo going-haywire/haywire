@@ -21,7 +21,7 @@ def _make_editor_and_context():
 
 
 def test_no_matching_container_is_noop():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor, context, app_data = _make_editor_and_context()
     app_data.__getitem__.return_value.all_containers.return_value = []
@@ -32,7 +32,7 @@ def test_no_matching_container_is_noop():
 
 
 def test_matching_container_publishes_reveal():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor, context, app_data = _make_editor_and_context()
     # GraphContainer exposes .editor (an Editor), whose .graph is the
@@ -53,7 +53,7 @@ def test_matching_container_publishes_reveal():
 
 
 def test_non_matching_container_is_noop():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor, context, app_data = _make_editor_and_context()
     container = SimpleNamespace(

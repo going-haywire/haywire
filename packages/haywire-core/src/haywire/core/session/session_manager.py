@@ -3,7 +3,7 @@
 import logging
 from typing import Dict, Optional, TYPE_CHECKING
 
-from haywire.core.session.signals import Signal
+from haywire.core.signals import Signal
 
 if TYPE_CHECKING:
     from haywire.core.session.session import Session

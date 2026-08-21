@@ -21,7 +21,7 @@ def _make_editor():
 
 
 def test_no_canvas_manager_is_noop():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor = _make_editor()
     editor._canvas_manager = None
@@ -33,7 +33,7 @@ def test_no_canvas_manager_is_noop():
 
 
 def test_graph_id_mismatch_is_noop():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor = _make_editor()
     editor._canvas_manager = SimpleNamespace(graph=SimpleNamespace(graph_id="other_graph"))
@@ -45,7 +45,7 @@ def test_graph_id_mismatch_is_noop():
 
 
 def test_matching_graph_id_selects_node_and_publishes():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor = _make_editor()
     node_wrapper = MagicMock()
@@ -67,7 +67,7 @@ def test_matching_graph_id_selects_node_and_publishes():
 
 
 def test_matching_graph_id_selects_edge():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor = _make_editor()
     edge_wrapper = MagicMock()
@@ -92,7 +92,7 @@ def test_matching_graph_id_selects_edge():
 
 
 def test_node_gone_is_noop():
-    from haywire.core.session.signals import RevealGraphInstance
+    from haywire.core.signals import RevealGraphInstance
 
     editor = _make_editor()
     graph = SimpleNamespace(graph_id="webcam", name="Webcam", get_node_wrapper=MagicMock(return_value=None))
