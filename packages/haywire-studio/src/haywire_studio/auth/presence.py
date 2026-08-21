@@ -17,6 +17,7 @@ import time
 from dataclasses import dataclass
 
 from haywire.core.access import AccessTier
+from haywire.core.signals import AgentDisconnected
 
 from haywire_studio.auth.gate import last_seen
 from haywire_studio.auth.live import RosterCache
@@ -24,6 +25,31 @@ from haywire.core.farmhand.activity import activity_tracker
 
 #: An agent quieter than this drops out of the presence row.
 AGENT_IDLE_TIMEOUT_SECONDS = 300.0
+
+#: Agents currently inside the idle window, so a departure publishes once
+#: rather than on every presence read. Module-level to survive hot-reload.
+_present_agents: set[str] = set()
+
+
+def _note_departure(name: str) -> None:
+    """Publish :class:`AgentDisconnected` the first time ``name`` ages out.
+
+    Aging out is the only available departure signal — MCP has no close event,
+    and the host's ``WeakSet`` drops entries on GC, which is timing rather than
+    departure.
+
+    Best-effort: presence is a read path, so a broadcast failure must not stop
+    it returning rows.
+    """
+    if name not in _present_agents:
+        return
+    _present_agents.discard(name)
+    try:
+        from haywire.core.di.context import get_signal_dispatcher
+
+        get_signal_dispatcher().broadcast(AgentDisconnected(principal=name))
+    except Exception:  # pragma: no cover - defensive; no dispatcher in unit tests
+        pass
 
 
 @dataclass(frozen=True)
@@ -74,7 +100,9 @@ def collect_presence(session_manager, cache: RosterCache) -> list[PresenceEntry]
             continue
         idle = now - stamp
         if idle > AGENT_IDLE_TIMEOUT_SECONDS:
+            _note_departure(name)
             continue
+        _present_agents.add(name)
         tracker = activity_tracker()
         running = tracker.current(name)
         finished = tracker.last(name)

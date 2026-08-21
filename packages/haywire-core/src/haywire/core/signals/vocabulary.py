@@ -186,9 +186,53 @@ class FarmhandActivity(Signal):
     into this broadcast. Recording still happens in the host, the only layer
     that knows which principal is calling, which is what covers read-only tools
     and third-party library tools without asking either to opt in.
+
+    Not forwarded to MCP clients — echoing an agent-caused signal back to that
+    agent invites a feedback loop.
     """
 
     cross_session: ClassVar[bool] = True
+
+
+@dataclass(frozen=True)
+class RosterChanged(Signal):
+    """The security document's principals or tiers changed.
+
+    Payload-free — subscribers re-read the roster through ``RosterCache``.
+
+    Emitted by whatever writes the document (today the roster editor in
+    ``haybale-studio``). The Farmhand host subscribes and pushes
+    ``tools/list_changed`` so a tier edit reaches connected agents at once.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
+@dataclass(frozen=True, kw_only=True)
+class AgentConnected(Signal):
+    """An agent principal opened an MCP session.
+
+    Carries ``principal`` because MCP sessions are not enumerable after the
+    fact, so there is nothing for a subscriber to re-read.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+    principal: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class AgentDisconnected(Signal):
+    """An agent principal's MCP session went away.
+
+    Fires on idle timeout (``AGENT_IDLE_TIMEOUT_SECONDS`` with no traffic),
+    NOT on socket close: MCP is request-shaped, so there is no disconnect event
+    to observe. Late, never early.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+    principal: str
 
 
 # ---------------------------------------------------------------------------
@@ -274,6 +318,9 @@ __all__ = [
     "ErrorLedgerChanged",
     "PresenceChanged",
     "FarmhandActivity",
+    "RosterChanged",
+    "AgentConnected",
+    "AgentDisconnected",
     # Imperative commands
     "Reveal",
     "Close",

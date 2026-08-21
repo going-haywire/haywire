@@ -8,7 +8,10 @@ UI and the CLI enforce exactly one set of rules.
 
 from __future__ import annotations
 
+import logging
+
 from haywire.core.access import AccessTier
+from haywire.core.signals import RosterChanged
 from haywire.ui import elements as hui
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
@@ -25,6 +28,8 @@ from haywire_studio.security.errors import SecurityError
 from haywire_studio.security.roster import Principal, Roster
 from nicegui import ui
 
+logger = logging.getLogger(__name__)
+
 
 @editor(
     label="Accounts",
@@ -38,6 +43,7 @@ class RosterEditor(BaseEditor):
     """The roster table plus add/remove/re-tier controls."""
 
     def draw(self, context, container) -> None:
+        self._context = context
         container.clear()
         with container:
             with ui.column().classes("w-full gap-4 p-4"):
@@ -131,6 +137,20 @@ class RosterEditor(BaseEditor):
 
     # -- mutations ------------------------------------------------------
 
+    def _announce_roster_change(self) -> None:
+        """Tell the rest of the studio that authority moved.
+
+        Cross-session: peer admins' roster tables refresh, and the Farmhand
+        host pushes ``tools/list_changed`` to connected agents.
+
+        Best-effort — the write already succeeded; a failed announcement must
+        not make it look otherwise.
+        """
+        try:
+            self._context.session.publish(RosterChanged())
+        except Exception:  # pragma: no cover - defensive
+            logger.debug("RosterEditor: RosterChanged publish failed", exc_info=True)
+
     def _set_tier(self, name: str, value, acting_as: str | None) -> None:
         if name == acting_as:
             ui.notify("You cannot change your own tier.", type="negative")
@@ -142,6 +162,7 @@ class RosterEditor(BaseEditor):
             ui.notify(str(exc), type="negative")
             return
         ui.notify(f"{name} is now {value}")
+        self._announce_roster_change()
         self.wrapper.redraw()
 
     def _confirm_remove(self, name: str) -> None:
@@ -171,6 +192,7 @@ class RosterEditor(BaseEditor):
 
         evicted = evict_principal(get_session_manager(), name)
         ui.notify(f"Removed {name} ({evicted} session(s) ended)")
+        self._announce_roster_change()
         self.wrapper.redraw()
 
     def _ask_password(self, name: str) -> None:
@@ -194,6 +216,7 @@ class RosterEditor(BaseEditor):
             return
         dialog.close()
         ui.notify(f"Password updated for {name}")
+        self._announce_roster_change()
 
     # -- add form -------------------------------------------------------
 
@@ -229,4 +252,5 @@ class RosterEditor(BaseEditor):
         except (SecurityError, ValueError) as exc:
             ui.notify(str(exc), type="negative")
             return
+        self._announce_roster_change()
         self.wrapper.redraw()

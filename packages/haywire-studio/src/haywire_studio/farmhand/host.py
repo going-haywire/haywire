@@ -34,12 +34,13 @@ from haywire.core.docs.tree import doc_manifest, list_docs, read_doc
 from haywire.core.farmhand import Farmhand, FarmhandContext, FarmhandError, FarmhandRegistry
 from haywire.core.library.registry import LibraryRegistry
 from haywire.core.registry.lifecycle_event import LifeCycleEvent, LifeCycleEventType
+from haywire.core.signals import AgentConnected, RosterChanged, SignalPeer
 
 from haywire.core.farmhand.activity import activity_tracker
 from .auth import connection_command
 
 if TYPE_CHECKING:
-    from haywire_studio.auth.live import RosterCache
+    from haywire.core.signals import SignalDispatcher
 
 logger = logging.getLogger(__name__)
 
@@ -122,8 +123,25 @@ def caller_tier(request: Any) -> AccessTier:
     return resolve_tier(caller_principal(request))
 
 
-class FarmhandHost:
-    def __init__(self, library_service: LibrarySystemService, workspace_root: str):
+class FarmhandHost(SignalPeer):
+    """The MCP mount, and a peer on the studio's signal bus.
+
+    Receives :class:`RosterChanged` and pushes ``tools/list_changed``; emits
+    :class:`AgentConnected` for the shell's presence row.
+
+    Not a browser ``Session`` — no ``SessionContext``, no ``WorkspaceManager``,
+    no ``SessionState``. One host serves every agent principal; per-call
+    authority stays in ``_caller_tier``.
+    """
+
+    def __init__(
+        self,
+        library_service: LibrarySystemService,
+        workspace_root: str,
+        dispatcher: "SignalDispatcher",
+    ):
+        super().__init__(dispatcher)
+
         self._library_service = library_service
         self._workspace_root = workspace_root
         self._registry: FarmhandRegistry = library_service.get_farmhand_registry()
@@ -135,34 +153,28 @@ class FarmhandHost:
         self._started: Optional[asyncio.Event] = None
         self._stop: Optional[asyncio.Event] = None
         self._runner: Optional[asyncio.Task] = None
-        self._roster_cache: Optional["RosterCache"] = None
-        self._roster_stamp: tuple[float, int] | None = None
+        #: Principals already announced, so AgentConnected fires once each.
+        self._known_principals: set[str] = set()
 
         # Libraries (including haybale-studio's studio_* baseline) enabled
         # before the host exists — seed from the registry, then follow events.
         self._seed_tools()
         self._registry.add_batch_event_subscriber(self._on_lifecycle_batch)
         self._register_handlers()
+        self.subscribe(RosterChanged, self._on_roster_changed)
 
     # -- roster freshness -----------------------------------------------------
 
-    def add_roster_cache(self, cache: "RosterCache") -> None:
-        """Wire in the auth roster cache so a live tier edit can push list_changed.
+    def _on_roster_changed(self, _signal: RosterChanged) -> None:
+        """Push ``list_changed`` because authority moved.
 
-        Optional: this adds the proactive nudge that refreshes a connected client's tool list.
+        Bus dispatch is synchronous and may arrive off the event loop, while
+        ``send_*`` is async — hence the marshalling. No loop means no connected
+        client, so that case is a no-op rather than a queued send.
         """
-        self._roster_cache = cache
-        self._roster_stamp = cache.stamp()
-
-    async def _check_roster_freshness(self) -> None:
-        """Piggyback on in-flight traffic to notice a roster edit and push list_changed."""
-        if self._roster_cache is None:
+        if self._loop is None or not self._loop.is_running():
             return
-        stamp = self._roster_cache.stamp()
-        if stamp == self._roster_stamp:
-            return
-        self._roster_stamp = stamp
-        await self._notify_list_changed()
+        self._loop.call_soon_threadsafe(lambda: asyncio.ensure_future(self._notify_list_changed()))
 
     # -- tool table -----------------------------------------------------
 
@@ -233,7 +245,6 @@ class FarmhandHost:
         @self._server.list_tools()
         async def list_tools() -> list[types.Tool]:
             self._track_session()
-            await self._check_roster_freshness()
             tier = self._caller_tier()
             visible = set(tools_for_tier(self._tools, tier))
             return [
@@ -250,7 +261,6 @@ class FarmhandHost:
         @self._server.call_tool()
         async def call_tool(name: str, arguments: dict) -> tuple[list[types.TextContent], dict[str, Any]]:
             self._track_session()
-            await self._check_roster_freshness()
             cls = self._tools.get(name)
             if cls is None:
                 raise Exception(
@@ -392,6 +402,26 @@ class FarmhandHost:
             self._sessions.add(self._server.request_context.session)
         except Exception:
             pass
+        self._announce_principal()
+
+    def _announce_principal(self) -> None:
+        """Publish :class:`AgentConnected` the first time a principal appears.
+
+        Called from every handler, so it stays a set-membership check —
+        per-request emission would storm the shell's presence row during an
+        agent's tool loop. Silent when auth is off (no principal to name).
+
+        Departure is not emitted here; ``AgentDisconnected`` fires on idle
+        timeout from ``auth/presence.py``.
+        """
+        principal = self._caller_principal()
+        if principal is None or principal in self._known_principals:
+            return
+        self._known_principals.add(principal)
+        try:
+            self.publish(AgentConnected(principal=principal))
+        except Exception as exc:  # presence bookkeeping must not fail a tool call
+            logger.debug(f"Farmhand: AgentConnected publish failed: {exc}")
 
     # -- mount + lifespan ----------------------------------------------
 

@@ -212,9 +212,8 @@ class HaywireApp:
         self.library_state_container = self.library_service.injector.get(LibraryStateContainer)
 
         # Both come from the DI container; each provider also publishes its
-        # instance into the ambient context (set_session_manager /
-        # set_signal_dispatcher). The dispatcher is the fan-out channel; the
-        # manager owns browser-session lifecycle only.
+        # instance into the ambient context. The dispatcher is the fan-out
+        # channel; the manager owns browser-session lifecycle only.
         self.signal_dispatcher = self.library_service.injector.get(SignalDispatcher)
         self.session_manager = self.library_service.injector.get(SessionManager)
 
@@ -236,7 +235,7 @@ class HaywireApp:
         if not document.farmhand.enabled:
             logging.getLogger(__name__).info("Farmhand: disabled (farmhand.enabled = false)")
             return
-        self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root)
+        self.farmhand_host = FarmhandHost(self.library_service, self.workspace_root, self.signal_dispatcher)
         self.farmhand_host.mount(port, document, tls=tls)
 
         try:
@@ -366,14 +365,9 @@ class HaywireApp:
 
         # Install the gate BEFORE the Farmhand mount so the root wrapper covers
         # /mcp too — one boundary, not a boundary with a documented hole beside it.
-        auth_enabled = self._install_auth(document)
+        self._install_auth(document)
 
         self.setup_farmhand(port, document, tls=bool(ssl_kwargs))
-
-        # Wired after both exist: a tier edit while an MCP session is open pushes
-        # list_changed instead of leaving the client's cached tools/list stale.
-        if auth_enabled and hasattr(self, "farmhand_host"):
-            self.farmhand_host.add_roster_cache(self._auth_cache)
 
         if network.exposed:
             self._install_ip_allowlist(network)

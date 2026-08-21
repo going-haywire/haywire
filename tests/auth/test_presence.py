@@ -104,3 +104,103 @@ def test_presence_changed_is_cross_session():
     from haywire.core.signals import PresenceChanged
 
     assert PresenceChanged.cross_session is True
+
+
+# ----------------------------------------------------------------------
+# AgentDisconnected — emitted on idle timeout, never on GC
+# ----------------------------------------------------------------------
+
+
+@pytest.fixture(autouse=True)
+def _clean_presence_set():
+    """``_present_agents`` is a module global; isolate it per test."""
+    from haywire_studio.auth import presence
+
+    presence._present_agents.clear()
+    yield
+    presence._present_agents.clear()
+
+
+def _seen_now(name: str):
+    import time
+
+    from haywire_studio.auth import gate
+
+    gate.last_seen().clear()
+    gate.last_seen()[name] = time.monotonic()
+
+
+def _seen_long_ago(name: str):
+    import time
+
+    from haywire_studio.auth import gate
+
+    gate.last_seen().clear()
+    gate.last_seen()[name] = time.monotonic() - 10_000
+
+
+def test_agent_departure_broadcasts_once(path, monkeypatch):
+    from haywire.core.signals import AgentDisconnected, SignalDispatcher
+    from haywire.core.di import context as di_context
+    from haywire_studio.auth import presence
+
+    add_agent("builder", AccessTier.EDIT, path=path)
+    dispatcher = SignalDispatcher()
+    monkeypatch.setattr(di_context, "_signal_dispatcher", dispatcher)
+
+    published: list[AgentDisconnected] = []
+    monkeypatch.setattr(
+        dispatcher, "broadcast", lambda s: published.append(s) if isinstance(s, AgentDisconnected) else None
+    )
+
+    # Present first — a departure is only meaningful after an arrival.
+    _seen_now("builder")
+    collect_presence(_manager([]), RosterCache(path))
+    assert "builder" in presence._present_agents
+
+    _seen_long_ago("builder")
+    collect_presence(_manager([]), RosterCache(path))
+    collect_presence(_manager([]), RosterCache(path))  # repeated reads must not re-fire
+
+    assert [s.principal for s in published] == ["builder"]
+
+
+def test_agent_never_seen_present_does_not_broadcast_departure(path, monkeypatch):
+    """An already-absent agent is not news."""
+    from haywire.core.signals import AgentDisconnected, SignalDispatcher
+    from haywire.core.di import context as di_context
+
+    add_agent("builder", AccessTier.EDIT, path=path)
+    dispatcher = SignalDispatcher()
+    monkeypatch.setattr(di_context, "_signal_dispatcher", dispatcher)
+
+    published: list[AgentDisconnected] = []
+    monkeypatch.setattr(
+        dispatcher, "broadcast", lambda s: published.append(s) if isinstance(s, AgentDisconnected) else None
+    )
+
+    _seen_long_ago("builder")
+    collect_presence(_manager([]), RosterCache(path))
+
+    assert published == []
+
+
+def test_presence_still_returns_rows_when_broadcast_fails(path, monkeypatch):
+    """A dispatcher failure must not break the presence row."""
+    from haywire.core.signals import SignalDispatcher
+    from haywire.core.di import context as di_context
+
+    add_agent("builder", AccessTier.EDIT, path=path)
+    dispatcher = SignalDispatcher()
+    monkeypatch.setattr(di_context, "_signal_dispatcher", dispatcher)
+
+    _seen_now("builder")
+    collect_presence(_manager([]), RosterCache(path))
+
+    def _boom(_signal):
+        raise RuntimeError("dispatcher exploded")
+
+    monkeypatch.setattr(dispatcher, "broadcast", _boom)
+    _seen_long_ago("builder")
+
+    assert collect_presence(_manager([]), RosterCache(path)) == []

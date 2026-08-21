@@ -52,7 +52,9 @@ def _make_server(tmp_root: Path, library_paths: list[str]):
     set_global_injector(service.injector)
     set_workspace_root(str(tmp_root))
 
-    host = FarmhandHost(service, str(tmp_root))
+    from haywire.core.signals import SignalDispatcher
+
+    host = FarmhandHost(service, str(tmp_root), SignalDispatcher())
     port = _free_port()
 
     @asynccontextmanager

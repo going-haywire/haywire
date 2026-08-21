@@ -24,6 +24,8 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.core.signals import (
+    AgentConnected,
+    AgentDisconnected,
     BroadcastClose,
     Close,
     FarmhandActivity,
@@ -523,6 +525,14 @@ class AppShell:
         # signals can share one "re-read and repaint" handler.
         self._lifecycle_unsubs.append(
             self.session.subscribe(FarmhandActivity, lambda _s: self._render_presence())
+        )
+        # An agent arriving or aging out. The row is rebuilt from live state,
+        # so the principal payload goes unused here.
+        self._lifecycle_unsubs.append(
+            self.session.subscribe(AgentConnected, lambda _s: self._render_presence())
+        )
+        self._lifecycle_unsubs.append(
+            self.session.subscribe(AgentDisconnected, lambda _s: self._render_presence())
         )
 
         # Drag-resize handlers for left/middle/right/bottom panels. These use JavaScript

@@ -41,15 +41,6 @@ class RosterCache:
     def path(self) -> Path:
         return self._path
 
-    def stamp(self) -> tuple[float, int] | None:
-        """The security document's current ``(mtime, size)``, or ``None`` if unreadable.
-
-        Lets a caller detect a roster write without paying for a full
-        ``roster()`` re-parse — e.g. Farmhand nudging connected MCP clients to
-        refresh their tool list after a tier change (see ``FarmhandHost.add_roster_cache``).
-        """
-        return self._current_stamp()
-
     def roster(self) -> Roster:
         stamp = self._current_stamp()
         if stamp != self._stamp:

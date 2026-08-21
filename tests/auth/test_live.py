@@ -57,17 +57,18 @@ def test_missing_file_resolves_to_an_empty_roster(path):
     assert RosterCache(path).roster().principals == []
 
 
-def test_stamp_changes_after_a_write(path):
+def test_roster_reflects_a_write(path):
+    """The cache re-parses when the file moves."""
     add_user("alice", STRONG, AccessTier.VIEW, path=path)
     cache = RosterCache(path)
-    first = cache.stamp()
+    before = cache.roster().find("alice")
+    assert before is not None
+    assert before.tier is AccessTier.VIEW
 
     set_tier("alice", AccessTier.ADMIN, path=path)
-    assert cache.stamp() != first
-
-
-def test_stamp_is_none_for_a_missing_file(path):
-    assert RosterCache(path).stamp() is None
+    after = cache.roster().find("alice")
+    assert after is not None
+    assert after.tier is AccessTier.ADMIN
 
 
 def test_resolver_answers_the_principals_tier(path):

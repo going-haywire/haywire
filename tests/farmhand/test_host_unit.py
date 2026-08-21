@@ -5,6 +5,13 @@ from typing import Any, cast
 import pytest
 
 from haywire.core.farmhand import FarmhandError
+from haywire.core.signals import (
+    AgentConnected,
+    GraphDataMutated,
+    RosterChanged,
+    SignalDispatcher,
+    SignalPeer,
+)
 from haywire_studio.farmhand.host import FarmhandHost, _FarmhandServer, _format_tool_error
 from haywire_studio.security.document import SecurityDocument
 
@@ -103,61 +110,145 @@ def test_tool_table_seed_and_evict():
     assert host._tools == {}
 
 
-def test_add_roster_cache_seeds_the_stamp(tmp_path):
-    from haywire_studio.auth.live import RosterCache
+# ----------------------------------------------------------------------
+# Roster freshness — signal-driven, replacing the old per-request stat-poll
+# ----------------------------------------------------------------------
+
+
+def _peer_host(dispatcher):
+    """A FarmhandHost with only its peer half initialised.
+
+    ``__new__`` skips the MCP/registry construction these tests do not need.
+    """
+    from haywire.core.signals import SignalPeer
 
     host = FarmhandHost.__new__(FarmhandHost)
-    cache = RosterCache(tmp_path / "security.json")
-
-    host.add_roster_cache(cache)
-    assert host._roster_cache is cache
-    assert host._roster_stamp == cache.stamp()
-
-
-@pytest.mark.anyio
-async def test_check_roster_freshness_is_noop_without_a_cache():
-    host = FarmhandHost.__new__(FarmhandHost)
-    host._roster_cache = None
-    host._roster_stamp = None
-    # Would raise if it tried to call _notify_list_changed with no _sessions set up.
-    await host._check_roster_freshness()
+    SignalPeer.__init__(host, dispatcher)
+    host._loop = None
+    host._known_principals = set()
+    host.subscribe(RosterChanged, host._on_roster_changed)
+    return host
 
 
-@pytest.mark.anyio
-async def test_check_roster_freshness_notifies_on_a_changed_stamp(tmp_path, monkeypatch):
-    from haywire_studio.auth.live import RosterCache
+def test_host_registers_itself_as_a_peer():
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
 
-    host = FarmhandHost.__new__(FarmhandHost)
-    cache = RosterCache(tmp_path / "security.json")
-    host.add_roster_cache(cache)
-
-    notified = False
-
-    async def _fake_notify():
-        nonlocal notified
-        notified = True
-
-    monkeypatch.setattr(host, "_notify_list_changed", _fake_notify)
-    monkeypatch.setattr(cache, "stamp", lambda: (999.0, 1))
-
-    await host._check_roster_freshness()
-    assert notified is True
-    assert host._roster_stamp == (999.0, 1)
+    assert dispatcher.peers[host.peer_id] is host
 
 
-@pytest.mark.anyio
-async def test_check_roster_freshness_is_noop_when_stamp_is_unchanged(tmp_path, monkeypatch):
-    from haywire_studio.auth.live import RosterCache
+def test_roster_changed_notifies_clients(monkeypatch):
+    """A tier edit reaches the host with no agent traffic required."""
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
 
-    host = FarmhandHost.__new__(FarmhandHost)
-    cache = RosterCache(tmp_path / "security.json")
-    host.add_roster_cache(cache)
+    scheduled = []
 
-    async def _boom():
-        raise AssertionError("should not notify when the stamp has not changed")
+    class _Loop:
+        def is_running(self):
+            return True
 
-    monkeypatch.setattr(host, "_notify_list_changed", _boom)
-    await host._check_roster_freshness()
+        def call_soon_threadsafe(self, fn):
+            scheduled.append(fn)
+
+    host._loop = _Loop()
+
+    dispatcher.broadcast(RosterChanged())
+
+    assert len(scheduled) == 1, "expected the notify to be marshalled onto the loop"
+
+
+def test_roster_changed_before_the_loop_exists_is_a_noop():
+    """No running loop means no connected client to notify."""
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
+    host._loop = None
+
+    dispatcher.broadcast(RosterChanged())  # must not raise
+
+
+def test_unrelated_signals_do_not_notify():
+    """Exact-class bus dispatch — the host reacts to RosterChanged only."""
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
+
+    class _Loop:
+        def is_running(self):
+            return True
+
+        def call_soon_threadsafe(self, fn):
+            raise AssertionError("should not notify for an unrelated signal")
+
+    host._loop = _Loop()
+
+    dispatcher.broadcast(GraphDataMutated())
+
+
+# ----------------------------------------------------------------------
+# Agent presence
+# ----------------------------------------------------------------------
+
+
+def test_announce_principal_publishes_once_per_principal(monkeypatch):
+    """Fires on first sight, not per request."""
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
+    observer = SignalPeer(dispatcher)
+
+    seen: list[AgentConnected] = []
+    observer.subscribe(AgentConnected, seen.append)
+
+    monkeypatch.setattr(host, "_caller_principal", lambda: "scout")
+    host._announce_principal()
+    host._announce_principal()
+    host._announce_principal()
+
+    assert [s.principal for s in seen] == ["scout"]
+
+
+def test_announce_principal_publishes_per_distinct_principal(monkeypatch):
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
+    observer = SignalPeer(dispatcher)
+
+    seen: list[AgentConnected] = []
+    observer.subscribe(AgentConnected, seen.append)
+
+    for name in ("scout", "harvester", "scout"):
+        monkeypatch.setattr(host, "_caller_principal", lambda n=name: n)
+        host._announce_principal()
+
+    assert [s.principal for s in seen] == ["scout", "harvester"]
+
+
+def test_announce_principal_is_silent_when_auth_is_off(monkeypatch):
+    """No principal to name, so nothing is announced."""
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
+    observer = SignalPeer(dispatcher)
+
+    seen: list[AgentConnected] = []
+    observer.subscribe(AgentConnected, seen.append)
+
+    monkeypatch.setattr(host, "_caller_principal", lambda: None)
+    host._announce_principal()
+
+    assert seen == []
+
+
+def test_announce_principal_never_raises_into_a_tool_call(monkeypatch):
+    """Presence bookkeeping must not fail a working tool call."""
+    dispatcher = SignalDispatcher()
+    host = _peer_host(dispatcher)
+
+    monkeypatch.setattr(host, "_caller_principal", lambda: "scout")
+
+    def _boom(_signal):
+        raise RuntimeError("subscriber exploded")
+
+    SignalPeer(dispatcher).subscribe(AgentConnected, _boom)
+
+    host._announce_principal()  # must not raise
 
 
 class _FakeAppTarget:
