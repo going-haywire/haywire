@@ -3334,6 +3334,7 @@ path.connection-warning {
    the cross axis (width) whatever the slot resolves to, `flex: 1 0 auto`
    grows the card into a min-height slot without ever shrinking below its
    content. */
+/* --8<-- [start:node-card-manual-resize] */
 .ui-node-slot[data-size-adapt="manual"] .node-card,
 .ui-node-slot[data-size-adapt="manual_width"] .node-card {
     align-self: stretch !important;
@@ -3345,7 +3346,9 @@ path.connection-warning {
 .ui-node-slot[data-size-adapt="manual_height"] .node-card {
     flex: 1 0 auto !important;
 }
+/* --8<-- [end:node-card-manual-resize] */
 
+/* --8<-- [start:widget-container-reveal] */
 [data-node-id] .widget-container {
     opacity: 0 !important;
     transition: opacity 0.3s ease, max-height 0.3s ease !important;
@@ -3357,6 +3360,7 @@ path.connection-warning {
     opacity: 1 !important;
     max-height: 200px !important;
 }
+/* --8<-- [end:widget-container-reveal] */
 
 /* ---- Declared size box (@widget(min_width=, min_height=, max_height=)) ----
    Stamped by haywire/ui/widget/sizing.py through the one render funnel every
