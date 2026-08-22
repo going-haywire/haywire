@@ -150,6 +150,13 @@ values are reached through the properties editor instead. Consequences:
 - The card's `min-w-64 max-w-sm` clamps size a label+widget content column that a vertical
   card does not have — drop them on that branch.
 
+**A multi-column skin's columns follow the flow direction.** If your skin lays ports out in
+side-by-side columns rather than one stack, the inlet column belongs on whichever side
+inlets' pins protrude from — so under `r2l` the columns swap along with the pins. Flipping
+only the pins strands each pin on the far side of its own label, and edges arriving from
+one side cross back over the whole card to reach the column their labels live in. Derive it
+from `layout.inlet_side` rather than hardcoding an order.
+
 **Order the strips by edge, not by direction.** Whichever port direction belongs on the
 card's *top* edge must be rendered first. Under `t2b` that is the inlets; under `b2t` it is
 the outlets. A strip placed at the top of the card while its pins are sided `bottom`

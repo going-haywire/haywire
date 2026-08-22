@@ -418,10 +418,9 @@ structural split, so 5a and 5b collapse to the same shape there.
 
 Required work here is small, because the skin delegates all pin placement:
 
-- **Horizontal.** Nothing. `render_port` resolves the side, so `R2L` swaps which card edge
-  each column's pins straddle for free. The column *order* stays inlets-first — swapping
-  the visual columns as well would be a second, independent decision (Follow-up B); do not
-  conflate it with pin side.
+- **Horizontal.** `render_port` resolves the side, so `R2L` swaps which card edge each
+  column's pins straddle for free. The column *order* swaps with them (Follow-up B), keyed
+  off `layout.inlet_side`, so a pin and its own label stay on the same side of the card.
 - **Vertical.** Side-by-side columns are meaningless when pins live on the top/bottom
   edges. Take the same branch shape as 5a: inlet strip, then the header and the config
   band, then the outlet strip. The config band is already full width, so it needs no
@@ -575,7 +574,11 @@ Fix is to drop the second loop and let the single `render_port` pass stand. Wort
 regression test asserting one pin element per port id on an error-skinned node — there is
 no coverage of error-skin DOM today.
 
-### Follow-up B — column order under `R2L`
+### Follow-up B — column order under `R2L` — **LANDED (columns swap)**
+
+Resolved: a multi-column skin's columns follow the flow direction. Rule stated in
+skin-canon, enforced by `tests/ui/harness/test_two_column_skin.py`. Original
+write-up kept for the record.
 
 Phase 5b deliberately leaves `ExampleNodeSkin`'s columns in inlets-left order under `R2L`,
 so pins flip to the outer edges while the columns stay put. Whether a two-column skin

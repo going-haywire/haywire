@@ -180,6 +180,28 @@ def _build_error_skin_graph(node_factory):
     return graph, editor, node
 
 
+def _build_two_column_graph(node_factory):
+    """One node on the two-column ExampleNodeSkin, for the R2L column-order test.
+
+    It is the only in-repo skin whose horizontal layout is not the default's
+    single stack, so it is the only place the "columns follow flow direction"
+    rule is observable. Returns (graph, editor) so the route can flip the
+    graph-tier layout_direction.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Two Column Fixture")
+    editor = Editor(graph, node_factory)
+
+    # TestPrintNode, not TestBeginPlayNode: the test needs BOTH an inlet and an
+    # outlet to compare their columns, and a source node has no inlets.
+    node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
+    assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
+    node.node.props.skin = "haybale-example:skin:ExampleNodeSkin"
+    return graph, editor
+
+
 def _build_size_graph(node_factory):
     """A single node, for the node-sizing gadget/measure tests.
 
@@ -538,6 +560,27 @@ def register_routes(library_service) -> None:
         ui.button("set-b2t", on_click=lambda: _set_direction("b2t")).props('data-testid="set-b2t"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="layout")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-two-column
+    #
+    # A node on the two-column ExampleNodeSkin plus direction buttons. Backs the
+    # column-order rule: under R2L the columns swap with the pins, so a pin and
+    # its own label stay on the same side of the card.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-two-column")
+    async def graph_two_column_page():
+        graph, editor = _build_two_column_graph(library_service.get_node_factory())
+
+        def _set_direction(value: str) -> None:
+            graph.props.layout_direction = value
+
+        ui.button("set-r2l", on_click=lambda: _set_direction("r2l")).props('data-testid="set-r2l"')
+        ui.button("set-l2r", on_click=lambda: _set_direction("l2r")).props('data-testid="set-l2r"')
+
+        _mount_graph_canvas(library_service, graph, editor, testid="two-column")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

@@ -107,9 +107,14 @@ class ExampleNodeSkin(NodeSkin):
                 # flex column shrink below its content width — without it the
                 # columns fight over the card and the pins drift off the border.
                 #
-                # Column ORDER stays inlets-first under R2L; only the pins flip
-                # sides. Mirroring the columns too is a separate decision.
+                # Column ORDER follows the flow direction: the inlet column is
+                # whichever side inlets' pins protrude from. Flipping only the
+                # pins would strand each pin on the far side of its own label,
+                # with edges crossing back over the card to reach the column
+                # their labels live in.
                 columns = (("Inputs", inlets), ("Outputs", outlets))
+                if layout.inlet_side == "right":
+                    columns = columns[::-1]
                 if inlets or outlets:
                     with ui.row().classes("w-full gap-2"):
                         for heading, group in columns:
