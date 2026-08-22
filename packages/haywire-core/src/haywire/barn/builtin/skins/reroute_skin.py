@@ -58,16 +58,23 @@ class RerouteSkin(BaseSkin):
         # edges. `overflow: visible` is repeated here because a pin offset past
         # the edge is clipped by the nearest ancestor lacking it, not just by
         # the card. No gap: the box should be the size of the dot.
+        #
+        # Order by EDGE, not by port direction: whichever pin is sided `left`
+        # (or `top`) must be laid out first. Under R2L/B2T the sides flip but a
+        # fixed inlet-then-outlet order does not, so the two pins cross over
+        # each other inside the box — each sitting on the far side of the edge
+        # it offsets toward, with its wire looping back across the reroute.
         flow_axis = "column" if layout.is_vertical else "row"
+        leading_side = "top" if layout.is_vertical else "left"
+        pins = [p for p in (inlet, outlet) if p is not None]
+        pins.sort(key=lambda p: layout.side_for(p) != leading_side)
         with main_card:
             with ui.element("div").style(
                 f"display: flex; flex-direction: {flow_axis}; align-items: center; "
                 "justify-content: center; gap: 0; flex-wrap: nowrap; overflow: visible;"
             ):
-                if inlet is not None:
-                    self._render_reroute_pin(inlet, wrapper.node_id, layout)
-                if outlet is not None:
-                    self._render_reroute_pin(outlet, wrapper.node_id, layout)
+                for pin in pins:
+                    self._render_reroute_pin(pin, wrapper.node_id, layout)
 
     def _render_reroute_pin(self, port, node_id: str, layout: LayoutDirection) -> None:
         render_pin(
