@@ -3168,7 +3168,7 @@ export default {
    blues (design rule). */
 .hw-resize-gadget {
     --hw-grip: var(--hw-node-selected, var(--hw-accent, #4a90e2));
-    z-index: 1002;
+    z-index: 9;
     outline: 1px solid color-mix(in srgb, var(--hw-grip) 70%, transparent);
     outline-offset: 0;
 }
@@ -3176,7 +3176,6 @@ export default {
 .hw-resize-grip {
     position: absolute;
     pointer-events: auto;
-    z-index: 1003;
 }
 
 /* Edge grips: invisible strips spanning the edge (hit area only). */
