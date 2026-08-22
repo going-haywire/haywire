@@ -202,6 +202,42 @@ def _build_two_column_graph(node_factory):
     return graph, editor
 
 
+def _build_reroute_graph(node_factory):
+    """Two nodes with their exec edge split by a reroute, for the reroute-skin test.
+
+    The reroute is created the way the app creates one — by splitting a real
+    edge — so it carries the typed inlet/outlet the split action owns rather
+    than hand-stamped ports. Returns (graph, editor, reroute_id) so the route
+    can drive size props on the reroute itself.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Reroute Fixture")
+    editor = Editor(graph, node_factory)
+
+    src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
+    dst = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(4000.0, 3700.0))
+    assert src is not None and dst is not None, "could not create reroute-fixture nodes"  # noqa: PT018
+
+    ok = editor.create_edge(src.node_id, "exec", dst.node_id, "exec")
+    assert ok, "could not connect exec -> exec"
+
+    # Discover the reroute type via the registry's `_is_reroute` flag, the way
+    # the canvas handler does — a hardcoded key would drift from the registry.
+    reroute_cls = node_factory.get_reroute_node()
+    assert reroute_cls is not None, "no reroute node in the registry"
+
+    edge_id = next(iter(graph.edge_wrappers))
+    reroute_id = editor.split_edge_with_reroute(
+        edge_id,
+        position=(3800.0, 3700.0),
+        registry_key=reroute_cls.class_identity.registry_key,
+    )
+    assert reroute_id is not None, "split_edge_with_reroute failed"
+    return graph, editor, reroute_id
+
+
 def _build_size_graph(node_factory):
     """A single node, for the node-sizing gadget/measure tests.
 
@@ -639,6 +675,35 @@ def register_routes(library_service) -> None:
         ui.label(node_id).props(f'id="size-node-id" data-testid="size-node-id" data-node="{node_id}"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="size")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-reroute
+    #
+    # Two nodes whose exec edge is split by a reroute. A reroute is resizable
+    # like any node, and its skin positions both pins against the card edges —
+    # so the only way to observe that they TRACK those edges (rather than
+    # sitting where they happened to land at the intrinsic dot size) is to
+    # resize the card in a browser and measure. Backs test_reroute_skin.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-reroute")
+    async def graph_reroute_page():
+        graph, editor, reroute_id = _build_reroute_graph(library_service.get_node_factory())
+
+        def _set_manual(width: float, height: float) -> None:
+            editor.set_property(reroute_id, "size_adapt", "manual")
+            editor.set_property(reroute_id, "width", width)
+            editor.set_property(reroute_id, "height", height)
+
+        ui.button("reroute-grow", on_click=lambda: _set_manual(160.0, 120.0)).props(
+            'data-testid="reroute-grow"'
+        )
+        ui.label(reroute_id).props(
+            f'id="reroute-node-id" data-testid="reroute-node-id" data-node="{reroute_id}"'
+        )
+
+        _mount_graph_canvas(library_service, graph, editor, testid="reroute")
         _stamp_synced()
 
     # -------------------------------------------------------------------------
