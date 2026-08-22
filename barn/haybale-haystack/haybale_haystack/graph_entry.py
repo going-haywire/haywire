@@ -17,6 +17,7 @@ from typing import TYPE_CHECKING, Optional
 from haywire.core.di.context import get_library_state_container
 from haywire.core.execution.compile_result import CompileResult
 from haywire.core.execution.interpreter import Interpreter
+from haybale_graph_editor.protocols import GraphContainer
 from haybale_haystack.settings.graph_run_settings import GraphRunSettings
 
 if TYPE_CHECKING:
@@ -28,7 +29,7 @@ logger = logging.getLogger(__name__)
 
 
 @dataclass
-class GraphEntry:
+class GraphEntry(GraphContainer):
     """Holds all runtime state for a single open graph.
 
     Attributes:
@@ -37,10 +38,6 @@ class GraphEntry:
         path:         Absolute Path to the .haywire file, or None for untitled.
         unsaved:      True if the graph has in-memory changes not yet written to disk.
         interpreter:  Per-graph Interpreter instance (created on execution start).
-        _unsaved_id:  Synthetic ``__unsaved_N__`` token, set by Haystack on
-                      :meth:`Haystack.create_new`. Unused once the entry is saved and
-                      :attr:`path` becomes non-None. Accessed indirectly via
-                      :attr:`binding_id`.
         run_settings: Per-entry run policy (e.g. autorestart). Always present;
                       persisted in the haystack TOML under ``[graphs.run]``.
     """
@@ -50,7 +47,6 @@ class GraphEntry:
     path: Optional[Path] = None
     unsaved: bool = False
     interpreter: Optional["Interpreter"] = field(default=None, repr=False)
-    _unsaved_id: str = ""
     haystack: "Optional[HaystackState]" = field(default=None, repr=False)
     run_settings: GraphRunSettings = field(default_factory=GraphRunSettings)
 
@@ -58,14 +54,19 @@ class GraphEntry:
     def binding_id(self) -> str:
         """Stable identifier within the Haystack's ``_entries`` dict.
 
-        For saved graphs this is ``str(path)``; for unsaved graphs it is the
-        synthetic ``__unsaved_N__`` token set at creation time. Updates
+        ``str(path)`` for saved graphs — required, not incidental: the
+        workspace snapshot persists this and reads it back to restore tabs on
+        the next launch, so it must survive the process.
+
+        For unsaved graphs it is the graph's own transient ``graph_id``. An
+        untitled graph has no file, so no restart can restore it regardless —
+        which is why a transient value is safe here and only here. Updates
         automatically when :attr:`path` is assigned on save-as or rename.
 
         Also serves as this entry's key in
         :class:`haybale_graph_editor.state.GraphAppState`.
         """
-        return str(self.path) if self.path is not None else self._unsaved_id
+        return str(self.path) if self.path is not None else self.graph.graph_id
 
     @property
     def display_name(self) -> str:

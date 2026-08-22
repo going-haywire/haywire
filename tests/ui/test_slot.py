@@ -746,6 +746,28 @@ class TestSlotToSnapshot:
         assert "ed:required" not in keys
         assert "ed:graph" in keys
 
+    def test_unsaved_bindings_excluded(self):
+        """A binding with no file behind it cannot be restored next launch.
+
+        Filters on is_unsaved, NOT is_dirty: a saved-but-edited tab is dirty
+        and MUST still be persisted — it has a file to reopen.
+        """
+        from haywire.ui.editor.identity import OpenBehavior
+
+        cls = _FakeEditorCls2("ed:graph", OpenBehavior.ON_PAYLOAD)
+        reg = _FakeRegistry2({"ed:graph": cls})
+        slot = _make_tab_slot2(registry=reg)
+        _add_binding(slot, editor_key="ed:graph", editor_cls=cls, binding_id="/saved.haywire")
+        _add_binding(slot, editor_key="ed:graph", editor_cls=cls, binding_id="uuid-of-untitled")
+
+        saved = _binding(slot, "ed:graph", "/saved.haywire")
+        saved.set_dirty(True)  # edited, but file-backed — must survive
+        _binding(slot, "ed:graph", "uuid-of-untitled").set_unsaved(True)
+
+        ids = [e.get("binding_id") for e in slot.to_snapshot()["editors"]]
+        assert "/saved.haywire" in ids
+        assert "uuid-of-untitled" not in ids
+
     def test_payload_and_label_serialized(self):
         from haywire.ui.editor.identity import OpenBehavior
 

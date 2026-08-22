@@ -72,7 +72,7 @@ def _write_reconnect_graph(node_factory, out_path) -> None:
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("reconnect_fixture", "Reconnect Fixture")
+    graph = BaseGraph("Reconnect Fixture")
     editor = Editor(graph, node_factory)
 
     source = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
@@ -97,7 +97,7 @@ def _build_connect_graph(node_factory):
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("connect_fixture", "Connect Fixture")
+    graph = BaseGraph("Connect Fixture")
     editor = Editor(graph, node_factory)
 
     src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
@@ -124,7 +124,7 @@ def _build_dynamic_graph(node_factory):
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("dynamic_fixture", "Dynamic Fixture")
+    graph = BaseGraph("Dynamic Fixture")
     editor = Editor(graph, node_factory)
 
     dyn = graph.create_node_wrapper(_DYNAMIC_KEY, position=(3600.0, 3700.0))
@@ -146,7 +146,7 @@ def _build_size_graph(node_factory):
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
 
-    graph = BaseGraph("size_fixture", "Size Fixture")
+    graph = BaseGraph("Size Fixture")
     editor = Editor(graph, node_factory)
 
     node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
@@ -424,7 +424,7 @@ def register_routes(library_service) -> None:
             fixture = Path(tmp.name)
         _write_reconnect_graph(node_factory, fixture)
 
-        graph = BaseGraph("reconnect_fixture", "Reconnect Fixture")
+        graph = BaseGraph("Reconnect Fixture")
         editor = Editor(graph, node_factory)
         assert graph.load_from_file(str(fixture)), f"could not load fixture: {fixture}"
         fixture.unlink(missing_ok=True)
@@ -531,7 +531,7 @@ def register_routes(library_service) -> None:
         from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
 
-        graph = BaseGraph("widget_box_fixture", "Widget Box Fixture")
+        graph = BaseGraph("Widget Box Fixture")
         editor = Editor(graph, library_service.get_node_factory())
 
         content = graph.create_node_wrapper(

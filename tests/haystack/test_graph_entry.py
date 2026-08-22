@@ -25,17 +25,18 @@ def test_binding_id_uses_path_when_set():
     assert entry.binding_id == str(p)
 
 
-def test_binding_id_uses_unsaved_id_for_unsaved():
+def test_binding_id_uses_graph_id_for_unsaved():
+    """An unsaved entry is addressed by its graph's transient instance id.
+
+    Safe precisely because an untitled graph has no file: no restart can
+    restore it, so the binding never needs to outlive the process.
+    """
     from haybale_haystack.graph_entry import GraphEntry
 
-    entry = GraphEntry(
-        graph=MagicMock(),
-        editor=MagicMock(),
-        path=None,
-        unsaved=True,
-        _unsaved_id="__unsaved_1__",
-    )
-    assert entry.binding_id == "__unsaved_1__"
+    graph = MagicMock()
+    graph.graph_id = "3f2b1a00-dead-4beef-0000-000000000001"
+    entry = GraphEntry(graph=graph, editor=MagicMock(), path=None, unsaved=True)
+    assert entry.binding_id == graph.graph_id
 
 
 def test_display_name_uses_path_stem_when_set():

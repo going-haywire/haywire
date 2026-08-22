@@ -66,7 +66,7 @@ class GraphAppState(AppState):
         """Move a container from ``old_id`` to ``new_id``.
 
         ``binding_id`` is ``str(path)`` for saved graphs (absolute filesystem
-        path) and ``"__unsaved_{counter}__"`` for unsaved ones. Source
+        path) and the graph's transient ``graph_id`` for unsaved ones. Source
         libraries call this after a save-as that changes the container's
         identity. No-op when ``old_id`` is unknown or identical to ``new_id``.
         When ``new_id`` is already occupied, the destination is overwritten —

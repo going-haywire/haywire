@@ -21,7 +21,7 @@ def empty_graph() -> BaseGraph:
     tests can assert immediately after a mutation without calling
     ``force_immediate_validation()`` to flush a background timer.
     """
-    return BaseGraph(graph_id="test_graph", name="Test Graph", validation_scheduler=SyncScheduler())
+    return BaseGraph(name="Test Graph", validation_scheduler=SyncScheduler())
 
 
 @pytest.fixture
@@ -38,7 +38,6 @@ def graph_with_library_system(library_system) -> BaseGraph:
     Uses ``SyncScheduler`` for inline validation (see ``empty_graph``).
     """
     return BaseGraph(
-        graph_id="integration_test_graph",
         name="Integration Test Graph",
         validation_scheduler=SyncScheduler(),
     )

@@ -261,7 +261,7 @@ class StudioDescribeComponentTool(Farmhand):
             from haywire.core.node.inspector import NodeInstanceInspector
 
             try:
-                graph = BaseGraph(graph_id="describe", name="describe", validation_scheduler=SyncScheduler())
+                graph = BaseGraph(name="describe", validation_scheduler=SyncScheduler())
                 wrapper = graph.create_node_wrapper(registry_key, position=(0, 0))
                 assert wrapper is not None
                 inspector = NodeInstanceInspector(wrapper.node)

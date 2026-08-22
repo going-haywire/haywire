@@ -334,8 +334,15 @@ class GraphEditor(BaseEditor):
         self._sync_tab_dirty(entry)
 
     def _sync_tab_dirty(self, entry: "GraphContainer") -> None:
-        """Mirror the entry's unsaved state to the tab bar via wrapper.set_dirty."""
-        self.wrapper.set_dirty(entry.unsaved or entry.path is None, refresh=True)
+        """Mirror the entry's state to the tab bar.
+
+        Two distinct facts, deliberately not merged: ``dirty`` means edited
+        since the last write, ``unsaved`` means no file behind it at all.
+        Both light the badge, but only ``unsaved`` decides whether the
+        workspace snapshot can persist this binding.
+        """
+        self.wrapper.set_dirty(entry.unsaved)
+        self.wrapper.set_unsaved(entry.path is None, refresh=True)
 
     def _update_undo_redo_buttons(self, entry: "GraphContainer") -> None:
         """Enable/disable undo and redo buttons based on history state."""

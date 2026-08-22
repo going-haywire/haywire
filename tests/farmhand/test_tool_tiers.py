@@ -18,6 +18,7 @@ EDIT_TOOLS = {
     "remove_elements",
     "move_nodes",
     "set_property",
+    "set_metadata",
     "promote_setting",
     "demote_setting",
     "undo",

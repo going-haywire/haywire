@@ -64,9 +64,9 @@ def graph_to_python_script(graph: "BaseGraph") -> str:
     lines.append(f"def {function_name}(graph):")
     lines.append('    """')
     lines.append(f"    Reconstruct graph: {graph.name}")
-    if graph.description:
+    if graph.meta.description:
         lines.append("    ")
-        lines.append(f"    {graph.description}")
+        lines.append(f"    {graph.meta.description}")
     lines.append('    """')
 
     # 3. Imports section (inside function)

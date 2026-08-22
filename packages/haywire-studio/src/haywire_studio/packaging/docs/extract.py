@@ -137,7 +137,7 @@ def _node_record(key: str, cls: Any, graph: BaseGraph) -> ComponentRecord:
 def extract_library(service: Any, library_id: str) -> LibraryDoc:
     lib_identity = service.get_library_registry().get_library_identity(library_id)
     records: list[ComponentRecord] = []
-    graph = BaseGraph(graph_id="docs_gen", name="docs", validation_scheduler=SyncScheduler())
+    graph = BaseGraph(name="docs", validation_scheduler=SyncScheduler())
     for kind, registry_cls in kind_registry_map().items():
         registry = service_registry(service, registry_cls)
         for key in registry.list_names():

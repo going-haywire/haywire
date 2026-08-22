@@ -146,7 +146,10 @@ class IconSlot(Slot):
                     with tab:
                         # Slot-owned chrome: dirty marker — a small corner dot,
                         # rendered for every editor including custom overrides.
-                        if wrapper.state is not None and wrapper.state.is_dirty:
+                        # Either flag means work would be lost on close.
+                        if wrapper.state is not None and (
+                            wrapper.state.is_dirty or wrapper.state.is_unsaved
+                        ):
                             ui.icon("circle").classes("hw-tab-dirty").style(
                                 "position: absolute; top: 4px; right: 4px; font-size: 8px; "
                                 "color: var(--hw-text-body);"

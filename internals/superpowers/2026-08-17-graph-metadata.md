@@ -1,7 +1,23 @@
 # Graph identity, metadata + file-format migration — implementation plan
 
-**Status:** ready to build · **Settled:** 2026-08-17, revised 2026-08-22
-(identity model, `meta` bag, pre-hydration)
+**Status:** ✅ **LANDED** 2026-08-22 (Tasks 1–9; Task 10 deferred) ·
+**Settled:** 2026-08-17, revised 2026-08-22 (identity model, `meta` bag,
+pre-hydration)
+
+> **Two corrections found during implementation**, both recorded in the tasks
+> below:
+>
+> 1. **A settings bag serializes as `{"values": {...}, "promoted": {...}}`,
+>    not a flat dict.** `Settings.from_dict` raises `PromotedFormatError` on
+>    the flat shape. The v2 upgrader emits the nested form; a flat one would
+>    have made every migrated file silently lose its metadata.
+> 2. **`GraphContainer`'s `editor`/`path`/`unsaved` must be plain annotations,
+>    not abstract properties.** ABC clears `__abstractmethods__` at class
+>    creation, long before a dataclass field exists on an instance, so
+>    abstract properties there make every `GraphEntry(...)` raise TypeError.
+>
+> Task 10 (`name` → `filestem`) is deliberately **not** landed — it is
+> orthogonal, ~69 call sites, and was always scoped to land alone.
 
 Closes three gaps at once:
 

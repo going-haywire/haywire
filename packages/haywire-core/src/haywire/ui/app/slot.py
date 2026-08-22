@@ -104,6 +104,10 @@ class Slot(ABC):
 
         REQUIRED editors are excluded — they are always re-injected from the
         registry at construction and don't need persisting.
+
+        Editors whose binding has no file behind it (``state.is_unsaved``)
+        are excluded too: there is nothing on disk to reopen, so persisting
+        the binding only produces a dead entry that next launch skips.
         """
         from haywire.ui.editor.identity import OpenBehavior
 
@@ -114,6 +118,8 @@ class Slot(ABC):
                 continue
             opens = getattr(wrapper.editor_cls.class_identity, "opens", OpenBehavior.REQUIRED)
             if opens is OpenBehavior.REQUIRED:
+                continue
+            if wrapper.state is not None and wrapper.state.is_unsaved:
                 continue
             entry: dict = {"key": wrapper.editor_key}
             if wrapper._binding_id is not None:

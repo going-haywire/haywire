@@ -81,7 +81,7 @@ def build_perf_graph(count: int = _PERF_NODE_COUNT) -> BaseGraph:
     from haybale_testing.nodes.testbed.test_performance import PerformanceTester
 
     key = PerformanceTester.class_identity.registry_key
-    graph = BaseGraph(graph_id="perf", name="perf", validation_scheduler=SyncScheduler())
+    graph = BaseGraph(name="perf", validation_scheduler=SyncScheduler())
     for _ in range(count):
         nw = graph.create_node_wrapper(key, position=(0, 0))
         assert nw is not None, f"failed to create perf node {PerformanceTester.__name__} ({key!r})"

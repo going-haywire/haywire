@@ -226,7 +226,7 @@ class TestInterpreter:
         graph1 = self._create_simple_graph(graph_with_library_system)
 
         # Create second graph
-        graph2 = BaseGraph(graph_id="test_graph_2", name="Test Graph 2")
+        graph2 = BaseGraph(name="Test Graph 2")
         graph2 = self._create_simple_graph(graph2)
 
         # Test: Load first graph

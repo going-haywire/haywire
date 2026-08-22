@@ -94,6 +94,22 @@ class GraphDataMutated(Signal):
     cross_session: ClassVar[bool] = True
 
 
+@dataclass(frozen=True)
+class GraphSaved(Signal):
+    """A graph was written to disk. Cross-session.
+
+    Additive, not a replacement for the save-path GraphDataMutated: panels
+    legitimately use that one to refresh dirty markers. This one exists so
+    subscribers interested in *the write itself* (a stale ``modified_at``,
+    say) need not subscribe to every node edit to catch a save.
+
+    Cross-session because a save mutates state every session shares — the
+    file on disk.
+    """
+
+    cross_session: ClassVar[bool] = True
+
+
 # --8<-- [start:library_catalog_changed]
 @dataclass(frozen=True)
 class LibraryCatalogChanged(Signal):

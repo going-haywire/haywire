@@ -154,6 +154,23 @@ class HaystackState(AppState):
         except Exception as exc:
             logger.warning(f"HaystackState: GraphDataMutated broadcast failed: {exc}")
 
+    def _broadcast_graph_saved(self) -> None:
+        """Fire ``GraphSaved`` cross-session.
+
+        Additive to ``_broadcast_data_mutated``: subscribers that only care
+        about the write itself (a stale ``modified_at``) can subscribe here
+        instead of to every node edit.
+        """
+        dispatcher = self._dispatcher()
+        if dispatcher is None:
+            return
+        from haywire.core.signals import GraphSaved
+
+        try:
+            dispatcher.broadcast(GraphSaved())
+        except Exception as exc:
+            logger.warning(f"HaystackState: GraphSaved broadcast failed: {exc}")
+
     # ------------------------------------------------------------------
     # Validation handler
     # ------------------------------------------------------------------
@@ -186,7 +203,7 @@ class HaystackState(AppState):
     # Graph factory (private)
     # ------------------------------------------------------------------
 
-    def _make_graph_and_editor(self, graph_id: str, name: str) -> tuple["BaseGraph", "Editor"]:
+    def _make_graph_and_editor(self, name: str) -> tuple["BaseGraph", "Editor"]:
         """Construct a fresh (BaseGraph, Editor) pair for this state's deps.
 
         Injects ``LoopScheduler`` so the debounced validation pass — and the
@@ -199,7 +216,7 @@ class HaystackState(AppState):
         from haybale_studio.loop_scheduler import LoopScheduler
 
         assert self._node_factory is not None, "on_enable must run before _make_graph_and_editor"
-        graph = BaseGraph(graph_id, name, validation_scheduler=LoopScheduler())
+        graph = BaseGraph(name, validation_scheduler=LoopScheduler())
         editor = Editor(graph, self._node_factory, undo_config=DEVELOPMENT_CONFIG)
         return graph, editor
 
@@ -210,24 +227,21 @@ class HaystackState(AppState):
     def create_new(self) -> GraphEntry:
         """Create a new untitled graph entry.
 
-        Sets ``_unsaved_id = "__unsaved_N__"`` (with N drawn from
-        ``HaystackSettings.new_counter``) and advances the counter.
+        ``HaystackSettings.new_counter`` supplies the ``"Untitled N"``
+        display name only — identity comes from the graph's own transient
+        ``graph_id`` (see :attr:`GraphEntry.binding_id`).
         """
         counter = self._haystack_settings.new_counter
-        binding_id = f"__unsaved_{counter}__"
         name = f"Untitled {counter}"
         self._haystack_settings.new_counter = counter + 1
 
-        graph, editor = self._make_graph_and_editor(binding_id, name)
-        entry = GraphEntry(graph=graph, editor=editor, path=None, _unsaved_id=binding_id, haystack=self)
-        # binding_id == _unsaved_id when path is None (see GraphEntry.binding_id)
-        self._entries[entry.binding_id] = entry
+        graph, editor = self._make_graph_and_editor(name)
+        entry = GraphEntry(graph=graph, editor=editor, path=None, haystack=self)
+        binding_id = entry.binding_id  # graph.graph_id while path is None
+        self._entries[binding_id] = entry
         self._subscribe_validation(entry)
         if self._graph_app_state is not None:
-            # GraphEntry's binding_id/display_name are read-only properties;
-            # the GraphContainer protocol declares them as settable. Structural
-            # compatibility holds at runtime — the registry only reads.
-            self._graph_app_state.register(entry)  # type: ignore[arg-type]
+            self._graph_app_state.register(entry)
         logger.info(f"HaystackState: created new entry '{name}' ({binding_id})")
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
@@ -246,15 +260,14 @@ class HaystackState(AppState):
         if existing is not None:
             return existing
 
-        graph, editor = self._make_graph_and_editor(path.stem, str(path))
+        graph, editor = self._make_graph_and_editor(path.stem)
         graph.load_from_file(str(path))
         graph.force_validation()
         entry = GraphEntry(graph=graph, editor=editor, path=path, unsaved=False, haystack=self)
         self._entries[binding_id] = entry
         self._subscribe_validation(entry)
         if self._graph_app_state is not None:
-            # See create_new() for note on the type: ignore.
-            self._graph_app_state.register(entry)  # type: ignore[arg-type]
+            self._graph_app_state.register(entry)
         logger.info(f"HaystackState: opened {path}")
         self._broadcast_data_mutated()
         self._mark_haystack_dirty()
@@ -282,7 +295,7 @@ class HaystackState(AppState):
             - clears ``entry.unsaved``
             - on rename: rekeys ``self._entries`` AND
               ``self._graph_app_state``
-            - broadcasts ``GraphDataMutated``
+            - broadcasts ``GraphDataMutated`` AND ``GraphSaved``
             - marks haystack dirty
         """
         target = save_as or entry.path
@@ -306,6 +319,7 @@ class HaystackState(AppState):
             renamed_to = entry.binding_id
 
         self._broadcast_data_mutated()
+        self._broadcast_graph_saved()
         self._mark_haystack_dirty()
         return renamed_to  # None when no rename; str on rename
 

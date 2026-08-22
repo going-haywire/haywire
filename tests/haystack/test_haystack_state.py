@@ -53,8 +53,9 @@ def test_create_new_increments_counter_and_adds_entry(state_with_mocked_deps):
     assert entry is not None
     assert len(state.all_entries()) == initial_count + 1
     assert entry.path is None
-    # Legacy semantics: synthetic __unsaved_N__ id, with counter advanced.
-    assert entry._unsaved_id == f"__unsaved_{initial_counter}__"
+    # The counter names the graph; it is no longer an identity source.
+    assert entry.graph.name == f"Untitled {initial_counter}"
+    assert entry.binding_id == entry.graph.graph_id
     assert state._haystack_settings.new_counter == initial_counter + 1
 
 

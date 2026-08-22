@@ -69,7 +69,7 @@ def _make_chain():
 
     registry = _registry()
     set_settings_registry(registry)
-    graph_obj = BaseGraph(graph_id="g", name="G", validation_scheduler=SyncScheduler())
+    graph_obj = BaseGraph(name="G", validation_scheduler=SyncScheduler())
     bag = ChainedBag(registry=registry, node=cast(Any, _StubNode)(graph_obj))
     bag._subscribe_settings()
     return registry, graph_obj, bag

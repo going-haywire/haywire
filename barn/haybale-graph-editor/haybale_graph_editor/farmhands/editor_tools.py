@@ -497,6 +497,29 @@ def _edge_row(edge, detail: bool = False) -> dict:
     return row
 
 
+#: Longest `description` shipped in a query_graph payload. It is free text and
+#: the tool warns against unfocused calls, so it is truncated rather than
+#: allowed to dominate the response.
+_DESCRIPTION_BUDGET = 280
+
+#: The editable metadata fields — exactly the fields on the `meta` bag.
+_META_FIELDS = ("label", "description", "author", "version")
+
+
+def _metadata_row(graph) -> dict:
+    """Document metadata for a graph: the editable bag plus read-only stamps."""
+    meta = graph.meta
+    row = {field: getattr(meta, field) for field in _META_FIELDS}
+    description = row["description"] or ""
+    if len(description) > _DESCRIPTION_BUDGET:
+        row["description"] = description[:_DESCRIPTION_BUDGET] + "…"
+        row["description_truncated"] = True
+    row["filestem"] = graph.filestem
+    row["created_at"] = graph.created_at
+    row["modified_at"] = graph.modified_at
+    return row
+
+
 @farmhand(
     label="Query graph",
     description="Nodes (with ports) and edges of an open graph.",
@@ -533,6 +556,9 @@ class GraphEditorQueryGraphTool(Farmhand):
             "nodes": page,
             "edges": edges,
             "total": total,
+            # Orientation info: "what is this graph for" is unanswerable from
+            # node topology alone, and folding it in costs no new tool slot.
+            "metadata": _metadata_row(editor.graph),
         }
         if page:
             result["help"] = (
@@ -1080,4 +1106,82 @@ class GraphEditorRedoTool(Farmhand):
         return {
             "summary": f"Redo {'performed' if performed else 'nothing to redo'}.",
             "performed": performed,
+        }
+
+
+@farmhand(
+    label="Set graph metadata",
+    description="Set a graph's document metadata (label, description, author, version).",
+    instructions="Set one or more of a graph's document metadata fields — label (free-text "
+    "title), description (what the graph is for), author, version (the author's own version "
+    "string, NOT the file format version). Omitted fields are left alone; pass several at once "
+    "when describing a graph you just built. Read the current values from graph_editor_"
+    "query_graph's 'metadata' key. Metadata is not undoable and does not mark the graph dirty "
+    "(matching graph settings), so an edit is only persisted by a later save.",
+    registry_id="set_metadata",
+    annotations=_MUTATING,
+    access=AccessTier.EDIT,
+)
+class GraphEditorSetMetadataTool(Farmhand):
+    async def run(
+        self,
+        ctx: FarmhandContext,
+        binding_id: str,
+        label: str | None = None,
+        description: str | None = None,
+        author: str | None = None,
+        version: str | None = None,
+    ) -> dict:
+        # Closed kwarg set, unlike set_property which resolves `name` against
+        # ports and bags: unknown fields are impossible by signature, and the
+        # read-only stamps (filestem/created_at/modified_at) plus the transient
+        # graph_id are structurally unreachable.
+        #
+        # No ctx.fence(): that exists to make one tool call one undo gesture,
+        # and metadata has no undo.
+        graph = _editor(ctx, binding_id).graph
+        requested = {
+            "label": label,
+            "description": description,
+            "author": author,
+            "version": version,
+        }
+        writes = {field: value for field, value in requested.items() if value is not None}
+        if not writes:
+            raise FarmhandError(
+                "no_fields_given",
+                "No metadata fields supplied.",
+                ids={"binding_id": binding_id},
+                help=(
+                    f"Pass at least one of {', '.join(_META_FIELDS)}, e.g. "
+                    f"graph_editor_set_metadata binding_id={binding_id!r} description='...'."
+                ),
+            )
+
+        for field, value in writes.items():
+            setattr(graph.meta, field, value)
+
+        # Post-condition check. Load-bearing for a settings bag: a
+        # validator-rejected write is dropped SILENTLY, so only a read-back
+        # distinguishes "took" from "vanished".
+        for field, value in writes.items():
+            actual = getattr(graph.meta, field)
+            if actual != value:
+                raise FarmhandError(
+                    "set_rejected",
+                    f"Write to metadata '{field}' did not take: requested {value!r}, "
+                    f"value is still {actual!r}. The field's validator rejected it "
+                    f"(the framework drops such writes silently).",
+                    ids={"binding_id": binding_id, "field": field},
+                    help="Metadata fields are free-text strings; check the value's type.",
+                )
+
+        ctx.broadcast(GraphDataMutated())
+        return {
+            "summary": f"Set {', '.join(sorted(writes))} on {binding_id}.",
+            "metadata": _metadata_row(graph),
+            "help": (
+                "Metadata does not mark the graph dirty — run haystack_save_graph "
+                f"binding_id={binding_id!r} to persist it."
+            ),
         }

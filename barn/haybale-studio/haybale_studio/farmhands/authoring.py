@@ -232,7 +232,7 @@ class StudioVerifyComponentTool(Farmhand):
             from haywire.core.graph.base import BaseGraph
             from haywire.core.graph.scheduler import SyncScheduler
 
-            graph = BaseGraph("farmhand_verify", "verify", validation_scheduler=SyncScheduler())
+            graph = BaseGraph("verify", validation_scheduler=SyncScheduler())
             try:
                 wrapper = graph.create_node_wrapper(registry_key)
                 if wrapper is None:

@@ -606,6 +606,33 @@ def test_set_dirty_updates_state_flag():
     assert w.state.is_dirty is False
 
 
+def test_set_unsaved_is_independent_of_dirty():
+    """Two distinct facts: 'edited since write' vs 'has no file at all'.
+
+    Only is_unsaved answers "can this binding be restored next launch?",
+    which is what the workspace snapshot filters on.
+    """
+    reg = EditorTypeRegistry()
+    w = _wrapper(
+        editor_key="fake:editor:1",
+        editor_cls=_FakeEditorCls,
+        registry=reg,
+        session=_make_session(),
+    )
+    assert w.state.is_unsaved is False
+
+    w.set_unsaved(True)
+    assert w.state.is_unsaved is True
+    assert w.state.is_dirty is False  # a new empty graph: unsaved, not yet edited
+
+    w.set_dirty(True)
+    assert w.state.is_unsaved is True  # setting one must not touch the other
+
+    w.set_unsaved(False)
+    assert w.state.is_unsaved is False
+    assert w.state.is_dirty is True  # saved-but-edited: the snapshot keeps this
+
+
 def test_set_dirty_coerces_truthy_values_to_bool():
     reg = EditorTypeRegistry()
     w = _wrapper(

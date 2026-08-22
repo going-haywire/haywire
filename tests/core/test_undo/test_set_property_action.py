@@ -17,7 +17,7 @@ def graph_and_editor(library_system):
     from haywire.core.graph.scheduler import SyncScheduler
     from haywire.core.undo.config import UndoConfig
 
-    graph = BaseGraph("g", "g", validation_scheduler=SyncScheduler())
+    graph = BaseGraph("g", validation_scheduler=SyncScheduler())
     # Disable auto-grouping/merging so each operation flushes to history
     # immediately and is independently undoable — the same "one call = one undo
     # gesture" invariant the Farmhand tools get by calling ctx.fence(editor)

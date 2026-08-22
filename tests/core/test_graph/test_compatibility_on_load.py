@@ -36,13 +36,13 @@ def test_load_applies_node_compatibility_warning(library_system, monkeypatch):
     monkeypatch.setattr(type(testing_lib), "compatibility_warnings", lambda self: [warning], raising=False)
 
     # Build a one-node graph, serialize, then force the saved library.version low.
-    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    g1 = BaseGraph(name="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
     # Stamp an OLD saved version on the node's library block.
     data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
 
-    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2 = BaseGraph(name="g2", validation_scheduler=SyncScheduler())
     assert g2.load_from_dict(data) is True
 
     state = _wrapper(g2, a.node_id).state
@@ -61,12 +61,12 @@ def test_load_does_not_warn_when_saved_version_current(library_system, monkeypat
     warning = CompatibilityWarning(version="0.0.2", component=disp_key, message="x")
     monkeypatch.setattr(type(testing_lib), "compatibility_warnings", lambda self: [warning], raising=False)
 
-    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    g1 = BaseGraph(name="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
     data["nodes"][a.node_id]["node_data"]["library"]["version"] = "9.9.9"  # newer than warning
 
-    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2 = BaseGraph(name="g2", validation_scheduler=SyncScheduler())
     g2.load_from_dict(data)
     assert _wrapper(g2, a.node_id).state.has_warning() is False
 
@@ -83,12 +83,12 @@ def test_library_wide_finding_lands_on_graph(library_system, monkeypatch):
     )
     monkeypatch.setattr(type(testing_lib), "compatibility_warnings", lambda self: [warning], raising=False)
 
-    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    g1 = BaseGraph(name="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
     data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
 
-    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2 = BaseGraph(name="g2", validation_scheduler=SyncScheduler())
     g2.load_from_dict(data)
 
     # Library-wide finding stashed on the graph; node itself has no per-node badge.
@@ -110,12 +110,12 @@ def test_reset_clears_compatibility_warning(library_system, monkeypatch):
     )
     monkeypatch.setattr(type(testing_lib), "compatibility_warnings", lambda self: [warning], raising=False)
 
-    g1 = BaseGraph(graph_id="g1", name="g1", validation_scheduler=SyncScheduler())
+    g1 = BaseGraph(name="g1", validation_scheduler=SyncScheduler())
     a = make_node(g1, disp_key, position=(100, 100))
     data = g1.to_dict(include_data=False)
     data["nodes"][a.node_id]["node_data"]["library"]["version"] = "0.0.1"
 
-    g2 = BaseGraph(graph_id="g2", name="g2", validation_scheduler=SyncScheduler())
+    g2 = BaseGraph(name="g2", validation_scheduler=SyncScheduler())
     g2.load_from_dict(data)
     wrapper = _wrapper(g2, a.node_id)
     assert wrapper.state.has_warning() is True

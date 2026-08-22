@@ -45,7 +45,7 @@ class TestNodeSkinGraphTier:
         w1.node.props.skin = "skin-node"  # w1 overridden, w2 tracking
         data = graph_obj.to_dict()
 
-        g2 = BaseGraph(graph_id="g2", name="G2")
+        g2 = BaseGraph(name="G2")
         assert g2.load_from_dict(data) is True
         loaded = list(g2.node_wrappers.values())
         overridden = [w for w in loaded if w.node.props.is_locally_set("skin")]
@@ -60,7 +60,7 @@ class TestNodeSkinGraphTier:
         _add_node(graph_obj)
         data = graph_obj.to_dict()
         del data["props"]  # simulate old file
-        g2 = BaseGraph(graph_id="g2", name="G2")
+        g2 = BaseGraph(name="G2")
         assert g2.load_from_dict(data) is True
         assert not g2.props.is_locally_set("default_skin")
         assert len(g2.node_wrappers) == 1

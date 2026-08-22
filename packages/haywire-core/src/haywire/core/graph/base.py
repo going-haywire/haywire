@@ -9,6 +9,7 @@ with internal managers for validation, etc.
 from __future__ import annotations
 from typing import Any, Dict, List, Optional, Tuple, TYPE_CHECKING
 from dataclasses import dataclass
+from datetime import datetime
 import math
 import uuid
 import logging
@@ -87,8 +88,7 @@ class BaseGraph:
 
     def __init__(
         self,
-        graph_id: str,
-        name: str,
+        name: str = "",
         validation_delay_ms: float = 50.0,
         validation_scheduler: "Optional[ValidationScheduler]" = None,
     ):
@@ -96,27 +96,40 @@ class BaseGraph:
         Initialize a new Haywire graph.
 
         Args:
-            graph_id: Unique identifier for this graph
-            name: Human-readable name for the graph
+            name: Human-readable name for the graph. Also seeds ``filestem``
+                until the first save or load stamps it from the real path.
             validation_delay_ms: Debounce delay for validation (default 50ms)
             validation_scheduler: Strategy that runs the debounced validation
                 pass. Defaults to a background ``threading.Timer``. See
                 ``haywire.core.graph.scheduler``.
 
+        Note:
+            There is no ``graph_id`` parameter: instance identity is minted
+            internally as a uuid4 and is never supplied, serialized, or
+            reassigned.
         """
-        self.graph_id: str = graph_id
-        self.name: str = name or f"Graph_{graph_id}"
+        # Transient instance identity. Minted here, never serialized, never
+        # reassigned: it answers "which loaded instance?", so two tabs on one
+        # file correctly hold two different graph_ids. Error locators and
+        # RevealGraphInstance match on it.
+        self.graph_id: str = str(uuid.uuid4())
+        self.name: str = name or "Untitled"
 
         # Core containers
         self.node_wrappers: Dict[str, "NodeWrapper"] = {}
         self.edge_wrappers: Dict[str, "EdgeWrapper"] = {}
         self.variables: Dict[str, Variable] = {}
 
-        # Metadata
-        self.description: str = ""
-        self.version: str = "1.0.0"
-        self.author: str = ""
-        self.created_at: str | None = None
+        # Framework-written metadata. The editable fields (label, description,
+        # author, version) live in the `meta` settings bag below.
+        #
+        # filestem is DERIVED, never trusted from the file: a file's stem is a
+        # fact about the file, so a copy stored inside it goes stale the moment
+        # it is renamed or copied. save_to_file and load_from_file both stamp it
+        # from the real path; this seed is honest only while the graph is
+        # unsaved, which is exactly when it is the right thing to show.
+        self.filestem: str = self.name
+        self.created_at: str = datetime.now().isoformat()
         self.modified_at: str | None = None
 
         # Canvas dimensions — auto-expanded when nodes approach the boundary.
@@ -133,11 +146,18 @@ class BaseGraph:
         # comes from the DI context exactly like node bags (NodeData.__init__)
         # — DI must be configured; there is no separate constructor override.
         from haywire.core.di.context import get_settings_registry
+        from haywire.core.graph.metadata import GraphMetadata
         from haywire.core.graph.properties import GraphProperties
 
         settings_registry = get_settings_registry()
         self.props: GraphProperties = GraphProperties(registry=settings_registry, graph=self)
         self.props._subscribe_settings()
+
+        # Editable document metadata — the second graph-owned bag. Graphs have
+        # no _settings_bags auto-discovery (unlike nodes), so settings_bag_for()
+        # and cleanup() below are hand-wired to know about both.
+        self.meta: GraphMetadata = GraphMetadata(registry=settings_registry, graph=self)
+        self.meta._subscribe_settings()
 
         # Internal managers (private - implementation details)
         self._validation = ValidationManager(
@@ -873,19 +893,21 @@ class BaseGraph:
         THE lookup seam for graph mirrors ("which bag on my graph does this
         src descriptor live on?" — see Settings._graph_src_cell).
         Plain class matching: haywire-core never hot-reloads, so class
-        identity is stable. One framework bag today; a future registration
+        identity is stable. Two framework bags today; a future registration
         path for library graph bags changes only this method.
         """
-        if isinstance(self.props, owner_cls):
-            return self.props
+        for bag in (self.props, self.meta):
+            if isinstance(bag, owner_cls):
+                return bag
         return None
 
     def cleanup(self) -> None:
-        """Release graph-owned resources (the props bag's registry
+        """Release graph-owned resources (both settings bags' registry
         subscriptions). Call when the graph object is discarded for good.
         ``clear()`` deliberately does NOT call this — a cleared graph is
         still usable (``load_from_dict`` clears and reloads in place)."""
         self.props.cleanup()
+        self.meta.cleanup()
 
     # =========================================================================
     # SERIALIZATION
@@ -901,14 +923,14 @@ class BaseGraph:
         Returns:
             Dictionary representation of the graph
         """
+        from haywire.core.graph.prehydration import CURRENT_FORMAT_VERSION
+
         return {
-            "graph_id": self.graph_id,
-            "name": self.name,
-            "description": self.description,
-            "version": self.version,
-            "author": self.author,
+            "format_version": CURRENT_FORMAT_VERSION,
+            "filestem": self.filestem,
             "created_at": self.created_at,
             "modified_at": self.modified_at,
+            "meta": self.meta.to_dict(),
             "nodes": {
                 node_id: wrapper.serialize(include_data=include_data)
                 for node_id, wrapper in self.node_wrappers.items()
@@ -922,20 +944,26 @@ class BaseGraph:
         """
         Deserialize graph from dictionary.
 
+        Upgrades *data* to the current file format first (in place), so
+        everything below only ever sees current-shape data and never grows
+        an ``if "old_key" in data`` branch. Raises HaywireException when the
+        file came from a newer Haywire or is not a graph at all.
+
         Args:
             data: Dictionary representation of the graph
 
         Returns:
             True if successful, False if there were errors
         """
+        from haywire.core.graph.prehydration import prehydrate
+
+        data = prehydrate(data)
+
         try:
-            # Load metadata
-            self.graph_id = data.get("graph_id", self.graph_id)
-            self.name = data.get("name", self.name)
-            self.description = data.get("description", "")
-            self.version = data.get("version", "1.0.0")
-            self.author = data.get("author", "")
-            self.created_at = data.get("created_at")
+            # Load metadata. graph_id and filestem are deliberately NOT read:
+            # the first is transient instance identity, the second is derived
+            # from the real path by load_from_file / save_to_file.
+            self.created_at = data.get("created_at") or self.created_at
             self.modified_at = data.get("modified_at")
 
             # Clear existing data
@@ -947,6 +975,11 @@ class BaseGraph:
             # graph whose bag still carries the previous graph's opinions.
             self.props.reset_all()
             self.props.from_dict(data.get("props", {}))
+
+            # Document metadata. Ordering vs nodes is unconstrained (no
+            # node-side mirrors), but keeping the restores adjacent is clearer.
+            self.meta.reset_all()
+            self.meta.from_dict(data.get("meta", {}))
 
             # Load variables first
             if "variables" in data:
@@ -1091,7 +1124,7 @@ class BaseGraph:
     def __str__(self) -> str:
         """String representation of the graph"""
         return (
-            f"HaywireGraph(id='{self.graph_id}', name='{self.name}', "
+            f"HaywireGraph(name='{self.name}', id={self.graph_id[:8]}, "
             f"nodes={len(self.node_wrappers)}, edges={len(self.edge_wrappers)}, "
             f"variables={len(self.variables)})"
         )
@@ -1126,8 +1159,10 @@ class BaseGraph:
         from pathlib import Path
 
         try:
-            # Update modification timestamp
+            # Stamp path-derived and time fields BEFORE serializing, or the
+            # write persists the previous save's values.
             self.modified_at = datetime.now().isoformat()
+            self.filestem = Path(filepath).stem
 
             # Serialize graph
             data = self.to_dict(include_data=include_data)
@@ -1157,6 +1192,9 @@ class BaseGraph:
         """
         Load graph from JSON file.
 
+        Stamps ``filestem`` from the real path afterwards — the file's own
+        copy is never trusted (see ``__init__``).
+
         Args:
             filepath: Path to load the graph file from
 
@@ -1164,6 +1202,7 @@ class BaseGraph:
             True if load succeeded, False otherwise
         """
         import json
+        from pathlib import Path
 
         try:
             # Read from file
@@ -1174,6 +1213,7 @@ class BaseGraph:
             success = self.load_from_dict(data)
 
             if success:
+                self.filestem = Path(filepath).stem
                 logger.info(
                     f"Successfully loaded graph from {filepath}: "
                     f"{len(self.node_wrappers)} nodes, "

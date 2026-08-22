@@ -25,7 +25,7 @@ from haywire.core.graph.types import ChangeReason
 
 def test_default_scheduler_is_threading_timer():
     """A graph built without a scheduler keeps the legacy timer behavior."""
-    graph = BaseGraph("g", "G")
+    graph = BaseGraph("G")
     assert isinstance(graph._validation._scheduler, ThreadingTimerScheduler)
 
 
@@ -35,7 +35,7 @@ def test_sync_scheduler_validates_inline():
     No timer, no force_immediate_validation: the subscriber fires within the
     mark_*_dirty call itself.
     """
-    graph = BaseGraph("g", "G", validation_scheduler=SyncScheduler())
+    graph = BaseGraph("G", validation_scheduler=SyncScheduler())
     seen: List[int] = []
     graph.subscribe_to_validation(lambda result: seen.append(result.total_changes))
 
@@ -80,7 +80,7 @@ def test_reschedule_cancels_previous_handle():
             return handle
 
     sched = _RecordingScheduler()
-    graph = BaseGraph("g", "G", validation_scheduler=sched)
+    graph = BaseGraph("G", validation_scheduler=sched)
 
     graph._validation.mark_node_dirty("n1", ChangeReason.NODE_REDRAW_REQUESTED)
     graph._validation.mark_node_dirty("n2", ChangeReason.NODE_REDRAW_REQUESTED)

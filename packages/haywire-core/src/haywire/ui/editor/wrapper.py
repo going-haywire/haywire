@@ -59,6 +59,19 @@ class EditorWrapperState:
     dirty badge and the close-consent gate. Framework clears it automatically
     on hot-reload class swap (the new instance starts fresh)."""
 
+    is_unsaved: bool = False
+    """True when the editor's binding has no file backing it at all.
+
+    Distinct from :attr:`is_dirty`, which means *changed since the last
+    write*. A never-saved graph is unsaved-but-not-dirty until edited; a
+    saved graph that was then edited is dirty-but-not-unsaved. Both light
+    the tab's dirty badge — losing either loses work — but only
+    ``is_unsaved`` answers "can this binding be restored next launch?",
+    which is why the workspace snapshot skips on it.
+
+    NOT cleared on hot-reload: a class swap gives the new instance fresh
+    content, but it does not give the graph a file."""
+
     def is_valid(self) -> bool:
         """True iff the editor is imported and instantiation has not failed.
 
@@ -235,6 +248,16 @@ class EditorWrapper:
         if refresh:
             self.refresh_tab_bar()
 
+    def set_unsaved(self, value: bool, *, refresh: bool = False) -> None:
+        """Mark the wrapped editor's binding as file-backed or not.
+
+        See :attr:`EditorWrapperState.is_unsaved` for why this is separate
+        from :meth:`set_dirty`. Same lazy-by-default semantics.
+        """
+        self._state.is_unsaved = bool(value)
+        if refresh:
+            self.refresh_tab_bar()
+
     def refresh_tab_bar(self) -> None:
         """Repaint this wrapper's tab-bar interior now.
 
@@ -299,6 +322,9 @@ class EditorWrapper:
             self.editor_cls = event.affected_class
             self._state.is_imported = True
             self._state.error_import = None
+            # is_dirty only: the new instance starts with fresh content, but a
+            # class swap does not give an unsaved binding a file. Clearing
+            # is_unsaved here would silently make the tab look restorable.
             self._state.is_dirty = False
             # Drop bus subscriptions bound to the old instance before
             # tearing it down. The next _instantiate() re-subscribes the

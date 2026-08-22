@@ -77,7 +77,10 @@ class TabSlot(Slot):
                             # Slot-owned chrome: dirty marker renders for every
                             # editor (including custom draw_tab overrides) so
                             # the unsaved-work signal can never be forgotten.
-                            if wrapper.state is not None and wrapper.state.is_dirty:
+                            # Either flag means work would be lost on close.
+                            if wrapper.state is not None and (
+                                wrapper.state.is_dirty or wrapper.state.is_unsaved
+                            ):
                                 ui.icon("circle").classes("hw-tab-dirty").style(
                                     "font-size: 8px; color: var(--hw-text-body);"
                                 )

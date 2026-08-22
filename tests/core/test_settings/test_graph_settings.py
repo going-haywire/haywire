@@ -136,7 +136,7 @@ def test_base_graph_wires_props_bag_from_di():
     from haywire.core.graph.base import BaseGraph
 
     _make_registry()
-    graph_obj = BaseGraph(graph_id="g", name="G")
+    graph_obj = BaseGraph(name="G")
     assert isinstance(graph_obj.props, GraphProperties)
     assert graph_obj.props._graph is graph_obj
 
@@ -145,7 +145,7 @@ def test_base_graph_uses_the_ambient_di_registry():
     from haywire.core.graph.base import BaseGraph
 
     registry = _make_registry()
-    graph_obj = BaseGraph(graph_id="g", name="G")
+    graph_obj = BaseGraph(name="G")
     registry.set_global(SKIN_KEY, "skin-A")
     assert graph_obj.props.default_skin == "skin-A"
 
@@ -154,7 +154,7 @@ def test_settings_bag_for_is_the_lookup_seam():
     from haywire.core.graph.base import BaseGraph
 
     _make_registry()
-    graph_obj = BaseGraph(graph_id="g", name="G")
+    graph_obj = BaseGraph(name="G")
     assert graph_obj.settings_bag_for(GraphProperties) is graph_obj.props
     assert graph_obj.settings_bag_for(GraphSettings) is graph_obj.props  # isinstance match
 
@@ -168,7 +168,7 @@ def test_graph_cleanup_releases_bag():
     from haywire.core.graph.base import BaseGraph
 
     registry = _make_registry()
-    graph_obj = BaseGraph(graph_id="g", name="G")
+    graph_obj = BaseGraph(name="G")
     registry.set_global(SKIN_KEY, "skin-A")
     graph_obj.cleanup()
     registry.set_global(SKIN_KEY, "skin-Z")
@@ -185,5 +185,5 @@ def test_graph_bag_never_carries_a_node():
     from haywire.core.graph.base import BaseGraph
 
     _make_registry()
-    graph_obj = BaseGraph(graph_id="g", name="G")
+    graph_obj = BaseGraph(name="G")
     assert graph_obj.props._node is None

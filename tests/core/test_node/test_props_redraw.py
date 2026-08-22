@@ -99,7 +99,7 @@ class TestPropsChangeTriggersRedraw:
 
         from haywire.core.graph.scheduler import SyncScheduler
 
-        g2 = BaseGraph(graph_id="g2", name="G2", validation_scheduler=SyncScheduler())
+        g2 = BaseGraph(name="G2", validation_scheduler=SyncScheduler())
         results: List[ValidationResult] = []
         g2.subscribe_to_validation(results.append)
         assert g2.load_from_dict(data) is True

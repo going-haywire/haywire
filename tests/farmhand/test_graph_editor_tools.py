@@ -787,3 +787,84 @@ def test_inspect_unknown_node_is_stable_error(farmhand_call):
         assert "[node_not_found]" in result.content[0].text
     finally:
         _close(farmhand_call, bid)
+
+
+# ---------------------------------------------------------------------------
+# set_metadata / query_graph metadata
+# ---------------------------------------------------------------------------
+
+
+def test_query_graph_reports_metadata(farmhand_call):
+    """Metadata rides along on the orientation call — no extra tool slot."""
+    bid = _new_graph(farmhand_call)
+    try:
+        query = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
+        meta = query["metadata"]
+        assert meta["label"] == ""
+        assert meta["version"] == "1.0.0"
+        # Read-only stamps ride along too.
+        assert meta["created_at"]
+        assert "filestem" in meta
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_metadata_writes_several_fields(farmhand_call):
+    """Metadata fields are naturally set together, so one call takes many."""
+    bid = _new_graph(farmhand_call)
+    try:
+        result = call_tool_json(
+            _call(
+                farmhand_call,
+                "haybale-graph-editor_set_metadata",
+                {"binding_id": bid, "label": "Face Tracker", "description": "Tracks faces"},
+            )
+        )
+        assert result["metadata"]["label"] == "Face Tracker"
+        assert result["metadata"]["description"] == "Tracks faces"
+
+        query = call_tool_json(_call(farmhand_call, "haybale-graph-editor_query_graph", {"binding_id": bid}))
+        assert query["metadata"]["label"] == "Face Tracker"
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_metadata_leaves_omitted_fields_alone(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        _call(
+            farmhand_call,
+            "haybale-graph-editor_set_metadata",
+            {"binding_id": bid, "author": "ann"},
+        )
+        result = call_tool_json(
+            _call(
+                farmhand_call,
+                "haybale-graph-editor_set_metadata",
+                {"binding_id": bid, "label": "L"},
+            )
+        )
+        assert result["metadata"]["author"] == "ann"
+        assert result["metadata"]["label"] == "L"
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_metadata_with_no_fields_is_a_stable_error(farmhand_call):
+    bid = _new_graph(farmhand_call)
+    try:
+        result = _call(farmhand_call, "haybale-graph-editor_set_metadata", {"binding_id": bid})
+        assert result.isError is True
+        assert "[no_fields_given]" in result.content[0].text
+    finally:
+        _close(farmhand_call, bid)
+
+
+def test_set_metadata_unknown_graph_is_a_stable_error(farmhand_call):
+    result = _call(
+        farmhand_call,
+        "haybale-graph-editor_set_metadata",
+        {"binding_id": "no-such-graph", "label": "L"},
+    )
+    assert result.isError is True
+    assert "[graph_not_found]" in result.content[0].text
