@@ -22,8 +22,11 @@ from haywire.ui.skin.pin_render import render_pin, resolve_graph_layout_directio
 
 # Tiny fixed geometry — a reroute is a dot on a wire, not a card.
 _PIN_GUTTER = 18
-_CARD_PADDING = 0
 _PIN_PROTRUSION = 0
+# Must match the padding the card PAINTS below: render_pin offsets pins against
+# it, so a value the card does not paint seats every pin off its edge by the
+# difference. Was 0 against a painted 4px.
+_CARD_PADDING = 4
 
 
 @skin(description="Minimal reroute skin — a tiny box with one inlet and one outlet pin.", hidden=True)
@@ -43,7 +46,7 @@ class RerouteSkin(BaseSkin):
         # `overflow: visible` lets the pins straddle the edges.
         main_card.classes("node-card drag-handle zoom-pan-lod0").style(
             "background-color: var(--hw-node-bg); border-radius: 6px; "
-            "overflow: visible; padding: 4px; min-width: 0;"
+            f"overflow: visible; padding: {_CARD_PADDING}px; min-width: 0;"
         )
 
         # Discover ports by PortType — the split action owns the IDs, not this skin.
@@ -51,10 +54,16 @@ class RerouteSkin(BaseSkin):
         inlet = next((p for p in ports if p.port_type == PortType.INLET), None)
         outlet = next((p for p in ports if p.port_type == PortType.OUTLET), None)
 
-        # Stack the two pins along the flow axis so they straddle opposite edges.
-        container = ui.column() if layout.is_vertical else ui.row()
+        # Stack the two pins along the flow axis so they straddle opposite
+        # edges. `overflow: visible` is repeated here because a pin offset past
+        # the edge is clipped by the nearest ancestor lacking it, not just by
+        # the card. No gap: the box should be the size of the dot.
+        flow_axis = "column" if layout.is_vertical else "row"
         with main_card:
-            with container.classes("items-center gap-1").style("flex-wrap: nowrap;"):
+            with ui.element("div").style(
+                f"display: flex; flex-direction: {flow_axis}; align-items: center; "
+                "justify-content: center; gap: 0; flex-wrap: nowrap; overflow: visible;"
+            ):
                 if inlet is not None:
                     self._render_reroute_pin(inlet, wrapper.node_id, layout)
                 if outlet is not None:
