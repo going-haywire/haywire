@@ -63,7 +63,14 @@ class ErrorNodeSkin(NodeSkin):
         """)
 
         padding = self.CARD_H_PADDING
-        main_card.classes(f"w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0").style(
+        # `node-card` is a behavioural contract, not styling: canvas.vue keys
+        # the manual-resize clamp release off it. `error-node-card` is a sibling
+        # token, NOT a variant — CSS class selectors match whole tokens — so
+        # without `node-card` this card silently caps at max-w-sm mid-drag.
+        # See docs/components/skins/skin-canon.md.
+        main_card.classes(
+            f"w-full min-w-64 max-w-sm node-card error-node-card {node_id} zoom-pan-lod0"
+        ).style(
             f"background-color: var(--hw-warning); backdrop-filter: blur(10px); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
@@ -80,33 +87,40 @@ class ErrorNodeSkin(NodeSkin):
                 if runtime_errors:
                     self._render_diagnostics_button(runtime_errors, [], wrapper.node_id)
 
-            # Main content: inlets and outlets in two columns
+            # Main content: inlets and outlets in two columns.
+            #
+            # Both loops filter. Every port id must appear exactly ONCE in the
+            # DOM: pins carry `id=generate_pin_uuid(node_id, port.id)` and the
+            # connection layer resolves them with getElementById, so a second
+            # copy does not merely look doubled — it shadows the real pin and
+            # edges attach to whichever came first in document order.
+            ports = list(node.ports.values())
             with ui.row().classes("w-full gap-2"):
                 # Left column: Inlets
                 with ui.column().classes("flex-1 gap-1"):
-                    if node.ports:
+                    inlets = [p for p in ports if p.is_inlet()]
+                    if inlets:
                         ui.label("Inputs").classes("font-bold text-sm")
-                        for inlet in node.ports.values():
+                        for inlet in inlets:
                             self.render_port(inlet, wrapper)
 
                 # Right column: Outlets
                 with ui.column().classes("flex-1 gap-1"):
-                    if node.ports:
+                    outlets = [p for p in ports if p.is_outlet()]
+                    if outlets:
                         ui.label("Outputs").classes("font-bold text-sm")
-                        for outlet in node.ports.values():
-                            if outlet.is_outlet():
-                                # NOTE: the loop above already rendered every
-                                # port, outlets included — this is a
-                                # pre-existing double-render (Follow-up A2),
-                                # left as-is here so the LayoutDirection change
-                                # stays separable from fixing it.
-                                self._render_port_horizontal(
-                                    outlet,
-                                    wrapper,
-                                    side=self.layout_of(wrapper).outlet_side,
-                                    layout=self.layout_of(wrapper),
-                                    widget_classes="widget-container zoom-pan-lod2",
-                                )
+                        for outlet in outlets:
+                            self.render_port(outlet, wrapper)
+
+            # Config ports carry no pin, so they belong to neither column.
+            # Rendering them full width beneath keeps them visible — this is
+            # the skin a user reads while diagnosing a broken node, so dropping
+            # a whole port category from it would be its own bug.
+            configs = [p for p in ports if p.is_config()]
+            if configs:
+                with ui.column().classes("w-full gap-1"):
+                    for config in configs:
+                        self.render_port(config, wrapper)
 
             # Footer with port counts
             with ui.row().classes("w-full justify-between mt-2"):

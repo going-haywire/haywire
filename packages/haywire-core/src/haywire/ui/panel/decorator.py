@@ -49,7 +49,8 @@ def panel(**kwargs: Any):
 
     Accepted keys (the special keys below are validated/transformed here; the
     rest splat into ``PanelIdentity``, so an unknown key raises ``TypeError`` at
-    class-definition time):
+    class-definition time)::
+
         actions: Protocol/ABC class declaring the host contract this panel
                  mounts against. Optional — display panels omit it. When
                  set, the framework injects the host instance into

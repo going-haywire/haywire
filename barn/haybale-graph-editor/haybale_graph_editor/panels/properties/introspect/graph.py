@@ -41,6 +41,7 @@ def _format_stamp(value: str | None) -> str:
     label="Graph Info",
     icon=hui.icon.graph,
     order=10,
+    default_open=False,
     redraw_on=(GraphSaved,),
 )
 class GraphInfoPanel(BasePanel):

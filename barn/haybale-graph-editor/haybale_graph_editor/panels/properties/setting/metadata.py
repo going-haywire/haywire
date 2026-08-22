@@ -35,7 +35,7 @@ if TYPE_CHECKING:
     label="Graph Metadata",
     icon=hui.icon.graph,
     order=15,  # between GraphInfoPanel (10) and GraphSettingsPanel (20)
-    default_open=True,
+    default_open=False,
     access=AccessTier.EDIT,
     # Deliberately NOT GraphDataMutated: that means "nodes/edges/props
     # changed", and metadata is not content. Subscribing to it to catch a

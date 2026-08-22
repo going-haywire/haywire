@@ -51,7 +51,7 @@ card body. Inlet/outlet values stay reachable through the properties editor.
   [`docs/components/skins/skin-canon.md`](../../components/skins/skin-canon.md#the-cards-class-list-is-a-contract);
   every phase below that touches a card's class list must preserve the token. Verified
   against `ExampleNodeSkin` on 2026-08-22; `ErrorNodeSkin` is still affected — see
-  [Follow-up A](#follow-up-a--errornodeskin-defects).
+  [Follow-up A](#follow-up-a--errornodeskin-defects--landed).
 
 ---
 
@@ -323,7 +323,7 @@ is the whole of `L2R` ↔ `R2L`.
 > - `ErrorNodeSkin.render` calls `self._render_right(...)` directly
 >   ([error_skin.py:97](../../../barn/haybale-studio/haybale_studio/skins/error_skin.py#L97)).
 >   Update to the merged signature. The pre-existing double-render on the line above it is
->   handled by [Follow-up A](#follow-up-a--errornodeskin-defects), not here.
+>   handled by [Follow-up A](#follow-up-a--errornodeskin-defects--landed), not here.
 > - `ExampleNodeSkin.render` calls `self.render_port(...)` for inlets, outlets, and
 >   configs ([example_skin.py](../../../barn/haybale-example/haybale_example/skins/example_skin.py)).
 >   The signature is unchanged, but `render_port` gains the resolved direction — see
@@ -541,9 +541,13 @@ All four in-repo pin-bearing skins are covered: `DefaultNodeSkin`, `ErrorNodeSki
 
 Independent of this plan; neither blocks it nor is blocked by it.
 
-### Follow-up A — `ErrorNodeSkin` defects
+### Follow-up A — `ErrorNodeSkin` defects — **LANDED**
 
-Two independent pre-existing bugs, both reproducing on `master`.
+Two independent pre-existing bugs, both fixed together with the first
+error-skin DOM coverage (`tests/ui/harness/test_error_skin.py`, route
+`/graph-error-skin` — a healthy node pinned to the error skin via `props.skin`,
+since a real render failure is hard to provoke deterministically). Kept below
+for the record.
 
 **A1 — the card omits `node-card`.** Its class list is
 `w-full min-w-64 max-w-sm error-node-card {node_id} zoom-pan-lod0`

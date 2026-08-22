@@ -160,6 +160,26 @@ def _build_layout_graph(node_factory):
     return graph, editor
 
 
+def _build_error_skin_graph(node_factory):
+    """One node pinned to the error skin, for the error-skin DOM tests.
+
+    The error skin is normally reached only by a render failure, which is hard
+    to provoke deterministically. `props.skin` takes a plain registry key, so
+    pointing a healthy node at it renders the same DOM without needing a broken
+    node. Backs test_error_skin.py.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Error Skin Fixture")
+    editor = Editor(graph, node_factory)
+
+    node = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3700.0, 3700.0))
+    assert node is not None, f"could not create {_RECONNECT_SOURCE_KEY}"
+    node.node.props.skin = "haybale-studio:skin:ErrorNodeSkin"
+    return graph, editor, node
+
+
 def _build_size_graph(node_factory):
     """A single node, for the node-sizing gadget/measure tests.
 
@@ -518,6 +538,21 @@ def register_routes(library_service) -> None:
         ui.button("set-b2t", on_click=lambda: _set_direction("b2t")).props('data-testid="set-b2t"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="layout")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-error-skin
+    #
+    # A single node pinned to the error skin. Backs test_error_skin.py: every
+    # port id must appear exactly once in the DOM (a duplicate shadows the real
+    # pin via getElementById), and the card must carry the literal `node-card`
+    # class so a manual resize is not silently clamped.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-error-skin")
+    async def graph_error_skin_page():
+        graph, editor, _node = _build_error_skin_graph(library_service.get_node_factory())
+        _mount_graph_canvas(library_service, graph, editor, testid="error-skin")
         _stamp_synced()
 
     # -------------------------------------------------------------------------
