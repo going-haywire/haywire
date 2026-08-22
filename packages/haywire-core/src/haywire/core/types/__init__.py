@@ -10,7 +10,7 @@ from .interface import IType
 from .base import PrimitiveType, BaseType, CompoundType
 from .decorator import type
 from .identity import DataTypeIdentity
-from .enums import FlowType, PortType, StoreStrategy
+from .enums import FlowType, LayoutDirection, PortType, StoreStrategy
 from .event import Event
 from .fields import DataField, PrimitiveField, BaseField
 from .port import DataPort
@@ -39,6 +39,7 @@ __all__ = [
     "DataTypeIdentity",
     # Enums
     "FlowType",
+    "LayoutDirection",
     "PortType",
     "StoreStrategy",
     # Event system

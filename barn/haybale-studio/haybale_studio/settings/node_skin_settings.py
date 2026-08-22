@@ -63,10 +63,31 @@ class NodeSkinSettings(LibrarySettings):
         min=16,
         max=48,
     )
+    pin_column_width = setting[INT](
+        24,
+        label="Pin Column Width",
+        description="Width of each pin cell in a vertical pin strip (px)",
+        category="layout",
+        min=16,
+        max=48,
+    )
     card_padding = setting[INT](
         16,
         label="Card Padding",
         description="Horizontal padding applied to the node card in pixels",
+        category="layout",
+        min=4,
+        max=32,
+    )
+    # Both axes are declared because LayoutDirection resolves PER NODE while
+    # this bag is library-global: one graph can hold a T2B node beside an L2R
+    # one, so there is no single "current direction" to reinterpret one value
+    # against. Each node picks the pair matching its own direction.
+    card_padding_block = setting[INT](
+        16,
+        label="Card Padding (vertical)",
+        description="Vertical padding applied to the node card in pixels. Used as the "
+        "pin offset baseline when the node's layout direction is T2B or B2T",
         category="layout",
         min=4,
         max=32,

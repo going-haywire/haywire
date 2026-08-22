@@ -15,10 +15,10 @@ from __future__ import annotations
 from nicegui import ui
 
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.types.enums import PortType
+from haywire.core.types.enums import LayoutDirection, PortType
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.decorator import skin
-from haywire.ui.skin.pin_render import render_pin
+from haywire.ui.skin.pin_render import render_pin, resolve_graph_layout_direction
 
 # Tiny fixed geometry — a reroute is a dot on a wire, not a card.
 _PIN_GUTTER = 18
@@ -33,6 +33,11 @@ class RerouteSkin(BaseSkin):
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node = wrapper.node
 
+        # A reroute is a dot on a wire, so it follows the GRAPH's layout
+        # direction rather than its own node prop — a per-node override on a
+        # reroute would point it away from the wire it sits on.
+        layout = resolve_graph_layout_direction(wrapper)
+
         # A small, label-less box. `node-card` + `drag-handle` + `zoom-pan-lod0`
         # keep it draggable and integrated with the canvas like any node card;
         # `overflow: visible` lets the pins straddle the edges.
@@ -46,18 +51,20 @@ class RerouteSkin(BaseSkin):
         inlet = next((p for p in ports if p.port_type == PortType.INLET), None)
         outlet = next((p for p in ports if p.port_type == PortType.OUTLET), None)
 
+        # Stack the two pins along the flow axis so they straddle opposite edges.
+        container = ui.column() if layout.is_vertical else ui.row()
         with main_card:
-            with ui.row().classes("items-center gap-1").style("flex-wrap: nowrap;"):
+            with container.classes("items-center gap-1").style("flex-wrap: nowrap;"):
                 if inlet is not None:
-                    self._render_reroute_pin(inlet, wrapper.node_id, "left")
+                    self._render_reroute_pin(inlet, wrapper.node_id, layout)
                 if outlet is not None:
-                    self._render_reroute_pin(outlet, wrapper.node_id, "right")
+                    self._render_reroute_pin(outlet, wrapper.node_id, layout)
 
-    def _render_reroute_pin(self, port, node_id: str, direction: str) -> None:
+    def _render_reroute_pin(self, port, node_id: str, layout: LayoutDirection) -> None:
         render_pin(
             port,
             node_id,
-            direction=direction,
+            layout=layout,
             pin_gutter=_PIN_GUTTER,
             card_padding=_CARD_PADDING,
             pin_protrusion=_PIN_PROTRUSION,

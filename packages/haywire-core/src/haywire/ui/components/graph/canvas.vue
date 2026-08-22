@@ -1094,6 +1094,17 @@ export default {
         _syncNodeRedraw(data) {
             const { nodeId } = data;
             this._addNodeObserver(nodeId);
+            // The redraw replaced this node's pin elements: same ids, but new
+            // positions and possibly new direction vectors. Every edge touching
+            // the node is now describing DOM that no longer exists, so refresh
+            // them here rather than waiting for the next incidental trigger
+            // (a hover, a drag) to do it. _addNodeObserver parks the node when
+            // the canvas is detached and the pending watcher redraws its edges
+            // on arrival, so this is skipped for pending nodes — _updateEdge
+            // bails on them anyway.
+            if (!this._pendingNodeIds.has(nodeId)) {
+                this._scheduleEdgeUpdates(nodeId);
+            }
             // A redraw may have changed the node's measured size; refit the
             // gadget if it's tracking this node.
             if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
@@ -2143,7 +2154,9 @@ export default {
 
             // Re-apply the active highlight lost when the element was rebuilt.
             fresh.style.boxShadow = '0 0 15px #4A90E2';
-            fresh.style.transform = 'scale(1.8)';
+            // Compose with the layout rotation — a bare scale un-rotates a
+            // vertical pin for the duration of the drag.
+            fresh.style.transform = 'var(--hw-pin-rotate, ) scale(1.8)';
             fresh.style.zIndex = '10003';
 
             this.edgeDrag.anchorPin = fresh;
@@ -2178,7 +2191,7 @@ export default {
 
             // Highlight anchor pin
             pin.style.boxShadow = '0 0 15px #4A90E2';
-            pin.style.transform = 'scale(1.8)';
+            pin.style.transform = 'var(--hw-pin-rotate, ) scale(1.8)';
             pin.style.zIndex = '10003';
         },
 
@@ -2569,6 +2582,15 @@ export default {
             edgeInfo.outletColor = outletPin.dataset.pinColor;
             edgeInfo.inletColor = inletPin.dataset.pinColor;
 
+            // Re-read the direction vectors from the live pins. These were
+            // captured once at _createEdge and treated as immutable, which held
+            // only while every node was left-to-right. A LayoutDirection change
+            // re-renders the pin with new data-pin-dir-x/y, so a cached vector
+            // leaves the curve aiming the old way — visibly, an outlet's edge
+            // doubling back into its own node.
+            edgeInfo.outletConnectDir = this._getPinDirectionVector(outletPin);
+            edgeInfo.inletConnectDir = this._getPinDirectionVector(inletPin);
+
             const pathData = this._createBezierPathForEdge(edge_id);
 
             edgeInfo.path.setAttribute('d', pathData);
@@ -2905,9 +2927,19 @@ export default {
         },
 
         _createBezierPath(startPos, endPos, startDir = [1, 0], endDir = [-1, 0]) {
-            // Calculate control point distance based on connection length
-            const distance = Math.abs(endPos.x - startPos.x);
-            const controlDistance = Math.max(50, distance * 0.5);
+            // Control-point distance, measured along the axis the edge actually
+            // leaves on. Projecting the delta onto startDir keeps this correct
+            // for every LayoutDirection: for L2R (startDir [1,0]) it reduces to
+            // |dx| exactly, so horizontal graphs are unchanged, while T2B/B2T
+            // no longer collapse to the 50px floor just because dx is ~0.
+            // Each end uses its OWN vector, so a T2B node feeding an L2R node
+            // still curves correctly — nothing here assumes a shared axis.
+            const dx = endPos.x - startPos.x;
+            const dy = endPos.y - startPos.y;
+            // Fallback covers a purely perpendicular run, where the projection
+            // is 0 but the endpoints are far apart.
+            const span = Math.abs(dx * startDir[0] + dy * startDir[1]) || Math.hypot(dx, dy);
+            const controlDistance = Math.max(50, span * 0.5);
             
             // Calculate control points using direction vectors
             const startControl = {
@@ -3276,8 +3308,22 @@ export default {
     overflow: hidden !important;
 }
 
+/* Pin transforms compose scale with the layout rotation.
+ *
+ * A vertical LayoutDirection rotates the pin glyph 90deg via --hw-pin-rotate
+ * (set inline by render_pin). Every scale below must carry that rotation
+ * through, because `transform` is a single property: writing `scale(1.4)`
+ * alone silently un-rotates the pin for as long as the state lasts, which is
+ * what made pins snap back to horizontal on hover. Same reason the JS
+ * magnifier/drag paths write `var(--hw-pin-rotate,) scale(...)` rather than a
+ * bare scale. The empty fallback (`,`) resolves to nothing for horizontal
+ * layouts, leaving the transform exactly as it was. */
+.connection-pin {
+    transform: var(--hw-pin-rotate, );
+}
+
 .connection-pin:hover {
-    transform: scale(1.4) !important;  
+    transform: var(--hw-pin-rotate, ) scale(1.4) !important;
     filter: brightness(1.2) !important;
     z-index: 10001 !important;
 }
@@ -3289,7 +3335,7 @@ export default {
 }
 
 .connection-pin.connection-invalid {
-    transform: scale(0.8) !important; 
+    transform: var(--hw-pin-rotate, ) scale(0.8) !important;
     box-shadow: 0 0 15px #f44336 !important;
     border-color: #f44336 !important;
     z-index: 10002 !important;

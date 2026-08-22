@@ -63,6 +63,7 @@ class TestPropsChangeTriggersRedraw:
             "condensed": True,
             "pinned": True,
             "skin": "some:skin:key",
+            "layout_direction": "t2b",
             "color_override": "#ff0000",
             "comment": "hello",
             "show_comment": True,

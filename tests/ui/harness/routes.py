@@ -136,6 +136,30 @@ def _build_dynamic_graph(node_factory):
     return graph, editor, dyn
 
 
+def _build_layout_graph(node_factory):
+    """Two nodes wired outlet→inlet, for the LayoutDirection canvas tests.
+
+    A real edge is the point: switching the graph's layout_direction re-renders
+    both node cards, and the canvas must (a) re-read each pin's direction vector
+    rather than reusing the one cached when the edge was created, and (b) redraw
+    the edge on the redraw sync instead of waiting for an incidental hover.
+    Returns (graph, editor) so the route can flip the graph-tier prop.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Layout Fixture")
+    editor = Editor(graph, node_factory)
+
+    src = graph.create_node_wrapper(_RECONNECT_SOURCE_KEY, position=(3600.0, 3700.0))
+    dst = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3980.0, 3700.0))
+    assert src is not None and dst is not None, "could not create layout-fixture nodes"  # noqa: PT018
+
+    ok = editor.create_edge(src.node_id, "exec", dst.node_id, "exec")
+    assert ok, "could not connect exec -> exec"
+    return graph, editor
+
+
 def _build_size_graph(node_factory):
     """A single node, for the node-sizing gadget/measure tests.
 
@@ -470,6 +494,30 @@ def register_routes(library_service) -> None:
         ui.button("restore-port", on_click=lambda: _set_port_count(2)).props('data-testid="restore-port"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="dynamic")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-layout
+    #
+    # Two connected nodes plus buttons flipping the GRAPH-tier layout_direction.
+    # Backs test_graph_layout_direction.py: a direction switch must re-aim each
+    # pin's direction vector on the existing edge, and must repaint the edge on
+    # the redraw sync rather than waiting for a hover to trigger it.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-layout")
+    async def graph_layout_page():
+        graph, editor = _build_layout_graph(library_service.get_node_factory())
+
+        def _set_direction(value: str) -> None:
+            graph.props.layout_direction = value
+
+        ui.button("set-r2l", on_click=lambda: _set_direction("r2l")).props('data-testid="set-r2l"')
+        ui.button("set-l2r", on_click=lambda: _set_direction("l2r")).props('data-testid="set-l2r"')
+        ui.button("set-t2b", on_click=lambda: _set_direction("t2b")).props('data-testid="set-t2b"')
+        ui.button("set-b2t", on_click=lambda: _set_direction("b2t")).props('data-testid="set-b2t"')
+
+        _mount_graph_canvas(library_service, graph, editor, testid="layout")
         _stamp_synced()
 
     # -------------------------------------------------------------------------

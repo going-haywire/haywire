@@ -12,7 +12,7 @@ Serialized under the 'props' key in graph JSON.
 from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
-from haywire.core.skin.settings import _node_skin_choices
+from haywire.core.skin.settings import _layout_direction_choices, _node_skin_choices
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, FLOAT, STRING
 
 
@@ -30,6 +30,7 @@ class NodeProperties(NodeSettings):
         "condensed",
         "pinned",
         "skin",
+        "layout_direction",
         "color_override",
         "comment",
         "show_comment",
@@ -86,6 +87,15 @@ class NodeProperties(NodeSettings):
         # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its
         # per-setting widget_config — options must be re-supplied here.
         widget_config={"options": _node_skin_choices},
+    )
+
+    layout_direction = graph(
+        src=GraphProperties.layout_direction,
+        label="Layout Direction",
+        description="Direction flow reads across THIS node's card",
+        category="appearance",
+        order=15,
+        widget_config={"options": _layout_direction_choices},
     )
 
     color_override = setting[COLOR](

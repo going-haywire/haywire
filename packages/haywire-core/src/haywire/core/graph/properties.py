@@ -14,7 +14,11 @@ on load.
 
 from haywire.core.settings.descriptor import shadow
 from haywire.core.settings.settings_graph import GraphSettings
-from haywire.core.skin.settings import NodeDefaultSkinSettings, _node_skin_choices
+from haywire.core.skin.settings import (
+    NodeDefaultSkinSettings,
+    _layout_direction_choices,
+    _node_skin_choices,
+)
 
 
 class GraphProperties(GraphSettings):
@@ -32,4 +36,16 @@ class GraphProperties(GraphSettings):
         # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT
         # its per-setting widget_config — options must be re-supplied here.
         widget_config={"options": _node_skin_choices},
+    )
+
+    layout_direction = shadow(
+        src=NodeDefaultSkinSettings.studio_layout_direction,
+        label="Layout Direction",
+        description=(
+            "Flow direction for nodes in THIS graph. Overrides the studio "
+            "default; a node's own layout direction overrides this."
+        ),
+        category="appearance",
+        order=20,
+        widget_config={"options": _layout_direction_choices},
     )

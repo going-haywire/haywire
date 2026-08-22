@@ -95,7 +95,18 @@ class ErrorNodeSkin(NodeSkin):
                         ui.label("Outputs").classes("font-bold text-sm")
                         for outlet in node.ports.values():
                             if outlet.is_outlet():
-                                self._render_right(outlet, wrapper)
+                                # NOTE: the loop above already rendered every
+                                # port, outlets included — this is a
+                                # pre-existing double-render (Follow-up A2),
+                                # left as-is here so the LayoutDirection change
+                                # stays separable from fixing it.
+                                self._render_port_horizontal(
+                                    outlet,
+                                    wrapper,
+                                    side=self.layout_of(wrapper).outlet_side,
+                                    layout=self.layout_of(wrapper),
+                                    widget_classes="widget-container zoom-pan-lod2",
+                                )
 
             # Footer with port counts
             with ui.row().classes("w-full justify-between mt-2"):

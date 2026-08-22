@@ -14,6 +14,12 @@ from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings import setting
+from haywire.core.types.enums import LayoutDirection
+
+
+def _layout_direction_choices():
+    """Static options — no registry lookup, so no try/except needed."""
+    return {d.value: d.label for d in LayoutDirection}
 
 
 def _node_skin_choices():
@@ -55,4 +61,11 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         description="Studio default node skin",
         category=CATEGORY_NODE_SKINS,
         widget_config={"options": _node_skin_choices},
+    )
+    studio_layout_direction = setting[CHOICES](
+        LayoutDirection.LEFT_TO_RIGHT.value,
+        label="Default Layout Direction",
+        description="Direction flow reads across node cards in the studio",
+        category=CATEGORY_NODE_SKINS,
+        widget_config={"options": _layout_direction_choices},
     )

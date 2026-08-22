@@ -1,4 +1,8 @@
 from enum import Enum, IntFlag
+from typing import TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from .port import DataPort
 
 
 class FlowType(Enum):
@@ -28,6 +32,112 @@ class PortType(Enum):
     INLET = "inlet"
     OUTLET = "outlet"
     CONFIG = "config"
+
+
+class LayoutDirection(Enum):
+    """
+    Orientation of flow across a node card.
+
+    Purely presentational: the execution engine imposes no directionality on a
+    graph, so this only decides which card edge a port's pin sits on and how a
+    skin arranges its content. Resolved per node through the framework < graph
+    < node chain (``node.props.layout_direction``), which means one graph may
+    legitimately mix directions — nothing may assume both ends of an edge share
+    an axis.
+
+    - LEFT_TO_RIGHT: inlets left, outlets right (the historical default)
+    - RIGHT_TO_LEFT: mirrored horizontally
+    - TOP_TO_BOTTOM: inlets on the top edge, outlets on the bottom
+    - BOTTOM_TO_TOP: mirrored vertically
+
+    ``inlet_side``/``outlet_side`` and ``inlet_vector``/``outlet_vector`` are
+    the single source for a pin's placement: the side doubles as the CSS
+    property name used to offset the pin, and the vector is what the Vue edge
+    layer reads from ``data-pin-dir-x``/``data-pin-dir-y``. Deriving both from
+    here is what stops the two from silently disagreeing.
+    """
+
+    LEFT_TO_RIGHT = "l2r"
+    RIGHT_TO_LEFT = "r2l"
+    TOP_TO_BOTTOM = "t2b"
+    BOTTOM_TO_TOP = "b2t"
+
+    @property
+    def label(self) -> str:
+        """Human-readable name for settings widgets."""
+        return _LAYOUT_DIRECTION_LABELS[self]
+
+    @property
+    def is_vertical(self) -> bool:
+        """True when flow runs along the block axis (T2B / B2T)."""
+        return self in (LayoutDirection.TOP_TO_BOTTOM, LayoutDirection.BOTTOM_TO_TOP)
+
+    @property
+    def inlet_side(self) -> str:
+        """Card edge an inlet's pin sits on — also a CSS property name."""
+        return _LAYOUT_DIRECTION_SIDES[self][0]
+
+    @property
+    def outlet_side(self) -> str:
+        """Card edge an outlet's pin sits on — also a CSS property name."""
+        return _LAYOUT_DIRECTION_SIDES[self][1]
+
+    @property
+    def inlet_vector(self) -> tuple[int, int]:
+        """``(dir_x, dir_y)`` an inlet's edge leaves the card along."""
+        return _LAYOUT_DIRECTION_VECTORS[self][0]
+
+    @property
+    def outlet_vector(self) -> tuple[int, int]:
+        """``(dir_x, dir_y)`` an outlet's edge leaves the card along."""
+        return _LAYOUT_DIRECTION_VECTORS[self][1]
+
+    def side_for(self, port: "DataPort") -> str:
+        """Card edge *port*'s pin sits on. Non-inlets are treated as outlets."""
+        return self.inlet_side if port.is_inlet() else self.outlet_side
+
+    def vector_for(self, port: "DataPort") -> tuple[int, int]:
+        """Direction vector for *port*'s pin. Non-inlets are treated as outlets."""
+        return self.inlet_vector if port.is_inlet() else self.outlet_vector
+
+    @classmethod
+    def coerce(cls, value: object) -> "LayoutDirection":
+        """Resolve a stored value, falling back to L2R rather than raising.
+
+        Settings store the enum's ``str`` value (CHOICES is a STRING subtype),
+        and this runs on the render path — an unrecognised or stale string must
+        degrade to today's layout, never take a node card down.
+        """
+        if isinstance(value, cls):
+            return value
+        try:
+            return cls(value)
+        except ValueError:
+            return cls.LEFT_TO_RIGHT
+
+
+_LAYOUT_DIRECTION_LABELS: dict[LayoutDirection, str] = {
+    LayoutDirection.LEFT_TO_RIGHT: "Left to right",
+    LayoutDirection.RIGHT_TO_LEFT: "Right to left",
+    LayoutDirection.TOP_TO_BOTTOM: "Top to bottom",
+    LayoutDirection.BOTTOM_TO_TOP: "Bottom to top",
+}
+
+# (inlet, outlet) per direction. Sides are CSS property names; vectors point
+# the way an edge leaves the card, and are mirrored between the two ends.
+_LAYOUT_DIRECTION_SIDES: dict[LayoutDirection, tuple[str, str]] = {
+    LayoutDirection.LEFT_TO_RIGHT: ("left", "right"),
+    LayoutDirection.RIGHT_TO_LEFT: ("right", "left"),
+    LayoutDirection.TOP_TO_BOTTOM: ("top", "bottom"),
+    LayoutDirection.BOTTOM_TO_TOP: ("bottom", "top"),
+}
+
+_LAYOUT_DIRECTION_VECTORS: dict[LayoutDirection, tuple[tuple[int, int], tuple[int, int]]] = {
+    LayoutDirection.LEFT_TO_RIGHT: ((-1, 0), (1, 0)),
+    LayoutDirection.RIGHT_TO_LEFT: ((1, 0), (-1, 0)),
+    LayoutDirection.TOP_TO_BOTTOM: ((0, -1), (0, 1)),
+    LayoutDirection.BOTTOM_TO_TOP: ((0, 1), (0, -1)),
+}
 
 
 class StoreStrategy(IntFlag):

@@ -12,12 +12,42 @@ skins (e.g. the reroute skin) call them directly with literal geometry.
 
 from __future__ import annotations
 
+from typing import TYPE_CHECKING
+
 from nicegui import ui
 
-from haywire.core.types import DataPort, CompoundType, FlowType
+from haywire.core.types import DataPort, CompoundType, FlowType, LayoutDirection
 
 from ..themes.icons import ICONS
 from ..utils import generate_pin_uuid
+
+if TYPE_CHECKING:
+    from haywire.core.node.node_wrapper import NodeWrapper
+
+
+def resolve_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
+    """The node's own layout direction (framework < graph < node).
+
+    Reads ``node.props.layout_direction``, whose ``graph()`` mirror already
+    resolves the chain. Anything unexpected degrades to ``LEFT_TO_RIGHT`` —
+    this is on the render path, so it must never raise.
+    """
+    try:
+        return LayoutDirection.coerce(wrapper.node.props.layout_direction)
+    except Exception:
+        return LayoutDirection.LEFT_TO_RIGHT
+
+
+def resolve_graph_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
+    """The owning GRAPH's layout direction, ignoring any per-node override.
+
+    For skins whose shape is dictated by the graph rather than the node — the
+    reroute skin, which is a dot on a wire and must follow the wire.
+    """
+    try:
+        return LayoutDirection.coerce(wrapper.graph.props.layout_direction)
+    except Exception:
+        return LayoutDirection.LEFT_TO_RIGHT
 
 
 def add_pin_tooltip(pin_el: ui.element, pin: DataPort) -> None:
@@ -69,7 +99,7 @@ def render_pin(
     pin: DataPort,
     node_id: str,
     *,
-    direction: str = "left",
+    layout: LayoutDirection = LayoutDirection.LEFT_TO_RIGHT,
     cell_style: str = "",
     pin_gutter: int,
     card_padding: int,
@@ -79,7 +109,16 @@ def render_pin(
 
     Emits the ``data-*`` attributes the Vue connection layer needs. Geometry is
     passed explicitly (``pin_gutter`` / ``card_padding`` / ``pin_protrusion``)
-    so callers without a settings object can supply literals.
+    so callers without a settings object can supply literals. ``card_padding``
+    must be the padding on the axis this pin crosses — the caller picks it,
+    because only the caller knows which padding its card actually paints.
+
+    ``layout`` decides which card edge the pin sits on and which way its edge
+    leaves: BOTH are derived from it here, and that is the point. The CSS side
+    and the ``data-pin-dir-x/y`` vector must never be computed independently —
+    a mismatch renders pins on the correct edge with edges curving the wrong
+    way, and nothing reports it. Defaults to ``LEFT_TO_RIGHT`` so a skin that
+    does not pass one keeps the historical behaviour verbatim.
 
     ``cell_style`` is appended to the pin element's own style, letting the
     caller place the pin directly into a grid cell (grid-column / *-self
@@ -92,11 +131,9 @@ def render_pin(
     pin_direction = "inlet" if pin.is_inlet() else "outlet"
     pin_uuid = generate_pin_uuid(node_id, pin.id)
 
-    # 2D direction vector: inlets point left (-X), outlets point right (+X).
-    if pin.is_inlet():
-        dir_x, dir_y = "-1", "0"
-    else:
-        dir_x, dir_y = "1", "0"
+    # One source for both the CSS side and the direction vector.
+    side = layout.side_for(pin)
+    dir_x, dir_y = layout.vector_for(pin)
 
     common_props = (
         f'id="{pin_uuid}" '
@@ -105,13 +142,30 @@ def render_pin(
         f'data-pin-flow-type="{pin.flow_type.value}" '
         f'data-pin-dir="{pin_direction}" '
         f'data-pin-dir-x="{dir_x}" '
-        f'data-pin-dir-y="{dir_y}"'
+        f'data-pin-dir-y="{dir_y}" '
+        f'data-hw-layout="{layout.value}"'
     )
 
     pin_size = f"{pin_gutter}px"
     # offset = card padding + half gutter (pin's natural inset) + desired protrusion
     offset_px = card_padding + pin_gutter // 2 + pin_protrusion
-    pin_offset = f"position: relative; {direction}: -{offset_px}px; cursor: crosshair; {cell_style}"
+    pin_offset = f"position: relative; {side}: -{offset_px}px; cursor: crosshair; "
+    if layout.is_vertical:
+        # The built-in CONTROL/CALLBACK glyphs (and library authors' per-type
+        # icon_in/icon_out overrides) are drawn pointing left/right. Rotating
+        # the element re-aims every one of them for free, including custom
+        # types this module has never heard of. Rotation is about the centre,
+        # so getBoundingClientRect() — which the edge layer reads — is
+        # unchanged.
+        #
+        # Published as a CUSTOM PROPERTY, not as `transform` directly: canvas.vue
+        # scales pins on hover, on drag-anchor, and on invalid-target, each by
+        # writing the whole `transform` property. A raw rotation here would be
+        # replaced (not composed) by any of them and the pin would snap back to
+        # horizontal. Every one of those rules composes `var(--hw-pin-rotate, )`
+        # in front of its scale instead.
+        pin_offset += "--hw-pin-rotate: rotate(90deg); "
+    pin_offset += cell_style
 
     # Resolve the per-flow-type icon; everything else (classes, color,
     # data-type, props chain) is identical across all three flow types.
