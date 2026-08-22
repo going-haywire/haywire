@@ -583,7 +583,12 @@ should also mirror its *columns* is a genuine design question — it affects rea
 not just pin placement — and it applies to any future multi-column skin, not just this
 one. Decide once, apply to all.
 
-### Follow-up C — dead fields in `NodeSkinSettings`
+### Follow-up C — dead fields in `NodeSkinSettings` — **LANDED (deleted)**
+
+Resolved by deleting both fields. The Ports panel already serves the need, and
+`tests/ui/skin/test_node_skin_settings.py` now asserts the bag's fields and the
+skins' reads match in *both* directions, so the docstring's claim is checked
+rather than asserted. Original write-up kept for the record.
 
 `show_node_ids` and `show_port_ids`
 ([node_skin_settings.py](../../../barn/haybale-studio/haybale_studio/settings/node_skin_settings.py))

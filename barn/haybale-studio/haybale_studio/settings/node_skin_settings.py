@@ -12,7 +12,14 @@ class NodeSkinSettings(LibrarySettings):
     """Settings controlling node layout, pin geometry, and element visibility.
 
     These settings are consumed directly by NodeSkin and its subclasses.
-    All fields are wired to actual rendering logic.
+
+    Every field here must be READ by rendering logic. This bag renders straight
+    into a settings panel, so an unread field is worse than a missing one: the
+    user toggles it and nothing happens, which reads as a broken feature rather
+    than an absent one. ``show_node_ids`` / ``show_port_ids`` sat unread from
+    introduction until they were deleted — under a docstring asserting the
+    opposite. ``test_node_skin_settings.py`` now checks this by grepping the
+    skins, so the claim cannot rot again.
     """
 
     # Visibility
@@ -91,11 +98,4 @@ class NodeSkinSettings(LibrarySettings):
         category="layout",
         min=4,
         max=32,
-    )
-    # --- debug ---
-    show_node_ids = setting[BOOL](
-        False, label="Show Node IDs", description="Display internal node IDs", category="debug"
-    )
-    show_port_ids = setting[BOOL](
-        False, label="Show Port IDs", description="Display internal port IDs", category="debug"
     )
