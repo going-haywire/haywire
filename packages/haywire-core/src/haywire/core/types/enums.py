@@ -73,6 +73,22 @@ class LayoutDirection(Enum):
         return self in (LayoutDirection.TOP_TO_BOTTOM, LayoutDirection.BOTTOM_TO_TOP)
 
     @property
+    def glyph_transform(self) -> str:
+        """CSS transform re-aiming a left/right-drawn pin glyph for this direction.
+
+        Pin icons — the built-in CONTROL/CALLBACK glyphs and library authors'
+        per-type ``icon_in``/``icon_out`` overrides alike — are all drawn
+        pointing left/right. Transforming the element re-aims every one of them
+        for free, including custom types this module has never heard of.
+
+        All four values are centre-origin (a mirror or a quarter turn), so
+        ``getBoundingClientRect()`` — which the edge layer reads — is unchanged.
+
+        Empty string for L2R, which needs no transform.
+        """
+        return _LAYOUT_DIRECTION_GLYPH_TRANSFORMS[self]
+
+    @property
     def inlet_side(self) -> str:
         """Card edge an inlet's pin sits on — also a CSS property name."""
         return _LAYOUT_DIRECTION_SIDES[self][0]
@@ -137,6 +153,17 @@ _LAYOUT_DIRECTION_VECTORS: dict[LayoutDirection, tuple[tuple[int, int], tuple[in
     LayoutDirection.RIGHT_TO_LEFT: ((1, 0), (-1, 0)),
     LayoutDirection.TOP_TO_BOTTOM: ((0, -1), (0, 1)),
     LayoutDirection.BOTTOM_TO_TOP: ((0, 1), (0, -1)),
+}
+
+# Re-aiming transform for the left/right-drawn pin glyphs, per direction. Each
+# is centre-origin so the pin's bounding box — the anchor the edge layer reads —
+# does not move. R2L mirrors rather than turning: a 180deg rotation would also
+# flip the glyph vertically, which reads wrong for asymmetric icons.
+_LAYOUT_DIRECTION_GLYPH_TRANSFORMS: dict[LayoutDirection, str] = {
+    LayoutDirection.LEFT_TO_RIGHT: "",
+    LayoutDirection.RIGHT_TO_LEFT: "scaleX(-1)",
+    LayoutDirection.TOP_TO_BOTTOM: "rotate(90deg)",
+    LayoutDirection.BOTTOM_TO_TOP: "rotate(-90deg)",
 }
 
 

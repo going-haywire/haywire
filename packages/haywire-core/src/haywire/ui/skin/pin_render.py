@@ -150,21 +150,26 @@ def render_pin(
     # offset = card padding + half gutter (pin's natural inset) + desired protrusion
     offset_px = card_padding + pin_gutter // 2 + pin_protrusion
     pin_offset = f"position: relative; {side}: -{offset_px}px; cursor: crosshair; "
-    if layout.is_vertical:
-        # The built-in CONTROL/CALLBACK glyphs (and library authors' per-type
-        # icon_in/icon_out overrides) are drawn pointing left/right. Rotating
-        # the element re-aims every one of them for free, including custom
-        # types this module has never heard of. Rotation is about the centre,
-        # so getBoundingClientRect() — which the edge layer reads — is
-        # unchanged.
+    glyph_transform = layout.glyph_transform
+    if glyph_transform:
+        # Re-aim the glyph for this direction. LayoutDirection owns the mapping
+        # so the transform cannot drift from the side/vector it must agree with;
+        # every value is centre-origin, leaving getBoundingClientRect() — which
+        # the edge layer reads — unchanged.
+        #
+        # Every non-L2R direction needs one, not just the vertical pair: R2L
+        # moves inlets to the right edge, so an un-mirrored glyph points out of
+        # the card instead of into it, and B2T reverses T2B's flow so it needs
+        # the opposite quarter turn. Symmetric DATA icons hide the omission;
+        # CALLBACK's directional arrows are where it shows.
         #
         # Published as a CUSTOM PROPERTY, not as `transform` directly: canvas.vue
         # scales pins on hover, on drag-anchor, and on invalid-target, each by
-        # writing the whole `transform` property. A raw rotation here would be
+        # writing the whole `transform` property. A raw transform here would be
         # replaced (not composed) by any of them and the pin would snap back to
-        # horizontal. Every one of those rules composes `var(--hw-pin-rotate, )`
-        # in front of its scale instead.
-        pin_offset += "--hw-pin-rotate: rotate(90deg); "
+        # its unaimed orientation. Every one of those rules composes
+        # `var(--hw-pin-rotate, )` in front of its scale instead.
+        pin_offset += f"--hw-pin-rotate: {glyph_transform}; "
     pin_offset += cell_style
 
     # Resolve the per-flow-type icon; everything else (classes, color,

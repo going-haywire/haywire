@@ -133,21 +133,26 @@ def test_default_layout_reproduces_pre_feature_output(simple_ports):
 
 
 @pytest.mark.parametrize(
-    ("layout", "rotated"),
-    [(L2R, False), (R2L, False), (T2B, True), (B2T, True)],
+    ("layout", "expected"),
+    [(L2R, None), (R2L, "scaleX(-1)"), (T2B, "rotate(90deg)"), (B2T, "rotate(-90deg)")],
 )
-def test_vertical_layouts_rotate_the_glyph(simple_ports, layout, rotated):
-    """L/R-pointing icons are re-aimed by rotation, not by new icon constants.
+def test_non_default_layouts_reaim_the_glyph(simple_ports, layout, expected):
+    """L/R-pointing icons are re-aimed by a transform, not by new icon constants.
 
-    The rotation must land on the ``--hw-pin-rotate`` custom property, NOT on
+    EVERY non-L2R direction needs one, not just the vertical pair: R2L puts
+    inlets on the right edge, so an un-mirrored glyph points out of the card,
+    and B2T reverses T2B's flow. Symmetric DATA icons hide a missing transform;
+    CALLBACK's directional arrows are where it shows.
+
+    The transform must land on the ``--hw-pin-rotate`` custom property, NOT on
     ``transform``: canvas.vue scales pins on hover/drag/invalid by writing the
-    whole ``transform`` property, which would replace a raw rotation and snap
-    the pin back to horizontal. Those rules compose the variable instead.
+    whole ``transform`` property, which would replace a raw transform and snap
+    the pin back to its unaimed orientation. Those rules compose the variable.
     """
     for port in simple_ports:
         style = _render(port, layout)._style
-        assert ("rotate(90deg)" in style.get("--hw-pin-rotate", "")) is rotated
-        assert "transform" not in style, "rotation must not be written as `transform`"
+        assert style.get("--hw-pin-rotate") == expected
+        assert "transform" not in style, "the transform must not be written as `transform`"
 
 
 @pytest.mark.parametrize("layout", list(LayoutDirection))
