@@ -88,7 +88,7 @@ class BaseGraph:
 
     def __init__(
         self,
-        name: str = "",
+        filestem: str = "",
         validation_delay_ms: float = 50.0,
         validation_scheduler: "Optional[ValidationScheduler]" = None,
     ):
@@ -96,8 +96,10 @@ class BaseGraph:
         Initialize a new Haywire graph.
 
         Args:
-            name: Human-readable name for the graph. Also seeds ``filestem``
-                until the first save or load stamps it from the real path.
+            filestem: The graph's filename without extension. Only a seed —
+                ``save_to_file`` and ``load_from_file`` both restamp it from
+                the real path. Pass the ``"Untitled N"`` placeholder for a
+                graph that has no file yet.
             validation_delay_ms: Debounce delay for validation (default 50ms)
             validation_scheduler: Strategy that runs the debounced validation
                 pass. Defaults to a background ``threading.Timer``. See
@@ -106,14 +108,15 @@ class BaseGraph:
         Note:
             There is no ``graph_id`` parameter: instance identity is minted
             internally as a uuid4 and is never supplied, serialized, or
-            reassigned.
+            reassigned. There is no ``name`` either — it held the same value
+            as ``filestem`` and was never reassigned, so the two collapsed
+            into the honest one.
         """
         # Transient instance identity. Minted here, never serialized, never
         # reassigned: it answers "which loaded instance?", so two tabs on one
         # file correctly hold two different graph_ids. Error locators and
         # RevealGraphInstance match on it.
         self.graph_id: str = str(uuid.uuid4())
-        self.name: str = name or "Untitled"
 
         # Core containers
         self.node_wrappers: Dict[str, "NodeWrapper"] = {}
@@ -126,9 +129,9 @@ class BaseGraph:
         # filestem is DERIVED, never trusted from the file: a file's stem is a
         # fact about the file, so a copy stored inside it goes stale the moment
         # it is renamed or copied. save_to_file and load_from_file both stamp it
-        # from the real path; this seed is honest only while the graph is
-        # unsaved, which is exactly when it is the right thing to show.
-        self.filestem: str = self.name
+        # from the real path; the constructor seed is honest only while the
+        # graph is unsaved, which is exactly when it is the right thing to show.
+        self.filestem: str = filestem or "Untitled"
         self.created_at: str = datetime.now().isoformat()
         self.modified_at: str | None = None
 
@@ -1124,7 +1127,7 @@ class BaseGraph:
     def __str__(self) -> str:
         """String representation of the graph"""
         return (
-            f"HaywireGraph(name='{self.name}', id={self.graph_id[:8]}, "
+            f"HaywireGraph(filestem='{self.filestem}', id={self.graph_id[:8]}, "
             f"nodes={len(self.node_wrappers)}, edges={len(self.edge_wrappers)}, "
             f"variables={len(self.variables)})"
         )

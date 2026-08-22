@@ -66,15 +66,15 @@ class TestCanvasInitialState:
     """A new graph starts at _CANVAS_MIN_SIZE with the changed flag cleared."""
 
     def test_new_graph_has_min_canvas_width(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         assert graph.canvas_width == _CANVAS_MIN_SIZE
 
     def test_new_graph_has_min_canvas_height(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         assert graph.canvas_height == _CANVAS_MIN_SIZE
 
     def test_new_graph_changed_flag_is_false(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         assert graph._canvas_size_changed is False
 
 
@@ -89,7 +89,7 @@ class TestCheckCanvasSize:
     """_check_canvas_size() expands, shrinks, and manages the changed flag."""
 
     def test_empty_graph_stays_at_min_size(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         changed = graph._check_canvas_size()
         assert not changed
         assert graph.canvas_width == _CANVAS_MIN_SIZE
@@ -97,7 +97,7 @@ class TestCheckCanvasSize:
 
     def test_node_well_inside_canvas_no_change(self):
         """A node far from the boundary does not trigger a resize."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 100, 100)
         changed = graph._check_canvas_size()
         assert not changed
@@ -106,7 +106,7 @@ class TestCheckCanvasSize:
 
     def test_returns_false_on_consecutive_unchanged_check(self):
         """Calling _check_canvas_size() twice without moving nodes returns False."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 100, 100)
         graph._check_canvas_size()
         changed = graph._check_canvas_size()
@@ -114,7 +114,7 @@ class TestCheckCanvasSize:
 
     def test_node_past_boundary_triggers_width_expansion(self):
         """posX that pushes needed_w above current canvas_width expands width."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         # posX = MIN - MARGIN + 1 = 7901: needed_w = 8001 > 8000
         boundary_x = _CANVAS_MIN_SIZE - _CANVAS_EDGE_MARGIN + 1
         _inject(graph, "n1", boundary_x, 100)
@@ -124,7 +124,7 @@ class TestCheckCanvasSize:
         assert graph.canvas_height == _CANVAS_MIN_SIZE
 
     def test_node_past_boundary_triggers_height_expansion(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         boundary_y = _CANVAS_MIN_SIZE - _CANVAS_EDGE_MARGIN + 1
         _inject(graph, "n1", 100, boundary_y)
         graph._check_canvas_size()
@@ -133,7 +133,7 @@ class TestCheckCanvasSize:
 
     def test_expansion_follows_step_formula(self):
         """Canvas expands to the nearest STEP boundary above the needed extent."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         # posX=9500 → needed=9600 → ceil(9600/2000)*2000 = 5*2000 = 10000
         _inject(graph, "n1", 9500, 100)
         graph._check_canvas_size()
@@ -141,7 +141,7 @@ class TestCheckCanvasSize:
 
     def test_large_offset_jumps_multiple_steps(self):
         """A node far outside jumps multiple expansion steps."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         # posX=15000 → needed=15100 → ceil(15100/2000)*2000 = 8*2000 = 16000
         _inject(graph, "n1", 15000, 100)
         graph._check_canvas_size()
@@ -149,7 +149,7 @@ class TestCheckCanvasSize:
 
     def test_width_and_height_expand_independently(self):
         """Width and height are computed and expanded independently."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         # posX=9500 → 10000; posY=4500 → needed=5500 → 6000
         _inject(graph, "n1", 9500, 4500)
         graph._check_canvas_size()
@@ -158,7 +158,7 @@ class TestCheckCanvasSize:
 
     def test_multiple_nodes_uses_furthest_position(self):
         """Canvas size is driven by the node with the largest posX / posY."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 100, 100)
         _inject(graph, "n2", 11000, 3000)
         _inject(graph, "n3", 5000, 9500)
@@ -168,7 +168,7 @@ class TestCheckCanvasSize:
 
     def test_canvas_shrinks_when_node_moves_inward(self):
         """Moving a node away from the expanded edge shrinks the canvas."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         # posX=10000 → needed=10100 → ceil(10100/2000)*2000 = 6*2000 = 12000
         _inject(graph, "n1", 10000, 100)
         graph._check_canvas_size()
@@ -182,7 +182,7 @@ class TestCheckCanvasSize:
 
     def test_canvas_never_shrinks_below_min(self):
         """Removing all nodes resets to _CANVAS_MIN_SIZE, never below."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 15000, 15000)
         graph._check_canvas_size()
 
@@ -193,13 +193,13 @@ class TestCheckCanvasSize:
         assert graph.canvas_height == _CANVAS_MIN_SIZE
 
     def test_changed_flag_set_when_size_changes(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 9000, 100)
         graph._check_canvas_size()
         assert graph._canvas_size_changed is True
 
     def test_changed_flag_not_set_when_size_unchanged(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 100, 100)
         graph._canvas_size_changed = False
         graph._check_canvas_size()
@@ -217,7 +217,7 @@ class TestEstimateCanvasSize:
     """estimate_canvas_size() sets the correct size but does NOT set the changed flag."""
 
     def test_sets_correct_dimensions(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         # posX=9500 → 10000; posY=4500 → needed=5500 → 6000
         _inject(graph, "n1", 9500, 4500)
         graph.estimate_canvas_size()
@@ -225,13 +225,13 @@ class TestEstimateCanvasSize:
         assert graph.canvas_height == _expected_size(4500)
 
     def test_does_not_set_changed_flag(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         _inject(graph, "n1", 9500, 100)
         graph.estimate_canvas_size()
         assert graph._canvas_size_changed is False
 
     def test_empty_graph_stays_at_min_without_flag(self):
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         graph.estimate_canvas_size()
         assert graph.canvas_width == _CANVAS_MIN_SIZE
         assert graph.canvas_height == _CANVAS_MIN_SIZE
@@ -277,7 +277,7 @@ class TestCanvasSizePipelinePropagation:
 
     def test_canvas_size_in_result_when_flag_set(self):
         """When _canvas_size_changed is True, ValidationResult carries canvas_size."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         graph.canvas_width = 10000
         graph.canvas_height = 12000
         graph._canvas_size_changed = True
@@ -289,7 +289,7 @@ class TestCanvasSizePipelinePropagation:
 
     def test_canvas_size_none_in_result_when_flag_not_set(self):
         """ValidationResult.canvas_size is None when _canvas_size_changed is False."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         graph._canvas_size_changed = False
 
         result = _trigger_validation(graph)
@@ -299,7 +299,7 @@ class TestCanvasSizePipelinePropagation:
 
     def test_flag_cleared_after_validation(self):
         """_canvas_size_changed is reset to False after the validation batch runs."""
-        graph = BaseGraph(name="G")
+        graph = BaseGraph(filestem="G")
         graph._canvas_size_changed = True
 
         _trigger_validation(graph)

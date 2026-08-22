@@ -20,9 +20,10 @@ def graph_to_python_script(graph: "BaseGraph") -> str:
 
     lines = []
 
-    # Generate function name from graph name
+    # Generate function name from the graph's filename stem — a stem is
+    # exactly right here; the free-text `meta.label` would not be.
     # Convert to valid Python identifier (snake_case)
-    function_name = re.sub(r"[^a-zA-Z0-9_]", "_", graph.name.lower())
+    function_name = re.sub(r"[^a-zA-Z0-9_]", "_", graph.filestem.lower())
     function_name = re.sub(r"_+", "_", function_name)  # Collapse multiple underscores
     function_name = function_name.strip("_")  # Remove leading/trailing underscores
     if not function_name or function_name[0].isdigit():
@@ -63,7 +64,7 @@ def graph_to_python_script(graph: "BaseGraph") -> str:
     # 2. Function definition and docstring
     lines.append(f"def {function_name}(graph):")
     lines.append('    """')
-    lines.append(f"    Reconstruct graph: {graph.name}")
+    lines.append(f"    Reconstruct graph: {graph.filestem}")
     if graph.meta.description:
         lines.append("    ")
         lines.append(f"    {graph.meta.description}")

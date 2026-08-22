@@ -99,7 +99,7 @@ def test_split_action_resolves_outlet_type_and_builds_children():
 
 
 def test_split_action_raises_on_missing_edge():
-    g = BaseGraph(name="G")
+    g = BaseGraph(filestem="G")
     with pytest.raises(ValueError, match="not found"):
         _build_split_action(g, edge_id="nope")
 
@@ -203,7 +203,7 @@ def test_editor_split_returns_none_on_error():
             raise RuntimeError("boom")
 
     ed = Editor.__new__(Editor)
-    ed.graph = BaseGraph(name="G")
+    ed.graph = BaseGraph(filestem="G")
     ed.history_manager = cast(Any, _HM())
     # Unknown edge -> action ctor raises inside the try -> None.
     assert ed.split_edge_with_reroute("nope", (0.0, 0.0), registry_key=_RR_KEY) is None

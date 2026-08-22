@@ -73,12 +73,12 @@ class GraphEntry(GraphContainer):
         """Human-readable name for UI labels.
 
         For file-backed entries returns the stem (no extension); for
-        untitled entries returns the graph's ``name`` attribute or
-        ``"Untitled"``.
+        untitled entries returns the graph's ``filestem`` (the
+        ``"Untitled N"`` placeholder).
         """
         if self.path is not None:
             return self.path.stem
-        return getattr(self.graph, "name", None) or "Untitled"
+        return getattr(self.graph, "filestem", None) or "Untitled"
 
     @property
     def is_executing(self) -> bool:

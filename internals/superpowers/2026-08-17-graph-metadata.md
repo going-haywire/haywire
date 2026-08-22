@@ -1,11 +1,11 @@
 # Graph identity, metadata + file-format migration — implementation plan
 
-**Status:** ✅ **LANDED** 2026-08-22 (Tasks 1–9; Task 10 deferred) ·
+**Status:** ✅ **LANDED** 2026-08-22 (Tasks 1–10, complete) ·
 **Settled:** 2026-08-17, revised 2026-08-22 (identity model, `meta` bag,
 pre-hydration)
 
-> **Two corrections found during implementation**, both recorded in the tasks
-> below:
+> **Three corrections found during implementation**, all recorded in the
+> tasks below:
 >
 > 1. **A settings bag serializes as `{"values": {...}, "promoted": {...}}`,
 >    not a flat dict.** `Settings.from_dict` raises `PromotedFormatError` on
@@ -15,9 +15,9 @@ pre-hydration)
 >    not abstract properties.** ABC clears `__abstractmethods__` at class
 >    creation, long before a dataclass field exists on an instance, so
 >    abstract properties there make every `GraphEntry(...)` raise TypeError.
->
-> Task 10 (`name` → `filestem`) is deliberately **not** landed — it is
-> orthogonal, ~69 call sites, and was always scoped to land alone.
+> 3. **Task 10 was a deletion, not a rename.** After Tasks 1–9, `name` and
+>    `filestem` held the same value and `name` was never reassigned, so the
+>    two collapsed into `filestem` rather than one being renamed to the other.
 
 Closes three gaps at once:
 
@@ -811,18 +811,23 @@ appear in every graph, and `_is_graph` confirms by structure afterwards.
 
 ---
 
-## Task 10 — `name` → `filestem` rename (land separately)
+## Task 10 — `name` → `filestem` (landed as a **collapse**, not a rename)
 
-~69 call sites including test fixtures. Mechanical but wide, and it shares
-**nothing** with the identity work — land it as its own commit or the diff
-becomes unattributable.
+This is the **in-memory attribute**. The on-disk key was already handled: v1
+drops `name` and `load_from_file` stamps `filestem` (Task 9), so by the time
+this landed no file was read for it.
 
-This is the **in-memory attribute** rename. The on-disk key is already handled:
-v1 drops `name` and `load_from_file` stamps `filestem` (Task 9), so by the time
-this lands no file is read for it.
+**It turned out to be a deletion, not a rename.** After Tasks 1–9, `name` and
+`filestem` held the same value from the same constructor argument
+(`self.filestem = self.name`), and `name` was **never reassigned anywhere** —
+verified by grep across the repo. Two fields, one value, one of them lying as
+soon as a save happened. So `name` was removed and `filestem` became the sole
+field and the sole constructor parameter.
 
-Only three non-test readers of `graph.name` exist, and all three confirm the
-rename is honest:
+Renaming would have preserved the duplication under a better name; collapsing
+removes the class of bug entirely.
+
+Only three non-test readers existed, and all three confirm the field is honest:
 
 - `graph_to_python.py:25` sanitises it into a **Python function name** — a
   filename stem is exactly right; a free-text `label` would be wrong.
@@ -830,14 +835,20 @@ rename is honest:
 - `graph_editor.py:154` passes it as `label=` to `Reveal`, a **tab label**,
   which per this design is filename-derived.
 
-All three get a *correct* value for the first time once `filestem` is stamped
-from the real path — today they render `"Untitled 1"` for `webcam.haywire`.
+All three now get a *correct* value for the first time. Verified end-to-end: a
+graph constructed as `"Untitled 3"` and saved to `face_tracker.haywire`
+generates `def face_tracker(graph):` — previously `def untitled_3(graph):`.
 
 `filestem` over `filename` because the field holds the stem (`face_tracker`), not
 the basename (`face_tracker.haywire`).
 
-After the rename run `/check-rename`: the IDE misses string-based references
-(`patch("...")`, `monkeypatch.setattr`, doc citations).
+**What the string-reference sweep caught** (the IDE misses these): three
+`SimpleNamespace(name="Webcam")` graph stubs in
+`tests/graph_editor/test_graph_editor_reveal_instance.py`, which fail only on
+the code path where the reveal *matches* — so they passed the targeted run and
+failed the full suite. `getattr(self.graph, "name", ...)` in
+`GraphEntry.display_name` was the other non-obvious one: a `getattr` default
+silently degrades to `"Untitled"` rather than raising.
 
 ---
 

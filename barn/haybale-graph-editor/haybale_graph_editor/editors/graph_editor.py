@@ -151,7 +151,7 @@ class GraphEditor(BaseEditor):
             return  # graph_id-only broadcast, nothing to select
 
         context.session.publish(
-            Reveal(editor=GraphEditor, binding_id=self.wrapper._binding_id, label=graph.name)
+            Reveal(editor=GraphEditor, binding_id=self.wrapper._binding_id, label=graph.filestem)
         )
         context.session.publish(SelectionMoved())
 

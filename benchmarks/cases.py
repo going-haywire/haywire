@@ -73,7 +73,7 @@ def _build_loop_graph():
         "Shutdown": ShutdownNode,
     }
 
-    graph = BaseGraph(name="bench loop")
+    graph = BaseGraph(filestem="bench loop")
     ids: dict[str, str] = {}
     for short_id, node_cls in node_classes.items():
         key = node_cls.class_identity.registry_key
@@ -142,7 +142,7 @@ def _prepare_node_execute_bare() -> Prepared:
     from haywire.core.execution.execution_context import ExecutionContext
     from haywire.core.graph.base import BaseGraph
 
-    graph = BaseGraph(name="bench bare")
+    graph = BaseGraph(filestem="bench bare")
     nw = graph.create_node_wrapper(BenchBareNode.class_identity.registry_key, position=(0, 0))
     graph.force_validation()
 

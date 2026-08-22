@@ -15,14 +15,14 @@ class TestBaseGraph:
 
     def test_graph_creation(self):
         """Test basic graph creation."""
-        graph = BaseGraph(name="Test Graph")
+        graph = BaseGraph(filestem="Test Graph")
 
-        assert graph.name == "Test Graph"
+        assert graph.filestem == "Test Graph"
         assert graph.graph_id  # a uuid4 is minted, never supplied
 
     def test_graph_id_is_unique_per_instance(self):
         """Instance identity, not document identity: two graphs never share one."""
-        assert BaseGraph(name="G").graph_id != BaseGraph(name="G").graph_id
+        assert BaseGraph(filestem="G").graph_id != BaseGraph(filestem="G").graph_id
 
     def test_empty_graph_fixture(self, empty_graph: BaseGraph):
         """Test that empty_graph fixture works."""

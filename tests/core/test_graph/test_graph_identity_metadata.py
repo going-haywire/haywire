@@ -16,7 +16,7 @@ from haywire.core.graph.scheduler import SyncScheduler
 
 @pytest.fixture
 def graph():
-    return BaseGraph(name="G", validation_scheduler=SyncScheduler())
+    return BaseGraph(filestem="G", validation_scheduler=SyncScheduler())
 
 
 # ---------------------------------------------------------------------------
@@ -26,7 +26,7 @@ def graph():
 
 def test_graph_id_is_unique_per_instance(graph):
     """Two instances never share an id, even from identical construction."""
-    other = BaseGraph(name="G", validation_scheduler=SyncScheduler())
+    other = BaseGraph(filestem="G", validation_scheduler=SyncScheduler())
     assert graph.graph_id != other.graph_id
 
 
@@ -45,8 +45,8 @@ def test_graph_id_survives_a_load(graph):
 def test_two_graphs_from_one_dict_differ(graph):
     """The point of instance identity: same document, two live instances."""
     data = graph.to_dict()
-    a = BaseGraph(name="A", validation_scheduler=SyncScheduler())
-    b = BaseGraph(name="B", validation_scheduler=SyncScheduler())
+    a = BaseGraph(filestem="A", validation_scheduler=SyncScheduler())
+    b = BaseGraph(filestem="B", validation_scheduler=SyncScheduler())
     a.load_from_dict(json.loads(json.dumps(data)))
     b.load_from_dict(json.loads(json.dumps(data)))
     assert a.graph_id != b.graph_id
@@ -79,7 +79,7 @@ def test_load_stamps_filestem_from_path_not_from_file(graph, tmp_path):
     payload["filestem"] = "Untitled 6"  # the lie
     source.write_text(json.dumps(payload))
 
-    loaded = BaseGraph(name="ignored", validation_scheduler=SyncScheduler())
+    loaded = BaseGraph(filestem="ignored", validation_scheduler=SyncScheduler())
     assert loaded.load_from_file(str(source))
     assert loaded.filestem == "real_name"
 
@@ -111,7 +111,7 @@ def test_created_at_survives_a_round_trip(graph, tmp_path):
     graph.save_to_file(str(target))
     original = graph.created_at
 
-    loaded = BaseGraph(name="other", validation_scheduler=SyncScheduler())
+    loaded = BaseGraph(filestem="other", validation_scheduler=SyncScheduler())
     loaded.load_from_file(str(target))
     assert loaded.created_at == original
 
@@ -134,7 +134,7 @@ def test_meta_round_trips(graph):
     graph.meta.author = "ann"
     graph.meta.version = "2.1.0"
 
-    loaded = BaseGraph(name="other", validation_scheduler=SyncScheduler())
+    loaded = BaseGraph(filestem="other", validation_scheduler=SyncScheduler())
     loaded.load_from_dict(json.loads(json.dumps(graph.to_dict())))
 
     assert loaded.meta.label == "Face Tracker"

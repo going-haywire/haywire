@@ -45,7 +45,7 @@ def _registry():
 
 
 def _graph():
-    return BaseGraph(name="G", validation_scheduler=SyncScheduler())
+    return BaseGraph(filestem="G", validation_scheduler=SyncScheduler())
 
 
 def test_opinionless_graph_serializes_empty_props():

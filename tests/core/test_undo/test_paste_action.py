@@ -11,7 +11,7 @@ pytestmark = pytest.mark.unit
 
 def test_create_node_wrapper_passes_node_data_to_build(monkeypatch):
     captured = {}
-    g = BaseGraph(name="Test Graph")
+    g = BaseGraph(filestem="Test Graph")
 
     class _FakeWrapper:
         def __init__(self, *a, **k):

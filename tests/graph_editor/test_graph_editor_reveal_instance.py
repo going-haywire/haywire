@@ -50,7 +50,7 @@ def test_matching_graph_id_selects_node_and_publishes():
     editor = _make_editor()
     node_wrapper = MagicMock()
     graph = SimpleNamespace(
-        graph_id="webcam", name="Webcam", get_node_wrapper=MagicMock(return_value=node_wrapper)
+        graph_id="webcam", filestem="Webcam", get_node_wrapper=MagicMock(return_value=node_wrapper)
     )
     editor._canvas_manager = SimpleNamespace(graph=graph)
 
@@ -73,7 +73,7 @@ def test_matching_graph_id_selects_edge():
     edge_wrapper = MagicMock()
     graph = SimpleNamespace(
         graph_id="webcam",
-        name="Webcam",
+        filestem="Webcam",
         edge_wrappers={"edge::o@a>>i@b": edge_wrapper},
     )
     editor._canvas_manager = SimpleNamespace(graph=graph)
@@ -95,7 +95,9 @@ def test_node_gone_is_noop():
     from haywire.core.signals import RevealGraphInstance
 
     editor = _make_editor()
-    graph = SimpleNamespace(graph_id="webcam", name="Webcam", get_node_wrapper=MagicMock(return_value=None))
+    graph = SimpleNamespace(
+        graph_id="webcam", filestem="Webcam", get_node_wrapper=MagicMock(return_value=None)
+    )
     editor._canvas_manager = SimpleNamespace(graph=graph)
     context = SimpleNamespace(data=MagicMock(), session=MagicMock())
 

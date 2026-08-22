@@ -99,7 +99,7 @@ class TestLibrariesAndRegistries:
         assert issubclass(node_cls, BaseNode)
 
         # The resolved class is instantiable and carries the id it was given.
-        graph = BaseGraph(name="Integration Test")
+        graph = BaseGraph(filestem="Integration Test")
         wrapper = graph.create_node_wrapper(first_node_key, position=(0, 0))
         assert wrapper is not None
         assert wrapper.node.node_id == wrapper.node_id

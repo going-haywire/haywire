@@ -52,11 +52,11 @@ def test_display_name_uses_path_stem_when_set():
     assert entry.display_name == "MyName"
 
 
-def test_display_name_falls_back_to_graph_name():
+def test_display_name_falls_back_to_graph_filestem():
     from haybale_haystack.graph_entry import GraphEntry
 
     g = MagicMock()
-    g.name = "MyGraph"
+    g.filestem = "MyGraph"
     entry = GraphEntry(graph=cast(Any, g), editor=MagicMock(), path=None, unsaved=True)
     assert entry.display_name == "MyGraph"
 
@@ -64,7 +64,7 @@ def test_display_name_falls_back_to_graph_name():
 def test_display_name_falls_back_to_untitled():
     from haybale_haystack.graph_entry import GraphEntry
 
-    g = MagicMock(spec=[])  # no .name attribute
+    g = MagicMock(spec=[])  # no .filestem attribute
     entry = GraphEntry(graph=cast(Any, g), editor=MagicMock(), path=None, unsaved=True)
     assert entry.display_name == "Untitled"
 
