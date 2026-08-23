@@ -4958,13 +4958,13 @@
 </tr>
 <tr>
 <td><strong>GraphContainer</strong></td>
-<td>A protocol implemented by anything that can host a graph in <strong>GraphEditor</strong>: requires <code>binding_id</code>, <code>editor</code>, <code>path</code>, <code>unsaved</code>, <code>display_name</code>, and <code>save()</code>. <strong>GraphEntry</strong> is the haystack-flavoured implementation. See <a href="../../barn/haybale-graph-editor/">haybale-graph-editor</a></td>
-<td>Graph host, graph holder</td>
+<td>An abstract base class (ABC) that a source library subclasses to host a graph in <strong>GraphEditor</strong>: supplies <code>binding_id</code>, <code>editor</code>, <code>path</code>, <code>unsaved</code>, <code>display_name</code>, and <code>save()</code>. <code>editor</code>/<code>path</code>/<code>unsaved</code> are plain annotations rather than abstract properties, so a dataclass subclass can satisfy them with fields. <strong>GraphEntry</strong> is the haystack-flavoured implementation. See <a href="../../barn/haybale-graph-editor/">haybale-graph-editor</a></td>
+<td>Graph host, graph holder; protocol (it is nominal inheritance, not structural)</td>
 </tr>
 <tr>
 <td><strong>binding_id</strong></td>
-<td>A <strong>runtime address</strong> for one open graph — <code>str(path)</code> when file-backed, the <code>__unsaved_N__</code> token otherwise. A computed property with no storage of its own (<a href="../../barn/haybale-haystack/haybale_haystack/graph_entry.py"><code>GraphEntry.binding_id</code></a>), so it re-derives whenever <code>path</code> is assigned on save-as or rename. <strong>Never persisted</strong>: the haystack TOML records the workspace-<em>relative</em> <code>path</code> instead and reconstructs the key at load, which is what lets a workspace move without breaking. The general rule — a runtime address (<code>binding_id</code>, <strong><code>graph_id</code></strong>) is never written to disk; a portable pointer (relative <code>path</code>) and a content identity (<strong><code>graph_uuid</code></strong>) are.</td>
-<td>Graph identity (a location is not an identity — see <code>graph_uuid</code>)</td>
+<td>A <strong>runtime address</strong> for one open graph — <code>str(path)</code> when file-backed, the graph's own <strong><code>graph_id</code></strong> otherwise. A computed property with no storage of its own (<a href="../../barn/haybale-haystack/haybale_haystack/graph_entry.py"><code>GraphEntry.binding_id</code></a>), so it re-derives whenever <code>path</code> is assigned on save-as or rename. The file-backed form <strong>is</strong> persisted — the workspace snapshot records it to restore tabs next launch, which is why it must be <code>str(path)</code> and not a transient value. Unsaved bindings are excluded from that snapshot (nothing on disk to reopen). The haystack TOML separately records the workspace-<em>relative</em> <code>path</code>, which is what lets a workspace move without breaking.</td>
+<td>Graph identity (a location is not an identity)</td>
 </tr>
 <tr>
 <td><strong>GraphAppState</strong></td>
@@ -4988,28 +4988,28 @@
 </tr>
 <tr>
 <td><strong><code>graph_id</code></strong></td>
-<td>A graph's <strong>runtime location key</strong> — where this graph currently <em>is</em>, equal to the <strong>binding_id</strong> (<code>str(path)</code> when file-backed, the <code>__unsaved_N__</code> token otherwise). Used by every <strong>error locator</strong> and by <code>RevealGraphInstance</code> matching. <strong>Never serialized and never read back from a <code>.haywire</code> file</strong>: it describes location, and a file that records its own location lies as soon as it is copied or moved. Answers "which open graph do I navigate to", never "which graph is this" — that is <strong><code>graph_uuid</code></strong>. <em>(new)</em></td>
-<td>Graph identity / content id (that's <code>graph_uuid</code>); do not derive it from <code>path.stem</code> — two folders may hold the same stem</td>
-</tr>
-<tr>
-<td><strong><code>graph_uuid</code></strong></td>
-<td>A graph's <strong>persisted content identity</strong> — a UUID minted once when the graph is created, carried in the <code>.haywire</code> file, and stable across saves and renames. On load the graph compares <code>sha256</code> of its own absolute path against the stored <strong><code>origin_hash</code></strong>; when they differ the file is treated as a fork (a copy) and a <strong>fresh uuid is minted</strong>, so a duplicated graph never shares its ancestor's identity. A plain move hashes differently and also re-mints — an accepted false positive. Answers "which graph is this", never "where is it" — that is <strong><code>graph_id</code></strong>. <em>(new)</em></td>
-<td>graph_id (that is the runtime location key), revision id (a uuid is not bumped per save)</td>
-</tr>
-<tr>
-<td><strong><code>origin_hash</code></strong></td>
-<td><code>sha256</code> of the absolute path a graph was last <strong>saved</strong> to, stored in the <code>.haywire</code> file solely so a load can tell "same place" from "somewhere else" and drive the <strong><code>graph_uuid</code></strong> re-mint. Hashed rather than stored plainly because a <code>.haywire</code> file travels between users, and a readable path would ship one user's home directory to everyone who opens the graph. One-way by construction: nothing ever needs to recover the path, only to compare.</td>
-<td>origin_path (a readable path leaks private directory structure); scrambled/obfuscated path (reversible encodings are not privacy)</td>
+<td>A graph's <strong>transient instance identity</strong> — a <code>uuid4</code> minted in <code>BaseGraph.__init__</code>, never serialized, never reassigned. Two tabs opened on the same file hold two <em>different</em> <code>graph_id</code>s, which is correct: they are two live instances. Used by every <strong>error locator</strong> and by <code>RevealGraphInstance</code> matching, and it is the <strong>binding_id</strong> of an unsaved graph (an untitled graph has no file, so no restart can restore it regardless). Answers "which loaded instance", never "which document". Because it is written once and never again, it has no lifecycle to keep in sync.</td>
+<td>Document identity; a path or <code>path.stem</code> (those are locations); anything persisted</td>
 </tr>
 <tr>
 <td><strong>graph <code>filestem</code></strong></td>
-<td>The graph's own copy of its <strong>filename without extension</strong> (<code>graphs/face_tracker.haywire</code> → <code>face_tracker</code>), stamped by <code>save_to_file</code> on every save and <code>"Untitled N"</code> while unsaved. Machine-maintained and <strong>read-only to the user</strong>: it exists so a <code>.haywire</code> file is self-describing outside the studio, and so tab labels and generated Python function names have a stable source. Distinct from <strong><code>label</code></strong>, the user's free-text title, which never drives navigation. <em>(new)</em></td>
-<td><code>name</code> (the pre-rename field name — ambiguous with <code>label</code>); filename (this carries no <code>.haywire</code> extension)</td>
+<td>The graph's <strong>filename without extension</strong> (<code>graphs/face_tracker.haywire</code> → <code>face_tracker</code>). <strong>Derived, never trusted from the file</strong>: stamped by <code>save_to_file</code> on save and by <code>load_from_file</code> on load, both from the real path; the constructor seed (<code>"Untitled N"</code>) holds only while the graph is unsaved. It is the graph's ONLY name field — the former <code>name</code> attribute held the same value, was never reassigned, and was removed rather than renamed. A stem is a fact about the <em>file</em>, so a copy stored inside it goes stale the moment the file is renamed or copied — which is exactly what happened to the pre-migration <code>name</code> field (every shipped fixture stored a stale <code>"Untitled N"</code>). Machine-maintained and read-only to the user. Distinct from <strong><code>label</code></strong>, the user's free-text title, which never drives navigation.</td>
+<td><code>name</code> (the pre-rename field — ambiguous with <code>label</code>); filename (this carries no <code>.haywire</code> extension)</td>
 </tr>
 <tr>
 <td><strong>graph metadata</strong></td>
-<td>The descriptive, user-facing facts a graph carries about <em>itself</em>, persisted at the top level of the <code>.haywire</code> file. Split by who owns them: <strong>user-editable</strong> — <code>label</code> (free-text title), <code>description</code>, <code>author</code>, <code>version</code>; <strong>machine-maintained, read-only</strong> — <strong><code>filestem</code></strong>, <code>created_at</code>, <code>modified_at</code>, <strong><code>graph_uuid</code></strong>, <strong><code>origin_hash</code></strong>. Edited through the Graph Metadata panel or the <code>set_metadata</code> Farmhand tool, written straight onto the graph object and persisted by the next save — <strong>not undoable</strong>, matching every other row in the Properties Editor. Distinct from <strong><code>graph.props</code></strong> (the <strong>GraphProperties</strong> settings bag, serialized under <code>props</code>), which carries <em>behavioural</em> opinions the graph tier imposes on its nodes. Metadata describes the document; props configure the program. <em>(new)</em></td>
-<td>Graph props / graph settings (those are the <code>GraphProperties</code> bag); graph info (that is one panel that renders metadata)</td>
+<td>The descriptive facts a graph carries about <em>itself</em>. Split by who owns them: <strong>user-editable</strong> — <code>label</code> (free-text title), <code>description</code>, <code>author</code>, <code>version</code>, which live in the <strong><code>graph.meta</code></strong> settings bag (a <code>GraphSettings</code> flavour serialized under <code>meta</code>, so the settings framework owns editing, serialization and change propagation); <strong>machine-maintained, read-only</strong> — <strong><code>filestem</code></strong>, <code>created_at</code>, <code>modified_at</code>, persisted at the file's top level and deliberately kept OUT of the bag (they have no setter, and a bag renderer draws every field as editable). Edited through the Graph Metadata panel or the <code>set_metadata</code> Farmhand tool — <strong>not undoable</strong>, and a metadata edit <strong>does not mark the graph dirty</strong>, matching <code>graph.props</code>. Distinct from <strong><code>graph.props</code></strong> (the <strong>GraphProperties</strong> bag), which carries <em>behavioural</em> opinions the graph tier imposes on its nodes. Metadata describes the document; props configure the program.</td>
+<td>Graph props / graph settings (that is the <code>GraphProperties</code> bag); graph info (that is one panel that renders metadata)</td>
+</tr>
+<tr>
+<td><strong><code>format_version</code></strong></td>
+<td>The <code>.haywire</code> <strong>file format</strong> version — an integer at the top level of the file, framework-owned, stamped by <code>save_to_file</code>. Deliberately NOT <code>meta.version</code>, which is the author's own free-text version string: were the migration chain to read that, a user typing <code>2.0</code> into the metadata panel would make their file claim to be schema v2. A file whose <code>format_version</code> exceeds what this Haywire supports is <strong>refused outright</strong> rather than half-loaded — an older studio cannot know what a newer shape looks like, so it must not guess.</td>
+<td><code>meta.version</code> (author-managed, unrelated); a semver string (this is a plain integer)</td>
+</tr>
+<tr>
+<td><strong>pre-hydration</strong></td>
+<td>The step that upgrades a parsed graph dict to the current <strong><code>format_version</code></strong> before <code>load_from_dict</code> reads it, so the loader never grows <code>if "old_key" in data</code> branches. A chain of <code>Upgrader</code> subclasses (one per structural change, each recursing into its predecessor); each decides for itself, via <code>detect()</code>, whether a dict is already its shape — the signal may be <code>format_version</code> or, for versions predating it, a structural marker. Adding a version means adding <code>vN.py</code> and repointing the chain head. Lives in <a href="../../packages/haywire-core/src/haywire/core/graph/prehydration/"><code>haywire.core.graph.prehydration</code></a></td>
+<td>Migration (nothing is written back — the upgrade is in-memory, persisted only by a later save); back-compat shims in the loader</td>
 </tr>
 </tbody>
 </table>
@@ -5194,6 +5194,11 @@
 <td><strong>Skin</strong></td>
 <td>A <code>BaseSkin</code> subclass that renders the visual shape of a node on the Graph Canvas; operates outside the <code>.hw-panel</code> cascade and uses only <code>--hw-node-*</code> and <code>--hw-canvas-*</code> tokens. See <a href="../../components/skins/skin-canon/">components/skins</a></td>
 <td>Renderer (Skin is canonical in code), style</td>
+</tr>
+<tr>
+<td><strong>LayoutDirection</strong></td>
+<td>Which way flow reads across a node card — <code>l2r</code>, <code>r2l</code>, <code>t2b</code>, <code>b2t</code> — deciding the card edge each pin sits on and how the Skin arranges content. Purely presentational: the execution engine imposes no directionality. Resolved <strong>per node</strong> through framework &lt; graph &lt; node (<code>node.props.layout_direction</code>), exactly like <strong>Skin</strong>, so one graph may mix directions and nothing may assume both ends of an Edge share an axis. Vertical values render inlets/outlets as bare pin strips (no labels, no inline Widgets — values are reached through the <strong>Ports Panel</strong>), leaving only config ports in the card body. Distinct from <strong>FlowType</strong>, which is a port's transport category</td>
+<td>Flow direction (reads as a property of FlowType), orientation, node rotation</td>
 </tr>
 <tr>
 <td><strong>Widget</strong></td>
