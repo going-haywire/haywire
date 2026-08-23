@@ -4963,7 +4963,7 @@
 </tr>
 <tr>
 <td><strong>binding_id</strong></td>
-<td>A <strong>runtime address</strong> for one open graph — <code>str(path)</code> when file-backed, the graph's own <strong><code>graph_id</code></strong> otherwise. A computed property with no storage of its own (<a href="../../barn/haybale-haystack/haybale_haystack/graph_entry.py"><code>GraphEntry.binding_id</code></a>), so it re-derives whenever <code>path</code> is assigned on save-as or rename. The file-backed form <strong>is</strong> persisted — the workspace snapshot records it to restore tabs next launch, which is why it must be <code>str(path)</code> and not a transient value. Unsaved bindings are excluded from that snapshot (nothing on disk to reopen). The haystack TOML separately records the workspace-<em>relative</em> <code>path</code>, which is what lets a workspace move without breaking.</td>
+<td>A <strong>runtime address</strong> for one open graph — <code>str(path)</code> when file-backed, the graph's own <strong><code>graph_id</code></strong> otherwise. A computed property with no storage of its own (<code>GraphEntry.binding_id</code> in <code>barn/haybale-haystack/haybale_haystack/graph_entry.py</code>), so it re-derives whenever <code>path</code> is assigned on save-as or rename. The file-backed form <strong>is</strong> persisted — the workspace snapshot records it to restore tabs next launch, which is why it must be <code>str(path)</code> and not a transient value. Unsaved bindings are excluded from that snapshot (nothing on disk to reopen). The haystack TOML separately records the workspace-<em>relative</em> <code>path</code>, which is what lets a workspace move without breaking.</td>
 <td>Graph identity (a location is not an identity)</td>
 </tr>
 <tr>
@@ -5036,24 +5036,59 @@
 <td>Tab, widget (too generic)</td>
 </tr>
 <tr>
+<td><strong>Surface</strong></td>
+<td>A place Panels appear — a Properties tab, a context menu, a region within one, a flyout. Owns a stable <code>id</code> the registry routes on, a <code>poll()</code> predicate, a <code>provides</code> Protocol its host must satisfy, and optional <code>presentation</code>. See <a href="../../adr/0029-surface-model/">ADR-0029</a></td>
+<td>Scope, focus, context (all overloaded), category</td>
+</tr>
+<tr>
+<td><strong>Host</strong></td>
+<td>Whatever renders a Surface's Panels — an Editor, a context-menu provider, or <strong>another Panel</strong>. Hosting is recursive: host → surface → panel → host → surface → panel</td>
+<td>container, parent</td>
+</tr>
+<tr>
+<td><strong>Hosting panel</strong></td>
+<td>A Panel that renders Surfaces of its own, via <code>render_surface(surface, ctx, actions=None)</code> inside its <code>draw()</code>. How every kind of nesting is expressed — menu regions, submenus, flyouts, toolbar overflow</td>
+<td>child surface, submenu (those are renderings, not the concept)</td>
+</tr>
+<tr>
+<td><strong>provides</strong></td>
+<td>The <code>Protocol</code> a Surface names as its host contract — every Surface states its own, and none is inherited. Panels on that Surface call its methods through <code>self.actions</code>. When a Surface is nested, the host is <strong>piped, never inferred</strong>: a hosting Panel passes down the host it received unless it explicitly says <code>actions=self</code> (it <em>is</em> the host) or <code>actions=obj</code> (it delegates). Whichever object is named is <code>isinstance</code>-checked against the target Surface's Protocol at that point. Resolution is never derived from whether the Panel happens to satisfy the Protocol — a member-less Protocol matches everything, which would silently strand the real provider one hop up</td>
+<td>actions (the Panel-side annotation), interface</td>
+</tr>
+<tr>
+<td><strong>presentation</strong></td>
+<td><code>label</code> + <code>icon</code> on a <strong>Surface</strong>, declared where its host draws chrome around it — today only the Properties editor, which draws a tab per Surface. Menu Surfaces declare none. Panels do <strong>not</strong> have it: a Panel's <code>label</code>/<code>icon</code> are component identity (listings, generated docs, the expansion-section title), and in a menu the Panel draws its own row. <code>order</code> is not part of it</td>
+<td>tab, chrome</td>
+</tr>
+<tr>
+<td><strong>disabled render</strong></td>
+<td>A Panel's own inapplicable state, drawn by <code>draw_disabled()</code> when its <code>poll()</code> is false. The default is a no-op, so a Panel with no opinion vanishes. Distinct from <code>access=</code> denial, which renders <strong>nothing</strong> — a greyed entry advertises what the principal may not have. Whoever draws a thing is who greys it: a Surface never draws, so its host greys it; a Panel always draws, so it greys itself</td>
+<td>greyed out, disabled item</td>
+</tr>
+<tr>
+<td><strong>root surface</strong></td>
+<td>A Surface named by some registered Panel's <code>surface=</code> and absent from every Panel's <code>hosts=</code>. Derived from the panel catalog, not from a declaration, so it can change when a library is installed or removed. The Properties strip lists root Surfaces <strong>that declare <code>presentation</code></strong> — every other host names the Surface it opens explicitly</td>
+<td>top-level surface</td>
+</tr>
+<tr>
+<td><strong>sibling group</strong></td>
+<td>The set of flyouts at one menu level, sharing the invariant that opening one closes the others and their descendants — exactly one open path from the root. Owned by whatever opens a box (a popup, a flyout), never by a Panel or a Surface: one Panel may render two Surfaces into a single popup, and rows from both are siblings there</td>
+<td>flyout siblings</td>
+</tr>
+<tr>
 <td><strong>Ports Panel</strong></td>
-<td>The Panel under the <code>ports</code> Scope (<code>PortFocus</code>, available when a node is selected) that lists the selected node's inlets, outlets, and config ports. Renders each port's live Widget (the same one the node card shows, honouring <code>should_show_widget()</code>) where one applies, and a read-only id/type row otherwise — a second editing surface for ports whose Skin omits the Widget (e.g. flow-direction skins)</td>
+<td>The Panel on the <code>ports</code> Surface (<code>PortInspector</code>, applying when a node is selected) that lists the selected node's inlets, outlets, and config ports. Renders each port's live Widget (the same one the node card shows, honouring <code>should_show_widget()</code>) where one applies, and a read-only id/type row otherwise — a second editing place for ports whose Skin omits the Widget (e.g. flow-direction skins)</td>
 <td>port inspector, ports list</td>
 </tr>
 <tr>
-<td><strong>PortFocus</strong></td>
-<td>The Scope (<code>id="ports"</code>, available when <code>active_node</code> is set) that hosts the Ports Panel — the selected node's full port list. Distinct from <strong>PinFocus</strong> (<code>id="pin"</code>), the per-pin right-click context-menu scope keyed on <code>active_port</code></td>
-<td>ports scope</td>
+<td><strong>PortInspector</strong></td>
+<td>The Surface (<code>id="ports"</code>, applies when <code>active_node</code> is set) that hosts the Ports Panel — the selected node's full port list. Distinct from <strong>PinMenu</strong> (<code>id="pin"</code>), the per-pin right-click context menu keyed on <code>active_port</code></td>
+<td>ports scope, PortFocus</td>
 </tr>
 <tr>
-<td><strong>PinFocus</strong></td>
-<td>The Scope (<code>id="pin"</code>, available when <code>active_port</code> is set) for the per-pin right-click context menu (hosts <code>PortInfoPanel</code>). Distinct from <strong>PortFocus</strong> (the node-scoped ports list). Was named <code>PortFocus</code> before the ports list took that name</td>
-<td>per-pin menu scope</td>
-</tr>
-<tr>
-<td><strong>Scope</strong></td>
-<td>A named tab within a panel-aware editor that groups panels (e.g. <code>node</code>, <code>ports</code>, <code>graph</code>, <code>edge</code>)</td>
-<td>Context (overloaded), category</td>
+<td><strong>PinMenu</strong></td>
+<td>The Surface (<code>id="pin"</code>, applies when <code>active_port</code> is set) for the per-pin right-click context menu (hosts <code>PortInfoPanel</code>). Distinct from <strong>PortInspector</strong> (the node-scoped ports list)</td>
+<td>per-pin menu scope, PinFocus</td>
 </tr>
 <tr>
 <td><strong>Hidden component</strong></td>
@@ -5067,23 +5102,23 @@
 </tr>
 <tr>
 <td><strong>Active axis</strong></td>
-<td>The single <em>primary</em> element of a selection — <code>EditState.active_node</code> / <code>active_edge</code>, <strong>at most one of which is non-<code>None</code> at a time</strong> (a node and an edge are never simultaneously active; setting one clears the other). The <strong>inspector subject</strong>: the element whose props / ports / settings / errors the Properties panels render, and the element that wears the distinct <strong>active highlight</strong>. Set by an explicit single-element focus gesture (plain-click or the active-promotion shift-click — see <strong>Active-promotion</strong>); <strong>cleared to <code>None</code> by any bulk or programmatic selection</strong> (drag-box, paste, deselecting the active element) — those produce a selection with no primary, so the single-element inspector panels hide while <strong>SelectionFocus</strong> still shows for batch ops. Distinct from the <strong>Selection axis</strong>.</td>
+<td>The single <em>primary</em> element of a selection — <code>EditState.active_node</code> / <code>active_edge</code>, <strong>at most one of which is non-<code>None</code> at a time</strong> (a node and an edge are never simultaneously active; setting one clears the other). The <strong>inspector subject</strong>: the element whose props / ports / settings / errors the Properties panels render, and the element that wears the distinct <strong>active highlight</strong>. Set by an explicit single-element focus gesture (plain-click or the active-promotion shift-click — see <strong>Active-promotion</strong>); <strong>cleared to <code>None</code> by any bulk or programmatic selection</strong> (drag-box, paste, deselecting the active element) — those produce a selection with no primary, so the single-element inspector panels hide while <strong>SelectionMenu</strong> still applies for batch ops. Distinct from the <strong>Selection axis</strong>.</td>
 <td>active node (overloaded with CONTROL node — see Node Behaviors), focused node; <code>next(iter(selected_nodes))</code> (the old non-deterministic derivation — removed)</td>
 </tr>
 <tr>
-<td><strong>SelectionFocus</strong></td>
-<td>The Scope (<code>id="selection"</code>, available when any node or edge is selected) that hosts the unified right-click <strong>command</strong> menu — Copy / Paste / Delete and the batch node ops (redraw / revalidate / reset), each acting on the whole <strong>Selection axis</strong>. The single command-menu pipeline for both lone and multi-element right-clicks. Distinct from <strong>NodeFocus</strong> / <strong>EdgeFocus</strong>, which remain for the single-element <em>inspector</em> (NodeFocus) and single-only verbs like edge reconnect (EdgeFocus). Also distinct from <strong>ToolbarFocus</strong> — SelectionFocus is the right-click surface; ToolbarFocus is the floating-toolbar surface; the floating toolbar's overflow (⋯) reaches <em>back into</em> SelectionFocus panels.</td>
-<td>selection scope, multi-select menu</td>
+<td><strong>SelectionMenu</strong></td>
+<td>The Surface (<code>id="selection"</code>, applies when any node or edge is selected) hosting the unified right-click <strong>command</strong> menu — Copy / Paste / Delete and the batch node ops (redraw / revalidate / reset), each acting on the whole <strong>Selection axis</strong>. The single command-menu pipeline for both lone and multi-element right-clicks. Distinct from <strong>NodeInspector</strong> / <strong>EdgeMenu</strong>, which carry the single-element inspector and single-only verbs like edge reconnect. <code>provides = SelectionActions</code></td>
+<td>selection scope, multi-select menu, SelectionFocus</td>
 </tr>
 <tr>
 <td><strong>Floating toolbar</strong></td>
-<td>A persistent, Miro-style command surface anchored above the <strong>Selection axis</strong>'s on-screen bounding box whenever the selection is non-empty. A <em>second</em> command surface alongside the right-click menu, not a replacement. Rendered with <strong>NiceGUI panels</strong> (<code>ToolbarFocus</code>) into a persistent, no-backdrop <code>Popup</code> by <code>SelectionToolbarProvider</code> — the panel-render sibling of <code>SessionContextMenuProvider</code>. <strong>Python owns both content and the positioned container.</strong> The canvas (Vue) computes the selection's screen bounding box and emits a low-frequency <code>selectionBounds</code> event on selection-change and on pan/zoom/drag <strong>end</strong>, plus <code>selectionBoundsHide</code> on gesture <strong>start</strong> (Miro hide-during-gesture rule — no frame-rate traffic); the provider shows / <code>setPosition</code>s / hides the Popup in response. Its curated face is <strong>Copy · Delete · ⋯</strong>, rendered <strong>horizontally</strong> as icon-only buttons (<code>hui.icon_action</code>) into a <code>ui.row</code> — deliberately unlike the right-click menu, which is a <strong>vertical</strong> column of labelled rows. The ⋯ overflow re-opens the <strong>SelectionFocus</strong> right-click menu (via <code>ContextMenuSelectedEvent</code>) so the batch ops live in one place.</td>
-<td>selection toolbar, action bar, hover toolbar; do not call it a "context menu" (that is the right-click surface)</td>
+<td>A persistent, Miro-style command surface anchored above the <strong>Selection axis</strong>'s on-screen bounding box whenever the selection is non-empty. A <em>second</em> command surface alongside the right-click menu, not a replacement. Rendered with <strong>NiceGUI panels</strong> (on the <strong>SelectionToolbar</strong> Surface) into a persistent, no-backdrop <code>Popup</code> by <code>SelectionToolbarProvider</code> — the panel-render sibling of <code>SessionContextMenuProvider</code>. <strong>Python owns both content and the positioned container.</strong> The canvas (Vue) computes the selection's screen bounding box and emits a low-frequency <code>selectionBounds</code> event on selection-change and on pan/zoom/drag <strong>end</strong>, plus <code>selectionBoundsHide</code> on gesture <strong>start</strong> (Miro hide-during-gesture rule — no frame-rate traffic); the provider shows / <code>setPosition</code>s / hides the Popup in response. Its curated face is <strong>Copy · Delete · ⋯</strong>, rendered <strong>horizontally</strong> as icon-only buttons (<code>hui.icon_action</code>) into a <code>ui.row</code> — deliberately unlike the right-click menu, which is a <strong>vertical</strong> column of labelled rows. The ⋯ is a <strong>hosting panel</strong> rendering a Surface that carries the batch ops.</td>
+<td>selection toolbar, action bar, hover toolbar; do not call it a "context menu" (that is the right-click menu)</td>
 </tr>
 <tr>
-<td><strong>ToolbarFocus</strong></td>
-<td>The Scope (<code>id="toolbar"</code>) authors register <strong>floating-toolbar</strong> panels against — the curated face (Copy · Delete · ⋯). Distinct from <strong>SelectionFocus</strong> (the right-click surface). Copy/Delete panels declare <code>focus=ToolbarFocus</code> but <code>actions=SelectionContextActions</code> (reused); the ⋯ panel uses <code>actions=ToolbarActions</code> whose <code>open_overflow_menu</code> re-opens the SelectionFocus menu. Polled by <code>SelectionToolbarProvider</code>, not by the right-click provider.</td>
-<td>toolbar scope</td>
+<td><strong>SelectionToolbar</strong></td>
+<td>The Surface (<code>id="toolbar"</code>) authors register <strong>floating-toolbar</strong> panels against — the curated face (Copy · Delete · ⋯). Distinct from <strong>SelectionMenu</strong> (the right-click menu). <code>provides = SelectionActions</code>, shared with SelectionMenu. Its ⋯ is a <strong>hosting panel</strong> rendering an overflow Surface, passing that Protocol down. Polled by <code>SelectionToolbarProvider</code>, not by the right-click provider.</td>
+<td>toolbar scope, ToolbarFocus</td>
 </tr>
 <tr>
 <td><strong>Replace-then-act</strong></td>
@@ -5171,9 +5206,9 @@
 <td>—</td>
 </tr>
 <tr>
-<td><strong>ScopeToolbar</strong></td>
-<td>The vertical strip of 36×36px square buttons inside the PropertiesEditor that switches the active Scope</td>
-<td>Scope bar, scope selector</td>
+<td><strong>SurfaceToolbar</strong></td>
+<td>The vertical strip of 36×36px square buttons inside the PropertiesEditor that switches the active Surface. Lists root Surfaces only — anything nested is rendered by a <strong>hosting panel</strong> inside the panel area. A surface whose <code>poll()</code> is false stays in place, greyed (<code>opacity: 0.3; pointer-events: none</code>)</td>
+<td>ScopeToolbar, scope bar, surface selector</td>
 </tr>
 <tr>
 <td><strong>Session</strong></td>
@@ -5450,10 +5485,11 @@
 <li>A <strong>Flow</strong> contains one global <strong>Control Flow</strong> DAG and one <strong>LocalizedDataFlow</strong> DAG per CONTROL node.</li>
 <li>A <strong>Library</strong> scans folders in <code>register_components()</code> to populate registries (nodes, types, adapters, widgets, skins, themes).</li>
 <li>A <strong>Haybale</strong> package is always a <strong>Library</strong>; not all Libraries are distributed as haybale packages.</li>
-<li>An <strong>Editor</strong> occupies one <strong>Slot</strong> in the <strong>AppShell</strong>; an <strong>Editor</strong> may host many <strong>Panels</strong> filtered by <strong>Scope</strong>.</li>
+<li>An <strong>Editor</strong> occupies one <strong>Slot</strong> in the <strong>AppShell</strong>; an <strong>Editor</strong> may host many <strong>Panels</strong>, grouped by <strong>Surface</strong>.</li>
+<li>A <strong>Panel</strong> may itself be a <strong>Host</strong>, rendering further <strong>Surfaces</strong>; visibility and the <code>provides</code> Protocol compose down that path.</li>
 <li>The <strong>AppShell</strong> is composed of: <strong>TopBar</strong>, <strong>ActivityBar</strong>, <strong>ContextBar</strong>, <strong>StatusBar</strong>, and the four <strong>Slots</strong> (<strong>ACTION</strong>, <strong>CONTEXT</strong>, <strong>EDIT</strong>, <strong>INFO</strong>).</li>
 <li>Each <strong>Slot</strong> has a <strong>Bar</strong> and an area: the ACTION and CONTEXT slots have icon bars (<strong>ActivityBar</strong>, <strong>ContextBar</strong>); the EDIT and INFO slots have tab bars (<strong>MainTabBar</strong>, <strong>BottomTabBar</strong>).</li>
-<li>The <strong>ActivityBar</strong> switches editors in the <strong>ACTION Slot</strong>; the <strong>ContextBar</strong> switches editors in the <strong>CONTEXT Slot</strong>; the <strong>ScopeToolbar</strong> (inside the PropertiesEditor) switches the active <strong>Scope</strong>.</li>
+<li>The <strong>ActivityBar</strong> switches editors in the <strong>ACTION Slot</strong>; the <strong>ContextBar</strong> switches editors in the <strong>CONTEXT Slot</strong>; the <strong>SurfaceToolbar</strong> (inside the PropertiesEditor) switches the active <strong>Surface</strong>.</li>
 <li>Each slot's persisted state is a uniform <strong>slot snapshot</strong> dict (<code>active_key</code>, <code>visible</code>, <code>size</code>, <code>editors</code>) produced by <code>Slot.to_snapshot()</code> and keyed by <strong>SlotName</strong> value in <code>workspace_state.json</code>; there are no per-slot state dataclasses.</li>
 <li>A <strong>Panel</strong> is always rendered inside a <code>.hw-panel</code> container and must use <code>hui.*</code> wrappers for any pattern covered by the design guide.</li>
 <li>A <strong>Skin</strong> renders on the <strong>Graph Canvas</strong> and must use only <code>--hw-node-*</code> / <code>--hw-canvas-*</code> <strong>CSS tokens</strong>; it must not use <code>hui.*</code> panel wrappers.</li>
@@ -5488,7 +5524,7 @@
 <strong>Dev:</strong> "When I add this to a <strong>Library</strong>, how does it get discovered?"
 <strong>Domain expert:</strong> "Declare it in <code>register_components()</code> with <code>scan_nodes(...)</code>, and the <strong>entry_point</strong> in <code>pyproject.toml</code> makes the whole <strong>Library</strong> discoverable at startup."
 <strong>Dev:</strong> "And if the user is in the <strong>Graph Canvas</strong> and selects the node, what shows in the <strong>CONTEXT Slot</strong>?"
-<strong>Domain expert:</strong> "The <strong>Properties Editor</strong> queries the <strong>PanelRegistry</strong> for all <strong>Panels</strong> whose <code>poll()</code> returns <code>True</code> for the <code>node</code> <strong>Scope</strong>. Each matching <strong>Panel</strong> renders inside a collapsible section. The <strong>ContextBar</strong> icon tells you which editor is active in the <strong>CONTEXT Slot</strong> (the right edge)."</p>
+<strong>Domain expert:</strong> "The <strong>Properties Editor</strong> polls the <code>node</code> <strong>Surface</strong>, then queries the <strong>PanelRegistry</strong> for its <strong>Panels</strong> and polls each one. Both must pass. Each surviving <strong>Panel</strong> renders inside a collapsible section. The <strong>ContextBar</strong> icon tells you which editor is active in the <strong>CONTEXT Slot</strong> (the right edge)."</p>
 </blockquote>
 <h3 id="haystack">Haystack<a class="headerlink" href="#haystack" title="Permanent link">&para;</a></h3>
 <blockquote>
@@ -5554,7 +5590,8 @@
 <li><strong>"library"</strong> has five distinct meanings (see top of this glossary). Always disambiguate.</li>
 <li><strong>"pin"</strong> appears in the codebase and docs as both the colloquial name for the icon port and a general synonym for any port. Canonical terms are <strong>Inlet</strong> / <strong>Outlet</strong>; <strong>Pin</strong> is acceptable only for EXEC ports.</li>
 <li><strong>"connection"</strong> is used loosely to mean both the act of connecting (verb) and the edge itself (noun). Prefer <strong>Edge</strong> for the object, and <strong>link</strong> for the action.</li>
-<li><strong>"context"</strong> is overloaded: <code>ExecutionContext</code> (passed to worker), <code>SessionContext</code> (UI state), and <code>context=</code> string in older panel decorators (now replaced by <strong>Scope</strong>). Always qualify: ExecutionContext, SessionContext, or Scope.</li>
+<li><strong>"context"</strong> is overloaded: <code>ExecutionContext</code> (passed to worker) and <code>SessionContext</code> (UI state). Always qualify which one. Never use it for the place a Panel appears — that is a <strong>Surface</strong>.</li>
+<li><strong>"surface"</strong> in prose means a <strong>Surface</strong> — the place Panels appear. Do not use it loosely for "aspect" or "side of a thing", and do not call the <code>provides</code> Protocol a "verb surface". The CSS token <code>--hw-bg-surface</code> is a background colour and unrelated.</li>
 <li><strong>"flow"</strong> appears as both the general concept (data flow, control flow) and the specific assembled object (<code>LocalizedDataFlow</code>, <code>Flow</code>). Capitalize <strong>Flow</strong> when referring to the assembled execution unit.</li>
 <li><strong>"NodeBehaviorFlags" vs "NodeType"</strong>: <code>NodeType</code> is the enum (<code>DATA</code>, <code>CONTROL</code>, <code>EVENT</code>, <code>OUTPUT</code>, <code>LOOPBACK</code>); <code>NodeBehaviorFlags</code> is the frozen dataclass that holds <code>node_type: NodeType</code> plus other flags (<code>is_stateful</code>, <code>is_mutable</code>, …). The glossary term <strong>NodeType</strong> is canonical for the execution role. "Node type" (lowercase) is used consistently in docs and code for this concept only.</li>
 <li><strong>"sidebar"</strong> is overloaded: the CSS token prefix <code>--hw-sidebar-*</code> refers specifically to the <strong>ActivityBar</strong> and <strong>ContextBar</strong> (the narrow 48px icon strips). It does NOT refer to the Left or Right <strong>Slots</strong> (the wider editor panels). Always qualify: use <strong>ActivityBar</strong>, <strong>ContextBar</strong>, or <strong>Slot</strong> for structural names; "sidebar" only appears as a CSS token prefix.</li>

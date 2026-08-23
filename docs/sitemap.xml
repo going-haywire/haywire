@@ -37,7 +37,7 @@
          <lastmod>2026-08-23</lastmod>
     </url>
     <url>
-         <loc>https://going-haywire.github.io/haywire/docs/adr/0009-focus-id-stable-key/</loc>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0009-surface-id-stable-key/</loc>
          <lastmod>2026-08-23</lastmod>
     </url>
     <url>
@@ -94,6 +94,10 @@
     </url>
     <url>
          <loc>https://going-haywire.github.io/haywire/docs/adr/0028-security-document/</loc>
+         <lastmod>2026-08-23</lastmod>
+    </url>
+    <url>
+         <loc>https://going-haywire.github.io/haywire/docs/adr/0029-surface-model/</loc>
          <lastmod>2026-08-23</lastmod>
     </url>
     <url>
