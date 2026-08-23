@@ -658,29 +658,30 @@ export default {
  * display through a variable reintroduces exactly the whole-subtree restyle it
  * is meant to avoid — measured at 26.7ms via var() versus 0.2ms here.
  *
- * Hover-persistence is preserved by the companion rules further down, which
- * restore `display` for the hovered card's own subtree. */
-[data-lod-level="raw"] .zoom-pan-lod1,
-[data-lod-level="raw"] .zoom-pan-lod2,
-[data-lod-level="low"] .zoom-pan-lod2,
-[data-lod-level="raw"] .zoom-pan-lod3,
-[data-lod-level="low"] .zoom-pan-lod3,
-[data-lod-level="medium"] .zoom-pan-lod3 {
-  display: none;
-}
-
-/* Hover escape hatch: re-admit the hovered card's hidden descendants to the
- * render tree, matching the opacity-based hover persistence below.
+ * Hover-persistence is preserved by the `:not(.hw-lod-hover *)` guard, which
+ * keeps the hovered card's own subtree out of these rules entirely.
  *
- * Keyed off `.hw-lod-hover`, a class canvas.vue sets in its existing
- * mouseenter/mouseleave handlers — NOT off `:hover`. A descendant-of-:hover
- * selector (`.zoom-pan-lod0:hover .zoom-pan-lod2`) forces Blink to track hover
- * state through every node's subtree, and that alone cost ~37ms of RecalcStyle
- * per LOD crossing on a 200-node graph versus 0.1ms without it. */
-.hw-lod-hover .zoom-pan-lod1,
-.hw-lod-hover .zoom-pan-lod2,
-.hw-lod-hover .zoom-pan-lod3 {
-  display: revert;
+ * The guard is written as an exclusion rather than a companion `display: revert`
+ * override, because `revert` rolls back to the USER-AGENT value, not to the
+ * author `display` the element would otherwise have. A `<div>` reverts to
+ * `block`, which silently destroys any author `display: flex` on the same
+ * element — e.g. `.number-drag` (the NumberWidget root carries
+ * `widget-container zoom-pan-lod2`) collapsed to a block on node hover, pushing
+ * its value text and right arrow out of the fixed-height box, where
+ * `.widget-container { overflow: hidden }` clipped them away.
+ *
+ * `.hw-lod-hover` is a class canvas.vue sets in its existing mouseenter/
+ * mouseleave handlers — NOT `:hover`. A descendant-of-:hover selector
+ * (`.zoom-pan-lod0:hover .zoom-pan-lod2`) forces Blink to track hover state
+ * through every node's subtree, and that alone cost ~37ms of RecalcStyle per LOD
+ * crossing on a 200-node graph versus 0.1ms without it. */
+[data-lod-level="raw"] .zoom-pan-lod1:not(.hw-lod-hover *),
+[data-lod-level="raw"] .zoom-pan-lod2:not(.hw-lod-hover *),
+[data-lod-level="low"] .zoom-pan-lod2:not(.hw-lod-hover *),
+[data-lod-level="raw"] .zoom-pan-lod3:not(.hw-lod-hover *),
+[data-lod-level="low"] .zoom-pan-lod3:not(.hw-lod-hover *),
+[data-lod-level="medium"] .zoom-pan-lod3:not(.hw-lod-hover *) {
+  display: none;
 }
 
 /* HOVER PERSISTENCE: Override LOD when hovering - Simplified */
