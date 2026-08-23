@@ -27,6 +27,7 @@ from __future__ import annotations
 
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
+from haywire.core.settings.descriptor import UiState
 from haywire.core.types.enums import PortType
 
 
@@ -58,6 +59,8 @@ class RerouteNode(BaseNode):
         # fresh creation and load, so the binding is self-contained and survives
         # reload without being persisted.
         self.props.skin = "haywire-core:skin:RerouteSkin"
+        for cat in ("state", "appearance","annotation", "layout"):
+            self.props.set_ui_state_all(UiState.HIDDEN, category=cat)
 
     def on_startup(self, context: ExecutionContext) -> None:
         # The split action stamps exactly one inlet + one outlet. Resolve the
