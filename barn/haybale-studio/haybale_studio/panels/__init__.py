@@ -7,8 +7,8 @@ from .properties.setting.canvas import NodeSkinSettingsPanel
 from .properties.setting.canvas import EdgeUISettingsPanel
 from .properties.setting.canvas import EditorZoomPanSettingsPanel
 from .properties.setting.canvas import MinimapSettingsPanel
-from .properties.setting.canvas import DebugOverlaySettingsPanel
-from .properties.setting.execution import DebugSettingsPanel
+from .properties.setting.debug import DebugOverlaySettingsPanel
+from .properties.setting.debug import DebugSettingsPanel
 from .properties.setting.execution import ExecutionSettingsPanel
 from .file_browser.menu.file import OpenInCodeEditorMenuPanel
 from .file_browser.menu.file import OpenInFileViewerMenuPanel

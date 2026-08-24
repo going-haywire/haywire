@@ -126,6 +126,15 @@ def test_canvas_settings_keeps_canvas_id():
     assert surface_by_id("canvas") is CanvasSettings
 
 
+def test_debug_surface_has_id():
+    """Log levels and the debug overlay live on their own tab, last in order."""
+    from haywire.barn.builtin.surfaces import CanvasSettings, DebugSurface
+
+    assert DebugSurface.id == "debug"
+    assert surface_by_id("debug") is DebugSurface
+    assert DebugSurface.order > CanvasSettings.order
+
+
 def test_graph_context_surfaces_have_ids():
     from haybale_graph_editor.surfaces import (
         GraphContext,

@@ -72,14 +72,14 @@ from: `NodeInfoPanel` — registry_key: `haybale-graph-editor:panel:NodeInfoPane
 
 ## Properties / settings panel
 
-Settings panels register against inspector Surfaces for settings scopes (`CanvasSettings`, `AppSettings`, `ExecutionInspector`) and render a schema using `render_schema()` in the PropertiesEditor.
+Settings panels register against inspector Surfaces for settings scopes (`CanvasSettings`, `AppSettings`, `ExecutionInspector`, `DebugSurface`) and render a schema using `render_schema()` in the PropertiesEditor.
 
 Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 
 `CanvasSettingsPanel` renders the entire `CanvasSettings` schema into the panel:
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:34:53"
+--8<-- "barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py:40:56"
 ```
 
 from: `CanvasSettingsPanel` — registry_key: `haybale-studio:panel:CanvasSettingsPanel`

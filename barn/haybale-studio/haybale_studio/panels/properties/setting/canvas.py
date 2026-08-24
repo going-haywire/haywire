@@ -13,7 +13,8 @@ NodeSkinSettingsPanel        — node dimensions, typography, label visibility
 EdgeUISettingsPanel          — edge routing, width, animation
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
 MinimapSettingsPanel         — minimap position and visibility
-DebugOverlaySettingsPanel    — debug HUD visibility
+
+Debug HUD visibility moved to ``DebugSurface`` — see debug.py.
 """
 
 from __future__ import annotations
@@ -26,7 +27,6 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
-from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
 from haywire.barn.builtin.surfaces import CanvasSettings as CanvasSurface
@@ -131,22 +131,3 @@ class MinimapSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(MinimapSettings, registry)
-
-
-@panel(
-    surface=CanvasSurface,
-    label="Debug Overlay",
-    icon=hui.icon.debug,
-    order=50,
-    default_open=False,
-)
-class DebugOverlaySettingsPanel(BasePanel):
-    """Performance/debug HUD visibility and position."""
-
-    def draw(
-        self,
-        ctx: "SessionContext",
-        layout: PanelLayout,
-    ) -> None:
-        registry = ctx.app.library_service.get_settings_registry()
-        render_schema(DebugOverlaySettings, registry)

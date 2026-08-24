@@ -39,6 +39,20 @@ class CanvasSettings(Surface):
     presentation = Presentation(label="Canvas & Nodes", icon="grid_on")
 
 
+class DebugSurface(Surface):
+    """Debug settings tab — log levels and the debug HUD overlay.
+
+    Sits last in the properties toolbar (highest ``order`` among the
+    built-in tabs), separate from ``ExecutionInspector`` and
+    ``CanvasSettings`` since neither log verbosity nor the debug overlay is
+    really an execution or canvas concern.
+    """
+
+    id = "debug"
+    order = 40
+    presentation = Presentation(label="Debug", icon="bug_report")
+
+
 @runtime_checkable
 class AccountActions(Protocol):
     """What an account-menu panel may ask the host to do."""
