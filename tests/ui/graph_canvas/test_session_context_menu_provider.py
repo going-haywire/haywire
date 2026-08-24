@@ -13,7 +13,9 @@ from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
 from haywire.ui.panel.registry import PanelRegistry
 
 
-def _make_provider(on_emit_event=None, on_emit_sync_event=None) -> SessionContextMenuProvider:
+def _make_provider(
+    on_emit_event=None, on_emit_sync_event=None, canvas_vue=None
+) -> SessionContextMenuProvider:
     """Construct a provider with mock dependencies.
 
     Builds a real ``SessionContext`` whose ``data[EditState]`` lookup
@@ -49,6 +51,7 @@ def _make_provider(on_emit_event=None, on_emit_sync_event=None) -> SessionContex
         panel_registry=PanelRegistry(),
         on_emit_event=on_emit_event,
         on_emit_sync_event=on_emit_sync_event,
+        canvas_vue=canvas_vue,
     )
     # Expose the stub for tests that need to seed selection/edge values.
     cast(Any, provider)._test_edit_stub = edit_stub  # type: ignore[attr-defined]
@@ -161,6 +164,33 @@ def test_paste_at_click_no_open_ctx_is_noop():
     provider.paste_at_click()
 
     assert captured == []
+
+
+def test_focus_on_graph_fits_the_viewport_and_closes_the_popup():
+    """focus_on_graph fits the zoom container to content and dismisses the menu.
+
+    Pure client-side viewport op: no event is emitted, unlike paste/create-node.
+    """
+    canvas_vue = SimpleNamespace(zoom_container=MagicMock())
+    provider = _make_provider(canvas_vue=canvas_vue)
+    popup = MagicMock()
+    provider._open_popup = popup
+
+    provider.focus_on_graph()
+
+    canvas_vue.zoom_container.center_on_content.assert_called_once()
+    popup.close.assert_called_once()
+
+
+def test_focus_on_graph_with_no_canvas_vue_is_noop_but_still_closes_popup():
+    """No canvas_vue wired (e.g. a stub provider) — don't crash, still dismiss."""
+    provider = _make_provider(canvas_vue=None)
+    popup = MagicMock()
+    provider._open_popup = popup
+
+    provider.focus_on_graph()
+
+    popup.close.assert_called_once()
 
 
 def test_create_node_at_click_emits_node_create_request_event():

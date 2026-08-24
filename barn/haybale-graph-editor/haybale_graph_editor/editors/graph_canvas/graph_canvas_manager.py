@@ -81,6 +81,7 @@ class GraphCanvasManager:
             panel_registry=self._panel_registry,
             on_emit_event=self._handle_canvas_event,
             on_emit_sync_event=self.canvas_vue.emit_sync_event,
+            canvas_vue=self.canvas_vue,
         )
 
         self.context_menu_handlers = ContextMenuHandlers(

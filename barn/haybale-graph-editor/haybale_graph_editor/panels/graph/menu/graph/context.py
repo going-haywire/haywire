@@ -79,6 +79,26 @@ class PastePanel(BasePanel):
 
 @panel(
     surface=GraphToolBar,
+    label="Focus on Graph",
+    icon=hui.icon.focus_graph,
+    order=20,
+)
+class FocusGraphPanel(BasePanel):
+    """Fit the viewport to show every node in the graph, as an icon shortcut."""
+
+    actions: GraphActions
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.icon_action(
+                hui.icon.focus_graph,
+                tooltip="Focus on Graph",
+                on_click=self.actions.focus_on_graph,
+            )
+
+
+@panel(
+    surface=GraphToolBar,
     hosts=(GraphMoreActions,),
     label="More Actions",
     icon="more_horiz",

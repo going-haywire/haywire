@@ -176,6 +176,8 @@ class AppIcon:
     """Reset to default / restart action."""
     promote: Final[str] = "upgrade"
     """Promote setting to port"""
+    focus_graph: Final[str] = "center_focus_strong"
+    """Fit the viewport to show every node in the graph."""
 
     # ── Status ───────────────────────────────────────────────────────────────
     ok: Final[str] = "task_alt"

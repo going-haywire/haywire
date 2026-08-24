@@ -158,10 +158,12 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         panel_registry: "PanelRegistry",
         on_emit_event: Optional[Callable] = None,
         on_emit_sync_event: Optional[Callable] = None,
+        canvas_vue: Optional[Any] = None,
     ):
         super().__init__(context, session, panel_registry)
         self._on_emit_event = on_emit_event
         self._on_emit_sync_event = on_emit_sync_event
+        self._canvas_vue = canvas_vue
         self._open_ctx: Optional[_OpenMenuContext] = None  # per-popup gesture state
 
     def _open_menu(
@@ -362,6 +364,19 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             return
         x, y = self._open_ctx.canvas_pos
         self._emit_sync(SyncRequestClipboardPasteEvent(canvasX=x, canvasY=y))
+
+    def focus_on_graph(self) -> None:
+        """Fit the viewport to show every node in the graph, then close the menu.
+
+        Pure client-side viewport op — no event round-trip needed, unlike
+        paste/create-node, since it doesn't touch graph state. Runs directly
+        against the Vue zoom container the canvas was built with.
+        """
+        zoom_container = getattr(self._canvas_vue, "zoom_container", None)
+        if zoom_container is not None:
+            zoom_container.center_on_content()
+        if self._open_popup is not None:
+            self._open_popup.close()
 
     # EdgeContextActions
 
