@@ -29,7 +29,7 @@ from .....surfaces import (
     GraphMoreActions,
     GraphToolBar,
 )
-from .....editors.graph_canvas.node_menu_builder import NodeMenuBuilder
+from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext

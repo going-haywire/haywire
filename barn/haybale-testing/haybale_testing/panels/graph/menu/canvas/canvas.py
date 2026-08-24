@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_graph_editor.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
+from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder
 from haybale_testing.state import TestSessionState
 from haybale_testing.surfaces import TestCanvasActions, TestCanvasMenu
 from haywire.core.node.info import NodeInfo

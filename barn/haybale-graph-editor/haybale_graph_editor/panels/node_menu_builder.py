@@ -44,53 +44,48 @@ class NodeMenuBuilder:
         Returns:
             ui.column containing the complete menu interface
         """
-        with ui.column().classes("w-full") as menu_container:
+        with ui.column().classes("w-full gap-1") as menu_container:
             # Search functionality if requested
             if show_search:
-                hui.input_field(
-                    placeholder="Search nodes...",
-                    on_change=lambda e: self._handle_search(e.value, menu_container),
-                    autofocus=True,
-                ).classes("w-96 mb-2")
+                with ui.row().classes("w-full items-center gap-2 flex-nowrap"):
+                    hui.input_field(
+                        placeholder="Search nodes...",
+                        on_change=lambda e: self._handle_search(e.value, menu_container),
+                        autofocus=True,
+                    ).classes("flex-1")
 
-                # Container for search results (initially hidden)
-                self._search_results = ui.column().classes("w-96 gap-1").style("display: none")
+                    with (
+                        hui.toolbar_button(icon=hui.icon.add)
+                        .props("flat")
+                        .classes("hw-text-body hw-list-item-hover text-sm shrink-0")
+                    ):
+                        # Click-opened menu, raised above the popup and flown to the right.
+                        with ui.menu().props(hui.FLYOUT_PROPS).style(hui.FLYOUT_Z):
+                            # Top-level flyouts are siblings: opening one closes the rest.
+                            top_level: FlyoutSiblings = []
 
-            # Main menu content — the "Add Nodes" trigger and its flyout menu.
-            self._main_menu = ui.column().classes("w-full")
+                            # Recent nodes section if provided
+                            if recent_nodes:
+                                self._add_recent_nodes_section(recent_nodes, top_level)
+                                ui.separator()
 
-            with self._main_menu:
-                with (
-                    ui.button("➕ Add Nodes")
-                    .props("flat")
-                    .classes("w-full hw-text-body hw-list-item-hover text-sm")
-                ):
-                    # Click-opened menu, raised above the popup and flown to the right.
-                    with ui.menu().props(hui.FLYOUT_PROPS).style(hui.FLYOUT_Z):
-                        # Top-level flyouts are siblings: opening one closes the rest.
-                        top_level: FlyoutSiblings = []
+                            # Build hierarchical category tree
+                            self._build_hierarchical_menu(top_level)
 
-                        # Recent nodes section if provided
-                        if recent_nodes:
-                            self._add_recent_nodes_section(recent_nodes, top_level)
-                            ui.separator()
-
-                        # Build hierarchical category tree
-                        self._build_hierarchical_menu(top_level)
+                # Container for search results (initially hidden), own line below the row.
+                self._search_results = ui.column().classes("w-full gap-1").style("display: none")
 
         return menu_container
 
     def _handle_search(self, query: str, container: ui.column):
         """Handle search input changes."""
         if not query.strip():
-            # Show main menu, hide search results
+            # Hide search results, back to the create-node button/flyout.
             self._search_results.style("display: none")
-            self._main_menu.style("display: block")
             return
 
-        # Show search results, hide main menu
+        # Show search results.
         self._search_results.style("display: block")
-        self._main_menu.style("display: none")
 
         # Update search results
         self._update_search_results(query)
@@ -124,7 +119,7 @@ class NodeMenuBuilder:
             f"+ {node_info.identity.label}",
             on_click=lambda ni=node_info: self._on_node_selected(ni),
         )
-        btn.props("flat dense align=left")
+        btn.props("flat dense align=left no-wrap")
         btn.classes("w-full justify-start px-3 py-1.5 hw-text-body hw-list-item-hover text-sm")
         if self._on_context_click is not None:
             cb = self._on_context_click

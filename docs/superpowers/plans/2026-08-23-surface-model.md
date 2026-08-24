@@ -218,7 +218,7 @@ class SubmenuRow:
 `_anchor_row` should be a **styled `ui.row`, not a `ui.menu_item`.**
 `flyout_category` uses `ui.menu_item`, which inherits its look from an enclosing
 QMenu — `NodeMenuBuilder` opens one
-([node_menu_builder.py:69](../../../barn/haybale-graph-editor/haybale_graph_editor/editors/graph_canvas/node_menu_builder.py#L69)),
+([node_menu_builder.py:69](../../../barn/haybale-graph-editor/haybale_graph_editor/panels/node_menu_builder.py#L69)),
 but a panel drawing into a `Popup` content column does not, so the same call would
 render an unstyled row there. A row that carries its own look is identical in both
 contexts. Settle it here rather than discovering it in Stage 4.

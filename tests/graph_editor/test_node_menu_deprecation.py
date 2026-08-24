@@ -3,7 +3,7 @@
 import inspect
 import pytest
 
-from haybale_graph_editor.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
+from haybale_graph_editor.panels.node_menu_builder import NodeMenuBuilder
 
 
 @pytest.mark.unit
