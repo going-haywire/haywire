@@ -196,6 +196,13 @@ class Slot(ABC):
             if match is not None:
                 self._active = match
                 return
+            # A stale wire string (e.g. a registry-key prefix that changed
+            # between releases) otherwise silently demotes the slot to its
+            # first binding — the wrong editor comes up with no clue why.
+            logger.warning(
+                f"Slot '{self.name}': snapshot active_key '{active_key}' matches no binding — "
+                "falling back to the first one."
+            )
         if self._bindings:
             self._active = self._bindings[0]
 
