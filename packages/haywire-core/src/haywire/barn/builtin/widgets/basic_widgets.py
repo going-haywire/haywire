@@ -5,6 +5,7 @@ Basic widget implementations for common data types
 from typing import Any
 from nicegui import ui
 
+from haywire.barn.builtin.types import INT
 from haywire.ui import elements as hui
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.decorator import widget
@@ -27,6 +28,9 @@ class NumberWidget(BaseWidget):
     - ``max`` (int | float): Maximum allowed value.
     - ``step`` (int | float): Step increment for drag / arrows.
     - ``precision`` (int): Decimal places to display (-1 = auto from step).
+      Bound to an ``INT`` port, this defaults to ``0`` (no decimal point)
+      instead of the usual auto-from-step behaviour; pass ``precision``
+      explicitly to override.
     - ``prefix`` (str): Text shown before the value (e.g. ``'$'``).
     - ``suffix`` (str): Text shown after the value (e.g. ``'kg'``).
     - ``sensitivity`` (float): Drag sensitivity multiplier (default 1.0).
@@ -43,6 +47,13 @@ class NumberWidget(BaseWidget):
         for prop in ["min", "max", "step", "precision", "prefix", "suffix", "sensitivity"]:
             if prop in props:
                 kwargs[prop] = props[prop]
+
+        # Int-typed ports render whole numbers — no decimal point — unless the
+        # caller explicitly configured a precision. NumberDrag's own "auto"
+        # default (-1) derives precision from `step` alone, so a bare INT port
+        # (step 0.1) would otherwise still show one decimal digit.
+        if "precision" not in kwargs and self.port.data.get_stored_type() is INT:
+            kwargs["precision"] = 0
 
         return self.bind(
             NumberDrag(**kwargs).classes("w-full"),
