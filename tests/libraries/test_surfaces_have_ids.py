@@ -153,6 +153,13 @@ def test_selection_menu_has_id():
     assert surface_by_id("selection") is SelectionMenu
 
 
+def test_selection_rebuild_menu_has_id():
+    from haybale_graph_editor.surfaces import SelectionRebuildMenu
+
+    assert SelectionRebuildMenu.id == "selection-rebuild"
+    assert surface_by_id("selection-rebuild") is SelectionRebuildMenu
+
+
 def _make_ctx_with_edit_stub():
     """Build a stand-in SessionContext-shaped object whose ``data[EditState]``
     yields a stub with bare field values matching the post-migration

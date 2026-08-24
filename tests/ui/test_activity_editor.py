@@ -48,11 +48,11 @@ def test_account_panel_button_reveals_the_activity_editor(monkeypatch):
 
     clicks = []
 
-    def fake_button(label, *, icon=None, tooltip=None, on_click=None, disabled=False):
+    def fake_menu_row(label, *, icon=None, on_click=None, enabled=True, tooltip=None):
         clicks.append(on_click)
         return MagicMock()
 
-    monkeypatch.setattr(account_mod.hui, "button", fake_button)
+    monkeypatch.setattr(account_mod.hui, "menu_row", fake_menu_row)
 
     panel = account_mod.OpenActivityPanel.__new__(account_mod.OpenActivityPanel)
     panel.actions = MagicMock()

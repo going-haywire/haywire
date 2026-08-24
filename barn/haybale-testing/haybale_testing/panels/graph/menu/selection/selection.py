@@ -38,7 +38,7 @@ class TestCopySelectionMenuPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Copy Selection",
                 icon=hui.icon.copy,
                 on_click=self.actions.test_copy_selection,
@@ -64,7 +64,7 @@ class TestPasteSelectionMenuPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Paste",
                 icon=hui.icon.paste,
                 on_click=self.actions.test_paste_at_click,

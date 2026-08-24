@@ -18,7 +18,7 @@ from .graph_context import (
 from .node import NodeInspector, SettingsInspector
 from .pin import PinMenu, PortActions
 from .ports import PortInspector
-from .selection import SelectionActions, SelectionMenu
+from .selection import SelectionActions, SelectionMenu, SelectionRebuildMenu
 from .toolbar import SelectionToolbar
 
 __all__ = [
@@ -37,6 +37,7 @@ __all__ = [
     "PortInspector",
     "SelectionActions",
     "SelectionMenu",
+    "SelectionRebuildMenu",
     "SelectionToolbar",
     "SettingsInspector",
 ]

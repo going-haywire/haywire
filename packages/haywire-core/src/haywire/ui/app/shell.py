@@ -256,6 +256,41 @@ STATIC_CSS = (
     " .q-menu .q-item { color: var(--hw-text-body) !important; }"
     " .q-menu .q-item--active { color: var(--hw-accent) !important; }"
     " .q-menu .q-item:hover { background: var(--hw-bg-surface) !important; }"
+    # ── Menu rows: the ONE place a menu command's text style and colour live ──
+    # `hui.menu_row` carries `.hw-menu-row`, and `hui.submenu_row` IS one, so a
+    # command and the submenu row beside it cannot drift. Every value reads a
+    # `--hw-menu-row-*` token with a semantic fallback, so a WorkbenchTheme
+    # restyles every menu in the app without touching element code.
+    #
+    # Keyed on the row's own class, never on an ancestor: a flyout QMenu portals
+    # to <body>, so a `.hw-panel`-scoped rule (the q-icon dim rule above) styles
+    # a row inside a popup and misses the identical row inside a flyout — which
+    # is how one menu ended up with three different colours.
+    " .hw-menu-row {"
+    "   padding: 0.25rem 0.5rem;"
+    "   border-radius: 4px;"
+    "   cursor: pointer;"
+    "   flex-wrap: nowrap;"
+    # A command reads as one line or not at all — the same reason QBtn menu
+    # rows carried Quasar's `no-wrap` prop. Without it a label wraps to two
+    # lines the moment the menu's intrinsic width lands a pixel short.
+    "   white-space: nowrap;"
+    "   font-size: var(--hw-menu-row-font-size, 0.875rem);"
+    "   font-weight: var(--hw-menu-row-font-weight, 400);"
+    "   text-transform: var(--hw-menu-row-text-transform, none);"
+    "   color: var(--hw-menu-row-text, var(--hw-text-body));"
+    " }"
+    " .hw-menu-row:hover {"
+    "   background: var(--hw-menu-row-hover-bg, var(--hw-bg-hover));"
+    " }"
+    # Same specificity as the `.hw-panel .q-icon:not()…` dim rule above and
+    # declared after it, so a menu row's icon follows the menu token in a panel
+    # and in a portalled flyout alike.
+    " .hw-menu-row .q-icon.hw-menu-row-icon:not(.hw-use-props-color) {"
+    "   color: var(--hw-menu-row-icon, var(--hw-text-dim)) !important;"
+    "   font-size: var(--hw-menu-row-icon-size, 1.125rem);"
+    " }"
+    " .hw-menu-row.hw-disabled { opacity: 0.4; pointer-events: none; }"
     # ── compact-fields utility class ──
     # Apply to any container (panel, node widget area) that needs tight
     # Quasar field rendering.  CSS custom properties allow themes to

@@ -111,12 +111,12 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/select
 `DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step, and renders its own greyed form when nothing is selected:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:91:123"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:95:127"
 ```
 
 from: `DeleteSelectionMenuPanel` — registry_key: `haybale-graph-editor:panel:DeleteSelectionMenuPanel`
 
-**Type-specific:** `poll()` gates on `edit.selected_nodes or edit.selected_edges` — when it is `False`, the host calls `draw_disabled()` instead of skipping the panel, so a fixed-shape command list never reflows or vanishes as the selection changes. `draw_disabled()` renders the same label, greyed and unclickable (`hui.button(..., disabled=True)`) — it must not touch selection state, only render the inapplicable form. The default `draw_disabled()` (inherited, not overridden) is a no-op, so a panel that skips it keeps vanishing exactly as before; only a panel meant to appear in a fixed-shape menu like this one overrides it. `selection_label()` (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").
+**Type-specific:** `poll()` gates on `edit.selected_nodes or edit.selected_edges` — when it is `False`, the host calls `draw_disabled()` instead of skipping the panel, so a fixed-shape command list never reflows or vanishes as the selection changes. `draw_disabled()` renders the same label, greyed and unclickable (`hui.menu_row(..., enabled=False)`) — it must not touch selection state, only render the inapplicable form. The default `draw_disabled()` (inherited, not overridden) is a no-op, so a panel that skips it keeps vanishing exactly as before; only a panel meant to appear in a fixed-shape menu like this one overrides it. `selection_label()` (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").
 
 ## Graph toolbar panel
 

@@ -41,7 +41,7 @@ class TestDeleteNodeMenuPanel(BasePanel):
             return
         node_id = node.node_id
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Delete Node",
                 icon=hui.icon.delete,
                 on_click=lambda: self.actions.test_delete_node(node_id),
@@ -71,7 +71,7 @@ class TestCopyNodeMenuPanel(BasePanel):
             return
         node_id = node.node_id
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Copy Node",
                 icon=hui.icon.copy,
                 on_click=lambda: self.actions.test_copy_node(node_id),
@@ -101,7 +101,7 @@ class TestRedrawNodeMenuPanel(BasePanel):
             return
         node_id = node.node_id
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Redraw Node",
                 icon=hui.icon.refresh,
                 on_click=lambda: self.actions.test_redraw_node(node_id),
@@ -131,7 +131,7 @@ class TestRevalidateNodeMenuPanel(BasePanel):
             return
         node_id = node.node_id
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Revalidate Node",
                 icon=hui.icon.refresh,
                 on_click=lambda: self.actions.test_revalidate_node(node_id),
@@ -161,7 +161,7 @@ class TestResetNodeMenuPanel(BasePanel):
             return
         node_id = node.node_id
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Reset Node",
                 icon=hui.icon.reset,
                 on_click=lambda: self.actions.test_reset_node(node_id),

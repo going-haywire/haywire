@@ -9,12 +9,13 @@ import pytest
 
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     DeleteSelectionMenuPanel as DeleteSelectionPanel,
+    RebuildSelectionMenuPanel as RebuildSelectionPanel,
     RedrawSelectionMenuPanel as RedrawSelectionPanel,
     RevalidateSelectionMenuPanel as RevalidateSelectionPanel,
     ResetSelectionMenuPanel as ResetSelectionPanel,
     selection_label,
 )
-from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu
+from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionRebuildMenu
 
 
 @pytest.mark.parametrize(
@@ -22,8 +23,22 @@ from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu
     [RedrawSelectionPanel, RevalidateSelectionPanel, ResetSelectionPanel],
 )
 def test_batch_panel_registration(panel_cls):
-    assert panel_cls.class_identity.surface is SelectionMenu
+    """The three batch commands sit on the Rebuild submenu, not flat on the menu."""
+    assert panel_cls.class_identity.surface is SelectionRebuildMenu
+    assert SelectionRebuildMenu.provides is SelectionActions
+
+
+def test_rebuild_panel_hosts_the_batch_submenu():
+    """The row itself stays on SelectionMenu and declares what it renders —
+    render_surface refuses any surface not listed in hosts=."""
+    assert RebuildSelectionPanel.class_identity.surface is SelectionMenu
+    assert RebuildSelectionPanel.class_identity.hosts == (SelectionRebuildMenu,)
     assert SelectionMenu.provides is SelectionActions
+
+
+def test_rebuild_panel_polls_like_the_commands_it_hosts():
+    assert RebuildSelectionPanel.poll(_ctx_with_selection(["n1"], [])) is True
+    assert RebuildSelectionPanel.poll(_ctx_with_selection([], [])) is False
 
 
 def test_selection_label_single_node():
@@ -90,10 +105,10 @@ def test_copy_and_delete_panels_use_count_aware_labels(monkeypatch):
         def __exit__(self, *a):
             return False
 
-    def _fake_button(label, **kwargs):
+    def _fake_menu_row(label, **kwargs):
         rendered_labels.append(label)
 
-    monkeypatch.setattr(sa.hui, "button", _fake_button)
+    monkeypatch.setattr(sa.hui, "menu_row", _fake_menu_row)
 
     ctx = _ctx_with_selection(["n1", "n2", "n3"], [])
     actions = MagicMock()

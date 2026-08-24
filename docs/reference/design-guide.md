@@ -202,6 +202,23 @@ Tokens for named shell regions that need colours beyond the generic set.
 | `--hw-console-text`        | Console editor text colour                  |
 | `--hw-popup-shadow`        | Drop shadow for floating popups and menus   |
 
+### 2.8a Menu-Row Tokens
+
+The whole look of a menu command — every menu, every level. Each is optional:
+the `.hw-menu-row` block falls back to the semantic token beside it, so a theme
+sets these only to give menus a look of their own. Nothing else styles a menu
+row; there is no second place to change.
+
+| Token                        | Falls back to      | Use for                                       |
+| ---------------------------- | ------------------ | --------------------------------------------- |
+| `--hw-menu-row-text`         | `--hw-text-body`   | Command label colour                          |
+| `--hw-menu-row-icon`         | `--hw-text-dim`    | Leading icon and submenu chevron colour       |
+| `--hw-menu-row-icon-size`    | `1.125rem`         | Icon size                                     |
+| `--hw-menu-row-hover-bg`     | `--hw-bg-hover`    | Row hover background                          |
+| `--hw-menu-row-font-size`    | `0.875rem`         | Label size                                    |
+| `--hw-menu-row-font-weight`  | `400`              | Label weight                                  |
+| `--hw-menu-row-text-transform` | `none`           | e.g. `uppercase` for a shouty menu            |
+
 ### 2.9 Z-Index Scale
 
 Haywire uses a fixed z-index scale. Do not use arbitrary values.
@@ -763,8 +780,13 @@ hui.icon_action("refresh", tooltip="Refresh tree", on_click=self._refresh)
 ### 8.8a `hui.button(label, icon=None, tooltip=None, on_click=None, disabled=False)`
 
 A flat labelled action button for use inside panels. Distinct from `hui.icon_action`
-(icon-only) and `hui.dialog_actions` (confirm/cancel pair). Use when a visible text
-label is needed, optionally with a leading icon.
+(icon-only), `hui.dialog_actions` (confirm/cancel pair) and `hui.menu_row` (§8.8b —
+a command in a menu). Use when a visible text label is needed, optionally with a
+leading icon.
+
+**Not for menus.** A `QBtn` carries Quasar's own look — `text-primary` from
+NiceGUI's default `color='primary'`, `text-transform: uppercase` from `.q-btn` —
+which no `--hw-*` token reaches. Use `hui.menu_row` on any menu surface.
 
 **Visual rules:**
 
@@ -784,6 +806,30 @@ button looks identical. Never "fix" that symptom with a width on the menu.
 ```python
 hui.button("Delete Node", icon="delete", on_click=self._delete)
 hui.button("Refresh", icon="refresh", on_click=self._refresh)
+```
+
+### 8.8b `hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)`
+
+One command in a menu — the leaf counterpart of `hui.submenu_row`, which *is* one
+(plus a chevron), so a command and the submenu row beside it cannot drift.
+
+**Visual rules:** none are set on the element. Every property comes from the single
+`.hw-menu-row` CSS block in `app/shell.py`, and every value in it reads a
+`--hw-menu-row-*` token (§2.8a). Change a menu's look there or in a theme — never
+per call site.
+
+The block is keyed on the row's own marker class, never on an ancestor. A flyout
+`QMenu` portals to `<body>`, so an ancestor-scoped rule (`.hw-panel .q-icon`, for
+one) styles a row inside a popup and misses the identical row inside a flyout —
+which is how one menu ends up with three different colours.
+
+- Disabled: `enabled=False` → `opacity: 0.4; pointer-events: none`, the menu
+  convention (an inapplicable command greys rather than disappearing). This is
+  what `draw_disabled()` renders.
+
+```python
+hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
+hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)   # draw_disabled()
 ```
 
 ### 8.9 `hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)`
@@ -1035,14 +1081,16 @@ in structure — but the chrome rules are fixed.
 
 **Rule:** Never hardcode `box-shadow` values on popups. Use `--hw-popup-shadow`.
 
-**Context menu items** follow the same rules as `hui.list_item` rows:
+**Context menu items** are `hui.menu_row` / `hui.submenu_row` (§8.8b) — do not
+build them out of `hui.button` or a hand-rolled row. Their look lives entirely in
+the `.hw-menu-row` block and its `--hw-menu-row-*` tokens (§2.8a):
 
-- Padding: `px-2 py-1.5`
-- Hover: `var(--hw-bg-hover)`
+- Padding: `0.25rem 0.5rem`, `rounded` (4px), never wrapping
+- Text / icon / hover: `--hw-menu-row-*`, falling back to `--hw-text-body`,
+  `--hw-text-dim`, `--hw-bg-hover`
 - Disabled: `opacity: 0.4; pointer-events: none`
 - Keyboard shortcut suffix: `text-xs hw-text-dim ml-auto font-mono`
 - Divider between groups: `hui.separator()`
-- Leading icon (optional): 16px, `hw-text-dim`
 
 ### 8.24 `hui.dialog_card(width=None)` and `hui.dialog_actions(...)`
 

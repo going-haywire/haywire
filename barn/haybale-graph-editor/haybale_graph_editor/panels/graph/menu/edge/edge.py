@@ -122,7 +122,7 @@ class InsertRerouteMenuPanel(BasePanel):
         edge_id = edge.edge_id
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Insert Reroute",
                 icon=hui.icon.edge,
                 on_click=lambda: self.actions.split_edge_with_reroute(edge_id),
@@ -153,7 +153,7 @@ class DeleteEdgeMenuPanel(BasePanel):
         edge_id = edge.edge_id
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Delete Connection",
                 icon=hui.icon.delete,
                 on_click=lambda: self.actions.delete_edge(edge_id),
@@ -186,7 +186,7 @@ class ReconnectEdgeMenuPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Reconnect",
                 icon=hui.icon.edge,
                 on_click=self.actions.reconnect_active_edge,

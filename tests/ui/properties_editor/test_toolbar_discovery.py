@@ -150,6 +150,7 @@ def test_no_real_menu_surface_declares_presentation():
         GraphToolBar,
         PinMenu,
         SelectionMenu,
+        SelectionRebuildMenu,
         SelectionToolbar,
     )
     from haywire.barn.builtin.surfaces import AccountMenu
@@ -161,6 +162,7 @@ def test_no_real_menu_surface_declares_presentation():
         GraphMoreActions,
         EdgeMenu,
         SelectionMenu,
+        SelectionRebuildMenu,
         PinMenu,
         SelectionToolbar,
         AccountMenu,

@@ -51,6 +51,8 @@ from typing import Generator, List
 
 from nicegui import ui
 
+from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, menu_row
+
 # Above the context-menu popup card (z-index 7001); Quasar QMenu defaults to 6000.
 #
 # Deliberately no width here. A QMenu is already shrink-to-fit, so a flyout that
@@ -62,7 +64,18 @@ from nicegui import ui
 FLYOUT_Z = "z-index: 7100"
 
 # Flyout to the right of the anchor, cascading rightward for nested submenus.
+# Quasar anchor/self points; a downward-opening variant would be
+# `anchor="bottom start" self="top start"`.
 FLYOUT_PROPS = 'anchor="top end" self="top start"'
+
+# ANCHORING: a QMenu positions against, and opens on a click of, its PARENT
+# element — not whatever element you pass to `open()`. So every flyout menu
+# here is built *inside* its anchor (`with self._anchor:` / `with self._row:`).
+# Built in the ambient slot instead, it anchored to whichever container the
+# panel happened to draw into: measured, the selection toolbar's ⋯ flyout
+# aligned to the top of the shared panel div rather than to the ⋯ button, a
+# submenu opened level with the top of its popup rather than with its own row,
+# and clicking the Copy button in the toolbar opened the ⋯ flyout.
 
 # A fast diagonal mouse path across a sibling item would otherwise switch
 # flyouts unintentionally (`.insights/feedback_nicegui_nested_menu_flyouts.md`
@@ -274,22 +287,20 @@ def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> 
 
 
 def _anchor_row(label: str, icon: str | None, enabled: bool) -> ui.row:
-    """A styled ``ui.row`` anchor, carrying its own look independent of any QMenu.
+    """A ``hui.menu_row`` plus the sideways affordance — a row that expands.
 
-    ``flyout_category`` uses ``ui.menu_item``, whose look comes from an enclosing
-    ``QMenu`` — fine for ``NodeMenuBuilder``, which always opens one, but a panel
-    drawing into a ``Popup`` content column has no such ancestor, so the same
-    element would render unstyled there. A row that carries its own classes reads
-    identically in both contexts.
+    The look is **not** built here: it is one ``hui.menu_row``, so a submenu row
+    and the leaf commands beside it are the same element by construction and
+    cannot drift. ``flyout_category`` uses ``ui.menu_item``, whose look comes
+    from an enclosing ``QMenu`` — fine for ``NodeMenuBuilder``, which always
+    opens one, but a panel drawing into a ``Popup`` content column has no such
+    ancestor; ``menu_row`` carries its own marker class and reads identically in
+    both contexts. ``hw-flyout-row`` stays on top of it as the "this one
+    expands" marker (what the retroactive greying and tests look for).
     """
-    row = ui.row().classes("items-center gap-2 w-full px-2 py-1 rounded cursor-pointer hw-flyout-row")
+    row = menu_row(label, icon=icon, enabled=enabled).classes(add="hw-flyout-row")
     with row:
-        if icon:
-            ui.icon(icon).classes("text-base")
-        ui.label(label).classes("text-sm grow")
-        ui.icon("keyboard_arrow_right").classes("text-base")
-    if not enabled:
-        row.classes(add="hw-disabled").style(_DISABLED_STYLE)
+        ui.icon("keyboard_arrow_right").classes(MENU_ROW_ICON_CLASS)
     return row
 
 
@@ -320,7 +331,14 @@ class FlyoutIcon:
         if tooltip:
             self._anchor.tooltip(tooltip)
 
-        self._menu = FlyoutMenu()
+        # Inside the anchor, not beside it: a QMenu positions against — and
+        # opens on a click of — its PARENT element. Constructed in the ambient
+        # slot it would anchor to whatever container the panel drew into (for
+        # the toolbar, the one div every toolbar panel shares), so the flyout
+        # aligned to that container and a click on any *other* button in it
+        # opened this flyout. See the ANCHORING note at the top of this module.
+        with self._anchor:
+            self._menu = FlyoutMenu()
         self._menu.props(f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
 
         siblings = _flyout_siblings.get()
@@ -414,7 +432,8 @@ class SubmenuRow:
         if not enabled:
             return
 
-        self._menu = FlyoutMenu()
+        with self._row:  # inside the anchor — see the module's ANCHORING note
+            self._menu = FlyoutMenu()
         self._menu.props(f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
 
         siblings = _flyout_siblings.get()  # ambient: this level's group

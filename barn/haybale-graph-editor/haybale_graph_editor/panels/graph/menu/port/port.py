@@ -80,7 +80,7 @@ class DetachSettingMenuPanel(BasePanel):
         if port is None:
             return
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Detach from setting",
                 icon=hui.icon.delete,
                 on_click=lambda: self.actions.demote_setting(port.id),

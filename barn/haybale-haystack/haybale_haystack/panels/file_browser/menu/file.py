@@ -64,7 +64,7 @@ class OpenInHaystackMenuPanel(BasePanel):
             self.actions.reveal(GraphEditor, binding_id=entry.binding_id, label=entry.display_name)
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Open in Haystack",
                 icon=hui.icon.graph,
                 on_click=_do_open,

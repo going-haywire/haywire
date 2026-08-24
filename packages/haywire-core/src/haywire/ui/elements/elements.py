@@ -400,6 +400,72 @@ def button(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
+# 8.8b  Menu Row (a command in a menu)
+# ──────────────────────────────────────────────────────────────────────────────
+
+MENU_ROW_CLASS = "hw-menu-row"
+"""Marker class carrying the whole menu-row look. See ``menu_row``."""
+
+MENU_ROW_ICON_CLASS = "hw-menu-row-icon"
+"""Marker class for a menu row's icons — coloured by ``--hw-menu-row-icon``."""
+
+_MENU_ROW_DISABLED_STYLE = "opacity: 0.4; pointer-events: none"
+
+
+def menu_row(
+    label: str,
+    *,
+    icon: str | None = None,
+    on_click: Callable | None = None,
+    enabled: bool = True,
+    tooltip: str | None = None,
+) -> ui.row:
+    """
+    One command in a menu — the leaf counterpart of ``hui.submenu_row``.
+
+    Use this, never ``hui.button``, for anything drawn on a menu surface. A
+    ``QBtn`` carries Quasar's own look (``text-primary`` from NiceGUI's default
+    ``color='primary'``, ``text-transform: uppercase`` from ``.q-btn``), which
+    no ``--hw-*`` token reaches, so a menu built from buttons cannot be themed
+    and does not match the submenu rows beside it.
+
+    **Every visual property lives in one CSS block** (``.hw-menu-row`` in
+    ``app/shell.py``), keyed on the marker class this returns rather than on
+    an ancestor. That matters because a flyout ``QMenu`` portals to ``<body>``:
+    rules scoped to ``.hw-panel`` (the icon-dim rule, for one) reach a row in
+    a popup and miss the identical row in a flyout, which is how one menu ends
+    up with three different colours. Every value in that block reads a
+    ``--hw-menu-row-*`` token, so a ``WorkbenchTheme`` restyles menus without
+    touching any element code.
+
+    Visual rules (all token-driven — see ``WorkbenchTheme._CSS_TOKEN_MAP``):
+    - Text: ``--hw-menu-row-text``, ``--hw-menu-row-font-size``,
+      ``--hw-menu-row-font-weight``, ``--hw-menu-row-text-transform``
+    - Icon: ``--hw-menu-row-icon``
+    - Hover: ``--hw-menu-row-hover-bg``
+    - Disabled: ``opacity: 0.4; pointer-events: none`` (the menu convention —
+      an inapplicable command greys rather than disappearing)
+
+    Usage::
+
+        hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
+        hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)
+    """
+    row = ui.row().classes(f"{MENU_ROW_CLASS} items-center gap-2 w-full")
+    with row:
+        if icon:
+            ui.icon(icon).classes(MENU_ROW_ICON_CLASS)
+        ui.label(label).classes("grow")
+    if tooltip:
+        row.tooltip(tooltip)
+    if not enabled:
+        row.classes(add="hw-disabled").style(_MENU_ROW_DISABLED_STYLE)
+    elif on_click:
+        row.on("click", lambda _e=None, fn=on_click: fn())
+    return row
+
+
+# ──────────────────────────────────────────────────────────────────────────────
 # 8.8  Icon Action
 # ──────────────────────────────────────────────────────────────────────────────
 

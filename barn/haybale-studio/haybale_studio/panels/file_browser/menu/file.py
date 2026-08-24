@@ -71,7 +71,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
             self.actions.reveal(CodeEditor, binding_id=str(path), label=path.name)
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Open in Code Editor",
                 icon=hui.icon.edit,
                 on_click=_do_open,
@@ -114,7 +114,7 @@ class OpenInFileViewerMenuPanel(BasePanel):
             self.actions.reveal(FileViewerEditor, binding_id=str(path), label=path.name)
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Open in File Viewer",
                 icon=hui.icon.library_component,
                 on_click=_do_open,

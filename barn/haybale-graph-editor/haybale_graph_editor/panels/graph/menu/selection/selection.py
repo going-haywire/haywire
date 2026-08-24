@@ -11,6 +11,10 @@ most here — this is the menu a user right-clicks into with an empty
 selection. The label appears twice per panel because the panel owns both
 renderings (a host-drawn row could not carry the dynamic "Copy 3 nodes"
 form); a class constant is the whole answer.
+
+Redraw / revalidate / reset sit one level down, on ``SelectionRebuildMenu``,
+behind ``RebuildSelectionMenuPanel``'s "Rebuild" row: three commands of one
+family, reached through one row instead of three.
 """
 
 from __future__ import annotations
@@ -22,7 +26,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....surfaces import SelectionActions, SelectionMenu
+from .....surfaces import SelectionActions, SelectionMenu, SelectionRebuildMenu
 from .....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -54,6 +58,14 @@ def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
     edit = ctx.data[EditState]
     return len(edit.selected_nodes), len(edit.selected_edges)
 
+# SelectionMenu
+#  -> CopySelectionMenuPanel
+#  -> DeleteSelectionMenuPanel
+#  -> RebuildSelectionMenuPanel
+#     -> SelectionRebuildMenu
+#        -> RedrawSelectionMenuPanel
+#        -> RevalidateSelectionMenuPanel
+#        -> ResetSelectionMenuPanel
 
 @panel(
     surface=SelectionMenu,
@@ -76,7 +88,7 @@ class CopySelectionMenuPanel(BasePanel):
     ) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
-            hui.button(
+            hui.menu_row(
                 selection_label("Copy", n_nodes, n_edges),
                 icon=hui.icon.copy,
                 on_click=self.actions.copy_selection,
@@ -85,7 +97,7 @@ class CopySelectionMenuPanel(BasePanel):
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.button("Copy", icon=hui.icon.copy, disabled=True)
+            hui.menu_row("Copy", icon=hui.icon.copy, enabled=False)
 
 
 @panel(
@@ -111,7 +123,7 @@ class DeleteSelectionMenuPanel(BasePanel):
     ) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
-            hui.button(
+            hui.menu_row(
                 selection_label("Delete", n_nodes, n_edges),
                 icon=hui.icon.delete,
                 on_click=self.actions.delete_selection,
@@ -120,14 +132,46 @@ class DeleteSelectionMenuPanel(BasePanel):
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.button("Delete", icon=hui.icon.delete, disabled=True)
+            hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)
 
 
 @panel(
     surface=SelectionMenu,
-    label="Redraw Selection",
+    hosts=(SelectionRebuildMenu,),
+    label="Rebuild",
     icon=hui.icon.refresh,
     order=40,
+)
+class RebuildSelectionMenuPanel(BasePanel):
+    """The "Rebuild" row — a submenu over redraw / revalidate / reset.
+
+    A hosting panel, so it draws only the arrangement: the row and the flyout
+    it expands into. It pipes — the three commands inside reach the same
+    ``SelectionActions`` host one hop further without either side naming it.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return _selection_nonempty(ctx)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            with hui.submenu_row("Rebuild", icon=hui.icon.refresh):
+                self.render_surface(SelectionRebuildMenu, ctx)
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The static form, greyed — a row that does not expand."""
+        with layout:
+            hui.submenu_row("Rebuild", icon=hui.icon.refresh, enabled=False)
+
+
+@panel(
+    surface=SelectionRebuildMenu,
+    label="Redraw Selection",
+    icon=hui.icon.refresh,
+    order=10,
 )
 class RedrawSelectionMenuPanel(BasePanel):
     """Redraw every node/edge in the selection in one step."""
@@ -141,7 +185,7 @@ class RedrawSelectionMenuPanel(BasePanel):
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
-            hui.button(
+            hui.menu_row(
                 selection_label("Redraw", n_nodes, n_edges),
                 icon=hui.icon.refresh,
                 on_click=self.actions.redraw_selection,
@@ -150,14 +194,14 @@ class RedrawSelectionMenuPanel(BasePanel):
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.button("Redraw", icon=hui.icon.refresh, disabled=True)
+            hui.menu_row("Redraw", icon=hui.icon.refresh, enabled=False)
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionRebuildMenu,
     label="Revalidate Selection",
     icon=hui.icon.node_status,
-    order=50,
+    order=20,
 )
 class RevalidateSelectionMenuPanel(BasePanel):
     """Revalidate every node/edge in the selection in one step."""
@@ -171,7 +215,7 @@ class RevalidateSelectionMenuPanel(BasePanel):
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
-            hui.button(
+            hui.menu_row(
                 selection_label("Revalidate", n_nodes, n_edges),
                 icon=hui.icon.node_status,
                 on_click=self.actions.revalidate_selection,
@@ -180,14 +224,14 @@ class RevalidateSelectionMenuPanel(BasePanel):
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.button("Revalidate", icon=hui.icon.node_status, disabled=True)
+            hui.menu_row("Revalidate", icon=hui.icon.node_status, enabled=False)
 
 
 @panel(
-    surface=SelectionMenu,
+    surface=SelectionRebuildMenu,
     label="Reset Selection",
     icon=hui.icon.reset,
-    order=60,
+    order=30,
 )
 class ResetSelectionMenuPanel(BasePanel):
     """Reset every node/edge in the selection in one step."""
@@ -201,7 +245,7 @@ class ResetSelectionMenuPanel(BasePanel):
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         n_nodes, n_edges = _selection_counts(ctx)
         with layout:
-            hui.button(
+            hui.menu_row(
                 selection_label("Reset", n_nodes, n_edges),
                 icon=hui.icon.reset,
                 on_click=self.actions.reset_selection,
@@ -210,7 +254,7 @@ class ResetSelectionMenuPanel(BasePanel):
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The static form, greyed — what the row should say with nothing selected."""
         with layout:
-            hui.button("Reset", icon=hui.icon.reset, disabled=True)
+            hui.menu_row("Reset", icon=hui.icon.reset, enabled=False)
 
 
 def _node_has_errors(ctx: "SessionContext") -> bool:
@@ -294,7 +338,7 @@ class DissolveRerouteMenuPanel(BasePanel):
         node_id = wrapper.node_id
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Dissolve Reroute",
                 icon=hui.icon.edge,
                 on_click=lambda: self.actions.dissolve_reroute(node_id),

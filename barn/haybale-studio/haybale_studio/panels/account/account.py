@@ -31,7 +31,7 @@ class LogoutPanel(BasePanel):
 
     def draw(self, ctx, layout) -> None:
         with layout:
-            hui.button("Sign out", icon="logout", on_click=self.actions.logout)
+            hui.menu_row("Sign out", icon="logout", on_click=self.actions.logout)
 
 
 @panel(
@@ -53,7 +53,7 @@ class OpenRosterPanel(BasePanel):
         from haybale_studio.editors.roster_editor import RosterEditor
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Manage accounts",
                 icon="manage_accounts",
                 on_click=lambda: self.actions.reveal(RosterEditor, None, RosterEditor.class_identity.label),
@@ -81,7 +81,7 @@ class RotateSecretPanel(BasePanel):
 
     def draw(self, ctx, layout) -> None:
         with layout:
-            hui.button("Sign everyone out", icon="logout", on_click=self._rotate)
+            hui.menu_row("Sign everyone out", icon="logout", on_click=self._rotate)
 
     def _rotate(self) -> None:
         from haywire_studio.auth.cookies import rotate_secret
@@ -128,7 +128,7 @@ class OpenActivityPanel(BasePanel):
         from haybale_studio.editors.activity_editor import ActivityEditor
 
         with layout:
-            hui.button(
+            hui.menu_row(
                 "Agent activity",
                 icon="smart_toy",
                 on_click=lambda: self.actions.reveal(

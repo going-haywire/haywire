@@ -135,6 +135,18 @@ class WorkbenchTheme(BaseTheme):
         "popup_shadow": "--hw-popup-shadow",
         "drag_over": "--hw-drag-over",
         "drag_ghost": "--hw-drag-ghost",
+        # Menu rows (hui.menu_row / hui.submenu_row — one row look for every
+        # menu). Each is optional: the .hw-menu-row CSS block falls back to the
+        # semantic token beside it (text -> --hw-text-body, icon -> --hw-text-dim,
+        # hover -> --hw-bg-hover), so a theme sets these only to give menus a
+        # look of their own.
+        "menu_row_text": "--hw-menu-row-text",
+        "menu_row_icon": "--hw-menu-row-icon",
+        "menu_row_icon_size": "--hw-menu-row-icon-size",
+        "menu_row_hover_bg": "--hw-menu-row-hover-bg",
+        "menu_row_font_size": "--hw-menu-row-font-size",
+        "menu_row_font_weight": "--hw-menu-row-font-weight",
+        "menu_row_text_transform": "--hw-menu-row-text-transform",
         # Compact fields
         "compact_gap": "--hw-compact-gap",
         "compact_field_h": "--hw-compact-field-h",

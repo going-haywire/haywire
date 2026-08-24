@@ -206,7 +206,7 @@ class DeleteSelectionPanel(BasePanel):
 
     def draw(self, ctx, layout):
         with layout:
-            hui.button("Delete Selection", on_click=self.actions.delete_selection)
+            hui.menu_row("Delete Selection", on_click=self.actions.delete_selection)
 ```
 
 **Panel on a Surface with no host contract** (mounted by PropertiesEditor):
@@ -333,7 +333,7 @@ from haywire.barn.builtin.surfaces import AppSettings, ExecutionInspector
 
 Source: [`barn/haybale-testing/haybale_testing/panels/graph/menu/`](../../../barn/haybale-testing/haybale_testing/panels/graph/menu/)
 
-**Simple action panel** — `TestDeleteNodeMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py`. Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.button(...)` and dispatching through `self.actions`:
+**Simple action panel** — `TestDeleteNodeMenuPanel` from `barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py`. Demonstrates the minimal action-panel skeleton: `@panel` decorator, `actions: TestNodeActions` class-body annotation, `poll()` checking `EditState`, `draw()` rendering with `with layout: hui.menu_row(...)` and dispatching through `self.actions`:
 
 ```python
 --8<-- "barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py:22:53"
@@ -358,7 +358,7 @@ What these examples exercise:
 | `poll(cls, ctx)` as `@classmethod` | both panels |
 | `ctx.data[Cls].signal_field` (bare attribute) in `poll` | both panels |
 | `draw(self, ctx, layout)` 2-arg signature | both panels |
-| `with layout: hui.button(label, icon, on_click)` | `TestDeleteNodePanel` |
+| `with layout: hui.menu_row(label, icon, on_click)` | `TestDeleteNodePanel` |
 | Dispatching through the host contract via `self.actions` | `self.actions.test_delete_node(node_id)` |
 | `with layout: hui.label(text)` | `TestSessionStatePanel` |
 | Reading `SessionState` via `ctx.data[Cls]` | `TestSessionStatePanel` |
@@ -380,7 +380,7 @@ For the host Properties editor (a panel-aware editor in `haybale-studio`), see [
 - [ ] Implement `draw(self, ctx, layout)` — render content; access host as `self.actions.method(...)`
 - [ ] For a panel in a fixed-shape command menu (context menu, toolbar overflow): implement `draw_disabled(self, ctx, layout)` too, without touching the state `poll()` gated on
 - [ ] Set `order=` deliberately (100+ for library panels)
-- [ ] Render via `with layout:` then call `hui.*` directly (`hui.info_row`, `hui.button`, `hui.empty_state`, …); drop to raw `ui.*` only for patterns `hui` doesn't cover
+- [ ] Render via `with layout:` then call `hui.*` directly (`hui.info_row`, `hui.empty_state`, …); on a *menu* surface every command is `hui.menu_row` / `hui.submenu_row`, never `hui.button` (see design-guide §8.8b); drop to raw `ui.*` only for patterns `hui` doesn't cover
 - [ ] Custom helpers: `hb_*` prefix
 - [ ] Place in `panels/` folder; register via `add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)` in `register_components`
 
