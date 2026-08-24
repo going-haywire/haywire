@@ -52,10 +52,10 @@ class NodeMenuBuilder:
                         placeholder="Search nodes...",
                         on_change=lambda e: self._handle_search(e.value, menu_container),
                         autofocus=True,
-                    ).classes("flex-1")
+                    ).classes("flex-1 max-w-xs")
 
                     with (
-                        hui.toolbar_button(icon=hui.icon.add)
+                        hui.toolbar_button(icon=hui.icon.add, tooltip="Add Node")
                         .props("flat")
                         .classes("hw-text-body hw-list-item-hover text-sm shrink-0")
                     ):
@@ -73,7 +73,8 @@ class NodeMenuBuilder:
                             self._build_hierarchical_menu(top_level)
 
                 # Container for search results (initially hidden), own line below the row.
-                self._search_results = ui.column().classes("w-full gap-1").style("display: none")
+                self._search_results = ui.column().classes("w-full gap-1")
+                self._search_results.set_visibility(False)
 
         return menu_container
 
@@ -81,11 +82,11 @@ class NodeMenuBuilder:
         """Handle search input changes."""
         if not query.strip():
             # Hide search results, back to the create-node button/flyout.
-            self._search_results.style("display: none")
+            self._search_results.set_visibility(False)
             return
 
         # Show search results.
-        self._search_results.style("display: block")
+        self._search_results.set_visibility(True)
 
         # Update search results
         self._update_search_results(query)
@@ -102,23 +103,28 @@ class NodeMenuBuilder:
             if not results:
                 ui.label("No nodes found").classes("hw-text-muted text-sm p-2")
             else:
-                with ui.scroll_area():
-                    ui.label(f"Found {len(results)} node(s)").classes(
-                        "text-xs font-semibold hw-text-dim mb-2"
-                    ).props("dense")
+                # No scroll_area: results are capped at 10, and QScrollArea's
+                # internal absolute positioning would block the popup's
+                # shrink-to-fit width from seeing the buttons' natural width.
+                # The popup card already scrolls (`overflow: auto`) for the
+                # rare case content still exceeds 90vh.
+                ui.label(f"Found {len(results)} node(s)").classes(
+                    "text-xs font-semibold hw-text-dim mb-2"
+                ).props("dense")
 
-                    for node_info in results[:10]:  # Limit to 10 results
-                        self._create_search_result_item(node_info)
+                for node_info in results[:20]:  # Limit to 10 results
+                    self._create_search_result_item(node_info)
 
     def _create_search_result_item(self, node_info: NodeInfo):
         """Create a search result item."""
         library_id = node_info.library.label if node_info.library else "Unknown"
         deprecation_warning = node_info.identity.deprecation_warning
 
-        btn = ui.button(
-            f"+ {node_info.identity.label}",
-            on_click=lambda ni=node_info: self._on_node_selected(ni),
-        )
+        # Built from our own children rather than QBtn's ``label`` arg: that
+        # text lands in a Quasar-owned inner <span> ``.truncate`` can't reach
+        # (design-guide §3.5), and its implicit gap to the badge is `ml-auto`
+        # — zero once a long name leaves no leftover space to push through.
+        btn = ui.button(on_click=lambda ni=node_info: self._on_node_selected(ni))
         btn.props("flat dense align=left no-wrap")
         btn.classes("w-full justify-start px-3 py-1.5 hw-text-body hw-list-item-hover text-sm")
         if self._on_context_click is not None:
@@ -126,9 +132,10 @@ class NodeMenuBuilder:
             btn.on("contextmenu.prevent", lambda ni=node_info: cb(ni))
 
         with btn:
+            ui.label(f"+ {node_info.identity.label}").classes("truncate min-w-0 flex-1 text-left")
             if deprecation_warning:
-                ui.icon("warning").classes("text-amber-500 text-sm")
-            ui.badge(library_id).classes("ml-auto text-xs hw-text-dim")
+                ui.icon("warning").classes("text-amber-500 text-sm shrink-0 ml-2")
+            ui.badge(library_id).classes("shrink-0 ml-2 text-xs hw-text-dim")
 
         with btn:
             tip = ui.tooltip().classes("text-xs").props("no-parent-event")
