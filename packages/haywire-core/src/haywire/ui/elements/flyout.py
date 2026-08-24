@@ -52,6 +52,13 @@ from typing import Generator, List
 from nicegui import ui
 
 # Above the context-menu popup card (z-index 7001); Quasar QMenu defaults to 6000.
+#
+# Deliberately no width here. A QMenu is already shrink-to-fit, so a flyout that
+# stretches to the browser edge is never the menu's own sizing — it is an
+# *inline-level* leaf inside it (a bare QBtn is `display: inline-flex`), which
+# makes the menu's max-content the sum of every leaf on one line. Setting
+# `width: max-content` / a max-width cap here only re-measures or truncates that
+# same wrong number; the fix belongs on the leaf, and `hui.button` carries it.
 FLYOUT_Z = "z-index: 7100"
 
 # Flyout to the right of the anchor, cascading rightward for nested submenus.

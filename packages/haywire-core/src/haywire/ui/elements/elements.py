@@ -367,17 +367,29 @@ def button(
 
     Visual rules:
     - Props: ``flat dense``
-    - Classes: ``text-sm``
+    - Classes: ``text-sm w-full flex``
     - Colour: inherited — never use Quasar ``color=`` prop
     - Disabled: ``opacity: 0.5; pointer-events: none``
     - Transition: ``color 0.15s ease``
+
+    ``flex`` is load-bearing, not decoration: a ``QBtn`` is ``display:
+    inline-flex``, so a stack of them is a stack of *inline-level* boxes that
+    share one line box. Inside a shrink-to-fit container (a ``QMenu`` flyout,
+    any content-sized popup) percentage widths drop out of intrinsic sizing,
+    so ``w-full`` contributes nothing and the container's max-content becomes
+    the *sum* of every button on one line — measured at 653px for five short
+    labels, which is why a flyout stretched to the viewport edge instead of
+    hugging its icons and text. ``display: flex`` makes each button
+    block-level (Quasar's own ``flex-direction: column; align-items: stretch``
+    still applies, so the button itself looks identical) and the container
+    then measures the widest single row.
 
     Usage::
 
         hui.button("Delete Node", icon="delete", on_click=self._delete)
         hui.button("Refresh", icon="refresh", on_click=self._refresh)
     """
-    btn = ui.button(label, icon=icon).props("flat dense align=left no-wrap").classes("text-sm w-full")
+    btn = ui.button(label, icon=icon).props("flat dense align=left no-wrap").classes("text-sm w-full flex")
     if disabled:
         btn.style("opacity: 0.5; pointer-events: none;")
     if tooltip:

@@ -769,9 +769,17 @@ label is needed, optionally with a leading icon.
 **Visual rules:**
 
 - Props: `flat dense align=left no-wrap`
-- Classes: `text-sm w-full`
+- Classes: `text-sm w-full flex`
 - Colour: inherited — never use Quasar `color=` prop
 - Disabled: `opacity: 0.5; pointer-events: none`
+
+`flex` is load-bearing. A `QBtn` is `display: inline-flex`, so stacked buttons are
+inline-level boxes sharing one line box, and `w-full` drops out of intrinsic
+sizing — inside a shrink-to-fit container (a flyout `QMenu`, any content-sized
+popup) the container's max-content becomes the *sum* of the labels and the menu
+stretches to the viewport edge. `display: flex` makes each button block-level;
+Quasar's own `flex-direction: column; align-items: stretch` still applies, so the
+button looks identical. Never "fix" that symptom with a width on the menu.
 
 ```python
 hui.button("Delete Node", icon="delete", on_click=self._delete)
