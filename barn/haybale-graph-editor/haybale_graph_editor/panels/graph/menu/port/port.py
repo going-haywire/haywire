@@ -1,8 +1,11 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py
 """
-Port context-menu panels.
+Pin context-menu panels — the surface ``PinMenu``.
 
-actions: PortContextActions (empty marker), focus=PinFocus.
+Reached structurally now: the canvas detects a pin from ``data-pin-id``,
+which ``render_pin`` emits on every pin from every skin, so every skin gains
+this menu and none can suppress it. Both panels below are safe under that:
+one is display-only, and the demote verb polls true only on a promoted inlet.
 """
 
 from __future__ import annotations
@@ -14,9 +17,8 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....focuses import PinFocus
+from .....surfaces import PinMenu, PortActions
 from .....state.edit_state import EditState
-from .....editors.graph_canvas.handlers.context_menu_actions import PortContextActions
 
 
 if TYPE_CHECKING:
@@ -24,14 +26,13 @@ if TYPE_CHECKING:
 
 
 @panel(
-    actions=PortContextActions,
-    focus=PinFocus,
+    surface=PinMenu,
     label="Port Info",
     icon=hui.icon.edge,
     order=10,
 )
 class PortInfoMenuPanel(BasePanel):
-    actions: PortContextActions
+    actions: PortActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -55,8 +56,7 @@ class PortInfoMenuPanel(BasePanel):
 
 
 @panel(
-    actions=PortContextActions,
-    focus=PinFocus,
+    surface=PinMenu,
     label="Detach from setting",
     icon=hui.icon.delete,
     order=20,
@@ -64,7 +64,7 @@ class PortInfoMenuPanel(BasePanel):
 class DetachSettingMenuPanel(BasePanel):
     """Shown only on a promoted inlet; demotes it back to a plain setting."""
 
-    actions: PortContextActions
+    actions: PortActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

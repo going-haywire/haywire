@@ -45,11 +45,14 @@ def test_panel_polls_false_when_no_right_click():
 
 def test_panel_decorator_metadata():
     from haybale_haystack.panels.file_browser.menu.file import OpenInHaystackMenuPanel as OpenInHaystackPanel
-    from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
-    from haybale_studio.focuses import FileFocus
+    from haybale_studio.surfaces import FileActions, FileMenu
 
     # The @panel decorator stores metadata on class_identity
     ident = OpenInHaystackPanel.class_identity
-    assert ident.action_protocol is FileBrowserActions
-    assert ident.focus is FileFocus
+    assert ident.surface is FileMenu
+    assert ident.hosts == ()
     assert "Haystack" in ident.label
+    # The verbs the panel calls come from its surface's contract, which the
+    # host is checked against — a library adding a panel to another library's
+    # surface needs no change there.
+    assert FileMenu.provides is FileActions

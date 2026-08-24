@@ -7,11 +7,17 @@ calls.  The provider decides how to surface the menu.
 Design:
 - IContextMenuProvider defines *intent* methods, not imperative "show" calls.
 - SessionContextMenuProvider is the panel-driven implementation: it updates
-  SessionContext, queries PanelRegistry for panels matching the actions
-  provider and focus of the right-clicked element, and draws those that
-  pass poll() into a Popup.
+  SessionContext, then opens one Surface, whose panels the shared host
+  machinery gates, filters and draws into a Popup.
 - ContextMenuHandlers accepts any IContextMenuProvider and never imports
   concrete implementations directly.
+
+Dispatch shape (ADR-0029, Routing). The canvas detects **structurally** what
+it already knows — pin, node, edge, empty canvas — from the attributes those
+carry for dragging, selection and routing, and which surface each opens is the
+framework's decision rather than the skin's. The one **declarative** path is
+``data-hw-menu-surface-id``, which exists only so a library can add a menu the
+framework knows nothing about; its id may not resolve, and then nothing opens.
 """
 
 import logging
@@ -22,12 +28,13 @@ from haywire.core.session.context import SessionContext
 from haywire.core.session.session import Session
 from haywire.ui.panel.registry import PanelRegistry
 from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
+from haywire.ui.surface import surface_by_id
 
 from haywire.ui.components.graph.event_definitions import (
     ContextMenuCanvasEvent,
     ContextMenuEdgeEvent,
     ContextMenuSelectedEvent,
-    ContextMenuCustomEvent,
+    ContextMenuSurfaceEvent,
     ContextMenuPortEvent,
     SyncEdgeConnectResumeEvent,
 )
@@ -83,13 +90,13 @@ class IContextMenuProvider:
         """User right-clicked on a multi-element selection."""
         ...
 
-    def on_custom_context(
+    def on_surface_context(
         self,
         pos: Tuple[float, float],
         node_id: str,
-        scope: str,
+        surface_id: str,
     ) -> None:
-        """User right-clicked a custom-scope element (data-hw-custom-menu-focus-id)."""
+        """User right-clicked an element carrying data-hw-menu-surface-id."""
         ...
 
     def on_port_context(
@@ -97,9 +104,8 @@ class IContextMenuProvider:
         pos: Tuple[float, float],
         node_id: str,
         port_id: str,
-        scope: str,
     ) -> None:
-        """User right-clicked a port-scope element (data-hw-port-menu-focus-id)."""
+        """User right-clicked a pin (detected structurally from data-pin-id)."""
         ...
 
 
@@ -133,11 +139,14 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     On each intent call this provider:
     1. Updates SessionContext (active_node/edge/port).
-    2. Queries PanelRegistry for panels matching the actions provider and
-       focus of the right-clicked element, filters by poll(), and draws
-       matching panels into a Popup produced by popup_factory.
+    2. Opens one Surface; the base gates it, partitions its panels and
+       renders the tree into a Popup, keeping the popup only if a leaf drew.
     3. Registers a close callback that clears active_port/active_edge and
        resumes any pending edge-drag connection.
+
+    It implements every Protocol the surfaces it opens declare — GraphActions,
+    EdgeActions, SelectionActions and PortActions — which the base checks
+    before injecting itself as the host.
 
     Inherits popup/registry/poll/draw machinery from BaseContextMenuProvider.
     """
@@ -157,8 +166,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
     def _open_menu(
         self,
-        action: type,
-        focus: type,  # type[Focus] but loose to avoid circular import
+        surface: type,  # type[Surface] but loose to avoid a circular import
         pos: Tuple[float, float],
         on_close: Optional[Callable[[], None]] = None,
     ) -> None:
@@ -193,26 +201,20 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             if pending is not None and self._on_emit_sync_event:
                 self._on_emit_sync_event(SyncEdgeConnectResumeEvent())
 
-        super()._open_menu(action, focus, pos, on_close=_on_close)
+        super()._open_menu(surface, pos, on_close=_on_close)
 
     def on_canvas_context(self, pos, canvas_pos, pending_connection=None):
-        from haywire.barn.builtin.focuses import CanvasFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            CanvasContextActions,
-        )
+        from haybale_graph_editor.surfaces import GraphContext
 
         self._open_ctx = _OpenMenuContext(
             click_pos=pos,
             canvas_pos=canvas_pos,
             pending_connection=pending_connection,
         )
-        self._open_menu(CanvasContextActions, CanvasFocus, pos)
+        self._open_menu(GraphContext, pos)
 
     def on_edge_context(self, pos, edge_id, edge, state, at_sink_end=False, canvas_pos=None):
-        from haybale_graph_editor.focuses import EdgeFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            EdgeContextActions,
-        )
+        from haybale_graph_editor.surfaces import EdgeMenu
 
         graph = self._context.data[EditState].active_graph
         if graph is not None:
@@ -226,14 +228,15 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             edge_state=state,
             edge_reconnect_end=at_sink_end,
         )
-        self._open_menu(EdgeContextActions, EdgeFocus, pos)
+        self._open_menu(EdgeMenu, pos)
 
-    def on_port_context(self, pos, node_id, port_id, scope):
-        from haybale_graph_editor.focuses import PinFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            PortContextActions,
-        )
-        from haywire.ui.panel.focus import focus_by_id
+    def on_port_context(self, pos, node_id, port_id):
+        """Open the pin menu. The surface is the framework's decision.
+
+        Reached structurally (``data-pin-id``), so a skin no longer decides
+        whether a pin has a menu at all and cannot suppress the built-in one.
+        """
+        from haybale_graph_editor.surfaces import PinMenu
 
         graph = self._context.data[EditState].active_graph
         if graph is not None:
@@ -246,15 +249,10 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
                 self._context.active_component = wrapper.registry_key
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        # Resolve the focus from the DOM-supplied id; fall back to PinFocus.
-        focus = focus_by_id(scope) or PinFocus
-        self._open_menu(PortContextActions, focus, pos)
+        self._open_menu(PinMenu, pos)
 
     def on_selection_context(self, pos, nodes, edges):
-        from haybale_graph_editor.focuses import SelectionFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            SelectionContextActions,
-        )
+        from haybale_graph_editor.surfaces import SelectionMenu
 
         # Seed the Selection axis from the event payload so the menu's panels
         # poll against fresh state — independent of whether a separate
@@ -273,30 +271,36 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             edit.active_edge = graph.get_edge_wrapper(primary_edge) if primary_edge else None
 
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        self._open_menu(SelectionContextActions, SelectionFocus, pos)
+        self._open_menu(SelectionMenu, pos)
 
-    def on_custom_context(self, pos, node_id, scope):
-        """Resolve the focus via Focus.id; uses NodeContextActions by default.
+    def on_surface_context(self, pos, node_id, surface_id):
+        """Open whatever surface the DOM attribute named.
 
-        Library authors can declare a custom focus and register panels
-        against it; the DOM attribute carries the focus id.
+        **No fallback.** The old ``or NodeFocus`` is what made the node
+        inspector reachable by default from a right-click, giving it a second,
+        menu-shaped duty nobody declared. Deleting the branch deletes the
+        problem: an unresolved id logs and opens nothing.
+
+        **No addressability check** either. Every id in that attribute was
+        typed by someone, so there is no default left to misfire. An id naming
+        an inspector renders inspector panels with no host — inert, since
+        inspector panels never call ``self.actions`` — and its author sees it
+        on the first right-click.
         """
-        from haybale_graph_editor.focuses import NodeFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            NodeContextActions,
-        )
-        from haywire.ui.panel.focus import focus_by_id
-
         graph = self._context.data[EditState].active_graph
-        if graph is not None:
+        if graph is not None and node_id:
             wrapper = graph.get_node_wrapper(node_id)
             if wrapper is not None:
                 self._context.data[EditState].active_node = wrapper
                 self._context.active_component = wrapper.registry_key
 
+        surface = surface_by_id(surface_id)
+        if surface is None:
+            logger.warning("No surface registered for id %r", surface_id)
+            return
+
         self._open_ctx = _OpenMenuContext(click_pos=pos)
-        focus = focus_by_id(scope) or NodeFocus
-        self._open_menu(NodeContextActions, focus, pos)
+        self._open_menu(surface, pos)
 
     # ------------------------------------------------------------------
     # ContextMenuActions Protocol implementations
@@ -531,7 +535,7 @@ class ContextMenuHandlers:
         ContextMenuCanvasEvent,
         ContextMenuEdgeEvent,
         ContextMenuSelectedEvent,
-        ContextMenuCustomEvent,
+        ContextMenuSurfaceEvent,
         ContextMenuPortEvent,
     )
     def process_context_menu(self, event):
@@ -577,25 +581,24 @@ class ContextMenuHandlers:
                 event.selectedEdges,
             )
 
-        elif isinstance(event, ContextMenuCustomEvent):
+        elif isinstance(event, ContextMenuSurfaceEvent):
             logger.debug(
-                f"Custom context menu scope={event.scope!r} "
+                f"Surface context menu surface={event.surfaceId!r} "
                 f"for node {event.nodeId} at ({event.screenX}, {event.screenY})"
             )
-            self.provider.on_custom_context(
+            self.provider.on_surface_context(
                 (event.screenX, event.screenY),
                 event.nodeId,
-                event.scope,
+                event.surfaceId,
             )
 
         elif isinstance(event, ContextMenuPortEvent):
             logger.debug(
-                f"Port context menu scope={event.scope!r} "
-                f"for port {event.portId} on node {event.nodeId} at ({event.screenX}, {event.screenY})"
+                f"Pin context menu for port {event.portId} on node {event.nodeId} "
+                f"at ({event.screenX}, {event.screenY})"
             )
             self.provider.on_port_context(
                 (event.screenX, event.screenY),
                 event.nodeId,
                 event.portId,
-                event.scope,
             )

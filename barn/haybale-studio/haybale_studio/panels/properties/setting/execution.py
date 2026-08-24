@@ -1,6 +1,6 @@
 # haybale_studio/panels/properties/setting/execution.py
 """
-Execution-scope settings panels (ExecutionFocus).
+Execution settings panels, on the ``ExecutionInspector`` surface.
 
 ExecutionSettingsPanel — auto-execute, timeouts, parallelism, caching, error handling
 DebugSettingsPanel     — logging, execution visibility, visual debugging, data inspection
@@ -17,14 +17,14 @@ from haywire.ui.panel.render_utils import render_schema, render_keys
 from haywire.core.namespaces import NAMESPACE_LIBRARY_LOG
 from haywire.core.debug.debug_settings import DebugSettings
 
-from haywire.barn.builtin.focuses import ExecutionFocus
+from haywire.barn.builtin.surfaces import ExecutionInspector
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
 @panel(
-    focus=ExecutionFocus,
+    surface=ExecutionInspector,
     label="Execution",
     icon=hui.icon.execution,
     order=10,
@@ -45,7 +45,7 @@ class ExecutionSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=ExecutionFocus,
+    surface=ExecutionInspector,
     label="Log Levels",
     icon=hui.icon.debug,
     order=20,

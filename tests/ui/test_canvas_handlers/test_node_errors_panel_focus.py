@@ -1,6 +1,9 @@
-"""The context-menu node-errors panel must register under SelectionFocus
-(so it shows in the unified right-click menu); the inspector errors panel
-stays under NodeFocus."""
+"""The two node-errors panels sit on different surfaces.
+
+The menu one is on ``SelectionMenu`` (the unified right-click menu); the
+inspector one stays on ``NodeInspector``. With the display/action fork gone,
+the surface id is the only thing keeping them apart — which is precisely the
+double duty the Edge and Canvas splits had to resolve."""
 
 from unittest.mock import MagicMock
 
@@ -8,19 +11,19 @@ from haybale_graph_editor.panels.properties.introspect.node import NodeErrorsPan
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     NodeErrorsSelectionMenuPanel as ContextMenuNodeErrorsPanel,
 )
-from haybale_graph_editor.focuses import NodeFocus, SelectionFocus
-from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-    SelectionContextActions,
-)
+from haybale_graph_editor.surfaces import NodeInspector, SelectionMenu
 
 
-def test_inspector_errors_panel_stays_on_node_focus():
-    assert NodeErrorsPanel.class_identity.focus is NodeFocus
+def test_inspector_errors_panel_stays_on_the_node_inspector():
+    assert NodeErrorsPanel.class_identity.surface is NodeInspector
 
 
-def test_context_menu_errors_panel_moves_to_selection_focus():
-    assert ContextMenuNodeErrorsPanel.class_identity.focus is SelectionFocus
-    assert ContextMenuNodeErrorsPanel.class_identity.action_protocol is SelectionContextActions
+def test_context_menu_errors_panel_sits_on_the_selection_menu():
+    assert ContextMenuNodeErrorsPanel.class_identity.surface is SelectionMenu
+
+
+def test_the_two_panels_are_on_disjoint_surfaces():
+    assert NodeInspector.id != SelectionMenu.id
 
 
 def _ctx_with_active_node(node):

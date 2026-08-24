@@ -1,4 +1,4 @@
-"""Tests for the unified SelectionFocus command panels (count-aware labels,
+"""Tests for the unified SelectionMenu command panels (count-aware labels,
 batch redraw/revalidate/reset, poll contracts)."""
 
 from unittest.mock import MagicMock
@@ -14,10 +14,7 @@ from haybale_graph_editor.panels.graph.menu.selection.selection import (
     ResetSelectionMenuPanel as ResetSelectionPanel,
     selection_label,
 )
-from haybale_graph_editor.focuses import SelectionFocus
-from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-    SelectionContextActions,
-)
+from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu
 
 
 @pytest.mark.parametrize(
@@ -25,8 +22,8 @@ from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions imp
     [RedrawSelectionPanel, RevalidateSelectionPanel, ResetSelectionPanel],
 )
 def test_batch_panel_registration(panel_cls):
-    assert panel_cls.class_identity.action_protocol is SelectionContextActions
-    assert panel_cls.class_identity.focus is SelectionFocus
+    assert panel_cls.class_identity.surface is SelectionMenu
+    assert SelectionMenu.provides is SelectionActions
 
 
 def test_selection_label_single_node():

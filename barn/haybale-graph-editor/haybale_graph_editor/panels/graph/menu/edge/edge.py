@@ -1,8 +1,10 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/edge/edge.py
 """
-Edge context-menu panels.
+Edge context-menu panels — the surface ``EdgeMenu``.
 
-actions: EdgeContextActions, focus=EdgeFocus.
+``EdgeMenu`` is the menu half of the old ``EdgeFocus``, split out so the Edge
+properties tab (``EdgeInspector``, which keeps ``id="edge"``) and this menu
+stop being able to show each other's panels.
 """
 
 from __future__ import annotations
@@ -14,9 +16,8 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....focuses import EdgeFocus
+from .....surfaces import EdgeActions, EdgeMenu
 from .....state.edit_state import EditState
-from .....editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
 from ....properties.introspect.edge import (
     _state_from_context,
     _has_edge_errors,
@@ -30,8 +31,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    actions=EdgeContextActions,
-    focus=EdgeFocus,
+    surface=EdgeMenu,
     label="Connection Errors",
     icon=hui.icon.error,
     order=0,
@@ -39,7 +39,7 @@ if TYPE_CHECKING:
 class EdgeErrorsMenuPanel(BasePanel):
     """Edge errors panel for the context menu (right-click on edge)."""
 
-    actions: EdgeContextActions
+    actions: EdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -58,8 +58,7 @@ class EdgeErrorsMenuPanel(BasePanel):
 
 
 @panel(
-    actions=EdgeContextActions,
-    focus=EdgeFocus,
+    surface=EdgeMenu,
     label="Connection Warnings",
     icon=hui.icon.warning,
     order=5,
@@ -67,7 +66,7 @@ class EdgeErrorsMenuPanel(BasePanel):
 class EdgeWarningsMenuPanel(BasePanel):
     """Edge warnings panel for the context menu."""
 
-    actions: EdgeContextActions
+    actions: EdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -86,8 +85,7 @@ class EdgeWarningsMenuPanel(BasePanel):
 
 
 @panel(
-    actions=EdgeContextActions,
-    focus=EdgeFocus,
+    surface=EdgeMenu,
     label="Insert Reroute",
     icon=hui.icon.edge,
     order=20,
@@ -101,7 +99,7 @@ class InsertRerouteMenuPanel(BasePanel):
     it — so the listener flow never registers correctly.
     """
 
-    actions: EdgeContextActions
+    actions: EdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -132,14 +130,13 @@ class InsertRerouteMenuPanel(BasePanel):
 
 
 @panel(
-    actions=EdgeContextActions,
-    focus=EdgeFocus,
+    surface=EdgeMenu,
     label="Delete Connection",
     icon=hui.icon.delete,
     order=30,
 )
 class DeleteEdgeMenuPanel(BasePanel):
-    actions: EdgeContextActions
+    actions: EdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -164,8 +161,7 @@ class DeleteEdgeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=EdgeContextActions,
-    focus=EdgeFocus,
+    surface=EdgeMenu,
     label="Reconnect Edge",
     icon=hui.icon.edge,
     order=10,
@@ -178,7 +174,7 @@ class ReconnectEdgeMenuPanel(BasePanel):
     _OpenMenuContext. The panel just invokes the verb.
     """
 
-    actions: EdgeContextActions
+    actions: EdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

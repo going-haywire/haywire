@@ -1,5 +1,5 @@
-"""End-to-end smoke: a panel with focus=FileFocus appears in the menu
-when right_clicked_file is set, and reveal() fires."""
+"""End-to-end smoke: a panel on FileMenu appears in the menu when
+right_clicked_file is set, and reveal() fires."""
 
 from pathlib import Path
 from unittest.mock import MagicMock, patch
@@ -17,23 +17,35 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 )
 
 
+def _patched_popup():
+    """A Popup double whose ``content`` works as a context manager.
+
+    The host renders the whole tree into the popup before deciding whether to
+    open it, so ``content`` has to be enterable even on the discard path.
+    """
+    content = MagicMock()
+    content.__enter__ = MagicMock(return_value=content)
+    content.__exit__ = MagicMock(return_value=False)
+    popup = MagicMock()
+    popup.content = content
+    return popup
+
+
 def test_panel_appears_and_reveal_fires():
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
-    from haybale_studio.focuses import FileFocus
+    from haybale_studio.surfaces import FileActions, FileMenu
     from haybale_studio.state.file_browser_state import FileBrowserState
-    from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
-        actions=FileBrowserActions,
-        focus=FileFocus,
+        surface=FileMenu,
         label="Smoke Open",
         registry_id="smoke_open_panel",
     )
     class SmokeOpenPanel(BasePanel):
-        actions: FileBrowserActions
+        actions: FileActions
 
         @classmethod
         def poll(cls, ctx) -> bool:
@@ -55,7 +67,7 @@ def test_panel_appears_and_reveal_fires():
     session = MagicMock()
     provider = SessionFileMenuProvider(context=ctx, session=session, panel_registry=registry)
 
-    popup = MagicMock()
+    popup = _patched_popup()
     with patch.object(provider, "_build_popup", return_value=popup):
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo.smoke"))
 
@@ -69,19 +81,17 @@ def test_panel_skipped_when_extension_doesnt_match():
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
     from haywire.ui.panel.registry import PanelRegistry
-    from haybale_studio.focuses import FileFocus
+    from haybale_studio.surfaces import FileActions, FileMenu
     from haybale_studio.state.file_browser_state import FileBrowserState
-    from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
     from haybale_studio.editors.file_browser_menu.provider import SessionFileMenuProvider
 
     @panel(
-        actions=FileBrowserActions,
-        focus=FileFocus,
+        surface=FileMenu,
         label="Smoke OnlySmokeExt",
         registry_id="smoke_only_ext_panel",
     )
     class SmokeOnlyPanel(BasePanel):
-        actions: FileBrowserActions
+        actions: FileActions
 
         @classmethod
         def poll(cls, ctx) -> bool:
@@ -100,7 +110,7 @@ def test_panel_skipped_when_extension_doesnt_match():
     session = MagicMock()
     provider = SessionFileMenuProvider(context=ctx, session=session, panel_registry=registry)
 
-    popup = MagicMock()
+    popup = _patched_popup()
     with patch.object(provider, "_build_popup", return_value=popup):
         # Right-click a file with a DIFFERENT extension — poll() must return False
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo.txt"))

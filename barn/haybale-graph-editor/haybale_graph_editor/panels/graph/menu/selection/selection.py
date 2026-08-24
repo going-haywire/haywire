@@ -1,8 +1,16 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py
 """
-Selection context-menu panels.
+Selection context-menu panels — the surface ``SelectionMenu``.
 
-actions: SelectionContextActions, focus=SelectionFocus.
+These are also what the floating toolbar's ⋯ shows, since it hosts the same
+surface rather than duplicating a curated set.
+
+Every command here implements ``draw_disabled()``: an inapplicable command
+greys rather than disappearing, which is the platform convention and matters
+most here — this is the menu a user right-clicks into with an empty
+selection. The label appears twice per panel because the panel owns both
+renderings (a host-drawn row could not carry the dynamic "Copy 3 nodes"
+form); a class constant is the whole answer.
 """
 
 from __future__ import annotations
@@ -14,9 +22,8 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from .....focuses import SelectionFocus
+from .....surfaces import SelectionActions, SelectionMenu
 from .....state.edit_state import EditState
-from .....editors.graph_canvas.handlers.context_menu_actions import SelectionContextActions
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -49,14 +56,13 @@ def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
 
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Copy Selection",
     icon=hui.icon.copy,
     order=10,
 )
 class CopySelectionMenuPanel(BasePanel):
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -76,10 +82,14 @@ class CopySelectionMenuPanel(BasePanel):
                 on_click=self.actions.copy_selection,
             )
 
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The static form, greyed — what the row should say with nothing selected."""
+        with layout:
+            hui.button("Copy", icon=hui.icon.copy, disabled=True)
+
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Delete Selection",
     icon=hui.icon.delete,
     order=30,
@@ -87,7 +97,7 @@ class CopySelectionMenuPanel(BasePanel):
 class DeleteSelectionMenuPanel(BasePanel):
     """Delete every node and edge in the current selection in one undoable step."""
 
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -107,10 +117,14 @@ class DeleteSelectionMenuPanel(BasePanel):
                 on_click=self.actions.delete_selection,
             )
 
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The static form, greyed — what the row should say with nothing selected."""
+        with layout:
+            hui.button("Delete", icon=hui.icon.delete, disabled=True)
+
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Redraw Selection",
     icon=hui.icon.refresh,
     order=40,
@@ -118,7 +132,7 @@ class DeleteSelectionMenuPanel(BasePanel):
 class RedrawSelectionMenuPanel(BasePanel):
     """Redraw every node/edge in the selection in one step."""
 
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -133,10 +147,14 @@ class RedrawSelectionMenuPanel(BasePanel):
                 on_click=self.actions.redraw_selection,
             )
 
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The static form, greyed — what the row should say with nothing selected."""
+        with layout:
+            hui.button("Redraw", icon=hui.icon.refresh, disabled=True)
+
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Revalidate Selection",
     icon=hui.icon.node_status,
     order=50,
@@ -144,7 +162,7 @@ class RedrawSelectionMenuPanel(BasePanel):
 class RevalidateSelectionMenuPanel(BasePanel):
     """Revalidate every node/edge in the selection in one step."""
 
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -159,10 +177,14 @@ class RevalidateSelectionMenuPanel(BasePanel):
                 on_click=self.actions.revalidate_selection,
             )
 
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The static form, greyed — what the row should say with nothing selected."""
+        with layout:
+            hui.button("Revalidate", icon=hui.icon.node_status, disabled=True)
+
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Reset Selection",
     icon=hui.icon.reset,
     order=60,
@@ -170,7 +192,7 @@ class RevalidateSelectionMenuPanel(BasePanel):
 class ResetSelectionMenuPanel(BasePanel):
     """Reset every node/edge in the selection in one step."""
 
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -184,6 +206,11 @@ class ResetSelectionMenuPanel(BasePanel):
                 icon=hui.icon.reset,
                 on_click=self.actions.reset_selection,
             )
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The static form, greyed — what the row should say with nothing selected."""
+        with layout:
+            hui.button("Reset", icon=hui.icon.reset, disabled=True)
 
 
 def _node_has_errors(ctx: "SessionContext") -> bool:
@@ -206,8 +233,7 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
 
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Node Errors",
     icon=hui.icon.error,
     order=0,
@@ -220,7 +246,7 @@ class NodeErrorsSelectionMenuPanel(BasePanel):
     selection's primary. Display-only; calls no action verb.
     """
 
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -235,8 +261,7 @@ class NodeErrorsSelectionMenuPanel(BasePanel):
 
 
 @panel(
-    actions=SelectionContextActions,
-    focus=SelectionFocus,
+    surface=SelectionMenu,
     label="Dissolve Reroute",
     icon=hui.icon.edge,
     order=15,
@@ -249,7 +274,7 @@ class DissolveRerouteMenuPanel(BasePanel):
     then removes the reroute — all as one undoable operation.
     """
 
-    actions: SelectionContextActions
+    actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

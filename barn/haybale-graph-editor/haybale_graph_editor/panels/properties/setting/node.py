@@ -2,7 +2,7 @@
 """
 NodeSettingsPanel — renders all user-defined settings on the selected node.
 
-Appears under the SettingsFocus, one collapsible section per bag.
+Appears on SettingsInspector, one collapsible section per bag.
 """
 
 from __future__ import annotations
@@ -21,7 +21,7 @@ from haywire.ui.panel.decorator import panel
 
 from haywire.ui.panel.render_utils import render_settings
 
-from ....focuses import SettingsFocus
+from ....surfaces import SettingsInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=SettingsFocus,
+    surface=SettingsInspector,
     label="Node Settings",
     icon=hui.icon.node_settings,
     order=10,

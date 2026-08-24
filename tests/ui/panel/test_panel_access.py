@@ -24,6 +24,29 @@ def _panel(name: str, access: AccessTier, *, visible: bool = True):
     return _P
 
 
+def _panel_with_both_methods(name: str, access: AccessTier):
+    """A panel implementing BOTH draw() and draw_disabled() — the asymmetry an
+    author denied by access= will get wrong if only draw() is checked."""
+
+    class _P(BasePanel):
+        drew = False
+        drew_disabled = False
+
+        @classmethod
+        def poll(cls, ctx):
+            return True
+
+        def draw(self, ctx, layout):
+            type(self).drew = True
+
+        def draw_disabled(self, ctx, layout):
+            type(self).drew_disabled = True
+
+    _P.__name__ = name
+    _P.class_identity = PanelIdentity(registry_id=name, registry_key=f"k:{name}", label=name, access=access)
+    return _P
+
+
 def _ctx(tier: AccessTier):
     ctx = MagicMock()
     ctx.can_access.side_effect = lambda required: tier.satisfies(required)
@@ -112,3 +135,14 @@ def test_render_panel_draws_an_allowed_panel():
     panel = _panel("ViewP", AccessTier.VIEW)
     assert render_panel(panel, _ctx(AccessTier.ADMIN), _layout()) is True
     assert panel.drew is True
+
+
+def test_render_panel_refuses_a_denied_panel_disabled_path_too():
+    """access= denies BOTH draw() and draw_disabled() — a greyed entry would
+    advertise what the principal may not have (ADR-0029). Confirmed real gap:
+    the sibling test above only exercised the disabled=False (draw()) path;
+    this is the asymmetry an author denied by access= would get wrong."""
+    panel = _panel_with_both_methods("AdminBoth", AccessTier.ADMIN)
+    assert render_panel(panel, _ctx(AccessTier.VIEW), _layout(), disabled=True) is False
+    assert panel.drew is False
+    assert panel.drew_disabled is False

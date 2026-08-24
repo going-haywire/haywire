@@ -310,9 +310,9 @@ class Library(BaseLibrary):
 
 from haywire.ui.panel import BasePanel, panel
 
-@panel(focus=GraphFocus, label='MIDI Devices')
+@panel(surface=GraphInspector, label='MIDI Devices')
 class MidiDeviceListPanel(BasePanel):
-    def draw(self, ctx, layout, actions):
+    def draw(self, ctx, layout):
         # AppState — same instance for everyone
         pool = ctx.app_data[MidiPool]
 

@@ -263,11 +263,16 @@ Disabled elements use reduced opacity. No other visual treatment is applied.
 | ------------------ | ------------------------------------ |
 | Input, select      | `opacity: 0.5; pointer-events: none` |
 | Icon action button | `opacity: 0.4; pointer-events: none` |
-| Scope button       | `opacity: 0.3; pointer-events: none` |
+| Surface button     | `opacity: 0.3; pointer-events: none` |
+| Menu row (`hui.submenu_row` / `hui.flyout`, disabled or retroactively greyed) | `opacity: 0.4; pointer-events: none` |
 
 **Rule:** Always set both `opacity` and `pointer-events: none` together.
 Never use a grey fill or border change to indicate disabled state — opacity
-is the single, consistent signal.
+is the single, consistent signal. A menu row follows the same rule whether it
+was constructed `enabled=False` or greyed *retroactively* after its flyout
+body drew nothing (see `.insights/feedback_nicegui_nested_menu_flyouts.md`,
+"Sibling-group ownership and retroactive greying") — both read identically to
+the user, and neither ever gets a grey fill.
 
 **Rule:** Quasar's `:disable` prop handles both correctly for `QBtn` and
 `QInput`. Prefer it over manual class application where available.
@@ -789,20 +794,20 @@ An icon button for the activity bar or context bar.
 hui.toolbar_button("folder", is_active=True, tooltip="Files", on_click=switch)
 ```
 
-### 8.10 `hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)`
+### 8.10 `hui.surface_button(icon, is_active=False, available=True, tooltip=None, on_click=None)`
 
-A square button for the properties scope toolbar.
+A square button for the properties editor's SurfaceToolbar.
 
 **Visual rules:**
 
 - Size: `36×36px`
-- Border-radius: `0`
+- Border-radius: `0` — tiles vertically; any radius creates visual gaps
 - Active: `var(--hw-accent)` background, `#ffffff` text
 - Unavailable: `opacity: 0.3`, `pointer-events: none`
 - Transition: `background 0.15s`
 
 ```python
-hui.scope_button("settings", is_active=True, tooltip="Node Properties")
+hui.surface_button("settings", is_active=True, tooltip="Node Properties")
 ```
 
 ### 8.11 `hui.expansion_section(label, icon=None, default_open=True, context=None, panel_key=None)`
@@ -1274,17 +1279,17 @@ automatically without requiring users to reset their workspace.
 Every workspace slot (**left**, **right**, **main**, **bottom**) is composed of
 a **bar** (its control strip) and an **area** (its content panel). The shell
 also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
-(ScopeToolbar). Use these names consistently in code and comments:
+(SurfaceToolbar). Use these names consistently in code and comments:
 
-| Name         | Slot                      | Bar kind | Content                                      |
-| ------------ | ------------------------- | -------- | -------------------------------------------- |
-| TopBar       | —                         | chrome   | App name, workspace switcher, global actions |
-| StatusBar    | —                         | chrome   | Session info, status messages                |
-| ActivityBar  | ACTION slot (left edge)   | icons    | ACTION slot editor switcher icons            |
-| ContextBar   | CONTEXT slot (right edge) | icons    | CONTEXT slot editor switcher icons           |
-| MainTabBar   | EDIT slot (centre)        | tabs     | EDIT slot tab switcher (horizontal tabs)     |
-| BottomTabBar | INFO slot (bottom)        | tabs     | INFO slot tab switcher + retract chevron     |
-| ScopeToolbar | (inside PropertiesEditor) | icons    | Scope switcher icons (36px buttons)          |
+| Name           | Slot                      | Bar kind | Content                                      |
+| -------------- | ------------------------- | -------- | --------------------------------------------- |
+| TopBar         | —                         | chrome   | App name, workspace switcher, global actions  |
+| StatusBar      | —                         | chrome   | Session info, status messages                |
+| ActivityBar    | ACTION slot (left edge)   | icons    | ACTION slot editor switcher icons            |
+| ContextBar     | CONTEXT slot (right edge) | icons    | CONTEXT slot editor switcher icons           |
+| MainTabBar     | EDIT slot (centre)        | tabs     | EDIT slot tab switcher (horizontal tabs)     |
+| BottomTabBar   | INFO slot (bottom)        | tabs     | INFO slot tab switcher + retract chevron     |
+| SurfaceToolbar | (inside PropertiesEditor) | icons    | Surface switcher icons (36px buttons)        |
 
 **Rule:** The ACTION slot (left edge) hosts activity-minded editors (library
 browser, file browser, graph manager); the CONTEXT slot (right edge) hosts

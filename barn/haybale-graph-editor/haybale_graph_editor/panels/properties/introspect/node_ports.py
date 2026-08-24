@@ -19,7 +19,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.utils import anchor_cleanup_to_element
 
-from ....focuses import PortFocus
+from ....surfaces import PortInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -33,7 +33,7 @@ def _type_name(port: object) -> str:
 
 
 @panel(
-    focus=PortFocus,
+    surface=PortInspector,
     label="Ports",
     icon=hui.icon.node_ports,
     default_open=False,

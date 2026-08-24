@@ -643,23 +643,23 @@ class LibrarySystemService:
         for editor_key in all_editors:
             print(f"   • {editor_key}")
 
-        # Print registered panels grouped by focus
+        # Print registered panels grouped by surface
         print("\n📋 Registered Panels:")
         all_panels = panel_registry.list_names()
-        by_focus: Dict[str, list] = {}
+        by_surface: Dict[str, list] = {}
         for panel_key in all_panels:
             cls = panel_registry.get(panel_key)
             if cls is None:
                 continue
-            focus = getattr(cls.class_identity, "focus", None)
-            focus_id = getattr(focus, "id", "?") if focus is not None else "?"
-            by_focus.setdefault(focus_id, []).append((panel_key, cls))
-        for focus_id in sorted(by_focus):
-            print(f"   {focus_id}:")
-            for panel_key, cls in by_focus[focus_id]:
-                action = getattr(cls.class_identity, "action", None)
-                action_name = getattr(action, "__name__", "?") if action is not None else "?"
-                print(f"      • {panel_key}  ({action_name})")
+            surface = getattr(cls.class_identity, "surface", None)
+            surface_id = getattr(surface, "id", "?") if surface is not None else "?"
+            by_surface.setdefault(surface_id, []).append((panel_key, cls))
+        for surface_id in sorted(by_surface):
+            print(f"   {surface_id}:")
+            for panel_key, cls in by_surface[surface_id]:
+                hosts = getattr(cls.class_identity, "hosts", ())
+                hosted = ", ".join(getattr(h, "id", "?") for h in hosts) if hosts else "leaf"
+                print(f"      • {panel_key}  (hosts: {hosted})")
 
         # Print registered themes
         print("\n🌈 Registered Themes:")

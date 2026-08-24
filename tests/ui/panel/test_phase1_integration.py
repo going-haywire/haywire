@@ -1,4 +1,4 @@
-"""Cross-cutting: define a Panel, register it, query the registry, get an actions provider, get the panel."""
+"""Cross-cutting: define a Panel, register it, query the registry by surface, get the panel."""
 
 from typing import Protocol, runtime_checkable
 from unittest.mock import MagicMock
@@ -8,7 +8,7 @@ from haywire.core.library.identity import LibraryIdentity
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
-from haywire.ui.panel.focus import Focus
+from haywire.ui.surface import Surface
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -25,18 +25,16 @@ class _Verbose(Protocol):
     def speak(self) -> None: ...
 
 
-class _LoudFocus(Focus):
-    id = "loud_test_focus"
-    label = "Loud"
-    icon = "volume_up"
-
-    @classmethod
-    def available(cls, ctx):
-        return True
+class _LoudMenu(Surface):
+    id = "loud_test_menu"
+    provides = _Verbose
 
 
-# Action panel — queries via get_panels_for_action.
-@panel(actions=_Verbose, focus=_LoudFocus, label="Speaker")
+class _QuietInspector(Surface):
+    id = "quiet_test_inspector"
+
+
+@panel(surface=_LoudMenu, label="Speaker")
 class _SpeakerPanel(BasePanel):
     actions: _Verbose
 
@@ -48,45 +46,45 @@ class _SpeakerPanel(BasePanel):
         pass
 
 
-# Display panel — queries via get_panels_for_focus / get_display_focuses.
-@panel(focus=_LoudFocus, label="Speaker Info", registry_id="speaker_info_phase1")
+@panel(surface=_QuietInspector, label="Speaker Info", registry_id="speaker_info_phase1")
 class _SpeakerInfoPanel(BasePanel):
     def draw(self, ctx, layout):
         pass
 
 
-def test_full_pipeline_action_panel_registered_and_queryable():
+def test_full_pipeline_panel_registered_and_queryable():
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
-    panels = reg.get_panels_for_action(_Verbose, _LoudFocus)
-    assert _SpeakerPanel in panels
+    assert _SpeakerPanel in reg.get_panels(_LoudMenu)
 
 
-def test_full_pipeline_action_panel_not_returned_by_display_query():
+def test_a_panel_only_appears_on_its_own_surface():
+    """The display/action fork is gone: which panels a surface yields depends
+    on the surface id alone, so a menu panel is simply absent from another
+    surface's list rather than filtered out by a second axis."""
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
-    # Action panel must NOT appear in display queries.
-    panels = reg.get_panels_for_focus(_LoudFocus)
-    assert _SpeakerPanel not in panels
+    assert _SpeakerPanel not in reg.get_panels(_QuietInspector)
 
 
-def test_full_pipeline_display_panel_discovered_via_get_display_focuses():
+def test_full_pipeline_surface_discovered_via_get_root_surfaces():
     reg = PanelRegistry()
     reg._register_class(_SpeakerInfoPanel, _FAKE_LIBRARY_IDENTITY)
 
-    focuses = reg.get_display_focuses()
-    assert _LoudFocus in focuses
+    assert _QuietInspector in reg.get_root_surfaces()
 
 
-def test_full_pipeline_action_panel_focus_not_in_get_display_focuses():
+def test_a_menu_surface_is_a_root_too():
+    """Root-ness is not the strip's whole filter — a menu surface no panel
+    hosts is a root as well, and the strip additionally requires
+    ``presentation`` (which a menu surface never declares)."""
     reg = PanelRegistry()
     reg._register_class(_SpeakerPanel, _FAKE_LIBRARY_IDENTITY)
 
-    # Action panels don't contribute to display focuses.
-    focuses = reg.get_display_focuses()
-    assert _LoudFocus not in focuses
+    assert _LoudMenu in reg.get_root_surfaces()
+    assert _LoudMenu.presentation is None
 
 
 def test_panel_poll_is_classmethod_and_reads_session_context(register_edit_state):

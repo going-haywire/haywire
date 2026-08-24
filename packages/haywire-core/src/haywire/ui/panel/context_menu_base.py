@@ -11,14 +11,22 @@ from __future__ import annotations
 import logging
 from typing import Callable, Optional, Tuple, TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.panel.layout import PanelLayout
-from haywire.ui.panel.host_rendering import render_panel, visible_panels
+from haywire.ui.panel.host_rendering import (
+    _poll_surface,
+    counting_leaves,
+    partition_panels,
+    render_panel,
+    render_path_extended,
+)
 from haywire.ui.components.popup import Popup
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
     from haywire.core.session.session import Session
     from haywire.ui.panel.registry import PanelRegistry
+    from haywire.ui.surface import Surface
 
 logger = logging.getLogger(__name__)
 
@@ -26,11 +34,14 @@ logger = logging.getLogger(__name__)
 class BaseContextMenuProvider:
     """Shared base for panel-driven context menu providers.
 
-    Subclasses provide intent methods (e.g. on_node_context) and the
-    actions Protocol implementation. They call _open_menu(action, focus,
-    pos, on_close=...) to surface the menu. The base injects ``self`` as
-    the ``actions`` provider on each mounted panel, so panel bodies access
-    the host via ``self.actions``.
+    Subclasses provide intent methods (e.g. on_node_context) and implement
+    whatever Protocol the surfaces they open declare as ``provides``. They
+    call ``_open_menu(surface, pos, on_close=...)`` to surface the menu. The
+    base injects ``self`` as the ``actions`` host on each mounted panel, so
+    panel bodies reach the host via ``self.actions``.
+
+    The host renders only the *root* surface's panels; anything nested is a
+    panel's own ``render_surface`` call.
     """
 
     def __init__(
@@ -60,20 +71,29 @@ class BaseContextMenuProvider:
 
     def _open_menu(
         self,
-        action: type,
-        focus: type,
+        surface: type["Surface"],
         pos: Tuple[float, float],
         on_close: Optional[Callable[[], None]] = None,
     ) -> None:
-        """Build popup, query panels for (action, focus), inject self as the
-        actions provider on each mounted panel, draw matched ones.
+        """Gate the surface, render its tree into a hidden popup, keep it if
+        a leaf drew.
 
         on_close: subclass-supplied cleanup (reset gesture/edit state, resume
         paused drags, etc.). Always runs once the menu is dismissed — and, if
-        no panel is visible, runs immediately, since the gesture is over even
-        though no popup ever opened. This cleanup is load-bearing: intent
+        no popup opens, runs immediately, since the gesture is over even
+        though nothing appeared. This cleanup is load-bearing: intent
         handlers set edit state (active_port/active_edge, right_clicked_file)
         before calling here and rely on it being reset on close.
+
+        **Emptiness is a property of the tree, not of the root surface**
+        (ADR-0029). A layout panel polls true unconditionally, so the root's
+        panel list stops answering the question once nesting exists. The
+        popup is therefore built (``start-visible: False``, so invisible),
+        the whole tree is rendered into it, and it is opened only if a *leaf*
+        panel — one declaring no ``hosts=`` — drew via either ``draw()`` or
+        ``draw_disabled()``. Otherwise it is deleted, which reclaims the whole
+        subtree, and the close cleanup runs exactly as it does when nothing
+        polls true.
         """
 
         def _wrapped_on_close() -> None:
@@ -84,22 +104,84 @@ class BaseContextMenuProvider:
                 except Exception as exc:
                     logger.exception(f"on_close handler raised: {exc}")
 
-        # Poll-filter before building anything. If nothing is visible there's
-        # no popup to open — but the gesture still ended, so run the close
-        # cleanup now and bail without constructing/registering a popup.
-        panel_classes = self._panel_registry.get_panels_for_action(action, focus)
-        visible = visible_panels(panel_classes, self._context)
-        if not visible:
+        # Gate the surface before building anything. A surface that does not
+        # apply costs nothing and takes the cheap early return, which is what
+        # keeps the common paths off the render-then-discard path below.
+        if not _poll_surface(surface, self._context):
+            _wrapped_on_close()
+            return
+
+        panels = self._panel_registry.get_panels(surface)
+        applies, disabled = partition_panels(panels, self._context)
+        if not applies and not disabled:
+            _wrapped_on_close()
+            return
+
+        satisfied, host = self._host_for(surface)
+        if not satisfied:
             _wrapped_on_close()
             return
 
         popup = self._build_popup(pos)
+        layout = PanelLayout(popup.content)
+        by_order = sorted(
+            [(cls, False) for cls in applies] + [(cls, True) for cls in disabled],
+            key=lambda pair: getattr(pair[0].class_identity, "order", 100),
+        )
+
+        # A popup is a menu *level*: push the root flyout-sibling group around
+        # its content so any submenu rows drawn inside — on this surface or
+        # any nested one — share one group and close each other.
+        with counting_leaves() as leaves, render_path_extended(surface.id):
+            with popup.content, hui.open_flyout_group():
+                for cls, is_disabled in by_order:
+                    render_panel(
+                        cls,
+                        self._context,
+                        layout,
+                        actions_host=host,
+                        registry=self._panel_registry,
+                        disabled=is_disabled,
+                    )
+            drew = leaves() > 0
+
+        if not drew:
+            popup.delete()
+            _wrapped_on_close()
+            return
+
         self._open_popup = popup
         popup.on_close(_wrapped_on_close)
-
-        # Inject ``self`` as the actions host (see BasePanel.actions); draw
-        # errors surface inline rather than crashing the popup.
-        layout = PanelLayout(popup.content)
-        for cls in visible:
-            render_panel(cls, self._context, layout, actions_host=self)
         popup.open()
+
+    def _host_for(self, surface: type["Surface"]) -> Tuple[bool, object | None]:
+        """``(contract_satisfiable, host)`` for this surface's panels.
+
+        The two halves answer different questions, and conflating them is what
+        made a verb-less surface abort the whole menu:
+
+        - ``(True, self)`` — the surface declares a ``provides`` Protocol this
+          provider satisfies. Its panels reach the provider via ``self.actions``.
+        - ``(True, None)`` — the surface declares **no** ``provides``. There is
+          no contract to fail, so the menu proceeds and the panels render with
+          ``actions=None``. This is inert rather than broken: a verb-less
+          surface's panels never call ``self.actions``, and it is the *common*
+          case for a third-party surface reached through the DOM attribute,
+          since ``provides`` is checked against a Protocol a third-party library
+          cannot extend (ADR-0029, "No addressability check").
+        - ``(False, None)`` — the surface demands verbs this provider does not
+          have. That contract genuinely cannot be satisfied, so it is an
+          authoring error, reported as one, and the only case that aborts.
+        """
+        want = getattr(surface, "provides", None)
+        if want is None:
+            return True, None
+        if not isinstance(self, want):
+            logger.warning(
+                "%s does not satisfy %s, required by surface %r — no menu opened.",
+                type(self).__name__,
+                want.__name__,
+                surface.id,
+            )
+            return False, None
+        return True, self

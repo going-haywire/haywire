@@ -13,7 +13,7 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ....focuses import EdgeFocus
+from ....surfaces import EdgeInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -54,7 +54,7 @@ def _render_edge_warnings(state: "EdgeWrapperState") -> None:
 
 
 @panel(
-    focus=EdgeFocus,
+    surface=EdgeInspector,
     label="Connection Errors",
     icon=hui.icon.error,
     order=0,
@@ -79,7 +79,7 @@ class EdgeErrorsPanel(BasePanel):
 
 
 @panel(
-    focus=EdgeFocus,
+    surface=EdgeInspector,
     label="Connection Warnings",
     icon=hui.icon.warning,
     order=5,
@@ -104,7 +104,7 @@ class EdgeWarningsPanel(BasePanel):
 
 
 @panel(
-    focus=EdgeFocus,
+    surface=EdgeInspector,
     label="Execution Statistics",
     icon=hui.icon.edge_statistics,
     default_open=False,
@@ -134,7 +134,7 @@ class EdgeStatsPanel(BasePanel):
 
 
 @panel(
-    focus=EdgeFocus,
+    surface=EdgeInspector,
     label="Connection Path",
     icon=hui.icon.edge_statistics,
     default_open=False,

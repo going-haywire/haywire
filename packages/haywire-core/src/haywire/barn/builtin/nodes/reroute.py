@@ -59,7 +59,7 @@ class RerouteNode(BaseNode):
         # fresh creation and load, so the binding is self-contained and survives
         # reload without being persisted.
         self.props.skin = "haywire-core:skin:RerouteSkin"
-        for cat in ("state", "appearance","annotation", "layout"):
+        for cat in ("state", "appearance", "annotation", "layout"):
             self.props.set_ui_state_all(UiState.HIDDEN, category=cat)
 
     def on_startup(self, context: ExecutionContext) -> None:

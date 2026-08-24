@@ -1,23 +1,21 @@
 """Account-menu panels — behind the account_circle icon in the ACTION bar footer.
 
-These are ordinary panels against ``AccountFocus``, so ``visible_panels()``
-filters them by ``access=`` with no special case, and the menu does not open at
-all when a principal has nothing in it.
+These are ordinary panels on ``AccountMenu``, so the shared panel gate filters
+them by ``access=`` with no special case, and the menu does not open at all
+when a principal has nothing in it.
 """
 
 from __future__ import annotations
 
-from haywire.barn.builtin.focuses import AccountFocus
+from haywire.barn.builtin.surfaces import AccountActions, AccountMenu
 from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
-from haywire.ui.app.account_menu import AccountActions
 from haywire.ui.panel.base import BasePanel
 from haywire.ui.panel.decorator import panel
 
 
 @panel(
-    actions=AccountActions,
-    focus=AccountFocus,
+    surface=AccountMenu,
     label="Sign out",
     order=90,
     access=AccessTier.VIEW,
@@ -37,8 +35,7 @@ class LogoutPanel(BasePanel):
 
 
 @panel(
-    actions=AccountActions,
-    focus=AccountFocus,
+    surface=AccountMenu,
     label="Manage principals",
     order=10,
     access=AccessTier.ADMIN,
@@ -64,8 +61,7 @@ class OpenRosterPanel(BasePanel):
 
 
 @panel(
-    actions=AccountActions,
-    focus=AccountFocus,
+    surface=AccountMenu,
     label="Sign everyone out",
     order=80,
     access=AccessTier.ADMIN,
@@ -103,8 +99,7 @@ class RotateSecretPanel(BasePanel):
 
 
 @panel(
-    actions=AccountActions,
-    focus=AccountFocus,
+    surface=AccountMenu,
     label="Agent activity",
     order=20,
     access=AccessTier.VIEW,
@@ -116,7 +111,7 @@ class OpenActivityPanel(BasePanel):
     is core's (``haywire.ui.app.shell``) and the editor is this library's, so a
     chip click could only reach it by resolving a registry key hardcoded in
     core — a dependency pointing the wrong way. A panel against
-    ``AccountFocus`` inverts it: the library that owns the editor is also the
+    ``AccountMenu`` inverts it: the library that owns the editor is also the
     one that names it, and core stays unaware the editor exists.
 
     VIEW access matches the editor's own: what the agents in this studio are

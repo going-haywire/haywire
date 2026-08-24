@@ -2,19 +2,22 @@
 """
 Panel system for the Haywire UI framework.
 
-Panels are collapsible sections that appear inside editors. Each panel
-declares a Focus subclass via the @panel decorator; action panels also
-declare an `actions:` type annotation on the class body. Two query
-surfaces are provided:
-  - PanelRegistry.get_panels_for_focus(focus): display panels with no
-    action_protocol, used by PropertiesEditor.
-  - PanelRegistry.get_panels_for_action(action_protocol, focus): action
-    panels for context-menu hosts.
+A Panel names one :class:`~haywire.ui.surface.Surface` via ``@panel(surface=…)``,
+adds its own ``poll()``, and draws. A Panel may also *host* surfaces of its
+own, declaring them with ``hosts=`` and rendering one with
+``self.render_surface(S, ctx)`` — so one recursive rule (host → surface →
+panel → host → …) covers menus, submenus, toolbars and inspector tabs alike
+(docs/adr/0029-surface-model.md).
+
+Three registry queries, all routing on ``Surface.id``:
+  - PanelRegistry.get_panels(surface): the panels on one surface.
+  - PanelRegistry.get_root_surfaces(): surfaces no panel hosts.
+  - PanelRegistry.get_redraw_signals(surface): the ``redraw_on`` union across
+    that surface's whole ``hosts=`` tree.
 """
 
 from .identity import PanelIdentity
 from .layout import PanelLayout
-from .focus import Focus, all_focuses, focus_by_id
 from .base import BasePanel
 from .registry import PanelRegistry
 from .redraw_coordinator import PanelRedrawCoordinator
@@ -29,9 +32,6 @@ __all__ = [
     "PanelIdentity",
     "PanelLayout",
     "base",
-    "Focus",
-    "all_focuses",
-    "focus_by_id",
     "BasePanel",
     "PanelRegistry",
     "PanelRedrawCoordinator",

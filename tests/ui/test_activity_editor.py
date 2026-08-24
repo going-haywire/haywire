@@ -30,10 +30,10 @@ def test_account_panel_is_a_view_tier_entry_in_the_account_menu():
     from unittest.mock import MagicMock
 
     from haybale_studio.panels.account.account import OpenActivityPanel
-    from haywire.barn.builtin.focuses import AccountFocus
+    from haywire.barn.builtin.surfaces import AccountMenu
     from haywire.core.access import AccessTier
 
-    assert OpenActivityPanel.class_identity.focus is AccountFocus
+    assert OpenActivityPanel.class_identity.surface is AccountMenu
     assert OpenActivityPanel.class_identity.access is AccessTier.VIEW
     assert OpenActivityPanel.poll(MagicMock()) is True
 

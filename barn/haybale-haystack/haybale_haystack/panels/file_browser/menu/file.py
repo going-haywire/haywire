@@ -17,8 +17,7 @@ from typing import TYPE_CHECKING
 
 from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_haystack.state.haystack_state import HaystackState
-from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
-from haybale_studio.focuses import FileFocus
+from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.state.file_browser_state import FileBrowserState
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -33,8 +32,7 @@ _GRAPH_EXTS = frozenset({".haywire"})
 
 
 @panel(
-    actions=FileBrowserActions,
-    focus=FileFocus,
+    surface=FileMenu,
     label="Open in Haystack",
     icon=hui.icon.graph,
     order=10,
@@ -42,7 +40,7 @@ _GRAPH_EXTS = frozenset({".haywire"})
 class OpenInHaystackMenuPanel(BasePanel):
     """Open a .haywire graph file in the GraphEditor via the Haystack."""
 
-    actions: FileBrowserActions
+    actions: FileActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

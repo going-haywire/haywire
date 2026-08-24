@@ -18,24 +18,58 @@ def _make_provider_under_test(panels=None):
     ctx.data = {FileBrowserState: state_inst}
     session = MagicMock()
     panel_registry = MagicMock()
-    panel_registry.get_panels_for_action.return_value = panels or []
+    panel_registry.get_panels.return_value = panels or []
 
     provider = SessionFileMenuProvider(context=ctx, session=session, panel_registry=panel_registry)
     return provider, ctx, session, panel_registry, state_inst
 
 
 def _visible_panel():
-    """A MagicMock panel class that polls visible, so the popup actually opens."""
+    """A MagicMock panel class that polls visible, so the popup actually opens.
+
+    ``class_identity.hosts`` must be an empty tuple: the host counts *leaf*
+    panels to decide whether to keep the popup, and a bare MagicMock attribute
+    would be truthy — reading as a hosting panel and swallowing the menu.
+    """
+    return _panel_double(polls=True)
+
+
+def _panel_double(*, polls: bool):
+    """A MagicMock panel class with the real attributes the host reads.
+
+    Three of them, all of which a bare MagicMock gets wrong: ``hosts`` (would
+    be truthy, so the panel reads as a host rather than a leaf), ``order``
+    (would be unsortable), and ``draw_disabled`` (would look overridden, so
+    the disabled path would render a no-op and count it as content).
+    """
+    from haywire.ui.panel.base import BasePanel
+
     panel_cls = MagicMock()
-    panel_cls.poll.return_value = True
+    panel_cls.poll.return_value = polls
+    panel_cls.class_identity.hosts = ()
+    panel_cls.class_identity.order = 100
+    panel_cls.draw_disabled = BasePanel.draw_disabled
     return panel_cls
+
+
+def _patched_popup():
+    """A Popup double whose ``content`` works as a context manager.
+
+    The host renders the whole tree into the popup before deciding whether to
+    open it, so ``content`` has to be enterable even on the discard path.
+    """
+    content = MagicMock()
+    content.__enter__ = MagicMock(return_value=content)
+    content.__exit__ = MagicMock(return_value=False)
+    popup = MagicMock()
+    popup.content = content
+    return popup
 
 
 def test_on_file_context_sets_right_clicked_file():
     provider, ctx, session, panel_registry, state = _make_provider_under_test(panels=[_visible_panel()])
     p = Path("/tmp/foo.haywire")
-    with patch.object(provider, "_build_popup") as mock_popup_factory:
-        mock_popup_factory.return_value = MagicMock()
+    with patch.object(provider, "_build_popup", return_value=_patched_popup()):
         provider.on_file_context(pos=(10, 20), path=p)
 
     assert state.right_clicked_file == p
@@ -50,7 +84,7 @@ def test_on_close_clears_right_clicked_file():
     def _capture(cb):
         captured_on_close["cb"] = cb
 
-    popup = MagicMock()
+    popup = _patched_popup()
     popup.on_close = _capture
 
     with patch.object(provider, "_build_popup", return_value=popup):
@@ -66,7 +100,7 @@ def test_on_close_runs_immediately_when_no_panels_visible():
     provider, ctx, session, panel_registry, state = _make_provider_under_test()
     p = Path("/tmp/foo.haywire")
 
-    popup = MagicMock()
+    popup = _patched_popup()
     with patch.object(provider, "_build_popup", return_value=popup):
         provider.on_file_context(pos=(0, 0), path=p)
 
@@ -95,29 +129,28 @@ def test_reveal_issues_lifecycle_and_closes_popup():
 
 def test_panels_filtered_by_poll():
     """Only panels whose poll() returns True are drawn."""
-    visible_panel_cls = MagicMock()
-    visible_panel_cls.poll.return_value = True
-    hidden_panel_cls = MagicMock()
-    hidden_panel_cls.poll.return_value = False
+    visible_panel_cls = _visible_panel()
+    hidden_panel_cls = _panel_double(polls=False)
 
     provider, ctx, session, panel_registry, state = _make_provider_under_test(
         panels=[visible_panel_cls, hidden_panel_cls]
     )
 
-    popup = MagicMock()
+    popup = _patched_popup()
     with patch.object(provider, "_build_popup", return_value=popup):
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo"))
 
     visible_panel_cls.assert_called_once()  # instantiated
-    hidden_panel_cls.assert_not_called()  # never instantiated
+    # Never instantiated: it polls false and inherits the no-op draw_disabled,
+    # so the disabled path skips it entirely.
+    hidden_panel_cls.assert_not_called()
 
 
 def test_no_panels_no_popup_open():
     """If no panel polls True, the popup is not opened."""
-    panel_cls = MagicMock()
-    panel_cls.poll.return_value = False
+    panel_cls = _panel_double(polls=False)
     provider, ctx, session, panel_registry, state = _make_provider_under_test(panels=[panel_cls])
-    popup = MagicMock()
+    popup = _patched_popup()
 
     with patch.object(provider, "_build_popup", return_value=popup):
         provider.on_file_context(pos=(0, 0), path=Path("/tmp/foo"))

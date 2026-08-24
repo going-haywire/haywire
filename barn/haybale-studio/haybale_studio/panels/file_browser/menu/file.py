@@ -1,6 +1,6 @@
 """Context menu panels for file actions in haybale-studio.
 
-Two panels register against ``focus=FileFocus`` and surface in the
+Two panels register against ``surface=FileMenu`` and appear in the
 FileBrowser's right-click menu for editor types haybale-studio owns:
 
   - OpenInCodeEditorMenuPanel   — text-editable extensions; reveals CodeEditor.
@@ -22,8 +22,7 @@ from __future__ import annotations
 from pathlib import Path
 from typing import TYPE_CHECKING
 
-from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
-from haybale_studio.focuses import FileFocus
+from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.state.file_browser_state import FileBrowserState
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -35,8 +34,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    actions=FileBrowserActions,
-    focus=FileFocus,
+    surface=FileMenu,
     label="Open in Code Editor",
     icon=hui.icon.edit,
     order=20,
@@ -44,7 +42,7 @@ if TYPE_CHECKING:
 class OpenInCodeEditorMenuPanel(BasePanel):
     """Open an editable text file in the CodeEditor."""
 
-    actions: FileBrowserActions
+    actions: FileActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -81,8 +79,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
 
 
 @panel(
-    actions=FileBrowserActions,
-    focus=FileFocus,
+    surface=FileMenu,
     label="Open in File Viewer",
     icon=hui.icon.library_component,
     order=30,
@@ -90,7 +87,7 @@ class OpenInCodeEditorMenuPanel(BasePanel):
 class OpenInFileViewerMenuPanel(BasePanel):
     """Open any file in the read-only FileViewerEditor (catch-all fallback)."""
 
-    actions: FileBrowserActions
+    actions: FileActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

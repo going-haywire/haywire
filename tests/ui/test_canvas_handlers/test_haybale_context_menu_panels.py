@@ -17,12 +17,14 @@ from haywire.core.undo.actions.graph_actions import ClipboardData
 from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 
-from haybale_testing.test_actions import (
-    TestEdgeContextActions,
-    TestNodeContextActions,
-    TestSelectionContextActions,
+from haybale_testing.surfaces import (
+    TestEdgeActions,
+    TestEdgeMenu,
+    TestNodeActions,
+    TestNodeMenu,
+    TestSelectionActions,
+    TestSelectionMenu,
 )
-from haybale_testing.test_focuses import TestEdgeFocus, TestNodeFocus, TestSelectionFocus
 from haybale_testing.panels.graph.menu.node.node import (
     TestDeleteNodeMenuPanel as DeleteNodePanel,
     TestCopyNodeMenuPanel as CopyNodePanel,
@@ -79,18 +81,10 @@ def make_context(
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize(
-    "panel_cls",
-    [
-        DeleteNodePanel,
-        CopyNodePanel,
-        RedrawNodePanel,
-        RevalidateNodePanel,
-        ResetNodePanel,
-    ],
-)
-def test_node_action_panel_action_is_test_node_context_actions(panel_cls):
-    assert panel_cls.class_identity.action_protocol is TestNodeContextActions
+def test_test_node_menu_demands_the_node_verbs():
+    """``provides`` belongs to the surface, not to each panel on it — the
+    contract is the surface's demand on whatever hosts it."""
+    assert TestNodeMenu.provides is TestNodeActions
 
 
 @pytest.mark.parametrize(
@@ -104,7 +98,7 @@ def test_node_action_panel_action_is_test_node_context_actions(panel_cls):
     ],
 )
 def test_node_action_panel_focus_is_test_node_focus(panel_cls):
-    assert panel_cls.class_identity.focus is TestNodeFocus
+    assert panel_cls.class_identity.surface is TestNodeMenu
 
 
 @pytest.mark.parametrize(
@@ -161,14 +155,13 @@ def test_node_action_panel_poll_false_when_no_node(panel_cls, register_edit_stat
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
-def test_edge_action_panel_action_is_test_edge_context_actions(panel_cls):
-    assert panel_cls.class_identity.action_protocol is TestEdgeContextActions
+def test_test_edge_menu_demands_the_edge_verbs():
+    assert TestEdgeMenu.provides is TestEdgeActions
 
 
 @pytest.mark.parametrize("panel_cls", [DeleteEdgePanel, InspectEdgePanel])
 def test_edge_action_panel_focus_is_test_edge_focus(panel_cls):
-    assert panel_cls.class_identity.focus is TestEdgeFocus
+    assert panel_cls.class_identity.surface is TestEdgeMenu
 
 
 # ---------------------------------------------------------------------------
@@ -193,12 +186,8 @@ def test_edge_action_panel_poll_false_when_no_edge(panel_cls, register_edit_stat
 # ---------------------------------------------------------------------------
 
 
-def test_edge_errors_panel_action_is_test_edge_context_actions():
-    assert EdgeErrorsPanel.class_identity.action_protocol is TestEdgeContextActions
-
-
-def test_edge_errors_panel_focus_is_test_edge_focus():
-    assert EdgeErrorsPanel.class_identity.focus is TestEdgeFocus
+def test_edge_errors_panel_sits_on_the_test_edge_menu():
+    assert EdgeErrorsPanel.class_identity.surface is TestEdgeMenu
 
 
 def _make_edge_wrapper(error=None, warnings=None, has_edge=True):
@@ -235,12 +224,8 @@ def test_edge_errors_panel_poll_false_when_no_edge(register_edit_state):
 # ---------------------------------------------------------------------------
 
 
-def test_edge_warnings_panel_action_is_test_edge_context_actions():
-    assert EdgeWarningsPanel.class_identity.action_protocol is TestEdgeContextActions
-
-
-def test_edge_warnings_panel_focus_is_test_edge_focus():
-    assert EdgeWarningsPanel.class_identity.focus is TestEdgeFocus
+def test_edge_warnings_panel_sits_on_the_test_edge_menu():
+    assert EdgeWarningsPanel.class_identity.surface is TestEdgeMenu
 
 
 def test_edge_warnings_panel_poll_true_when_warnings_present(register_edit_state):
@@ -263,12 +248,8 @@ def test_edge_warnings_panel_poll_false_when_no_edge(register_edit_state):
 # ---------------------------------------------------------------------------
 
 
-def test_edge_connection_path_panel_action_is_test_edge_context_actions():
-    assert EdgeConnectionPathPanel.class_identity.action_protocol is TestEdgeContextActions
-
-
-def test_edge_connection_path_panel_focus_is_test_edge_focus():
-    assert EdgeConnectionPathPanel.class_identity.focus is TestEdgeFocus
+def test_edge_connection_path_panel_sits_on_the_test_edge_menu():
+    assert EdgeConnectionPathPanel.class_identity.surface is TestEdgeMenu
 
 
 def test_edge_connection_path_panel_poll_true_when_edge_with_data(register_edit_state):
@@ -291,14 +272,13 @@ def test_edge_connection_path_panel_poll_false_when_edge_has_no_data(register_ed
 # ---------------------------------------------------------------------------
 
 
-@pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
-def test_selection_action_panel_action_is_test_selection_context_actions(panel_cls):
-    assert panel_cls.class_identity.action_protocol is TestSelectionContextActions
+def test_test_selection_menu_demands_the_selection_verbs():
+    assert TestSelectionMenu.provides is TestSelectionActions
 
 
 @pytest.mark.parametrize("panel_cls", [CopySelectionPanel, PasteSelectionPanel])
 def test_selection_action_panel_focus_is_test_selection_focus(panel_cls):
-    assert panel_cls.class_identity.focus is TestSelectionFocus
+    assert panel_cls.class_identity.surface is TestSelectionMenu
 
 
 # ---------------------------------------------------------------------------

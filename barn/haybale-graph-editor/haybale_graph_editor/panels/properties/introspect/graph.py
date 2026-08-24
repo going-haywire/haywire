@@ -17,7 +17,7 @@ from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ....focuses import GraphFocus
+from ....surfaces import GraphInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -37,7 +37,7 @@ def _format_stamp(value: str | None) -> str:
 
 
 @panel(
-    focus=GraphFocus,
+    surface=GraphInspector,
     label="Graph Info",
     icon=hui.icon.graph,
     order=10,

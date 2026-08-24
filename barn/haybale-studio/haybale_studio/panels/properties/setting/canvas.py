@@ -1,6 +1,12 @@
 # haybale_studio/panels/properties/setting/canvas.py
 """
-Canvas-scope settings panels (CanvasFocus).
+Canvas & node appearance panels, on the ``CanvasSettings`` surface.
+
+Note the name collides twice over: the *surface* ``CanvasSettings``
+(``haywire.barn.builtin.surfaces``) is imported here as ``CanvasSurface``,
+because ``haywire.ui.components.graph.settings.CanvasSettings`` — the
+settings *bag* one of these panels renders — already holds the plain name in
+this module.
 
 CanvasSettingsPanel          — grid, zoom, pan behaviour
 NodeSkinSettingsPanel        — node dimensions, typography, label visibility
@@ -23,7 +29,7 @@ from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.debug_overlay.settings import DebugOverlaySettings
 from haywire.ui.components.graph.settings import CanvasSettings
 from haywire.ui.prefs.edge_ui import EdgeUISettings
-from haywire.barn.builtin.focuses import CanvasFocus
+from haywire.barn.builtin.surfaces import CanvasSettings as CanvasSurface
 
 from ....settings.node_skin_settings import NodeSkinSettings
 
@@ -32,7 +38,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=CanvasFocus,
+    surface=CanvasSurface,
     label="Canvas",
     icon=hui.icon.canvas,
     order=10,
@@ -51,7 +57,7 @@ class CanvasSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=CanvasFocus,
+    surface=CanvasSurface,
     label="Skins",
     description="Skin Configuration:Node dimensions, typography and label visibility.",
     icon=hui.icon.skin,
@@ -71,7 +77,7 @@ class NodeSkinSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=CanvasFocus,
+    surface=CanvasSurface,
     label="Edges",
     icon=hui.icon.edge,
     order=30,
@@ -90,7 +96,7 @@ class EdgeUISettingsPanel(BasePanel):
 
 
 @panel(
-    focus=CanvasFocus,
+    surface=CanvasSurface,
     label="Zoom & Pan",
     icon=hui.icon.canvas_zoom_pan,
     order=40,
@@ -109,7 +115,7 @@ class EditorZoomPanSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=CanvasFocus,
+    surface=CanvasSurface,
     label="Minimap",
     icon=hui.icon.canvas_minimap,
     order=40,
@@ -128,7 +134,7 @@ class MinimapSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=CanvasFocus,
+    surface=CanvasSurface,
     label="Debug Overlay",
     icon=hui.icon.debug,
     order=50,

@@ -9,11 +9,11 @@ see-also:
 
 # Panel types — worked examples
 
-The panel authoring API — the `@panel` decorator, `BasePanel`, `poll()`, `draw()`, focus objects, action protocols — is documented in [components/panels/panel-canon](../components/panels/panel-canon.md). This guide shows what's distinctive about each **panel type**: where it lives in the folder hierarchy, what suffix it carries, and a minimal live example.
+The panel authoring API — the `@panel` decorator, `BasePanel`, `poll()`, `draw()`, Surfaces, `provides` — is documented in [components/panels/panel-canon](../components/panels/panel-canon.md). This guide shows what's distinctive about each **panel type**: where it lives in the folder hierarchy, what suffix it carries, and a minimal live example.
 
 ## Folder structure and naming logic
 
-Panels sit under `panels/` in each library. The folder structure is **advisory only** — it helps humans navigate the codebase, but does not affect where panels appear. What's load-bearing is the `@panel` decorator (specifically `actions=` and the focus protocol), plus the `poll()` method to gate visibility.
+Panels sit under `panels/` in each library. The folder structure is **advisory only** — it helps humans navigate the codebase, but does not affect where panels appear. What's load-bearing is the `@panel` decorator's `surface=` (and `hosts=`, for a panel that nests further Surfaces of its own), plus the `poll()` method to gate visibility.
 
 Panels follow a three-level naming convention for organization:
 
@@ -29,7 +29,7 @@ Suffix rules:
 - `*MenuPanel` — action panel shown in a context menu (canvas, node, edge, selection, port, file).
 - `*ToolbarPanel` — action panel shown in the floating toolbar.
 
-The suffix helps you recognize panel type at a glance, but the **actual placement** depends on the focus and actions you register with `@panel`.
+The suffix helps you recognize panel type at a glance, but the **actual placement** depends on the `surface=` you register with `@panel`.
 
 
 ```
@@ -39,24 +39,24 @@ panels/
     setting/        ← organize editable settings (app, canvas, node user-settings) here
 
   graph/
-    toolbar/        ← organize floating toolbar panels (ToolbarFocus) here
+    toolbar/        ← organize floating toolbar panels (SelectionToolbar) here
     menu/
-      canvas/       ← organize right-click empty canvas panels (CanvasFocus) here
-      selection/    ← organize right-click node or multi-selection panels (SelectionFocus) here
+      context/      ← organize the canvas right-click menu's panels (GraphContext and its hosted regions) here
+      selection/    ← organize right-click node or multi-selection panels (SelectionMenu) here
       node/         ← reserved for future node-scoped panels; currently empty in production
-      edge/         ← organize right-click edge panels (EdgeFocus) here
-      port/         ← organize right-click pin panels (PinFocus) here
-      skin/         ← organize right-click custom menu panels (custom Focus) here
+      edge/         ← organize right-click edge panels (EdgeMenu) here
+      port/         ← organize right-click pin panels (PinMenu) here
+      skin/         ← organize right-click custom menu panels (a library's own Surface, reached via `data-hw-menu-surface-id`) here
 
   file_browser/
-    menu/           ← organize file browser right-click panels (FileFocus) here
+    menu/           ← organize file browser right-click panels (FileMenu) here
 ```
 
-**Important:** The folder labels above indicate the *focus type* and *context*. The folder location itself does not determine appearance — the `@panel` decorator's `actions=` parameter and `poll()` method are what actually wire the panel to the right place.
+**Important:** The folder labels above indicate the *Surface* and *context*. The folder location itself does not determine appearance — the `@panel` decorator's `surface=` parameter and `poll()` method are what actually wire the panel to the right place.
 
 ## Properties / introspect panel
 
-Introspect panels register against focus objects (e.g. `NodeFocus`, `EdgeFocus`) and render read-only identity or state information in the PropertiesEditor.
+Introspect panels register against inspector Surfaces (e.g. `NodeInspector`, `EdgeInspector`) and render read-only identity or state information in the PropertiesEditor.
 
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py`
 
@@ -68,11 +68,11 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/properties/intros
 
 from: `NodeInfoPanel` — registry_key: `haybale-graph-editor:panel:NodeInfoPanel`
 
-**Type-specific:** no `actions=` on `@panel` — introspect panels are display-only. `poll()` gates on `ctx.data[EditState].active_node`, so the panel appears only while a node is selected. `with layout:` places all rows inside the panel's container.
+**Type-specific:** no `provides` on `NodeInspector` — introspect panels are display-only and declare no `actions:` annotation. `poll()` gates on `ctx.data[EditState].active_node`, so the panel appears only while a node is selected. `with layout:` places all rows inside the panel's container.
 
 ## Properties / settings panel
 
-Settings panels register against settings-scope focuses (`CanvasFocus`, `AppFocus`, `ExecutionFocus`) and render a schema using `render_schema()` in the PropertiesEditor.
+Settings panels register against inspector Surfaces for settings scopes (`CanvasSettings`, `AppSettings`, `ExecutionInspector`) and render a schema using `render_schema()` in the PropertiesEditor.
 
 Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 
@@ -84,43 +84,43 @@ Source: `barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py`
 
 from: `CanvasSettingsPanel` — registry_key: `haybale-studio:panel:CanvasSettingsPanel`
 
-**Type-specific:** no `actions=`, no `poll()` override — settings panels are always visible for their focus. `render_schema(SettingsClass, registry)` renders every field in the schema as a labelled input widget.
+**Type-specific:** no `actions:` annotation, no `poll()` override — settings panels are always visible for their Surface. `render_schema(SettingsClass, registry)` renders every field in the schema as a labelled input widget.
 
 ## Graph menu / canvas panel
 
-Canvas menu panels register against `CanvasFocus` with `actions=CanvasContextActions` and surface on right-click on empty canvas space.
+The canvas right-click menu is a small tree of Surfaces, not one flat panel list — it is the primary example of a **hosting panel** with regions. `GraphContext` (`barn/haybale-graph-editor/haybale_graph_editor/surfaces/graph_context.py`) is the root Surface that `on_canvas_context` opens; `GraphContextPanel` is the sole panel registered on it, and it implements none of `GraphActions` itself — `SessionContextMenuProvider` does. `GraphContextPanel` **pipes**: it calls `self.render_surface(S, ctx)` without an `actions=` argument, so each nested Surface receives `self.actions` (the host `GraphContextPanel` itself received) rather than `GraphContextPanel`.
 
-Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py`
+Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py`
 
-`CreateNodeMenuPanel` renders the full node-creation menu with search:
+`GraphContextPanel` arranges an icon-shortcut row and a prime area, each its own hosted Surface, into the *same* popup:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py:26:70"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py:38:56"
 ```
 
-from: `CreateNodeMenuPanel` — registry_key: `haybale-graph-editor:panel:CreateNodeMenuPanel`
+from: `GraphContextPanel` — registry_key: `haybale-graph-editor:panel:GraphContextPanel`
 
-**Type-specific:** `actions=CanvasContextActions` wires the panel to the canvas action protocol. `poll()` returns `True` unconditionally — the canvas menu always has at least "Create Node". `self.actions.create_node_at_click(registry_key)` dispatches via the action protocol; the host resolves the concrete implementation.
+**Type-specific:** `hosts=(GraphToolBar, GraphContextBody)` declares the two Surfaces this panel may render; calling `self.render_surface()` on anything not listed there is an authoring error (see [panel-canon §3, "Hosting a surface"](../components/panels/panel-canon.md)). `GraphContextPanel` has no `actions:` annotation of its own — it never calls a verb directly, only passes the host along. `CreateNodeMenuPanel`, registered on `GraphContextBody`, is what actually renders the node-creation menu with search; `PastePanel`, registered on `GraphToolBar`, is the paste shortcut icon. Both receive `GraphActions` — `SessionContextMenuProvider` — by the same pipe, two hops down from where it was first injected.
 
-## Graph menu / selection panel
+## Graph menu / selection panel (with its disabled form)
 
-Selection menu panels register against `SelectionFocus` and surface when one or more nodes or edges are selected.
+Selection menu panels register against `SelectionMenu` and surface when one or more nodes or edges are selected. This surface is also what the floating toolbar's "⋯" hosts, so every panel here defines `draw_disabled()` too: an inapplicable command greys rather than disappearing, since this is the menu a user can right-click into with an empty selection.
 
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py`
 
-`DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step:
+`DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step, and renders its own greyed form when nothing is selected:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:80:111"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:91:123"
 ```
 
 from: `DeleteSelectionMenuPanel` — registry_key: `haybale-graph-editor:panel:DeleteSelectionMenuPanel`
 
-**Type-specific:** `poll()` gates on `edit.selected_nodes or edit.selected_edges` — the panel is hidden when nothing is selected. `selection_label()` (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").
+**Type-specific:** `poll()` gates on `edit.selected_nodes or edit.selected_edges` — when it is `False`, the host calls `draw_disabled()` instead of skipping the panel, so a fixed-shape command list never reflows or vanishes as the selection changes. `draw_disabled()` renders the same label, greyed and unclickable (`hui.button(..., disabled=True)`) — it must not touch selection state, only render the inapplicable form. The default `draw_disabled()` (inherited, not overridden) is a no-op, so a panel that skips it keeps vanishing exactly as before; only a panel meant to appear in a fixed-shape menu like this one overrides it. `selection_label()` (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").
 
 ## Graph toolbar panel
 
-Toolbar panels register against `ToolbarFocus` and contribute a single icon button to the floating toolbar that appears over a canvas selection.
+Toolbar panels register against `SelectionToolbar` and contribute a single icon button to the floating toolbar that appears over a canvas selection.
 
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py`
 
@@ -134,20 +134,25 @@ from: `CopyToolbarPanel` — registry_key: `haybale-graph-editor:panel:CopyToolb
 
 **Type-specific:** `draw()` renders exactly one `hui.icon_action(...)`. The toolbar host owns the `ui.row` container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.
 
-## Graph menu / skin panel
+## Graph menu / overflow panel (a hosting panel that is itself nested)
 
-A skin panel is a `*MenuPanel` registered against a custom focus set by the skin layer via DOM attributes. Two attributes control which focus the context menu fires:
+`GraphMorePanel` (also in `panels/graph/menu/context/context.py`) is the canvas menu's "…" — a panel that both is a leaf on one Surface (`GraphToolBar`) and hosts another (`GraphMoreActions`) itself. It shows the general shape any extension-point overflow takes: a library that wants to add a canvas-menu command with no obvious home renders into `GraphMoreActions` instead of asking the framework to add a new built-in Surface.
 
-- `data-hw-custom-menu-focus-id` — fires when the user right-clicks a node (node-level custom menu).
-- `data-hw-port-menu-focus-id` — fires when the user right-clicks a port pin (port-level custom menu).
+```python
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py:80:103"
+```
 
-The skin writes these attributes on the rendered node card or pin element. The framework reads them on right-click and fires the focus object named by the attribute value. Panels registering against that focus appear in the context menu.
+from: `GraphMorePanel` — registry_key: `haybale-graph-editor:panel:GraphMorePanel`
 
-`NodeContextActions` (an empty marker protocol in `context_menu_actions.py`) is the skin extension point for `data-hw-custom-menu-focus-id`. `PortContextActions` is the equivalent for `data-hw-port-menu-focus-id`.
+**Type-specific:** `hui.flyout("more_horiz", tooltip="More actions")` opens a submenu body; `self.render_surface(GraphMoreActions, ctx)` renders whatever is registered there inside it, still piping `self.actions` two hops down from the original host. An empty `GraphMoreActions` — no library has extended it yet — greys the "…" icon retroactively rather than opening an empty flyout; see [panel-canon §3, "What a nested panel may not assume"](../components/panels/panel-canon.md) and `.insights/feedback_nicegui_nested_menu_flyouts.md`.
+
+## Graph menu / pin panel
+
+Pin (port) context-menu panels register against `PinMenu` and surface when the user right-clicks a pin. Reached structurally, not declaratively: the canvas detects a pin from `data-pin-id` (emitted by every skin's rendered pins), so every skin gets this menu and none can suppress it.
 
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py`
 
-`PortInfoMenuPanel` shows port metadata (id, description, flow type, data type) in the port context menu:
+`PortInfoMenuPanel` shows port metadata (id, description, flow type, data type) in the pin context menu:
 
 ```python
 --8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:26:57"
@@ -155,18 +160,22 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/p
 
 from: `PortInfoMenuPanel` — registry_key: `haybale-graph-editor:panel:PortInfoMenuPanel`
 
-**Type-specific:** `actions=PortContextActions` is an empty marker — there are no methods to dispatch; the panel only reads `ctx.data[EditState].active_port`. `layout.container` (not `with layout:`) is used here to render directly into the bare container without an extra wrapper.
+**Type-specific:** `provides = PortActions` on `PinMenu` is a small Protocol (one verb: `demote_setting`) — the sibling panel `DetachSettingMenuPanel` is the only one that calls it, shown only on a promoted inlet. `PortInfoMenuPanel` itself declares no `actions:` annotation; it only reads `ctx.data[EditState].active_port`. `layout.container` (not `with layout:`) is used here to render directly into the bare container without an extra wrapper.
+
+## Skin menu panel (a library's own Surface)
+
+A skin can add its own context menu on any element it renders, by writing `data-hw-menu-surface-id="<your-surface-id>"` on that element and registering a `Surface` — with panels against it — under that id. This is **not** how the pin, node, edge, or canvas menus work; those are structural or framework-declared and cannot be redirected this way. See [skin-canon's context-menu section](../components/skins/skin-canon.md) for the attribute contract.
 
 ## File browser menu panel
 
-File browser menu panels register against `FileFocus` (from haybale-studio) and surface in the FileBrowser's right-click menu.
+File browser menu panels register against `FileMenu` (from haybale-studio) and surface in the FileBrowser's right-click menu.
 
 Source: `barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py`
 
 `OpenInHaystackMenuPanel` opens a `.haywire` graph file in the GraphEditor:
 
 ```python
---8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:35:76"
+--8<-- "barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py:34:71"
 ```
 
 from: `OpenInHaystackMenuPanel` — registry_key: `haybale-haystack:panel:OpenInHaystackMenuPanel`

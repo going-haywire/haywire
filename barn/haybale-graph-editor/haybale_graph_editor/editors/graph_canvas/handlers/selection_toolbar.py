@@ -12,6 +12,13 @@ Architecture note: SelectionToolbarProvider does NOT inherit from
 BaseContextMenuProvider because the toolbar lifecycle is fundamentally
 different — it's persistent (repositioned, not recreated per gesture) and
 has no on_close cleanup contract. It composes the needed pieces directly.
+
+It is also **event-driven rather than signal-driven**: it is rebuilt when the
+canvas emits new selection bounds, and ``SelectionToolbar`` is *defined* by
+the selection, so its panels have no trigger their host does not already
+answer. It therefore subscribes to no ``redraw_on`` signal at all — see
+ADR-0029, Redraw, for why subscribing it would buy nothing and cost a hazard
+(a signal mid-gesture re-showing a toolbar the user hid by starting a pan).
 """
 
 from __future__ import annotations
@@ -19,7 +26,14 @@ from __future__ import annotations
 import logging
 from typing import Callable, List, Optional, Tuple, TYPE_CHECKING
 
-from haywire.ui.panel.host_rendering import render_panel, visible_panels
+from haywire.ui import elements as hui
+from haywire.ui.panel.host_rendering import (
+    _poll_surface,
+    counting_leaves,
+    partition_panels,
+    render_panel,
+    render_path_extended,
+)
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.components.graph.event_definitions import (
     SelectionBoundsEvent,
@@ -33,6 +47,7 @@ if TYPE_CHECKING:
     from haywire.ui.panel import BasePanel
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.ui.components.popup import Popup
+    from .context_menu import SessionContextMenuProvider
 
 logger = logging.getLogger(__name__)
 
@@ -41,19 +56,25 @@ class SelectionToolbarProvider:
     """Floating-toolbar host: panel-driven, persistent across repositions.
 
     On show_at(bounds):
-      1. Collects toolbar panels via the registry (ToolbarActions + SelectionContextActions
-         against ToolbarFocus), deduped and sorted by order.
-      2. Poll-filters via visible_panels().
-      3. If nothing is visible, hides any existing popup and returns.
-      4. If a popup exists, repositions it. Otherwise creates a new one.
-      5. Clears popup content, renders visible panels into a horizontal ui.row.
+      1. Gates ``SelectionToolbar`` once, then collects its panels.
+      2. Partitions them into applicable / disabled.
+      3. Renders the tree into the popup, counting leaves.
+      4. If no leaf drew, hides; otherwise positions and shows.
 
     On hide():
-      Closes and deletes the popup, clearing _toolbar_popup.
+      Closes the popup via ``v-show`` so its DOM survives one gesture's
+      hide/show round trip.
 
-    SelectionToolbarProvider also implements the ToolbarActions and
-    SelectionContextActions Protocols structurally so panels can call
-    copy_selection / delete_selection / open_overflow_menu on self.actions.
+    **Host contract.** ``SelectionToolbar.provides`` is ``SelectionActions``,
+    and this class satisfies all seven verbs — five of them by forwarding to
+    the ``SessionContextMenuProvider`` constructed alongside it, which already
+    implements them against the same canvas. Before the surface model there
+    was no structural check anywhere in the panel system, so this class
+    claimed both ``ToolbarActions`` and ``SelectionContextActions`` while
+    implementing 3 of the latter's 7 verbs; ``render_surface``'s ``isinstance``
+    is the first thing that would have caught it. Delegation, not
+    duplication, is the fix — the ⋯ then hosts ``SelectionMenu`` directly and
+    no panel learns anything.
     """
 
     def __init__(
@@ -63,18 +84,16 @@ class SelectionToolbarProvider:
         panel_registry: "PanelRegistry",
         on_emit_event: Optional[Callable] = None,
         on_emit_sync_event: Optional[Callable] = None,
+        menu_provider: Optional["SessionContextMenuProvider"] = None,
     ):
         self._context = context
         self._session = session
         self._panel_registry = panel_registry
         self._on_emit_event = on_emit_event
         self._on_emit_sync_event = on_emit_sync_event
+        self._menu_provider = menu_provider
         self._toolbar_popup: Optional["Popup"] = None
         self._last_bounds: Optional[Tuple[float, float, float, float]] = None
-        # The panel set currently rendered into the popup. Repositioning during a
-        # pan/zoom must NOT rebuild this DOM — only a change in the visible panel
-        # set (e.g. a different selection) warrants a teardown + re-render.
-        self._rendered_panels: Optional[List[type[BasePanel]]] = None
 
     # ------------------------------------------------------------------
     # Public interface
@@ -85,13 +104,19 @@ class SelectionToolbarProvider:
 
         bounds = (left, top, right, bottom) in viewport CSS px.
         """
+        from haybale_graph_editor.surfaces.toolbar import SelectionToolbar
+
         self._last_bounds = bounds
         left, top, right, bottom = bounds
 
-        panel_classes = self._collect_toolbar_panels()
-        visible = visible_panels(panel_classes, self._context)
+        if not _poll_surface(SelectionToolbar, self._context):
+            self.hide()
+            return
 
-        if not visible:
+        applies, disabled = partition_panels(
+            self._panel_registry.get_panels(SelectionToolbar), self._context
+        )
+        if not applies and not disabled:
             self.hide()
             return
 
@@ -109,22 +134,25 @@ class SelectionToolbarProvider:
                 self._toolbar_popup.open()
             self._toolbar_popup.run_method("setPosition", center_x, pos_y)
 
-        # Only rebuild the toolbar DOM when the visible panel set actually
-        # changed. A pure reposition (pan/zoom) keeps the same buttons, so the
-        # setPosition transform above is sufficient — clearing and re-rendering
-        # every frame is what made panning jerky.
-        if visible != self._rendered_panels:
-            self._render_into_popup(visible)
-            self._rendered_panels = list(visible)
+        # Render unconditionally. The old `visible != self._rendered_panels`
+        # guard held only the *root* surface's panels, so once the ⋯ hosts a
+        # surface it could not see anything nested: a poll flip inside the
+        # flyout with an unchanged root set would render stale and never
+        # correct. Rebuilding costs one row per gesture end — every
+        # selectionBounds emission is edge-triggered (hide on drag/pan start,
+        # show on drag end) plus a 120 ms trailing debounce for wheel-zoom,
+        # so there is no per-frame path here any more.
+        drew = self._render_into_popup(applies, disabled)
+        if not drew:
+            self.hide()
 
     def hide(self) -> None:
         """Hide the toolbar without destroying it.
 
         Uses the popup's Vue-side ``close()`` (a ``v-show`` toggle) so the
-        rendered button DOM survives. The gesture path calls hide()/show_at()
-        on every pan frame; tearing the popup down and rebuilding it each time
-        is what made panning jerky. ``_rendered_panels`` is intentionally left
-        intact so a same-selection re-show skips re-rendering too.
+        rendered button DOM survives one gesture's hide/show round trip —
+        worth keeping even though the per-pan-frame path the original comment
+        described no longer exists.
         """
         if self._toolbar_popup is not None and self._toolbar_popup.is_open:
             try:
@@ -141,35 +169,6 @@ class SelectionToolbarProvider:
             except Exception:
                 pass
             self._toolbar_popup = None
-        self._rendered_panels = None
-
-    # ------------------------------------------------------------------
-    # Panel collection
-    # ------------------------------------------------------------------
-
-    def _collect_toolbar_panels(self) -> List[type[BasePanel]]:
-        """Query registry for panels matching ToolbarActions and SelectionContextActions
-        against ToolbarFocus, deduplicated and sorted by order.
-        """
-        from haybale_graph_editor.focuses import ToolbarFocus
-        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-            SelectionContextActions,
-            ToolbarActions,
-        )
-
-        seen: set[type[BasePanel]] = set()
-        combined: List[type[BasePanel]] = []
-
-        for action_protocol in (ToolbarActions, SelectionContextActions):
-            panels = self._panel_registry.get_panels_for_action(action_protocol, ToolbarFocus)
-            for cls in panels:
-                if cls not in seen:
-                    seen.add(cls)
-                    combined.append(cls)
-
-        # Sort by the order stored on class_identity (set by @panel decorator)
-        combined.sort(key=lambda cls: getattr(getattr(cls, "class_identity", None), "order", 0))
-        return combined
 
     # ------------------------------------------------------------------
     # Popup construction
@@ -191,54 +190,60 @@ class SelectionToolbarProvider:
         popup.open()
         return popup
 
-    def _render_into_popup(self, panel_classes: List[type[BasePanel]]) -> None:
-        """Clear popup content and render panels into a horizontal ui.row."""
+    def _render_into_popup(
+        self,
+        applies: List[type["BasePanel"]],
+        disabled: List[type["BasePanel"]],
+    ) -> bool:
+        """Clear popup content, render panels into a horizontal ui.row.
+
+        Returns whether any *leaf* panel drew — the same emptiness rule the
+        context-menu host uses. A toolbar holding only the ⋯ (a hosting panel
+        whose flyout body came up empty) is not a toolbar worth showing.
+        """
         from nicegui import ui
+        from haybale_graph_editor.surfaces.toolbar import SelectionToolbar
 
         popup = self._toolbar_popup
         if popup is None:
-            return
+            return False
 
         popup.content.clear()
 
-        with popup.content:
-            with ui.row().classes("hw-selection-toolbar items-center gap-1 no-wrap"):
-                layout = PanelLayout(ui.element("div"))
-                for cls in panel_classes:
-                    render_panel(cls, self._context, layout, actions_host=self)
-
-    # ------------------------------------------------------------------
-    # ToolbarActions Protocol implementation
-    # ------------------------------------------------------------------
-
-    def open_overflow_menu(self) -> None:
-        """Emit ContextMenuSelectedEvent near the toolbar's right edge."""
-        from haywire.ui.components.graph.event_definitions import ContextMenuSelectedEvent
-        from ....state.edit_state import EditState
-
-        if self._last_bounds is None:
-            return
-
-        left, top, right, bottom = self._last_bounds
-        # Position the overflow menu near the toolbar's right edge
-        pos_x = right
-        pos_y = max(0.0, top - 12 - 44)
-
-        edit = self._context.data[EditState]
-        event = ContextMenuSelectedEvent(
-            screenX=pos_x,
-            screenY=pos_y,
-            canvasX=pos_x,
-            canvasY=pos_y,
-            selectedNodes=list(edit.selected_nodes),
-            selectedEdges=list(edit.selected_edges),
+        by_order = sorted(
+            [(cls, False) for cls in applies] + [(cls, True) for cls in disabled],
+            key=lambda pair: getattr(pair[0].class_identity, "order", 100),
         )
-        if self._on_emit_event is not None:
-            self._on_emit_event(event)
+
+        with counting_leaves() as leaves, render_path_extended(SelectionToolbar.id):
+            with popup.content:
+                # The toolbar row is a menu level of its own: push the root
+                # flyout-sibling group around it so submenu rows drawn by its
+                # panels (and by anything nested) share one group.
+                with (
+                    ui.row().classes("hw-selection-toolbar items-center gap-1 no-wrap"),
+                    hui.open_flyout_group(),
+                ):
+                    layout = PanelLayout(ui.element("div"))
+                    for cls, is_disabled in by_order:
+                        render_panel(
+                            cls,
+                            self._context,
+                            layout,
+                            actions_host=self,
+                            registry=self._panel_registry,
+                            disabled=is_disabled,
+                        )
+            return leaves() > 0
 
     # ------------------------------------------------------------------
-    # SelectionContextActions Protocol implementation
+    # SelectionActions Protocol implementation
     # ------------------------------------------------------------------
+    #
+    # copy/delete are emitted here directly (they predate the delegation and
+    # read the same EditState); the remaining five forward to the menu
+    # provider, which already implements them. Forwarding rather than
+    # duplicating keeps one definition of each verb.
 
     def copy_selection(self) -> None:
         """Emit UserCopySelectedEvent for the current selection."""
@@ -265,6 +270,33 @@ class SelectionToolbarProvider:
         )
         if self._on_emit_event is not None:
             self._on_emit_event(event)
+
+    def paste_at_click(self) -> None:
+        self._delegate("paste_at_click")
+
+    def redraw_selection(self) -> None:
+        self._delegate("redraw_selection")
+
+    def revalidate_selection(self) -> None:
+        self._delegate("revalidate_selection")
+
+    def reset_selection(self) -> None:
+        self._delegate("reset_selection")
+
+    def dissolve_reroute(self, node_id: str) -> None:
+        self._delegate("dissolve_reroute", node_id)
+
+    def _delegate(self, verb: str, *args: object) -> None:
+        """Forward one verb to the SessionContextMenuProvider.
+
+        Absent (a test constructing the toolbar alone), the verb is a no-op
+        and logs — the alternative, raising from a click handler, would take
+        down the popup for a case the canvas never produces.
+        """
+        if self._menu_provider is None:
+            logger.warning("SelectionToolbarProvider: no menu provider to delegate %r to", verb)
+            return
+        getattr(self._menu_provider, verb)(*args)
 
 
 # ---------------------------------------------------------------------------

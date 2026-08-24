@@ -7,9 +7,9 @@ pytestmark = pytest.mark.unit
 
 def test_panel_is_registered_under_app_focus():
     from haybale_studio.panels.properties.setting.app import ActivitySettingsPanel
-    from haywire.barn.builtin.focuses import AppFocus
+    from haywire.barn.builtin.surfaces import AppSettings
 
-    assert ActivitySettingsPanel.class_identity.focus is AppFocus
+    assert ActivitySettingsPanel.class_identity.surface is AppSettings
 
 
 def test_panel_label_and_icon_match_the_rest_of_the_feature():

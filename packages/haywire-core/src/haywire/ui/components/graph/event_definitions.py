@@ -302,24 +302,24 @@ class ContextMenuSelectedEvent(BaseGraphEvent):
 
 
 @graph_event(
-    "contextMenuCustom",
+    "contextMenuSurface",
     category="user",
-    description="Custom-scope context menu triggered via data-hw-custom-menu-focus-id attribute",
+    description="Context menu on an element carrying data-hw-menu-surface-id",
 )
 @dataclass
-class ContextMenuCustomEvent(BaseGraphEvent):
+class ContextMenuSurfaceEvent(BaseGraphEvent):
     screenX: float
     screenY: float
     canvasX: float
     canvasY: float
     nodeId: str
-    scope: str
+    surfaceId: str
 
 
 @graph_event(
     "contextMenuPort",
     category="user",
-    description="Port context menu triggered via data-hw-port-menu-focus-id attribute",
+    description="Context menu on a pin, detected structurally from data-pin-id",
 )
 @dataclass
 class ContextMenuPortEvent(BaseGraphEvent):
@@ -329,7 +329,6 @@ class ContextMenuPortEvent(BaseGraphEvent):
     canvasY: float
     nodeId: str
     portId: str
-    scope: str
 
 
 @graph_event("userPasteClipboard", category="user", description="Paste clipboard contents")

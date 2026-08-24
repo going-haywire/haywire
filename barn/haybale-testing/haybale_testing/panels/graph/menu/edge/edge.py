@@ -1,6 +1,6 @@
 """Test-only edge action panels for haybale_testing.
 
-actions: TestEdgeContextActions, focus=TestEdgeFocus.
+On the ``TestEdgeMenu`` surface.
 """
 
 from __future__ import annotations
@@ -8,8 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.state.edit_state import EditState
-from haybale_testing.test_actions import TestEdgeContextActions
-from haybale_testing.test_focuses import TestEdgeFocus
+from haybale_testing.surfaces import TestEdgeActions, TestEdgeMenu
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -26,14 +25,13 @@ def _state(ctx: "SessionContext") -> "EdgeWrapperState | None":
 
 
 @panel(
-    actions=TestEdgeContextActions,
-    focus=TestEdgeFocus,
+    surface=TestEdgeMenu,
     label="Delete Connection",
     icon=hui.icon.delete,
     order=10,
 )
 class TestDeleteEdgeMenuPanel(BasePanel):
-    actions: TestEdgeContextActions
+    actions: TestEdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -57,14 +55,13 @@ class TestDeleteEdgeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestEdgeContextActions,
-    focus=TestEdgeFocus,
+    surface=TestEdgeMenu,
     label="Inspect Connection",
     icon=hui.icon.node_info,
     order=20,
 )
 class TestInspectEdgeMenuPanel(BasePanel):
-    actions: TestEdgeContextActions
+    actions: TestEdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -88,14 +85,13 @@ class TestInspectEdgeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestEdgeContextActions,
-    focus=TestEdgeFocus,
+    surface=TestEdgeMenu,
     label="Connection Errors",
     icon=hui.icon.error,
     order=0,
 )
 class TestEdgeErrorsMenuPanel(BasePanel):
-    actions: TestEdgeContextActions
+    actions: TestEdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -124,14 +120,13 @@ class TestEdgeErrorsMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestEdgeContextActions,
-    focus=TestEdgeFocus,
+    surface=TestEdgeMenu,
     label="Connection Path",
     icon=hui.icon.adapter,
     order=15,
 )
 class TestEdgePathMenuPanel(BasePanel):
-    actions: TestEdgeContextActions
+    actions: TestEdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -154,14 +149,13 @@ class TestEdgePathMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestEdgeContextActions,
-    focus=TestEdgeFocus,
+    surface=TestEdgeMenu,
     label="Connection Warnings",
     icon=hui.icon.warning,
     order=5,
 )
 class TestEdgeWarningsMenuPanel(BasePanel):
-    actions: TestEdgeContextActions
+    actions: TestEdgeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

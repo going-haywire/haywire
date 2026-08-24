@@ -7,8 +7,8 @@ level: architectural
 
 # Ports Panel renders live port Widgets as an always-on secondary surface
 
-The Ports Panel — under its own `ports` Scope (`PortFocus`, available when a
-node is selected; distinct from the singular per-pin `PinFocus` used by the
+The Ports Panel — under its own `ports` Surface (`PortInspector`, applying when
+a node is selected; distinct from the singular per-pin `PinMenu` used by the
 right-click menu) — now renders each port's live, editable Widget — the same
 control the node card shows — in addition to (not instead of) the in-node
 rendering. The same port may have a live Widget instance in both the node card

@@ -124,9 +124,13 @@ def render_pin(
     caller place the pin directly into a grid cell (grid-column / *-self
     centering).
 
-    No port-context-menu attribute is attached here — that wiring
-    (``data-hw-port-menu-focus-id``) is a host concern. Callers that want a
-    right-click port menu add it to the returned element themselves.
+    The ``data-pin-id`` emitted below is also what makes the pin menu work:
+    the canvas detects a pin structurally from it, exactly as it detects a
+    node or an edge, and opens the framework's ``PinMenu``. A skin therefore
+    neither opts into a pin menu nor can suppress it — that is no longer a
+    host concern, and no menu attribute belongs here (ADR-0029, Routing).
+    ``data-hw-menu-surface-id`` exists only for a menu the framework knows
+    nothing about, and a skin adds it to its own elements, not to a pin.
     """
     pin_direction = "inlet" if pin.is_inlet() else "outlet"
     pin_uuid = generate_pin_uuid(node_id, pin.id)

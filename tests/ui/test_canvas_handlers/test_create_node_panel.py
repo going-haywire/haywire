@@ -2,7 +2,7 @@
 Tests for the haybale-testing TestCreateNodePanel.
 
 Verifies:
-- Panel is registered with action_protocol=TestCanvasContextActions, focus=TestCanvasFocus
+- Panel is registered on the TestCanvasMenu surface
 - poll() always returns True (canvas menu is always available)
 - draw() invokes NodeMenuBuilder using ctx.app.node_factory
 - on_node_selected calls actions.test_create_node_at_click with the registry key
@@ -19,8 +19,7 @@ from haywire.core.session.context import SessionContext
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 
-from haybale_testing.test_actions import TestCanvasContextActions
-from haybale_testing.test_focuses import TestCanvasFocus
+from haybale_testing.surfaces import TestCanvasActions, TestCanvasMenu
 from haybale_testing.panels.graph.menu.canvas.canvas import TestCreateNodeMenuPanel as CreateNodePanel
 
 _PANEL_MODULE = sys.modules[CreateNodePanel.__module__]
@@ -50,12 +49,12 @@ def make_context(register_edit_state) -> tuple[SessionContext, type]:
 # ---------------------------------------------------------------------------
 
 
-def test_create_node_panel_action_protocol_is_test_canvas_context_actions():
-    assert CreateNodePanel.class_identity.action_protocol is TestCanvasContextActions
+def test_create_node_panel_sits_on_the_test_canvas_menu():
+    assert CreateNodePanel.class_identity.surface is TestCanvasMenu
 
 
-def test_create_node_panel_focus_is_test_canvas_focus():
-    assert CreateNodePanel.class_identity.focus is TestCanvasFocus
+def test_test_canvas_menu_demands_the_create_verb():
+    assert TestCanvasMenu.provides is TestCanvasActions
 
 
 def test_create_node_panel_is_panel_subclass():
@@ -88,7 +87,7 @@ def test_create_node_panel_draw_calls_node_menu_builder(register_edit_state):
     ctx.app.node_factory = MagicMock()
 
     layout = MagicMock(spec=PanelLayout)
-    actions = MagicMock(spec=TestCanvasContextActions)
+    actions = MagicMock(spec=TestCanvasActions)
     builder_mock = MagicMock()
 
     with patch.object(_PANEL_MODULE, "NodeMenuBuilder", return_value=builder_mock):
@@ -105,7 +104,7 @@ def test_on_node_selected_calls_test_create_node_at_click(register_edit_state):
     ctx.app.node_factory = MagicMock()
 
     layout = MagicMock(spec=PanelLayout)
-    actions = MagicMock(spec=TestCanvasContextActions)
+    actions = MagicMock(spec=TestCanvasActions)
     builder_instance = MagicMock()
     captured_callback = {}
 

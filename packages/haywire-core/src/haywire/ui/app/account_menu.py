@@ -1,34 +1,30 @@
 """The account menu provider (ADR 0027).
 
 Reuses ``BaseContextMenuProvider`` rather than hand-rolling a popup, which buys
-three things for free: entries are access-filtered by ``visible_panels()``, the
-menu refuses to open when nothing is visible, and libraries can contribute their
-own account entries by registering a panel against :class:`AccountFocus`.
+three things for free: entries are access-filtered by the shared panel gate, the
+menu refuses to open when nothing draws, and libraries can contribute their own
+account entries by registering a panel against :class:`AccountMenu`.
+
+The provider keeps its name; the *surface* it opens is ``AccountMenu``, which
+lives with its Protocol in ``haywire.barn.builtin.surfaces``.
 """
 
 from __future__ import annotations
 
-from typing import Any, Protocol, Tuple, runtime_checkable
+from typing import Any, Tuple
 
-from haywire.barn.builtin.focuses import AccountFocus
+from haywire.barn.builtin.surfaces import AccountActions, AccountMenu
 from haywire.ui.panel.context_menu_base import BaseContextMenuProvider
 
-
-@runtime_checkable
-class AccountActions(Protocol):
-    """What an account-menu panel may ask the host to do."""
-
-    def logout(self) -> None: ...
-
-    def reveal(self, editor_cls: type, binding_id: Any, label: str) -> None: ...
+__all__ = ["AccountActions", "AccountMenuProvider"]
 
 
 class AccountMenuProvider(BaseContextMenuProvider):
-    """Opens the account menu and satisfies :class:`AccountActions`."""
+    """Opens :class:`AccountMenu` and satisfies :class:`AccountActions`."""
 
     def open(self, pos: Tuple[float, float]) -> None:
         """Show the menu at ``pos``, or nothing if this principal has no entries."""
-        self._open_menu(AccountActions, AccountFocus, pos)
+        self._open_menu(AccountMenu, pos)
 
     # -- AccountActions -------------------------------------------------
 

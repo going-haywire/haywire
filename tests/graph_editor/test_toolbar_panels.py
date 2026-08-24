@@ -1,32 +1,33 @@
-from haybale_graph_editor.focuses import ToolbarFocus
-from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-    SelectionContextActions,
-    ToolbarActions,
-)
+from haybale_graph_editor.surfaces import SelectionMenu, SelectionToolbar
 from haybale_graph_editor.panels.graph.toolbar.selection import (
     CopyToolbarPanel,
     DeleteToolbarPanel,
-    OverflowToolbarPanel,
+    SelectionOverflowPanel,
 )
 
 
-def test_panels_target_toolbar_focus():
-    for cls in (CopyToolbarPanel, DeleteToolbarPanel, OverflowToolbarPanel):
-        assert cls.class_identity.focus is ToolbarFocus
+def test_panels_sit_on_the_toolbar_surface():
+    for cls in (CopyToolbarPanel, DeleteToolbarPanel, SelectionOverflowPanel):
+        assert cls.class_identity.surface is SelectionToolbar
 
 
-def test_copy_and_delete_target_selection_actions():
-    assert CopyToolbarPanel.class_identity.action_protocol is SelectionContextActions
-    assert DeleteToolbarPanel.class_identity.action_protocol is SelectionContextActions
+def test_overflow_hosts_the_selection_menu():
+    """The ⋯ renders SelectionMenu directly rather than round-tripping a
+    synthetic event through the canvas to reopen it."""
+    assert SelectionOverflowPanel.class_identity.hosts == (SelectionMenu,)
 
 
-def test_overflow_targets_toolbar_actions():
-    assert OverflowToolbarPanel.class_identity.action_protocol is ToolbarActions
+def test_copy_and_delete_are_leaves():
+    """A leaf is what the popup-emptiness rule counts as content."""
+    assert CopyToolbarPanel.class_identity.hosts == ()
+    assert DeleteToolbarPanel.class_identity.hosts == ()
 
 
-def test_poll_true_only_with_selection(make_ctx_with_selection):
+def test_panels_declare_no_poll_of_their_own(make_ctx_with_selection):
+    """SelectionToolbar.poll is exactly "something is selected"; the host gates
+    the surface once before querying, so restating that on each panel would be
+    a second place to keep in sync for no behaviour."""
     empty = make_ctx_with_selection(nodes=set(), edges=set())
-    one = make_ctx_with_selection(nodes={"n1"}, edges=set())
-    for cls in (CopyToolbarPanel, DeleteToolbarPanel, OverflowToolbarPanel):
-        assert cls.poll(empty) is False
-        assert cls.poll(one) is True
+    for cls in (CopyToolbarPanel, DeleteToolbarPanel, SelectionOverflowPanel):
+        assert cls.poll(empty) is True
+    assert SelectionToolbar.poll(empty) is False

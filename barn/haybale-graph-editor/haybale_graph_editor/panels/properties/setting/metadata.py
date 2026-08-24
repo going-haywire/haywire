@@ -23,7 +23,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....focuses import GraphFocus
+from ....surfaces import GraphInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=GraphFocus,
+    surface=GraphInspector,
     label="Graph Metadata",
     icon=hui.icon.graph,
     order=15,  # between GraphInfoPanel (10) and GraphSettingsPanel (20)

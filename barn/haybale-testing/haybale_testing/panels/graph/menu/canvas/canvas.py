@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING
 
 from haybale_graph_editor.editors.graph_canvas.node_menu_builder import NodeMenuBuilder
 from haybale_testing.state import TestSessionState
-from haybale_testing.test_actions import TestCanvasContextActions
-from haybale_testing.test_focuses import TestCanvasFocus
+from haybale_testing.surfaces import TestCanvasActions, TestCanvasMenu
 from haywire.core.node.info import NodeInfo
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
@@ -19,16 +18,15 @@ if TYPE_CHECKING:
 
 
 @panel(
-    actions=TestCanvasContextActions,
-    focus=TestCanvasFocus,
+    surface=TestCanvasMenu,
     label="Create Node",
     icon=hui.icon.add,
     order=0,
 )
 class TestCreateNodeMenuPanel(BasePanel):
-    """Test version of CreateNodeMenuPanel using TestCanvasContextActions / TestCanvasFocus."""
+    """Test version of CreateNodeMenuPanel on the TestCanvasMenu surface."""
 
-    actions: TestCanvasContextActions
+    actions: TestCanvasActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -55,15 +53,14 @@ class TestCreateNodeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestCanvasContextActions,
-    focus=TestCanvasFocus,
+    surface=TestCanvasMenu,
     label="Test SessionState Panel",
     order=99,
 )
 class TestSessionStateMenuPanel(BasePanel):
     """Reads TestSessionState.counter — exists to anchor the eager import."""
 
-    actions: TestCanvasContextActions
+    actions: TestCanvasActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

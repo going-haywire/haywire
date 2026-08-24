@@ -73,34 +73,21 @@ def test_open_menu_context_holds_canvas_pos():
     assert ctx.edge_reconnect_end is False
 
 
-def test_provider_satisfies_node_context_actions():
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-
-    provider = _make_provider()
-    assert isinstance(provider, NodeContextActions)
-
-
-def test_provider_satisfies_edge_context_actions():
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import EdgeContextActions
-
-    provider = _make_provider()
-    assert isinstance(provider, EdgeContextActions)
-
-
-def test_provider_satisfies_canvas_context_actions():
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import CanvasContextActions
-
-    provider = _make_provider()
-    assert isinstance(provider, CanvasContextActions)
-
-
-def test_provider_satisfies_selection_context_actions():
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-        SelectionContextActions,
+def test_provider_satisfies_every_surface_it_opens():
+    """render_surface validates the host against the target surface's
+    ``provides`` — so a provider claiming a Protocol it satisfies only in part
+    now fails at the point of nesting instead of silently handing its panels a
+    broken ``self.actions``."""
+    from haybale_graph_editor.surfaces import (
+        EdgeMenu,
+        GraphContext,
+        PinMenu,
+        SelectionMenu,
     )
 
     provider = _make_provider()
-    assert isinstance(provider, SelectionContextActions)
+    for surface in (GraphContext, EdgeMenu, SelectionMenu, PinMenu):
+        assert isinstance(provider, surface.provides), surface.id
 
 
 def test_delete_edge_emits_user_remove_event():
@@ -237,19 +224,17 @@ def test_reconnect_active_edge_no_active_edge_is_noop():
     assert captured == []
 
 
-def _register_visible_node_panel(provider, action, focus):
-    """Register a visible action panel so _open_menu opens (vs. closing immediately).
+def _register_visible_panel(provider, surface, registry_id):
+    """Register a leaf panel that draws, so _open_menu keeps its popup.
 
-    With no visible panel _open_menu runs its close cleanup and returns without
-    opening a popup; these tests exercise the open path, so they need one.
+    With nothing drawing, _open_menu deletes the popup, runs its close cleanup
+    and returns; these tests exercise the open path, so they need a leaf.
     """
     from haywire.ui.panel.base import BasePanel
     from haywire.ui.panel.decorator import panel
 
-    @panel(actions=action, focus=focus, label="Visible", registry_id="open_ctx_test_panel")
+    @panel(surface=surface, label="Visible", registry_id=registry_id)
     class _Panel(BasePanel):
-        actions: action  # type: ignore[valid-type]
-
         @classmethod
         def poll(cls, context):
             return True
@@ -260,17 +245,27 @@ def _register_visible_node_panel(provider, action, focus):
     provider._panel_registry._register_class(_Panel)
 
 
+def _patched_popup():
+    """A Popup double whose ``content`` works as a context manager."""
+    content = MagicMock()
+    content.__enter__ = MagicMock(return_value=content)
+    content.__exit__ = MagicMock(return_value=False)
+    popup = MagicMock()
+    popup.content = content
+    return popup
+
+
 def test_open_menu_creates_open_ctx_with_click_pos():
     """_open_menu records click_pos in _open_ctx."""
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_graph_editor.focuses import NodeFocus
+    from haybale_graph_editor.surfaces import GraphContext
 
     provider = _make_provider()
-    _register_visible_node_panel(provider, NodeContextActions, NodeFocus)
-    # _open_menu opens a Popup which requires NiceGUI runtime — patch it.
-    provider._build_popup = MagicMock(return_value=MagicMock())  # type: ignore[method-assign]  # see implementation below
+    cast(Any, provider)._test_edit_stub.active_graph = MagicMock()
+    _register_visible_panel(provider, GraphContext, "open_ctx_test_panel")
+    # _open_menu builds a Popup which requires NiceGUI runtime — patch it.
+    provider._build_popup = MagicMock(return_value=_patched_popup())  # type: ignore[method-assign]
 
-    provider._open_menu(NodeContextActions, NodeFocus, (100.0, 200.0))
+    provider._open_menu(GraphContext, (100.0, 200.0))
 
     assert provider._open_ctx is not None
     assert provider._open_ctx.click_pos == (100.0, 200.0)
@@ -278,20 +273,17 @@ def test_open_menu_creates_open_ctx_with_click_pos():
 
 def test_open_menu_clears_open_ctx_on_close(monkeypatch):
     """When the popup's on_close fires, _open_ctx is set to None."""
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_graph_editor.focuses import NodeFocus
+    from haybale_graph_editor.surfaces import GraphContext
 
     provider = _make_provider()
-    _register_visible_node_panel(provider, NodeContextActions, NodeFocus)
-    popup = MagicMock()
+    cast(Any, provider)._test_edit_stub.active_graph = MagicMock()
+    _register_visible_panel(provider, GraphContext, "open_ctx_close_test_panel")
+    popup = _patched_popup()
     on_close_callback = []
 
-    def capture_on_close(cb):
-        on_close_callback.append(cb)
-
-    popup.on_close = capture_on_close
+    popup.on_close = lambda cb: on_close_callback.append(cb)
     provider._build_popup = MagicMock(return_value=popup)  # type: ignore[method-assign]
-    provider._open_menu(NodeContextActions, NodeFocus, (0.0, 0.0))
+    provider._open_menu(GraphContext, (0.0, 0.0))
     assert provider._open_ctx is not None
 
     # Trigger the close callback
@@ -300,14 +292,14 @@ def test_open_menu_clears_open_ctx_on_close(monkeypatch):
 
 
 def test_open_menu_no_visible_panels_runs_cleanup_without_opening():
-    """No visible panel → _open_ctx cleared immediately, popup never opened."""
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import NodeContextActions
-    from haybale_graph_editor.focuses import NodeFocus
+    """Nothing drew → _open_ctx cleared immediately, popup never opened."""
+    from haybale_graph_editor.surfaces import GraphContext
 
-    provider = _make_provider()  # empty registry → no visible panels
-    popup = MagicMock()
+    provider = _make_provider()  # empty registry → no panels at all
+    cast(Any, provider)._test_edit_stub.active_graph = MagicMock()
+    popup = _patched_popup()
     provider._build_popup = MagicMock(return_value=popup)  # type: ignore[method-assign]
-    provider._open_menu(NodeContextActions, NodeFocus, (0.0, 0.0))
+    provider._open_menu(GraphContext, (0.0, 0.0))
 
     popup.open.assert_not_called()
     assert provider._open_ctx is None
@@ -361,15 +353,14 @@ def test_reset_selection_emits_element_reset_for_whole_selection():
     assert set(captured[0].nodes) == {"a"}
 
 
-def test_provider_satisfies_selection_context_actions_with_batch_verbs():
-    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu_actions import (
-        SelectionContextActions,
-    )
+def test_provider_satisfies_selection_actions_with_batch_verbs():
+    from haybale_graph_editor.surfaces import SelectionActions
 
     provider = _make_provider()
-    # After Task 1 the Protocol requires the batch verbs; the provider must
-    # implement them or this isinstance check fails.
-    assert isinstance(provider, SelectionContextActions)
+    # SelectionActions requires the batch verbs; the provider must implement
+    # them or this isinstance check fails — and it is the same check
+    # render_surface makes before injecting the host.
+    assert isinstance(provider, SelectionActions)
 
 
 def test_on_selection_context_writes_selection_from_payload(monkeypatch):

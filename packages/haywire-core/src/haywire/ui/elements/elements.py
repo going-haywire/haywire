@@ -463,11 +463,11 @@ def toolbar_button(
 
 
 # ──────────────────────────────────────────────────────────────────────────────
-# 8.10  Scope Button
+# 8.10  Surface Button
 # ──────────────────────────────────────────────────────────────────────────────
 
 
-def scope_button(
+def surface_button(
     icon: str,
     *,
     is_active: bool = False,
@@ -476,7 +476,7 @@ def scope_button(
     on_click: Callable | None = None,
 ) -> ui.button:
     """
-    A square button for the properties scope toolbar.
+    A square button for the properties editor's SurfaceToolbar.
 
     Visual rules:
     - Size: ``36×36px``
@@ -487,8 +487,8 @@ def scope_button(
 
     Usage::
 
-        hui.scope_button("settings", is_active=True, tooltip="Node Properties")
-        hui.scope_button("tune", available=False, tooltip="Not available")
+        hui.surface_button("settings", is_active=True, tooltip="Node Properties")
+        hui.surface_button("tune", available=False, tooltip="Not available")
     """
     style = (
         "width: 36px; height: 36px; min-height: 36px; padding: 0;"

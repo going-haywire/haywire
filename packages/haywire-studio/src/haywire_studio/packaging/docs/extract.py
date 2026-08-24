@@ -47,9 +47,10 @@ def _extra_for_kind(kind: str, cls: Any, identity: Any) -> dict[str, Any]:
             "max_height": getattr(identity, "max_height", None),
         }
     if kind == "panel":
+        surface = getattr(identity, "surface", None)
         return {
-            "editor_keys": list(getattr(identity, "editor_keys", []) or []),
-            "scopes": list(getattr(identity, "scopes", []) or []),
+            "surface": getattr(surface, "id", None),
+            "hosts": [getattr(h, "id", None) for h in getattr(identity, "hosts", ())],
             "order": getattr(identity, "order", None),
         }
     if kind == "editor":

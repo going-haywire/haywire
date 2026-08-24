@@ -1,11 +1,16 @@
 # tests/ui/panel/test_panel_registry_class_keyed.py
-"""PanelRegistry.get_panels_for_action and get_display_focuses use protocol identity + focus-id match."""
+"""PanelRegistry routes on ``Surface.id``, never on the surface class object.
 
-from typing import Protocol, runtime_checkable
+The old fork matched action panels by Protocol *class identity* — defensible
+only while a panel and its Protocol were guaranteed to reload together. All
+three queries now compare ids, because ``hosts=`` holds classes captured at
+decoration time and a panel may host a surface from a library that reloads on
+its own schedule (docs/adr/0009-surface-id-stable-key.md).
+"""
 
 from haywire.core.library.identity import LibraryIdentity
 from haywire.ui.panel import BasePanel, PanelRegistry, panel
-from haywire.ui.panel.focus import Focus
+from haywire.ui.surface import Surface
 
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -17,70 +22,32 @@ _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
 )
 
 
-@runtime_checkable
-class _ActionsA(Protocol):
-    def verb_a(self) -> None: ...
+class _SurfaceOne(Surface):
+    id = "one_test_surface"
 
 
-@runtime_checkable
-class _ActionsB(Protocol):
-    def verb_b(self) -> None: ...
+class _SurfaceTwo(Surface):
+    id = "two_test_surface"
 
 
-class _FocusOne(Focus):
-    id = "one_test_focus"
-    label = "One"
-    icon = "1"
-
-    @classmethod
-    def available(cls, ctx):
-        return True
+class _HostedSurface(Surface):
+    id = "hosted_test_surface"
 
 
-class _FocusTwo(Focus):
-    id = "two_test_focus"
-    label = "Two"
-    icon = "2"
-
-    @classmethod
-    def available(cls, ctx):
-        return True
-
-
-# Action panels — have `actions:` annotation and actions= decorator arg.
-@panel(actions=_ActionsA, focus=_FocusOne, label="A1")
+@panel(surface=_SurfaceOne, label="A1")
 class _PanelA1(BasePanel):
-    actions: _ActionsA
-
     def draw(self, ctx, layout):
         pass
 
 
-@panel(actions=_ActionsA, focus=_FocusTwo, label="A2")
+@panel(surface=_SurfaceTwo, label="A2")
 class _PanelA2(BasePanel):
-    actions: _ActionsA
-
     def draw(self, ctx, layout):
         pass
 
 
-@panel(actions=_ActionsB, focus=_FocusOne, label="B1")
+@panel(surface=_SurfaceOne, hosts=(_HostedSurface,), label="B1")
 class _PanelB1(BasePanel):
-    actions: _ActionsB
-
-    def draw(self, ctx, layout):
-        pass
-
-
-# Display panels (no actions: annotation) — used to test get_display_focuses.
-@panel(focus=_FocusOne, label="Display-One", registry_id="display_one_ck")
-class _DisplayPanelOne(BasePanel):
-    def draw(self, ctx, layout):
-        pass
-
-
-@panel(focus=_FocusTwo, label="Display-Two", registry_id="display_two_ck")
-class _DisplayPanelTwo(BasePanel):
     def draw(self, ctx, layout):
         pass
 
@@ -93,64 +60,67 @@ def _registry_with_panels() -> PanelRegistry:
     return reg
 
 
-def test_get_panels_for_action_filters_by_protocol_and_focus():
+def test_get_panels_filters_by_surface():
     reg = _registry_with_panels()
-    panels = reg.get_panels_for_action(_ActionsA, _FocusOne)
+    panels = reg.get_panels(_SurfaceOne)
     assert _PanelA1 in panels
-    assert _PanelA2 not in panels  # wrong focus
-    assert _PanelB1 not in panels  # wrong protocol
+    assert _PanelB1 in panels
+    assert _PanelA2 not in panels  # different surface
 
 
-def test_get_panels_for_action_returns_empty_when_protocol_not_registered():
+def test_get_panels_returns_empty_for_a_surface_with_no_panels():
     reg = _registry_with_panels()
 
-    @runtime_checkable
-    class _Unrelated(Protocol):
-        def unrelated_verb(self) -> None: ...
+    class _Unrelated(Surface):
+        id = "unrelated_test_surface"
 
-    panels = reg.get_panels_for_action(_Unrelated, _FocusOne)
-    assert panels == []
+    assert reg.get_panels(_Unrelated) == []
 
 
-def test_get_display_focuses_returns_focuses_referenced_by_display_panels():
-    reg = PanelRegistry()
-    reg._register_class(_DisplayPanelOne, _FAKE_LIBRARY_IDENTITY)
-    reg._register_class(_DisplayPanelTwo, _FAKE_LIBRARY_IDENTITY)
-    focuses = reg.get_display_focuses()
-    assert _FocusOne in focuses
-    assert _FocusTwo in focuses
-
-
-def test_get_display_focuses_excludes_action_panel_focuses():
+def test_get_panels_matches_a_reloaded_surface_by_id():
+    """A hot-reload hands back a *new class object* with the same id."""
     reg = _registry_with_panels()
-    # Only action panels registered — get_display_focuses must return nothing.
-    focuses = reg.get_display_focuses()
-    assert _FocusOne not in focuses
-    assert _FocusTwo not in focuses
+
+    class _ReloadedOne:
+        id = "one_test_surface"
+
+    assert _PanelA1 in reg.get_panels(_ReloadedOne)
 
 
-def test_get_display_focuses_deduplicates_by_focus_id():
-    # Register two display panels with the same focus — each focus appears once.
+def test_get_root_surfaces_deduplicates_by_id():
     reg = PanelRegistry()
 
-    @panel(focus=_FocusOne, label="Dup1", registry_id="dup1_ck")
+    @panel(surface=_SurfaceOne, label="Dup1", registry_id="dup1_ck")
     class _DupPanel1(BasePanel):
         def draw(self, ctx, layout):
             pass
 
-    @panel(focus=_FocusOne, label="Dup2", registry_id="dup2_ck")
+    @panel(surface=_SurfaceOne, label="Dup2", registry_id="dup2_ck")
     class _DupPanel2(BasePanel):
         def draw(self, ctx, layout):
             pass
 
     reg._register_class(_DupPanel1, _FAKE_LIBRARY_IDENTITY)
     reg._register_class(_DupPanel2, _FAKE_LIBRARY_IDENTITY)
-    focuses = reg.get_display_focuses()
-    assert focuses.count(_FocusOne) == 1
+    assert reg.get_root_surfaces().count(_SurfaceOne) == 1
+
+
+def test_get_root_surfaces_excludes_a_surface_named_in_hosts():
+    reg = _registry_with_panels()
+
+    @panel(surface=_HostedSurface, label="Nested", registry_id="nested_ck")
+    class _NestedPanel(BasePanel):
+        def draw(self, ctx, layout):
+            pass
+
+    reg._register_class(_NestedPanel, _FAKE_LIBRARY_IDENTITY)
+    roots = reg.get_root_surfaces()
+    assert _SurfaceOne in roots
+    assert _HostedSurface not in roots
 
 
 # ---------------------------------------------------------------------------
-# Regression test: folder-scan registration accepts new-contract BasePanel subclasses
+# Regression test: folder-scan registration accepts decorated BasePanel subclasses
 # ---------------------------------------------------------------------------
 
 

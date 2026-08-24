@@ -5,7 +5,7 @@ Holds transient context for the right-click context menu. Contracts:
   - ``right_clicked_file`` is set by SessionFileMenuProvider when the
     user right-clicks a file in the tree.
   - Cleared back to None when the menu closes (any dismissal path).
-  - Panels with focus=FileFocus may read this in their poll() to
+  - Panels on FileMenu may read this in their poll() to
     decide whether they appear in the menu (e.g. extension-based
     filtering).
 

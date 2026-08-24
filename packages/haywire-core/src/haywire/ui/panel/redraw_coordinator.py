@@ -6,7 +6,7 @@ from typing import Callable, TYPE_CHECKING
 if TYPE_CHECKING:
     from haywire.core.session.session import Session
     from haywire.core.signals import Signal
-    from haywire.ui.panel.focus import Focus
+    from haywire.ui.surface import Surface
     from haywire.ui.panel.registry import PanelRegistry
 
 logger = logging.getLogger(__name__)
@@ -15,19 +15,28 @@ logger = logging.getLogger(__name__)
 class PanelRedrawCoordinator:
     """Owns one editor instance's panel-driven redraw subscriptions.
 
-    A Focus-driven panel host (today only PropertiesEditor) wants to
-    redraw whenever any display panel of its current focuses declares,
-    via ``@panel(..., redraw_on=(...))``, that it cares about a signal —
-    and to keep that subscription set correct as the panel catalog
-    changes (install / uninstall / hot-reload).
+    A long-lived panel host (today only PropertiesEditor) wants to redraw
+    whenever any panel in the tree under its surfaces declares, via
+    ``@panel(..., redraw_on=(...))``, that it cares about a signal — and to
+    keep that subscription set correct as the panel catalog changes
+    (install / uninstall / hot-reload). The union spans each surface's whole
+    ``hosts=`` tree, so a panel deep inside a flyout can trigger a redraw of
+    the surface that contains it; that is intended, since a host redraws its
+    tree as a unit (ADR-0029, Redraw).
 
-    This coordinator owns BOTH surfaces of that machine:
+    Transient hosts subscribe to nothing — a context menu is built per
+    gesture and dismissed, so it is never live when a signal arrives. The
+    floating toolbar is long-lived but *event-driven*: it is rebuilt when
+    the canvas emits new selection bounds, and its surface is defined by the
+    selection, so it deliberately has no coordinator either.
+
+    This coordinator owns both halves of that machine:
 
     1. Per-signal bus subscriptions: one ``session.subscribe`` per signal
-       type in the union of ``redraw_on`` across the host's focuses. Each
+       type in the union of ``redraw_on`` across the host's surfaces. Each
        fires ``on_redraw`` (the host re-mounts its panels).
-    2. The panel registry's batch lifecycle channel: reconciles surface
-       (1) whenever the catalog changes.
+    2. The panel registry's batch lifecycle channel: reconciles (1)
+       whenever the catalog changes.
 
     Construction is inert. Call :meth:`start` to wire everything and
     :meth:`cleanup` to tear it down. Owned by the host editor; not shared.
@@ -38,7 +47,7 @@ class PanelRedrawCoordinator:
         registry: "PanelRegistry",
         session: "Session",
         on_redraw: Callable[[], None],
-        focus_provider: Callable[[], list[type["Focus"]]],
+        surface_provider: Callable[[], list[type["Surface"]]],
     ) -> None:
         """Construct (inert — no subscriptions until ``start``).
 
@@ -47,14 +56,14 @@ class PanelRedrawCoordinator:
                 to attach to for catalog-change reconciliation.
             session: Session whose signal bus carries the redraw signals.
             on_redraw: Called (no args) when a subscribed signal fires.
-            focus_provider: Returns the host's current focus list. Called
-                on every (re)build so the host stays the single source of
-                truth for "which focuses do I show".
+            surface_provider: Returns the host's current surface list.
+                Called on every (re)build so the host stays the single
+                source of truth for "which surfaces do I show".
         """
         self._registry = registry
         self._session = session
         self._on_redraw = on_redraw
-        self._focus_provider = focus_provider
+        self._surface_provider = surface_provider
         self._unsubscribes: list[Callable[[], None]] = []
         self._attached = False
 
@@ -91,14 +100,15 @@ class PanelRedrawCoordinator:
 
     def _rebuild(self) -> None:
         """Drop current per-signal subs and re-subscribe to the union of
-        ``redraw_on`` signals across the host's current focuses."""
+        ``redraw_on`` signals across the host's current surfaces (each
+        walked transitively through ``hosts=``)."""
         self._unsubscribe_all()
         signal_types: set[type["Signal"]] = set()
         try:
-            for focus in self._focus_provider():
-                signal_types |= self._registry.get_redraw_signals_for_focus(focus)
+            for surface in self._surface_provider():
+                signal_types |= self._registry.get_redraw_signals(surface)
         except Exception as exc:
-            logger.warning(f"PanelRedrawCoordinator: get_redraw_signals_for_focus raised: {exc}")
+            logger.warning(f"PanelRedrawCoordinator: get_redraw_signals raised: {exc}")
             return
         if not signal_types:
             return

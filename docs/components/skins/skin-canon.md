@@ -204,6 +204,54 @@ own vector. This is also why `NodeSkinSettings` declares geometry for *both* axe
 reinterpreted set — that bag is library-global, so there is no single "current direction"
 to reinterpret against.
 
+## Context menus: `data-hw-menu-surface-id`, and what a skin cannot address
+
+A skin can add its own right-click menu on any element it renders, by writing one DOM
+attribute:
+
+```text
+data-hw-menu-surface-id="<your-surface-id>"
+```
+
+The canvas detects this declaratively (`closest('[data-hw-menu-surface-id]')`, so the
+*innermost* annotated ancestor wins if you nest them) and fires a `ContextMenuSurfaceEvent`
+carrying the id. Whatever `Surface` your library registered under that id — with panels
+registered against it — opens as the menu. **The surface is entirely your library's to
+declare and own; the framework does not pre-create anything for an id it hasn't seen.** An
+id that resolves to nothing (no registered `Surface` with that `id`) opens nothing at all,
+silently, and logs a warning server-side — there is no error rendered on the canvas, so if
+your menu never appears, check the server log for "no menu opened" before suspecting the
+DOM attribute.
+
+**This is the only menu a skin controls.** The pin, node, edge, and canvas (right-click on
+empty space) menus are **structural or framework-declared**, not reachable through this
+attribute:
+
+- **Pin menu** — detected structurally from `data-pin-id`, which `render_pin` emits on
+  every pin from every skin. A skin therefore neither opts a pin into having a menu nor can
+  suppress the built-in one; that stopped being a skin decision entirely (see ADR-0029,
+  "Routing"). Writing `data-hw-menu-surface-id` on a pin element has no effect — the
+  structural pin check runs first and wins.
+- **Node, edge, canvas menus** — all framework-declared `Surface`s (`NodeInspector`'s
+  sibling menus, `EdgeMenu`, `GraphContext`), reached by their own structural/declarative
+  paths independent of this attribute.
+
+Use `data-hw-menu-surface-id` for a menu on some *other* element your skin renders — a
+custom badge, an inline control, a region of the card that isn't the node or a pin — that
+you want right-clickable with commands only your library knows about.
+
+### Ghost pins are excluded from pin detection
+
+The structural pin detector is `[data-pin-id]:not([data-pin-flow-type="ghost"]), [data-port-id]`
+— note the exclusion. A ghost pin is a drop affordance (the temporary target shown while
+dragging a connection to an empty area of a node), not a real port: its id names no entry in
+`node.ports`, so a menu opened there would both resolve nothing *and* swallow the click that
+would otherwise fall through to the node's own context menu. If you author a skin that emits
+ghost pins with `data-pin-flow-type="ghost"` (the convention `render_pin` itself follows),
+right-clicking one correctly falls through past the pin check to whatever is next —
+normally the node. Do not expect a ghost pin to carry a menu; it is deliberately excluded,
+not an oversight to work around.
+
 ## TODO
 
 - [ ] Write content

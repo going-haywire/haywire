@@ -72,3 +72,56 @@ Net invariant: exactly one open path from the root at any time.
 No open-delay: a fast diagonal mouse path that crosses a sibling item will switch
 flyouts. If this feels twitchy, add a small (~120 ms) open delay — but keep closing on
 `auto-close`; do NOT bring back the 2.x close-timer tangle (see #1).
+
+## 6. Sibling-group ownership broke under the Surface model — and `render_surface` is the fix
+
+This module's whole design assumes one thing implicitly: whoever draws a box (a `Popup`,
+a flyout body) owns the sibling group for what gets drawn inside it, and every leaf drawn
+in that box either belongs to that group directly or is itself a nested box that owns its
+own group one level down. `NodeMenuBuilder`, the module's original client, satisfies this
+by construction — it recurses through its own tree and threads `siblings` by hand at every
+level, so the box-owns-group invariant is trivially true.
+
+**The Surface model breaks that precondition.** A hosting panel's `render_surface(S, ctx)`
+call does not recurse through anything the *caller* wrote — it hands off to
+`PanelRegistry.get_panels(S)` and renders whatever panels are registered there, from
+libraries the hosting panel has never heard of and cannot enumerate. Two panels on two
+different surfaces, nested by two different `hosts=` edges, can both render `SubmenuRow`s
+into what is visually the *same* popup — `GraphContextPanel` renders `GraphToolBar` and
+`GraphContextBody` into one popup's content, for instance — and those rows must share one
+sibling group (opening one closes the other) even though neither panel's code ever
+constructs or passes a `siblings` list to the other. Nothing in a panel's own `draw()` can
+thread a list to a panel it doesn't know exists.
+
+**The fix: the box owns the group, not the code that draws into it.** `open_flyout_group()`
+is the primitive a *host* — never a panel — pushes once, as a `ContextVar`
+(`_flyout_siblings`), around a box's content: `_open_menu()` pushes it once around a
+`Popup`'s content before rendering the (possibly deeply nested) panel tree, and
+`render_surface` deliberately does **not** push a second one — nesting stays inside the
+same ambient group unless a `SubmenuRow`/`FlyoutIcon`'s own `__enter__` opens a *new* box
+(a flyout body is a real visual box; a `render_surface` call is not). Every
+`SubmenuRow`/`FlyoutIcon` constructed anywhere in that render — regardless of which panel,
+which surface, which nesting depth — reads the *ambient* group via `_flyout_siblings.get()`
+and registers itself into it, with no caller ever passing a list explicitly. This is what
+makes two unrelated panels' rows close each other correctly: they were never "siblings" by
+any code path that ran, only by both having been drawn inside the same ambient box.
+
+**Corollary — retroactive greying needed a second ContextVar, `_in_flyout_body`.** A
+`SubmenuRow`/`FlyoutIcon` counts as "content drew" at its *enclosing* level so a container
+of only nested rows doesn't grey itself just because none of its own leaves fired — but
+only when that enclosing level is *itself* a flyout body. A `SubmenuRow`/`FlyoutIcon`
+constructed directly in a host's top-level popup scope (e.g. a hosting panel like
+`GraphMorePanel` drawing `hui.flyout(...)` straight into its own `draw()`, not nested
+inside another row) is, at that scope, architecturally a container — the same category
+`render_panel` already excludes from the popup-emptiness count for hosting panels
+(`class_identity.hosts != ()`). Without gating on `_in_flyout_body`, that bump would make a
+popup whose only content is one currently-empty flyout icon look non-empty, opening a popup
+around a single retroactively-greyed, useless control instead of not opening at all. Two
+simpler fixes were tried and rejected before this one: decrementing the counter in
+`__exit__` when a body turns out empty (breaks the disabled-nested-child case, which never
+calls `__enter__`/`__exit__` at all — there is nothing to decrement from); and never
+bumping the enclosing counter at all (breaks the legitimate nested-container case, where a
+row containing only further rows must still read as "drew something"). See
+`packages/haywire-core/src/haywire/ui/elements/flyout.py` (`_in_flyout_body`'s docstring)
+for the traced-through reasoning, and `.superpowers/sdd/task-C-report.md`'s last section for
+the full incident trace.

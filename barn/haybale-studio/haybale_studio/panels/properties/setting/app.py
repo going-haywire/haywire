@@ -1,6 +1,6 @@
 # haybale_studio/panels/properties/setting/app.py
 """
-Application-scope settings panels (AppFocus).
+Application settings panels, on the ``AppSettings`` surface.
 
 ThemeSettingsPanel    — active workbench theme
 NodeSkinDefaultPanel  — default node skin settings
@@ -24,7 +24,7 @@ from haywire.core.skin.settings import NodeDefaultSkinSettings
 from haywire.ui.prefs.editor import EditorSettings
 from haywire.core.farmhand.settings import ActivitySettings
 
-from haywire.barn.builtin.focuses import AppFocus
+from haywire.barn.builtin.surfaces import AppSettings
 
 from haywire.core.access import AccessTier
 from haywire_studio.network.settings import NetworkSettings
@@ -37,7 +37,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=AppFocus,
+    surface=AppSettings,
     label="Workbench",
     icon=hui.icon.theme,
     order=10,
@@ -57,7 +57,7 @@ class ThemeSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=AppFocus,
+    surface=AppSettings,
     label="Default Skins",
     icon=hui.icon.skin,
     order=20,
@@ -76,7 +76,7 @@ class NodeSkinDefaultPanel(BasePanel):
 
 
 @panel(
-    focus=AppFocus,
+    surface=AppSettings,
     label="Editor",
     icon=hui.icon.edit,
     order=30,
@@ -95,7 +95,7 @@ class EditorSettingsPanel(BasePanel):
 
 
 @panel(
-    focus=AppFocus,
+    surface=AppSettings,
     label="Activity",
     icon="smart_toy",  # matches ActivityEditor/OpenActivityPanel's icon
     order=35,
@@ -125,7 +125,7 @@ _MARKERS = {
 
 
 @panel(
-    focus=AppFocus,
+    surface=AppSettings,
     label="Security",
     icon=hui.icon.severity,
     order=40,

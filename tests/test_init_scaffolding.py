@@ -148,7 +148,7 @@ class TestProjectPyproject:
 
         haywire-studio deliberately does not depend on haybale-studio (that
         edge closed a cycle — see .insights/project_app_library_dependency_direction.md),
-        so the studio_* farmhand baseline and the AppFocus settings panels
+        so the studio_* farmhand baseline and the AppSettings panels
         reach an install through this line alone. Drop it and a scaffolded
         project starts with no settings panels and no MCP tools.
         """

@@ -1,7 +1,7 @@
 # barn/haybale-haystack/haybale_haystack/panels/graph_run_settings_panel.py
 """GraphRunSettingsPanel — renders run policy settings for the active graph.
 
-Appears under GraphFocus, showing the GraphRunSettings bag (autorestart, etc.)
+Appears on GraphInspector, showing the GraphRunSettings bag (autorestart, etc.)
 for whichever graph is currently active in the editor.
 """
 
@@ -15,7 +15,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from haybale_graph_editor.focuses import GraphFocus
+from haybale_graph_editor.surfaces import GraphInspector
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=GraphFocus,
+    surface=GraphInspector,
     label="Run Settings",
     icon=hui.icon.execution,
     order=20,

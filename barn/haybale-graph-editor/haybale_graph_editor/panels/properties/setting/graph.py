@@ -2,8 +2,8 @@
 """
 GraphSettingsPanel — renders the active graph's settings bag (graph.props).
 
-The graph-scope section of the properties editor: shown under GraphFocus
-(graph itself in focus, no node selected). Reuses the generic bag renderer;
+The graph-level section of the properties editor: shown on GraphInspector
+(the graph itself is the subject, no node selected). Reuses the generic bag renderer;
 the setting-row menu offers no promote entries because a GraphSettings bag
 has ``_node is None`` (structural guard in ``_build_row_menu``).
 """
@@ -18,7 +18,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....focuses import GraphFocus
+from ....surfaces import GraphInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -26,7 +26,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=GraphFocus,
+    surface=GraphInspector,
     label="Graph Settings",
     icon=hui.icon.graph,
     order=20,

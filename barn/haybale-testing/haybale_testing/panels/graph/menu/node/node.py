@@ -1,6 +1,6 @@
 """Test-only node action panels for haybale_testing.
 
-actions: TestNodeContextActions, focus=TestNodeFocus.
+On the ``TestNodeMenu`` surface.
 """
 
 from __future__ import annotations
@@ -8,8 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.state.edit_state import EditState
-from haybale_testing.test_actions import TestNodeContextActions
-from haybale_testing.test_focuses import TestNodeFocus
+from haybale_testing.surfaces import TestNodeActions, TestNodeMenu
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -20,14 +19,13 @@ if TYPE_CHECKING:
 
 
 @panel(
-    actions=TestNodeContextActions,
-    focus=TestNodeFocus,
+    surface=TestNodeMenu,
     label="Delete Node",
     icon=hui.icon.delete,
     order=10,
 )
 class TestDeleteNodeMenuPanel(BasePanel):
-    actions: TestNodeContextActions
+    actions: TestNodeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -51,14 +49,13 @@ class TestDeleteNodeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestNodeContextActions,
-    focus=TestNodeFocus,
+    surface=TestNodeMenu,
     label="Copy Node",
     icon=hui.icon.copy,
     order=20,
 )
 class TestCopyNodeMenuPanel(BasePanel):
-    actions: TestNodeContextActions
+    actions: TestNodeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -82,14 +79,13 @@ class TestCopyNodeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestNodeContextActions,
-    focus=TestNodeFocus,
+    surface=TestNodeMenu,
     label="Redraw Node",
     icon=hui.icon.refresh,
     order=30,
 )
 class TestRedrawNodeMenuPanel(BasePanel):
-    actions: TestNodeContextActions
+    actions: TestNodeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -113,14 +109,13 @@ class TestRedrawNodeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestNodeContextActions,
-    focus=TestNodeFocus,
+    surface=TestNodeMenu,
     label="Revalidate Node",
     icon=hui.icon.refresh,
     order=40,
 )
 class TestRevalidateNodeMenuPanel(BasePanel):
-    actions: TestNodeContextActions
+    actions: TestNodeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -144,14 +139,13 @@ class TestRevalidateNodeMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestNodeContextActions,
-    focus=TestNodeFocus,
+    surface=TestNodeMenu,
     label="Reset Node",
     icon=hui.icon.reset,
     order=50,
 )
 class TestResetNodeMenuPanel(BasePanel):
-    actions: TestNodeContextActions
+    actions: TestNodeActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

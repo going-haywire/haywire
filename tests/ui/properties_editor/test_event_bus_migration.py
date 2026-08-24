@@ -104,7 +104,7 @@ def _wire_coordinator(editor, context) -> None:
             registry=registry,
             session=context.session,
             on_redraw=editor.wrapper.redraw,
-            focus_provider=lambda: editor._compute_toolbar_focuses(registry),
+            surface_provider=lambda: editor._compute_toolbar_surfaces(registry),
         )
         cast(Any, editor)._coordinator.start()
 

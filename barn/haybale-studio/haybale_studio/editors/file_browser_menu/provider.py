@@ -1,7 +1,7 @@
 """SessionFileMenuProvider — panel-driven file context menu provider.
 
 Inherits popup/panel infrastructure from BaseContextMenuProvider.
-Adds: on_file_context intent, FileBrowserActions implementation.
+Adds: on_file_context intent, FileActions implementation.
 """
 
 from __future__ import annotations
@@ -19,7 +19,7 @@ logger = logging.getLogger(__name__)
 
 
 class SessionFileMenuProvider(BaseContextMenuProvider):
-    """Panel-driven file-context-menu provider, satisfies FileBrowserActions."""
+    """Panel-driven file-context-menu provider, satisfies FileActions."""
 
     # ------------------------------------------------------------------
     # Intent
@@ -28,8 +28,7 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
     def on_file_context(self, pos: Tuple[float, float], path: Path) -> None:
         """User right-clicked a file at screen position ``pos``."""
         from haybale_studio.state.file_browser_state import FileBrowserState
-        from haybale_studio.focuses import FileFocus
-        from haybale_studio.editors.file_browser_menu.actions import FileBrowserActions
+        from haybale_studio.surfaces import FileMenu
 
         # Set transient menu state
         self._context.data[FileBrowserState].right_clicked_file = path
@@ -41,10 +40,10 @@ class SessionFileMenuProvider(BaseContextMenuProvider):
             except KeyError:
                 pass
 
-        self._open_menu(FileBrowserActions, FileFocus, pos, on_close=_on_close)
+        self._open_menu(FileMenu, pos, on_close=_on_close)
 
     # ------------------------------------------------------------------
-    # FileBrowserActions Protocol implementation
+    # FileActions Protocol implementation
     # ------------------------------------------------------------------
 
     def reveal(

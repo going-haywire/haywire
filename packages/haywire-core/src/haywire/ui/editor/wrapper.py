@@ -155,12 +155,12 @@ class EditorWrapper:
         # drained by ``_unsubscribe_event_handlers`` on hot-reload and
         # ``cleanup``.
         #
-        # Panel-driven event subscriptions (the union of
-        # ``redraw_on=`` declarations across panels registered against
-        # the editor's action Protocol) are NOT managed here. Editors
-        # that host panels — currently only ``PropertiesEditor`` — own
-        # their own panel-bus wiring and tear it down in their
-        # ``cleanup``. Keeps the wrapper agnostic of the panel system.
+        # Panel-driven event subscriptions (the union of ``redraw_on=``
+        # declarations across a surface's whole ``hosts=`` tree) are NOT
+        # managed here. Editors that host surfaces — currently only
+        # ``PropertiesEditor`` — own their own panel-bus wiring and tear it
+        # down in their ``cleanup``. Keeps the wrapper agnostic of the panel
+        # system.
         self._bus_unsubscribes: list[Callable[[], None]] = []
 
         # Cleanup flag — signals cleanup() has run; callers must not access

@@ -2,7 +2,7 @@
 
 The coordinator owns an editor's panel-driven redraw subscriptions:
 per-signal bus subscriptions (one per redraw_on signal type declared by
-display panels of the editor's focuses) plus the panel registry's batch
+panels in the tree under the editor's surfaces) plus the panel registry's batch
 lifecycle channel used to reconcile that set on catalog change.
 
 These tests exercise the coordinator directly with fakes — no
@@ -33,11 +33,11 @@ class _SigB(Signal):
     pass
 
 
-class _FakeFocus:
-    """Stand-in Focus class. The coordinator only uses identity / passes it
-    straight to registry.get_redraw_signals_for_focus, so any object works."""
+class _FakeSurface:
+    """Stand-in Surface class. The coordinator only uses identity / passes it
+    straight to registry.get_redraw_signals, so any object works."""
 
-    id = "fake-focus"
+    id = "fake-surface"
 
 
 class _FakeSession:
@@ -67,12 +67,12 @@ class _FakeSession:
 class _FakeRegistry:
     """Records batch-subscriber wiring and returns a fixed signal union."""
 
-    def __init__(self, signals_by_focus: dict | None = None) -> None:
-        self._signals_by_focus = signals_by_focus or {}
+    def __init__(self, signals_by_surface: dict | None = None) -> None:
+        self._signals_by_surface = signals_by_surface or {}
         self.batch_subscribers: list[Callable] = []
 
-    def get_redraw_signals_for_focus(self, focus):
-        return set(self._signals_by_focus.get(focus, set()))
+    def get_redraw_signals(self, surface):
+        return set(self._signals_by_surface.get(surface, set()))
 
     def add_batch_event_subscriber(self, cb) -> None:
         if cb not in self.batch_subscribers:
@@ -89,14 +89,14 @@ class _FakeRegistry:
 
 def _make_coordinator(registry, session):
     redraws: list[int] = []
-    focus = _FakeFocus()
+    surface = _FakeSurface()
     coord = PanelRedrawCoordinator(
         registry=registry,
         session=session,
         on_redraw=lambda: redraws.append(1),
-        focus_provider=lambda: cast(Any, [focus]),
+        surface_provider=lambda: cast(Any, [surface]),
     )
-    return coord, redraws, focus
+    return coord, redraws, surface
 
 
 # --- Tests -----------------------------------------------------------------
@@ -106,7 +106,7 @@ def test_construction_is_inert():
     """Constructing the coordinator must not subscribe to anything."""
     registry = _FakeRegistry({})
     session = _FakeSession()
-    coord, _redraws, _focus = _make_coordinator(registry, session)
+    coord, _redraws, _surface = _make_coordinator(registry, session)
 
     assert session.handlers == {}
     assert registry.batch_subscribers == []
@@ -117,8 +117,8 @@ def test_start_subscribes_to_union_of_redraw_signals():
     """start() subscribes one handler per signal type in the union."""
     registry = _FakeRegistry()
     session = _FakeSession()
-    coord, redraws, focus = _make_coordinator(registry, session)
-    registry._signals_by_focus = {focus: {_SigA, _SigB}}
+    coord, redraws, surface = _make_coordinator(registry, session)
+    registry._signals_by_surface = {surface: {_SigA, _SigB}}
 
     coord.start()
 
@@ -133,8 +133,8 @@ def test_subscribed_signal_fires_on_redraw():
     """Publishing a subscribed signal type invokes on_redraw."""
     registry = _FakeRegistry()
     session = _FakeSession()
-    coord, redraws, focus = _make_coordinator(registry, session)
-    registry._signals_by_focus = {focus: {_SigA}}
+    coord, redraws, surface = _make_coordinator(registry, session)
+    registry._signals_by_surface = {surface: {_SigA}}
 
     coord.start()
     session.fire(_SigA)
@@ -146,8 +146,8 @@ def test_unsubscribed_signal_does_not_fire_redraw():
     """A signal type nobody declared must not be subscribed."""
     registry = _FakeRegistry()
     session = _FakeSession()
-    coord, redraws, focus = _make_coordinator(registry, session)
-    registry._signals_by_focus = {focus: {_SigA}}
+    coord, redraws, surface = _make_coordinator(registry, session)
+    registry._signals_by_surface = {surface: {_SigA}}
 
     coord.start()
     session.fire(_SigB)
@@ -160,7 +160,7 @@ def test_start_with_empty_union_makes_no_subscriptions():
     lifecycle channel, so a later catalog change can add some)."""
     registry = _FakeRegistry({})
     session = _FakeSession()
-    coord, _redraws, _focus = _make_coordinator(registry, session)
+    coord, _redraws, _surface = _make_coordinator(registry, session)
 
     coord.start()
 
@@ -173,8 +173,8 @@ def test_cleanup_drops_subs_and_detaches():
     lifecycle channel."""
     registry = _FakeRegistry()
     session = _FakeSession()
-    coord, _redraws, focus = _make_coordinator(registry, session)
-    registry._signals_by_focus = {focus: {_SigA, _SigB}}
+    coord, _redraws, surface = _make_coordinator(registry, session)
+    registry._signals_by_surface = {surface: {_SigA, _SigB}}
 
     coord.start()
     assert session.unsub_calls == 0
@@ -190,8 +190,8 @@ def test_cleanup_is_idempotent():
     """Calling cleanup twice must not raise or double-unsubscribe."""
     registry = _FakeRegistry()
     session = _FakeSession()
-    coord, _redraws, focus = _make_coordinator(registry, session)
-    registry._signals_by_focus = {focus: {_SigA}}
+    coord, _redraws, surface = _make_coordinator(registry, session)
+    registry._signals_by_surface = {surface: {_SigA}}
 
     coord.start()
     coord.cleanup()
@@ -207,7 +207,7 @@ def test_catalog_change_rebuilds_subscriptions_and_redraws():
     declares _SigA."""
     registry = _FakeRegistry({})
     session = _FakeSession()
-    coord, redraws, focus = _make_coordinator(registry, session)
+    coord, redraws, surface = _make_coordinator(registry, session)
 
     coord.start()
     assert session.handlers == {}
@@ -215,7 +215,7 @@ def test_catalog_change_rebuilds_subscriptions_and_redraws():
     assert redraws == []
 
     # 'Install': the union now includes _SigA. Fire the lifecycle channel.
-    registry._signals_by_focus = {focus: {_SigA}}
+    registry._signals_by_surface = {surface: {_SigA}}
     registry.notify()
 
     assert redraws == [1]  # the reconciliation itself redrew once
@@ -231,30 +231,30 @@ def test_rebuild_drops_stale_subscriptions():
     unsubscribe the stale per-signal handle."""
     registry = _FakeRegistry()
     session = _FakeSession()
-    coord, _redraws, focus = _make_coordinator(registry, session)
-    registry._signals_by_focus = {focus: {_SigA, _SigB}}
+    coord, _redraws, surface = _make_coordinator(registry, session)
+    registry._signals_by_surface = {surface: {_SigA, _SigB}}
 
     coord.start()
     assert set(session.handlers.keys()) == {_SigA, _SigB}
 
     # 'Uninstall' the panel that declared _SigB.
-    registry._signals_by_focus = {focus: {_SigA}}
+    registry._signals_by_surface = {surface: {_SigA}}
     registry.notify()
 
     assert set(session.handlers.keys()) == {_SigA}
 
 
 def test_registry_query_raising_degrades_gracefully():
-    """If get_redraw_signals_for_focus raises, the coordinator logs and
+    """If get_redraw_signals raises, the coordinator logs and
     leaves zero subscriptions rather than propagating."""
 
     class _RaisingRegistry(_FakeRegistry):
-        def get_redraw_signals_for_focus(self, focus):
+        def get_redraw_signals(self, surface):
             raise RuntimeError("intentional bad query")
 
     registry = _RaisingRegistry()
     session = _FakeSession()
-    coord, _redraws, _focus = _make_coordinator(registry, session)
+    coord, _redraws, _surface = _make_coordinator(registry, session)
 
     coord.start()  # must not raise
 

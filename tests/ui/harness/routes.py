@@ -473,6 +473,10 @@ def register_routes(library_service) -> None:
         # written solely by context-menu events, so the assertion is
         # deterministic regardless of event ordering.
         last_context_menu = ui.label("none").props('id="last-context-menu" data-testid="last-context-menu"')
+        # surfaceId latch for contextMenuSurface only — lets a test tell WHICH
+        # data-hw-menu-surface-id was chosen (canvas.vue's closest() picks the
+        # innermost annotation when several are nested).
+        last_surface_id = ui.label("none").props('id="last-surface-id" data-testid="last-surface-id"')
 
         def on_canvas_event(event) -> None:
             event_type = getattr(event, "event_type", event.__class__.event_type)
@@ -482,6 +486,8 @@ def register_routes(library_service) -> None:
             last_coords.set_text(f"{canvas_x},{canvas_y}")
             if event_type.startswith("contextMenu"):
                 last_context_menu.set_text(event_type)
+            if event_type == "contextMenuSurface":
+                last_surface_id.set_text(getattr(event, "surfaceId", "none"))
 
         with ui.element("div").style(
             "width: 800px; height: 600px; position: relative; border: 1px solid #666;"

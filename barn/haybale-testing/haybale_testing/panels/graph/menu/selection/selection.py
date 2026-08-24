@@ -1,6 +1,6 @@
 """Test-only selection action panels for haybale_testing.
 
-actions: TestSelectionContextActions, focus=TestSelectionFocus.
+On the ``TestSelectionMenu`` surface.
 """
 
 from __future__ import annotations
@@ -8,8 +8,7 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from haybale_graph_editor.state.edit_state import EditState
-from haybale_testing.test_actions import TestSelectionContextActions
-from haybale_testing.test_focuses import TestSelectionFocus
+from haybale_testing.surfaces import TestSelectionActions, TestSelectionMenu
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
@@ -20,14 +19,13 @@ if TYPE_CHECKING:
 
 
 @panel(
-    actions=TestSelectionContextActions,
-    focus=TestSelectionFocus,
+    surface=TestSelectionMenu,
     label="Copy Selection",
     icon=hui.icon.copy,
     order=10,
 )
 class TestCopySelectionMenuPanel(BasePanel):
-    actions: TestSelectionContextActions
+    actions: TestSelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -48,14 +46,13 @@ class TestCopySelectionMenuPanel(BasePanel):
 
 
 @panel(
-    actions=TestSelectionContextActions,
-    focus=TestSelectionFocus,
+    surface=TestSelectionMenu,
     label="Paste",
     icon=hui.icon.paste,
     order=20,
 )
 class TestPasteSelectionMenuPanel(BasePanel):
-    actions: TestSelectionContextActions
+    actions: TestSelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

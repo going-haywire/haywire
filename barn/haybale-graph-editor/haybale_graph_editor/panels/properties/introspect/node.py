@@ -12,7 +12,7 @@ from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....focuses import NodeFocus
+from ....surfaces import NodeInspector
 from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
@@ -20,7 +20,7 @@ if TYPE_CHECKING:
 
 
 @panel(
-    focus=NodeFocus,
+    surface=NodeInspector,
     label="Node Properties",
     icon=hui.icon.node_info,
     default_open=False,
@@ -54,7 +54,7 @@ class NodeInfoPanel(BasePanel):
 
 
 @panel(
-    focus=NodeFocus,
+    surface=NodeInspector,
     label="Node Properties",
     icon=hui.icon.node,
     order=20,
@@ -85,7 +85,7 @@ class NodePropertiesPanel(BasePanel):
 
 
 @panel(
-    focus=NodeFocus,
+    surface=NodeInspector,
     label="Status",
     icon=hui.icon.node_status,
     order=30,
@@ -152,7 +152,7 @@ def _render_node_errors(ctx: "SessionContext", layout: PanelLayout) -> None:
 
 
 @panel(
-    focus=NodeFocus,
+    surface=NodeInspector,
     label="Node Errors",
     icon=hui.icon.error,
     order=0,

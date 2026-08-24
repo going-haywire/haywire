@@ -1299,45 +1299,53 @@ export default {
             const target = event.target;
 
 
-            // Check for port-scope context menu (data-hw-port-menu-focus-id)
-            // port_id is taken from data-port-id on the element, falling back to data-pin-id.
-            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
-            const portMenuEl = target.closest('[data-hw-port-menu-focus-id]');
-            if (portMenuEl) {
-                const scope = portMenuEl.getAttribute('data-hw-port-menu-focus-id');
-                const nodeAncestor = portMenuEl.closest('[data-node-id]');
+            // ── 1. Declarative: an element annotated with a surface id ──────
+            // One attribute, so closest() makes the INNERMOST annotation win
+            // (the old priority-ordered port/custom pair let an outer marker
+            // beat a nearer one). The surface is the library's to declare;
+            // an id resolving to nothing opens nothing and logs, Python-side.
+            const surfaceEl = target.closest('[data-hw-menu-surface-id]');
+            if (surfaceEl) {
+                const surfaceId = surfaceEl.getAttribute('data-hw-menu-surface-id');
+                const nodeAncestor = surfaceEl.closest('[data-node-id]');
                 const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
-                const portId = portMenuEl.dataset.portId || portMenuEl.dataset.pinId
-                    || (portMenuEl.closest('[data-port-id]') || {}).dataset?.portId
-                    || (portMenuEl.closest('[data-pin-id]') || {}).dataset?.pinId
-                    || '';
-                if (scope && nodeId && portId) {
+                if (surfaceId) {
+                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
+                    this.emitCanvasEvent(EventCreators.createContextMenuSurface(
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, surfaceId
+                    ));
+                    return;
+                }
+            }
+
+            // ── 2. Structural: a pin ────────────────────────────────────────
+            // render_pin emits data-pin-id on every pin from every skin, so
+            // this is a structural detector exactly parallel to node and edge
+            // — and which surface a pin opens is the framework's decision, not
+            // the skin's. Checked BEFORE the node branch, since a pin sits
+            // inside a node and would otherwise be swallowed by it.
+            // data-port-id is accepted as an alias; nothing in-tree emits it.
+            // A ghost pin is a drop affordance, not a port: its id names no
+            // entry in node.ports, so a menu there would open nothing AND
+            // swallow the node menu the click used to reach. Excluded here,
+            // where the fall-through is still available.
+            const pinElement = target.closest(
+                '[data-pin-id]:not([data-pin-flow-type="ghost"]), [data-port-id]'
+            );
+            if (pinElement) {
+                const portId = pinElement.dataset.pinId || pinElement.dataset.portId || '';
+                const nodeAncestor = pinElement.closest('[data-node-id]');
+                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
+                if (portId && nodeId) {
                     const canvasCoords = this._transformScreenToSVG(clientX, clientY);
                     this.emitCanvasEvent(EventCreators.createContextMenuPort(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, portId, scope
+                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, portId
                     ));
                     return;
                 }
             }
 
-            // Check for custom-scope context menu button (data-hw-custom-menu-focus-id)
-            // These are skin-rendered elements that declare their own panel scope.
-            // node_id is resolved by walking up to the nearest [data-node-id] ancestor.
-            const customMenuEl = target.closest('[data-hw-custom-menu-focus-id]');
-            if (customMenuEl) {
-                const scope = customMenuEl.getAttribute('data-hw-custom-menu-focus-id');
-                const nodeAncestor = customMenuEl.closest('[data-node-id]');
-                const nodeId = nodeAncestor ? nodeAncestor.dataset.nodeId : '';
-                if (scope && nodeId) {
-                    const canvasCoords = this._transformScreenToSVG(clientX, clientY);
-                    this.emitCanvasEvent(EventCreators.createContextMenuCustom(
-                        clientX, clientY, canvasCoords.x, canvasCoords.y, nodeId, scope
-                    ));
-                    return;
-                }
-            }
-
-            // Check for node
+            // ── 3. Structural: a node ───────────────────────────────────────
             const nodeElement = target.closest('[data-node-id]');
             
             // Check for connection

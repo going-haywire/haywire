@@ -1,9 +1,14 @@
 # barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py
 """
-Floating toolbar panels for the graph canvas (ToolbarFocus).
+Floating-toolbar panels for the graph canvas — the surface ``SelectionToolbar``.
 
-Each panel contributes a single icon-only button.
-The provider owns the ui.row container; each panel just renders one hui.icon_action.
+Each panel contributes a single icon-only button; the provider owns the
+``ui.row`` container.
+
+Copy and Delete declare no ``poll``: ``SelectionToolbar.poll`` is exactly
+"something is selected", the host gates it once before querying, and the
+shared filter does not re-check it — so restating the surface's predicate on
+each panel would be a second place to keep in sync for no behaviour.
 """
 
 from __future__ import annotations
@@ -15,31 +20,20 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from ....focuses import ToolbarFocus
-from ....state.edit_state import EditState
-from ....editors.graph_canvas.handlers.context_menu_actions import (
-    SelectionContextActions,
-    ToolbarActions,
-)
+from ....surfaces import SelectionActions, SelectionMenu, SelectionToolbar
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
 @panel(
-    actions=SelectionContextActions,
-    focus=ToolbarFocus,
+    surface=SelectionToolbar,
     label="Copy",
     icon=hui.icon.copy,
     order=10,
 )
 class CopyToolbarPanel(BasePanel):
-    actions: SelectionContextActions
-
-    @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
-        edit = ctx.data[EditState]
-        return bool(edit.selected_nodes or edit.selected_edges)
+    actions: SelectionActions
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
@@ -47,19 +41,13 @@ class CopyToolbarPanel(BasePanel):
 
 
 @panel(
-    actions=SelectionContextActions,
-    focus=ToolbarFocus,
+    surface=SelectionToolbar,
     label="Delete",
     icon=hui.icon.delete,
     order=20,
 )
 class DeleteToolbarPanel(BasePanel):
-    actions: SelectionContextActions
-
-    @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
-        edit = ctx.data[EditState]
-        return bool(edit.selected_nodes or edit.selected_edges)
+    actions: SelectionActions
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
@@ -67,20 +55,27 @@ class DeleteToolbarPanel(BasePanel):
 
 
 @panel(
-    actions=ToolbarActions,
-    focus=ToolbarFocus,
+    surface=SelectionToolbar,
+    hosts=(SelectionMenu,),
     label="More",
     icon="more_horiz",
-    order=900,
+    order=999,
 )
-class OverflowToolbarPanel(BasePanel):
-    actions: ToolbarActions
+class SelectionOverflowPanel(BasePanel):
+    """The ⋯ — a panel that hosts the selection right-click menu.
 
-    @classmethod
-    def poll(cls, ctx: "SessionContext") -> bool:
-        edit = ctx.data[EditState]
-        return bool(edit.selected_nodes or edit.selected_edges)
+    It renders ``SelectionMenu`` itself rather than round-tripping a
+    synthetic event through the canvas to reopen it, so the batch ops live in
+    one place: the flyout shows the *same panel classes* the right-click menu
+    yields, not a duplicated curated set, and nothing moved off the menu.
+
+    It pipes — the default. ``SelectionToolbarProvider`` satisfies
+    ``SelectionActions``, so the host it received travels one hop further.
+    """
+
+    actions: SelectionActions
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            hui.icon_action("more_horiz", tooltip="More actions", on_click=self.actions.open_overflow_menu)
+            with hui.flyout("more_horiz", tooltip="More actions"):
+                self.render_surface(SelectionMenu, ctx)

@@ -2,18 +2,22 @@
 """
 PanelRegistry for managing panel registrations.
 
-Extends BaseRegistry. Two query surfaces:
-  - get_panels_for_focus(focus): display panels for PropertiesEditor —
-    panels with no `action_protocol` whose focus matches.
-  - get_panels_for_action(action_protocol, focus): action panels for
-    context-menu hosts — panels whose `action_protocol` matches AND
-    whose focus matches.
-Focus matching is by Focus.id (stable across hot-reload).
+Extends BaseRegistry. Three query surfaces, all routing on ``Surface.id``:
+  - get_panels(surface): the panels on one surface, sorted by order.
+  - get_root_surfaces(): surfaces named by some panel's ``surface=`` and by
+    no panel's ``hosts=`` — what the properties strip filters down to.
+  - get_redraw_signals(surface): the union of ``redraw_on`` across that
+    surface's whole ``hosts=`` tree, which a long-lived host subscribes to
+    on mount.
+
+All three compare surfaces **by id**, never by class object: ``hosts=`` holds
+classes captured at decoration time, and a panel may host a surface from a
+library that reloads on its own schedule (docs/adr/0009-surface-id-stable-key.md).
 """
 
 import inspect
 import logging
-from typing import Iterable, List, Optional, Set, TYPE_CHECKING
+from typing import Dict, Iterable, List, Optional, Set, TYPE_CHECKING
 
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
@@ -22,7 +26,7 @@ from .base import BasePanel
 
 if TYPE_CHECKING:
     from haywire.core.signals import Signal
-    from .focus import Focus
+    from haywire.ui.surface import Surface
 
 logger = logging.getLogger(__name__)
 
@@ -55,120 +59,157 @@ class PanelRegistry(BaseRegistry[BasePanel]):
         registry_key = cls.class_identity.registry_key
         result = super()._register(registry_key, cls, library_identity)
         if result:
-            action_protocol = getattr(cls.class_identity, "action_protocol", None)
-            focus = getattr(cls.class_identity, "focus", None)
+            surface = getattr(cls.class_identity, "surface", None)
+            hosts = getattr(cls.class_identity, "hosts", ())
             logger.debug(
                 f"PanelRegistry: Registered '{registry_key}' -> "
-                f"action_protocol={getattr(action_protocol, '__name__', 'None')}, "
-                f"focus={getattr(focus, '__name__', 'None')}"
+                f"surface={getattr(surface, 'id', 'None')}, "
+                f"hosts=({', '.join(getattr(h, 'id', '?') for h in hosts)})"
             )
+            self._report_cycles(cls)
         return result
 
     def _unregister_class(self, registry_key: str) -> "type[BasePanel] | None":
         return super()._unregister(registry_key)
 
     # ------------------------------------------------------------------
+    # Registration-time validation
+    # ------------------------------------------------------------------
+
+    def _report_cycles(self, cls: type[BasePanel]) -> None:
+        """Log a warning if ``cls`` closes a cycle in the ``hosts=`` graph.
+
+        **Logged, not rejected.** The graph closes only through
+        surface → panels, so a cycle first becomes visible when the *second*
+        panel registers; refusing that one would drop a panel from the catalog
+        based on which library loaded first, and two libraries each sound
+        alone would then fail differently depending on install order.
+        Enforcement is the render-time re-entry guard in
+        ``BasePanel.render_surface``, which has to exist regardless — so
+        reporting here costs nothing and gives the author both signals.
+        """
+        identity = getattr(cls, "class_identity", None)
+        start = getattr(getattr(identity, "surface", None), "id", None)
+        if start is None:
+            return
+        # Walk hosts= edges from this panel's own surface, carrying the panel
+        # that contributed each surface id AND the surface *that panel* sits
+        # on — the "other edge" of a two-hop cycle, otherwise lost by the
+        # time the walk reaches `start` again. Reaching `start` a second time
+        # means this registration closed a cycle.
+        seen: set[str] = set()
+        frontier: list[tuple[str | None, "type[BasePanel] | None", str | None]] = [
+            (getattr(h, "id", None), cls, start) for h in getattr(identity, "hosts", ())
+        ]
+        while frontier:
+            current, via, via_surface = frontier.pop()
+            if current is None or current in seen:
+                continue
+            seen.add(current)
+            if current == start:
+                other_key = getattr(getattr(via, "class_identity", None), "registry_key", via)
+                logger.warning(
+                    "Panel host cycle: %s sits on surface %r and hosts a chain "
+                    "reaching %r again, via %s on surface %r. Both panels still "
+                    "register; the render-time re-entry guard refuses to recurse.",
+                    getattr(identity, "registry_key", cls.__name__),
+                    start,
+                    current,
+                    other_key,
+                    via_surface,
+                )
+                return
+            for other in self._all_panel_classes():
+                other_identity = getattr(other, "class_identity", None)
+                if other_identity is None:
+                    continue
+                if getattr(getattr(other_identity, "surface", None), "id", None) != current:
+                    continue
+                frontier.extend(
+                    (getattr(h, "id", None), other, current) for h in getattr(other_identity, "hosts", ())
+                )
+
+    # ------------------------------------------------------------------
     # Query API
     # ------------------------------------------------------------------
 
-    def get_panels_for_focus(self, focus: type) -> List[type[BasePanel]]:
-        """Display panels for the given focus.
+    def get_panels(self, surface: type) -> List[type[BasePanel]]:
+        """Panels on ``surface``, matched by ``id``, sorted by ``order``.
 
-        Returns panels whose ``action_protocol is None`` AND whose
-        ``focus.id`` matches the given focus's id. Sorted by ``order``.
-
-        Used by PropertiesEditor (long-lived, focus-routed surface).
+        The single panel query. There is no display/action fork any more —
+        which panels a surface yields depends on the surface id alone.
         """
-        wanted_id = getattr(focus, "id", None)
+        wanted_id = getattr(surface, "id", None)
         result: List[type[BasePanel]] = []
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
                 continue
-            if getattr(identity, "action_protocol", None) is not None:
-                continue
-            panel_focus = getattr(identity, "focus", None)
-            if panel_focus is None or getattr(panel_focus, "id", None) != wanted_id:
+            panel_surface = getattr(identity, "surface", None)
+            if panel_surface is None or getattr(panel_surface, "id", None) != wanted_id:
                 continue
             result.append(cls)
         result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
         return result
 
-    def get_panels_for_action(
-        self,
-        action_protocol: type,
-        focus: type,
-    ) -> List[type[BasePanel]]:
-        """Action panels for the given (action_protocol, focus) pair.
+    def get_root_surfaces(self) -> List[type["Surface"]]:
+        """Surfaces named by some panel's ``surface=`` and by no panel's ``hosts=``.
 
-        Returns panels whose ``action_protocol is action_protocol`` AND
-        whose ``focus.id`` matches. Sorted by ``order``.
+        Deduped by id. Read from the **panel catalog**, never from
+        ``_SURFACE_BY_ID``: that map never evicts, so a surface whose library
+        was uninstalled would linger there as a ghost tab.
 
-        Used by context-menu hosts. The host satisfies action_protocol
-        structurally; mount-time injection sets ``panel.actions = host``.
+        Root-ness is not by itself the properties strip's filter — menu and
+        toolbar surfaces are roots too. The strip additionally requires
+        ``presentation`` (ADR-0029); that policy belongs to the one host that
+        *discovers* its list rather than naming it.
         """
-        wanted_focus_id = getattr(focus, "id", None)
-        result: List[type[BasePanel]] = []
+        hosted_ids: set[str] = set()
+        named: Dict[str, type["Surface"]] = {}
         for cls in self._all_panel_classes():
             identity = getattr(cls, "class_identity", None)
             if identity is None:
                 continue
-            # action_protocol uses class identity (not a stable id) because panels and
-            # their action protocols are declared in the same library scope and reload
-            # together via decorator re-running.
-            if getattr(identity, "action_protocol", None) is not action_protocol:
-                continue
-            panel_focus = getattr(identity, "focus", None)
-            if panel_focus is None or getattr(panel_focus, "id", None) != wanted_focus_id:
-                continue
-            result.append(cls)
-        result.sort(key=lambda c: getattr(getattr(c, "class_identity", None), "order", 100))
-        return result
+            surface = getattr(identity, "surface", None)
+            surface_id = getattr(surface, "id", None)
+            if surface is not None and surface_id is not None:
+                named.setdefault(surface_id, surface)
+            for hosted in getattr(identity, "hosts", ()):
+                hosted_id = getattr(hosted, "id", None)
+                if hosted_id is not None:
+                    hosted_ids.add(hosted_id)
+        return [surface for surface_id, surface in named.items() if surface_id not in hosted_ids]
 
-    def get_display_focuses(self) -> List[type["Focus"]]:
-        """Distinct focuses referenced by display panels (no action_protocol).
+    def get_redraw_signals(self, surface: type) -> Set[type["Signal"]]:
+        """Union of ``redraw_on`` across ``surface``'s whole ``hosts=`` tree.
 
-        Deduplicated by Focus.id. Used by PropertiesEditor to build its
-        focus toolbar.
+        Walks surface → its panels → the surfaces those panels host,
+        transitively, visited-set guarded. It has to be static: a long-lived
+        host subscribes on mount, before anything has rendered, so a union
+        that could only be discovered by rendering would miss every nested
+        panel — silently, since a missing subscription looks exactly like a
+        signal that never fired.
+
+        Transient hosts (context menus) subscribe to nothing and never call
+        this.
         """
-        focuses: List[type["Focus"]] = []
-        seen_ids: set[str] = set()
-        for cls in self._all_panel_classes():
-            identity = getattr(cls, "class_identity", None)
-            if identity is None:
-                continue
-            if getattr(identity, "action_protocol", None) is not None:
-                continue
-            focus = getattr(identity, "focus", None)
-            if focus is None:
-                continue
-            focus_id = getattr(focus, "id", None)
-            if focus_id is None or focus_id in seen_ids:
-                continue
-            seen_ids.add(focus_id)
-            focuses.append(focus)
-        return focuses
-
-    def get_redraw_signals_for_focus(self, focus: type) -> Set[type["Signal"]]:
-        """Union of redraw_on signal types contributed by display panels
-        for the given focus.
-
-        Context-menu surfaces are ephemeral (open, draw, dismiss) and do
-        not maintain a subscription set; only PropertiesEditor consumes
-        this. Matching mirrors get_panels_for_focus.
-        """
-        wanted_id = getattr(focus, "id", None)
         signals: Set[type["Signal"]] = set()
-        for cls in self._all_panel_classes():
-            identity = getattr(cls, "class_identity", None)
-            if identity is None:
+        visited: set[str] = set()
+        frontier = [getattr(surface, "id", None)]
+        while frontier:
+            current = frontier.pop()
+            if current is None or current in visited:
                 continue
-            if getattr(identity, "action_protocol", None) is not None:
-                continue
-            panel_focus = getattr(identity, "focus", None)
-            if panel_focus is None or getattr(panel_focus, "id", None) != wanted_id:
-                continue
-            signals.update(getattr(identity, "redraw_on", ()))
+            visited.add(current)
+            for cls in self._all_panel_classes():
+                identity = getattr(cls, "class_identity", None)
+                if identity is None:
+                    continue
+                panel_surface = getattr(identity, "surface", None)
+                if panel_surface is None or getattr(panel_surface, "id", None) != current:
+                    continue
+                signals.update(getattr(identity, "redraw_on", ()))
+                frontier.extend(getattr(h, "id", None) for h in getattr(identity, "hosts", ()))
         return signals
 
     def _all_panel_classes(self) -> Iterable[type[BasePanel]]:

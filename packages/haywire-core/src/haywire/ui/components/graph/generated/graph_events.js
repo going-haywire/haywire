@@ -25,8 +25,8 @@ window.GraphEvents = {
     CONTEXT_MENU_CANVAS: 'contextMenuCanvas', // Canvas context menu triggered
     CONTEXT_MENU_EDGE: 'contextMenuEdge', // Connection context menu triggered
     CONTEXT_MENU_SELECTED: 'contextMenuSelected', // Context menu triggered on selected elements
-    CONTEXT_MENU_CUSTOM: 'contextMenuCustom', // Custom-scope context menu triggered via data-hw-custom-menu-focus-id attribute
-    CONTEXT_MENU_PORT: 'contextMenuPort', // Port context menu triggered via data-hw-port-menu-focus-id attribute
+    CONTEXT_MENU_SURFACE: 'contextMenuSurface', // Context menu on an element carrying data-hw-menu-surface-id
+    CONTEXT_MENU_PORT: 'contextMenuPort', // Context menu on a pin, detected structurally from data-pin-id
     USER_PASTE_CLIPBOARD: 'userPasteClipboard', // Paste clipboard contents
   },
   
@@ -261,22 +261,22 @@ window.EventCreators = {
     };
   },
 
-  createContextMenuCustom(screenX, screenY, canvasX, canvasY, nodeId, scope, sessionId = 'default') {
+  createContextMenuSurface(screenX, screenY, canvasX, canvasY, nodeId, surfaceId, sessionId = 'default') {
     return {
-      event_type: 'contextMenuCustom',
+      event_type: 'contextMenuSurface',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY, nodeId, scope },
+      data: { screenX, screenY, canvasX, canvasY, nodeId, surfaceId },
       requires_broadcast: true
     };
   },
 
-  createContextMenuPort(screenX, screenY, canvasX, canvasY, nodeId, portId, scope, sessionId = 'default') {
+  createContextMenuPort(screenX, screenY, canvasX, canvasY, nodeId, portId, sessionId = 'default') {
     return {
       event_type: 'contextMenuPort',
       source_session_id: sessionId,
       timestamp: Date.now(),
-      data: { screenX, screenY, canvasX, canvasY, nodeId, portId, scope },
+      data: { screenX, screenY, canvasX, canvasY, nodeId, portId },
       requires_broadcast: true
     };
   },
@@ -399,13 +399,13 @@ window.EventValidators = {
     return requiredFields.every(field => field in data);
   },
 
-  validateContextMenuCustom(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId", "scope"];
+  validateContextMenuSurface(data) {
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId", "surfaceId"];
     return requiredFields.every(field => field in data);
   },
 
   validateContextMenuPort(data) {
-    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId", "portId", "scope"];
+    const requiredFields = ["screenX", "screenY", "canvasX", "canvasY", "nodeId", "portId"];
     return requiredFields.every(field => field in data);
   },
 

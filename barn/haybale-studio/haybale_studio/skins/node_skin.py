@@ -302,9 +302,10 @@ class NodeSkin(BaseSkin, ABC):
             pin_protrusion=self.PIN_PROTRUSION,
         )
         if pin_el is not None:
-            # Wire the right-click port context menu (host concern — render_pin
-            # stays agnostic of which focus the menu opens).
-            pin_el.props('data-hw-port-menu-focus-id="port.info"')
+            # No menu attribute: the pin menu is structural now. The canvas
+            # detects a pin from the `data-pin-id` render_pin already emits,
+            # and which surface it opens is the framework's decision — a skin
+            # neither opts in nor can suppress it (ADR-0029, Routing).
             if self._ui_settings.show_tooltips:
                 add_pin_tooltip(pin_el, pin)
 
@@ -387,8 +388,8 @@ class NodeSkin(BaseSkin, ABC):
 
         Left-click opens one popup listing errors first (fatal), then advisory
         warnings and any deprecation notice. Right-click still falls through to
-        the node context menu (via `data-node-id`), which carries the Node Errors
-        panel through dual-host registration.
+        the selection context menu (via `data-node-id`), which carries the Node
+        Errors panel on ``SelectionMenu``.
 
         Args:
             errors: Runtime errors (fatal — make the node invalid).
