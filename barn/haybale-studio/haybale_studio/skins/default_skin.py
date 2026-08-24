@@ -43,14 +43,27 @@ class DefaultNodeSkin(NodeSkin):
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
         if layout.is_vertical:
-            # `min-w-64`/`max-w-sm` size a label+widget content column that a
-            # vertical card does not have — its width comes from the pin strips
-            # and the config body.
-            main_card.classes("w-full node-card zoom-pan-lod0").style(
-                f"{card_style} {self.vertical_card_style()}"
-            )
+            self._render_vertical(main_card, node, wrapper, layout, card_style)
         else:
-            main_card.classes("w-full min-w-64 max-w-sm node-card zoom-pan-lod0").style(card_style)
+            self._render_horizontal(main_card, node, wrapper, layout, card_style)
+
+    def _render_vertical(
+        self,
+        main_card: ui.card,
+        node,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        card_style: str,
+    ):
+        """Vertical layouts (T2B / B2T): inlets and outlets become bare pin
+        strips on the card's top/bottom edges, leaving only configs in the body.
+        """
+        # `min-w-64`/`max-w-sm` size a label+widget content column that a
+        # vertical card does not have — its width comes from the pin strips
+        # and the config body.
+        main_card.classes("w-full node-card zoom-pan-lod0").style(
+            f"{card_style} {self.vertical_card_style()}"
+        )
 
         with main_card:
             # Single diagnostics badge unifying runtime errors and advisory
@@ -66,41 +79,20 @@ class DefaultNodeSkin(NodeSkin):
                     deprecation_str=deprecation_str,
                 )
 
-            # Vertical layouts open with whichever strip belongs on the card's
-            # TOP edge — inlets under T2B, outlets under B2T. Getting this from
-            # `top_port_type` rather than hardcoding INLET is what keeps the
-            # `top: -Npx` offsets pushing outward: a strip rendered at the top
-            # of the card but sided "bottom" offsets DOWN, i.e. inward.
-            if layout.is_vertical:
-                self._render_edge_strip(node, wrapper, layout, self._top_port_type(layout))
+            # Open with whichever strip belongs on the card's TOP edge — inlets
+            # under T2B, outlets under B2T. Getting this from `top_port_type`
+            # rather than hardcoding INLET is what keeps the `top: -Npx` offsets
+            # pushing outward: a strip rendered at the top of the card but sided
+            # "bottom" offsets DOWN, i.e. inward.
+            self._render_edge_strip(node, wrapper, layout, self._top_port_type(layout))
 
-            # Header with node label and ghost pins for hidden connected ports.
-            # Vertically the ghosts move into the edge strips instead: they are
-            # inline flex items, so a `top: -16px` inside a mid-card header row
-            # just shifts them 16px up INSIDE the card rather than out to an edge.
+            # Header with node label. Ghost pins move into the edge strips
+            # instead of the header: they are inline flex items, so a
+            # `top: -16px` inside a mid-card header row just shifts them 16px
+            # up INSIDE the card rather than out to an edge.
             with ui.row().classes("drag-handle w-full items-center"):
-                if not layout.is_vertical:
-                    # Root ghost pins — always-present fallback connection
-                    # anchors, sided by the layout direction
-                    self._render_root_ghost_pins(wrapper, layout)
-
-                    # Ghost pins for hidden inlet connections
-                    hidden_inlets = node.get_hidden_connected_ports(is_inlet=True)
-                    if hidden_inlets:
-                        with ui.column().classes("gap-0 items-center"):
-                            for port in hidden_inlets:
-                                self._render_pin(port, wrapper, layout=layout)
-
                 # Node title (centered/flexible)
                 ui.label(node.identity.label).classes("text-h6 flex-grow")
-
-                if not layout.is_vertical:
-                    # Ghost pins for hidden outlet connections
-                    hidden_outlets = node.get_hidden_connected_ports(is_inlet=False)
-                    if hidden_outlets:
-                        with ui.column().classes("gap-0 items-center"):
-                            for port in hidden_outlets:
-                                self._render_pin(port, wrapper, layout=layout)
 
                 if runtime_errors:
                     if wrapper._alternate_registry_keys:
@@ -108,27 +100,88 @@ class DefaultNodeSkin(NodeSkin):
                             f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}"
                         ).classes("text-sm hw-text-warning mb-2")
 
-            # Main content. Horizontally every port type stacks in one column,
-            # each pin sided by the layout; vertically only configs stay in the
-            # body — inlets and outlets became edge strips.
+            # Main content: only configs stay in the body — inlets and outlets
+            # became edge strips.
             with ui.row().classes("w-full gap-2"):
                 with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
-                        port_types = (
-                            (PortType.CONFIG,)
-                            if layout.is_vertical
-                            else (PortType.OUTLET, PortType.CONFIG, PortType.INLET)
+                        self._render_port_hierarchy(
+                            node.get_visible_ports(),
+                            wrapper=wrapper,
+                            port_type=PortType.CONFIG,
+                            layout=layout,
                         )
-                        for port_type in port_types:
+
+            self._render_edge_strip(node, wrapper, layout, self._bottom_port_type(layout))
+
+    def _render_horizontal(
+        self,
+        main_card: ui.card,
+        node,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        card_style: str,
+    ):
+        """Horizontal layouts (L2R / R2L): every port type stacks in one
+        column, each pin sided by the layout, with ghost pins in the header.
+        """
+        main_card.classes("w-full min-w-64 max-w-sm node-card zoom-pan-lod0").style(card_style)
+
+        with main_card:
+            # Single diagnostics badge unifying runtime errors and advisory
+            # warnings (compatibility warnings + deprecation notice). One icon,
+            # one count, colored by highest severity. See _render_diagnostics_button.
+            runtime_errors = wrapper.state.get_errors() or []
+            deprecation_str = wrapper.node.identity.deprecation_warning
+            if runtime_errors or wrapper.state.has_warning() or deprecation_str:
+                self._render_diagnostics_button(
+                    runtime_errors,
+                    wrapper.state.warnings,
+                    wrapper.node_id,
+                    deprecation_str=deprecation_str,
+                )
+
+            # Header with node label and ghost pins for hidden connected ports.
+            with ui.row().classes("drag-handle w-full items-center"):
+                # Root ghost pins — always-present fallback connection
+                # anchors, sided by the layout direction
+                self._render_root_ghost_pins(wrapper, layout)
+
+                # Ghost pins for hidden inlet connections
+                hidden_inlets = node.get_hidden_connected_ports(is_inlet=True)
+                if hidden_inlets:
+                    with ui.column().classes("gap-0 items-center"):
+                        for port in hidden_inlets:
+                            self._render_pin(port, wrapper, layout=layout)
+
+                # Node title (centered/flexible)
+                ui.label(node.identity.label).classes("text-h6 flex-grow")
+
+                # Ghost pins for hidden outlet connections
+                hidden_outlets = node.get_hidden_connected_ports(is_inlet=False)
+                if hidden_outlets:
+                    with ui.column().classes("gap-0 items-center"):
+                        for port in hidden_outlets:
+                            self._render_pin(port, wrapper, layout=layout)
+
+                if runtime_errors:
+                    if wrapper._alternate_registry_keys:
+                        ui.label(
+                            f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}"
+                        ).classes("text-sm hw-text-warning mb-2")
+
+            # Main content: every port type stacks in one column, each pin
+            # sided by the layout.
+            with ui.row().classes("w-full gap-2"):
+                with ui.column().classes("flex-1 gap-1"):
+                    if node.ports:
+                        for port_type in (PortType.OUTLET, PortType.CONFIG, PortType.INLET):
                             self._render_port_hierarchy(
                                 node.get_visible_ports(),
                                 wrapper=wrapper,
                                 port_type=port_type,
                                 layout=layout,
                             )
-
-            if layout.is_vertical:
-                self._render_edge_strip(node, wrapper, layout, self._bottom_port_type(layout))
 
     @staticmethod
     def _top_port_type(layout: LayoutDirection) -> PortType:

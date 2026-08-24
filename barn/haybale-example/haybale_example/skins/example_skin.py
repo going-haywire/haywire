@@ -2,6 +2,7 @@ from nicegui import ui
 from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.node.base import BaseNode
 
+from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.decorator import skin
 
 from haybale_studio.skins.node_skin import NodeSkin
@@ -61,13 +62,26 @@ class ExampleNodeSkin(NodeSkin):
         # `math-node-card` is a sibling class, NOT a substitute.
         layout = self.layout_of(wrapper)
         if layout.is_vertical:
-            # `min-w-64`/`max-w-sm` size a label+widget content column that a
-            # vertical card does not have.
-            main_card.classes(f"w-full node-card zoom-pan-lod0 math-node-card {node_id}").style(
-                self.vertical_card_style()
-            )
+            self._render_vertical(main_card, node, wrapper, layout, node_id)
         else:
-            main_card.classes(f"w-full min-w-64 max-w-sm node-card zoom-pan-lod0 math-node-card {node_id}")
+            self._render_horizontal(main_card, node, wrapper, layout, node_id)
+
+    def _render_vertical(
+        self,
+        main_card: ui.card,
+        node: BaseNode,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        node_id: str,
+    ):
+        """Vertical layouts (T2B / B2T): inlets/outlets become pin strips on
+        the card's top/bottom edges; only configs stay in the body.
+        """
+        # `min-w-64`/`max-w-sm` size a label+widget content column that a
+        # vertical card does not have.
+        main_card.classes(f"w-full node-card zoom-pan-lod0 math-node-card {node_id}").style(
+            self.vertical_card_style()
+        )
 
         with main_card:
             ports = node.get_visible_ports()
@@ -75,13 +89,47 @@ class ExampleNodeSkin(NodeSkin):
             inlets = [port for port in ports if port.is_inlet()]
             outlets = [port for port in ports if port.is_outlet()]
 
-            # Vertical: whichever direction belongs on the card's TOP edge goes
-            # first — inlets under T2B, outlets under B2T. Rendering a strip at
-            # the top of the card while its pins are sided "bottom" would offset
-            # them DOWN, i.e. inward.
+            # Whichever direction belongs on the card's TOP edge goes first —
+            # inlets under T2B, outlets under B2T. Rendering a strip at the top
+            # of the card while its pins are sided "bottom" would offset them
+            # DOWN, i.e. inward.
             top_first = layout.inlet_side == "top"
-            if layout.is_vertical:
-                self.render_pin_strip(inlets if top_first else outlets, wrapper, layout)
+            self.render_pin_strip(inlets if top_first else outlets, wrapper, layout)
+
+            # Math-themed header
+            with ui.row().classes("w-full items-center gap-2"):
+                ui.icon("calculate", color="yellow").classes("text-lg")
+                ui.label("Math Node").classes("text-h6 flex-1")
+
+            # Configs, spanning the whole card. `_render_config` already lays
+            # each row out at `width: 100%`, so the band takes whatever width
+            # the card has.
+            if configs:
+                with ui.column().classes("w-full gap-1"):
+                    ui.label("Config").classes("font-bold text-sm")
+                    for port in configs:
+                        self.render_port(port, wrapper, layout=layout)
+
+            self.render_pin_strip(outlets if top_first else inlets, wrapper, layout)
+
+    def _render_horizontal(
+        self,
+        main_card: ui.card,
+        node: BaseNode,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        node_id: str,
+    ):
+        """Horizontal layouts (L2R / R2L): configs span the top, inlets and
+        outlets sit side by side beneath.
+        """
+        main_card.classes(f"w-full min-w-64 max-w-sm node-card zoom-pan-lod0 math-node-card {node_id}")
+
+        with main_card:
+            ports = node.get_visible_ports()
+            configs = [port for port in ports if port.is_config()]
+            inlets = [port for port in ports if port.is_inlet()]
+            outlets = [port for port in ports if port.is_outlet()]
 
             # Math-themed header
             with ui.row().classes("w-full items-center gap-2"):
@@ -90,37 +138,33 @@ class ExampleNodeSkin(NodeSkin):
 
             # Configs first, spanning the whole card. `_render_config` already
             # lays each row out at `width: 100%`, so the band takes whatever
-            # width the card has. Unchanged by direction — pinless ports have
-            # no edge to move to.
+            # width the card has. Pinless ports have no edge to move to.
             if configs:
                 with ui.column().classes("w-full gap-1"):
                     ui.label("Config").classes("font-bold text-sm")
                     for port in configs:
                         self.render_port(port, wrapper, layout=layout)
 
-            if layout.is_vertical:
-                self.render_pin_strip(outlets if top_first else inlets, wrapper, layout)
-            else:
-                # Inlets and outlets side by side beneath. An empty column is
-                # omitted rather than rendered blank, so an outlet-only node
-                # keeps its pins on the card's outer edge. `min-w-0` lets each
-                # flex column shrink below its content width — without it the
-                # columns fight over the card and the pins drift off the border.
-                #
-                # Column ORDER follows the flow direction: the inlet column is
-                # whichever side inlets' pins protrude from. Flipping only the
-                # pins would strand each pin on the far side of its own label,
-                # with edges crossing back over the card to reach the column
-                # their labels live in.
-                columns = (("Inputs", inlets), ("Outputs", outlets))
-                if layout.inlet_side == "right":
-                    columns = columns[::-1]
-                if inlets or outlets:
-                    with ui.row().classes("w-full gap-2"):
-                        for heading, group in columns:
-                            if not group:
-                                continue
-                            with ui.column().classes("flex-1 gap-1 min-w-0"):
-                                ui.label(heading).classes("font-bold text-sm")
-                                for port in group:
-                                    self.render_port(port, wrapper, layout=layout)
+            # Inlets and outlets side by side beneath. An empty column is
+            # omitted rather than rendered blank, so an outlet-only node keeps
+            # its pins on the card's outer edge. `min-w-0` lets each flex
+            # column shrink below its content width — without it the columns
+            # fight over the card and the pins drift off the border.
+            #
+            # Column ORDER follows the flow direction: the inlet column is
+            # whichever side inlets' pins protrude from. Flipping only the
+            # pins would strand each pin on the far side of its own label,
+            # with edges crossing back over the card to reach the column
+            # their labels live in.
+            columns = (("Inputs", inlets), ("Outputs", outlets))
+            if layout.inlet_side == "right":
+                columns = columns[::-1]
+            if inlets or outlets:
+                with ui.row().classes("w-full gap-2"):
+                    for heading, group in columns:
+                        if not group:
+                            continue
+                        with ui.column().classes("flex-1 gap-1 min-w-0"):
+                            ui.label(heading).classes("font-bold text-sm")
+                            for port in group:
+                                self.render_port(port, wrapper, layout=layout)
