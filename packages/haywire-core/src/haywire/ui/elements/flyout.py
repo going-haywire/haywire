@@ -327,7 +327,15 @@ def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> 
     body) so hovering the category shows its help text — the caller can't reach the
     internal anchor, so the primitive wires it.
     """
-    with ui.menu_item(label, auto_close=False).props("dense") as item:
+    # `white-space: nowrap` here, not on the QMenu: when Quasar flips this
+    # flyout to open leftward (no room to the right), it shrink-to-fits
+    # against the now-smaller leftward space. The label text is a genuine
+    # NiceGUI `ItemSection` child (unlike a QBtn label — see `hui.button`'s
+    # docstring), so it's free to wrap unless pinned; nowrap forces this
+    # item's minimum content size to its full width, which — inherited down
+    # to the label — keeps the menu at its natural width even when flipped,
+    # instead of wrapping the longest row to fit the smaller side.
+    with ui.menu_item(label, auto_close=False).props("dense").style("white-space: nowrap") as item:
         if tooltip:
             menu_item_tooltip(item, tooltip)
         with ui.item_section().props("side"):
