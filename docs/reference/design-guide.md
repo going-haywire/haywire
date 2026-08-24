@@ -832,6 +832,79 @@ hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
 hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)   # draw_disabled()
 ```
 
+### 8.8c `hui.flyout(icon, tooltip=…)` vs `hui.dropdown(icon, tooltip=…, align="left", direction="down")`
+
+Two icon anchors that open a hosted surface. Same sibling group (one open path
+at a time), same cascade-close, same retroactive greying of an empty body. Pick
+by **what hangs off them**, never by where you want it on screen:
+
+| | `hui.flyout` | `hui.dropdown` |
+| --- | --- | --- |
+| Holds | commands (`hui.menu_row`) | content (fields, widgets, a mini panel) |
+| Opens | beside the anchor (`anchor="top end"`) | below or above it, placed by `align=` + `direction=` |
+| Trigger | hover, after a ~120 ms debounce | click |
+| `auto-close` | yes — a command dismisses its menu | **no** |
+| Nested popups | left alone | lifted above the dropdown |
+
+**Rule:** never give a dropdown `auto-close`. Quasar's `auto-close` dismisses the
+menu on *any* click inside it, so the first click into a field closes the panel
+you just opened. Conversely, never drop `auto-close` from a command flyout — a
+menu that survives its own command reads as broken.
+
+The two remaining rows are consequences of holding content: a select's option
+list or a colour picker is a Quasar portal of its own at z-6000, *behind* the
+dropdown that spawned it, and it teleports to `<body>` where no CSS rule can
+reach it — so `hui.dropdown` stamps the lift on everything in its body (contrast
+`hui.select_field(in_popup=True)`, which is opt-in precisely because a panel's
+own select must *not* float above popups).
+
+A body must still be built from panels: the emptiness rule counts what
+`render_panel` drew, so fields rendered straight into the body leave the counter
+at zero and the anchor greys itself. Host a surface (ADR-0029) and put the
+fields in a panel on it.
+
+**Placement — two independent axes.** A Quasar anchor point is two words,
+vertical then horizontal, and those are two separate questions, so they are two
+parameters rather than six compound names. Both are named the way `text-align`
+is: they say where the *panel* sits, not which way it travels. An unknown value
+on either raises at construction.
+
+`align` — the horizontal edges:
+
+| `align` | Edges that meet | Grows | Use for |
+| --- | --- | --- | --- |
+| `"left"` (default) | panel's left ↔ icon's left | rightward | an icon at the left of its row |
+| `"center"` | midpoints | both ways | an icon in the middle of a toolbar |
+| `"right"` | panel's right ↔ icon's right | leftward | the last icon before a screen edge |
+
+`direction` — the vertical side:
+
+| `direction` | Edges that meet | Use for |
+| --- | --- | --- |
+| `"down"` (default) | panel's top ↔ icon's bottom | almost everything |
+| `"up"` | panel's bottom ↔ icon's top | a toolbar along a bottom edge, a status-bar control |
+
+**Reach for `direction="up"` only when up is what you want while down would still
+fit.** When down does not fit, Quasar already flips on its own — measured: the
+same three dropdowns on a toolbar pinned to the bottom of the window all opened
+upward, alignment intact, with no `direction=` anywhere. Which is also why
+neither parameter is a promise: never lay content out assuming the panel is
+exactly where you asked.
+
+```python
+with hui.dropdown(hui.icon.theme, tooltip="Appearance"):
+    self.render_surface(NodeAppearance, ctx)      # content, below the toolbar
+
+with hui.dropdown("tune", tooltip="Filters", align="right"):
+    self.render_surface(FilterPanel, ctx)         # last icon: grow leftward
+
+with hui.dropdown("palette", align="center", direction="up"):
+    self.render_surface(Swatches, ctx)            # toolbar on a bottom edge
+
+with hui.flyout("more_horiz", tooltip="More actions"):
+    self.render_surface(SelectionMenu, ctx)       # commands, beside the icon
+```
+
 ### 8.9 `hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)`
 
 An icon button for the activity bar or context bar.

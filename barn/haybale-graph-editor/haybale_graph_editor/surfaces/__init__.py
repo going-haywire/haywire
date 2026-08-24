@@ -19,7 +19,7 @@ from .node import NodeInspector, SettingsInspector
 from .pin import PinMenu, PortActions
 from .ports import PortInspector
 from .selection import SelectionActions, SelectionMenu, SelectionRebuildMenu
-from .toolbar import SelectionToolbar
+from .toolbar import NodeAppearance, SelectionToolbar
 
 __all__ = [
     "EdgeActions",
@@ -31,6 +31,7 @@ __all__ = [
     "GraphInspector",
     "GraphMoreActions",
     "GraphToolBar",
+    "NodeAppearance",
     "NodeInspector",
     "PinMenu",
     "PortActions",

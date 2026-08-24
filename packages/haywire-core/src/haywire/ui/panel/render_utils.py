@@ -70,7 +70,7 @@ _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 # ===========================================================================
 
 
-def render_settings(obj: "Settings") -> None:
+def render_settings(obj: "Settings", *, categories: Iterable[str] | None = None) -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
     - Any locally-set field shows a • dirty prefix and a reset button (unless a
@@ -83,10 +83,23 @@ def render_settings(obj: "Settings") -> None:
     - Subscribes to *obj* so external changes (another tab / worker / mirror
       propagation) update the rendered widgets in place. The subscription is
       removed when the rendered column leaves the DOM.
+
+    ``categories`` narrows the render to the named ``category=`` groups — one
+    slice of a bag rather than all of it, for a surface that owns a subject
+    rather than an object (a toolbar's Appearance dropdown over
+    ``NodeProperties``' ``"appearance"`` fields, say). It is a *filter*, not a
+    re-sort: declaration order, grouping, headers, reset chrome and the live
+    subscription are all exactly what an unfiltered render gives, so a slice
+    cannot drift from the whole. An unknown category name is not an error —
+    it simply selects nothing, and the empty state renders.
     """
 
     fields = type(obj)._property_settings()
-    visible_fields = dict(fields)
+    if categories is None:
+        visible_fields = dict(fields)
+    else:
+        wanted = set(categories)
+        visible_fields = {name: defn for name, defn in fields.items() if defn._category in wanted}
     if not visible_fields:
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return

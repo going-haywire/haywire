@@ -15,13 +15,21 @@ strings), so ``hui.icon.add`` and ``AppIcon.add`` are identical.
 
 from haywire.ui.elements.elements import *  # noqa: F401, F403
 from haywire.ui.elements.flyout import (  # noqa: F401
+    DROPDOWN_ALIGNMENTS,
+    DROPDOWN_DIRECTIONS,
+    DROPDOWN_PROPS,
     FLYOUT_OPEN_DELAY_S,
     FLYOUT_PROPS,
     FLYOUT_Z,
+    DropdownAlign,
+    DropdownDirection,
+    DropdownIcon,
     FlyoutIcon,
     FlyoutSiblings,
     SubmenuRow,
     close_flyout,
+    close_siblings_on_open,
+    dropdown_props,
     flyout_category,
     menu_item_tooltip,
     open_flyout_group,
@@ -32,7 +40,11 @@ from haywire.ui.elements.icons import AppIcon  # noqa: F401
 # Module-level alias: hui.icon.add, hui.icon.canvas, etc.
 icon = AppIcon
 
-# hui.flyout(icon, tooltip=...) / hui.submenu_row(label, icon=None, enabled=True)
+# hui.flyout(icon, tooltip=...) / hui.dropdown(icon, tooltip=...)
+# / hui.submenu_row(label, icon=None, enabled=True)
 # — classes, not @contextmanager generators (see flyout.py for why).
+# flyout opens beside its anchor and holds commands; dropdown opens below it
+# and holds content (click-open, no auto-close).
 flyout = FlyoutIcon
+dropdown = DropdownIcon
 submenu_row = SubmenuRow

@@ -111,7 +111,7 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/select
 `DeleteSelectionMenuPanel` deletes every selected node and edge in one undo step, and renders its own greyed form when nothing is selected:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:95:127"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py:105:137"
 ```
 
 from: `DeleteSelectionMenuPanel` — registry_key: `haybale-graph-editor:panel:DeleteSelectionMenuPanel`
@@ -133,6 +133,20 @@ Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/sel
 from: `CopyToolbarPanel` — registry_key: `haybale-graph-editor:panel:CopyToolbarPanel`
 
 **Type-specific:** `draw()` renders exactly one `hui.icon_action(...)`. The toolbar host owns the `ui.row` container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.
+
+## Graph toolbar / dropdown panel (content below the toolbar)
+
+The other thing a toolbar icon can host: a *panel*, not a menu. `AppearanceToolbarPanel` hosts `NodeAppearance` in a `hui.dropdown`, which opens **below** the toolbar rather than beside it (`align=` and `direction=` place it — the same panel can hang below, stand above, or centre on its icon), on click rather than hover, and without `auto-close` — a menu's auto-close dismisses on any click inside, so the first click into a field would shut the panel. The rule of thumb is in [design-guide §8.8c](../reference/design-guide.md): commands go in a `hui.flyout`, content goes in a `hui.dropdown`.
+
+Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py`
+
+```python
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py:54:81"
+```
+
+from: `AppearanceToolbarPanel` — registry_key: `haybale-graph-editor:panel:AppearanceToolbarPanel`
+
+**Type-specific:** it declares a `poll()` where its toolbar neighbours do not — `SelectionToolbar.poll` is "something is selected", which an edges-only selection satisfies, and there is nothing to style without a node. What lands inside is `NodeAppearancePanel`, whose `draw()` is one call: `render_settings(bag, categories=("appearance",))` — the live `appearance` slice of the node's own props bag, with the same rows, reset chrome and subscriptions the properties editor renders, sliced rather than copied. Two things a dropdown body must respect: wrap content in `hw-panel` (the `QMenu` portals to `<body>`, outside the toolbar popup, so `.hw-panel`-scoped CSS otherwise misses it), and put the fields in a *panel* on a hosted surface — the emptiness rule counts what `render_panel` drew, so fields rendered straight into the body would grey the icon.
 
 ## Graph menu / overflow panel (a hosting panel that is itself nested)
 

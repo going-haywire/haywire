@@ -21,6 +21,22 @@ if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
 
 
+class NodeAppearance(Surface):
+    """The Appearance dropdown, hanging *below* the selection toolbar.
+
+    A content surface, not a command menu: its panels edit the active node's
+    own settings bag, so it declares no ``provides`` — there is no verb for a
+    host to implement, and a member-less Protocol would match everything
+    anyway (ADR-0029).
+
+    Gating lives on the hosting ``AppearanceToolbarPanel``, which needs an
+    active *node* (an edges-only selection has none). Restating that here
+    would be a second copy of the same predicate.
+    """
+
+    id = "node-appearance"
+
+
 class SelectionToolbar(Surface):
     """The floating toolbar above the canvas selection bounding box.
 

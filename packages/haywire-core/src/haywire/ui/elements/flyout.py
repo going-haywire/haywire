@@ -47,7 +47,7 @@ from __future__ import annotations
 
 from contextlib import contextmanager
 from contextvars import ContextVar, Token
-from typing import Generator, List
+from typing import Generator, List, Literal
 
 from nicegui import ui
 
@@ -64,9 +64,68 @@ from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, menu_row
 FLYOUT_Z = "z-index: 7100"
 
 # Flyout to the right of the anchor, cascading rightward for nested submenus.
-# Quasar anchor/self points; a downward-opening variant would be
-# `anchor="bottom start" self="top start"`.
 FLYOUT_PROPS = 'anchor="top end" self="top start"'
+
+# Where a dropdown panel sits relative to its icon (`hui.dropdown`). A Quasar
+# anchor/self point is two words — vertical, then horizontal — and those two
+# words are two independent questions, so they are two tables and two
+# parameters rather than one table of six compound names ("up-left", …).
+#
+# Both are named for where the *panel* sits, the way `text-align` is named, not
+# for the direction it travels: "left" puts the panel's left edge on the icon's,
+# so it grows rightward. Quasar's `start`/`end` (rather than `left`/`right`)
+# keep the reading direction's meaning.
+#
+# Neither is a promise. Quasar flips a panel that would leave the viewport —
+# measured: the same three dropdowns on a toolbar pinned to the bottom of the
+# window all opened *upward*, alignment preserved, with no `direction="up"`
+# anywhere. `direction` is for wanting up while down still fits (a toolbar
+# along the bottom edge of a panel, a status-bar control).
+DROPDOWN_ALIGNMENTS: dict[str, tuple[str, str]] = {  # (anchor, self) horizontal
+    # panel's left edge on the icon's left edge — it grows rightward
+    "left": ("start", "start"),
+    # panel's right edge on the icon's right edge — it grows leftward
+    "right": ("end", "end"),
+    # panel centred on the icon — it grows both ways
+    "center": ("middle", "middle"),
+}
+
+DROPDOWN_DIRECTIONS: dict[str, tuple[str, str]] = {  # (anchor, self) vertical
+    # panel's top edge on the icon's bottom edge — it hangs below
+    "down": ("bottom", "top"),
+    # panel's bottom edge on the icon's top edge — it stands above
+    "up": ("top", "bottom"),
+}
+
+DropdownAlign = Literal["left", "right", "center"]
+DropdownDirection = Literal["down", "up"]
+
+
+def dropdown_props(*, align: DropdownAlign = "left", direction: DropdownDirection = "down") -> str:
+    """The Quasar ``anchor``/``self`` props for one dropdown placement.
+
+    Composed from the two tables above rather than looked up in a table of
+    pairs: the axes are independent, so a caller that asks for a new alignment
+    gets it in both directions for free, and neither table can gain an entry
+    the other lacks.
+    """
+    if align not in DROPDOWN_ALIGNMENTS:
+        raise ValueError(
+            f"hui.dropdown(align={align!r}) — expected one of {', '.join(sorted(DROPDOWN_ALIGNMENTS))}"
+        )
+    if direction not in DROPDOWN_DIRECTIONS:
+        raise ValueError(
+            f"hui.dropdown(direction={direction!r}) — expected one of "
+            f"{', '.join(sorted(DROPDOWN_DIRECTIONS))}"
+        )
+    anchor_v, self_v = DROPDOWN_DIRECTIONS[direction]
+    anchor_h, self_h = DROPDOWN_ALIGNMENTS[align]
+    return f'anchor="{anchor_v} {anchor_h}" self="{self_v} {self_h}"'
+
+
+# The default placement, kept as a name of its own because it is what every
+# dropdown gets that does not ask.
+DROPDOWN_PROPS = dropdown_props()
 
 # ANCHORING: a QMenu positions against, and opens on a click of, its PARENT
 # element — not whatever element you pass to `open()`. So every flyout menu
@@ -326,6 +385,14 @@ class FlyoutIcon:
             ...  # flyout body: leaves, or nested hui.submenu_row / hui.flyout
     """
 
+    # Overridden by DropdownIcon — the only two things that differ between a
+    # sideways command flyout and a downward content dropdown.
+    def _menu_props(self) -> str:
+        return f"{FLYOUT_PROPS} auto-close"
+
+    def _wire_trigger(self, siblings: FlyoutSiblings) -> None:
+        open_on_hover(self._anchor, self._menu, siblings)
+
     def __init__(self, icon: str, *, tooltip: str = "") -> None:
         self._anchor = ui.button(icon=icon).props("flat round dense size=sm")
         if tooltip:
@@ -339,11 +406,11 @@ class FlyoutIcon:
         # opened this flyout. See the ANCHORING note at the top of this module.
         with self._anchor:
             self._menu = FlyoutMenu()
-        self._menu.props(f"{FLYOUT_PROPS} auto-close").style(FLYOUT_Z)
+        self._menu.props(self._menu_props()).style(FLYOUT_Z)
 
         siblings = _flyout_siblings.get()
         siblings.append(self._menu)
-        open_on_hover(self._anchor, self._menu, siblings)
+        self._wire_trigger(siblings)
         # This row itself is content having drawn at the ENCLOSING level (the
         # level that was ambient when this constructor ran, not the fresh
         # level this row pushes for its own body in __enter__) -- but only
@@ -378,6 +445,129 @@ class FlyoutIcon:
 
         if not drew_anything:
             self._anchor.classes(add="hw-disabled").style(_DISABLED_STYLE)
+
+
+# A popup opened from *inside* a dropdown — a select's option list, a colour
+# picker — is a Quasar portal of its own at the default z-6000, i.e. BEHIND the
+# dropdown that spawned it wherever the two overlap. It teleports to <body>, so
+# no CSS descendant rule can reach it; the lift has to be stamped on the element
+# while it is being built. Above the dropdown's own layer, not merely equal to
+# it, so stacking never depends on portal insertion order.
+_NESTED_POPUP_Z = "z-index: calc(var(--hw-z-popup-menu, 7100) + 10)"
+
+
+def _lift_nested_popups(body: ui.element) -> None:
+    """Raise every popup-spawning control drawn inside a dropdown body.
+
+    The dropdown does this for its whole body rather than asking content to
+    opt in (``hui.select_field(in_popup=True)``'s bargain): the body is often
+    a hosted surface whose widgets are built by the widget factory, where no
+    caller is in a position to pass a flag. Panels and node widgets outside a
+    dropdown keep the default — lifting those unconditionally is exactly what
+    ``select_field``'s docstring warns against.
+    """
+    for element in body.descendants():
+        if isinstance(element, ui.menu):
+            # A colour picker (and any nested flyout) IS the portal.
+            element.style(_NESTED_POPUP_Z)
+        elif isinstance(element, ui.select):
+            element.props(f'popup-content-style="{_NESTED_POPUP_Z}"')
+
+
+def close_siblings_on_open(submenu: FlyoutMenu, siblings: FlyoutSiblings) -> None:
+    """Keep the one-open-path rule for a menu Quasar opens by itself.
+
+    A ``QMenu`` built inside its anchor already opens (and toggles) on a click
+    of that anchor, so a click-triggered dropdown needs no open handler — only
+    the sibling-close half of :func:`open_on_hover`, hung off Quasar's ``show``
+    event. Deliberately not a second explicit ``open()``: that would fight
+    Quasar's own toggle and leave the menu stuck open on the second click.
+    """
+
+    def _close_others() -> None:
+        for other in siblings:
+            if other is not submenu:
+                close_flyout(other)
+
+    submenu.on("show", _close_others)
+
+
+class DropdownIcon(FlyoutIcon):
+    """``hui.dropdown(icon, tooltip=...)`` — an icon that opens a panel below it.
+
+    Same anchor, same sibling group, same cascade-close and same retroactive
+    greying as ``hui.flyout``; three deliberate differences, because what
+    hangs off it is **content**, not commands:
+
+    - **Opens above or below the icon rather than beside it** — the shape a
+      toolbar wants for a group of fields. Two independent axes, so two
+      parameters (see :func:`dropdown_props`):
+
+      ``align`` picks the horizontal edges: ``"left"`` (the default) puts the
+      panel's left edge on the icon's so it grows rightward, ``"right"`` grows
+      leftward from the icon's right edge, ``"center"`` centres it. Worth
+      choosing deliberately — a wide panel under the last icon of a toolbar
+      wants ``"right"``, one under a middle icon usually ``"center"``.
+
+      ``direction`` picks the vertical side: ``"down"`` (the default) hangs the
+      panel below the icon, ``"up"`` stands it above. Reach for ``"up"`` only
+      when up is what you *want* while down would still fit — a toolbar along
+      the bottom edge of a panel, a status-bar control. When down simply does
+      not fit, Quasar already flips on its own (measured: the same toolbar
+      moved to the bottom of the window opened every dropdown upward, alignment
+      intact, with no ``direction=`` anywhere), which is also why neither
+      parameter is a promise — never lay content out assuming the panel is
+      exactly where you asked.
+    - **Click, not hover.** You do not graze a panel you are about to fill in.
+      Quasar's own anchor-click toggle does the opening (see
+      :func:`close_siblings_on_open`).
+    - **No ``auto-close``.** ``auto-close`` dismisses the menu on *any* click
+      inside it, so the first click into a field would close the panel —
+      measured, not theorised. A dropdown closes on click-away, or when a
+      sibling flyout opens.
+
+    Everything drawn inside must still be a *panel* for the emptiness rule to
+    work: ``__exit__`` greys the icon when nothing bumped the leaf counter, and
+    only ``render_panel`` bumps it. Render a hosted surface here (the
+    ADR-0029 shape) rather than fields drawn straight into the body, or an
+    otherwise-fine dropdown greys itself.
+
+    Usage::
+
+        with hui.dropdown(hui.icon.theme, tooltip="Appearance"):
+            self.render_surface(NodeAppearance, ctx)
+
+        with hui.dropdown("tune", tooltip="Filters", align="right"):
+            self.render_surface(FilterPanel, ctx)   # last icon in a toolbar
+
+        with hui.dropdown("palette", align="center", direction="up"):
+            self.render_surface(Swatches, ctx)      # toolbar along a bottom edge
+    """
+
+    def __init__(
+        self,
+        icon: str,
+        *,
+        tooltip: str = "",
+        align: DropdownAlign = "left",
+        direction: DropdownDirection = "down",
+    ) -> None:
+        # Validated here, at construction, so a typo is an error where it was
+        # written rather than a panel that opens somewhere surprising.
+        self._props_str = dropdown_props(align=align, direction=direction)
+        self._align = align
+        self._direction = direction
+        super().__init__(icon, tooltip=tooltip)
+
+    def _menu_props(self) -> str:
+        return self._props_str
+
+    def _wire_trigger(self, siblings: FlyoutSiblings) -> None:
+        close_siblings_on_open(self._menu, siblings)
+
+    def __exit__(self, *exc: object) -> None:
+        _lift_nested_popups(self._menu)
+        super().__exit__(*exc)
 
 
 class SubmenuRow:

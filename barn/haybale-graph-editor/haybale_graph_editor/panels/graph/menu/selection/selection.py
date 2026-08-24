@@ -58,6 +58,7 @@ def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
     edit = ctx.data[EditState]
     return len(edit.selected_nodes), len(edit.selected_edges)
 
+
 # SelectionMenu
 #  -> CopySelectionMenuPanel
 #  -> DeleteSelectionMenuPanel
@@ -66,6 +67,7 @@ def _selection_counts(ctx: "SessionContext") -> tuple[int, int]:
 #        -> RedrawSelectionMenuPanel
 #        -> RevalidateSelectionMenuPanel
 #        -> ResetSelectionMenuPanel
+
 
 @panel(
     surface=SelectionMenu,
