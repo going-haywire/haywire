@@ -21,6 +21,7 @@ from typing import TYPE_CHECKING, Callable, Optional
 from nicegui import ui
 from nicegui.timer import Timer
 
+from haywire.core.debug.debug_settings import DebugSettings, LOG_SCROLLBACK_LINES_KEY
 from haywire.ui import elements as hui
 from haywire.ui.console_bridge import get_stdout_tee
 from haywire.ui.editor.decorator import editor
@@ -70,31 +71,47 @@ class LogEditor(BaseEditor):
     """
 
     _FLUSH_INTERVAL = 0.1  # seconds between UI flushes
-    _MAX_BUFFERED = 500  # mirrors ui.log's max_lines, so Copy stays WYSIWYG against it
 
     def __init__(self, wrapper):
         super().__init__(wrapper)
         self._log_element = None
+        # Retention is one number from DebugSettings, applied to the mirror below
+        # AND to ui.log's max_lines — they must stay equal or Copy stops matching
+        # what is on screen. Held so subscribe_field's bookkeeping survives; the
+        # deque is sized in draw(), once the setting can be read.
+        self._settings = DebugSettings()
+        self._buffer: deque[str] = deque(maxlen=self._scrollback_lines())
         # Persistent mirror of everything currently rendered — Copy/Clear act on this,
         # not on the DOM. `_pending` is the separate not-yet-pushed-to-UI queue that
         # `_flush` drains; the two must stay decoupled or Copy would race a near-empty
         # buffer between flush ticks.
-        self._buffer: deque[str] = deque(maxlen=self._MAX_BUFFERED)
         self._pending: list[str] = []
         self._lock = threading.Lock()
         self._handler: Optional[_LogHandler] = None
         self._timer: Optional[Timer] = None
         self._detach_stdout: Optional[Callable[[], None]] = None
 
+    def _scrollback_lines(self) -> int:
+        """The configured retention, clamped to a usable floor.
+
+        The settings ``min`` is UI-only and not enforced on write, so a
+        hand-edited settings file could otherwise park a 0 here and leave the
+        panel permanently blank.
+        """
+        return max(1, int(getattr(self._settings, LOG_SCROLLBACK_LINES_KEY)))
+
     def draw(self, context: "SessionContext", container: "Element") -> None:
+        lines = self._scrollback_lines()
         with container:
             with ui.column().classes("w-full h-full gap-0"):
                 self._render_header()
                 self._log_element = (
-                    ui.log(max_lines=500)
+                    ui.log(max_lines=lines)
                     .classes("w-full flex-1 font-mono text-xs p-2")
                     .style("background: var(--hw-console-bg); color: var(--hw-console-text);")
                 )
+        self._resize_buffer(lines)
+        self._settings.subscribe_field(LOG_SCROLLBACK_LINES_KEY, self._on_scrollback_changed)
 
         for line in get_stdout_tee().get_history_text().splitlines():
             self._append(self._prefix_stdout(line))
@@ -127,6 +144,30 @@ class LogEditor(BaseEditor):
                 .props("flat dense size=sm")
                 .tooltip("Clear log")
             )
+
+    def _resize_buffer(self, lines: int) -> None:
+        """Re-cap the Copy/Clear mirror, keeping the newest ``lines`` entries.
+
+        ``deque.maxlen`` is read-only, so a change means a new deque; seeding it
+        from the old one keeps whatever is currently on screen copyable.
+        """
+        with self._lock:
+            if self._buffer.maxlen == lines:
+                return
+            self._buffer = deque(self._buffer, maxlen=lines)
+
+    def _on_scrollback_changed(self, value, _old) -> None:
+        """Apply a live retention change to both caps.
+
+        The DOM cap is a plain attribute on ``ui.log``; NiceGUI enforces it on
+        the next ``push``, so an existing overlong panel trims as new lines
+        arrive rather than snapping immediately. That is fine — the two caps
+        agree again from here on.
+        """
+        lines = max(1, int(value))
+        self._resize_buffer(lines)
+        if self._log_element is not None:
+            self._log_element.max_lines = lines
 
     @staticmethod
     def _prefix_stdout(line: str) -> str:
@@ -174,4 +215,5 @@ class LogEditor(BaseEditor):
         if self._detach_stdout is not None:
             self._detach_stdout()
             self._detach_stdout = None
+        self._settings.unsubscribe(self._on_scrollback_changed)
         self._log_element = None

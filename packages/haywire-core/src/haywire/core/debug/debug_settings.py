@@ -1,21 +1,39 @@
 # haywire/ui/prefs/debug.py
 """Debug and development preference singleton."""
 
-from haywire.core.namespaces import CATEGORY_LOG_LEVEL, NAMESPACE_DEBUG
+from haywire.core.namespaces import CATEGORY_LOG_LEVEL, CATEGORY_LOG_OUTPUT, NAMESPACE_DEBUG
 from haywire.core.settings import setting
 from haywire.core.settings.settings_framework import FrameworkSettings
-from haywire.barn.builtin.types import BOOL, CHOICES
+from haywire.barn.builtin.types import BOOL, CHOICES, INT
 
 _LEVEL_CHOICES = ["DEBUG", "INFO", "WARNING", "ERROR"]
 _GROUP_CHOICES = {"": "inherit", "DEBUG": "DEBUG", "INFO": "INFO", "WARNING": "WARNING", "ERROR": "ERROR"}
 
 GLOBAL_BASELINE_LOG_LEVEL_KEY = "log_level"
 
+#: Field name of :attr:`DebugSettings.log_scrollback_lines`. The studio wires it
+#: into the process-wide ``StdoutTee`` at startup, and the Log editor reads it
+#: on every draw — both by this name, so the string is written once.
+LOG_SCROLLBACK_LINES_KEY = "log_scrollback_lines"
+
 # --8<-- [start:debug-settings-choices-example]
 
 
 class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
     """Global preferences for debug features."""
+
+    # One value drives all three retention caps in the log path: the stdout
+    # backlog replayed into a freshly-opened panel (StdoutTee.max_history), the
+    # Log editor's Copy/Clear mirror, and the lines kept in the DOM. They must
+    # stay equal or Copy stops matching what is on screen.
+    log_scrollback_lines = setting[INT](
+        500,
+        label="Log Scrollback Lines",
+        description="Lines the Log panel retains before dropping the oldest",
+        category=CATEGORY_LOG_OUTPUT,
+        min=50,
+        max=10000,
+    )
 
     # Logging — global baseline -> if key changes, apply it to GLOBAL_BASELINE_LOG_LEVEL_KEY
     log_level = setting[CHOICES](
@@ -98,3 +116,4 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         description="Write logs to file in addition to console",
         category=CATEGORY_LOG_LEVEL,
     )
+

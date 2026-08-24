@@ -126,6 +126,39 @@ def test_detach_unregisters_sink():
     assert received == ["one"]
 
 
+def test_history_is_capped_at_max_history():
+    fake = FakeStream()
+    tee = StdoutTee(cast(Any, fake))
+    tee.max_history = 3
+
+    for i in range(5):
+        tee.write(f"line{i}\n")
+
+    assert tee.get_history_text().splitlines() == ["line2", "line3", "line4"]
+
+
+def test_shrinking_max_history_trims_existing_history_immediately():
+    fake = FakeStream()
+    tee = StdoutTee(cast(Any, fake))
+    for i in range(5):
+        tee.write(f"line{i}\n")
+
+    tee.max_history = 2
+
+    assert tee.get_history_text().splitlines() == ["line3", "line4"]
+
+
+def test_max_history_clamps_to_at_least_one():
+    """min= on the setting is UI-only, so a hand-edited 0 must not blank the panel."""
+    fake = FakeStream()
+    tee = StdoutTee(cast(Any, fake))
+    tee.max_history = 0
+
+    assert tee.max_history == 1
+    tee.write("kept\n")
+    assert tee.get_history_text().splitlines() == ["kept"]
+
+
 def test_console_print_routes_through_real_print(monkeypatch, capsys):
     fake = StdoutTee(sys.stdout)
     monkeypatch.setattr(sys, "stdout", fake)

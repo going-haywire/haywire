@@ -25,6 +25,10 @@ class StdoutTee:
     would need reinstalling in the reloader child; the studio uses reload=False.
     """
 
+    #: Retained-line default, used until the studio pushes the configured value
+    #: down (see :meth:`max_history`). The tee is a module-level instance built
+    #: at import, long before any SettingsRegistry exists, so it cannot read the
+    #: setting itself — the value arrives from outside.
     _MAX_HISTORY = 500
 
     def __init__(self, real: TextIO):
@@ -34,6 +38,7 @@ class StdoutTee:
         self._sinks: list[Callable[[str], None]] = []
         self._guard = threading.local()
         self._history: list[str] = []
+        self._max_history = self._MAX_HISTORY
 
     def write(self, s: str) -> int:
         n = self._real.write(s)  # studio.log / terminal first, always
@@ -46,7 +51,7 @@ class StdoutTee:
                 *lines, self._partial = self._partial.split("\n")
                 for line in lines:
                     self._history.append(line)
-                    if len(self._history) > self._MAX_HISTORY:
+                    if len(self._history) > self._max_history:
                         self._history.pop(0)
                 sinks = list(self._sinks)
             for line in lines:
@@ -92,6 +97,25 @@ class StdoutTee:
         if isinstance(sys.stdout, StdoutTee):
             return
         sys.stdout = self  # type: ignore[assignment]
+
+    @property
+    def max_history(self) -> int:
+        """Lines of stdout backlog retained for seeding a freshly-opened panel."""
+        return self._max_history
+
+    @max_history.setter
+    def max_history(self, value: int) -> None:
+        """Set the backlog cap, trimming immediately when it shrinks.
+
+        Clamped to at least 1: the settings ``min`` is UI-only and not enforced
+        on write, so a hand-edited settings file could otherwise park a 0 or
+        negative cap here and silently discard every line.
+        """
+        with self._lock:
+            self._max_history = max(1, int(value))
+            excess = len(self._history) - self._max_history
+            if excess > 0:
+                del self._history[:excess]
 
     def get_history_text(self) -> str:
         """Return buffered stdout lines as text, for seeding a freshly-opened panel."""

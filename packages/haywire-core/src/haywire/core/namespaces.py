@@ -10,6 +10,7 @@ NAMESPACE_UI_DEBUG_OVERLAY = "ui.debug_overlay"
 
 # Category contants for FrameworkSetting fields.
 CATEGORY_LOG_LEVEL = "log_level"
+CATEGORY_LOG_OUTPUT = "log_output"
 CATEGORY_LIBRARY_LOG = "library.log_level"
 CATEGORY_EDITOR_PAN_ZOOM = "editor.pan_zoom"
 CATEGORY_EDITOR_HOVER = "editor.hover"
