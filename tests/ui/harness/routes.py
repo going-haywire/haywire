@@ -381,10 +381,9 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /node-appearance
     #
-    # NodeProperties' `appearance` category (the colour + border fields) with a
-    # live server-side echo of each model value. The echo is what makes a
-    # persistence bug visible: a widget can show a colour the model never
-    # received. Backs test_appearance_props.py.
+    # NodeProperties' `appearance` category with a live server-side echo of each
+    # model value. The echo is what makes a persistence bug visible: a widget can
+    # show a colour the model never received. Backs test_appearance_props.py.
     # -------------------------------------------------------------------------
 
     @ui.page("/node-appearance")
@@ -395,14 +394,14 @@ def register_routes(library_service) -> None:
             ui.add_css(theme_css)
 
         props = NodeProperties()
-        fields = ("body_fill", "border_color", "border_thickness", "border_roundness")
+        fields = ("color_override",)
 
         with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
             render_settings(props, categories=("appearance",))
 
             # Echo the model, not the widget: a label per field, refreshed from
-            # the bag itself. `set` reports the framework's set-or-unset opinion,
-            # which is what decides skin inheritance.
+            # the bag itself. Emptiness IS the unset signal — a cleared colour
+            # means "inherit the theme's", so the echo shows the raw value.
             echoes: dict[str, Any] = {}
             for name in fields:
                 echoes[name] = ui.label().props(f'data-testid="echo-{name}"')
@@ -410,18 +409,66 @@ def register_routes(library_service) -> None:
             def _refresh() -> None:
                 for field_name, label in echoes.items():
                     value = getattr(props, field_name)
-                    # A FILL echoes as the CSS it renders to — that is the thing
-                    # under test, and a dataclass repr would assert nothing about
-                    # whether the fill actually reaches the card.
-                    if hasattr(value, "to_css"):
-                        value = value.to_css()
-                    is_set = props.is_locally_set(field_name)
-                    label.set_text(f"{value}|{'set' if is_set else 'unset'}")
+                    label.set_text(f"{value}|{'set' if value else 'unset'}")
 
             _refresh()
             for name in fields:
                 props.subscribe_field(name, lambda *_: _refresh())
 
+            ui.button("refresh", on_click=_refresh).props('data-testid="refresh"')
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /fill-widget
+    #
+    # The example library's FILL type and its editor, on a node port. FILL is no
+    # longer a framework prop (node colour is one COLOR field now — see
+    # ADR-0030); it ships in haybale-example as a worked compound type, and this
+    # route is what exercises its widget in a browser. Backs test_fill_widget.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/fill-widget")
+    async def fill_widget_page():
+        from unittest.mock import MagicMock
+        from uuid import uuid4
+
+        from haybale_example.types.fill import FILL
+        from haywire.core.node.data import NodeData
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        # NodeData rather than a real node: BaseNode needs a live wrapper and
+        # create_node_wrapper needs the ambient app context — neither of which a
+        # widget test has any business booting. `add()` is what turns a PortSpec
+        # into the DataPort the widget actually binds to.
+        # A fresh node id PER PAGE LOAD: the widget factory registers widget
+        # instances against node_id, so a constant would let one test's edits
+        # survive into the next test's page — state leaking through the server.
+        node = NodeData(f"fill-demo-{uuid4().hex[:8]}", MagicMock())
+        port = node.add(FILL.as_config(id="fill", label="Fill"))
+
+        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+            # `data-field` is what render_settings stamps on each row and what
+            # every harness test waits on; render_widget draws the control
+            # alone, so the wrapper is supplied here.
+            with ui.column().classes("w-full").props('data-field="fill"'):
+                # The port carries its widget key (FILL declares one on the
+                # type), so the factory is told which widget rather than
+                # inferring it.
+                library_service.get_widget_factory().render_widget(port.widget_key, port, node.node_id)
+
+            echo = ui.label().props('data-testid="echo-fill"')
+
+            def _refresh() -> None:
+                value = port.get_value()
+                echo.set_text(value.to_css() if hasattr(value, "to_css") else str(value))
+
+            _refresh()
+            # Polled rather than subscribed: the echo must reflect what the
+            # MODEL holds after a browser edit, and a poll cannot accidentally
+            # assert on the widget's own view the way a bound label could.
+            ui.timer(0.2, _refresh)
             ui.button("refresh", on_click=_refresh).props('data-testid="refresh"')
         _stamp_synced()
 
