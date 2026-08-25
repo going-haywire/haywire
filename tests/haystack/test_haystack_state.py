@@ -5,6 +5,8 @@ from unittest.mock import MagicMock, patch
 
 import pytest
 
+from haywire.core.graph.types import ChangeReason
+
 
 @pytest.fixture
 def settings_registry_wired():
@@ -317,10 +319,11 @@ def test_validation_callback_marks_entry_unsaved_and_broadcasts(state_with_mocke
     # test only observes what _on_entry_validation broadcasts.
     state._dispatcher.broadcast.reset_mock()
 
-    # Build a result with .nodes/.edges truthy and has_changes True.
+    # Build a result with a real structural reason — a repaint-only reason is
+    # deliberately NOT a data change (see is_visual_only).
     result = MagicMock()
     result.has_changes.return_value = True
-    result.nodes = {"n1": MagicMock()}
+    result.nodes = {"n1": ChangeReason.NODE_ADDED}
     result.edges = {}
     result.graph = MagicMock()
     result.graph.requires_graph_reassembly.return_value = False
@@ -354,6 +357,108 @@ def test_validation_callback_no_broadcast_when_no_changes(state_with_mocked_deps
     state._dispatcher.broadcast.assert_not_called()
 
 
+class TestIsVisualOnly:
+    """The predicate behind the unsaved/broadcast decision.
+
+    Membership is a judgement about *persistence*, not about repainting, so
+    it is pinned here rather than left to the reader of the reason list.
+    """
+
+    @pytest.mark.parametrize(
+        "reason",
+        [ChangeReason.NODE_REDRAW_REQUESTED, ChangeReason.EDGE_REDRAW_REQUESTED],
+    )
+    def test_repaints_are_visual_only(self, reason):
+        assert reason.is_visual_only()
+
+    @pytest.mark.parametrize(
+        "reason",
+        [
+            ChangeReason.NODE_MOVED,  # position IS persisted
+            ChangeReason.NODE_ADDED,
+            ChangeReason.NODE_REMOVED,
+            ChangeReason.NODE_HOT_RELOADED,
+            ChangeReason.NODE_VALIDATION_REQUESTED,
+            ChangeReason.EDGE_ADDED,
+            ChangeReason.EDGE_REMOVED,
+        ],
+    )
+    def test_data_changes_are_not_visual_only(self, reason):
+        assert not reason.is_visual_only()
+
+
+def _visual_result(reason: ChangeReason) -> MagicMock:
+    result = MagicMock()
+    result.has_changes.return_value = True
+    result.nodes = {"n1": reason}
+    result.edges = {}
+    result.graph = None
+    return result
+
+
+def test_a_repaint_does_not_mark_unsaved_or_broadcast(state_with_mocked_deps):
+    """A visual-only result is not a data change.
+
+    Regression: editing an appearance prop (colour, border) marks the node
+    for redraw; announcing that as GraphDataMutated rebuilt the whole
+    properties editor and destroyed the colour input mid-keystroke — and
+    marked the graph unsaved for a change no save would record.
+    """
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = False
+    state._dispatcher.broadcast.reset_mock()
+
+    state._on_entry_validation(entry, _visual_result(ChangeReason.NODE_REDRAW_REQUESTED))
+
+    assert entry.unsaved is False
+    state._dispatcher.broadcast.assert_not_called()
+
+
+def test_an_edge_repaint_does_not_broadcast(state_with_mocked_deps):
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = False
+    state._dispatcher.broadcast.reset_mock()
+
+    result = _visual_result(ChangeReason.NODE_REDRAW_REQUESTED)
+    result.nodes = {}
+    result.edges = {"e1": ChangeReason.EDGE_REDRAW_REQUESTED}
+    state._on_entry_validation(entry, result)
+
+    assert entry.unsaved is False
+    state._dispatcher.broadcast.assert_not_called()
+
+
+def test_a_move_still_marks_unsaved(state_with_mocked_deps):
+    """NODE_MOVED repaints too, but position is persisted — suppressing it
+    would silently drop a drag from the next save."""
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = False
+    state._dispatcher.broadcast.reset_mock()
+
+    state._on_entry_validation(entry, _visual_result(ChangeReason.NODE_MOVED))
+
+    assert entry.unsaved is True
+    state._dispatcher.broadcast.assert_called_once()
+
+
+def test_a_repaint_batched_with_a_real_change_still_broadcasts(state_with_mocked_deps):
+    """One structural reason in the batch is enough — the repaint must not mask it."""
+    state = state_with_mocked_deps
+    entry = state.create_new()
+    entry.unsaved = False
+    state._dispatcher.broadcast.reset_mock()
+
+    result = _visual_result(ChangeReason.NODE_REDRAW_REQUESTED)
+    result.nodes = {"n1": ChangeReason.NODE_REDRAW_REQUESTED, "n2": ChangeReason.NODE_ADDED}
+    state._on_entry_validation(entry, result)
+
+    assert entry.unsaved is True
+    state._dispatcher.broadcast.assert_called_once()
+
+
 def test_validation_callback_stops_execution_on_reassembly(state_with_mocked_deps):
     """When reassembly is required and entry is executing, stop_execution is called."""
     state = state_with_mocked_deps
@@ -366,8 +471,9 @@ def test_validation_callback_stops_execution_on_reassembly(state_with_mocked_dep
     inner_graph.requires_graph_reassembly.return_value = True
 
     result = MagicMock()
-    result.nodes = []
-    result.edges = []
+    # ValidationResult.nodes/.edges are Dict[str, ChangeReason].
+    result.nodes = {}
+    result.edges = {}
     result.has_changes.return_value = True
     result.graph = inner_graph
 

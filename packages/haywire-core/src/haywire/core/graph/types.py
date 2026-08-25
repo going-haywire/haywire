@@ -95,6 +95,28 @@ class ChangeReason(Enum):
         }
         return self in redraw_reasons
 
+    def is_visual_only(self) -> bool:
+        """True when this reason repaints the UI without changing saved data.
+
+        The inverse question to :meth:`requires_redraw` — not "must the canvas
+        repaint" but "did anything a save would record actually change". A
+        repaint is not a data change, so an app layer must not mark the file
+        unsaved or announce a data mutation for one.
+
+        ``NODE_MOVED`` is deliberately NOT here. A move repaints too, but
+        position *is* persisted (``props.posX``/``posY``), so treating it as
+        visual-only would silently drop a drag from the next save.
+
+        Treating a repaint as a data change is what let a single colour
+        keystroke broadcast ``GraphDataMutated``, which rebuilds the whole
+        properties editor and destroys the input being typed into.
+        """
+        visual_reasons = {
+            ChangeReason.NODE_REDRAW_REQUESTED,
+            ChangeReason.EDGE_REDRAW_REQUESTED,
+        }
+        return self in visual_reasons
+
     def requires_graph_reassembly(self) -> bool:
         """Check if this reason requires graph reassembly"""
         reassembly_reasons = {
