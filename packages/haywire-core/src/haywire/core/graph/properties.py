@@ -16,9 +16,9 @@ from haywire.core.settings.descriptor import shadow
 from haywire.core.settings.settings_graph import GraphSettings
 from haywire.core.skin.settings import (
     NodeDefaultSkinSettings,
-    _layout_direction_choices,
-    _node_skin_choices,
-    _node_theme_choices,
+    _layout_direction_choices_inheritable,
+    _node_skin_choices_inheritable,
+    _node_theme_choices_inheritable,
 )
 
 
@@ -36,7 +36,7 @@ class GraphProperties(GraphSettings):
         order=10,
         # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT
         # its per-setting widget_config — options must be re-supplied here.
-        widget_config={"options": _node_skin_choices},
+        widget_config={"options": _node_skin_choices_inheritable},
     )
 
     layout_direction = shadow(
@@ -48,7 +48,7 @@ class GraphProperties(GraphSettings):
         ),
         category="appearance",
         order=20,
-        widget_config={"options": _layout_direction_choices},
+        widget_config={"options": _layout_direction_choices_inheritable},
     )
 
     node_theme = shadow(
@@ -60,5 +60,5 @@ class GraphProperties(GraphSettings):
         ),
         category="appearance",
         order=30,
-        widget_config={"options": _node_theme_choices},
+        widget_config={"options": _node_theme_choices_inheritable},
     )

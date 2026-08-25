@@ -96,6 +96,30 @@ class PrimitiveUnwrappingConverter(BindingConverter):
         return view_value
 
 
+class UnsetAsEmptyChoiceConverter(BindingConverter):
+    """Renders an *unset* (``None``) model value as a select's empty choice.
+
+    For fields whose option list carries an explicit ``""`` entry meaning
+    "inherit from the tier above" (see ``skin``, ``layout_direction`` and
+    ``node_theme``). Those fields default to ``None``, which matches no option
+    key, so the select would open **blank** — the one state that most needs a
+    label is the only one without one, and the entry appears only after someone
+    picks it.
+
+    Bidirectional on purpose. Mapping only model→view would let the view's
+    ``""`` reach the model on the way back, and a stored ``""`` reads as
+    *locally set*: a ``graph()`` mirror would stop tracking its parent tier and
+    the field would be stuck on an empty value that renders as inherited. So
+    ``""`` maps back to ``None`` — one spelling of unset, in the model.
+    """
+
+    def to_view(self, model_value: Any) -> Any:
+        return "" if model_value is None else model_value
+
+    def to_model(self, view_value: Any) -> Any:
+        return None if view_value == "" else view_value
+
+
 class CompositeConverter(BindingConverter):
     """
     Chains multiple converters in sequence.

@@ -13,9 +13,9 @@ from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
 from haywire.core.skin.settings import (
-    _layout_direction_choices,
-    _node_skin_choices,
-    _node_theme_choices,
+    _layout_direction_choices_inheritable,
+    _node_skin_choices_inheritable,
+    _node_theme_choices_inheritable,
 )
 from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, FLOAT, STRING
 
@@ -94,7 +94,7 @@ class NodeProperties(NodeSettings):
         order=10,
         # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its
         # per-setting widget_config — options must be re-supplied here.
-        widget_config={"options": _node_skin_choices},
+        widget_config={"options": _node_skin_choices_inheritable},
     )
 
     layout_direction = graph(
@@ -103,7 +103,7 @@ class NodeProperties(NodeSettings):
         description="Direction flow reads across THIS node's card",
         category="appearance",
         order=15,
-        widget_config={"options": _layout_direction_choices},
+        widget_config={"options": _layout_direction_choices_inheritable},
     )
 
     node_theme = graph(
@@ -112,7 +112,7 @@ class NodeProperties(NodeSettings):
         description="Theme for THIS node's card. Overrides the graph's.",
         category="appearance",
         order=17,
-        widget_config={"options": _node_theme_choices},
+        widget_config={"options": _node_theme_choices_inheritable},
     )
 
     # A single colour that replaces the card's background, whatever produced it

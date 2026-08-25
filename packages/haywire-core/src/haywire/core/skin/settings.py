@@ -17,9 +17,31 @@ from haywire.core.settings import setting
 from haywire.core.types.enums import LayoutDirection
 
 
+#: Label for the empty choice offered by every inheritable tier.
+#:
+#: An explicit entry rather than relying on the panel's reset button: the
+#: select then *shows* that a value comes from somewhere else, instead of
+#: leaving the user to notice a • prefix and find reset in a menu.
+INHERIT_LABEL = "— Inherit —"
+
+
+def _inheritable(options: dict[str, str]) -> dict[str, str]:
+    """*options* with the empty "inherit from the tier above" choice in front.
+
+    Only for tiers that HAVE a tier above them — the graph and node bags. The
+    framework settings (``studio_*``) are the floor of every chain, so offering
+    them an inherit entry would promise a fallback that does not exist.
+    """
+    return {"": INHERIT_LABEL, **options}
+
+
 def _layout_direction_choices():
     """Static options — no registry lookup, so no try/except needed."""
     return {d.value: d.label for d in LayoutDirection}
+
+
+def _layout_direction_choices_inheritable():
+    return _inheritable(_layout_direction_choices())
 
 
 def _node_skin_choices():
@@ -29,6 +51,10 @@ def _node_skin_choices():
         return {reg_key: reg_key for reg_key in get_skin_registry().list_visible_names()}
     except Exception:
         return {}
+
+
+def _node_skin_choices_inheritable():
+    return _inheritable(_node_skin_choices())
 
 
 def _default_skin():
@@ -41,14 +67,13 @@ def _default_skin():
 
 
 def _node_theme_choices():
-    """Registered node themes, plus an explicit "inherit" entry.
+    """Registered node themes. No inherit entry — see the *_inheritable pair.
 
-    The empty key is what makes the tier chain work: a graph or node whose
-    ``node_theme`` is empty contributes no CSS vars at all, so the tier above
-    it shows through. Without a selectable empty option there would be no way
-    back to inheriting once a theme had been picked.
+    At the framework tier the empty key still means "no node theme at all",
+    which is a real choice: the workbench theme's node tokens then stand
+    unmodified. That is not *inheritance*, so it is not labelled as such here.
     """
-    options = {"": "— Inherit —"}
+    options: dict[str, str] = {"": "— None —"}
     try:
         from haywire.core.di.config import get_theme_registry
 
@@ -56,6 +81,17 @@ def _node_theme_choices():
     except Exception:
         pass
     return options
+
+
+def _node_theme_choices_inheritable():
+    """Node themes for the graph and node tiers.
+
+    The empty entry reads "— Inherit —" rather than "— None —" because that is
+    what it does here: a tier with no theme of its own contributes no CSS vars,
+    so whatever the tier above resolved to shows through unchanged.
+    """
+    themes = {k: v for k, v in _node_theme_choices().items() if k}
+    return _inheritable(themes)
 
 
 class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEFAULT_SKIN):
