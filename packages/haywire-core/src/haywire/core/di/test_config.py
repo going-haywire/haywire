@@ -80,15 +80,28 @@ def create_test_injector(
     settings_path: Optional[str] = None,
     watch_settings: bool = False,
     use_temp_settings: bool = True,
+    workspace_settings_path: Optional[str] = None,
 ) -> Injector:
     """
     Create a test-specific DI injector with minimal overhead.
+
+    ``use_temp_settings`` redirects BOTH settings tiers into a throwaway
+    directory. The workspace tier matters most: it is the one the app writes
+    back to (a settings descriptor's ``__set__`` calls
+    ``registry.save_to_json_debounced()``), and it is derived from
+    ``workspace_root`` — which tests pass as the real repo root so library
+    discovery works. Left alone, a test that writes any mirrored setting
+    persists into the developer's own ``<repo>/.haywire/settings.json`` and
+    silently reconfigures their studio.
     """
     from .config import HaywireModule
 
-    if settings_path is None and use_temp_settings:
+    if use_temp_settings and (settings_path is None or workspace_settings_path is None):
         temp_dir = tempfile.mkdtemp(prefix="haywire_test_")
-        settings_path = str(Path(temp_dir) / "settings.json")
+        if settings_path is None:
+            settings_path = str(Path(temp_dir) / "settings.json")
+        if workspace_settings_path is None:
+            workspace_settings_path = str(Path(temp_dir) / "workspace-settings.json")
 
     module = HaywireModule(
         workspace_root=workspace_root,
@@ -96,6 +109,7 @@ def create_test_injector(
         enable_file_watching=enable_file_watching,
         settings_path=settings_path,
         watch_settings=watch_settings,
+        workspace_settings_path=workspace_settings_path,
     )
 
     return Injector([module])
@@ -109,9 +123,13 @@ def create_test_library_system(
     settings_path: Optional[str] = None,
     watch_settings: bool = False,
     use_temp_settings: bool = True,
+    workspace_settings_path: Optional[str] = None,
 ) -> "LibrarySystemService":
     """
     Create library system for integration tests.
+
+    Settings paths are temp-redirected by default — see ``create_test_injector``
+    for why the workspace tier in particular must not be the real one.
     """
     from .config import LibrarySystemService
 
@@ -123,6 +141,7 @@ def create_test_library_system(
         settings_path=settings_path,
         watch_settings=watch_settings,
         use_temp_settings=use_temp_settings,
+        workspace_settings_path=workspace_settings_path,
     )
 
     service = LibrarySystemService(injector)

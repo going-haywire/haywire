@@ -77,6 +77,7 @@ class HaywireModule(Module):
         settings_path: Optional[str] = None,
         watch_settings: bool = True,
         host_store: Optional[HostStore] = None,
+        workspace_settings_path: Optional[str] = None,
     ):
         """
         Initialize the DI module.
@@ -88,6 +89,16 @@ class HaywireModule(Module):
             settings_path:      Path to the global settings JSON file
                                 (default: ~/.haywire/settings.json, hand-edited by user).
             watch_settings:     Whether to watch settings files for hot reload.
+            workspace_settings_path: Path to the workspace settings JSON file
+                                (default: <workspace_root>/.haywire/settings.json).
+                                Split from ``workspace_root`` so a caller can
+                                keep the real workspace — for library discovery
+                                — while sending settings *writes* somewhere
+                                disposable. Tests need exactly that: the
+                                workspace tier is the one the app writes back
+                                to, so sharing it with a developer's own
+                                workspace lets a test persist into their
+                                studio's configuration.
             host_store:         Optional HostStore the host has constructed for
                                 engine bootstrap state (e.g. ``[libraries] disabled``).
                                 ``None`` → an in-memory store; writes do not persist.
@@ -104,6 +115,12 @@ class HaywireModule(Module):
             self.settings_path = Path(settings_path).expanduser().resolve()
         else:
             self.settings_path = Path.home() / ".haywire" / "settings.json"
+
+        # Workspace-tier settings path — the one the app WRITES back to.
+        if workspace_settings_path:
+            self.workspace_settings_path = Path(workspace_settings_path).expanduser().resolve()
+        else:
+            self.workspace_settings_path = Path(self.workspace_root) / ".haywire" / "settings.json"
 
         # Library paths must be explicitly provided by the app or test config.
         # The framework does not assume a particular workspace layout.
@@ -126,8 +143,7 @@ class HaywireModule(Module):
         registry.load_from_json(self.settings_path, tier="global", watch=self.watch_settings)
 
         # Workspace tier — managed by the UI, saved via registry.save_to_json()
-        workspace_settings = Path(self.workspace_root) / ".haywire" / "settings.json"
-        registry.load_from_json(workspace_settings, tier="workspace", watch=self.watch_settings)
+        registry.load_from_json(self.workspace_settings_path, tier="workspace", watch=self.watch_settings)
 
         set_settings_registry(registry)
         return registry

@@ -12,6 +12,7 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.types import ChangeReason, ValidationResult
+from haywire.barn.builtin.types import FILL
 from haywire.core.node.properties import NodeProperties
 
 
@@ -64,7 +65,7 @@ class TestPropsChangeTriggersRedraw:
             "pinned": True,
             "skin": "some:skin:key",
             "layout_direction": "t2b",
-            "body_color": "#ff0000",
+            "body_fill": FILL.from_css_color("#ff0000"),
             "border_color": "#00ff0080",
             "border_thickness": 5,
             "border_roundness": 8,
@@ -98,7 +99,7 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
         wrapper.node.props.collapsed = True
-        wrapper.node.props.body_color = "#00ff00"
+        wrapper.node.props.body_fill = FILL.from_css_color("#00ff00")
         data = graph_obj.to_dict()
 
         from haywire.core.graph.scheduler import SyncScheduler
@@ -156,7 +157,7 @@ class TestPropsChangeTriggersRedraw:
 
         results: List[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
-        wrapper.node.props.body_color = "#0000ff"
+        wrapper.node.props.body_fill = FILL.from_css_color("#0000ff")
 
         assert _redraw_results(results, wrapper.node_id), (
             "a failed-build node's props edits must still refresh its (error) card"

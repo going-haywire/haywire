@@ -111,7 +111,7 @@ class BaseSkin(ABC):
 
         A skin passes its *own* look as the keyword defaults and gets back a
         style string in which any per-node override from the ``appearance``
-        props (``body_color``, ``border_color``, ``border_thickness``,
+        props (``body_fill``, ``border_color``, ``border_thickness``,
         ``border_roundness``) has replaced the corresponding default. A node
         that overrides nothing renders exactly as the skin declared, so calling
         this is behaviour-preserving.
@@ -146,7 +146,10 @@ class BaseSkin(ABC):
             # An empty colour field is not an override either.
             return None if value is None or value == "" else value
 
-        body = _override("body_color") or background
+        # The fill renders itself; nothing here builds CSS out of user text, so
+        # a stored value cannot escape its own declaration (FILL.to_css).
+        fill = _override("body_fill")
+        body = fill.to_css() if hasattr(fill, "to_css") else (fill or background)
         color = _override("border_color") or border_color
 
         def _px(name: str, default: int, ceiling: int) -> int:

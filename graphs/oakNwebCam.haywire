@@ -2041,7 +2041,6 @@
           "device": {
             "values": {},
             "promoted": {
-              "visiongraph.node.OakDCameraNode.device.mxid": "config",
               "haybale-visiongraph.node.OakDCameraNode.device.mxid": "config"
             }
           },

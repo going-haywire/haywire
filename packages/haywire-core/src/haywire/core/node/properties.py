@@ -9,11 +9,13 @@ Access via:  node.props.muted,  node.props.collapsed, ...
 Serialized under the 'props' key in graph JSON.
 """
 
+from typing import Any
+
 from haywire.core.settings import NodeSettings, setting
 from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
 from haywire.core.skin.settings import _layout_direction_choices, _node_skin_choices
-from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, INT, FLOAT, STRING
+from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FILL, INT, FLOAT, STRING
 
 
 class NodeProperties(NodeSettings):
@@ -31,7 +33,7 @@ class NodeProperties(NodeSettings):
         "pinned",
         "skin",
         "layout_direction",
-        "body_color",
+        "body_fill",
         "border_color",
         "border_thickness",
         "border_roundness",
@@ -110,18 +112,25 @@ class NodeProperties(NodeSettings):
     # graph on the first render. The values below mirror DefaultNodeSkin so an
     # inherited field and a just-touched one look the same.
     #
-    # Every appearance colour is alpha-capable: COLOR is a string type whose
-    # contract is "hex or rgba" (see ColorStr), so opacity rides inside the
-    # value as #rrggbbaa rather than in a sibling opacity field.
-    body_color = setting[COLOR](
-        "#1e1e1eff",
-        label="Body Color",
+    # The body is a FILL, not a colour: a solid fill is the one-stop case of the
+    # same type that expresses the gradients skins already use in code. CSS is
+    # generated from its fields (FILL.to_css), never assembled from user text.
+    # A callable default, not a shared FILL instance: every node must get its
+    # own, or resetting one node's fill would hand it an object another node
+    # can mutate. `reset()` writes this default back into the cell, and
+    # BaseField only accepts a real FILL — a bare None fails there.
+    body_fill = setting[FILL](
+        lambda: FILL(),
+        label="Body Fill",
         order=20,
         category="appearance",
-        description="Background color for this node (reset to inherit the skin's)",
-        widget_config={"alpha": True},
+        description="Background fill for this node (reset to inherit the skin's)",
     )
 
+    # Border stays a flat COLOR — a gradient border means border-image, which is
+    # a different mechanism with its own rules, and the card does not need it.
+    # Alpha rides inside the value as #rrggbbaa; COLOR is a string type whose
+    # contract has always been "hex or rgba" (see ColorStr).
     border_color = setting[COLOR](
         "#333333ff",
         label="Border Color",
@@ -201,30 +210,83 @@ class NodeProperties(NodeSettings):
     )
 
     # -----------------------------------------------------------------
+    # Serialization
+    # -----------------------------------------------------------------
+
+    def to_dict(self) -> dict:
+        """Serialize props, flattening ``body_fill`` to a JSON-safe dict.
+
+        ``Settings.to_dict`` stores each locally-set value as-is, which is
+        right for the primitives every other setting holds. A FILL is an
+        object, so it would reach ``json.dumps`` intact and raise — the graph
+        would simply fail to save. Its ``to_dict`` is the JSON form, and
+        ``from_dict`` below rebuilds it.
+        """
+        data = super().to_dict()
+        fill = data.get("values", {}).get("body_fill")
+        if isinstance(fill, FILL):
+            data["values"] = {**data["values"], "body_fill": fill.to_dict()}
+        return data
+
+    # -----------------------------------------------------------------
     # Load migration
     # -----------------------------------------------------------------
 
     #: Props renamed since a released graph format, ``old name -> new name``.
-    #: Applied on load only; nothing ever serializes under the old name again.
-    _RENAMED_FIELDS: dict[str, str] = {"color_override": "body_color"}
+    #: Applied on load only; nothing ever serializes under an old name again.
+    #: Both colour spellings land on ``body_fill``, whose FILL absorbs a plain
+    #: colour string as a one-stop solid (see ``FILL.__init__``).
+    _RENAMED_FIELDS: dict[str, str] = {
+        "color_override": "body_fill",
+        "body_color": "body_fill",
+    }
 
     def from_dict(self, data: dict) -> None:
         """Restore props, mapping any renamed field onto its current name.
 
         ``Settings.from_dict`` skips unknown value keys silently, so without
-        this an old graph's ``color_override`` would vanish rather than fail —
-        the quiet kind of data loss. A key already present under its new name
-        wins; the old one is dropped rather than overwriting it.
+        this an old graph's colour would vanish rather than fail — the quiet
+        kind of data loss. A key already present under its new name wins; the
+        old one is dropped rather than overwriting it.
+
+        Ordering matters when two old names map to the same new one
+        (``color_override`` and ``body_color`` both became ``body_fill``): the
+        later spelling wins, so a graph written between the two renames keeps
+        the value the user last saw rather than a resurrected older one.
         """
         values = data.get("values")
         if isinstance(values, dict):
-            migrated = {
-                self._RENAMED_FIELDS.get(key, key): value
-                for key, value in values.items()
-                if self._RENAMED_FIELDS.get(key, key) not in values or key not in self._RENAMED_FIELDS
-            }
+            migrated = dict(values)
+            for old_name, new_name in self._RENAMED_FIELDS.items():
+                if old_name not in migrated:
+                    continue
+                old_value = migrated.pop(old_name)
+                if new_name not in values:
+                    migrated[new_name] = self._migrate_value(new_name, old_value)
+            # A FILL round-trips through JSON as a plain dict, and the restore
+            # path writes into the cell without consulting the type — so it has
+            # to arrive already rebuilt, whether it came from a migration above
+            # or straight out of a graph saved in the current format.
+            if "body_fill" in migrated:
+                migrated["body_fill"] = self._migrate_value("body_fill", migrated["body_fill"])
             data = {**data, "values": migrated}
         super().from_dict(data)
+
+    @staticmethod
+    def _migrate_value(new_name: str, old_value: Any) -> Any:
+        """Convert a renamed field's stored value to the new field's type.
+
+        A rename that also changes type cannot be a key swap: the restore path
+        writes straight into the cell (``_write_local``), and ``BaseField``
+        rejects anything that is not already an instance of its type. Both old
+        colour spellings held a plain string, so they are rebuilt as one-stop
+        solid fills here.
+        """
+        if new_name == "body_fill" and not isinstance(old_value, FILL):
+            if isinstance(old_value, dict):
+                return FILL.from_dict(old_value)
+            return FILL.from_css_color(str(old_value))
+        return old_value
 
     # -----------------------------------------------------------------
     # Convenience helpers

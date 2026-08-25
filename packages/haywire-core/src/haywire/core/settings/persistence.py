@@ -84,16 +84,23 @@ class SettingsFileStore(object):
         """
         Flatten nested JSON to dot-notation keys.
 
-        A dict is a "setting entry" (not namespace) if it contains
-        any of: 'value', 'override', 'default', 'type', 'mode'
+        A dict is a *setting entry* (rather than a namespace) when it holds a
+        ``value``, or when it holds only entry metadata and no nested tables.
+
+        The two-step test matters because several metadata names are also
+        perfectly good namespace segments. ``ui.node.default.skin.studio_skin``
+        is a real framework key, and treating the bare presence of ``default``
+        as proof of an entry stopped the walk at ``ui.node`` — the registry
+        then tried to auto-define a whole subtree as one setting and logged
+        "no registered IType for Python type <class 'dict'>", silently
+        dropping every setting beneath it.
         """
         result = {}
         # 'override'/'mode' are retained here (post-P2) only so a legacy
         # {override=true, value=…} table is still recognised as a *setting entry*
         # (not a namespace) and routed through the registry's _parse_config_dict,
         # which strips the override flag and reads it as a plain set value.
-        setting_keys = {
-            "value",
+        metadata_keys = {
             "override",
             "default",
             "type",
@@ -105,11 +112,23 @@ class SettingsFileStore(object):
             "choices",
         }
 
+        def _is_entry(table: dict) -> bool:
+            # 'value' is decisive: it is the only key the writer ever emits, so
+            # anything carrying one is a leaf regardless of what else it holds.
+            if "value" in table:
+                return True
+            # Otherwise a hand-authored entry may be declared by metadata alone
+            # (e.g. {"default": 5, "type": "int"}) — but only if nothing inside
+            # it is itself a table, which would make it a namespace.
+            if not table or any(isinstance(v, dict) for v in table.values()):
+                return False
+            return all(k in metadata_keys for k in table)
+
         for key, value in data.items():
             full_key = f"{prefix}.{key}" if prefix else key
 
             if isinstance(value, dict):
-                if any(k in value for k in setting_keys):
+                if _is_entry(value):
                     result[full_key] = value
                 else:
                     result.update(self._flatten(value, full_key))

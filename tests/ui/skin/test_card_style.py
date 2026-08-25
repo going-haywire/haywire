@@ -4,12 +4,19 @@ card_style only reads ``wrapper.node.props``, so these drive it with a stub
 wrapper rather than standing up a graph and library system.
 """
 
+import json
 from types import SimpleNamespace
 
 import pytest
 
+from haywire.barn.builtin.types import FILL
 from haywire.core.node.properties import NodeProperties
 from haywire.ui.skin.base import BaseSkin
+
+
+def _solid(color: str) -> FILL:
+    """A one-stop solid fill — the common case, spelled once."""
+    return FILL(kind="solid", stops=[{"color": color, "at": 0}])
 
 
 class _Skin(BaseSkin):
@@ -48,50 +55,44 @@ class TestDefaults:
         """The behaviour-preserving case: a node that overrides nothing."""
         assert _style(NodeProperties()) == _style()
 
-    def test_empty_string_is_not_an_override(self):
-        """A cleared colour field reads back "" — that is unset, not black."""
-        props = NodeProperties()
-        props.body_color = ""
-        assert "background: var(--hw-node-bg);" in _style(props)
-
     def test_a_default_valued_field_is_not_an_override(self):
         """Inheritance is decided on is_locally_set, not on the value.
 
         The props carry concrete defaults so they survive the widget layer, so
-        a node that has never been styled holds a real colour — it must still
+        a node that has never been styled holds a real fill — it must still
         render the skin's look, not its own default.
         """
         props = NodeProperties()
-        assert props.body_color  # a concrete value, not None
-        assert not props.is_locally_set("body_color")
+        assert props.body_fill.to_css()  # a concrete value, not None
+        assert not props.is_locally_set("body_fill")
         assert "background: var(--hw-node-bg);" in _style(props)
 
     def test_resetting_a_field_returns_the_card_to_the_skin(self):
         props = NodeProperties()
-        props.body_color = "#112233"
+        props.body_fill = _solid("#112233")
         assert "background: #112233;" in _style(props)
-        props.reset("body_color")
+        props.reset("body_fill")
         assert "background: var(--hw-node-bg);" in _style(props)
 
     def test_writing_the_default_value_still_counts_as_an_override(self):
-        """Deliberately picking the default colour is a choice, not an unset."""
+        """Deliberately picking the default fill is a choice, not an unset."""
         props = NodeProperties()
-        default = props.body_color
-        props.body_color = "#abcdef"
-        props.body_color = default
-        assert props.is_locally_set("body_color")
-        assert f"background: {default};" in _style(props)
+        default = props.body_fill
+        props.body_fill = _solid("#abcdef")
+        props.body_fill = FILL(kind=default.kind, angle=default.angle, stops=default.stops)
+        assert props.is_locally_set("body_fill")
+        assert f"background: {default.to_css()};" in _style(props)
 
 
 class TestOverrides:
-    def test_body_color_replaces_the_background(self):
+    def test_a_solid_fill_replaces_the_background(self):
         props = NodeProperties()
-        props.body_color = "#112233"
+        props.body_fill = _solid("#112233")
         assert "background: #112233;" in _style(props)
 
-    def test_body_color_replaces_a_gradient_wholesale(self):
+    def test_a_solid_fill_replaces_a_skin_gradient_wholesale(self):
         props = NodeProperties()
-        props.body_color = "#112233"
+        props.body_fill = _solid("#112233")
         style = _Skin().card_style(
             _wrapper(props),
             background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
@@ -102,10 +103,28 @@ class TestOverrides:
         assert "background: #112233;" in style
         assert "linear-gradient" not in style
 
+    def test_a_gradient_fill_reaches_the_card(self):
+        """The capability the type exists for: what example_skin hardcodes in
+        Python is now expressible per node."""
+        props = NodeProperties()
+        props.body_fill = FILL(
+            kind="linear",
+            angle=135,
+            stops=[{"color": "#667eea", "at": 0}, {"color": "#764ba2", "at": 100}],
+        )
+        assert "background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);" in _style(props)
+
+    def test_a_radial_fill_reaches_the_card(self):
+        props = NodeProperties()
+        props.body_fill = FILL(
+            kind="radial", stops=[{"color": "#fff", "at": 0}, {"color": "#000", "at": 100}]
+        )
+        assert "background: radial-gradient(circle, #fff 0%, #000 100%);" in _style(props)
+
     def test_alpha_colors_pass_through_untouched(self):
         """#rrggbbaa is how opacity is expressed — there is no opacity field."""
         props = NodeProperties()
-        props.body_color = "#11223344"
+        props.body_fill = _solid("#11223344")
         props.border_color = "#aabbccdd"
         style = _style(props)
         assert "background: #11223344;" in style
@@ -154,7 +173,7 @@ class TestClamping:
         here, and a bad value must not take the whole card's render down.
         """
         props = SimpleNamespace(
-            body_color=None, border_color=None, border_thickness="fat", border_roundness=None
+            body_fill=None, border_color=None, border_thickness="fat", border_roundness=None
         )
         assert "border: 3px solid #333333;" in _style(props)
 
@@ -170,10 +189,8 @@ class TestPersistence:
 
     def test_an_unset_colour_never_reads_back_as_the_widget_default(self):
         props = NodeProperties()
-        for name in ("body_color", "border_color"):
-            value = getattr(props, name)
-            assert value is not None, f"{name} defaults to None — the widget will invent one"
-            assert value != "#ffffffff"
+        assert props.body_fill.to_css() != "#ffffffff"
+        assert props.border_color not in (None, "#ffffffff")
 
     def test_an_unset_number_never_reads_back_as_none(self):
         """NumberWidget has no null state either — None would render as 0."""
@@ -184,38 +201,73 @@ class TestPersistence:
         """An echo of the value the widget was given must not mark it set —
         otherwise every node that is merely looked at gets styled."""
         props = NodeProperties()
-        for name in ("body_color", "border_color", "border_thickness", "border_roundness"):
+        for name in ("body_fill", "border_color", "border_thickness", "border_roundness"):
             setattr(props, name, getattr(props, name))  # the browser's echo
         assert props.to_dict()["values"] == {}
 
-    def test_an_edited_colour_survives_save_and_reload(self):
+    def test_an_edited_fill_survives_save_and_reload(self):
         props = NodeProperties()
-        props.body_color = "#11223344"
+        props.body_fill = _solid("#11223344")
         props.border_thickness = 7
 
         reloaded = NodeProperties()
         reloaded.from_dict(props.to_dict())
 
-        assert reloaded.body_color == "#11223344"
+        assert reloaded.body_fill.to_css() == "#11223344"
         assert reloaded.border_thickness == 7
         assert "background: #11223344;" in _style(reloaded)
         assert "border: 7px solid" in _style(reloaded)
 
+    def test_a_gradient_survives_a_real_json_roundtrip(self):
+        """A FILL is an object; unflattened it would raise in json.dumps and the
+        graph would simply fail to save."""
+        props = NodeProperties()
+        props.body_fill = FILL(
+            kind="linear",
+            angle=90,
+            stops=[{"color": "#667eea", "at": 0}, {"color": "#764ba2", "at": 100}],
+        )
+
+        reloaded = NodeProperties()
+        reloaded.from_dict(json.loads(json.dumps(props.to_dict())))
+
+        assert isinstance(reloaded.body_fill, FILL)
+        assert reloaded.body_fill.to_css() == "linear-gradient(90deg, #667eea 0%, #764ba2 100%)"
+
 
 class TestRenameMigration:
-    def test_color_override_loads_as_body_color(self):
+    """Two renames have landed: color_override → body_color → body_fill.
+
+    The second also changed type, so it cannot be a key swap — the restore path
+    writes straight into the cell and BaseField rejects a bare string.
+    """
+
+    @pytest.mark.parametrize("old_name", ["color_override", "body_color"])
+    def test_an_old_colour_loads_as_a_solid_fill(self, old_name):
         """Settings.from_dict skips unknown keys silently, so without the shim
         an old graph's colour would vanish rather than fail."""
         props = NodeProperties()
-        props.from_dict({"values": {"color_override": "#abcdef"}, "promoted": {}})
-        assert props.body_color == "#abcdef"
+        props.from_dict({"values": {old_name: "#abcdef"}, "promoted": {}})
+        assert isinstance(props.body_fill, FILL)
+        assert props.body_fill.to_css() == "#abcdef"
+        assert props.is_locally_set("body_fill")
 
-    def test_new_name_wins_when_both_are_present(self):
+    def test_the_later_spelling_wins_when_both_are_present(self):
+        """A graph written between the two renames keeps the value the user
+        last saw, not a resurrected older one."""
         props = NodeProperties()
         props.from_dict({"values": {"color_override": "#111111", "body_color": "#222222"}, "promoted": {}})
-        assert props.body_color == "#222222"
+        assert props.body_fill.to_css() == "#222222"
 
-    def test_nothing_reserializes_under_the_old_name(self):
+    def test_nothing_reserializes_under_an_old_name(self):
         props = NodeProperties()
         props.from_dict({"values": {"color_override": "#abcdef"}, "promoted": {}})
-        assert "color_override" not in props.to_dict()["values"]
+        values = props.to_dict()["values"]
+        assert "color_override" not in values
+        assert "body_color" not in values
+
+    def test_a_migrated_graph_renders(self):
+        """The migration is only worth anything if the fill reaches the card."""
+        props = NodeProperties()
+        props.from_dict({"values": {"body_color": "#11223344"}, "promoted": {}})
+        assert "background: #11223344;" in _style(props)

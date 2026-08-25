@@ -395,7 +395,7 @@ def register_routes(library_service) -> None:
             ui.add_css(theme_css)
 
         props = NodeProperties()
-        fields = ("body_color", "border_color", "border_thickness", "border_roundness")
+        fields = ("body_fill", "border_color", "border_thickness", "border_roundness")
 
         with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
             render_settings(props, categories=("appearance",))
@@ -410,6 +410,11 @@ def register_routes(library_service) -> None:
             def _refresh() -> None:
                 for field_name, label in echoes.items():
                     value = getattr(props, field_name)
+                    # A FILL echoes as the CSS it renders to — that is the thing
+                    # under test, and a dataclass repr would assert nothing about
+                    # whether the fill actually reaches the card.
+                    if hasattr(value, "to_css"):
+                        value = value.to_css()
                     is_set = props.is_locally_set(field_name)
                     label.set_text(f"{value}|{'set' if is_set else 'unset'}")
 
