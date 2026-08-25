@@ -507,13 +507,65 @@ class AppShell:
             settings_registry.set_global("workbench.theme", wb_theme_key)
         context.active_workbench_theme_key = wb_theme_key
         theme = theme_registry.get_workbench(context.active_workbench_theme_key)
-        vars_str = " ".join(f"{k}: {v};" for k, v in theme.to_css_vars().items())
+        css_vars = theme.to_css_vars()
+        # The global node theme overrides the workbench's node tokens. Merged
+        # here rather than emitted as a second :root block: one block with the
+        # node theme's values already applied is what a later-wins cascade
+        # would produce anyway, and it cannot be reordered by accident.
+        css_vars.update(self._global_node_theme_vars())
+        vars_str = " ".join(f"{k}: {v};" for k, v in css_vars.items())
         return f" :root {{ {vars_str} }}"
+
+    def _global_node_theme_vars(self) -> dict[str, str]:
+        """Tier-1 vars from the globally selected node theme, or {} if unset."""
+        try:
+            context = self.session.context
+            settings_registry = context.app.library_service.get_settings_registry()
+            theme_registry = context.app.library_service.get_theme_registry()
+            key, _ = settings_registry.resolve("ui.node.default.skin.studio_node_theme")
+            if not key:
+                return {}
+            theme = theme_registry.get_node_theme(key)
+        except Exception:
+            logger.warning("Global node theme could not be resolved; using workbench values")
+            return {}
+        return theme.to_css_vars()
 
     def _on_setting_changed(self, name: str, value) -> None:
         """React to global setting changes that the shell cares about."""
         if name == "workbench.theme" and value.value:
             self.apply_workbench_theme(value.value)
+        elif name == "ui.node.default.skin.studio_node_theme":
+            self.apply_node_theme(value.value or "")
+
+    def apply_node_theme(self, registry_key: str) -> None:
+        """Switch the global node theme by rewriting its CSS variables on :root.
+
+        Clear-then-set, deliberately: ``setProperty`` only ever writes what the
+        new theme mentions, so switching to a theme that omits a token would
+        otherwise leave the PREVIOUS theme's value stranded on :root — a bug
+        invisible until someone authors a partial theme, and then only in one
+        switch direction. Removing every node token first makes the workbench
+        theme's own value show through for anything the new theme is silent on.
+        """
+        try:
+            from haywire.ui.themes.workbench import NODE_TIER_TOKENS, WorkbenchTheme
+
+            context = self.session.context
+            theme_registry = context.app.library_service.get_theme_registry()
+
+            for token in NODE_TIER_TOKENS:
+                css_var = WorkbenchTheme._CSS_TOKEN_MAP[token]
+                ui.run_javascript(f"document.documentElement.style.removeProperty('{css_var}')")
+
+            if not registry_key:
+                return
+            theme = theme_registry.get_node_theme(registry_key)
+            for css_var, value in theme.to_css_vars().items():
+                safe_value = value.replace("'", "\\'")
+                ui.run_javascript(f"document.documentElement.style.setProperty('{css_var}', '{safe_value}')")
+        except Exception as e:
+            logging.getLogger(__name__).error(f"Failed to apply node theme '{registry_key}': {e}")
 
     def apply_workbench_theme(self, registry_key: str) -> None:
         """
@@ -547,6 +599,7 @@ class AppShell:
         # Exact-key subscription — the shell only cares about this one key.
         settings_registry = self.session.context.app.library_service.get_settings_registry()
         settings_registry.subscribe("workbench.theme", self._on_setting_changed)
+        settings_registry.subscribe("ui.node.default.skin.studio_node_theme", self._on_setting_changed)
 
         # Subscription to Workspace-mutation handlers.
         self._lifecycle_unsubs.append(self.session.subscribe(Reveal, self._reveal_editor))

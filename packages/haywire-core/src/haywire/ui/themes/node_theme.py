@@ -1,9 +1,20 @@
 # haywire/ui/themes/node_theme.py
 """
-NodeTheme — per-node rendering color tokens.
+NodeTheme — the node-scoped subset of the workbench token vocabulary.
 
-Follows the same pattern as WorkbenchTheme: plain Color string class attributes
-auto-wrapped into _FieldProxy objects by __init_subclass__.
+A NodeTheme is not a second theme system: it declares the SAME tokens a
+WorkbenchTheme does (``node_bg``, ``node_border_color``, …), and emits them
+through the same ``to_css_vars()``. What differs is only *where* the result is
+injected, and therefore what it overrides:
+
+    :root            WorkbenchTheme        every token
+    :root            global NodeTheme      node tokens, overriding the above
+    .graph-canvas    graph's NodeTheme     only if it differs from global
+    .ui-node-slot    node's NodeTheme      only if it differs from the graph
+
+Nothing reads a theme in Python. A skin emits ``background: var(--hw-node-bg)``
+once and the browser re-resolves it whenever a tier's declarations change —
+which is why a per-node look costs a style-write and never a card redraw.
 """
 
 from __future__ import annotations
@@ -16,23 +27,14 @@ class NodeTheme(BaseTheme):
     """
     Base class for node rendering themes.
 
-    Subclasses decorated with @node_theme can be registered with ThemeRegistry.
+    Subclasses decorated with @theme can be registered with ThemeRegistry.
+
+    Declare only node-scoped tokens (``NODE_TIER_TOKENS``). Anything else is
+    silently dropped by ``to_css_vars()``, which walks the shared token map —
+    including the Tier 2 tokens (``node_selected`` / ``node_active`` /
+    ``node_shadow``), which are real tokens but are consumed on an ANCESTOR of
+    the element a node theme writes to, so a node tier cannot reach them.
     """
 
     _fields: ClassVar[dict[str, _FieldProxy]] = {}
     _namespace: ClassVar[str] = ""
-
-    def __init_subclass__(cls, **kwargs: object) -> None:
-        super().__init_subclass__(**kwargs)
-        cls._fields = {}
-        for name, val in cls.__dict__.items():
-            if name.startswith("_"):
-                continue
-            if isinstance(val, str) and not callable(val):
-                proxy = _FieldProxy(default=val, attr_name=name)
-                cls._fields[name] = proxy
-
-    def get_color(self, token: str) -> str:
-        """Return the color value for a named token (or '' if missing)."""
-        proxy = self._fields.get(token)
-        return proxy._default if proxy is not None else ""

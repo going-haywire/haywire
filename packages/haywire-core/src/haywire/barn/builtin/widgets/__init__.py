@@ -8,7 +8,6 @@ from .basic_widgets import (
     TextWidget,
 )
 from .color_widget import ColorWidget
-from .fill_widget import FillWidget
 from .vec_widget import VecWidget
 
 __all__ = [
@@ -21,5 +20,4 @@ __all__ = [
     "SimpleLabelWidget",
     "VecWidget",
     "ColorWidget",
-    "FillWidget",
 ]

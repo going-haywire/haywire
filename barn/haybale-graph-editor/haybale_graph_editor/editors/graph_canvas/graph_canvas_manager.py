@@ -119,7 +119,46 @@ class GraphCanvasManager:
         # Subscribe for incremental validation updates
         self.graph.subscribe_to_validation(self.visual_layer.on_validated)
 
+        # Graph-tier node theme: written once onto the canvas element, which is
+        # an ancestor of every node card, so no per-node work is involved.
+        self._apply_graph_node_theme()
+        self.graph.props.subscribe_field("node_theme", lambda *_: self._apply_graph_node_theme())
+
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
+
+    def _apply_graph_node_theme(self) -> None:
+        """Write this graph's node theme onto the canvas as CSS vars.
+
+        The canvas element sits ABOVE ``[data-node-id]``, so unlike the per-node
+        tier this one also reaches the Tier 2 tokens (selection ring, active
+        outline, shadow) — custom properties inherit downward, and those rules
+        live on an element the node's own slot cannot reach.
+
+        Skipped entirely when the graph does not diverge from the global theme:
+        identical values produce identical CSS, and :root already carries them.
+        """
+        graph_key = getattr(self.graph.props, "node_theme", "") or ""
+        if not graph_key:
+            self.canvas_vue.style(replace="")
+            return
+
+        try:
+            from haywire.core.di.config import get_settings_registry, get_theme_registry
+
+            global_key, _ = get_settings_registry().resolve("ui.node.default.skin.studio_node_theme")
+            if graph_key == global_key:
+                self.canvas_vue.style(replace="")
+                return
+            theme = get_theme_registry().get_node_theme(graph_key)
+        except Exception:
+            # An unresolvable key contributes nothing rather than breaking the
+            # canvas — the global tier shows through.
+            logger.warning("Graph node_theme %r could not be resolved", graph_key)
+            self.canvas_vue.style(replace="")
+            return
+
+        decls = "; ".join(f"{var}: {val}" for var, val in theme.to_css_vars().items())
+        self.canvas_vue.style(replace=decls)
 
     # =========================================================================
     # Setup

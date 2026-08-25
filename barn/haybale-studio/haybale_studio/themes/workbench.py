@@ -48,11 +48,19 @@ class HaywireDarkTheme(WorkbenchTheme):
     info = "#2196f3"
     positive = "#4caf50"
 
-    # Node chrome
+    # Node chrome — Tier 1 (card surface; overridable per graph and per node).
+    #
+    # The border values are seeded from what DefaultNodeSkin hardcoded, not from
+    # the old `node_border = "#2e2e48"`: that token existed but no skin ever read
+    # it, so honouring it would restyle every node to a colour nobody has seen.
     node_bg = "#1e1e2e"
-    node_border = "#2e2e48"
+    node_border_color = "#333333"
+    node_border_width = "3px"
+    node_border_radius = "16px"
     node_header_bg = "#252540"
-    node_header_text = "rgba(255,255,255,0.87)"
+    node_header_text_color = "rgba(255,255,255,0.87)"
+    node_text_color = "#c0c0e0"
+    # Tier 2 (canvas affordances; global/graph tier only — see theme-canon).
     node_selected = "#4f8ef7"
     node_active = "#8fb8ff"
     node_shadow = "rgba(0,0,0,0.4)"
@@ -140,11 +148,18 @@ class HaywireLightTheme(WorkbenchTheme):
     info = "#1976d2"
     positive = "#388e3c"
 
-    # Node chrome
+    # Node chrome — Tier 1 (card surface; overridable per graph and per node).
+    #
+    # Border seeded from DefaultNodeSkin's literal, as in the dark theme: the
+    # old `node_border = "#ffffff"` was never read by any skin.
     node_bg = "rgba(255,255,255,0.3)"
-    node_border = "#ffffff"
+    node_border_color = "#333333"
+    node_border_width = "3px"
+    node_border_radius = "16px"
     node_header_bg = "#f0f0f6"
-    node_header_text = "rgba(0,0,0,0.87)"
+    node_header_text_color = "rgba(0,0,0,0.87)"
+    node_text_color = "rgba(0,0,0,0.87)"
+    # Tier 2 (canvas affordances; global/graph tier only — see theme-canon).
     node_selected = "#4f8ef7"
     node_active = "#1f5fd0"
     node_shadow = "rgba(0,0,0,0.08)"

@@ -29,33 +29,13 @@ class BaseTheme:
 
     Exists so ThemeRegistry can bind ``BaseRegistry[BaseTheme]`` — both theme
     families share the field-proxy structure and carry a ``class_identity``
-    set by their decorator (@workbench_theme / @node_theme). Subclasses keep
-    their own ``__init_subclass__`` field-wrapping behaviour.
-    """
+    set by their decorator (@workbench_theme / @node_theme).
 
-    class_identity: ClassVar[ThemeClassIdentity]
-    class_library: ClassVar[LibraryIdentity]
-
-    _fields: ClassVar[dict[str, _FieldProxy]] = {}
-    _namespace: ClassVar[str] = ""
-
-
-class WorkbenchTheme(BaseTheme):
-    """
-    Base class for workbench (app-shell) themes.
-
-    Subclasses define CSS variable values as plain class attributes:
-
-        class HaywireDarkTheme(WorkbenchTheme):
-            bg_page    = '#12121e'
-            bg_surface = '#1e1e2e'
-            ...
-
-    _CSS_TOKEN_MAP maps field names to CSS custom property names.
-    to_css_vars() returns the {--hw-token: value} dict for injection into :root.
-
-    Subclasses decorated with @workbench_theme get a class_identity attribute
-    and can be registered with ThemeRegistry.
+    Both families also share ONE token map, deliberately: a NodeTheme is the
+    node-scoped *subset* of the same token vocabulary, so it must not be able
+    to name a token the workbench does not have. Sharing the map makes that a
+    property of the code rather than of convention — two maps could drift on a
+    var name, and a node theme would then silently fail to override anything.
     """
 
     class_identity: ClassVar[ThemeClassIdentity]
@@ -66,6 +46,10 @@ class WorkbenchTheme(BaseTheme):
 
     # Maps field_name -> CSS variable name.
     # These names match the --hw-* vars used throughout app_shell.py and other CSS.
+    #
+    # A field NOT in this map is silently dropped by to_css_vars() — it walks
+    # the map, not _fields. That is the cost of the map being explicit, and the
+    # reason a mistyped token in a theme subclass produces no var and no error.
     _CSS_TOKEN_MAP: ClassVar[dict[str, str]] = {
         # Backgrounds
         "bg_page": "--hw-bg-page",
@@ -96,11 +80,27 @@ class WorkbenchTheme(BaseTheme):
         "success": "--hw-success",
         "info": "--hw-info",
         "positive": "--hw-positive",
-        # Node chrome
+        # Node chrome — TIER 1: the card's own surface.
+        #
+        # These are the tokens a NodeTheme may carry, and the only ones a graph
+        # or a single node can override (see NODE_TIER_TOKENS below). Lengths
+        # carry their unit IN the value ("3px", not 3): var() is textual
+        # substitution, so `border: 3 solid red` is invalid CSS and fails
+        # silently. Same shape as muted_opacity / compact_field_h.
         "node_bg": "--hw-node-bg",
-        "node_border": "--hw-node-border",
+        "node_border_color": "--hw-node-border-color",
+        "node_border_width": "--hw-node-border-width",
+        "node_border_radius": "--hw-node-border-radius",
         "node_header_bg": "--hw-node-header-bg",
-        "node_header_text": "--hw-node-header-text",
+        "node_header_text_color": "--hw-node-header-text-color",
+        "node_text_color": "--hw-node-text-color",
+        # Node chrome — TIER 2: canvas affordances expressing editor state.
+        #
+        # Consumed by canvas.vue on [data-node-id], which is an ANCESTOR of
+        # .ui-node-slot. Custom properties inherit downward only, so a var set
+        # on the slot cannot reach these rules: a node-tier theme silently
+        # cannot restyle its own selection ring. The :root and .graph-canvas
+        # tiers sit above [data-node-id] and CAN. See theme-canon.
         "node_selected": "--hw-node-selected",
         "node_active": "--hw-node-active",
         "node_shadow": "--hw-node-shadow",
@@ -177,3 +177,44 @@ class WorkbenchTheme(BaseTheme):
             if proxy is not None:
                 result[css_var] = proxy._default
         return result
+
+
+#: The node-scoped token subset — what a NodeTheme may carry, and what the
+#: graph and node tiers may override.
+#:
+#: Tier 1 only. The Tier 2 tokens (node_selected / node_active / node_shadow)
+#: are reachable from :root and .graph-canvas but NOT from .ui-node-slot, so
+#: including them here would promise a per-node override that cannot work.
+#:
+#: Load-bearing beyond documentation: applying a node theme CLEARS every token
+#: in this list before setting the new theme's, so switching to a theme that
+#: omits a token does not leave the previous theme's value stranded.
+NODE_TIER_TOKENS: tuple[str, ...] = (
+    "node_bg",
+    "node_border_color",
+    "node_border_width",
+    "node_border_radius",
+    "node_header_bg",
+    "node_header_text_color",
+    "node_text_color",
+)
+
+
+class WorkbenchTheme(BaseTheme):
+    """
+    Base class for workbench (app-shell) themes.
+
+    Subclasses define CSS variable values as plain class attributes:
+
+        class HaywireDarkTheme(WorkbenchTheme):
+            bg_page    = '#12121e'
+            bg_surface = '#1e1e2e'
+            ...
+
+    Carries the FULL token vocabulary — every token in ``_CSS_TOKEN_MAP``,
+    injected once into ``:root``. A NodeTheme carries the node-scoped subset
+    and overrides those same vars at a later cascade position.
+
+    Subclasses decorated with @theme get a class_identity attribute and can be
+    registered with ThemeRegistry.
+    """

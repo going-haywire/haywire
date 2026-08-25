@@ -68,7 +68,7 @@ class UINode:
 
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
-        self._subscribe_size_fields()
+        self._subscribe_slot_fields()
 
     @property
     def position(self) -> Optional[tuple[float, float]]:
@@ -200,7 +200,7 @@ class UINode:
                     self.current_ui_card.append(error)  # Append error details if any
 
                 self._emit_sync_event_redraw()
-                self._apply_size()
+                self._apply_slot_style()
 
                 return True  # Render successful
         except Exception as e:
@@ -226,23 +226,64 @@ class UINode:
 
             return False
 
-    def _on_size_field_change(self, _value: Any, _old: Any) -> None:
-        """A width/height/size_adapt change → restyle the slot. NEVER a redraw.
+    def _on_slot_field_change(self, _value: Any, _old: Any) -> None:
+        """A size or appearance prop changed → restyle the slot. NEVER a redraw.
 
         This is the loop-breaker: measurement (ResizeObserver) writes props,
         which lands here and only restyles the slot — no card rebuild, so no
-        re-measure cascade.
+        re-measure cascade. Appearance rides the same path for the same reason
+        turned inside out: rebuilding the card on a colour keystroke destroys
+        the input being typed into.
         """
-        self._apply_size()
+        self._apply_slot_style()
 
-    def _subscribe_size_fields(self) -> None:
-        """Watch the three size-affecting props for the style-write path."""
+    def _subscribe_slot_fields(self) -> None:
+        """Watch every prop that restyles the slot rather than redrawing it."""
         props = self.wrapper.node.props
-        for field_name in ("width", "height", "size_adapt"):
-            props.subscribe_field(field_name, self._on_size_field_change)
+        for field_name in ("width", "height", "size_adapt", "node_theme", "color_override"):
+            props.subscribe_field(field_name, self._on_slot_field_change)
 
-    def _apply_size(self) -> None:
-        """Apply per-axis size to the host slot as a style-write (no card redraw).
+    def _node_theme_declarations(self) -> list[str]:
+        """This node's theme as CSS var declarations — empty unless it diverges.
+
+        Divergence is decided by comparing the node's resolved ``node_theme``
+        against the graph's, NOT by asking whether the field is locally set:
+        identical values produce identical CSS, so writing them is pure waste
+        however they arose. On a large graph that waste is the difference
+        between one declaration set and one per node.
+
+        Only Tier 1 tokens are emitted. The Tier 2 tokens (selection ring,
+        active outline, shadow) are consumed by canvas.vue on ``[data-node-id]``
+        — an ANCESTOR of this slot — and custom properties inherit downward
+        only, so a node tier cannot reach them at all.
+        """
+        props = self.wrapper.node.props
+        node_key = getattr(props, "node_theme", "") or ""
+        if not node_key:
+            return []
+
+        graph = getattr(self.wrapper, "graph", None)
+        graph_key = getattr(getattr(graph, "props", None), "node_theme", "") or ""
+        if node_key == graph_key:
+            return []
+
+        try:
+            from haywire.core.di.config import get_theme_registry
+            from haywire.ui.themes.workbench import NODE_TIER_TOKENS
+
+            theme = get_theme_registry().get_node_theme(node_key)
+        except Exception:
+            # An unknown or unresolvable theme key must not take the node's
+            # whole render down — it simply contributes nothing, so the tier
+            # above shows through.
+            logger.warning("Node %s: unresolvable node_theme %r", self._node_id, node_key)
+            return []
+
+        tier_vars = {theme._CSS_TOKEN_MAP[t] for t in NODE_TIER_TOKENS if t in theme._CSS_TOKEN_MAP}
+        return [f"{var}: {val}" for var, val in theme.to_css_vars().items() if var in tier_vars]
+
+    def _apply_slot_style(self) -> None:
+        """Apply size AND appearance to the host slot as one style-write.
 
         A ``manual`` axis is a user-defined MINIMUM: written as inline
         ``min-width``/``min-height``, so the node draws at that size but content
@@ -253,7 +294,15 @@ class UINode:
         ``data-size-adapt`` is stamped so the client-side observer can skip
         manual axes and the card-fill CSS (canvas.vue) can key off it.
 
-        Idempotent: called after every render and on every size-field change.
+        Size and appearance MUST share this one method: the write below is
+        ``replace=``, deliberately authoritative, so a second writer using
+        ``add=`` would be silently wiped on the next size change.
+
+        Order matters at the end: ``color_override`` is composed last so an
+        explicit highlight wins over the node's own theme. Later declarations
+        of the same custom property in one style attribute win.
+
+        Idempotent: called after every render and on every slot-field change.
         """
         if not self.container_slot:
             return
@@ -268,9 +317,17 @@ class UINode:
         if manual_h:
             decls.append(f"min-height: {props.height}px")
 
+        decls += self._node_theme_declarations()
+
+        # Emptiness is the whole "unset" mechanism — no is_locally_set needed.
+        override = getattr(props, "color_override", None)
+        if override:
+            decls.append(f"--hw-node-bg: {override}")
+
         # replace= (not add=) so the write is authoritative every call: an
         # auto axis clears any inline width/height a prior manual mode left,
-        # rather than merging stale declarations.
+        # and a cleared colour clears its var, rather than merging stale
+        # declarations.
         self.container_slot.style(replace="; ".join(decls))
         self.container_slot._props["data-size-adapt"] = mode
         self.container_slot.update()

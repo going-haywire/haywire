@@ -1,6 +1,5 @@
 from .choices import CHOICES
 from .color import COLOR, ColorStr
-from .fill import FILL
 from .specs import BOOL, FLOAT, INT, STRING, FLOATField, INTField
 from .vectors import VEC2F, VEC2I, VEC3F, VEC3I, VEC4F, VEC4I
 
@@ -20,5 +19,4 @@ __all__ = [
     "VEC4F",
     "COLOR",
     "ColorStr",
-    "FILL",
 ]

@@ -1,24 +1,33 @@
-"""FILL IType — a structured background fill for a node card.
+"""FILL IType — a structured background fill, as a worked example.
 
-Why a type rather than another colour string: a fill has *structure* — a kind,
-an angle, and N colour stops — and CSS for it is **generated from those fields**
+A demonstration of a **compound BaseType with a custom widget**: a value with
+several independently-edited parts, a non-trivial editor, and a rendering
+method. Node authors wanting a structured type of their own can read this one
+end to end — see ``FillDemoNode`` for it wired into a real card.
+
+Why a type rather than a colour string: a fill has *structure* — a kind, an
+angle, and N colour stops — and CSS for it is **generated from those fields**
 rather than typed by a user. Nothing here ever concatenates free text into a
 style attribute, so the value cannot carry a stray ``;`` out of its own
-declaration and inject further CSS onto the card. A plain string field spelling
+declaration and inject further CSS. A plain string field spelling
 ``linear-gradient(...)`` by hand can.
 
 ``to_css()`` is the whole point of the type: it is the only thing that turns a
 FILL into CSS, and it is total — every reachable field combination yields a
-valid ``background`` value, so a hand-edited graph cannot break a card's render.
+valid ``background`` value, so a hand-edited graph cannot break a render.
 """
 
 from dataclasses import asdict, dataclass, field
 from typing import Any
 
-from haywire.barn.builtin import widget_keys
 from haywire.core.types import FlowType
 from haywire.core.types import type as type_decorator
 from haywire.core.types.base import BaseType
+
+FILL_WIDGET = "haybale-example:widget:FillWidget"
+"""The widget's registry key. Spelled out rather than imported from a shared
+constants module: the type and its widget ship in the SAME library, so the key
+is a local fact — and a library must not reach into haywire-core's key list."""
 
 SOLID = "solid"
 LINEAR = "linear"
@@ -56,29 +65,13 @@ def _clean_stop(stop: Any, fallback_at: int) -> dict:
     return {"color": _clean_color(stop.get("color")), "at": at}
 
 
-def _coerce(value: Any) -> "FILL":
-    """Any inbound representation of a fill, as a FILL.
-
-    Three arrive in practice: a FILL (a re-seed or a copy), a dict (stored
-    JSON, or a settings default), and a bare colour string (the migration from
-    the old ``body_color``, and anything a node sets programmatically).
-    """
-    if isinstance(value, FILL):
-        return FILL(kind=value.kind, angle=value.angle, stops=value.stops)
-    if isinstance(value, dict):
-        return FILL.from_dict(value)
-    if isinstance(value, str):
-        return FILL.from_css_color(value)
-    return FILL()
-
-
 @type_decorator(
     flow_type=FlowType.DATA,
     label="Fill",
     description="Solid colour or gradient background",
     color="#f7b0ff",
     default={"kind": SOLID, "angle": 135, "stops": [{"color": _DEFAULT_COLOR, "at": 0}]},
-    widget_key=widget_keys.FILL_WIDGET,
+    widget_key=FILL_WIDGET,
 )
 @dataclass
 class FILL(BaseType):
@@ -97,22 +90,13 @@ class FILL(BaseType):
     running top-left → bottom-right."""
     stops: list = field(default_factory=lambda: [{"color": _DEFAULT_COLOR, "at": 0}])
 
-    def __init__(self, value: Any = None, **kwargs: Any) -> None:
-        """Accept both the dataclass kwargs and the settings layer's wrapper.
+    def __init__(self, **kwargs: Any) -> None:
+        """Build a fill from its parts, tolerating anything a hand edit left.
 
-        ``Settings._cell_for`` seeds every cell as
-        ``create_field(default_override={"value": seed})`` — a shape that fits
-        ``PrimitiveType``, which is what settings fields have been until now.
-        FILL absorbs that here rather than widening the shared seeding contract:
-        one type bending to the framework is cheaper, and safer, than changing
-        how every existing setting is seeded.
-
-        ``value`` may be a FILL (copied), a dict (parsed like stored JSON), a
-        plain colour string (a solid fill), or None (the dataclass defaults).
+        Hand-written rather than dataclass-generated because the stop list
+        needs sanitising on the way in: construction must never raise on a
+        graph someone edited by hand, and ``to_css`` cleans what survives.
         """
-        if value is not None and not kwargs:
-            parsed = _coerce(value)
-            kwargs = {"kind": parsed.kind, "angle": parsed.angle, "stops": parsed.stops}
         self.kind = kwargs.get("kind", SOLID)
         self.angle = kwargs.get("angle", 135)
         stops = kwargs.get("stops")
@@ -167,8 +151,3 @@ class FILL(BaseType):
         except (TypeError, ValueError):
             angle = 135
         return f"linear-gradient({angle}deg, {rendered})"
-
-    @classmethod
-    def from_css_color(cls, color: str) -> "FILL":
-        """A one-stop solid fill — the migration path from a plain COLOR."""
-        return cls(kind=SOLID, stops=[{"color": _clean_color(color), "at": 0}])

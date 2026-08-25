@@ -12,7 +12,6 @@ import pytest
 
 from haywire.core.graph.base import BaseGraph
 from haywire.core.graph.types import ChangeReason, ValidationResult
-from haywire.barn.builtin.types import FILL
 from haywire.core.node.properties import NodeProperties
 
 
@@ -27,13 +26,29 @@ def _redraw_results(results: List[ValidationResult], node_id: str) -> List[Valid
     return [r for r in results if r.nodes.get(node_id) == ChangeReason.NODE_REDRAW_REQUESTED]
 
 
+#: Non-layout props that deliberately do NOT redraw: both resolve to CSS
+#: custom properties written onto the node's host slot, which the browser
+#: re-resolves without rebuilding the card. Redrawing for a colour is what
+#: destroyed the input being typed into.
+STYLE_WRITE_FIELDS = {"node_theme", "color_override"}
+
+
 class TestRedrawFieldsSchema:
     """Pure schema contract — no graph or library system needed."""
 
-    def test_redraw_fields_are_exactly_the_non_layout_props(self):
+    def test_redraw_fields_are_the_non_layout_props_minus_style_writes(self):
         fields = NodeProperties._property_settings()
         non_layout = {name for name, desc in fields.items() if desc._category != "layout"}
-        assert set(NodeProperties.REDRAW_FIELDS) == non_layout
+        assert set(NodeProperties.REDRAW_FIELDS) == non_layout - STYLE_WRITE_FIELDS
+
+    def test_style_write_fields_exist_and_are_excluded(self):
+        """Guards the exclusion against a rename: if one of these props is ever
+        renamed, this fails rather than silently letting it rejoin the redraw
+        path via the set-difference above."""
+        fields = NodeProperties._property_settings()
+        for name in STYLE_WRITE_FIELDS:
+            assert name in fields, f"'{name}' is gone — update STYLE_WRITE_FIELDS"
+            assert name not in NodeProperties.REDRAW_FIELDS
 
     def test_muted_description_does_not_promise_execution_skipping(self):
         desc = NodeProperties._property_settings()["muted"]
@@ -65,10 +80,6 @@ class TestPropsChangeTriggersRedraw:
             "pinned": True,
             "skin": "some:skin:key",
             "layout_direction": "t2b",
-            "body_fill": FILL.from_css_color("#ff0000"),
-            "border_color": "#00ff0080",
-            "border_thickness": 5,
-            "border_roundness": 8,
             "comment": "hello",
             "show_comment": True,
         }
@@ -80,6 +91,22 @@ class TestPropsChangeTriggersRedraw:
             setattr(wrapper.node.props, field_name, value)
             graph_obj.unsubscribe_from_validation(results.append)
             assert _redraw_results(results, wrapper.node_id), f"no redraw for '{field_name}'"
+
+    def test_style_write_props_do_not_redraw(self, graph_with_library_system):
+        """A colour or node-theme change restyles the host slot; it must not
+        rebuild the card. This is the property that lets the properties panel
+        keep focus while a colour is being edited."""
+        graph_obj = graph_with_library_system
+        wrapper = _add_node(graph_obj)
+
+        results: List[ValidationResult] = []
+        graph_obj.subscribe_to_validation(results.append)
+
+        wrapper.node.props.color_override = "#ff0000ff"
+
+        assert not _redraw_results(results, wrapper.node_id), (
+            "color_override rides the style-write path and must not full-redraw"
+        )
 
     def test_layout_prop_change_does_not_redraw(self, graph_with_library_system):
         graph_obj = graph_with_library_system
@@ -99,7 +126,7 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
         wrapper.node.props.collapsed = True
-        wrapper.node.props.body_fill = FILL.from_css_color("#00ff00")
+        wrapper.node.props.color_override = "#00ff00ff"
         data = graph_obj.to_dict()
 
         from haywire.core.graph.scheduler import SyncScheduler
@@ -157,7 +184,9 @@ class TestPropsChangeTriggersRedraw:
 
         results: List[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
-        wrapper.node.props.body_fill = FILL.from_css_color("#0000ff")
+        # A REDRAW_FIELDS prop, deliberately: color_override rides the
+        # style-write path and would prove nothing about the subscription.
+        wrapper.node.props.comment = "edited after a failed build"
 
         assert _redraw_results(results, wrapper.node_id), (
             "a failed-build node's props edits must still refresh its (error) card"

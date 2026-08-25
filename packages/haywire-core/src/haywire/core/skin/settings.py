@@ -40,6 +40,24 @@ def _default_skin():
         return "default"
 
 
+def _node_theme_choices():
+    """Registered node themes, plus an explicit "inherit" entry.
+
+    The empty key is what makes the tier chain work: a graph or node whose
+    ``node_theme`` is empty contributes no CSS vars at all, so the tier above
+    it shows through. Without a selectable empty option there would be no way
+    back to inheriting once a theme had been picked.
+    """
+    options = {"": "— Inherit —"}
+    try:
+        from haywire.core.di.config import get_theme_registry
+
+        options.update({k: lbl for k, lbl in get_theme_registry().list_visible_node_themes()})
+    except Exception:
+        pass
+    return options
+
+
 class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEFAULT_SKIN):
     """Settings controlling node layout, pin geometry, and element visibility.
 
@@ -68,4 +86,11 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         description="Direction flow reads across node cards in the studio",
         category=CATEGORY_NODE_SKINS,
         widget_config={"options": _layout_direction_choices},
+    )
+    studio_node_theme = setting[CHOICES](
+        "",
+        label="Default Node Theme",
+        description="Node theme applied to every card in the studio",
+        category=CATEGORY_NODE_SKINS,
+        widget_config={"options": _node_theme_choices},
     )

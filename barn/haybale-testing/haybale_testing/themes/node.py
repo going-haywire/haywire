@@ -8,18 +8,16 @@ from haywire.ui.themes.decorator import theme
 
 @theme(label="Test Node", hidden=True)
 class TestNodeTheme(NodeTheme):
-    """Minimal node theme for tests."""
+    """Minimal node theme for tests.
 
-    header_bg = "#abcdef"
-    header_text = "#ffffff"
-    body_bg = "#123456"
-    body_text = "#eeeeee"
-    border = "#234567"
-    border_selected = "#ff00ff"
-    port_inlet = "#00aaff"
-    port_outlet = "#ff6600"
-    port_exec_inlet = "#ffffff"
-    port_exec_outlet = "#ffffff"
-    error_bg = "#330000"
-    error_border = "#ff0000"
-    muted_opacity = "0.4"
+    Deliberately distinctive values: tests assert that selecting this theme
+    changes the emitted vars, so every token differs from the shipped themes.
+    """
+
+    node_bg = "#123456"
+    node_border_color = "#234567"
+    node_border_width = "5px"
+    node_border_radius = "4px"
+    node_header_bg = "#abcdef"
+    node_header_text_color = "#ffffff"
+    node_text_color = "#eeeeee"

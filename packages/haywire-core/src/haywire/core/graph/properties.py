@@ -18,6 +18,7 @@ from haywire.core.skin.settings import (
     NodeDefaultSkinSettings,
     _layout_direction_choices,
     _node_skin_choices,
+    _node_theme_choices,
 )
 
 
@@ -48,4 +49,16 @@ class GraphProperties(GraphSettings):
         category="appearance",
         order=20,
         widget_config={"options": _layout_direction_choices},
+    )
+
+    node_theme = shadow(
+        src=NodeDefaultSkinSettings.studio_node_theme,
+        label="Node Theme",
+        description=(
+            "Theme for the node cards in THIS graph. Overrides the studio "
+            "default; a node's own theme overrides this."
+        ),
+        category="appearance",
+        order=30,
+        widget_config={"options": _node_theme_choices},
     )

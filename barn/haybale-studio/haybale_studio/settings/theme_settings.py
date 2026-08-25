@@ -4,8 +4,10 @@
 from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
+from haywire.core.settings.descriptor import shadow
 from haywire.core.di.config import get_theme_registry
-from haywire.barn.builtin.types import CHOICES, STRING
+from haywire.core.skin.settings import NodeDefaultSkinSettings, _node_theme_choices
+from haywire.barn.builtin.types import CHOICES
 
 
 def _workbench_theme_choices():
@@ -34,11 +36,18 @@ class WorkbenchThemeSettings(LibrarySettings):
 
 @settings(namespace="node_theme", label="Node Theme")
 class NodeThemeSettings(LibrarySettings):
-    """Global settings controlling the active node theme."""
+    """Global settings controlling the active node theme.
 
-    theme = setting[STRING](
-        "default",
+    Shadows the framework's ``studio_node_theme``, which is what the graph and
+    node tiers mirror in turn — so this one setting is the top of the chain
+    ``framework < graph < node``. It used to be a free STRING defaulting to
+    "default", resolved against nothing; a value picked here changed no pixel.
+    """
+
+    theme = shadow(
+        src=NodeDefaultSkinSettings.studio_node_theme,
         label="Node Theme",
         description="Active node rendering theme",
         category="node_theme",
+        widget_config={"options": _node_theme_choices},
     )

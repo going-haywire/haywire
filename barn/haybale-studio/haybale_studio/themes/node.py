@@ -11,18 +11,17 @@ from haywire.ui.themes.decorator import theme
 
 @theme(label="Default Node Theme")
 class DefaultNodeTheme(NodeTheme):
-    """Default node rendering theme — works on both dark and light backgrounds."""
+    """Default node rendering theme — works on both dark and light backgrounds.
 
-    header_bg = "#252540"
-    header_text = "#e8e8f4"
-    body_bg = "#1e1e2e"
-    body_text = "#c0c0e0"
-    border = "#2e2e48"
-    border_selected = "#7c6af7"
-    port_inlet = "#4a90d9"
-    port_outlet = "#d94a4a"
-    port_exec_inlet = "#ffffff"
-    port_exec_outlet = "#ffffff"
-    error_bg = "#3e1a1a"
-    error_border = "#f44336"
-    muted_opacity = "0.5"
+    Declares the Tier 1 subset only. Values match the dark workbench theme, so
+    selecting this theme changes nothing on its own — it is the baseline a
+    custom node theme is written against.
+    """
+
+    node_bg = "#1e1e2e"
+    node_border_color = "#333333"
+    node_border_width = "3px"
+    node_border_radius = "16px"
+    node_header_bg = "#252540"
+    node_header_text_color = "#e8e8f4"
+    node_text_color = "#c0c0e0"

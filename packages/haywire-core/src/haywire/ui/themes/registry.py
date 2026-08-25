@@ -129,3 +129,21 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         return sorted(
             cls.class_identity.registry_key for cls in self._classes.values() if issubclass(cls, NodeTheme)
         )
+
+    def list_node_themes(self) -> list[tuple[str, str]]:
+        """Return sorted (registry_key, label) pairs for ALL node themes."""
+        return sorted(
+            (cls.class_identity.registry_key, cls.class_identity.label)
+            for cls in self._classes.values()
+            if issubclass(cls, NodeTheme)
+        )
+
+    def list_visible_node_themes(self) -> list[tuple[str, str]]:
+        """Return sorted (registry_key, label) pairs for non-hidden node themes —
+        those offered as a choice in a theme picker.
+        """
+        return sorted(
+            (cls.class_identity.registry_key, cls.class_identity.label)
+            for cls in self._classes.values()
+            if issubclass(cls, NodeTheme) and not cls.class_identity.hidden
+        )

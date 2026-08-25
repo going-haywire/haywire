@@ -37,15 +37,20 @@ class DefaultNodeSkin(NodeSkin):
         layout = self.layout_of(wrapper)
 
         padding = self.CARD_H_PADDING
-        colors = self.card_style(
-            wrapper,
-            background="var(--hw-node-bg)",
-            border_color="#333333",
-            border_thickness=3,
-            border_roundness=16,
-        )
+        # Pure var() consumption — no per-node branching, ever. A graph or a
+        # node overrides the look by redefining these vars on an ancestor
+        # element (see NodeTheme); the browser re-resolves them without this
+        # skin being re-rendered or even consulted.
+        #
+        # `background`, not `background-color`: a token may hold a gradient,
+        # which is an <image> and would make a `background-color` declaration
+        # invalid — silently dropping the whole card colour.
         card_style = (
-            f"{colors}backdrop-filter: blur(10px); "
+            "background: var(--hw-node-bg); "
+            "border: var(--hw-node-border-width) solid var(--hw-node-border-color); "
+            "border-radius: var(--hw-node-border-radius); "
+            "color: var(--hw-node-text-color); "
+            f"backdrop-filter: blur(10px); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
         if layout.is_vertical:

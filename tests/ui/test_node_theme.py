@@ -1,8 +1,8 @@
 # tests/ui/test_node_theme.py
-"""Tests for NodeTheme field collection and get_color()."""
+"""Tests for NodeTheme field collection and to_css_vars()."""
 
 from haywire.ui.themes.node_theme import NodeTheme
-from haywire.ui.themes.workbench import _FieldProxy
+from haywire.ui.themes.workbench import NODE_TIER_TOKENS, WorkbenchTheme, _FieldProxy
 from haywire.ui.themes.decorator import theme
 from haybale_testing.themes.node import TestNodeTheme
 
@@ -15,64 +15,98 @@ from haybale_testing.themes.node import TestNodeTheme
 class TestNodeThemeFieldCollection:
     def test_string_attrs_collected(self):
         class _T(NodeTheme):
-            header_bg = "#252540"
-            port_inlet = "#4a90d9"
+            node_header_bg = "#252540"
+            node_bg = "#4a90d9"
 
-        assert "header_bg" in _T._fields
-        assert "port_inlet" in _T._fields
+        assert "node_header_bg" in _T._fields
+        assert "node_bg" in _T._fields
 
     def test_private_excluded(self):
         class _T(NodeTheme):
             _internal = "ignored"
-            header_bg = "#111111"
+            node_header_bg = "#111111"
 
         assert "_internal" not in _T._fields
 
     def test_proxy_wraps_default(self):
         class _T(NodeTheme):
-            header_bg = "#abcdef"
+            node_header_bg = "#abcdef"
 
-        proxy = _T._fields["header_bg"]
+        proxy = _T._fields["node_header_bg"]
         assert isinstance(proxy, _FieldProxy)
         assert proxy._default == "#abcdef"
 
     def test_fields_fresh_per_class(self):
         class _A(NodeTheme):
-            a_token = "#aaaaaa"
+            node_bg = "#aaaaaa"
 
         class _B(NodeTheme):
-            b_token = "#bbbbbb"
+            node_header_bg = "#bbbbbb"
 
-        assert "b_token" not in _A._fields
-        assert "a_token" not in _B._fields
+        assert "node_header_bg" not in _A._fields
+        assert "node_bg" not in _B._fields
 
     def test_base_class_has_empty_fields(self):
         assert NodeTheme._fields == {}
 
 
 # ---------------------------------------------------------------------------
-# get_color()
+# to_css_vars() — the only way to read a theme
 # ---------------------------------------------------------------------------
 
 
-class TestGetColor:
-    def test_get_color_known_token(self):
-        t = TestNodeTheme()
-        assert t.get_color("header_bg") == "#abcdef"
+class TestToCssVars:
+    def test_emits_mapped_tokens(self):
+        v = TestNodeTheme().to_css_vars()
+        assert v["--hw-node-bg"] == "#123456"
+        assert v["--hw-node-border-color"] == "#234567"
 
-    def test_get_color_unknown_returns_empty(self):
-        t = TestNodeTheme()
-        assert t.get_color("nonexistent_token") == ""
+    def test_unmapped_field_is_dropped(self):
+        """A field absent from the shared token map produces no var, silently.
 
-    def test_node_theme_has_port_colors(self):
-        t = TestNodeTheme()
-        assert t.get_color("port_inlet") != ""
-        assert t.get_color("port_outlet") != ""
+        Documented rather than desired: to_css_vars walks the map, not _fields,
+        so a mistyped token in a theme subclass fails without a signal.
+        """
 
-    def test_node_theme_has_error_colors(self):
-        t = TestNodeTheme()
-        assert t.get_color("error_bg") != ""
-        assert t.get_color("error_border") != ""
+        class _T(NodeTheme):
+            not_a_real_token = "#ff0000"
+
+        assert "#ff0000" not in str(_T().to_css_vars().values())
+
+    def test_length_tokens_carry_their_unit(self):
+        """var() is textual substitution — a bare int would emit invalid CSS."""
+        v = TestNodeTheme().to_css_vars()
+        assert v["--hw-node-border-width"].endswith("px")
+        assert v["--hw-node-border-radius"].endswith("px")
+
+    def test_a_token_may_hold_a_gradient(self):
+        """Why every consumer must use `background`, not `background-color`."""
+
+        class _T(NodeTheme):
+            node_bg = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
+
+        assert _T().to_css_vars()["--hw-node-bg"].startswith("linear-gradient(")
+
+    def test_node_and_workbench_share_one_token_map(self):
+        """A NodeTheme cannot name a token the workbench does not have.
+
+        The shared map is what makes "NodeTheme is a subset of WorkbenchTheme"
+        structural rather than conventional — two maps could drift on a var
+        name and a node theme would silently override nothing.
+        """
+        assert NodeTheme._CSS_TOKEN_MAP is WorkbenchTheme._CSS_TOKEN_MAP
+
+    def test_every_node_tier_token_is_mapped(self):
+        for token in NODE_TIER_TOKENS:
+            assert token in NodeTheme._CSS_TOKEN_MAP
+
+    def test_tier_2_tokens_are_not_node_tier(self):
+        """node_selected/active/shadow are consumed on an ANCESTOR of the slot,
+        so a node-tier theme cannot reach them — they must stay out of the list
+        a node tier writes."""
+        for token in ("node_selected", "node_active", "node_shadow"):
+            assert token in NodeTheme._CSS_TOKEN_MAP
+            assert token not in NODE_TIER_TOKENS
 
 
 # ---------------------------------------------------------------------------
@@ -95,7 +129,7 @@ class TestThemeDecorator:
     def test_custom_decorator(self):
         @theme(registry_id="_test_custom_node", label="Custom")
         class _T(NodeTheme):
-            header_bg = "#ffffff"
+            node_header_bg = "#ffffff"
 
         assert _T.class_identity.registry_id == "_test_custom_node"
         assert _T.class_identity.theme_type == "node"

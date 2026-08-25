@@ -1,4 +1,4 @@
-"""FILL — the structured background type behind a node card's body.
+"""FILL — the example library's structured background type.
 
 ``to_css`` is the whole contract: it is the only thing that turns a FILL into
 CSS, and it must be *total*. A graph file is editable by hand, so every
@@ -10,7 +10,7 @@ import json
 
 import pytest
 
-from haywire.barn.builtin.types.fill import LINEAR, RADIAL, SOLID, FILL
+from haybale_example.types.fill import LINEAR, RADIAL, SOLID, FILL
 
 
 class TestDefaults:
@@ -121,32 +121,24 @@ class TestSerialization:
         assert FILL.from_dict("nope") == FILL()  # type: ignore[arg-type]  # hand-edited JSON
 
     def test_equality_is_by_value(self):
-        """The settings descriptor no-ops a write equal to the current value, so
-        a value-equal FILL must compare equal or every render marks the node
-        dirty."""
+        """A port no-ops a write equal to the current value, so a value-equal
+        FILL must compare equal or every render marks the node dirty."""
         assert FILL() == FILL()
         assert FILL(kind=LINEAR) != FILL()
 
 
 class TestConstruction:
-    """FILL absorbs the settings layer's ``{"value": seed}`` seeding shape,
-    which fits PrimitiveType — what every setting was until now."""
+    def test_kwargs_build_a_fill(self):
+        fill = FILL(kind=RADIAL, angle=90, stops=[{"color": "#abcdef", "at": 0}])
+        assert (fill.kind, fill.angle) == (RADIAL, 90)
 
-    def test_accepts_a_positional_colour_string(self):
-        assert FILL("#abcdef").to_css() == "#abcdef"
+    def test_no_kwargs_yields_the_defaults(self):
+        assert FILL().kind == SOLID
 
-    def test_accepts_a_positional_dict(self):
-        assert FILL({"kind": SOLID, "stops": [{"color": "#abcdef", "at": 0}]}).to_css() == "#abcdef"
-
-    def test_accepts_a_positional_fill(self):
-        original = FILL(kind=RADIAL, stops=[{"color": "#1", "at": 0}, {"color": "#2", "at": 100}])
-        assert FILL(original) == original
-
-    def test_a_positional_none_yields_the_defaults(self):
-        assert FILL(None) == FILL()
-
-    def test_from_css_color_builds_a_one_stop_solid(self):
-        fill = FILL.from_css_color("#11223344")
-        assert fill.kind == SOLID
-        assert len(fill.stops) == 1
-        assert fill.to_css() == "#11223344"
+    def test_stops_are_copied_not_aliased(self):
+        """A caller's list must not stay wired to the fill's — mutating one
+        would silently restyle the other."""
+        stops = [{"color": "#abcdef", "at": 0}]
+        fill = FILL(stops=stops)
+        stops[0]["color"] = "#000000"
+        assert fill.to_css() == "#abcdef"

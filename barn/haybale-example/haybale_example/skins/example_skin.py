@@ -39,30 +39,35 @@ class ExampleNodeSkin(NodeSkin):
         # transition shorthand means even non-conflicting properties stop
         # animating. This skin used to carry a `:hover` reveal here that never
         # once fired.
-        # The card's colour/border half comes from `card_style` so this skin's
-        # gradient acts as a *default* the node's own appearance props can
-        # override. It is emitted as an inline style rather than folded into the
-        # rule below because a per-node value has no business in a stylesheet
-        # keyed by a class every node of this skin shares.
         ui.add_head_html(f"""
         <style>
-        .{node_id} {{
-            color: white;
-        }}
         .{node_id} .text-h6 {{
             color: #fbbf24;
             font-weight: bold;
         }}
         </style>
         """)
+        # A skin with a look of its own, kept overridable.
+        #
+        # The skin's own values live in a SEPARATE token namespace
+        # (--example-node-*) and reach the card as the FALLBACK argument of
+        # var(). That ordering is the whole trick:
+        #
+        #   var(--hw-node-bg, <this skin's gradient>)
+        #
+        # …resolves to the gradient only while no tier has defined
+        # --hw-node-bg for this card. The card is a CHILD of .ui-node-slot, so
+        # defining --hw-node-bg on the card itself would shadow the very tiers
+        # meant to override it — a skin that can never be restyled. Reading the
+        # inherited value with a fallback inverts that correctly.
+        #
+        # `background`, not `background-color`: the value may be a gradient,
+        # which is an <image>. See DefaultNodeSkin.
         main_card.style(
-            self.card_style(
-                wrapper,
-                background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
-                border_color="#4f46e5",
-                border_thickness=3,
-                border_roundness=16,
-            )
+            "background: var(--hw-node-bg, linear-gradient(135deg, #667eea 0%, #764ba2 100%)); "
+            "border: var(--hw-node-border-width, 3px) solid var(--hw-node-border-color, #4f46e5); "
+            "border-radius: var(--hw-node-border-radius, 16px); "
+            "color: var(--hw-node-text-color, white);"
         )
 
         # `node-card` is load-bearing, not cosmetic: canvas.vue keys the

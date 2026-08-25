@@ -49,8 +49,15 @@ class RerouteSkin(BaseSkin):
         # absolutely-positioned pins below — a reroute can be manually resized,
         # and only positioning against the card's own padding box keeps the pins
         # on its borders at every size (Quasar's .q-card does not guarantee it).
+        # `background`, not `background-color`: --hw-node-bg may hold a gradient
+        # (a theme or a per-node override), which is an <image> and makes a
+        # `background-color` declaration invalid — the card would silently lose
+        # its colour entirely rather than fall back to anything.
+        #
+        # The radius is deliberately NOT --hw-node-border-radius: a reroute is a
+        # small fixed dot, and a theme's card radius would swallow it.
         main_card.classes("node-card drag-handle zoom-pan-lod0").style(
-            "background-color: var(--hw-node-bg); border-radius: 6px; position: relative; "
+            "background: var(--hw-node-bg); border-radius: 6px; position: relative; "
             f"overflow: visible; padding: {_CARD_PADDING}px; min-width: 0;"
         )
 
