@@ -39,13 +39,15 @@ class ExampleNodeSkin(NodeSkin):
         # transition shorthand means even non-conflicting properties stop
         # animating. This skin used to carry a `:hover` reveal here that never
         # once fired.
+        # The card's colour/border half comes from `card_style` so this skin's
+        # gradient acts as a *default* the node's own appearance props can
+        # override. It is emitted as an inline style rather than folded into the
+        # rule below because a per-node value has no business in a stylesheet
+        # keyed by a class every node of this skin shares.
         ui.add_head_html(f"""
         <style>
         .{node_id} {{
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             color: white;
-            border-radius: 16px;
-            border: 3px solid #4f46e5;
         }}
         .{node_id} .text-h6 {{
             color: #fbbf24;
@@ -53,6 +55,15 @@ class ExampleNodeSkin(NodeSkin):
         }}
         </style>
         """)
+        main_card.style(
+            self.card_style(
+                wrapper,
+                background="linear-gradient(135deg, #667eea 0%, #764ba2 100%)",
+                border_color="#4f46e5",
+                border_thickness=3,
+                border_roundness=16,
+            )
+        )
 
         # `node-card` is load-bearing, not cosmetic: canvas.vue keys the
         # manual-resize clamp release off it (`.ui-node-slot[data-size-adapt=

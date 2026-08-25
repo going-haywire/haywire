@@ -31,7 +31,10 @@ class NodeProperties(NodeSettings):
         "pinned",
         "skin",
         "layout_direction",
-        "color_override",
+        "body_color",
+        "border_color",
+        "border_thickness",
+        "border_roundness",
         "comment",
         "show_comment",
     )
@@ -98,12 +101,54 @@ class NodeProperties(NodeSettings):
         widget_config={"options": _layout_direction_choices},
     )
 
-    color_override = setting[COLOR](
-        None,
-        label="Color Override",
+    # These four defaults are never rendered: a field that is not *locally set*
+    # means "inherit from the skin", and BaseSkin.card_style decides that on
+    # `is_locally_set`, not on the value. They exist because the value still has
+    # to survive the widget layer — PrimitiveUnwrappingConverter maps a None
+    # model value onto the widget's own default and the browser echoes that
+    # back as a genuine edit, so a None here silently writes #ffffffff into the
+    # graph on the first render. The values below mirror DefaultNodeSkin so an
+    # inherited field and a just-touched one look the same.
+    #
+    # Every appearance colour is alpha-capable: COLOR is a string type whose
+    # contract is "hex or rgba" (see ColorStr), so opacity rides inside the
+    # value as #rrggbbaa rather than in a sibling opacity field.
+    body_color = setting[COLOR](
+        "#1e1e1eff",
+        label="Body Color",
         order=20,
         category="appearance",
-        description="Custom background color for this node (None = use theme default)",
+        description="Background color for this node (reset to inherit the skin's)",
+        widget_config={"alpha": True},
+    )
+
+    border_color = setting[COLOR](
+        "#333333ff",
+        label="Border Color",
+        order=30,
+        category="appearance",
+        description="Border color for this node (reset to inherit the skin's)",
+        widget_config={"alpha": True},
+    )
+
+    # min/max are UI-only and NOT enforced on write — a hand-edited graph JSON
+    # can carry any int, so the skin clamps at render (BaseSkin.card_style).
+    border_thickness = setting[INT](
+        3,
+        label="Border Thickness",
+        order=40,
+        category="appearance",
+        description="Border width in px (reset to inherit the skin's)",
+        widget_config={"min": 0, "max": 32},
+    )
+
+    border_roundness = setting[INT](
+        16,
+        label="Border Roundness",
+        order=50,
+        category="appearance",
+        description="Corner radius in px (reset to inherit the skin's)",
+        widget_config={"min": 0, "max": 64},
     )
 
     # -----------------------------------------------------------------
@@ -154,6 +199,32 @@ class NodeProperties(NodeSettings):
         order=50,
         category="layout",
     )
+
+    # -----------------------------------------------------------------
+    # Load migration
+    # -----------------------------------------------------------------
+
+    #: Props renamed since a released graph format, ``old name -> new name``.
+    #: Applied on load only; nothing ever serializes under the old name again.
+    _RENAMED_FIELDS: dict[str, str] = {"color_override": "body_color"}
+
+    def from_dict(self, data: dict) -> None:
+        """Restore props, mapping any renamed field onto its current name.
+
+        ``Settings.from_dict`` skips unknown value keys silently, so without
+        this an old graph's ``color_override`` would vanish rather than fail —
+        the quiet kind of data loss. A key already present under its new name
+        wins; the old one is dropped rather than overwriting it.
+        """
+        values = data.get("values")
+        if isinstance(values, dict):
+            migrated = {
+                self._RENAMED_FIELDS.get(key, key): value
+                for key, value in values.items()
+                if self._RENAMED_FIELDS.get(key, key) not in values or key not in self._RENAMED_FIELDS
+            }
+            data = {**data, "values": migrated}
+        super().from_dict(data)
 
     # -----------------------------------------------------------------
     # Convenience helpers

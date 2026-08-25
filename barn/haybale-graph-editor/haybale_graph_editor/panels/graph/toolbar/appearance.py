@@ -13,7 +13,8 @@ not a list of commands. ``hui.dropdown`` opens on click and never
 ``haywire.ui.elements.flyout.DropdownIcon``.
 
 The fields are the *live* ``appearance`` category of the node's own props bag
-(``skin``, ``layout_direction``, ``color_override``) — the same rows, the same
+(``skin``, ``layout_direction``, ``body_color``, ``border_color``,
+``border_thickness``, ``border_roundness``) — the same rows, the same
 reset chrome and the same subscriptions the properties editor renders, sliced
 by ``render_settings(categories=...)`` rather than copied. Editing one here
 and in the Node Properties panel is the same write.

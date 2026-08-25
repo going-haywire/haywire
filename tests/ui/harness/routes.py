@@ -379,6 +379,48 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /node-appearance
+    #
+    # NodeProperties' `appearance` category (the colour + border fields) with a
+    # live server-side echo of each model value. The echo is what makes a
+    # persistence bug visible: a widget can show a colour the model never
+    # received. Backs test_appearance_props.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/node-appearance")
+    async def node_appearance_page():
+        from haywire.core.node.properties import NodeProperties
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        props = NodeProperties()
+        fields = ("body_color", "border_color", "border_thickness", "border_roundness")
+
+        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+            render_settings(props, categories=("appearance",))
+
+            # Echo the model, not the widget: a label per field, refreshed from
+            # the bag itself. `set` reports the framework's set-or-unset opinion,
+            # which is what decides skin inheritance.
+            echoes: dict[str, Any] = {}
+            for name in fields:
+                echoes[name] = ui.label().props(f'data-testid="echo-{name}"')
+
+            def _refresh() -> None:
+                for field_name, label in echoes.items():
+                    value = getattr(props, field_name)
+                    is_set = props.is_locally_set(field_name)
+                    label.set_text(f"{value}|{'set' if is_set else 'unset'}")
+
+            _refresh()
+            for name in fields:
+                props.subscribe_field(name, lambda *_: _refresh())
+
+            ui.button("refresh", on_click=_refresh).props('data-testid="refresh"')
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /node-live?class=<dotted.ClassName>&bag=<bag_name>
     #
     # Like /node, but additionally mounts a server-side "external write" button

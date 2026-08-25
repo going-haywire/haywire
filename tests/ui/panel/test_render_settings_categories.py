@@ -56,14 +56,14 @@ def _sequence(anchor) -> list[tuple[str, str]]:
 class _MixedBag(Settings):
     muted = setting[BOOL](False, category="state", order=10)
     skin = setting[STRING]("default", category="appearance", order=10)
-    color_override = setting[STRING]("", category="appearance", order=20)
+    body_color = setting[STRING]("", category="appearance", order=20)
     comment = setting[STRING]("", category="annotation", order=10)
     pos_x = setting[INT](0, category="layout", order=10)
 
 
 def test_only_the_named_category_renders():
     seq = _sequence(_render(_MixedBag(), categories=("appearance",)))
-    assert seq == [("group", "appearance"), ("field", "skin"), ("field", "color_override")]
+    assert seq == [("group", "appearance"), ("field", "skin"), ("field", "body_color")]
 
 
 def test_several_categories_keep_declaration_order_not_argument_order():
@@ -81,7 +81,7 @@ def test_several_categories_keep_declaration_order_not_argument_order():
 def test_no_categories_argument_renders_everything():
     seq = _sequence(_render(_MixedBag()))
     fields = [name for kind, name in seq if kind == "field"]
-    assert fields == ["muted", "skin", "color_override", "comment", "pos_x"]
+    assert fields == ["muted", "skin", "body_color", "comment", "pos_x"]
 
 
 def test_an_unknown_category_selects_nothing_rather_than_raising():

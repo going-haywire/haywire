@@ -37,9 +37,15 @@ class DefaultNodeSkin(NodeSkin):
         layout = self.layout_of(wrapper)
 
         padding = self.CARD_H_PADDING
+        colors = self.card_style(
+            wrapper,
+            background="var(--hw-node-bg)",
+            border_color="#333333",
+            border_thickness=3,
+            border_roundness=16,
+        )
         card_style = (
-            f"background-color: var(--hw-node-bg); backdrop-filter: blur(10px); "
-            f"border-radius: 16px; border: 3px solid #333333; "
+            f"{colors}backdrop-filter: blur(10px); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
         if layout.is_vertical:
