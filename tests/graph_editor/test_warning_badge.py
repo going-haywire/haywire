@@ -14,13 +14,24 @@ from haybale_studio.skins.default_skin import DefaultNodeSkin
 from haybale_studio.skins.node_skin import NodeSkin
 
 
+def _render_source() -> str:
+    """Source of the whole render path, not just ``render()``.
+
+    ``render()`` dispatches to ``_render_vertical`` / ``_render_horizontal``,
+    which is where the badge actually lives. Reading only ``render`` made these
+    assertions pass on the method's own body and silently start failing the day
+    it was split.
+    """
+    return inspect.getsource(DefaultNodeSkin)
+
+
 @pytest.mark.unit
 def test_render_wires_diagnostics_badge_behind_combined_guard():
     # The badge must be wired into render(), guarded so it fires when there are
     # errors OR warnings OR a deprecation notice. (A full DOM render needs a
     # NiceGUI client; here we assert the wiring is present in render's source so
     # it can't silently regress.)
-    src = inspect.getsource(DefaultNodeSkin.render)
+    src = _render_source()
     assert "has_warning()" in src
     assert "_render_diagnostics_button" in src
     # The call must sit inside an `if` guard (conditional render, not
@@ -42,7 +53,7 @@ def test_render_diagnostics_button_accepts_errors_warnings_and_deprecation():
 
 @pytest.mark.unit
 def test_default_skin_render_passes_deprecation_to_diagnostics_button():
-    src = inspect.getsource(DefaultNodeSkin.render)
+    src = _render_source()
     assert "deprecation_warning" in src
     assert "_render_diagnostics_button" in src
 
@@ -50,5 +61,5 @@ def test_default_skin_render_passes_deprecation_to_diagnostics_button():
 @pytest.mark.unit
 def test_default_skin_badge_fires_when_only_deprecation_set():
     # The guard must be a combined condition, not purely `has_warning()`
-    src = inspect.getsource(DefaultNodeSkin.render)
+    src = _render_source()
     assert "deprecation_warning" in src

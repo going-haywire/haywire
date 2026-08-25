@@ -14,12 +14,14 @@ see-also:
 
 ## 1. What it solves
 
-A **theme** controls the visual appearance of haywire. Two independent theme types exist:
+A **theme** controls the visual appearance of haywire. Two theme types exist:
 
-- **`WorkbenchTheme`** — the *application shell*: page backgrounds, sidebars, top bar, status bar, panel surfaces, canvas grid, accent colours, edge colours, etc. Values are injected as CSS custom properties on `:root` and cascade through the entire app.
-- **`NodeTheme`** — the *node chip rendering*: header colour, port colours, error state, body background. Values are read by the canvas-side node renderer.
+- **`WorkbenchTheme`** — the *application shell*: page backgrounds, sidebars, top bar, status bar, panel surfaces, canvas grid, accent colours, edge colours, and the node tokens. Carries the **full** token vocabulary, injected as CSS custom properties on `:root`.
+- **`NodeTheme`** — the **node-scoped subset** of that same vocabulary. Not a second theme system: it declares the same token names (`node_bg`, `node_border_color`, …) and emits them through the same `to_css_vars()`. What differs is only *where* the result is injected, and therefore what it overrides.
 
-Both are independent — a user can mix any workbench theme with any node theme. As an author, you subclass the relevant base, override only the tokens you want to change, decorate with `@theme(label=...)`, and register the class in your library's `register_components()`.
+Both share one `_CSS_TOKEN_MAP`, deliberately: a node theme cannot name a token the workbench does not have. As an author, you subclass the relevant base, override only the tokens you want to change, decorate with `@theme(label=...)`, and register the class in your library's `register_components()`.
+
+**Nothing reads a theme in Python.** A skin emits `background: var(--hw-node-bg)` once and never branches on a theme, a graph, or a node. Overriding is pure CSS cascade — which is what makes a per-node colour a *style-write on a stable element* rather than a card redraw.
 
 Themes are *not* the same as **skins** (per-node visual variants of the node body — see [components/skins](../skins/skin-canon.md)) or as **CSS tokens in panels** (which read from the active workbench theme; component authors don't redefine them).
 
@@ -67,19 +69,50 @@ class FooTheme(WorkbenchTheme):
 
 **`WorkbenchTheme` token map.** ~30 named tokens covering backgrounds, borders, text, accents, status colours, node chrome, edges, canvas, top bar, sidebars, panels, status bar, and console. Defined in `_CSS_TOKEN_MAP` mapping `field_name` → `--hw-<token>`. The full list is in [reference/design-guide](../../reference/design-guide.md); examples in §4.
 
-**`NodeTheme` tokens.** A smaller set:
+**`NodeTheme` tokens — Tier 1.** The node-scoped subset, listed in `NODE_TIER_TOKENS`:
 
 | Token | Purpose |
 |---|---|
-| `header_bg` / `header_text` | Node header strip |
-| `body_bg` / `body_text` | Node content area |
-| `border` / `border_selected` | Default and selected outlines |
-| `port_inlet` / `port_outlet` | Data port fill colours |
-| `port_exec_inlet` / `port_exec_outlet` | Control-flow port colours |
-| `error_bg` / `error_border` | Error-state colours |
-| `muted_opacity` | CSS opacity for disabled state |
+| `node_bg` | Card background. May hold a **gradient** — see the trap below |
+| `node_border_color` | Card border colour |
+| `node_border_width` | Card border thickness, e.g. `"3px"` |
+| `node_border_radius` | Card corner radius, e.g. `"16px"` |
+| `node_header_bg` | Header strip background |
+| `node_header_text_color` | Header label colour |
+| `node_text_color` | Card body text colour |
 
-Access tokens via `theme.get_color('token_name')` — returns `''` for missing tokens (no exception, safe to call unconditionally).
+Lengths carry their unit **inside the value** (`"3px"`, not `3`): `var()` is textual substitution, so `border: 3 solid red` is invalid CSS and fails silently.
+
+**Tier 2 — global and graph tiers only.** `node_selected`, `node_active`, and `node_shadow` are real tokens, but `canvas.vue` consumes them on `[data-node-id]`, which is an **ancestor** of the element a node-tier theme writes to. Custom properties inherit downward only, so:
+
+| Tier | Written on | Reaches Tier 2? |
+| --- | --- | --- |
+| global | `:root` | yes |
+| graph | `.graph-canvas` | yes |
+| node | `.ui-node-slot` | **no** |
+
+A node theme selected on a single node silently cannot restyle that node's selection ring. This is a real asymmetry, not an oversight — put selection/active/shadow changes on the graph or global tier.
+
+There is no `get_color()`. `to_css_vars()` is the only way to read a theme, because the only consumer is CSS injection.
+
+**The tier chain.** A node theme can be selected at three levels, each writing its vars onto a different element. CSS inheritance does the layering — no code merges anything:
+
+```text
+:root                 WorkbenchTheme                    every token
+:root                 global NodeTheme                  ui.node.default.skin.studio_node_theme
+.graph-canvas         graph's  props.node_theme         only if ≠ global
+.ui-node-slot         node's   props.node_theme         only if ≠ graph
+.ui-node-slot         node's   props.color_override     --hw-node-bg, composed LAST
+```
+
+Two rules make this cheap and predictable:
+
+- **A tier writes nothing unless it diverges** from the tier above, decided by comparing resolved values. Identical values produce identical CSS, so writing them is waste — on a 200-node graph, the difference between one declaration set and two hundred.
+- **`color_override` always wins** over a node's own theme, because it is composed last in the same declaration string, and later declarations of a custom property win.
+
+Clearing a field returns it to inheriting: emptiness *is* the unset mechanism, so no "is this locally set?" question arises anywhere in the chain.
+
+**Switching the global node theme clears before it sets.** `setProperty` only writes what the new theme mentions, so a theme that omits a token would otherwise leave the previous theme's value stranded on `:root`. Every `NODE_TIER_TOKENS` var is removed first, letting the workbench theme's own value show through for anything the new theme is silent on.
 
 **Subclassing for partial overrides.** Override only the tokens you want; everything else inherits:
 
@@ -202,8 +235,9 @@ assert css['--hw-accent']  == '#3498db'
 assert all(k.startswith('--hw-') for k in css)
 
 node_theme = r.get_node_theme(BlueprintNodeTheme.class_identity.registry_key)
-assert node_theme.get_color('header_bg') == '#0d2137'
-assert node_theme.get_color('nonexistent') == ''   # safe — no error
+node_css = node_theme.to_css_vars()
+assert node_css['--hw-node-header-bg'] == '#0d2137'
+assert '--hw-not-a-token' not in node_css   # unmapped fields are dropped
 ```
 
 For the design tokens themselves (the `--hw-*` palette) and rules about when to use them, see [reference/design-guide](../../reference/design-guide.md). For the studio shell that applies themes and the live re-injection mechanism, see [architecture/studio/app-shell](../../architecture/studio/app-shell/app-shell-arch.md).
@@ -219,7 +253,7 @@ For the design tokens themselves (the `--hw-*` palette) and rules about when to 
 - [ ] Inherit from `WorkbenchTheme` or `NodeTheme` (or another `@theme`-decorated class)
 - [ ] Override only the tokens you need; rest inherits silently
 - [ ] Register in `Library.register_components()` via the right method (`register_workbench` / `register_node_theme`)
-- [ ] Tests: `r.get_workbench(...).to_css_vars()` keys all start with `--hw-`; `node_theme.get_color('missing')` returns `''`
+- [ ] Tests: `r.get_workbench(...).to_css_vars()` keys all start with `--hw-`; a `NodeTheme` emits only `NODE_TIER_TOKENS`
 
 ### Imports
 
