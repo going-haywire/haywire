@@ -133,10 +133,7 @@ class UINode:
         """
         renderer_name: Optional[str] = self.wrapper.node.props.skin
 
-        # Falsy, not `is None`: the appearance select offers an explicit
-        # "— Inherit —" entry whose value is the empty string, and an empty skin
-        # key resolves to the registry default exactly as an unset one does.
-        if not renderer_name:
+        if renderer_name is None:
             renderer_name = self.factory._skin_registry.get_default_skin_registry_key()
 
         try:

@@ -10,7 +10,7 @@ from haywire.ui import elements as hui
 from haywire.ui.modals import text_modal
 from haywire.ui.widget.decorator import widget
 from haywire.ui.widget.base import BaseWidget
-from haywire.ui.widget.converters import PrimitiveUnwrappingConverter, UnsetAsEmptyChoiceConverter
+from haywire.ui.widget.converters import PrimitiveUnwrappingConverter
 from haywire.ui.components.number.drag import NumberDrag
 
 
@@ -214,10 +214,6 @@ class SelectWidget(BaseWidget):
     - ``clearable`` (bool): If ``True``, shows a clear button to reset the selection.
     - ``multiple`` (bool): If ``True``, allows selecting multiple values.
 
-    An option list carrying an empty (``""``) key gets one extra behaviour: an
-    unset (``None``) model value displays as that entry rather than as a blank
-    select. See :class:`UnsetAsEmptyChoiceConverter`.
-
     Example::
 
         SelectWidget.config(properties={'options': ['Low', 'Medium', 'High']})
@@ -238,15 +234,7 @@ class SelectWidget(BaseWidget):
             if prop in props:
                 kwargs[prop] = props[prop]
 
-        element = ui.select(**kwargs).classes("w-full text-xs")
-
-        # Only when the options actually offer an empty entry. Applied
-        # unconditionally, every unset select in the app would acquire a
-        # phantom selection matching no option.
-        if "" in options and not props.get("multiple"):
-            return self.bind(element, converter=UnsetAsEmptyChoiceConverter())
-
-        return self.bind(element)
+        return self.bind(ui.select(**kwargs).classes("w-full text-xs"))
 
 
 @widget(description="Simple label for display only")
