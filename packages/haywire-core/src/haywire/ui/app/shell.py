@@ -338,6 +338,66 @@ STATIC_CSS = (
     " .compact-fields .q-expansion-item__content {"
     "   padding: 0 0 0 0.5rem !important;"
     " }"
+    # ── node-card text/widget color forwarding ──
+    #
+    # Mirrors the .hw-panel color-forwarding block above, rooted at
+    # .ui-node-slot instead: a node card's skin sets `color:
+    # var(--hw-node-text-color)` on its own root, which reaches plain
+    # elements (ui.label) through ordinary inheritance but NOT Quasar's
+    # q-field internals (q-field__native, q-field__label, ...) — those paint
+    # their own color/background from Quasar's SASS defaults regardless of
+    # an ancestor's `color`. Without this block every widget inside a node
+    # card (TextWidget, NumberDrag, selects, ...) renders black-on-white,
+    # untouched by any theme tier.
+    #
+    # The text colour falls back through --hw-node-text-color (the skin's own
+    # card-root declaration) to --hw-text-body: a bare `var(--hw-text-body)`
+    # here would OUTRANK the card's inline `color: var(--hw-node-text-color)`
+    # for every descendant — a matched class rule beats plain inheritance
+    # regardless of how the ancestor's own value was derived — which would
+    # silently flip the node title back onto the workbench token the moment
+    # this block exists. The fallback form keeps both live: an explicit
+    # node/graph-tier --hw-node-text-color wins here too, and anything that
+    # doesn't set it (most Quasar widget internals otherwise have nothing
+    # to inherit) falls through to the same body-text token panels use.
+    # Every other token below has no node-specific counterpart, so those read
+    # the plain semantic var directly — CSS resolves it to whatever tier
+    # last declared it at this DOM position (global, graph, or node), since
+    # a NodeTheme may now override any token in _CSS_TOKEN_MAP, not just the
+    # node_* subset. Scoped strictly to .ui-node-slot, never bare
+    # .graph-canvas: a Popup/context menu already carries .hw-panel and may
+    # render inside .graph-canvas (e.g. the canvas right-click menu) but
+    # outside any .ui-node-slot, so it never matches this block and stays on
+    # the workbench tier exclusively.
+    " .ui-node-slot, .ui-node-slot *:not(.hw-cm-isolate):not(.hw-cm-isolate *)"
+    " { color: var(--hw-node-text-color, var(--hw-text-body)); }"
+    " .ui-node-slot .q-field--outlined .q-field__control:before"
+    " { border-color: var(--hw-border) !important; }"
+    " .ui-node-slot .q-field--outlined:hover .q-field__control:before"
+    " { border-color: var(--hw-border-strong) !important; }"
+    " .ui-node-slot .q-field__control { background: var(--hw-bg-input) !important; }"
+    " .ui-node-slot .q-field .q-chip,"
+    " .ui-node-slot .q-field .q-chip .q-chip__content {"
+    "   background: var(--hw-accent) !important;"
+    "   color: var(--hw-text-on-accent) !important;"
+    " }"
+    " .ui-node-slot .q-field .q-chip .q-chip__icon,"
+    " .ui-node-slot .q-field .q-chip .q-icon {"
+    "   color: var(--hw-text-on-accent) !important;"
+    " }"
+    " .ui-node-slot .q-field__label { color: var(--hw-text-muted) !important; }"
+    " .ui-node-slot .q-field--highlighted .q-field__label"
+    " { color: var(--hw-accent) !important; }"
+    " .ui-node-slot .q-field--standard .q-field__control:before"
+    " { border-bottom-color: var(--hw-border) !important; }"
+    " .ui-node-slot .q-field--standard:hover .q-field__control:before"
+    " { border-bottom-color: var(--hw-border-strong) !important; }"
+    " .ui-node-slot .q-field--standard.q-field--highlighted .q-field__control:after"
+    " { background: var(--hw-accent) !important; }"
+    " .ui-node-slot .q-field--standard.q-field--highlighted .q-field__control"
+    " { background: var(--hw-bg-elevated) !important; }"
+    " .ui-node-slot .q-icon:not(.connection-pin):not(.hw-use-props-color)"
+    " { color: var(--hw-text-dim) !important; }"
     # ── settings-field row spacing ──
     # One explicit, uniform vertical gap between field rows, applied at the
     # list container so every field (scalar or multi-row vector) is spaced
@@ -545,17 +605,21 @@ class AppShell:
         new theme mentions, so switching to a theme that omits a token would
         otherwise leave the PREVIOUS theme's value stranded on :root — a bug
         invisible until someone authors a partial theme, and then only in one
-        switch direction. Removing every node token first makes the workbench
-        theme's own value show through for anything the new theme is silent on.
+        switch direction. Removing every token first (all of ``_CSS_TOKEN_MAP``,
+        not a node-specific subset — a NodeTheme may now override any of them)
+        makes the workbench theme's own stylesheet value show through for
+        anything the new theme is silent on: this only ever touches the
+        inline style on ``documentElement``, never the ``:root {}`` rule
+        ``_build_initial_theme_css`` writes into the page's stylesheet, so the
+        workbench baseline is always there to fall back to.
         """
         try:
-            from haywire.ui.themes.workbench import NODE_TIER_TOKENS, WorkbenchTheme
+            from haywire.ui.themes.workbench import BaseTheme
 
             context = self.session.context
             theme_registry = context.app.library_service.get_theme_registry()
 
-            for token in NODE_TIER_TOKENS:
-                css_var = WorkbenchTheme._CSS_TOKEN_MAP[token]
+            for css_var in BaseTheme._CSS_TOKEN_MAP.values():
                 ui.run_javascript(f"document.documentElement.style.removeProperty('{css_var}')")
 
             if not registry_key:

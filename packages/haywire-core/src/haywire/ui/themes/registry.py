@@ -1,6 +1,6 @@
 # haywire/ui/themes/theme_registry.py
 """
-ThemeRegistry — hot-reload-capable registry for WorkbenchTheme and NodeTheme classes.
+ThemeRegistry — hot-reload-capable registry for BaseTheme classes.
 Extends BaseRegistry for library folder scan and hot-reload support.
 """
 
@@ -10,8 +10,7 @@ from typing import Optional, Type
 from haywire.core.registry.base import BaseRegistry
 from haywire.core.library.identity import LibraryIdentity
 
-from .workbench import WorkbenchTheme, BaseTheme
-from .node_theme import NodeTheme
+from .workbench import BaseTheme
 
 
 # Framework identity used for built-in theme registration
@@ -26,10 +25,13 @@ _FRAMEWORK_THEME_IDENTITY = LibraryIdentity(
 
 class ThemeRegistry(BaseRegistry[BaseTheme]):
     """
-    Registry for WorkbenchTheme and NodeTheme classes.
+    Registry for BaseTheme classes — both workbench and node flavours.
 
     Extends BaseRegistry for hot-reload (library plugins can supply themes)
-    and folder scan support.
+    and folder scan support. "Workbench" vs "node" is a property of a
+    class's ``class_identity.theme_type``, set by the required
+    ``theme_type=`` kwarg on ``@theme`` — see decorator.py. Every method
+    below branches on that field.
 
     Built-in themes are registered via register_workbench() / register_node_theme().
     Library themes are discovered automatically when a library calls
@@ -41,17 +43,16 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
     # =========================================================================
 
     def _class_filter(self, cls: Type) -> bool:
-        """Accept WorkbenchTheme and NodeTheme subclasses with class_identity.
+        """Accept BaseTheme subclasses with class_identity.
 
-        Note: the base classes declare `class_identity: ThemeClassIdentity = None`
+        Note: the base class declares `class_identity: ThemeClassIdentity = None`
         for mypy. Undecorated subclasses inherit that `None`, so `hasattr` is
-        not enough — we must check the value is non-None (set by @theme /
-        @workbench_theme / @node_theme).
+        not enough — we must check the value is non-None (set by @theme).
         """
         return (
             isinstance(cls, type)
             and issubclass(cls, BaseTheme)
-            and cls not in (WorkbenchTheme, NodeTheme, BaseTheme)
+            and cls is not BaseTheme
             and getattr(cls, "class_identity", None) is not None
         )
 
@@ -69,32 +70,32 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
     # =========================================================================
 
     def register_workbench(
-        self, cls: Type[WorkbenchTheme], library_identity: LibraryIdentity | None = None
+        self, cls: Type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """Register a WorkbenchTheme class."""
+        """Register a BaseTheme class authored with @theme(theme_type='workbench')."""
         return self._register_class(cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
 
     def register_node_theme(
-        self, cls: Type[NodeTheme], library_identity: LibraryIdentity | None = None
+        self, cls: Type[BaseTheme], library_identity: LibraryIdentity | None = None
     ) -> str | None:
-        """Register a NodeTheme class."""
+        """Register a BaseTheme class authored with @theme(theme_type='node')."""
         return self._register_class(cls, library_identity or _FRAMEWORK_THEME_IDENTITY)
 
     # =========================================================================
     # Typed accessors
     # =========================================================================
 
-    def get_workbench(self, registry_key: str) -> WorkbenchTheme:
-        """Instantiate and return a WorkbenchTheme by registry_key."""
+    def get_workbench(self, registry_key: str) -> BaseTheme:
+        """Instantiate and return a workbench-flavoured BaseTheme by registry_key."""
         cls = self._classes.get(registry_key)
-        if cls is not None and issubclass(cls, WorkbenchTheme):
+        if cls is not None and cls.class_identity.theme_type == "workbench":
             return cls()
         raise KeyError(f"Unknown workbench theme: '{registry_key}'")
 
-    def get_node_theme(self, registry_key: str) -> NodeTheme:
-        """Instantiate and return a NodeTheme by registry_key."""
+    def get_node_theme(self, registry_key: str) -> BaseTheme:
+        """Instantiate and return a node-flavoured BaseTheme by registry_key."""
         cls = self._classes.get(registry_key)
-        if cls is not None and issubclass(cls, NodeTheme):
+        if cls is not None and cls.class_identity.theme_type == "node":
             return cls()
         raise KeyError(f"Unknown node theme: '{registry_key}'")
 
@@ -103,7 +104,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         return sorted(
             cls.class_identity.registry_key
             for cls in self._classes.values()
-            if issubclass(cls, WorkbenchTheme)
+            if cls.class_identity.theme_type == "workbench"
         )
 
     def list_workbench_themes(self) -> list[tuple[str, str]]:
@@ -111,7 +112,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()
-            if issubclass(cls, WorkbenchTheme)
+            if cls.class_identity.theme_type == "workbench"
         )
 
     def list_visible_workbench_themes(self) -> list[tuple[str, str]]:
@@ -121,13 +122,15 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()
-            if issubclass(cls, WorkbenchTheme) and not cls.class_identity.hidden
+            if cls.class_identity.theme_type == "workbench" and not cls.class_identity.hidden
         )
 
     def list_node_theme_keys(self) -> list[str]:
         """Return sorted list of registered node theme registry_keys."""
         return sorted(
-            cls.class_identity.registry_key for cls in self._classes.values() if issubclass(cls, NodeTheme)
+            cls.class_identity.registry_key
+            for cls in self._classes.values()
+            if cls.class_identity.theme_type == "node"
         )
 
     def list_node_themes(self) -> list[tuple[str, str]]:
@@ -135,7 +138,7 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()
-            if issubclass(cls, NodeTheme)
+            if cls.class_identity.theme_type == "node"
         )
 
     def list_visible_node_themes(self) -> list[tuple[str, str]]:
@@ -145,5 +148,5 @@ class ThemeRegistry(BaseRegistry[BaseTheme]):
         return sorted(
             (cls.class_identity.registry_key, cls.class_identity.label)
             for cls in self._classes.values()
-            if issubclass(cls, NodeTheme) and not cls.class_identity.hidden
+            if cls.class_identity.theme_type == "node" and not cls.class_identity.hidden
         )

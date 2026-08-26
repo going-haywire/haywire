@@ -350,7 +350,11 @@ def test_is_registry_key_grammar():
 
     assert is_registry_key("haybale-core:type:FLOAT")
     assert is_registry_key("haywire-core:widget:NumberWidget")
-    assert is_registry_key("haybale-studio:theme:node:Dark")  # 4-part variant
+    # {2,3} colon-segments is deliberately tolerant of the old 4-part theme
+    # key shape (lib:theme:{workbench|node}:ClassName) even though themes are
+    # 3-part now — a saved graph/settings file from before that change may
+    # still carry one, and the rename tool must still recognize it as a key.
+    assert is_registry_key("haybale-studio:theme:node:Dark")
     assert not is_registry_key("haybale-foo: see the docs")
     assert not is_registry_key("just-a-name")
     assert not is_registry_key("")

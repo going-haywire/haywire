@@ -153,7 +153,11 @@ In-flight state is lost. If `on_enable` is expensive (warming a cache, scanning 
 3. Each CSS variable is re-injected via `document.documentElement.style.setProperty(...)`.
 4. The browser re-paints; no page reload.
 
-NodeTheme reload is similar but the canvas re-fetches `theme.get_color()` for affected nodes only.
+A node-flavoured theme's reload is similar: the studio re-injects that tier's
+CSS variables (global `:root`, or the graph's `.graph-canvas` element if the
+reloaded theme is the graph's active one) and the browser re-resolves every
+`var()` reference downstream — no per-node Python fetch. See
+[theme-canon](../../components/themes/theme-canon.md).
 
 ## 4. Boundary
 

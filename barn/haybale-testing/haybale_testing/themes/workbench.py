@@ -1,15 +1,15 @@
 """
-Minimal WorkbenchTheme fixtures for testing the theme system.
+Minimal workbench-flavoured theme fixtures for testing the theme system.
 These themes exist solely to provide stable, known values in tests — they are
 not meant to look good in the UI.
 """
 
-from haywire.ui.themes.workbench import WorkbenchTheme
+from haywire.ui.themes.workbench import BaseTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(label="Test Dark", hidden=True)
-class TestDarkTheme(WorkbenchTheme):
+@theme(theme_type="workbench", label="Test Dark", hidden=True)
+class TestDarkTheme(BaseTheme):
     """Minimal dark-style theme for tests."""
 
     bg_page = "#111111"
@@ -68,8 +68,8 @@ class TestDarkTheme(WorkbenchTheme):
     console_text = "#00ff00"
 
 
-@theme(label="Test Light")
-class TestLightTheme(WorkbenchTheme):
+@theme(theme_type="workbench", label="Test Light")
+class TestLightTheme(BaseTheme):
     """Minimal light-style theme for tests."""
 
     bg_page = "#ffffff"

@@ -252,10 +252,14 @@ class UINode:
         however they arose. On a large graph that waste is the difference
         between one declaration set and one per node.
 
-        Only Tier 1 tokens are emitted. The Tier 2 tokens (selection ring,
-        active outline, shadow) are consumed by canvas.vue on ``[data-node-id]``
-        — an ANCESTOR of this slot — and custom properties inherit downward
-        only, so a node tier cannot reach them at all.
+        Every token the theme declares is emitted, selection-ring/active-
+        outline/shadow included. Those three are structurally inert here —
+        they're consumed by canvas.vue on ``[data-node-id]``, an ANCESTOR of
+        this slot, and custom properties inherit downward only — but the node
+        tier writes them anyway rather than filtering them out, so a theme
+        author sees the same to_css_vars() output land at every tier
+        uniformly. Put selection/active/shadow changes on the graph or global
+        tier to actually see them.
         """
         props = self.wrapper.node.props
         node_key = getattr(props, "node_theme", "") or ""
@@ -269,7 +273,6 @@ class UINode:
 
         try:
             from haywire.core.di.config import get_theme_registry
-            from haywire.ui.themes.workbench import NODE_TIER_TOKENS
 
             theme = get_theme_registry().get_node_theme(node_key)
         except Exception:
@@ -279,8 +282,7 @@ class UINode:
             logger.warning("Node %s: unresolvable node_theme %r", self._node_id, node_key)
             return []
 
-        tier_vars = {theme._CSS_TOKEN_MAP[t] for t in NODE_TIER_TOKENS if t in theme._CSS_TOKEN_MAP}
-        return [f"{var}: {val}" for var, val in theme.to_css_vars().items() if var in tier_vars]
+        return [f"{var}: {val}" for var, val in theme.to_css_vars().items()]
 
     def _apply_slot_style(self) -> None:
         """Apply size AND appearance to the host slot as one style-write.

@@ -31,10 +31,12 @@ DOCS_ROOT = REPO_ROOT / "docs"
 # resolvable component key.
 _KINDS = "node|type|adapter|widget|skin|setting|state|theme|panel|editor|farmhand"
 
-# The id tail of a key. Themes carry a 4-part key
-# (``lib:theme:{workbench|node}:ClassName``), so allow an optional
-# ``{workbench|node}:`` segment before the final class-name token.
-_ID_TAIL = r"(?:(?:workbench|node):)?[A-Za-z_][A-Za-z0-9_]*"
+# The id tail of a key — a plain class-name token. Themes used to carry a
+# 4-part key (``lib:theme:{workbench|node}:ClassName``); the collapse to one
+# Theme class (workbench vs node is now class_identity.theme_type, not a key
+# segment) made every registry key uniformly 3-part, so no special-casing
+# is needed here any more.
+_ID_TAIL = r"[A-Za-z_][A-Za-z0-9_]*"
 
 # A keyed source declaration: `` `lib:kind:id` `` appearing after "registry_key:"
 # (plain text, per doc-authoring.md §3a.4 — not a markdown link; source files

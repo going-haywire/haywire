@@ -1,8 +1,13 @@
 # tests/ui/test_node_theme.py
-"""Tests for NodeTheme field collection and to_css_vars()."""
+"""Tests for BaseTheme field collection and to_css_vars(), from the node-authoring side.
 
-from haywire.ui.themes.node_theme import NodeTheme
-from haywire.ui.themes.workbench import NODE_TIER_TOKENS, WorkbenchTheme, _FieldProxy
+BaseTheme is one class for both flavours (see test_workbench_theme.py for the
+workbench-authoring side of the same mechanics) — these tests exercise
+@theme(theme_type='node') specifically: what a node-scoped theme is allowed
+to declare and how its declarations resolve through to_css_vars().
+"""
+
+from haywire.ui.themes.workbench import BaseTheme, _FieldProxy
 from haywire.ui.themes.decorator import theme
 from haybale_testing.themes.node import TestNodeTheme
 
@@ -14,7 +19,7 @@ from haybale_testing.themes.node import TestNodeTheme
 
 class TestNodeThemeFieldCollection:
     def test_string_attrs_collected(self):
-        class _T(NodeTheme):
+        class _T(BaseTheme):
             node_header_bg = "#252540"
             node_bg = "#4a90d9"
 
@@ -22,14 +27,14 @@ class TestNodeThemeFieldCollection:
         assert "node_bg" in _T._fields
 
     def test_private_excluded(self):
-        class _T(NodeTheme):
+        class _T(BaseTheme):
             _internal = "ignored"
             node_header_bg = "#111111"
 
         assert "_internal" not in _T._fields
 
     def test_proxy_wraps_default(self):
-        class _T(NodeTheme):
+        class _T(BaseTheme):
             node_header_bg = "#abcdef"
 
         proxy = _T._fields["node_header_bg"]
@@ -37,17 +42,17 @@ class TestNodeThemeFieldCollection:
         assert proxy._default == "#abcdef"
 
     def test_fields_fresh_per_class(self):
-        class _A(NodeTheme):
+        class _A(BaseTheme):
             node_bg = "#aaaaaa"
 
-        class _B(NodeTheme):
+        class _B(BaseTheme):
             node_header_bg = "#bbbbbb"
 
         assert "node_header_bg" not in _A._fields
         assert "node_bg" not in _B._fields
 
     def test_base_class_has_empty_fields(self):
-        assert NodeTheme._fields == {}
+        assert BaseTheme._fields == {}
 
 
 # ---------------------------------------------------------------------------
@@ -68,7 +73,7 @@ class TestToCssVars:
         so a mistyped token in a theme subclass fails without a signal.
         """
 
-        class _T(NodeTheme):
+        class _T(BaseTheme):
             not_a_real_token = "#ff0000"
 
         assert "#ff0000" not in str(_T().to_css_vars().values())
@@ -82,55 +87,71 @@ class TestToCssVars:
     def test_a_token_may_hold_a_gradient(self):
         """Why every consumer must use `background`, not `background-color`."""
 
-        class _T(NodeTheme):
+        class _T(BaseTheme):
             node_bg = "linear-gradient(135deg, #667eea 0%, #764ba2 100%)"
 
         assert _T().to_css_vars()["--hw-node-bg"].startswith("linear-gradient(")
 
-    def test_node_and_workbench_share_one_token_map(self):
-        """A NodeTheme cannot name a token the workbench does not have.
+    def test_a_node_theme_may_declare_any_workbench_token(self):
+        """No curated node-scoped subset — a node-authored theme may set
+        text_body, bg_input, accent, ... anything in _CSS_TOKEN_MAP."""
 
-        The shared map is what makes "NodeTheme is a subset of WorkbenchTheme"
-        structural rather than conventional — two maps could drift on a var
-        name and a node theme would silently override nothing.
-        """
-        assert NodeTheme._CSS_TOKEN_MAP is WorkbenchTheme._CSS_TOKEN_MAP
+        class _T(BaseTheme):
+            text_body = "rgba(255,255,255,0.9)"
+            bg_input = "#0a0a12"
+            accent = "#ff00aa"
 
-    def test_every_node_tier_token_is_mapped(self):
-        for token in NODE_TIER_TOKENS:
-            assert token in NodeTheme._CSS_TOKEN_MAP
+        v = _T().to_css_vars()
+        assert v["--hw-text-body"] == "rgba(255,255,255,0.9)"
+        assert v["--hw-bg-input"] == "#0a0a12"
+        assert v["--hw-accent"] == "#ff00aa"
 
-    def test_tier_2_tokens_are_not_node_tier(self):
-        """node_selected/active/shadow are consumed on an ANCESTOR of the slot,
-        so a node-tier theme cannot reach them — they must stay out of the list
-        a node tier writes."""
+    def test_tier_2_tokens_are_declarable_but_structurally_inert_at_node_tier(self):
+        """node_selected/active/shadow are real, mapped tokens a node-authored
+        theme may set — nothing stops it. They're consumed on an ANCESTOR of
+        the node tier's element ([data-node-id] vs .ui-node-slot), so a
+        node-scoped theme's value for them is written but never visibly
+        applied. The graph and global tiers sit above that ancestor and DO
+        apply them — this is a DOM-position fact for the write path (see
+        ui_node.py / graph_canvas_manager.py) to know, not a restriction on
+        the theme class itself."""
         for token in ("node_selected", "node_active", "node_shadow"):
-            assert token in NodeTheme._CSS_TOKEN_MAP
-            assert token not in NODE_TIER_TOKENS
+            assert token in BaseTheme._CSS_TOKEN_MAP
 
 
 # ---------------------------------------------------------------------------
-# @theme decorator
+# @theme(theme_type='node') decorator
 # ---------------------------------------------------------------------------
 
 
-class TestThemeDecorator:
+class TestNodeThemeDecorator:
     def test_class_identity_set(self):
         assert TestNodeTheme.class_identity.registry_id == "TestNodeTheme"
         assert TestNodeTheme.class_identity.theme_type == "node"
 
     def test_registry_key_format(self):
-        expected = "haybale-testing:theme:node:TestNodeTheme"
+        """Standard 3-segment reg_key — theme_type lives on class_identity,
+        not encoded into the key."""
+        expected = "haybale-testing:theme:TestNodeTheme"
         assert TestNodeTheme.class_identity.registry_key == expected
 
     def test_label(self):
         assert TestNodeTheme.class_identity.label == "Test Node"
 
     def test_custom_decorator(self):
-        @theme(registry_id="_test_custom_node", label="Custom")
-        class _T(NodeTheme):
+        @theme(theme_type="node", registry_id="_test_custom_node", label="Custom")
+        class _T(BaseTheme):
             node_header_bg = "#ffffff"
 
         assert _T.class_identity.registry_id == "_test_custom_node"
         assert _T.class_identity.theme_type == "node"
         assert _T.class_identity.label == "Custom"
+
+    def test_rejects_non_theme_subclass(self):
+        import pytest
+
+        with pytest.raises(TypeError):
+
+            @theme(theme_type="node", label="Not a theme")
+            class _NotATheme:
+                pass

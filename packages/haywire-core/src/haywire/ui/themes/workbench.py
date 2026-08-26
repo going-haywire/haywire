@@ -1,10 +1,11 @@
 # haywire/ui/themes/workbench.py
 """
-WorkbenchTheme — CSS variable definitions for the app shell.
+BaseTheme — CSS variable definitions for the app shell, the canvas, and node cards.
 
 Fields are plain Color string class attributes (NOT field() descriptors).
-WorkbenchTheme.__init_subclass__ auto-wraps them into minimal objects so that
-_fields is populated uniformly and to_css_vars() works without extra boilerplate.
+BaseTheme.__init_subclass__ auto-wraps them into minimal objects so that
+_fields is populated uniformly and to_css_vars() works without extra
+boilerplate.
 """
 
 from __future__ import annotations
@@ -25,17 +26,33 @@ class _FieldProxy:
 
 
 class BaseTheme:
-    """Common base for registerable themes (WorkbenchTheme, NodeTheme).
+    """
+    Base class for every theme — workbench and node alike.
 
-    Exists so ThemeRegistry can bind ``BaseRegistry[BaseTheme]`` — both theme
-    families share the field-proxy structure and carry a ``class_identity``
-    set by their decorator (@workbench_theme / @node_theme).
+    One class, one token vocabulary (``_CSS_TOKEN_MAP``, in full). What
+    distinguishes a "workbench theme" from a "node theme" is
+    ``class_identity.theme_type`` (set by the ``@theme(theme_type=...)``
+    decorator, see decorator.py), which decides WHERE the theme's
+    declarations get injected (``:root`` vs ``.graph-canvas`` vs
+    ``.ui-node-slot``) — not the class you subclass.
 
-    Both families also share ONE token map, deliberately: a NodeTheme is the
-    node-scoped *subset* of the same token vocabulary, so it must not be able
-    to name a token the workbench does not have. Sharing the map makes that a
-    property of the code rather than of convention — two maps could drift on a
-    var name, and a node theme would then silently fail to override anything.
+    Subclass and override only the tokens you want to change:
+
+        @theme(theme_type='workbench', label='Haywire Dark')
+        class HaywireDarkTheme(BaseTheme):
+            bg_page    = '#12121e'
+            bg_surface = '#1e1e2e'
+            ...
+
+        @theme(theme_type='node', label='Default Node Theme')
+        class DefaultNodeTheme(BaseTheme):
+            node_bg = '#1e1e2e'
+            ...
+
+    Field values are plain class-attribute strings (not ``field()``
+    descriptors); ``__init_subclass__`` below wraps them into ``_fields``
+    uniformly. A field not in ``_CSS_TOKEN_MAP`` is silently dropped by
+    ``to_css_vars()``.
     """
 
     class_identity: ClassVar[ThemeClassIdentity]
@@ -80,10 +97,8 @@ class BaseTheme:
         "success": "--hw-success",
         "info": "--hw-info",
         "positive": "--hw-positive",
-        # Node chrome — TIER 1: the card's own surface.
-        #
-        # These are the tokens a NodeTheme may carry, and the only ones a graph
-        # or a single node can override (see NODE_TIER_TOKENS below). Lengths
+        # Node chrome — card surface. A node- or graph-authored theme may
+        # override any token in this whole map, this group included. Lengths
         # carry their unit IN the value ("3px", not 3): var() is textual
         # substitution, so `border: 3 solid red` is invalid CSS and fails
         # silently. Same shape as muted_opacity / compact_field_h.
@@ -94,13 +109,15 @@ class BaseTheme:
         "node_header_bg": "--hw-node-header-bg",
         "node_header_text_color": "--hw-node-header-text-color",
         "node_text_color": "--hw-node-text-color",
-        # Node chrome — TIER 2: canvas affordances expressing editor state.
+        # Node chrome — canvas affordances expressing editor state.
         #
-        # Consumed by canvas.vue on [data-node-id], which is an ANCESTOR of
-        # .ui-node-slot. Custom properties inherit downward only, so a var set
-        # on the slot cannot reach these rules: a node-tier theme silently
-        # cannot restyle its own selection ring. The :root and .graph-canvas
-        # tiers sit above [data-node-id] and CAN. See theme-canon.
+        # Consumed by canvas.vue on [data-node-id]. The graph and global tiers
+        # (.graph-canvas / :root) sit ABOVE [data-node-id] and reach these
+        # normally. The node tier (.ui-node-slot) sits BELOW it — custom
+        # properties inherit downward only, so a value set there is accepted
+        # and written like any other token but is structurally inert for these
+        # three: a node-tier theme cannot restyle its own selection ring, no
+        # matter what it sets here. See theme-canon.
         "node_selected": "--hw-node-selected",
         "node_active": "--hw-node-active",
         "node_shadow": "--hw-node-shadow",
@@ -177,44 +194,3 @@ class BaseTheme:
             if proxy is not None:
                 result[css_var] = proxy._default
         return result
-
-
-#: The node-scoped token subset — what a NodeTheme may carry, and what the
-#: graph and node tiers may override.
-#:
-#: Tier 1 only. The Tier 2 tokens (node_selected / node_active / node_shadow)
-#: are reachable from :root and .graph-canvas but NOT from .ui-node-slot, so
-#: including them here would promise a per-node override that cannot work.
-#:
-#: Load-bearing beyond documentation: applying a node theme CLEARS every token
-#: in this list before setting the new theme's, so switching to a theme that
-#: omits a token does not leave the previous theme's value stranded.
-NODE_TIER_TOKENS: tuple[str, ...] = (
-    "node_bg",
-    "node_border_color",
-    "node_border_width",
-    "node_border_radius",
-    "node_header_bg",
-    "node_header_text_color",
-    "node_text_color",
-)
-
-
-class WorkbenchTheme(BaseTheme):
-    """
-    Base class for workbench (app-shell) themes.
-
-    Subclasses define CSS variable values as plain class attributes:
-
-        class HaywireDarkTheme(WorkbenchTheme):
-            bg_page    = '#12121e'
-            bg_surface = '#1e1e2e'
-            ...
-
-    Carries the FULL token vocabulary — every token in ``_CSS_TOKEN_MAP``,
-    injected once into ``:root``. A NodeTheme carries the node-scoped subset
-    and overrides those same vars at a later cascade position.
-
-    Subclasses decorated with @theme get a class_identity attribute and can be
-    registered with ThemeRegistry.
-    """
