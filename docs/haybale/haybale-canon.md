@@ -208,7 +208,7 @@ instantiates it.
 | `AdapterRegistry` | `haywire.core.adapter.registry` | `adapters/` | `@adapter` classes |
 | `WidgetRegistry` | `haywire.ui.widget.registry` | `widgets/` | `@widget` classes |
 | `SkinRegistry` | `haywire.ui.skin.registry` | `skins/` | skin classes |
-| `ThemeRegistry` | `haywire.ui.themes.registry` | `themes/` | `WorkbenchTheme` / `NodeTheme` |
+| `ThemeRegistry` | `haywire.ui.themes.registry` | `themes/` | `@theme(theme_type=...)` classes |
 | `SettingsRegistry` | `haywire.core.settings.registry` | `settings/` | `@settings` classes |
 | `LibraryStateRegistry` | `haywire.core.state` | `state/` | `AppState` / `SessionState` |
 | `EditorTypeRegistry` | `haywire.ui.editor.registry` | `editors/` | `@editor` classes |

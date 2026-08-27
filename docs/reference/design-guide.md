@@ -150,9 +150,15 @@ it bypasses the theme. Style with `.style("color: var(--hw-positive)")` instead.
 
 ### 2.7 Canvas & Node Tokens
 
-These tokens are defined on `WorkbenchTheme` and used exclusively by the graph
-canvas, node skins, and edge renderers. Panel and shell code must not reference
-them.
+These tokens are defined on every theme and used by the graph canvas, node
+skins, and edge renderers. Panel and shell code must not reference them.
+
+The reverse is not restricted: a node-flavoured theme may override any token
+in the full vocabulary (Section 2.2–2.6 included), scoped to its own
+node/graph subtree — see [theme-canon](../components/themes/theme-canon.md).
+A node card's widget content (inputs, selects, ...) is brought into that
+cascade via a `.ui-node-slot`-scoped forwarding block in `shell.py`,
+mirroring the one panels get from `.hw-panel`.
 
 | Token                   | Use for                                                                                                                    |
 | ----------------------- | -------------------------------------------------------------------------------------------------------------------------- |
@@ -1148,8 +1154,8 @@ in structure — but the chrome rules are fixed.
 - Background: `var(--hw-bg-elevated)`
 - Border: `1px solid var(--hw-border-strong)`
 - Border radius: `md` (8px)
-- Shadow: `var(--hw-popup-shadow)` — defined on `WorkbenchTheme`, distinct from
-  `--hw-node-shadow` (nodes are canvas objects; popups are shell objects)
+- Shadow: `var(--hw-popup-shadow)` — a workbench-flavoured theme token, distinct
+  from `--hw-node-shadow` (nodes are canvas objects; popups are shell objects)
 - Backdrop (modal overlays only): `var(--hw-bg-overlay)` — never `rgba(0,0,0,0.5)`
 
 **Rule:** Never hardcode `box-shadow` values on popups. Use `--hw-popup-shadow`.

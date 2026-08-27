@@ -7,7 +7,7 @@ place. These tests pin the three halves of that claim:
 2. ``hui.submenu_row`` *is* a ``menu_row``, so a command and the submenu row
    beside it cannot drift, and
 3. every value in the ``.hw-menu-row`` CSS block reads a ``--hw-menu-row-*``
-   token that a ``WorkbenchTheme`` can set.
+   token that a ``BaseTheme`` can set.
 """
 
 from __future__ import annotations
@@ -24,7 +24,7 @@ from haywire.ui import elements as hui
 from haywire.ui.app.shell import STATIC_CSS
 from haywire.ui.elements.elements import MENU_ROW_CLASS, MENU_ROW_ICON_CLASS
 from haywire.ui.elements.flyout import open_flyout_group
-from haywire.ui.themes.workbench import WorkbenchTheme
+from haywire.ui.themes.workbench import BaseTheme
 
 
 @pytest.fixture
@@ -140,13 +140,13 @@ def test_every_menu_row_token_is_settable_from_a_theme():
     """A token used by the CSS but absent from the theme map could never be
     themed — the whole point of routing the look through tokens."""
     used = set(re.findall(r"var\((--hw-menu-row-[a-z-]+)", STATIC_CSS))
-    mapped = set(WorkbenchTheme._CSS_TOKEN_MAP.values())
+    mapped = set(BaseTheme._CSS_TOKEN_MAP.values())
     assert used, "the menu-row block should read --hw-menu-row-* tokens"
-    assert used <= mapped, f"not settable from a WorkbenchTheme: {sorted(used - mapped)}"
+    assert used <= mapped, f"not settable from a BaseTheme: {sorted(used - mapped)}"
 
 
 def test_a_theme_emits_the_menu_row_tokens_it_sets():
-    class _MenuTheme(WorkbenchTheme):
+    class _MenuTheme(BaseTheme):
         menu_row_text = "#ff0000"
         menu_row_text_transform = "uppercase"
 

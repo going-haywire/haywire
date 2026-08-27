@@ -1,13 +1,13 @@
 """
-Minimal NodeTheme fixture for testing the theme system.
+Minimal node-flavoured theme fixture for testing the theme system.
 """
 
-from haywire.ui.themes.node_theme import NodeTheme
+from haywire.ui.themes.workbench import BaseTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(label="Test Node", hidden=True)
-class TestNodeTheme(NodeTheme):
+@theme(theme_type="node", label="Test Node", hidden=True)
+class TestNodeTheme(BaseTheme):
     """Minimal node theme for tests.
 
     Deliberately distinctive values: tests assert that selecting this theme

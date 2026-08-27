@@ -6,12 +6,12 @@ hot-reloadable: edit this file in an editable install and the ThemeRegistry
 will update automatically on the next library reload cycle.
 """
 
-from haywire.ui.themes.workbench import WorkbenchTheme
+from haywire.ui.themes.workbench import BaseTheme
 from haywire.ui.themes.decorator import theme
 
 
-@theme(label="Haywire Dark")
-class HaywireDarkTheme(WorkbenchTheme):
+@theme(theme_type="workbench", label="Haywire Dark")
+class HaywireDarkTheme(BaseTheme):
     """Default dark workbench theme."""
 
     # Backgrounds
@@ -110,8 +110,8 @@ class HaywireDarkTheme(WorkbenchTheme):
     drag_ghost = "0.5"
 
 
-@theme(label="Haywire Light")
-class HaywireLightTheme(WorkbenchTheme):
+@theme(theme_type="workbench", label="Haywire Light")
+class HaywireLightTheme(BaseTheme):
     """Default light workbench theme."""
 
     # Backgrounds

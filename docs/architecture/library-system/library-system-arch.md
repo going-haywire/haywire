@@ -64,7 +64,7 @@ Class registries it routes into (each is a `BaseRegistry` subclass):
 - `AdapterRegistry` — `@adapter` classes
 - `WidgetRegistry` — `@widget` classes
 - `SkinRegistry` — skin classes
-- `ThemeRegistry` — `WorkbenchTheme` / `NodeTheme` subclasses
+- `ThemeRegistry` — `@theme(theme_type=...)` classes
 
 `LibraryRegistry.add_class_registry(cls, instance)` is how the DI layer registers each one at startup.
 

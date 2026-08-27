@@ -1,7 +1,7 @@
 # tests/ui/test_workbench_theme.py
-"""Tests for WorkbenchTheme field collection and to_css_vars()."""
+"""Tests for BaseTheme field collection and to_css_vars()."""
 
-from haywire.ui.themes.workbench import WorkbenchTheme, _FieldProxy
+from haywire.ui.themes.workbench import BaseTheme, _FieldProxy
 from haywire.ui.themes.decorator import theme
 from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
 
@@ -11,9 +11,9 @@ from haybale_testing.themes.workbench import TestDarkTheme, TestLightTheme
 # ---------------------------------------------------------------------------
 
 
-class TestWorkbenchThemeFieldCollection:
+class TestThemeFieldCollection:
     def test_plain_string_attrs_collected(self):
-        class _T(WorkbenchTheme):
+        class _T(BaseTheme):
             bg_page = "#111111"
             bg_surface = "#222222"
 
@@ -21,7 +21,7 @@ class TestWorkbenchThemeFieldCollection:
         assert "bg_surface" in _T._fields
 
     def test_private_attrs_excluded(self):
-        class _T(WorkbenchTheme):
+        class _T(BaseTheme):
             _internal = "ignored"
             bg_page = "#111111"
 
@@ -29,7 +29,7 @@ class TestWorkbenchThemeFieldCollection:
         assert "bg_page" in _T._fields
 
     def test_fields_are_field_proxies(self):
-        class _T(WorkbenchTheme):
+        class _T(BaseTheme):
             bg_page = "#abcdef"
 
         proxy = _T._fields["bg_page"]
@@ -37,17 +37,17 @@ class TestWorkbenchThemeFieldCollection:
         assert proxy._default == "#abcdef"
 
     def test_fields_fresh_per_class(self):
-        class _A(WorkbenchTheme):
+        class _A(BaseTheme):
             a_color = "#aaaaaa"
 
-        class _B(WorkbenchTheme):
+        class _B(BaseTheme):
             b_color = "#bbbbbb"
 
         assert "b_color" not in _A._fields
         assert "a_color" not in _B._fields
 
     def test_base_class_has_empty_fields(self):
-        assert WorkbenchTheme._fields == {}
+        assert BaseTheme._fields == {}
 
 
 # ---------------------------------------------------------------------------
@@ -73,8 +73,8 @@ class TestToCssVars:
         assert css["--hw-bg-page"] == "#ffffff"
 
     def test_custom_theme_values(self):
-        @theme(registry_id="_test_css_vars")
-        class _T(WorkbenchTheme):
+        @theme(theme_type="workbench", registry_id="_test_css_vars")
+        class _T(BaseTheme):
             bg_page = "#aabbcc"
             accent = "#112233"
 
@@ -101,7 +101,7 @@ class TestToCssVars:
     def test_missing_field_not_in_result(self):
         """A field listed in _CSS_TOKEN_MAP but missing from _fields is silently skipped."""
 
-        class _Sparse(WorkbenchTheme):
+        class _Sparse(BaseTheme):
             bg_page = "#ffffff"
             # nothing else
 
@@ -112,14 +112,16 @@ class TestToCssVars:
 
 
 # ---------------------------------------------------------------------------
-# @theme decorator
+# @theme(theme_type='workbench') decorator
 # ---------------------------------------------------------------------------
 
 
-class TestThemeDecorator:
+class TestWorkbenchThemeDecorator:
     def test_class_identity_set(self):
         assert TestDarkTheme.class_identity.registry_id == "TestDarkTheme"
         assert TestDarkTheme.class_identity.theme_type == "workbench"
 
     def test_registry_key_format(self):
-        assert TestDarkTheme.class_identity.registry_key == "haybale-testing:theme:workbench:TestDarkTheme"
+        """Standard 3-segment reg_key — theme_type lives on class_identity,
+        not encoded into the key (unlike the pre-collapse 4-segment format)."""
+        assert TestDarkTheme.class_identity.registry_key == "haybale-testing:theme:TestDarkTheme"

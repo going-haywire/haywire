@@ -7,6 +7,17 @@ level: architectural
 
 # Node styling is a CSS cascade, not a Python merge
 
+> **Extended by [ADR 0031](0031-theme-full-vocabulary-and-collapse.md).** The
+> cascade model, tier-divergence rules, and `color_override` composition
+> below are unchanged and still accurate. What changed: a node-flavoured
+> theme may declare ANY token in `_CSS_TOKEN_MAP`, not the curated Tier-1
+> subset this ADR describes; `NODE_TIER_TOKENS` referenced below no longer
+> exists; `WorkbenchTheme` and `NodeTheme` collapsed into one `BaseTheme`
+> class, authored via `@theme(theme_type=...)`; and theme registry keys are
+> the standard 3-segment shape, not the 4-segment one this ADR's examples
+> use. Read this ADR for the mechanism, 0031 for the current vocabulary and
+> class shape.
+
 A node card's look is decided by CSS custom properties, layered by the
 browser across four tiers:
 

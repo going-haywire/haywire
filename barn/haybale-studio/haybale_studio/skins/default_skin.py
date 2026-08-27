@@ -39,8 +39,8 @@ class DefaultNodeSkin(NodeSkin):
         padding = self.CARD_H_PADDING
         # Pure var() consumption — no per-node branching, ever. A graph or a
         # node overrides the look by redefining these vars on an ancestor
-        # element (see NodeTheme); the browser re-resolves them without this
-        # skin being re-rendered or even consulted.
+        # element (see a @theme(theme_type='node') class); the browser re-resolves
+        # them without this skin being re-rendered or even consulted.
         #
         # `background`, not `background-color`: a token may hold a gradient,
         # which is an <image> and would make a `background-color` declaration

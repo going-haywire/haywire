@@ -63,9 +63,13 @@ So a node-tier theme setting `node_selected` writes a var onto an element
 *below* the rules that consume it. The declaration exists, is valid, and does
 nothing. The graph and global tiers sit above `[data-node-id]` and work fine.
 
-`NODE_TIER_TOKENS` exists to encode this: it lists Tier 1 only, so the per-node
-write path cannot promise an override that silently fails. If a per-node theme
-appears to ignore a token, check whether it's Tier 2.
+A node-flavoured theme (`@theme(theme_type='node')`) may declare ANY token in
+`_CSS_TOKEN_MAP` — there is no curated node-scoped subset (the node-tier
+write path emits everything the theme declares). `node_selected`
+/ `node_active` / `node_shadow` specifically are still structurally inert at
+the node tier for the DOM reason above — that's a permanent ceiling, not a
+policy the code enforces by filtering. If a per-node theme appears to ignore
+one of these three tokens, that's why; every other token works as declared.
 
 ## Bonus: a skin that defines a var on its own card becomes un-overridable
 

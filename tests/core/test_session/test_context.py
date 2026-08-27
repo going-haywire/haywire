@@ -26,8 +26,8 @@ def test_theme_keys_can_be_set():
     # write goes through the signal_field descriptor which calls _signal_emit
     # via instance.session — wire a minimal stub so the emit succeeds.
     ctx.session = type("S", (), {"publish": staticmethod(lambda _s: None)})()
-    ctx.active_workbench_theme_key = "core:theme:workbench:haywire-dark"
-    assert ctx.active_workbench_theme_key == "core:theme:workbench:haywire-dark"
+    ctx.active_workbench_theme_key = "haybale-studio:theme:HaywireDarkTheme"
+    assert ctx.active_workbench_theme_key == "haybale-studio:theme:HaywireDarkTheme"
 
 
 def test_editor_cluster_fields_are_not_on_session_context():
