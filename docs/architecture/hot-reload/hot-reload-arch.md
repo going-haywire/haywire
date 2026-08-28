@@ -163,7 +163,7 @@ reloaded theme is the graph's active one) and the browser re-resolves every
 
 Hot-reload is **not**:
 
-- A **safe mechanism for production code** — file watching is `EDITABLE` / `FOLDER` install only ([library-system §2.3](../library-system/library-system-arch.md#23-installtype-enum)). Pip-from-wheel installs (`REGULAR`) have no live source path.
+- A **safe mechanism for production code** — file watching is `EDITABLE` / `FOLDER` install only ([library-system §2.3](../library-system/library-system-arch.md#23-installtype-enum-haywirecorelibraryinstall_typepy)). Pip-from-wheel installs (`REGULAR`) have no live source path.
 - A **module-unloading tool** — The managed path evicts and replaces the module in `sys.modules`, but old class objects held by closures or direct references remain in memory until GC collects them. Restart is the most thorough cleanup.
 
 ## 5. Examples

@@ -90,12 +90,12 @@ from: `CanvasSettingsPanel` — registry_key: `haybale-studio:panel:CanvasSettin
 
 The canvas right-click menu is a small tree of Surfaces, not one flat panel list — it is the primary example of a **hosting panel** with regions. `GraphContext` (`barn/haybale-graph-editor/haybale_graph_editor/surfaces/graph_context.py`) is the root Surface that `on_canvas_context` opens; `GraphContextPanel` is the sole panel registered on it, and it implements none of `GraphActions` itself — `SessionContextMenuProvider` does. `GraphContextPanel` **pipes**: it calls `self.render_surface(S, ctx)` without an `actions=` argument, so each nested Surface receives `self.actions` (the host `GraphContextPanel` itself received) rather than `GraphContextPanel`.
 
-Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py`
+Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py`
 
 `GraphContextPanel` arranges an icon-shortcut row and a prime area, each its own hosted Surface, into the *same* popup:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py:38:56"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py:38:56"
 ```
 
 from: `GraphContextPanel` — registry_key: `haybale-graph-editor:panel:GraphContextPanel`
@@ -150,10 +150,10 @@ from: `AppearanceToolbarPanel` — registry_key: `haybale-graph-editor:panel:App
 
 ## Graph menu / overflow panel (a hosting panel that is itself nested)
 
-`GraphMorePanel` (also in `panels/graph/menu/context/context.py`) is the canvas menu's "…" — a panel that both is a leaf on one Surface (`GraphToolBar`) and hosts another (`GraphMoreActions`) itself. It shows the general shape any extension-point overflow takes: a library that wants to add a canvas-menu command with no obvious home renders into `GraphMoreActions` instead of asking the framework to add a new built-in Surface.
+`GraphMorePanel` (also in `panels/graph/menu/graph/context.py`) is the canvas menu's "…" — a panel that both is a leaf on one Surface (`GraphToolBar`) and hosts another (`GraphMoreActions`) itself. It shows the general shape any extension-point overflow takes: a library that wants to add a canvas-menu command with no obvious home renders into `GraphMoreActions` instead of asking the framework to add a new built-in Surface.
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py:80:103"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py:100:123"
 ```
 
 from: `GraphMorePanel` — registry_key: `haybale-graph-editor:panel:GraphMorePanel`

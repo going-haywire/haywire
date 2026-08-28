@@ -1,4 +1,4 @@
-# barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/context/context.py
+# barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py
 """
 The canvas right-click menu, as a small tree of surfaces.
 

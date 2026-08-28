@@ -158,7 +158,7 @@ class TimelineCursor(SessionState):
         load_cursor_for(self.session_id)
 ```
 
-**Composing `LibrarySettings` inside `AppState`.** Recommended pattern for state with persisted, user-tweakable knobs (poll rate, port, cache size). Both `__init__` and `on_enable` are safe instantiation sites — the container will not call either before the owning library's `enable()` has finished registering its `LibrarySettings` classes (see [settings: startup timing](../settings/setting-canon.md#startup-timing)). The `on_enable` placement is preferred as a matter of code discipline: it groups every resolved dependency (`SessionManager`, workspace root, settings) at one lifecycle point, makes the field types non-`Optional`-by-convention symmetric across all deps, and keeps `__init__` cheap.
+**Composing `LibrarySettings` inside `AppState`.** Recommended pattern for state with persisted, user-tweakable knobs (poll rate, port, cache size). Both `__init__` and `on_enable` are safe instantiation sites — the container will not call either before the owning library's `enable()` has finished registering its `LibrarySettings` classes (see [settings: startup timing](../settings/setting-canon.md#where-you-can-construct-it)). The `on_enable` placement is preferred as a matter of code discipline: it groups every resolved dependency (`SessionManager`, workspace root, settings) at one lifecycle point, makes the field types non-`Optional`-by-convention symmetric across all deps, and keeps `__init__` cheap.
 
 Class body instantiation is unsafe — at module import time the `SettingsRegistry` may not exist yet.
 

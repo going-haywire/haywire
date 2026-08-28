@@ -11,7 +11,7 @@ level: architectural
 > The binding-signal *mechanism* originally recorded here (synthetic `setting__…` port id,
 > id-as-binding-key, per-write `_set_keys` marking) was later replaced. The current mechanism
 > — a promoted port's id IS the setting's `storage_key`, marked locally-set at promote-time —
-> is recorded in the [Amendment](#amendment--a-promoted-ports-id-is-the-settings-storage_key)
+> is recorded in the [Amendment](#amendment-a-promoted-ports-id-is-the-settings-storage_key)
 > at the end of this ADR. The prose in the Decision section below still describes the
 > *original* synthetic-id mechanism; read it for the direction model and one-cell-two-views,
 > and the amendment for the id mechanism that shipped. **The amendment itself is now

@@ -394,7 +394,7 @@ All three read the same `DriftReport.linked_registrations` / `linked_missing` an
 
 An earlier version of this dialog had a "Detect Dependencies" button that scanned *both* `linked_libraries` and pip dependencies, offering Union/Replace across both. It was removed because the pip-dependency side created two uncoordinated writers to the same `[project] dependencies` list — this button and the Share wizard's own writer — which is what let the framework floor get silently clobbered. That bug never existed on the `linked_libraries` side: those entries were already "applied automatically, never a choice" even inside the Share flow, so a second surface applying the same provably-true rule does not recreate the conflict. Note also that only Union survives here; Replace was the destructive half and has no equivalent on any surface.
 
-The same detection backs the CLI: step 2 of `SharePipeline` and `haywire deps check` both call `detect_share_drift()` ([share-pipeline-arch §2.2](../../architecture/sharing/share-pipeline-arch.md#22-step-2-dependency-drift)). For the author-facing workflow, see the [sharing-libraries guide §3](../../guides/sharing-libraries.md#63-keeping-the-manifests-honest).
+The same detection backs the CLI: step 2 of `SharePipeline` and `haywire deps check` both call `detect_share_drift()` ([share-pipeline-arch §2.2](../../architecture/sharing/share-pipeline-arch.md#22-step-2-detect)). For the author-facing workflow, see the [sharing-libraries guide §3](../../guides/sharing-libraries.md#63-keeping-the-manifests-honest).
 
 ## 7. Failure surfaces
 

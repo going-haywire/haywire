@@ -215,7 +215,7 @@ The outer key is the accessor name; the inner dict maps field name → locally-s
 
 **Important ordering rule for `shadow()` / `watch()` between modules.** A node class using `shadow(MyLibSettings.api_url)` must be **defined after** `MyLibSettings`. The `@settings(namespace='my_lib')` decorator sets `_setting_key` on each descriptor at class evaluation time; if your node imports `MyLibSettings` later, that's fine — but if both live in the same module, declaration order matters.
 
-**Promoting a setting to a port (field + direction).** A setting can be *promoted* to a DATA port so the graph can drive it or read it. Promotion is a **field + a direction**; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see [architecture §6.5](../../architecture/settings/settings-arch.md#65-promotion--field--direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md)).
+**Promoting a setting to a port (field + direction).** A setting can be *promoted* to a DATA port so the graph can drive it or read it. Promotion is a **field + a direction**; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see [architecture §6.5](../../architecture/settings/settings-arch.md#65-promotion-field-direction) and [ADR 0014](../../adr/0014-promotion-as-direction.md)).
 
 ```python
 from haywire.core.node.promotion import promote_setting, demote_setting
