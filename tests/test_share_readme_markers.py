@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -229,3 +230,59 @@ def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
 
     expected_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     assert expected_url in (tmp_path / "Readme.md").read_text()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# One URL per fenced block.
+#
+# Both URLs used to share a single ```sh block with comment lines labelling
+# them. That renders fine and copies wrong: every git host's copy button yields
+# the WHOLE block, so a reader aiming at one URL got both plus the comments —
+# and pasting that into Add Source fails.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_each_url_gets_its_own_fenced_block() -> None:
+    from haywire.core.publishing.readme import _update_readme_markers
+
+    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
+    url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    tagged_url = "https://github.com/alice/cool-libs/blob/v1.2.0/marketstall.toml"
+
+    new_content = _update_readme_markers(content, url, tagged_url=tagged_url)
+
+    blocks = re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL)
+    assert blocks == [url, tagged_url], "each block must hold exactly one URL and nothing else"
+
+
+@pytest.mark.unit
+def test_labels_sit_outside_the_fence() -> None:
+    """A label inside the fence is copied along with the URL."""
+    from haywire.core.publishing.readme import _update_readme_markers
+
+    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
+    new_content = _update_readme_markers(
+        content,
+        "https://example.com/a/marketstall.toml",
+        tagged_url="https://example.com/b/marketstall.toml",
+    )
+
+    for block in re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL):
+        assert "\n" not in block
+        assert not block.startswith("#")
+    assert "Always the latest" in new_content
+    assert "Frozen to this version" in new_content
+
+
+@pytest.mark.unit
+def test_single_block_when_there_is_no_tag() -> None:
+    from haywire.core.publishing.readme import _update_readme_markers
+
+    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
+    new_content = _update_readme_markers(content, "https://example.com/a/marketstall.toml")
+
+    assert re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL) == [
+        "https://example.com/a/marketstall.toml"
+    ]
+    assert "Frozen to this version" not in new_content

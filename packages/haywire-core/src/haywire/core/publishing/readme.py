@@ -35,17 +35,27 @@ def _update_readme_markers(
     to advertise — the earlier ``pypi_marketplace_url`` existed only because
     this file was always git-flavoured.
 
+    **One URL per fenced block.** Both used to share a single ``sh`` block with
+    comment lines labelling them, which rendered fine and copied wrong: the
+    copy button every git host puts on a fenced block yields the whole block,
+    so a reader aiming at one URL got both plus the comments, and pasting that
+    into Add Source fails. The label moves outside the fence so each block
+    holds exactly the one line a reader means to copy.
+
     Files without the marker pair are returned unchanged.
     """
     pattern = re.compile(
         re.escape(_README_MARKER_START) + r"\n.*?\n" + re.escape(_README_MARKER_END),
         re.DOTALL,
     )
-    lines: list[str] = []
-    lines += ["# Always the latest (tracks the current branch):", share_url]
+    parts: list[str] = [
+        "Always the latest (tracks the current branch):",
+        "",
+        f"```sh\n{share_url}\n```",
+    ]
     if tagged_url is not None:
-        lines += ["", "# Frozen to this version:", tagged_url]
-    replacement = f"{_README_MARKER_START}\n```sh\n" + "\n".join(lines) + f"\n```\n{_README_MARKER_END}"
+        parts += ["", "Frozen to this version:", "", f"```sh\n{tagged_url}\n```"]
+    replacement = f"{_README_MARKER_START}\n" + "\n".join(parts) + f"\n{_README_MARKER_END}"
     return pattern.sub(replacement, content)
 
 

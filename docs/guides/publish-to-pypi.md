@@ -176,15 +176,23 @@ Your README's marker block is unchanged, and still lists two URLs:
 
 ````markdown
 <!-- marketstall:share-url:start -->
-```sh
-# Always the latest (tracks the current branch):
-https://github.com/you/haybale-my-lib/blob/main/marketstall.toml
+Always the latest (tracks the current branch):
 
-# Frozen to this version:
+```sh
+https://github.com/you/haybale-my-lib/blob/main/marketstall.toml
+```
+
+Frozen to this version:
+
+```sh
 https://github.com/you/haybale-my-lib/blob/v0.0.1/marketstall.toml
 ```
 <!-- marketstall:share-url:end -->
 ````
+
+One URL per fenced block, deliberately: a git host's copy button yields the
+whole block, so two URLs sharing one fence means a reader aiming at either gets
+both — and pasting that into Add Source fails.
 
 Both now point at PyPI coordinates rather than clone specs. Subscribing to the first tracks your releases; the second freezes to the one you published at that tag.
 
