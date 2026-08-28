@@ -189,3 +189,48 @@ async def test_apply_docs_cleans_up_its_temp_json(project: Path) -> None:
         await SharePipeline(project).apply_docs()
 
     assert not captured["path"].exists()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Untracked directories collapse in `git status --porcelain`.
+#
+# Plain --porcelain reports a wholly-untracked directory as ONE entry ending in
+# "/", whose Path.suffix is empty — so the ".md" filter dropped it and every
+# file inside went unstaged. Invisible while docs/ is already tracked, and it
+# bites exactly when the directory is new. It shipped haybale-visiongraph
+# v0.0.37 with 21 per-component docs missing from the tagged commit.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def test_write_set_expands_a_new_untracked_docs_directory(project: Path) -> None:
+    """The first publish, or the release after someone deletes generated docs."""
+    docs_dir = project / "barn" / "haybale-alpha" / "haybale_alpha" / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "haybale-alpha.node.Alpha.md").write_text("# Alpha\n")
+    (docs_dir / "haybale-alpha.node.Beta.md").write_text("# Beta\n")
+
+    found = {p.name for p in steps_docs.write_set(SharePipeline(project))}
+
+    assert found == {"haybale-alpha.node.Alpha.md", "haybale-alpha.node.Beta.md"}
+
+
+def test_write_set_still_sees_modified_tracked_docs(project: Path) -> None:
+    """The case that always worked must keep working."""
+    overview = project / "barn" / "haybale-alpha" / "haybale_alpha" / "OVERVIEW.md"
+    overview.write_text("new overview\n")
+
+    found = {p.name for p in steps_docs.write_set(SharePipeline(project))}
+
+    assert "OVERVIEW.md" in found
+
+
+def test_write_set_ignores_non_markdown_in_an_untracked_directory(project: Path) -> None:
+    """Expanding the directory must not widen what gets staged."""
+    docs_dir = project / "barn" / "haybale-alpha" / "haybale_alpha" / "docs"
+    docs_dir.mkdir()
+    (docs_dir / "keep.md").write_text("# keep\n")
+    (docs_dir / "scratch.png").write_bytes(b"\x89PNG")
+
+    found = {p.name for p in steps_docs.write_set(SharePipeline(project))}
+
+    assert found == {"keep.md"}

@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import pytest
@@ -53,34 +54,6 @@ def test_update_readme_markers_no_tagged_url_omits_second_link() -> None:
     new_content = _update_readme_markers(content, url)
 
     assert new_content.count("marketstall.toml") == 1
-
-
-@pytest.mark.unit
-def test_update_readme_markers_pypi_url_leads_the_block() -> None:
-    """The PyPI feed is the primary install path, so it is listed first."""
-    from haywire.core.publishing.readme import _update_readme_markers
-
-    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
-    url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
-    tagged_url = "https://github.com/alice/cool-libs/blob/v1.2.0/marketstall.toml"
-    pypi_url = "https://alice.github.io/cool-libs/marketplace.toml"
-    new_content = _update_readme_markers(content, url, tagged_url=tagged_url, pypi_url=pypi_url)
-
-    assert new_content.index(pypi_url) < new_content.index(url) < new_content.index(tagged_url)
-    assert "recommended" in new_content
-
-
-@pytest.mark.unit
-def test_update_readme_markers_without_pypi_url_omits_it() -> None:
-    """A project with no deployed PyPI feed keeps the two git links only."""
-    from haywire.core.publishing.readme import _update_readme_markers
-
-    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
-    url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
-    new_content = _update_readme_markers(content, url)
-
-    assert "recommended" not in new_content
-    assert url in new_content
 
 
 @pytest.mark.unit
@@ -259,94 +232,57 @@ def test_share_save_finds_case_insensitive_readme(tmp_path: Path) -> None:
     assert expected_url in (tmp_path / "Readme.md").read_text()
 
 
-@pytest.mark.unit
-def test_read_pypi_marketplace_url_reads_the_key(tmp_path: Path) -> None:
-    """The URL is project-scoped config, authored once in pyproject.toml."""
-    from haywire.core.publishing.marketstall import read_pypi_marketplace_url
-
-    (tmp_path / "pyproject.toml").write_text(
-        "[tool.haywire.marketstall]\n"
-        'pypi_marketplace_url = "https://alice.github.io/cool-libs/marketplace.toml"\n'
-    )
-    assert read_pypi_marketplace_url(tmp_path) == "https://alice.github.io/cool-libs/marketplace.toml"
+# ─────────────────────────────────────────────────────────────────────────────
+# One URL per fenced block.
+#
+# Both URLs used to share a single ```sh block with comment lines labelling
+# them. That renders fine and copies wrong: every git host's copy button yields
+# the WHOLE block, so a reader aiming at one URL got both plus the comments —
+# and pasting that into Add Source fails.
+# ─────────────────────────────────────────────────────────────────────────────
 
 
 @pytest.mark.unit
-@pytest.mark.parametrize(
-    "content",
-    [
-        pytest.param(None, id="no-pyproject"),
-        pytest.param("[project]\nname = 'x'\n", id="no-marketstall-block"),
-        pytest.param("[tool.haywire.marketstall]\nsource_url = 'https://x'\n", id="key-absent"),
-        pytest.param("[tool.haywire.marketstall]\npypi_marketplace_url = ''\n", id="empty-string"),
-        pytest.param("[tool.haywire.marketstall]\npypi_marketplace_url = 42\n", id="not-a-string"),
-        pytest.param("this is not { valid toml", id="malformed-toml"),
-    ],
-)
-def test_read_pypi_marketplace_url_is_lenient(tmp_path: Path, content: str | None) -> None:
-    """Every unreadable/absent case means 'no PyPI feed' — never an exception.
+def test_each_url_gets_its_own_fenced_block() -> None:
+    from haywire.core.publishing.readme import _update_readme_markers
 
-    An optional README link must not be able to fail a publish.
-    """
-    from haywire.core.publishing.marketstall import read_pypi_marketplace_url
-
-    if content is not None:
-        (tmp_path / "pyproject.toml").write_text(content)
-    assert read_pypi_marketplace_url(tmp_path) is None
-
-
-@pytest.mark.unit
-def test_share_save_writes_pypi_link_from_config(tmp_path: Path) -> None:
-    """End-to-end: the configured PyPI feed lands on top of the README block."""
-    from unittest.mock import patch
-
-    from haywire.core.publishing import write_marketstall
-    from haywire.core.publishing import url as share_url
-
-    (tmp_path / ".git").mkdir()
-    (tmp_path / "README.md").write_text(f"# Project\n\n{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
-    (tmp_path / "pyproject.toml").write_text(
-        "[tool.haywire.marketstall]\n"
-        'pypi_marketplace_url = "https://alice.github.io/cool-libs/marketplace.toml"\n'
-    )
-    lib_dir = tmp_path / "barn" / "haybale-foo"
-    lib_dir.mkdir(parents=True)
-    (lib_dir / "pyproject.toml").write_text(
-        '[project]\nname = "haybale-foo"\nversion = "0.1.0"\ndescription = "x"\n'
-    )
-
-    with patch.object(share_url, "_get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch.object(share_url, "_get_current_ref", return_value="main"):
-            result = write_marketstall(tmp_path, tag="v1.2.0")
-
-    pypi_url = "https://alice.github.io/cool-libs/marketplace.toml"
-    branch_url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
+    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
+    url = "https://github.com/alice/cool-libs/blob/main/marketstall.toml"
     tagged_url = "https://github.com/alice/cool-libs/blob/v1.2.0/marketstall.toml"
 
-    assert result.pypi_url == pypi_url
-    readme_text = (tmp_path / "README.md").read_text()
-    assert readme_text.index(pypi_url) < readme_text.index(branch_url) < readme_text.index(tagged_url)
+    new_content = _update_readme_markers(content, url, tagged_url=tagged_url)
+
+    blocks = re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL)
+    assert blocks == [url, tagged_url], "each block must hold exactly one URL and nothing else"
 
 
 @pytest.mark.unit
-def test_share_save_without_pypi_config_omits_the_link(tmp_path: Path) -> None:
-    """A project that doesn't publish to PyPI gets the two git links, as before."""
-    from unittest.mock import patch
+def test_labels_sit_outside_the_fence() -> None:
+    """A label inside the fence is copied along with the URL."""
+    from haywire.core.publishing.readme import _update_readme_markers
 
-    from haywire.core.publishing import write_marketstall
-    from haywire.core.publishing import url as share_url
-
-    (tmp_path / ".git").mkdir()
-    (tmp_path / "README.md").write_text(f"# Project\n\n{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n")
-    lib_dir = tmp_path / "barn" / "haybale-foo"
-    lib_dir.mkdir(parents=True)
-    (lib_dir / "pyproject.toml").write_text(
-        '[project]\nname = "haybale-foo"\nversion = "0.1.0"\ndescription = "x"\n'
+    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
+    new_content = _update_readme_markers(
+        content,
+        "https://example.com/a/marketstall.toml",
+        tagged_url="https://example.com/b/marketstall.toml",
     )
 
-    with patch.object(share_url, "_get_remote_url", return_value="git@github.com:alice/cool-libs.git"):
-        with patch.object(share_url, "_get_current_ref", return_value="main"):
-            result = write_marketstall(tmp_path)
+    for block in re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL):
+        assert "\n" not in block
+        assert not block.startswith("#")
+    assert "Always the latest" in new_content
+    assert "Frozen to this version" in new_content
 
-    assert result.pypi_url is None
-    assert "recommended" not in (tmp_path / "README.md").read_text()
+
+@pytest.mark.unit
+def test_single_block_when_there_is_no_tag() -> None:
+    from haywire.core.publishing.readme import _update_readme_markers
+
+    content = f"{_MARKER_START}\n*placeholder*\n{_MARKER_END}\n"
+    new_content = _update_readme_markers(content, "https://example.com/a/marketstall.toml")
+
+    assert re.findall(r"```sh\n(.*?)\n```", new_content, re.DOTALL) == [
+        "https://example.com/a/marketstall.toml"
+    ]
+    assert "Frozen to this version" not in new_content

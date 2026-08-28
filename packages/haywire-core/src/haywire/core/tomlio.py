@@ -37,7 +37,55 @@ import tomlkit
 
 logger = logging.getLogger(__name__)
 
-__all__ = ["edit_toml", "read_toml", "write_toml"]
+__all__ = ["edit_toml", "plain", "read_toml", "write_toml"]
+
+
+def plain(value: Any) -> Any:
+    """Strip tomlkit's wrapper types, recursively — builtins all the way down.
+
+    :func:`read_toml` parses with tomlkit so a document can be written back
+    with its comments intact. The price is that tomlkit's types *subclass* the
+    builtins: ``tomlkit.items.String`` IS a ``str``, ``Array`` IS a ``list``.
+    They pass every ``isinstance`` check, compare equal to their plain
+    counterparts, and ``repr`` identically — so nothing looks wrong at the point
+    you read them. They misbehave later, in two ways that look unrelated:
+
+    * **Serializing.** ``toml.dumps`` does not recognise the subclass, falls
+      back to treating it as a sequence, and writes ``version = ["0", ".", "0",
+      ".", "3", "6"]`` where ``version = "0.0.36"`` was meant. The output is
+      still valid TOML, so the corruption surfaces only when a *consumer*
+      parses it and finds the field is not a string. `haywire share` shipped
+      published marketstalls this way; the CI generator escaped it only because
+      it hand-formats its output instead of using ``toml.dumps``.
+    * **Comparing containers.** Older tomlkit compared an ``Array`` *unequal*
+      to a plain list of the same content, so a diff against freshly-built data
+      reported drift that was not there. Not reproducible on 0.15.1, where every
+      container compares equal — but ``publishing.generate`` still normalises
+      both sides of its drift comparison, which is worth keeping: it makes the
+      result independent of equality semantics that have already changed once.
+
+    Normalise at the boundary where tomlkit data stops being a document to edit
+    and starts being data to use, not at each writer. Both symptoms above were
+    found and patched separately, in different modules, by people who did not
+    know about the other — one of the patches was even called ``_plain`` too.
+
+    ``bool`` is checked before ``int`` because it is a subclass of it. Anything
+    this does not know about (dates) passes through untouched, since ``toml``
+    serializes those correctly and ``datetime`` compares fine.
+    """
+    if isinstance(value, dict):
+        return {str(key): plain(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [plain(item) for item in value]
+    if isinstance(value, bool):
+        return bool(value)
+    if isinstance(value, int):
+        return int(value)
+    if isinstance(value, float):
+        return float(value)
+    if isinstance(value, str):
+        return str(value)
+    return value
 
 
 def read_toml(path: Path) -> Any:

@@ -510,6 +510,15 @@ def check(pipeline: "SharePipeline") -> PreconditionsReport:
                 default_branch=default_branch,
             )
 
+    unregistered = _unregistered_pypi_names(pipeline.repo_root, barn_libraries)
+    if unregistered:
+        return PreconditionsReport(
+            failures=[_unregistered_pypi_failure(unregistered)],
+            remote_url=remote_url,
+            barn_libraries=barn_libraries,
+            default_branch=default_branch,
+        )
+
     pipeline.remote_url = remote_url
     return PreconditionsReport(
         failures=[],
@@ -629,6 +638,72 @@ def _wrong_branch_failure(pipeline: "SharePipeline", *, current: str, default: s
             f"publish after this branch lands:\n\n"
             f"  git switch {default}\n\n"
             f"Nothing is lost either way — `{current}` keeps its commits."
+        ),
+    )
+
+
+def _pypi_name_is_registered(name: str, *, timeout: float = 5.0) -> bool | None:
+    """Whether *name* exists on PyPI. ``None`` when the question is unanswerable.
+
+    Three-valued on purpose. A network failure, a proxy, or an offline machine
+    must not fail a publish — it is not evidence the name is missing, and the
+    author may be about to push a tag whose CI does the upload from a network
+    that can reach PyPI perfectly well. Only a definite 404 is a "no".
+    """
+    import urllib.error
+    import urllib.request
+
+    try:
+        with urllib.request.urlopen(f"https://pypi.org/pypi/{name}/json", timeout=timeout) as response:
+            return bool(response.status == 200)
+    except urllib.error.HTTPError as exc:
+        return False if exc.code == 404 else None
+    except Exception:
+        return None
+
+
+def _unregistered_pypi_names(repo_root: Path, barn_libraries: list[Path]) -> list[str]:
+    """Declared-`pypi` libraries whose distribution name is not on PyPI.
+
+    Only runs when the project declares ``distribute = "pypi"``, so a git
+    project never pays for a network round trip. The failure it prevents is a
+    marketstall advertising ``install_spec = "haybale-foo==1.2.3"`` for a name
+    nobody can resolve — which is invisible until a *consumer* tries to install.
+    """
+    from haywire.core.publishing.marketstall import DISTRIBUTE_PYPI, read_distribute
+
+    if read_distribute(repo_root) != DISTRIBUTE_PYPI:
+        return []
+
+    missing: list[str] = []
+    for lib_dir in barn_libraries:
+        module_dir = find_module_dir(lib_dir)
+        name = read_raw(module_dir).get("name") if module_dir else None
+        if not isinstance(name, str) or not name:
+            continue
+        if _pypi_name_is_registered(name) is False:
+            missing.append(name)
+    return missing
+
+
+def _unregistered_pypi_failure(names: list[str]) -> PreconditionFailure:
+    """No ``fix_id``: registering a PyPI project needs a human on pypi.org."""
+    listed = "\n".join(f"  - {name}" for name in sorted(names))
+    return PreconditionFailure(
+        message=(
+            'This project declares `distribute = "pypi"`, but '
+            f"{'these names are' if len(names) > 1 else 'this name is'} not registered on PyPI:\n"
+            f"{listed}"
+        ),
+        remedy=(
+            'Every row this publish writes would carry `install_spec = "<name>==<version>"`, '
+            "which nobody can install until the distribution exists.\n\n"
+            "Either publish the package to PyPI first — a pending Trusted Publisher at "
+            "https://pypi.org/manage/account/publishing/ lets CI do the first upload — or "
+            'set `distribute = "git"` in `[tool.haywire.marketstall]` to publish git '
+            "coordinates instead.\n\n"
+            "This check is skipped when PyPI cannot be reached, so it never blocks an "
+            "offline publish."
         ),
     )
 

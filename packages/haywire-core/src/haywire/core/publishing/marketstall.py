@@ -31,6 +31,36 @@ from haywire.core.publishing.url import (
 )
 
 
+#: How a project's libraries reach consumers. Project-scoped, not per-library:
+#: the unit of publishing is the project — one tag, one marketstall, one mode.
+DISTRIBUTE_GIT = "git"
+DISTRIBUTE_PYPI = "pypi"
+
+
+def read_distribute(repo_root: Path) -> str:
+    """Read ``[tool.haywire.marketstall].distribute`` — ``"git"`` (default) or ``"pypi"``.
+
+    Declares the coordinate this project's rows install by. Declared rather
+    than probed: a probe of PyPI answers wrongly for exactly the release that
+    matters most, the first one, where the name is not registered yet.
+
+    Lenient like the rest of the read-to-report helpers here — a missing file,
+    malformed TOML, an absent key or an unrecognised value all mean ``"git"``,
+    which is the behaviour every project had before this existed. An author who
+    typos the value gets git rows rather than a failed publish; preconditions
+    are where a declaration is checked, not here.
+    """
+    try:
+        data = toml.loads((repo_root / "pyproject.toml").read_text())
+    except (OSError, toml.TomlDecodeError):
+        return DISTRIBUTE_GIT
+    block = data.get("tool", {}).get("haywire", {}).get("marketstall", {})
+    if not isinstance(block, dict):
+        return DISTRIBUTE_GIT
+    value = block.get("distribute")
+    return DISTRIBUTE_PYPI if value == DISTRIBUTE_PYPI else DISTRIBUTE_GIT
+
+
 def _declared_deprecation(declared_raw: dict) -> Deprecation | None:
     """The library's `[deprecated]` block as a :class:`Deprecation`, or None.
 
@@ -50,9 +80,10 @@ def _declared_deprecation(declared_raw: dict) -> Deprecation | None:
             "[deprecated] requires `since` — the version the notice landed in. "
             "Without it a user cannot be told whether their version predates it."
         )
-    # str(...) on every field: read_raw returns tomlkit types, whose String is
-    # a str subclass that `toml.dumps` serializes as a *sequence of
-    # characters*. Normalising here keeps that out of the published row.
+    # str(...) on every field is belt-and-braces. `read_raw` normalises through
+    # `tomlio.plain()` at the parse boundary, so tomlkit's str subclass — which
+    # `toml.dumps` serializes as a *sequence of characters* — no longer reaches
+    # here. Kept because this row is also built from hand-passed dicts in tests.
     return Deprecation(
         since=str(since),
         reason=str(block.get("reason", "")),
@@ -60,21 +91,38 @@ def _declared_deprecation(declared_raw: dict) -> Deprecation | None:
     )
 
 
-def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict | None:
+def _build_entry_for_library(
+    lib_dir: Path, *, tag: str | None = None, distribute: str = DISTRIBUTE_GIT
+) -> dict | None:
     """Build a marketplace entry for one library directory.
 
     Returns the entry dict (TOML-serializable), or None if `lib_dir` lacks a
     pyproject.toml. Used by both `haywire share` (single library, stdout) and
     `haywire share --save` (every barn library, aggregated to file).
 
+    ``distribute`` decides the coordinate a consumer installs by, and is the
+    project's declaration — see :func:`read_distribute`:
+
+    * ``"git"`` — ``{name} @ git+{origin}.git@{tag}#subdirectory={rel}``, and
+      ``source = "git"``.
+    * ``"pypi"`` — ``{name}=={version}``, and ``source = "pypi"``. The row then
+      installs the version it advertises, so the update comparison
+      (``installed < version``) resolves instead of showing forever.
+
+    Exactly one coordinate per version, never both: ``identity_matches`` reads
+    a PyPI row and a git row of the same name as *different libraries*, so a
+    consumer subscribed to two feeds that disagree is asked to block one of two
+    rows describing one release.
+
     When `tag` is given (the full SharePipeline always supplies it — the
     version is resolved and tag-collision-checked in step 3, well before this
-    runs in step 5), ``install_spec`` pins to that tag, naming the exact commit
-    a consumer will get. It is the entry's ONLY ref: ``examples_path``,
+    runs in step 5), a git ``install_spec`` pins to that tag, naming the exact
+    commit a consumer will get. It is the entry's ONLY ref: ``examples_path``,
     ``tests_path`` and the derived module directory all resolve against it, so
     no two fields can disagree about which commit was published. When `tag` is
     None (standalone `write_marketstall()` calls, or a repo with no tags yet),
-    install_spec floats to the branch as before.
+    a git install_spec floats to the branch as before. A pypi install_spec is
+    pinned either way — its ref is the version, which is always known.
 
     The framework requirement is DERIVED from this library's own
     ``haywire-core`` floor, not passed in: the pyproject is the truth and
@@ -129,6 +177,12 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         )
         install_spec = f"{name} @ git+https://<REPO_URL>.git#subdirectory={subdirectory}"
 
+    # The git coordinate above is still computed under `distribute = "pypi"`:
+    # `origin` and the repo-relative paths are derived from the same remote, and
+    # a PyPI row carries them so a consumer can still reach the source.
+    if distribute == DISTRIBUTE_PYPI:
+        install_spec = f"{name}=={version}"
+
     label_fallback = name.removeprefix("haybale-").replace("-", " ").replace("_", " ").title()
     label = declared.label or label_fallback
     # Module names, as declared — the row carries them verbatim so a consumer
@@ -170,7 +224,7 @@ def _build_entry_for_library(lib_dir: Path, *, tag: str | None = None) -> dict |
         require=require or "",
         description=description,
         authors=authors,
-        source="git",
+        source=distribute,
         install_spec=install_spec,
         tags=tags,
         os=os_decl,
@@ -203,8 +257,6 @@ class MarketstallWriteResult:
     pair AND the URL changed), so a caller staging ``written`` never stages a
     file it didn't touch. ``tagged_url`` mirrors ``share_url`` pinned to the
     ``tag`` passed in (None when no tag was given or derivation failed).
-    ``pypi_url`` is the project's deployed PyPI feed, read from
-    ``[tool.haywire.marketstall].pypi_marketplace_url`` (None when unset).
     """
 
     out_path: Path
@@ -212,7 +264,6 @@ class MarketstallWriteResult:
     warning: str | None
     readmes: list[Path]
     tagged_url: str | None = None
-    pypi_url: str | None = None
 
     @property
     def written(self) -> list[Path]:
@@ -230,6 +281,10 @@ def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> lis
     ref — to that tag instead of the current branch. See
     :func:`_build_entry_for_library`.
 
+    ``[tool.haywire.marketstall].distribute`` is read once here, from the repo
+    root, and applied to every entry: the unit of publishing is the project, so
+    a repo cannot emit some git rows and some PyPI ones.
+
     Each entry's framework requirement is derived from that library's own
     ``haywire-core`` floor — see :func:`_build_entry_for_library`.
 
@@ -239,9 +294,10 @@ def build_marketstall_entries(repo_root: Path, *, tag: str | None = None) -> lis
     if not barn.is_dir():
         raise NoBarnError(f"no barn/ directory at {repo_root}")
 
+    distribute = read_distribute(repo_root)
     entries: list[dict] = []
     for lib_dir in barn_library_dirs(repo_root):
-        entry = _build_entry_for_library(lib_dir, tag=tag)
+        entry = _build_entry_for_library(lib_dir, tag=tag, distribute=distribute)
         if entry is not None:
             entries.append(entry)
     return entries
@@ -251,34 +307,6 @@ _MARKETSTALL_HEADER = (
     "# marketstall.toml — share this file's raw URL so others can subscribe to your library feed\n"
     "# Run: haywire share   to update this file\n\n"
 )
-
-
-def read_pypi_marketplace_url(repo_root: Path) -> str | None:
-    """Read ``[tool.haywire.marketstall].pypi_marketplace_url`` from the repo pyproject.
-
-    The deployed feed of a project that also publishes to PyPI — typically a
-    GitHub Pages URL written by a release workflow. Project-scoped rather than
-    per-run: the value is the same on every publish, so it is authored once in
-    ``pyproject.toml`` instead of retyped as a flag (an omitted flag would
-    silently drop the link from the README, which is rewritten wholesale).
-
-    Lenient by the same reasoning as :func:`read_manifest_lenient` — this is a
-    read-to-report caller. A missing file, malformed TOML, an absent block, or
-    a non-string value all mean "no PyPI feed to advertise", which is the
-    correct answer for every project that does not publish one. It must never
-    fail a publish over an optional link.
-    """
-    try:
-        data = toml.loads((repo_root / "pyproject.toml").read_text())
-    except (OSError, toml.TomlDecodeError):
-        return None
-    block = data.get("tool", {}).get("haywire", {}).get("marketstall", {})
-    if not isinstance(block, dict):
-        return None
-    value = block.get("pypi_marketplace_url")
-    if not isinstance(value, str) or not value.strip():
-        return None
-    return value.strip()
 
 
 def write_marketstall(
@@ -309,14 +337,12 @@ def write_marketstall(
     out_path.write_text(_MARKETSTALL_HEADER + toml.dumps({"haybales": entries}))
 
     url_result = _derive_url(repo_root, out_path, tag=tag)
-    pypi_url = read_pypi_marketplace_url(repo_root)
     readmes: list[Path] = []
     if url_result.share_url is not None and update_readme:
         readmes = _update_repo_readmes(
             repo_root,
             url_result.share_url,
             tagged_url=url_result.tagged_url,
-            pypi_url=pypi_url,
         )
 
     return MarketstallWriteResult(
@@ -325,5 +351,4 @@ def write_marketstall(
         warning=url_result.warning,
         readmes=readmes,
         tagged_url=url_result.tagged_url,
-        pypi_url=pypi_url,
     )

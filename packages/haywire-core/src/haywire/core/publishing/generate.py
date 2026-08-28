@@ -19,7 +19,7 @@ from typing import Any
 from haywire.core.library.dep_detect import find_module_dir
 from haywire.core.library.haybale_toml import HAYBALE_TOML, read_raw
 from haywire.core.publishing.manifest.errors import ManifestReadError
-from haywire.core.tomlio import edit_toml, read_toml
+from haywire.core.tomlio import edit_toml, plain, read_toml
 
 __all__ = ["PROJECT_FIELDS", "pyproject_drift", "sync_pyproject_from_haybale"]
 
@@ -127,25 +127,18 @@ def pyproject_drift(lib_dir: Path) -> dict[str, tuple[Any, Any]]:
             # not drift against one already on disk — reporting it would flag
             # something sync can never resolve.
             continue
-        # tomlkit containers compare unequal to plain lists/dicts of the same
-        # content, so normalise both sides before comparing.
-        if _plain(have) != _plain(want_value):
-            drift[key] = (_plain(have), _plain(want_value))
+        # `have` comes from tomlkit, `want_value` is freshly built. Older
+        # tomlkit compared its containers unequal to plain ones of the same
+        # content, which reported drift that was not there; 0.15.1 compares
+        # equal, so this is now belt-and-braces. Kept deliberately: it makes the
+        # comparison independent of equality semantics that changed once already,
+        # and `drift` values are stored, so they should be plain either way.
+        if plain(have) != plain(want_value):
+            drift[key] = (plain(have), plain(want_value))
 
-    if _plain(current_urls) != _plain(want.get("urls", {})):
-        drift["urls"] = (_plain(current_urls), _plain(want.get("urls", {})))
+    if plain(current_urls) != plain(want.get("urls", {})):
+        drift["urls"] = (plain(current_urls), plain(want.get("urls", {})))
     return drift
-
-
-def _plain(value: Any) -> Any:
-    """Strip tomlkit's container types so equality compares content."""
-    if isinstance(value, dict):
-        return {k: _plain(v) for k, v in value.items()}
-    if isinstance(value, list):
-        return [_plain(v) for v in value]
-    if value is None:
-        return None
-    return str(value) if not isinstance(value, (bool, int, float)) else value
 
 
 def sync_pyproject_from_haybale(lib_dir: Path) -> list[str]:

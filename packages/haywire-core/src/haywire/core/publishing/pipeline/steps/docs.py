@@ -107,8 +107,20 @@ def write_set(pipeline: "SharePipeline") -> list[Path]:
 
     Scoped to ``barn/`` — only barn content reaches consumers, and sweeping
     up unrelated dirt is what makes a wizard commit untrustworthy.
+
+    ``--untracked-files=all`` is load-bearing, not a default worth changing.
+    Plain ``--porcelain`` collapses an untracked *directory* into one entry
+    ending in ``/``, whose ``Path.suffix`` is empty — so the ``.md`` filter
+    below dropped it and every file inside went unstaged. That is invisible
+    while ``docs/`` is already tracked (git then reports each file), and bites
+    exactly when the directory is new: a first publish, or the release after
+    someone deletes the generated docs. It shipped `haybale-visiongraph` v0.0.37
+    with 21 per-component docs missing from the tagged commit.
     """
-    status = git(["status", "--porcelain", "--", "barn"], cwd=pipeline.repo_root)
+    status = git(
+        ["status", "--porcelain", "--untracked-files=all", "--", "barn"],
+        cwd=pipeline.repo_root,
+    )
     if not status.ok:
         return []
 

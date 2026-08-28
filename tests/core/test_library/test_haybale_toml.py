@@ -385,3 +385,54 @@ def test_sync_never_removes_the_pyproject_version(tmp_path):
 
     written = (tmp_path / "pyproject.toml").read_text()
     assert 'version = "1.2.3"' in written
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Plain builtins out, always.
+#
+# read_toml() parses with tomlkit so a document can be written back with its
+# comments intact. tomlkit's scalars SUBCLASS the builtins, so they satisfy
+# every isinstance() guard on the way through — and then toml.dumps, which
+# does not recognise the subclass, serializes a string as a sequence of its
+# characters. Assert on `type(...) is str`; an isinstance assertion is green
+# against the broken reader and proves nothing.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.unit
+def test_read_haybale_toml_returns_exact_builtins(tmp_path: Path) -> None:
+    fields = read_haybale_toml(_write(tmp_path, _FULL))
+
+    assert type(fields["name"]) is str
+    assert type(fields["version"]) is str
+    assert type(fields["linked_libraries"]) is list
+    assert all(type(v) is str for v in fields["linked_libraries"])
+
+
+@pytest.mark.unit
+def test_read_haybale_returns_exact_builtins(tmp_path: Path) -> None:
+    from haywire.core.library.haybale_toml import read_haybale
+
+    row = read_haybale(
+        _write(
+            tmp_path,
+            _FULL + 'tags = ["vision"]\n\n[[authors]]\nname = "acme"\nurl = "https://acme.example"\n',
+        )
+    )
+
+    assert type(row.name) is str
+    assert type(row.version) is str
+    assert all(type(v) is str for v in row.tags)
+    assert all(type(n) is str and type(u) is str for n, u in row.authors)
+
+
+@pytest.mark.unit
+def test_read_raw_returns_exact_builtins(tmp_path: Path) -> None:
+    """read_raw feeds the publisher, which writes its values with toml.dumps."""
+    from haywire.core.library.haybale_toml import read_raw
+
+    raw = read_raw(_write(tmp_path, _FULL + 'origin = "https://example.com/x"\n'))
+
+    assert type(raw["name"]) is str
+    assert type(raw["origin"]) is str
+    assert all(type(v) is str for v in raw["linked_libraries"])

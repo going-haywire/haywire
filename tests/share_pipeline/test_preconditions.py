@@ -1072,3 +1072,85 @@ def test_rename_guide_url_matches_the_published_site() -> None:
 
     guide = repo_root / "docs" / "guides" / "rename-library.md"
     assert guide.is_file(), "RENAME_GUIDE_URL names a guide that no longer exists"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `distribute = "pypi"` against a name nobody can install.
+#
+# A pypi row carries `install_spec = "<name>==<version>"`. If the distribution
+# was never registered, that is invisible until a *consumer* tries to install
+# it — so it is checked here, before a tag is pushed.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+def _pypi_repo(tmp_path: Path, *, distribute: str) -> Path:
+    lib = tmp_path / "barn" / "haybale-alpha"
+    module = lib / "haybale_alpha"
+    module.mkdir(parents=True)
+    (module / "__init__.py").touch()
+    (module / "haybale.toml").write_text('name = "haybale-alpha"\nversion = "0.1.0"\n')
+    (lib / "pyproject.toml").write_text('[project]\nname = "haybale-alpha"\nversion = "0.1.0"\n')
+    (tmp_path / "pyproject.toml").write_text(f'[tool.haywire.marketstall]\ndistribute = "{distribute}"\n')
+    return lib
+
+
+@pytest.mark.unit
+def test_git_project_never_asks_pypi_anything(tmp_path: Path) -> None:
+    """No network round trip for a project that does not declare pypi."""
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    lib = _pypi_repo(tmp_path, distribute="git")
+    with patch.object(mod, "_pypi_name_is_registered", side_effect=AssertionError("queried PyPI")):
+        assert mod._unregistered_pypi_names(tmp_path, [lib]) == []
+
+
+@pytest.mark.unit
+def test_unregistered_name_is_reported(tmp_path: Path) -> None:
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    lib = _pypi_repo(tmp_path, distribute="pypi")
+    with patch.object(mod, "_pypi_name_is_registered", return_value=False):
+        assert mod._unregistered_pypi_names(tmp_path, [lib]) == ["haybale-alpha"]
+
+
+@pytest.mark.unit
+def test_registered_name_passes(tmp_path: Path) -> None:
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    lib = _pypi_repo(tmp_path, distribute="pypi")
+    with patch.object(mod, "_pypi_name_is_registered", return_value=True):
+        assert mod._unregistered_pypi_names(tmp_path, [lib]) == []
+
+
+@pytest.mark.unit
+def test_unreachable_pypi_never_blocks_a_publish(tmp_path: Path) -> None:
+    """`None` means unanswerable, not missing.
+
+    An offline machine, a proxy, or a flaky DNS lookup is not evidence the
+    distribution does not exist — and CI may well upload it from a network that
+    reaches PyPI fine.
+    """
+    from unittest.mock import patch
+
+    from haywire.core.publishing.pipeline.steps import preconditions as mod
+
+    lib = _pypi_repo(tmp_path, distribute="pypi")
+    with patch.object(mod, "_pypi_name_is_registered", return_value=None):
+        assert mod._unregistered_pypi_names(tmp_path, [lib]) == []
+
+
+@pytest.mark.unit
+def test_unregistered_failure_offers_no_automatic_fix() -> None:
+    """Registering a PyPI project needs a human on pypi.org — there is no fix_id."""
+    from haywire.core.publishing.pipeline.steps.preconditions import _unregistered_pypi_failure
+
+    failure = _unregistered_pypi_failure(["haybale-alpha"])
+    assert failure.fix_id is None
+    assert "haybale-alpha" in failure.message
+    assert 'distribute = "git"' in failure.remedy

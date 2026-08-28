@@ -21,7 +21,6 @@ from __future__ import annotations
 import asyncio
 from pathlib import Path
 
-from haywire.core.publishing.marketstall import read_pypi_marketplace_url
 from haywire.core.publishing.pipeline import ShareError, SharePipeline
 from haywire.core.publishing.url import derive_share_url_only
 
@@ -175,10 +174,6 @@ def _run_publish(
 
     push = asyncio.run(pipeline.apply_push(on_output=lambda line: print(f"  {line}")))
     print(f"✓ Pushed to {push.remote} ({push.branch}, {push.tag})")
-
-    pypi_url = read_pypi_marketplace_url(pipeline.repo_root)
-    if pypi_url:
-        print(f"\n✓ Released packages (recommended):\n  {pypi_url}")
 
     tag = f"v{pipeline.version}" if pipeline.version else None
     url = derive_share_url_only(pipeline.repo_root, tag=tag)
