@@ -114,6 +114,7 @@ nav:
       - Metadata flow: haybale/metadata-flow.md
       - Marketplace: haybale/marketplace/marketplace-canon.md
       - Marketplace — architecture: haybale/marketplace/haybale-marketplace-arch.md
+      - Curated marketplace: haybale/marketplace/curated-marketplace.md
 
   - Guides:
       - Node roles: guides/node-roles.md
