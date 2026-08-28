@@ -69,23 +69,19 @@ def build_entry(
 
     `pkg_dir` is the package directory (holding pyproject.toml and the module
     dir with haybale.toml). `source` is "pypi" (default; install_spec becomes
-    the bare dist name, overriding the builder's git-URL default) or "git"
-    (the builder's own git+subdirectory VCS install_spec is kept as-is).
+    `{name}=={version}`) or "git" (a git+subdirectory VCS install_spec).
 
-    Everything descriptive (label, description, tags, authors, os, ...)
-    comes from haybale.toml via `_build_entry_for_library` — the same
-    function the git-publishing share pipeline uses, so the two publishers
-    cannot drift apart again.
+    Everything — including the install_spec — comes from
+    `_build_entry_for_library`, the same function the share pipeline uses, so
+    the two publishers cannot drift apart. This used to override `install_spec`
+    after the fact with the bare dist name, which meant a row advertised one
+    version and installed whatever PyPI currently served: the studio's update
+    check (`installed < row.version`) then never settled, and clicking Update
+    reinstalled the same thing.
     """
-    entry = _build_entry_for_library(pkg_dir)
+    entry = _build_entry_for_library(pkg_dir, distribute=source)
     if entry is None:
         raise ValueError(f"{pkg_dir} has no pyproject.toml — cannot build a marketstall entry")
-
-    if source == "pypi":
-        entry["source"] = "pypi"
-        entry["install_spec"] = entry["name"]
-    # else "git": _build_entry_for_library already emitted source="git" and a
-    # git+subdirectory install_spec pointing into the monorepo — keep both.
     return entry
 
 

@@ -164,3 +164,71 @@ def test_written_fields_are_exactly_str_not_a_subclass(repo_with_haybale_toml: P
         assert type(entry[field]) is str, f"{field} serialized as {type(entry[field]).__name__}"
     for field in ("tags", "os", "linked_libraries"):
         assert all(type(v) is str for v in entry[field]), f"{field} holds non-str items"
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# `distribute` — one coordinate per version.
+#
+# identity_matches reads a PyPI row and a git row of the same name as two
+# DIFFERENT libraries, so a project must publish one or the other, never both.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.mark.parametrize(
+    ("pyproject", "expected"),
+    [
+        pytest.param(None, "git", id="no-pyproject"),
+        pytest.param("[project]\nname = 'x'\n", "git", id="no-marketstall-block"),
+        pytest.param("[tool.haywire.marketstall]\nsource_url = 'https://x'\n", "git", id="key-absent"),
+        pytest.param('[tool.haywire.marketstall]\ndistribute = "git"\n', "git", id="explicit-git"),
+        pytest.param('[tool.haywire.marketstall]\ndistribute = "pypi"\n', "pypi", id="pypi"),
+        pytest.param('[tool.haywire.marketstall]\ndistribute = "PyPI"\n', "git", id="wrong-case"),
+        pytest.param("[tool.haywire.marketstall]\ndistribute = 42\n", "git", id="not-a-string"),
+        pytest.param("this is not { valid toml", "git", id="malformed-toml"),
+    ],
+)
+def test_read_distribute_defaults_to_git(tmp_path: Path, pyproject: str | None, expected: str) -> None:
+    """Anything unreadable, absent or unrecognised means git — the prior behaviour.
+
+    A typo must not fail a publish; preconditions check the declaration, not
+    this reader.
+    """
+    from haywire.core.publishing.marketstall import read_distribute
+
+    if pyproject is not None:
+        (tmp_path / "pyproject.toml").write_text(pyproject)
+    assert read_distribute(tmp_path) == expected
+
+
+def test_pypi_distribution_pins_install_spec_to_the_version(repo_with_haybale_toml: Path) -> None:
+    """A pypi row installs the version it advertises, so the two cannot disagree."""
+    (repo_with_haybale_toml / "pyproject.toml").write_text(
+        '[tool.haywire.marketstall]\ndistribute = "pypi"\n'
+    )
+    result = write_marketstall(repo_with_haybale_toml, update_readme=False)
+    data = toml.loads(result.out_path.read_text())
+
+    row = next(e for e in data["haybales"] if e["name"] == "haybale-alpha")
+    assert row["source"] == "pypi"
+    assert row["install_spec"] == f"haybale-alpha=={row['version']}"
+
+
+def test_git_distribution_is_unchanged(repo_with_haybale_toml: Path) -> None:
+    """The default must stay byte-identical for every repo that never declares it."""
+    result = write_marketstall(repo_with_haybale_toml, update_readme=False)
+    data = toml.loads(result.out_path.read_text())
+
+    row = next(e for e in data["haybales"] if e["name"] == "haybale-alpha")
+    assert row["source"] == "git"
+    assert row["install_spec"].startswith("haybale-alpha @ git+")
+
+
+def test_distribute_applies_to_every_library_in_the_project(repo_with_haybale_toml: Path) -> None:
+    """Project-scoped: the unit of publishing is the project, so rows cannot mix."""
+    (repo_with_haybale_toml / "pyproject.toml").write_text(
+        '[tool.haywire.marketstall]\ndistribute = "pypi"\n'
+    )
+    result = write_marketstall(repo_with_haybale_toml, update_readme=False)
+    data = toml.loads(result.out_path.read_text())
+
+    assert {e["source"] for e in data["haybales"]} == {"pypi"}

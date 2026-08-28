@@ -20,18 +20,20 @@ def _update_readme_markers(
     share_url: str,
     *,
     tagged_url: str | None = None,
-    pypi_url: str | None = None,
 ) -> str:
     """Rewrite every <!-- marketstall:share-url:start --> ... :end --> block.
 
-    The block lists up to three subscription URLs, most-recommended first:
+    The block lists two subscription URLs:
 
-    1. ``pypi_url`` — the project's deployed feed of released PyPI packages.
-       Listed on top when present because installing a released package is the
-       primary way to consume a library; the git URLs below it clone source.
-    2. ``share_url`` — branch-live, always the current state of the repo.
-    3. ``tagged_url`` — the same file pinned to the version it was published
+    1. ``share_url`` — branch-live, always the current state of the repo.
+    2. ``tagged_url`` — the same file pinned to the version it was published
        at, so a reader who copies it freezes to that release.
+
+    A project that publishes to PyPI declares
+    ``[tool.haywire.marketstall].distribute = "pypi"``, which makes the file at
+    these URLs *be* the PyPI feed. There is no third, separately-deployed URL
+    to advertise — the earlier ``pypi_marketplace_url`` existed only because
+    this file was always git-flavoured.
 
     Files without the marker pair are returned unchanged.
     """
@@ -40,8 +42,6 @@ def _update_readme_markers(
         re.DOTALL,
     )
     lines: list[str] = []
-    if pypi_url is not None:
-        lines += ["# Released packages (recommended):", pypi_url, ""]
     lines += ["# Always the latest (tracks the current branch):", share_url]
     if tagged_url is not None:
         lines += ["", "# Frozen to this version:", tagged_url]
@@ -66,7 +66,6 @@ def _update_repo_readmes(
     share_url: str,
     *,
     tagged_url: str | None = None,
-    pypi_url: str | None = None,
 ) -> list[Path]:
     """Update marker blocks in the root README and each barn/*/README.md.
 
@@ -90,7 +89,7 @@ def _update_repo_readmes(
 
     for readme in candidates:
         old = readme.read_text(encoding="utf-8")
-        new = _update_readme_markers(old, share_url, tagged_url=tagged_url, pypi_url=pypi_url)
+        new = _update_readme_markers(old, share_url, tagged_url=tagged_url)
         if new != old:
             readme.write_text(new, encoding="utf-8")
             updated.append(readme)

@@ -105,7 +105,7 @@ def test_build_entry_uses_haybale_toml_over_pyproject(tmp_path: Path) -> None:
     assert entry["version"] == "0.0.3"
     assert entry["description"] == "Alpha library — declared in haybale.toml."
     assert entry["source"] == "pypi"
-    assert entry["install_spec"] == "haybale-alpha"
+    assert entry["install_spec"] == "haybale-alpha==0.0.3"
     assert entry["tags"] == ["alpha", "demo"]
     assert entry["authors"] == [{"name": "Alpha Author"}]
     # No decorator-era keys survive:
@@ -153,7 +153,7 @@ def test_build_entry_falls_back_to_pyproject_when_haybale_toml_absent(tmp_path: 
     assert entry["version"] == "0.0.1"
     assert entry["label"] == "Bare"  # builder's dist-name-derived fallback
     assert entry["source"] == "pypi"
-    assert entry["install_spec"] == "haybale-bare"
+    assert entry["install_spec"] == "haybale-bare==0.0.1"
 
 
 @pytest.mark.unit
@@ -534,3 +534,22 @@ def test_generate_errors_when_package_in_both_publish_lists(tmp_path: Path) -> N
 
     with pytest.raises(ValueError, match="haybale-alpha"):
         generate_marketstall.generate(root, feed_base_url="https://feed.example/x")
+
+
+@pytest.mark.unit
+def test_pypi_install_spec_pins_the_advertised_version(tmp_path: Path) -> None:
+    """A row must install the version it advertises.
+
+    The bare dist name resolved to whatever PyPI currently served, so `version`
+    and the installed version could disagree — and the studio's update check
+    (`installed < row.version`) then showed an update forever, with Update
+    reinstalling the same thing.
+    """
+    pkg_dir = tmp_path / "haybale-pinned"
+    _write_package(pkg_dir, name="haybale-pinned", version="1.4.0")
+
+    entry = generate_marketstall.build_entry(pkg_dir)
+
+    assert entry["source"] == "pypi"
+    assert entry["version"] == "1.4.0"
+    assert entry["install_spec"] == "haybale-pinned==1.4.0"

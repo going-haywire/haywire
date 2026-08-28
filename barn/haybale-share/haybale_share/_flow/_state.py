@@ -258,20 +258,19 @@ class ShareFlow(StepFlow):
 
         self.step = "done"
 
-    def share_url(self) -> tuple[str | None, str | None, str | None, str | None]:
-        """``(pypi_url, url, tagged_url, warning)`` for the terminal screen.
+    def share_url(self) -> tuple[str | None, str | None, str | None]:
+        """``(url, tagged_url, warning)`` for the terminal screen.
 
-        ``pypi_url`` leads because a released package is the primary way to
-        consume a library; it is independent of the git URLs and present only
-        when the project declares a deployed PyPI feed.
+        One pair of URLs, not two. A project publishing to PyPI declares
+        ``[tool.haywire.marketstall].distribute = "pypi"``, which makes the file
+        at these URLs *be* the PyPI feed — so there is no separate deployed feed
+        to advertise alongside them.
         """
-        from haywire.core.publishing.marketstall import read_pypi_marketplace_url
         from haywire.core.publishing.url import derive_share_url_only
 
         tag = f"v{self.pipeline.version}" if self.pipeline.version else None
         derived = derive_share_url_only(self.pipeline.repo_root, tag=tag)
-        pypi_url = read_pypi_marketplace_url(self.pipeline.repo_root)
-        return pypi_url, derived.share_url, derived.tagged_url, derived.warning
+        return derived.share_url, derived.tagged_url, derived.warning
 
     @staticmethod
     def project_status(repo_root: Path) -> ProjectStatus:

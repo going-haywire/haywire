@@ -71,10 +71,11 @@ version           = "0.0.40"
 require           = "haywire-core>=0.0.39"
 
 # ── generated: the coordinates a library cannot state about itself ──────────
-# Passed verbatim to `uv pip install`. Tag-pinned by the share pipeline, so it
-# names the exact commit a consumer gets. This is the row's ONLY ref — every
-# declared path resolves against it, so no two fields can disagree about which
-# commit was published.
+# Passed verbatim to `uv pip install`, and always exact: a git row is tag-pinned
+# by the share pipeline, a pypi row is `{name}=={version}`. A row therefore
+# installs the version it advertises. For a git row this is also the row's ONLY
+# ref — every declared path resolves against it, so no two fields can disagree
+# about which commit was published.
 install_spec      = "haybale-core @ git+https://github.com/going-haywire/haywire.git@v0.0.40#subdirectory=barn/haybale-core"
 # "git" (share wizard) or "pypi" (CI publishing script). Drives install
 # routing and the version-fetching strategy. A row read from a haybale.toml on
@@ -113,8 +114,12 @@ version      = "1.0.0"
 require      = "haywire-core>=0.0.39"
 description  = "Image processing nodes for haywire"
 source       = "pypi"
-install_spec = "haybale-image>=1.0.0"
+install_spec = "haybale-image==1.0.0"
 ```
+
+A PyPI row is written when the project declares
+`[tool.haywire.marketstall].distribute = "pypi"` — see
+[`distribute`](#distribute) below.
 
 Empty and default-valued fields are omitted on write, so a real row is only as
 long as the library is descriptive.
@@ -151,7 +156,7 @@ they appear. The runtime dataclass is `Haybale`
 | `notes`             | user input; preflight offers the package root's `*.md` | copy — a bare filename inside the package dir                                                                             | `"NOTES.md"`                                                            |
 | `deprecated`        | hand-edited in the file; no modal field                | copy — also projects into a PyPI classifier                                                                               | `{since="0.0.41", reason="…", successor="haybale-vision"}`              |
 | `require`           | —                                                      | generated — the haywire-core floor from `[project] dependencies`                                                          | `"haywire-core>=0.0.31"`                                                |
-| `install_spec`      | —                                                      | generated — `{name} @ git+{origin}.git@{tag}#subdirectory={lib_rel}`                                                      | `"haybale-core @ git+https://…@v0.0.40#subdirectory=barn/haybale-core"` |
+| `install_spec`      | —                                                      | generated — `{name} @ git+{origin}.git@{tag}#subdirectory={lib_rel}`, or `{name}=={version}` under `distribute = "pypi"` | `"haybale-core @ git+https://…@v0.0.40#subdirectory=barn/haybale-core"` |
 | `source`            | —                                                      | generated — `"git"` (wizard) / `"pypi"` (CI script) / `"local"` (a row read from a haybale.toml on disk, never published) | `"git"`                                                                 |
 | `source_label`      | —                                                      | runtime routing, not persisted                                                                                            | —                                                                       |
 | `source_file`       | —                                                      | runtime routing, not persisted                                                                                            | —                                                                       |
@@ -196,13 +201,44 @@ Everywhere else "copy" is literal. These two are not:
 | `[[authors]]` (repeatable, each with an optional `url`) | `[[authors]]`                | Copied verbatim, URLs included                                                |
 | `label` absent                                          | `label` = title-cased `name` | The marketstall always has something to render; the file may omit it          |
 
+## `distribute`
+
+Which coordinate a project's rows install by. Project-scoped, declared once in
+the **repo root** pyproject — the unit of publishing is the project, so a repo
+cannot emit some git rows and some PyPI ones.
+
+```toml
+[tool.haywire.marketstall]
+distribute = "pypi"   # or "git" (the default)
+```
+
+| `distribute` | `source` | `install_spec` |
+| --- | --- | --- |
+| `"git"` (default) | `"git"` | `haybale-foo @ git+https://…@v1.2.3#subdirectory=barn/haybale-foo` |
+| `"pypi"` | `"pypi"` | `haybale-foo==1.2.3` |
+
+**One coordinate per version, never both.** `identity_matches` reads a PyPI row
+and a git row of the same name as *different libraries*, so a consumer
+subscribed to two feeds that disagree is asked to block one of two rows
+describing one release.
+
+Declared rather than probed: a probe of PyPI answers wrongly for exactly the
+release that matters most — the first one, where the name is not registered
+yet. The reader is lenient (anything absent or unrecognised means `"git"`), and
+the declaration is checked at **preconditions** instead: `"pypi"` against a name
+PyPI does not know fails the preflight, before a tag is pushed. That check is
+skipped when PyPI cannot be reached, so it never blocks an offline publish.
+
 ## Tag pinning
 
-`install_spec` is pinned to the release tag `v<version>` **only** when the row
-is produced through the full share pipeline, which resolves and
+A **git** `install_spec` is pinned to the release tag `v<version>` **only** when
+the row is produced through the full share pipeline, which resolves and
 collision-checks the version before the write. A standalone
-`write_marketstall()` call — CI's generator, or a checkout that never ran the
-wizard — emits an unpinned spec that floats to the current branch.
+`write_marketstall()` call — a checkout that never ran the wizard — emits an
+unpinned spec that floats to the current branch.
+
+A **pypi** `install_spec` is pinned either way: its ref is the version, which is
+always known.
 
 Every other path in the row is repo-relative and resolves against
 `install_spec`'s ref, so a single ref governs the whole row and the fields
