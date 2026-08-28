@@ -104,7 +104,7 @@ every `read_haybale()` consumer, not just publishing. Check the `authors` and
 
 **Then regenerate** `haybale-visiongraph`'s marketstall and push it.
 
-## Stage 2 — exact pins in the Official feed
+## Stage 2 — exact pins in the Official feed — **LANDED**
 
 `generate_marketstall.py:87` sets `install_spec` to the bare dist name for pypi
 rows. The row then advertises one version and installs another, so
@@ -124,7 +124,7 @@ instead of a silent downgrade to a compatible older library. `check_require()`
 already catches this before the button does anything and names both sides.
 Verify that path has a test.
 
-## Stage 3 — `distribute`, and deleting `pypi_marketplace_url`
+## Stage 3 — `distribute`, and deleting `pypi_marketplace_url` — **LANDED**
 
 **Add** to `[tool.haywire.marketstall]`:
 
@@ -203,16 +203,23 @@ What this repo needs to know about it:
   change reaches it only after a release. Build it against the fixed generator's
   behaviour, not the current one.
 
-## Stage 6 — docs
+## Stage 6 — docs — **PARTIALLY LANDED**
 
-- `docs/guides/subscribing-to-marketplaces.md` — the three channels, their URLs,
-  how to switch by editing the file, the archives.
-- `docs/guides/sharing-libraries.md` — `distribute`, and that publishing to
-  PyPI is the author's own step with the registration link.
-- `docs/guides/publish-to-pypi.md` — verify it still matches after Stage 3.
-- `docs/reference/files/marketplace-toml.md` — the new default subscriptions.
+Done, in `a446ec07` and `c8599d00`:
+
 - `docs/reference/files/marketstall-toml.md` — `distribute`, the pinning rule,
-  and the `pypi_marketplace_url` removal.
+  the `pypi_marketplace_url` removal.
+- `docs/guides/publish-to-pypi.md` — rewritten. It described the deleted model
+  (hand-written feed on Pages + `pypi_marketplace_url`), so following it would
+  have rebuilt exactly what Stage 3 removed.
+- `docs/guides/sharing-libraries.md` — `distribute` and the one-coordinate rule.
+
+Still blocked, because they describe things that do not exist yet:
+
+- `docs/guides/subscribing-to-marketplaces.md` — the three channels and their
+  URLs. Needs Stage 5's first deploy.
+- `docs/reference/files/marketplace-toml.md` — the new default subscriptions.
+  Needs Stage 4.
 - [glossary.md](../../reference/glossary.md) — already written during the
   inquisition. Re-read it after Stage 3; the `distribute` and
   *one coordinate per version* entries describe behaviour that lands there.
@@ -220,15 +227,27 @@ What this repo needs to know about it:
 ## Sequencing
 
 ```text
-Stage 1   ships alone, immediately — a P1 that is broken in production now
-Stage 2   independent
-Stage 3   independent
-Stage 6   follows whatever has landed
+Stage 1   LANDED  96532c13  parse-boundary normalisation + 10 tests
+Stage 2   LANDED  c8599d00  ─┐ one commit: install_spec names the exact
+Stage 3   LANDED  c8599d00  ─┘ version, in both writers
+Stage 6   PARTIAL a446ec07  the half that describes what now exists
                  ↓
 Stage 5   separate session, separate repo — first deploy
                  ↓
 Stage 4   LAST. Blocked until the curated feed URLs resolve.
+          Stage 6's other half unblocks with it.
 ```
+
+Open in this repo: nothing. The next move is Stage 5, in its own session, from
+`2026-08-28-marketplace-repo-buildout.md`.
+
+Open elsewhere: the `haybale-visiongraph` repo still declares
+`pypi_marketplace_url`, still deploys a hand-written feed to Pages, and its
+committed `marketstall.toml` is still the corrupt one. Four steps —
+swap the key for `distribute = "pypi"`, delete the `deploy-feed` job, re-run
+`share`, delete the deployed file — and that repo matches the new model. Its
+`publish.yml` already publishes to PyPI via a Trusted Publisher, so nothing
+else there needs building.
 
 Stages 1, 2 and 3 are independent of the new repo and can land in any order;
 each is worth doing on its own merits regardless of whether the curated
