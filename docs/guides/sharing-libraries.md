@@ -103,7 +103,7 @@ Each `barn/*` library becomes one `[[haybales]]` entry in the generated
 coordinates a library cannot state about itself (`install_spec`, `source`,
 `require`). You never author this file; publishing writes it.
 
-Two things worth knowing as an author:
+Three things worth knowing as an author:
 
 - `install_spec` pins to the release tag `v<version>` created by this run — not
   the branch you published from — so it stays correct even after your branch is
@@ -112,6 +112,18 @@ Two things worth knowing as an author:
   `pyproject.toml`. Keep it as low as your library actually allows: a floor
   restricts *consumers*, and raising it forces every one of them to update
   before they can install you.
+- **`distribute` decides the coordinate.** This guide covers the git path,
+  which is the default. A project that publishes to PyPI declares
+  `distribute = "pypi"` in its root `pyproject.toml` and gets
+  `install_spec = "haybale-my-lib==0.0.2"` instead — see
+  [publish-to-pypi](./publish-to-pypi.md).
+
+  Pick one and stay with it. A library at one version must have exactly one
+  install coordinate: the runtime reads a PyPI row and a git row of the same
+  name as *different libraries*, so publishing both would make your own
+  library look like two libraries in conflict to anyone subscribed to both
+  feeds. `distribute` is project-scoped for the same reason — the unit of
+  publishing is the project, so a repo cannot mix the two.
 
 Field by field: [marketstall.toml](../reference/files/marketstall-toml.md).
 
