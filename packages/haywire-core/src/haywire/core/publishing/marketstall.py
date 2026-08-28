@@ -50,9 +50,10 @@ def _declared_deprecation(declared_raw: dict) -> Deprecation | None:
             "[deprecated] requires `since` — the version the notice landed in. "
             "Without it a user cannot be told whether their version predates it."
         )
-    # str(...) on every field: read_raw returns tomlkit types, whose String is
-    # a str subclass that `toml.dumps` serializes as a *sequence of
-    # characters*. Normalising here keeps that out of the published row.
+    # str(...) on every field is belt-and-braces. `read_raw` normalises through
+    # `tomlio.plain()` at the parse boundary, so tomlkit's str subclass — which
+    # `toml.dumps` serializes as a *sequence of characters* — no longer reaches
+    # here. Kept because this row is also built from hand-passed dicts in tests.
     return Deprecation(
         since=str(since),
         reason=str(block.get("reason", "")),

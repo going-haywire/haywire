@@ -84,3 +84,83 @@ def test_write_marketstall_skips_readmes_when_asked(repo: Path) -> None:
 def test_written_property_puts_the_feed_first(repo: Path) -> None:
     result = write_marketstall(repo, update_readme=False)
     assert result.written[0] == result.out_path
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Round-trip: what this publisher writes, the consumer's parser must accept.
+#
+# `haywire share` shipped marketstalls in which every string field was a
+# character array — `version = ["0", ".", "0", ".", "3", "6"]`. `read_toml`
+# parses with tomlkit, whose `String` subclasses `str`, so every
+# `isinstance(v, str)` guard admitted it; `toml.dumps` then serialized the
+# subclass as a sequence. The file was valid TOML the whole way, so nothing
+# upstream complained — and `parsing.py` rejected the feed on subscribe.
+#
+# The absent test was this one: writing and re-reading in the same breath.
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+@pytest.fixture
+def repo_with_haybale_toml(repo: Path) -> Path:
+    """`repo`, with a real haybale.toml — the canon source the writer reads.
+
+    The bare `repo` fixture declares metadata only in pyproject, so `read_haybale`
+    returns an empty row and the tomlkit path is never exercised.
+    """
+    module_dir = repo / "barn" / "haybale-alpha" / "haybale_alpha"
+    # find_module_dir() keys off __init__.py; without it the writer falls back
+    # to a bare Haybale and never reads the file this test is about.
+    (module_dir / "__init__.py").touch()
+    (module_dir / "haybale.toml").write_text(
+        'name = "haybale-alpha"\n'
+        'id = "alpha"\n'
+        'label = "Alpha"\n'
+        'version = "0.3.1"\n'
+        'description = "First library"\n'
+        'on_reload = "restart"\n'
+        'tags = ["vision", "camera"]\n'
+        'os = ["macos", "linux"]\n'
+        'linked_libraries = ["haybale_core"]\n'
+        'origin = "https://github.com/acme/haybale-alpha"\n'
+        'origin_provider = "github"\n'
+        "\n"
+        "[[authors]]\n"
+        'name = "acme"\n'
+        'url = "https://acme.example"\n'
+    )
+    return repo
+
+
+def test_written_marketstall_parses_back(repo_with_haybale_toml: Path) -> None:
+    """The feed this writes must survive the parser a subscriber runs on it."""
+    from haywire.core.marketstall.parsing import parse_global_marketplace
+
+    result = write_marketstall(repo_with_haybale_toml, update_readme=False)
+    parsed = parse_global_marketplace(result.out_path)
+
+    row = next(h for h in parsed.haybales if h.name == "haybale-alpha")
+    assert row.version == "0.3.1"
+    assert row.label == "Alpha"
+    assert row.description == "First library"
+    assert row.tags == ["vision", "camera"]
+    assert row.os == ["macos", "linux"]
+    assert row.linked_libraries == ["haybale_core"]
+    assert row.origin == "https://github.com/acme/haybale-alpha"
+    assert row.authors == [("acme", "https://acme.example")]
+
+
+def test_written_fields_are_exactly_str_not_a_subclass(repo_with_haybale_toml: Path) -> None:
+    """`type(...) is str`, not `isinstance`.
+
+    tomlkit's String passes `isinstance(v, str)`, which is precisely why the
+    corruption reached a published feed. An isinstance assertion here would
+    have gone green against the broken writer.
+    """
+    result = write_marketstall(repo_with_haybale_toml, update_readme=False)
+    raw = toml.loads(result.out_path.read_text())
+    entry = next(e for e in raw["haybales"] if e["name"] == "haybale-alpha")
+
+    for field in ("name", "label", "version", "description", "origin", "origin_provider"):
+        assert type(entry[field]) is str, f"{field} serialized as {type(entry[field]).__name__}"
+    for field in ("tags", "os", "linked_libraries"):
+        assert all(type(v) is str for v in entry[field]), f"{field} holds non-str items"
