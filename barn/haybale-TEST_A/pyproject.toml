@@ -1,13 +1,13 @@
 [project]
 name = "haybale-TEST_A"
-version = "0.1.2"
+version = "0.1.3"
 description = "Test library A for demonstrating multi-library support"
 readme = "README.md"
 requires-python = ">=3.12"
 license = {text = "MIT"}
 keywords = ["testing", "development"]
 
-dependencies = ["haywire-core>=0.1.2"]
+dependencies = ["haywire-core>=0.1.3"]
 
 # Entry point for Haywire library discovery
 [[project.authors]]

@@ -3,7 +3,7 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-graph-editor"
-version = "0.1.2"
+version = "0.1.3"
 label = "Graph Editor"
 description = "Visual graph editor library — host-agnostic"
 tags = ["graph", "editor", "visualize", "render", "edit", "patching"]

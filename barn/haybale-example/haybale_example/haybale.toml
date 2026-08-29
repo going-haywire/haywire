@@ -3,7 +3,7 @@
 # Edited in the studio's library overview — no reinstall, no reload.
 
 name = "haybale-example"
-version = "0.1.2"
+version = "0.1.3"
 label = "Example"
 description = "Example library for demonstrating multi-library support"
 tags = ["example", "demo", "tutorial"]
