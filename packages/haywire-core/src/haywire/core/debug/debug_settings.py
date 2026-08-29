@@ -116,4 +116,3 @@ class DebugSettings(FrameworkSettings, namespace=NAMESPACE_DEBUG):
         description="Write logs to file in addition to console",
         category=CATEGORY_LOG_LEVEL,
     )
-
