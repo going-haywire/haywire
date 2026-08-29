@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -2902,6 +2939,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#28a-menu-row-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8a Menu-Row Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#29-z-index-scale" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3384,6 +3432,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8b hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#88c-huiflyouticon-tooltip-vs-huidropdownicon-tooltip-alignleft-directiondown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8c hui.flyout(icon, tooltip=…) vs hui.dropdown(icon, tooltip=…, align="left", direction="down")
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3395,10 +3465,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" class="md-nav__link">
+  <a href="#810-huisurface_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.10 hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)
+        8.10 hui.surface_button(icon, is_active=False, available=True, tooltip=None, on_click=None)
       
     </span>
   </a>
@@ -4338,6 +4408,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#28a-menu-row-tokens" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        2.8a Menu-Row Tokens
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#29-z-index-scale" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4820,6 +4901,28 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8b hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#88c-huiflyouticon-tooltip-vs-huidropdownicon-tooltip-alignleft-directiondown" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        8.8c hui.flyout(icon, tooltip=…) vs hui.dropdown(icon, tooltip=…, align="left", direction="down")
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -4831,10 +4934,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" class="md-nav__link">
+  <a href="#810-huisurface_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" class="md-nav__link">
     <span class="md-ellipsis">
       
-        8.10 hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)
+        8.10 hui.surface_button(icon, is_active=False, available=True, tooltip=None, on_click=None)
       
     </span>
   </a>
@@ -5456,9 +5559,14 @@ that signal a confirming action. It is distinct from <code>--hw-success</code>, 
 for status indicators and result labels. Do not use Quasar <code>color=positive</code> —
 it bypasses the theme. Style with <code>.style("color: var(--hw-positive)")</code> instead.</p>
 <h3 id="27-canvas-node-tokens">2.7 Canvas &amp; Node Tokens<a class="headerlink" href="#27-canvas-node-tokens" title="Permanent link">&para;</a></h3>
-<p>These tokens are defined on <code>WorkbenchTheme</code> and used exclusively by the graph
-canvas, node skins, and edge renderers. Panel and shell code must not reference
-them.</p>
+<p>These tokens are defined on every theme and used by the graph canvas, node
+skins, and edge renderers. Panel and shell code must not reference them.</p>
+<p>The reverse is not restricted: a node-flavoured theme may override any token
+in the full vocabulary (Section 2.2–2.6 included), scoped to its own
+node/graph subtree — see <a href="../../components/themes/theme-canon/">theme-canon</a>.
+A node card's widget content (inputs, selects, ...) is brought into that
+cascade via a <code>.ui-node-slot</code>-scoped forwarding block in <code>shell.py</code>,
+mirroring the one panels get from <code>.hw-panel</code>.</p>
 <table>
 <thead>
 <tr>
@@ -5600,6 +5708,57 @@ used in the error node skin. It should resolve to a low-saturation tint of
 </tr>
 </tbody>
 </table>
+<h3 id="28a-menu-row-tokens">2.8a Menu-Row Tokens<a class="headerlink" href="#28a-menu-row-tokens" title="Permanent link">&para;</a></h3>
+<p>The whole look of a menu command — every menu, every level. Each is optional:
+the <code>.hw-menu-row</code> block falls back to the semantic token beside it, so a theme
+sets these only to give menus a look of their own. Nothing else styles a menu
+row; there is no second place to change.</p>
+<table>
+<thead>
+<tr>
+<th>Token</th>
+<th>Falls back to</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>--hw-menu-row-text</code></td>
+<td><code>--hw-text-body</code></td>
+<td>Command label colour</td>
+</tr>
+<tr>
+<td><code>--hw-menu-row-icon</code></td>
+<td><code>--hw-text-dim</code></td>
+<td>Leading icon and submenu chevron colour</td>
+</tr>
+<tr>
+<td><code>--hw-menu-row-icon-size</code></td>
+<td><code>1.125rem</code></td>
+<td>Icon size</td>
+</tr>
+<tr>
+<td><code>--hw-menu-row-hover-bg</code></td>
+<td><code>--hw-bg-hover</code></td>
+<td>Row hover background</td>
+</tr>
+<tr>
+<td><code>--hw-menu-row-font-size</code></td>
+<td><code>0.875rem</code></td>
+<td>Label size</td>
+</tr>
+<tr>
+<td><code>--hw-menu-row-font-weight</code></td>
+<td><code>400</code></td>
+<td>Label weight</td>
+</tr>
+<tr>
+<td><code>--hw-menu-row-text-transform</code></td>
+<td><code>none</code></td>
+<td>e.g. <code>uppercase</code> for a shouty menu</td>
+</tr>
+</tbody>
+</table>
 <h3 id="29-z-index-scale">2.9 Z-Index Scale<a class="headerlink" href="#29-z-index-scale" title="Permanent link">&para;</a></h3>
 <p>Haywire uses a fixed z-index scale. Do not use arbitrary values.</p>
 <table>
@@ -5718,14 +5877,22 @@ is likewise hardcoded and must be replaced with <code>--hw-bg-active</code>.</p>
 <td><code>opacity: 0.4; pointer-events: none</code></td>
 </tr>
 <tr>
-<td>Scope button</td>
+<td>Surface button</td>
 <td><code>opacity: 0.3; pointer-events: none</code></td>
+</tr>
+<tr>
+<td>Menu row (<code>hui.submenu_row</code> / <code>hui.flyout</code>, disabled or retroactively greyed)</td>
+<td><code>opacity: 0.4; pointer-events: none</code></td>
 </tr>
 </tbody>
 </table>
 <p><strong>Rule:</strong> Always set both <code>opacity</code> and <code>pointer-events: none</code> together.
 Never use a grey fill or border change to indicate disabled state — opacity
-is the single, consistent signal.</p>
+is the single, consistent signal. A menu row follows the same rule whether it
+was constructed <code>enabled=False</code> or greyed <em>retroactively</em> after its flyout
+body drew nothing (see <code>.insights/feedback_nicegui_nested_menu_flyouts.md</code>,
+"Sibling-group ownership and retroactive greying") — both read identically to
+the user, and neither ever gets a grey fill.</p>
 <p><strong>Rule:</strong> Quasar's <code>:disable</code> prop handles both correctly for <code>QBtn</code> and
 <code>QInput</code>. Prefer it over manual class application where available.</p>
 <h3 id="212-drag-and-drop-tokens">2.12 Drag-and-Drop Tokens<a class="headerlink" href="#212-drag-and-drop-tokens" title="Permanent link">&para;</a></h3>
@@ -6438,17 +6605,177 @@ Always pass <code>is_active=True</code> and let the token do the work.</p>
 </span></code></pre></div>
 <h3 id="88a-huibuttonlabel-iconnone-tooltipnone-on_clicknone-disabledfalse">8.8a <code>hui.button(label, icon=None, tooltip=None, on_click=None, disabled=False)</code><a class="headerlink" href="#88a-huibuttonlabel-iconnone-tooltipnone-on_clicknone-disabledfalse" title="Permanent link">&para;</a></h3>
 <p>A flat labelled action button for use inside panels. Distinct from <code>hui.icon_action</code>
-(icon-only) and <code>hui.dialog_actions</code> (confirm/cancel pair). Use when a visible text
-label is needed, optionally with a leading icon.</p>
+(icon-only), <code>hui.dialog_actions</code> (confirm/cancel pair) and <code>hui.menu_row</code> (§8.8b —
+a command in a menu). Use when a visible text label is needed, optionally with a
+leading icon.</p>
+<p><strong>Not for menus.</strong> A <code>QBtn</code> carries Quasar's own look — <code>text-primary</code> from
+NiceGUI's default <code>color='primary'</code>, <code>text-transform: uppercase</code> from <code>.q-btn</code> —
+which no <code>--hw-*</code> token reaches. Use <code>hui.menu_row</code> on any menu surface.</p>
 <p><strong>Visual rules:</strong></p>
 <ul>
 <li>Props: <code>flat dense align=left no-wrap</code></li>
-<li>Classes: <code>text-sm w-full</code></li>
+<li>Classes: <code>text-sm w-full flex</code></li>
 <li>Colour: inherited — never use Quasar <code>color=</code> prop</li>
 <li>Disabled: <code>opacity: 0.5; pointer-events: none</code></li>
 </ul>
+<p><code>flex</code> is load-bearing. A <code>QBtn</code> is <code>display: inline-flex</code>, so stacked buttons are
+inline-level boxes sharing one line box, and <code>w-full</code> drops out of intrinsic
+sizing — inside a shrink-to-fit container (a flyout <code>QMenu</code>, any content-sized
+popup) the container's max-content becomes the <em>sum</em> of the labels and the menu
+stretches to the viewport edge. <code>display: flex</code> makes each button block-level;
+Quasar's own <code>flex-direction: column; align-items: stretch</code> still applies, so the
+button looks identical. Never "fix" that symptom with a width on the menu.</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-17-1"><a id="__codelineno-17-1" name="__codelineno-17-1" href="#__codelineno-17-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete</span><span class="p">)</span>
 </span><span id="__span-17-2"><a id="__codelineno-17-2" name="__codelineno-17-2" href="#__codelineno-17-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Refresh&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
+</span></code></pre></div>
+<h3 id="88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone">8.8b <code>hui.menu_row(label, icon=None, on_click=None, enabled=True, tooltip=None)</code><a class="headerlink" href="#88b-huimenu_rowlabel-iconnone-on_clicknone-enabledtrue-tooltipnone" title="Permanent link">&para;</a></h3>
+<p>One command in a menu — the leaf counterpart of <code>hui.submenu_row</code>, which <em>is</em> one
+(plus a chevron), so a command and the submenu row beside it cannot drift.</p>
+<p><strong>Visual rules:</strong> none are set on the element. Every property comes from the single
+<code>.hw-menu-row</code> CSS block in <code>app/shell.py</code>, and every value in it reads a
+<code>--hw-menu-row-*</code> token (§2.8a). Change a menu's look there or in a theme — never
+per call site.</p>
+<p>The block is keyed on the row's own marker class, never on an ancestor. A flyout
+<code>QMenu</code> portals to <code>&lt;body&gt;</code>, so an ancestor-scoped rule (<code>.hw-panel .q-icon</code>, for
+one) styles a row inside a popup and misses the identical row inside a flyout —
+which is how one menu ends up with three different colours.</p>
+<ul>
+<li>Disabled: <code>enabled=False</code> → <code>opacity: 0.4; pointer-events: none</code>, the menu
+  convention (an inapplicable command greys rather than disappearing). This is
+  what <code>draw_disabled()</code> renders.</li>
+</ul>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_delete</span><span class="p">)</span>
+</span><span id="__span-18-2"><a id="__codelineno-18-2" name="__codelineno-18-2" href="#__codelineno-18-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>   <span class="c1"># draw_disabled()</span>
+</span></code></pre></div>
+<h3 id="88c-huiflyouticon-tooltip-vs-huidropdownicon-tooltip-alignleft-directiondown">8.8c <code>hui.flyout(icon, tooltip=…)</code> vs <code>hui.dropdown(icon, tooltip=…, align="left", direction="down")</code><a class="headerlink" href="#88c-huiflyouticon-tooltip-vs-huidropdownicon-tooltip-alignleft-directiondown" title="Permanent link">&para;</a></h3>
+<p>Two icon anchors that open a hosted surface. Same sibling group (one open path
+at a time), same cascade-close, same retroactive greying of an empty body. Pick
+by <strong>what hangs off them</strong>, never by where you want it on screen:</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th><code>hui.flyout</code></th>
+<th><code>hui.dropdown</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Holds</td>
+<td>commands (<code>hui.menu_row</code>)</td>
+<td>content (fields, widgets, a mini panel)</td>
+</tr>
+<tr>
+<td>Opens</td>
+<td>beside the anchor (<code>anchor="top end"</code>)</td>
+<td>below or above it, placed by <code>align=</code> + <code>direction=</code></td>
+</tr>
+<tr>
+<td>Trigger</td>
+<td>hover, after a ~120 ms debounce</td>
+<td>click</td>
+</tr>
+<tr>
+<td><code>auto-close</code></td>
+<td>yes — a command dismisses its menu</td>
+<td><strong>no</strong></td>
+</tr>
+<tr>
+<td>Nested popups</td>
+<td>left alone</td>
+<td>lifted above the dropdown</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Rule:</strong> never give a dropdown <code>auto-close</code>. Quasar's <code>auto-close</code> dismisses the
+menu on <em>any</em> click inside it, so the first click into a field closes the panel
+you just opened. Conversely, never drop <code>auto-close</code> from a command flyout — a
+menu that survives its own command reads as broken.</p>
+<p>The two remaining rows are consequences of holding content: a select's option
+list or a colour picker is a Quasar portal of its own at z-6000, <em>behind</em> the
+dropdown that spawned it, and it teleports to <code>&lt;body&gt;</code> where no CSS rule can
+reach it — so <code>hui.dropdown</code> stamps the lift on everything in its body (contrast
+<code>hui.select_field(in_popup=True)</code>, which is opt-in precisely because a panel's
+own select must <em>not</em> float above popups).</p>
+<p>A body must still be built from panels: the emptiness rule counts what
+<code>render_panel</code> drew, so fields rendered straight into the body leave the counter
+at zero and the anchor greys itself. Host a surface (ADR-0029) and put the
+fields in a panel on it.</p>
+<p><strong>Placement — two independent axes.</strong> A Quasar anchor point is two words,
+vertical then horizontal, and those are two separate questions, so they are two
+parameters rather than six compound names. Both are named the way <code>text-align</code>
+is: they say where the <em>panel</em> sits, not which way it travels. An unknown value
+on either raises at construction.</p>
+<p><code>align</code> — the horizontal edges:</p>
+<table>
+<thead>
+<tr>
+<th><code>align</code></th>
+<th>Edges that meet</th>
+<th>Grows</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"left"</code> (default)</td>
+<td>panel's left ↔ icon's left</td>
+<td>rightward</td>
+<td>an icon at the left of its row</td>
+</tr>
+<tr>
+<td><code>"center"</code></td>
+<td>midpoints</td>
+<td>both ways</td>
+<td>an icon in the middle of a toolbar</td>
+</tr>
+<tr>
+<td><code>"right"</code></td>
+<td>panel's right ↔ icon's right</td>
+<td>leftward</td>
+<td>the last icon before a screen edge</td>
+</tr>
+</tbody>
+</table>
+<p><code>direction</code> — the vertical side:</p>
+<table>
+<thead>
+<tr>
+<th><code>direction</code></th>
+<th>Edges that meet</th>
+<th>Use for</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"down"</code> (default)</td>
+<td>panel's top ↔ icon's bottom</td>
+<td>almost everything</td>
+</tr>
+<tr>
+<td><code>"up"</code></td>
+<td>panel's bottom ↔ icon's top</td>
+<td>a toolbar along a bottom edge, a status-bar control</td>
+</tr>
+</tbody>
+</table>
+<p><strong>Reach for <code>direction="up"</code> only when up is what you want while down would still
+fit.</strong> When down does not fit, Quasar already flips on its own — measured: the
+same three dropdowns on a toolbar pinned to the bottom of the window all opened
+upward, alignment intact, with no <code>direction=</code> anywhere. Which is also why
+neither parameter is a promise: never lay content out assuming the panel is
+exactly where you asked.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">dropdown</span><span class="p">(</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">theme</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Appearance&quot;</span><span class="p">):</span>
+</span><span id="__span-19-2"><a id="__codelineno-19-2" name="__codelineno-19-2" href="#__codelineno-19-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">NodeAppearance</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>      <span class="c1"># content, below the toolbar</span>
+</span><span id="__span-19-3"><a id="__codelineno-19-3" name="__codelineno-19-3" href="#__codelineno-19-3"></a>
+</span><span id="__span-19-4"><a id="__codelineno-19-4" name="__codelineno-19-4" href="#__codelineno-19-4"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">dropdown</span><span class="p">(</span><span class="s2">&quot;tune&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Filters&quot;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;right&quot;</span><span class="p">):</span>
+</span><span id="__span-19-5"><a id="__codelineno-19-5" name="__codelineno-19-5" href="#__codelineno-19-5"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">FilterPanel</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>         <span class="c1"># last icon: grow leftward</span>
+</span><span id="__span-19-6"><a id="__codelineno-19-6" name="__codelineno-19-6" href="#__codelineno-19-6"></a>
+</span><span id="__span-19-7"><a id="__codelineno-19-7" name="__codelineno-19-7" href="#__codelineno-19-7"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">dropdown</span><span class="p">(</span><span class="s2">&quot;palette&quot;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;up&quot;</span><span class="p">):</span>
+</span><span id="__span-19-8"><a id="__codelineno-19-8" name="__codelineno-19-8" href="#__codelineno-19-8"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">Swatches</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>            <span class="c1"># toolbar on a bottom edge</span>
+</span><span id="__span-19-9"><a id="__codelineno-19-9" name="__codelineno-19-9" href="#__codelineno-19-9"></a>
+</span><span id="__span-19-10"><a id="__codelineno-19-10" name="__codelineno-19-10" href="#__codelineno-19-10"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">flyout</span><span class="p">(</span><span class="s2">&quot;more_horiz&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;More actions&quot;</span><span class="p">):</span>
+</span><span id="__span-19-11"><a id="__codelineno-19-11" name="__codelineno-19-11" href="#__codelineno-19-11"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">SelectionMenu</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>       <span class="c1"># commands, beside the icon</span>
 </span></code></pre></div>
 <h3 id="89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone">8.9 <code>hui.toolbar_button(icon, is_active=False, tooltip=None, on_click=None)</code><a class="headerlink" href="#89-huitoolbar_buttonicon-is_activefalse-tooltipnone-on_clicknone" title="Permanent link">&para;</a></h3>
 <p>An icon button for the activity bar or context bar.</p>
@@ -6460,19 +6787,19 @@ label is needed, optionally with a leading icon.</p>
 <li>States: rest → muted, hover → elevated bg + body colour,
   active → elevated bg + accent colour + inset ring</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-18-1"><a id="__codelineno-18-1" name="__codelineno-18-1" href="#__codelineno-18-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">toolbar_button</span><span class="p">(</span><span class="s2">&quot;folder&quot;</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Files&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="n">switch</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">toolbar_button</span><span class="p">(</span><span class="s2">&quot;folder&quot;</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Files&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="n">switch</span><span class="p">)</span>
 </span></code></pre></div>
-<h3 id="810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone">8.10 <code>hui.scope_button(icon, is_active=False, available=True, tooltip=None, on_click=None)</code><a class="headerlink" href="#810-huiscope_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" title="Permanent link">&para;</a></h3>
-<p>A square button for the properties scope toolbar.</p>
+<h3 id="810-huisurface_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone">8.10 <code>hui.surface_button(icon, is_active=False, available=True, tooltip=None, on_click=None)</code><a class="headerlink" href="#810-huisurface_buttonicon-is_activefalse-availabletrue-tooltipnone-on_clicknone" title="Permanent link">&para;</a></h3>
+<p>A square button for the properties editor's SurfaceToolbar.</p>
 <p><strong>Visual rules:</strong></p>
 <ul>
 <li>Size: <code>36×36px</code></li>
-<li>Border-radius: <code>0</code></li>
+<li>Border-radius: <code>0</code> — tiles vertically; any radius creates visual gaps</li>
 <li>Active: <code>var(--hw-accent)</code> background, <code>#ffffff</code> text</li>
 <li>Unavailable: <code>opacity: 0.3</code>, <code>pointer-events: none</code></li>
 <li>Transition: <code>background 0.15s</code></li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-19-1"><a id="__codelineno-19-1" name="__codelineno-19-1" href="#__codelineno-19-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">scope_button</span><span class="p">(</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Node Properties&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">surface_button</span><span class="p">(</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">is_active</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Node Properties&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="811-huiexpansion_sectionlabel-iconnone-default_opentrue-contextnone-panel_keynone">8.11 <code>hui.expansion_section(label, icon=None, default_open=True, context=None, panel_key=None)</code><a class="headerlink" href="#811-huiexpansion_sectionlabel-iconnone-default_opentrue-contextnone-panel_keynone" title="Permanent link">&para;</a></h3>
 <p>A collapsible section for grouped content in property panels.</p>
@@ -6486,8 +6813,8 @@ label is needed, optionally with a leading icon.</p>
 <p><strong>Rule:</strong> Do not use <code>ui.expansion()</code> directly in property panels. Header styling
 (font size, colour token, border) is only guaranteed correct via this wrapper.
 For settings category groups, use <code>hui.category_group()</code> instead (§8.21).</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-20-1"><a id="__codelineno-20-1" name="__codelineno-20-1" href="#__codelineno-20-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">expansion_section</span><span class="p">(</span><span class="s2">&quot;Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span> <span class="n">panel_key</span><span class="o">=</span><span class="s2">&quot;node&quot;</span><span class="p">):</span>
-</span><span id="__span-20-2"><a id="__codelineno-20-2" name="__codelineno-20-2" href="#__codelineno-20-2"></a>    <span class="c1"># Panel content</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">expansion_section</span><span class="p">(</span><span class="s2">&quot;Node&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;settings&quot;</span><span class="p">,</span> <span class="n">context</span><span class="o">=</span><span class="n">ctx</span><span class="p">,</span> <span class="n">panel_key</span><span class="o">=</span><span class="s2">&quot;node&quot;</span><span class="p">):</span>
+</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a>    <span class="c1"># Panel content</span>
 </span></code></pre></div>
 <h3 id="812-huierror_labeltext">8.12 <code>hui.error_label(text)</code><a class="headerlink" href="#812-huierror_labeltext" title="Permanent link">&para;</a></h3>
 <p>An error message label.</p>
@@ -6497,7 +6824,7 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
 <li>Padding: <code>p-4</code></li>
 <li>Never use <code>text-red-400</code></li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-21-1"><a id="__codelineno-21-1" name="__codelineno-21-1" href="#__codelineno-21-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">error_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">error_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;File not found: </span><span class="si">{</span><span class="n">path</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="813-huiwarning_labeltext">8.13 <code>hui.warning_label(text)</code><a class="headerlink" href="#813-huiwarning_labeltext" title="Permanent link">&para;</a></h3>
 <p>A warning message label.</p>
@@ -6513,8 +6840,8 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
 <li>Quasar badge: <code>outline</code> prop, <code>.text-xs</code></li>
 <li>Named colour via Quasar <code>color=</code> prop (acceptable exception to the no-hardcoded rule)</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-22-1"><a id="__codelineno-22-1" name="__codelineno-22-1" href="#__codelineno-22-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="s2">&quot;vision&quot;</span><span class="p">)</span>
-</span><span id="__span-22-2"><a id="__codelineno-22-2" name="__codelineno-22-2" href="#__codelineno-22-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="s2">&quot;editable&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="s2">&quot;vision&quot;</span><span class="p">)</span>
+</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">tag</span><span class="p">(</span><span class="s2">&quot;editable&quot;</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s2">&quot;green&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="815-huiinput_fieldlabelnone-props">8.15 <code>hui.input_field(label=None, **props)</code><a class="headerlink" href="#815-huiinput_fieldlabelnone-props" title="Permanent link">&para;</a></h3>
 <p>A standard text input, pre-configured for panel use.</p>
@@ -6534,8 +6861,8 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
   text appears below the field using <code>var(--hw-danger)</code>; never use a separate
   <code>hui.error_label()</code> to annotate a field inline</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-23-1"><a id="__codelineno-23-1" name="__codelineno-23-1" href="#__codelineno-23-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">input_field</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;Search libraries…&quot;</span><span class="p">,</span> <span class="n">clearable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-23-2"><a id="__codelineno-23-2" name="__codelineno-23-2" href="#__codelineno-23-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">input_field</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Port&quot;</span><span class="p">,</span> <span class="n">rules</span><span class="o">=</span><span class="p">[</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;Must be a number&quot;</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">input_field</span><span class="p">(</span><span class="n">placeholder</span><span class="o">=</span><span class="s2">&quot;Search libraries…&quot;</span><span class="p">,</span> <span class="n">clearable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</span><span id="__span-25-2"><a id="__codelineno-25-2" name="__codelineno-25-2" href="#__codelineno-25-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">input_field</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;Port&quot;</span><span class="p">,</span> <span class="n">rules</span><span class="o">=</span><span class="p">[</span><span class="k">lambda</span> <span class="n">v</span><span class="p">:</span> <span class="n">v</span><span class="o">.</span><span class="n">isdigit</span><span class="p">()</span> <span class="ow">or</span> <span class="s2">&quot;Must be a number&quot;</span><span class="p">])</span>
 </span></code></pre></div>
 <h3 id="816-huitabstab_defs-densetrue">8.16 <code>hui.tabs(*tab_defs, dense=True)</code><a class="headerlink" href="#816-huitabstab_defs-densetrue" title="Permanent link">&para;</a></h3>
 <p>A tab bar, pre-configured with <code>hw-slot-bar-tabs</code> styling.</p>
@@ -6551,13 +6878,13 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
 <li>Tab hover: <code>--hw-bg-hover</code> background</li>
 <li>Overflow: tabs scroll horizontally (<code>QTabs</code> default) — do not truncate or wrap</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-24-1"><a id="__codelineno-24-1" name="__codelineno-24-1" href="#__codelineno-24-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">tabs</span><span class="p">((</span><span class="s2">&quot;Graph&quot;</span><span class="p">,</span> <span class="s2">&quot;account_tree&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Library&quot;</span><span class="p">,</span> <span class="s2">&quot;widgets&quot;</span><span class="p">))</span> <span class="k">as</span> <span class="n">tabs</span><span class="p">:</span>
-</span><span id="__span-24-2"><a id="__codelineno-24-2" name="__codelineno-24-2" href="#__codelineno-24-2"></a>    <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">tabs</span><span class="p">((</span><span class="s2">&quot;Graph&quot;</span><span class="p">,</span> <span class="s2">&quot;account_tree&quot;</span><span class="p">),</span> <span class="p">(</span><span class="s2">&quot;Library&quot;</span><span class="p">,</span> <span class="s2">&quot;widgets&quot;</span><span class="p">))</span> <span class="k">as</span> <span class="n">tabs</span><span class="p">:</span>
+</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a>    <span class="o">...</span>
 </span></code></pre></div>
 <h3 id="817-huinumber_fieldlabelnone-value0-props">8.17 <code>hui.number_field(label=None, value=0, **props)</code><a class="headerlink" href="#817-huinumber_fieldlabelnone-value0-props" title="Permanent link">&para;</a></h3>
 <p>A standard number input, pre-configured for panel use.</p>
 <p><strong>Visual rules:</strong> Same as <code>hui.input_field</code> — <code>dense outlined</code>, <code>w-full</code>.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-25-1"><a id="__codelineno-25-1" name="__codelineno-25-1" href="#__codelineno-25-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">number_field</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;posX&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">number_field</span><span class="p">(</span><span class="n">label</span><span class="o">=</span><span class="s2">&quot;posX&quot;</span><span class="p">,</span> <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="818-huiselect_fieldoptions-valuenone-labelnone-props">8.18 <code>hui.select_field(options, value=None, label=None, **props)</code><a class="headerlink" href="#818-huiselect_fieldoptions-valuenone-labelnone-props" title="Permanent link">&para;</a></h3>
 <p>A standard dropdown select, pre-configured for panel use.</p>
@@ -6568,21 +6895,21 @@ For settings category groups, use <code>hui.category_group()</code> instead (§8
 <li><code>min-width: 160px</code> by default (override via <code>min_width=</code>)</li>
 <li><code>options</code> accepts a list (value == label) or a dict (value → label)</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-26-1"><a id="__codelineno-26-1" name="__codelineno-26-1" href="#__codelineno-26-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
-</span><span id="__span-26-2"><a id="__codelineno-26-2" name="__codelineno-26-2" href="#__codelineno-26-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="s2">&quot;Option A&quot;</span><span class="p">},</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">[</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="s2">&quot;B&quot;</span><span class="p">],</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;A&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
+</span><span id="__span-28-2"><a id="__codelineno-28-2" name="__codelineno-28-2" href="#__codelineno-28-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">select_field</span><span class="p">(</span><span class="n">options</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;a&quot;</span><span class="p">:</span> <span class="s2">&quot;Option A&quot;</span><span class="p">},</span> <span class="n">value</span><span class="o">=</span><span class="s2">&quot;a&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Mode&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="819-huisection_dividertextnone">8.19 <code>hui.section_divider(text=None)</code><a class="headerlink" href="#819-huisection_dividertextnone" title="Permanent link">&para;</a></h3>
 <p>A visual break between sections. If <code>text</code> is provided, renders a
 <code>hui.section_label</code>. Otherwise renders a plain <code>ui.separator</code> with top margin.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-27-1"><a id="__codelineno-27-1" name="__codelineno-27-1" href="#__codelineno-27-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_divider</span><span class="p">(</span><span class="s2">&quot;ADVANCED&quot;</span><span class="p">)</span>  <span class="c1"># labelled divider</span>
-</span><span id="__span-27-2"><a id="__codelineno-27-2" name="__codelineno-27-2" href="#__codelineno-27-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_divider</span><span class="p">()</span>            <span class="c1"># plain separator</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_divider</span><span class="p">(</span><span class="s2">&quot;ADVANCED&quot;</span><span class="p">)</span>  <span class="c1"># labelled divider</span>
+</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">section_divider</span><span class="p">()</span>            <span class="c1"># plain separator</span>
 </span></code></pre></div>
 <h3 id="819b-huiseparator">8.19b <code>hui.separator()</code><a class="headerlink" href="#819b-huiseparator" title="Permanent link">&para;</a></h3>
 <p>A plain themed horizontal rule (<code>ui.separator</code>). Use when you need a divider
 without a label and without the top margin added by <code>hui.section_divider()</code>.
 Prefer <code>hui.section_divider()</code> in most contexts; use <code>hui.separator()</code> only
 where the extra margin would break a tight layout.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-28-1"><a id="__codelineno-28-1" name="__codelineno-28-1" href="#__codelineno-28-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">separator</span><span class="p">()</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">separator</span><span class="p">()</span>
 </span></code></pre></div>
 <h3 id="820-huisuccess_labeltext-huiinfo_labeltext">8.20 <code>hui.success_label(text)</code> / <code>hui.info_label(text)</code><a class="headerlink" href="#820-huisuccess_labeltext-huiinfo_labeltext" title="Permanent link">&para;</a></h3>
 <p>Status message labels for non-error states.</p>
@@ -6591,8 +6918,8 @@ where the extra margin would break a tight layout.</p>
 <li><code>success_label</code>: <code>text-sm</code> with <code>color: var(--hw-success)</code>, <code>p-4</code></li>
 <li><code>info_label</code>: <code>text-sm</code> with <code>color: var(--hw-info)</code>, <code>p-4</code></li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-29-1"><a id="__codelineno-29-1" name="__codelineno-29-1" href="#__codelineno-29-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">success_label</span><span class="p">(</span><span class="s2">&quot;Library installed successfully.&quot;</span><span class="p">)</span>
-</span><span id="__span-29-2"><a id="__codelineno-29-2" name="__codelineno-29-2" href="#__codelineno-29-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="s2">&quot;No changes detected.&quot;</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="n">hui</span><span class="o">.</span><span class="n">success_label</span><span class="p">(</span><span class="s2">&quot;Library installed successfully.&quot;</span><span class="p">)</span>
+</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a><span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="s2">&quot;No changes detected.&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="821-huicategory_grouplabel-settings-expansion-header">8.21 <code>hui.category_group(label)</code> — settings expansion header<a class="headerlink" href="#821-huicategory_grouplabel-settings-expansion-header" title="Permanent link">&para;</a></h3>
 <p>A foldable expansion used to group settings fields by category inside a
@@ -6605,8 +6932,8 @@ where the extra margin would break a tight layout.</p>
 <li>Default open: <code>True</code></li>
 <li>No state persistence (categories always reset to open)</li>
 </ul>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-30-1"><a id="__codelineno-30-1" name="__codelineno-30-1" href="#__codelineno-30-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">category_group</span><span class="p">(</span><span class="s2">&quot;Rendering&quot;</span><span class="p">):</span>
-</span><span id="__span-30-2"><a id="__codelineno-30-2" name="__codelineno-30-2" href="#__codelineno-30-2"></a>    <span class="c1"># field rows rendered here</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a><span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">category_group</span><span class="p">(</span><span class="s2">&quot;Rendering&quot;</span><span class="p">):</span>
+</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>    <span class="c1"># field rows rendered here</span>
 </span></code></pre></div>
 <p><strong>Rule:</strong> Use <code>hui.category_group</code> inside <code>compact-fields</code> columns only.
 Use <code>hui.expansion_section</code> for collapsible panels in the properties editor.</p>
@@ -6629,28 +6956,30 @@ in structure — but the chrome rules are fixed.</p>
 <li>Background: <code>var(--hw-bg-elevated)</code></li>
 <li>Border: <code>1px solid var(--hw-border-strong)</code></li>
 <li>Border radius: <code>md</code> (8px)</li>
-<li>Shadow: <code>var(--hw-popup-shadow)</code> — defined on <code>WorkbenchTheme</code>, distinct from
-  <code>--hw-node-shadow</code> (nodes are canvas objects; popups are shell objects)</li>
+<li>Shadow: <code>var(--hw-popup-shadow)</code> — a workbench-flavoured theme token, distinct
+  from <code>--hw-node-shadow</code> (nodes are canvas objects; popups are shell objects)</li>
 <li>Backdrop (modal overlays only): <code>var(--hw-bg-overlay)</code> — never <code>rgba(0,0,0,0.5)</code></li>
 </ul>
 <p><strong>Rule:</strong> Never hardcode <code>box-shadow</code> values on popups. Use <code>--hw-popup-shadow</code>.</p>
-<p><strong>Context menu items</strong> follow the same rules as <code>hui.list_item</code> rows:</p>
+<p><strong>Context menu items</strong> are <code>hui.menu_row</code> / <code>hui.submenu_row</code> (§8.8b) — do not
+build them out of <code>hui.button</code> or a hand-rolled row. Their look lives entirely in
+the <code>.hw-menu-row</code> block and its <code>--hw-menu-row-*</code> tokens (§2.8a):</p>
 <ul>
-<li>Padding: <code>px-2 py-1.5</code></li>
-<li>Hover: <code>var(--hw-bg-hover)</code></li>
+<li>Padding: <code>0.25rem 0.5rem</code>, <code>rounded</code> (4px), never wrapping</li>
+<li>Text / icon / hover: <code>--hw-menu-row-*</code>, falling back to <code>--hw-text-body</code>,
+  <code>--hw-text-dim</code>, <code>--hw-bg-hover</code></li>
 <li>Disabled: <code>opacity: 0.4; pointer-events: none</code></li>
 <li>Keyboard shortcut suffix: <code>text-xs hw-text-dim ml-auto font-mono</code></li>
 <li>Divider between groups: <code>hui.separator()</code></li>
-<li>Leading icon (optional): 16px, <code>hw-text-dim</code></li>
 </ul>
 <h3 id="824-huidialog_cardwidthnone-and-huidialog_actions">8.24 <code>hui.dialog_card(width=None)</code> and <code>hui.dialog_actions(...)</code><a class="headerlink" href="#824-huidialog_cardwidthnone-and-huidialog_actions" title="Permanent link">&para;</a></h3>
 <p>Two helpers that enforce §8.23 chrome rules on modal dialogs.</p>
 <p><strong><code>hui.dialog_card(width)</code></strong> — a context manager replacing <code>ui.card()</code> in the
 NiceGUI dialog idiom. Applies elevated background, strong border, 8px radius,
 and popup shadow via <code>--hw-*</code> tokens.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-31-1"><a id="__codelineno-31-1" name="__codelineno-31-1" href="#__codelineno-31-1"></a><span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">dialog</span><span class="p">()</span> <span class="k">as</span> <span class="n">dlg</span><span class="p">,</span> <span class="n">hui</span><span class="o">.</span><span class="n">dialog_card</span><span class="p">(</span><span class="s2">&quot;w-[480px]&quot;</span><span class="p">):</span>
-</span><span id="__span-31-2"><a id="__codelineno-31-2" name="__codelineno-31-2" href="#__codelineno-31-2"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">textarea</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full text-xs hw-text-body&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">props</span><span class="p">(</span><span class="s2">&quot;dense autogrow&quot;</span><span class="p">)</span>
-</span><span id="__span-31-3"><a id="__codelineno-31-3" name="__codelineno-31-3" href="#__codelineno-31-3"></a>    <span class="n">hui</span><span class="o">.</span><span class="n">dialog_actions</span><span class="p">(</span><span class="n">on_confirm</span><span class="o">=</span><span class="n">_confirm</span><span class="p">,</span> <span class="n">on_cancel</span><span class="o">=</span><span class="n">dlg</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">dialog</span><span class="p">()</span> <span class="k">as</span> <span class="n">dlg</span><span class="p">,</span> <span class="n">hui</span><span class="o">.</span><span class="n">dialog_card</span><span class="p">(</span><span class="s2">&quot;w-[480px]&quot;</span><span class="p">):</span>
+</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">textarea</span><span class="p">(</span><span class="o">...</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full text-xs hw-text-body&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">props</span><span class="p">(</span><span class="s2">&quot;dense autogrow&quot;</span><span class="p">)</span>
+</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    <span class="n">hui</span><span class="o">.</span><span class="n">dialog_actions</span><span class="p">(</span><span class="n">on_confirm</span><span class="o">=</span><span class="n">_confirm</span><span class="p">,</span> <span class="n">on_cancel</span><span class="o">=</span><span class="n">dlg</span><span class="o">.</span><span class="n">close</span><span class="p">)</span>
 </span></code></pre></div>
 <p><strong><code>hui.dialog_actions(on_confirm, on_cancel, *, confirm_label="OK", cancel_label="Cancel")</code></strong> —
 a right-aligned action row. Cancel is flat/unstyled; the confirm button uses
@@ -6700,26 +7029,26 @@ focus. The <code>--editing</code> and <code>--dragging</code> CSS classes handle
 <hr />
 <h2 id="9-layout-anatomy">9. Layout Anatomy<a class="headerlink" href="#9-layout-anatomy" title="Permanent link">&para;</a></h2>
 <h3 id="91-shell-structure">9.1 Shell Structure<a class="headerlink" href="#91-shell-structure" title="Permanent link">&para;</a></h3>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-32-1"><a id="__codelineno-32-1" name="__codelineno-32-1" href="#__codelineno-32-1"></a>┌───────────────────────────────────────────────────────────────┐
-</span><span id="__span-32-2"><a id="__codelineno-32-2" name="__codelineno-32-2" href="#__codelineno-32-2"></a>│  TopBar  (48px)                 bg-surface, border-bottom     │
-</span><span id="__span-32-3"><a id="__codelineno-32-3" name="__codelineno-32-3" href="#__codelineno-32-3"></a>├──────┬──────┬─────────────────────────┬──────┬────────────────┤
-</span><span id="__span-32-4"><a id="__codelineno-32-4" name="__codelineno-32-4" href="#__codelineno-32-4"></a>│ Act. │ACTION│      EDIT Slot          │CNTXT │  Ctx.  │
-</span><span id="__span-32-5"><a id="__codelineno-32-5" name="__codelineno-32-5" href="#__codelineno-32-5"></a>│ Bar  │ Slot │  ┌───────────────────┐  │ Slot │  Bar   │
-</span><span id="__span-32-6"><a id="__codelineno-32-6" name="__codelineno-32-6" href="#__codelineno-32-6"></a>│      │ area │  │ MainTabBar (36px) │  │ area │        │
-</span><span id="__span-32-7"><a id="__codelineno-32-7" name="__codelineno-32-7" href="#__codelineno-32-7"></a>│ 48px │ 150+ │  ├───────────────────┤  │ 150+ │  48px  │
-</span><span id="__span-32-8"><a id="__codelineno-32-8" name="__codelineno-32-8" href="#__codelineno-32-8"></a>│      │  px  │  │                   │  │  px  │        │
-</span><span id="__span-32-9"><a id="__codelineno-32-9" name="__codelineno-32-9" href="#__codelineno-32-9"></a>│      │      │  │  Editor Content   │  │      │        │
-</span><span id="__span-32-10"><a id="__codelineno-32-10" name="__codelineno-32-10" href="#__codelineno-32-10"></a>│      │      │  │     (flex: 1)     │  │      │        │
-</span><span id="__span-32-11"><a id="__codelineno-32-11" name="__codelineno-32-11" href="#__codelineno-32-11"></a>│      │      │  │                   │  │      │        │
-</span><span id="__span-32-12"><a id="__codelineno-32-12" name="__codelineno-32-12" href="#__codelineno-32-12"></a>│      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
-</span><span id="__span-32-13"><a id="__codelineno-32-13" name="__codelineno-32-13" href="#__codelineno-32-13"></a>│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when INFO slot has tabs
-</span><span id="__span-32-14"><a id="__codelineno-32-14" name="__codelineno-32-14" href="#__codelineno-32-14"></a>│      │      │  ├───────────────────┤  │      │        │
-</span><span id="__span-32-15"><a id="__codelineno-32-15" name="__codelineno-32-15" href="#__codelineno-32-15"></a>│      │      │  │  INFO Slot area   │  │      │        │ ← collapsible via chevron or drag
-</span><span id="__span-32-16"><a id="__codelineno-32-16" name="__codelineno-32-16" href="#__codelineno-32-16"></a>│      │      │  │   (optional)      │  │      │        │
-</span><span id="__span-32-17"><a id="__codelineno-32-17" name="__codelineno-32-17" href="#__codelineno-32-17"></a>│      │      │  └───────────────────┘  │      │        │
-</span><span id="__span-32-18"><a id="__codelineno-32-18" name="__codelineno-32-18" href="#__codelineno-32-18"></a>├──────┴──────┴─────────────────────────┴──────┴────────────────┤
-</span><span id="__span-32-19"><a id="__codelineno-32-19" name="__codelineno-32-19" href="#__codelineno-32-19"></a>│  StatusBar  (24px)             statusbar-bg, border-top       │
-</span><span id="__span-32-20"><a id="__codelineno-32-20" name="__codelineno-32-20" href="#__codelineno-32-20"></a>└───────────────────────────────────────────────────────────────┘
+<div class="language-text highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a>┌───────────────────────────────────────────────────────────────┐
+</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>│  TopBar  (48px)                 bg-surface, border-bottom     │
+</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>├──────┬──────┬─────────────────────────┬──────┬────────────────┤
+</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>│ Act. │ACTION│      EDIT Slot          │CNTXT │  Ctx.  │
+</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>│ Bar  │ Slot │  ┌───────────────────┐  │ Slot │  Bar   │
+</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>│      │ area │  │ MainTabBar (36px) │  │ area │        │
+</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>│ 48px │ 150+ │  ├───────────────────┤  │ 150+ │  48px  │
+</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>│      │  px  │  │                   │  │  px  │        │
+</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>│      │      │  │  Editor Content   │  │      │        │
+</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>│      │      │  │     (flex: 1)     │  │      │        │
+</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>│      │      │  │                   │  │      │        │
+</span><span id="__span-34-12"><a id="__codelineno-34-12" name="__codelineno-34-12" href="#__codelineno-34-12"></a>│      │      │  ├┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┄┤  │      │        │
+</span><span id="__span-34-13"><a id="__codelineno-34-13" name="__codelineno-34-13" href="#__codelineno-34-13"></a>│      │      │  │ BottomTabBar ▾    │  │      │        │ ← always-visible when INFO slot has tabs
+</span><span id="__span-34-14"><a id="__codelineno-34-14" name="__codelineno-34-14" href="#__codelineno-34-14"></a>│      │      │  ├───────────────────┤  │      │        │
+</span><span id="__span-34-15"><a id="__codelineno-34-15" name="__codelineno-34-15" href="#__codelineno-34-15"></a>│      │      │  │  INFO Slot area   │  │      │        │ ← collapsible via chevron or drag
+</span><span id="__span-34-16"><a id="__codelineno-34-16" name="__codelineno-34-16" href="#__codelineno-34-16"></a>│      │      │  │   (optional)      │  │      │        │
+</span><span id="__span-34-17"><a id="__codelineno-34-17" name="__codelineno-34-17" href="#__codelineno-34-17"></a>│      │      │  └───────────────────┘  │      │        │
+</span><span id="__span-34-18"><a id="__codelineno-34-18" name="__codelineno-34-18" href="#__codelineno-34-18"></a>├──────┴──────┴─────────────────────────┴──────┴────────────────┤
+</span><span id="__span-34-19"><a id="__codelineno-34-19" name="__codelineno-34-19" href="#__codelineno-34-19"></a>│  StatusBar  (24px)             statusbar-bg, border-top       │
+</span><span id="__span-34-20"><a id="__codelineno-34-20" name="__codelineno-34-20" href="#__codelineno-34-20"></a>└───────────────────────────────────────────────────────────────┘
 </span></code></pre></div>
 <p>Every slot = a <strong>bar</strong> (control strip) + an <strong>area</strong> (content panel). The ACTION
 and CONTEXT slots (left and right edges) have vertical icon bars (ActivityBar /
@@ -6730,34 +7059,34 @@ with <code>hw-slot-bar hw-slot-bar-tabs</code>. See §9.7 for the INFO-slot retr
 <p>Every editor is wrapped in a <code>.hw-panel</code> container by the shell. This container
 provides the global text colour cascade and icon dim rules. Editors do not need
 to set their own base text colour.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-33-1"><a id="__codelineno-33-1" name="__codelineno-33-1" href="#__codelineno-33-1"></a><span class="c1"># This is done by AppShell — editors receive `container` with these already applied</span>
-</span><span id="__span-33-2"><a id="__codelineno-33-2" name="__codelineno-33-2" href="#__codelineno-33-2"></a><span class="n">container_div</span> <span class="o">=</span> <span class="p">(</span>
-</span><span id="__span-33-3"><a id="__codelineno-33-3" name="__codelineno-33-3" href="#__codelineno-33-3"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span>
-</span><span id="__span-33-4"><a id="__codelineno-33-4" name="__codelineno-33-4" href="#__codelineno-33-4"></a>    <span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;hw-panel&quot;</span><span class="p">)</span>
-</span><span id="__span-33-5"><a id="__codelineno-33-5" name="__codelineno-33-5" href="#__codelineno-33-5"></a>    <span class="o">.</span><span class="n">style</span><span class="p">(</span><span class="s2">&quot;width: 100%; height: 100%; background: var(--hw-bg-page);&quot;</span><span class="p">)</span>
-</span><span id="__span-33-6"><a id="__codelineno-33-6" name="__codelineno-33-6" href="#__codelineno-33-6"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="c1"># This is done by AppShell — editors receive `container` with these already applied</span>
+</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a><span class="n">container_div</span> <span class="o">=</span> <span class="p">(</span>
+</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>    <span class="n">ui</span><span class="o">.</span><span class="n">element</span><span class="p">(</span><span class="s2">&quot;div&quot;</span><span class="p">)</span>
+</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a>    <span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;hw-panel&quot;</span><span class="p">)</span>
+</span><span id="__span-35-5"><a id="__codelineno-35-5" name="__codelineno-35-5" href="#__codelineno-35-5"></a>    <span class="o">.</span><span class="n">style</span><span class="p">(</span><span class="s2">&quot;width: 100%; height: 100%; background: var(--hw-bg-page);&quot;</span><span class="p">)</span>
+</span><span id="__span-35-6"><a id="__codelineno-35-6" name="__codelineno-35-6" href="#__codelineno-35-6"></a><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="93-standard-editor-template">9.3 Standard Editor Template<a class="headerlink" href="#93-standard-editor-template" title="Permanent link">&para;</a></h3>
 <p>Every editor should follow this vertical structure:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-34-1"><a id="__codelineno-34-1" name="__codelineno-34-1" href="#__codelineno-34-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
-</span><span id="__span-34-2"><a id="__codelineno-34-2" name="__codelineno-34-2" href="#__codelineno-34-2"></a>    <span class="k">with</span> <span class="n">container</span><span class="p">:</span>
-</span><span id="__span-34-3"><a id="__codelineno-34-3" name="__codelineno-34-3" href="#__codelineno-34-3"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full h-full gap-0&quot;</span><span class="p">):</span>
-</span><span id="__span-34-4"><a id="__codelineno-34-4" name="__codelineno-34-4" href="#__codelineno-34-4"></a>            <span class="c1"># 1. Header (flex-shrink-0)</span>
-</span><span id="__span-34-5"><a id="__codelineno-34-5" name="__codelineno-34-5" href="#__codelineno-34-5"></a>            <span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">panel_header</span><span class="p">(</span><span class="s2">&quot;My Editor&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;tune&quot;</span><span class="p">):</span>
-</span><span id="__span-34-6"><a id="__codelineno-34-6" name="__codelineno-34-6" href="#__codelineno-34-6"></a>                <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
-</span><span id="__span-34-7"><a id="__codelineno-34-7" name="__codelineno-34-7" href="#__codelineno-34-7"></a>
-</span><span id="__span-34-8"><a id="__codelineno-34-8" name="__codelineno-34-8" href="#__codelineno-34-8"></a>            <span class="c1"># 2. Scrollable content (flex-1)</span>
-</span><span id="__span-34-9"><a id="__codelineno-34-9" name="__codelineno-34-9" href="#__codelineno-34-9"></a>            <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">scroll_area</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;flex-1 w-full&quot;</span><span class="p">):</span>
-</span><span id="__span-34-10"><a id="__codelineno-34-10" name="__codelineno-34-10" href="#__codelineno-34-10"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_content</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full p-2 gap-1&quot;</span><span class="p">)</span>
-</span><span id="__span-34-11"><a id="__codelineno-34-11" name="__codelineno-34-11" href="#__codelineno-34-11"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_render_content</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-36-1"><a id="__codelineno-36-1" name="__codelineno-36-1" href="#__codelineno-36-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">container</span><span class="p">,</span> <span class="n">context</span><span class="p">):</span>
+</span><span id="__span-36-2"><a id="__codelineno-36-2" name="__codelineno-36-2" href="#__codelineno-36-2"></a>    <span class="k">with</span> <span class="n">container</span><span class="p">:</span>
+</span><span id="__span-36-3"><a id="__codelineno-36-3" name="__codelineno-36-3" href="#__codelineno-36-3"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full h-full gap-0&quot;</span><span class="p">):</span>
+</span><span id="__span-36-4"><a id="__codelineno-36-4" name="__codelineno-36-4" href="#__codelineno-36-4"></a>            <span class="c1"># 1. Header (flex-shrink-0)</span>
+</span><span id="__span-36-5"><a id="__codelineno-36-5" name="__codelineno-36-5" href="#__codelineno-36-5"></a>            <span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">panel_header</span><span class="p">(</span><span class="s2">&quot;My Editor&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;tune&quot;</span><span class="p">):</span>
+</span><span id="__span-36-6"><a id="__codelineno-36-6" name="__codelineno-36-6" href="#__codelineno-36-6"></a>                <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="s2">&quot;refresh&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">_refresh</span><span class="p">)</span>
+</span><span id="__span-36-7"><a id="__codelineno-36-7" name="__codelineno-36-7" href="#__codelineno-36-7"></a>
+</span><span id="__span-36-8"><a id="__codelineno-36-8" name="__codelineno-36-8" href="#__codelineno-36-8"></a>            <span class="c1"># 2. Scrollable content (flex-1)</span>
+</span><span id="__span-36-9"><a id="__codelineno-36-9" name="__codelineno-36-9" href="#__codelineno-36-9"></a>            <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">scroll_area</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;flex-1 w-full&quot;</span><span class="p">):</span>
+</span><span id="__span-36-10"><a id="__codelineno-36-10" name="__codelineno-36-10" href="#__codelineno-36-10"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_content</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full p-2 gap-1&quot;</span><span class="p">)</span>
+</span><span id="__span-36-11"><a id="__codelineno-36-11" name="__codelineno-36-11" href="#__codelineno-36-11"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">_render_content</span><span class="p">(</span><span class="n">context</span><span class="p">)</span>
 </span></code></pre></div>
 <h3 id="94-scrollbar-style">9.4 Scrollbar Style<a class="headerlink" href="#94-scrollbar-style" title="Permanent link">&para;</a></h3>
 <p>Quasar's <code>QScrollArea</code> renders a custom scrollbar. Style it via the
 <code>thumb-style</code> and <code>bar-style</code> props — do not use <code>::-webkit-scrollbar</code> CSS.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-35-1"><a id="__codelineno-35-1" name="__codelineno-35-1" href="#__codelineno-35-1"></a><span class="n">ui</span><span class="o">.</span><span class="n">scroll_area</span><span class="p">()</span><span class="o">.</span><span class="n">props</span><span class="p">(</span>
-</span><span id="__span-35-2"><a id="__codelineno-35-2" name="__codelineno-35-2" href="#__codelineno-35-2"></a>    <span class="s1">&#39;thumb-style=&quot;background: var(--hw-border-strong); border-radius: 4px; width: 4px;&quot;&#39;</span>
-</span><span id="__span-35-3"><a id="__codelineno-35-3" name="__codelineno-35-3" href="#__codelineno-35-3"></a>    <span class="s1">&#39; bar-style=&quot;background: transparent; width: 4px;&quot;&#39;</span>
-</span><span id="__span-35-4"><a id="__codelineno-35-4" name="__codelineno-35-4" href="#__codelineno-35-4"></a><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-37-1"><a id="__codelineno-37-1" name="__codelineno-37-1" href="#__codelineno-37-1"></a><span class="n">ui</span><span class="o">.</span><span class="n">scroll_area</span><span class="p">()</span><span class="o">.</span><span class="n">props</span><span class="p">(</span>
+</span><span id="__span-37-2"><a id="__codelineno-37-2" name="__codelineno-37-2" href="#__codelineno-37-2"></a>    <span class="s1">&#39;thumb-style=&quot;background: var(--hw-border-strong); border-radius: 4px; width: 4px;&quot;&#39;</span>
+</span><span id="__span-37-3"><a id="__codelineno-37-3" name="__codelineno-37-3" href="#__codelineno-37-3"></a>    <span class="s1">&#39; bar-style=&quot;background: transparent; width: 4px;&quot;&#39;</span>
+</span><span id="__span-37-4"><a id="__codelineno-37-4" name="__codelineno-37-4" href="#__codelineno-37-4"></a><span class="p">)</span>
 </span></code></pre></div>
 <p><strong>Rule:</strong> Scrollbars are 4px wide, use <code>--hw-border-strong</code> for the thumb, and
 transparent for the track. This applies to all <code>ui.scroll_area()</code> instances.</p>
@@ -6875,7 +7204,7 @@ automatically without requiring users to reset their workspace.</p>
 <p>Every workspace slot (<strong>left</strong>, <strong>right</strong>, <strong>main</strong>, <strong>bottom</strong>) is composed of
 a <strong>bar</strong> (its control strip) and an <strong>area</strong> (its content panel). The shell
 also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
-(ScopeToolbar). Use these names consistently in code and comments:</p>
+(SurfaceToolbar). Use these names consistently in code and comments:</p>
 <table>
 <thead>
 <tr>
@@ -6923,10 +7252,10 @@ also has two chrome bars (TopBar / StatusBar) and one editor-internal bar
 <td>INFO slot tab switcher + retract chevron</td>
 </tr>
 <tr>
-<td>ScopeToolbar</td>
+<td>SurfaceToolbar</td>
 <td>(inside PropertiesEditor)</td>
 <td>icons</td>
-<td>Scope switcher icons (36px buttons)</td>
+<td>Surface switcher icons (36px buttons)</td>
 </tr>
 </tbody>
 </table>

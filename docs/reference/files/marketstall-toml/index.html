@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -2998,6 +3035,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#distribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distribute
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tag-pinning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3270,6 +3318,17 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#distribute" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        distribute
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#tag-pinning" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3372,36 +3431,37 @@ marketplace's inline section, and in the project cache — see
 </span><span id="__span-0-36"><a id="__codelineno-0-36" name="__codelineno-0-36" href="#__codelineno-0-36"></a><span class="n">require</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haywire-core&gt;=0.0.39&quot;</span>
 </span><span id="__span-0-37"><a id="__codelineno-0-37" name="__codelineno-0-37" href="#__codelineno-0-37"></a>
 </span><span id="__span-0-38"><a id="__codelineno-0-38" name="__codelineno-0-38" href="#__codelineno-0-38"></a><span class="c1"># ── generated: the coordinates a library cannot state about itself ──────────</span>
-</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="c1"># Passed verbatim to `uv pip install`. Tag-pinned by the share pipeline, so it</span>
-</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="c1"># names the exact commit a consumer gets. This is the row&#39;s ONLY ref — every</span>
-</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="c1"># declared path resolves against it, so no two fields can disagree about which</span>
-</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="c1"># commit was published.</span>
-</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="n">install_spec</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-core @ git+https://github.com/going-haywire/haywire.git@v0.0.40#subdirectory=barn/haybale-core&quot;</span>
-</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="c1"># &quot;git&quot; (share wizard) or &quot;pypi&quot; (CI publishing script). Drives install</span>
-</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="c1"># routing and the version-fetching strategy. A row read from a haybale.toml on</span>
-</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="c1"># disk carries &quot;local&quot; instead, but such a row is never published.</span>
-</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="n">source</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
-</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a>
-</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a><span class="c1"># ── plus every copied field; see the block at the top ───────────────────────</span>
-</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="n">label</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Core&quot;</span>
-</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="n">description</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Fundamental components for haywire graphs&quot;</span>
-</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="n">origin</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/going-haywire/haywire&quot;</span>
-</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="c1"># … and the rest, documented in haybale-toml.md</span>
-</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a>
-</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a><span class="c1"># A [deprecated] block, when the author declared one, is written LAST in the</span>
-</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="c1"># row — it is a table, and TOML parses every bare key after a table header into</span>
-</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="c1"># that table. Anything emitted after it would silently join it.</span>
-</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="k">[haybales.deprecated]</span>
-</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="n">since</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.41&quot;</span>
-</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="n">reason</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Superseded by haybale-vision.&quot;</span>
-</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="n">successor</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-vision&quot;</span>
-</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a>
-</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a><span class="k">[[haybales]]</span>
-</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="c1"># One block per library in the project, all bumped to the same version.</span>
-</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a><span class="n">name</span><span class="w">              </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-studio&quot;</span>
-</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a><span class="n">version</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.40&quot;</span>
-</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a><span class="n">install_spec</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-studio @ git+https://github.com/going-haywire/haywire.git@v0.0.40#subdirectory=barn/haybale-studio&quot;</span>
-</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a><span class="n">source</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
+</span><span id="__span-0-39"><a id="__codelineno-0-39" name="__codelineno-0-39" href="#__codelineno-0-39"></a><span class="c1"># Passed verbatim to `uv pip install`, and always exact: a git row is tag-pinned</span>
+</span><span id="__span-0-40"><a id="__codelineno-0-40" name="__codelineno-0-40" href="#__codelineno-0-40"></a><span class="c1"># by the share pipeline, a pypi row is `{name}=={version}`. A row therefore</span>
+</span><span id="__span-0-41"><a id="__codelineno-0-41" name="__codelineno-0-41" href="#__codelineno-0-41"></a><span class="c1"># installs the version it advertises. For a git row this is also the row&#39;s ONLY</span>
+</span><span id="__span-0-42"><a id="__codelineno-0-42" name="__codelineno-0-42" href="#__codelineno-0-42"></a><span class="c1"># ref — every declared path resolves against it, so no two fields can disagree</span>
+</span><span id="__span-0-43"><a id="__codelineno-0-43" name="__codelineno-0-43" href="#__codelineno-0-43"></a><span class="c1"># about which commit was published.</span>
+</span><span id="__span-0-44"><a id="__codelineno-0-44" name="__codelineno-0-44" href="#__codelineno-0-44"></a><span class="n">install_spec</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-core @ git+https://github.com/going-haywire/haywire.git@v0.0.40#subdirectory=barn/haybale-core&quot;</span>
+</span><span id="__span-0-45"><a id="__codelineno-0-45" name="__codelineno-0-45" href="#__codelineno-0-45"></a><span class="c1"># &quot;git&quot; (share wizard) or &quot;pypi&quot; (CI publishing script). Drives install</span>
+</span><span id="__span-0-46"><a id="__codelineno-0-46" name="__codelineno-0-46" href="#__codelineno-0-46"></a><span class="c1"># routing and the version-fetching strategy. A row read from a haybale.toml on</span>
+</span><span id="__span-0-47"><a id="__codelineno-0-47" name="__codelineno-0-47" href="#__codelineno-0-47"></a><span class="c1"># disk carries &quot;local&quot; instead, but such a row is never published.</span>
+</span><span id="__span-0-48"><a id="__codelineno-0-48" name="__codelineno-0-48" href="#__codelineno-0-48"></a><span class="n">source</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
+</span><span id="__span-0-49"><a id="__codelineno-0-49" name="__codelineno-0-49" href="#__codelineno-0-49"></a>
+</span><span id="__span-0-50"><a id="__codelineno-0-50" name="__codelineno-0-50" href="#__codelineno-0-50"></a><span class="c1"># ── plus every copied field; see the block at the top ───────────────────────</span>
+</span><span id="__span-0-51"><a id="__codelineno-0-51" name="__codelineno-0-51" href="#__codelineno-0-51"></a><span class="n">label</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Core&quot;</span>
+</span><span id="__span-0-52"><a id="__codelineno-0-52" name="__codelineno-0-52" href="#__codelineno-0-52"></a><span class="n">description</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Fundamental components for haywire graphs&quot;</span>
+</span><span id="__span-0-53"><a id="__codelineno-0-53" name="__codelineno-0-53" href="#__codelineno-0-53"></a><span class="n">origin</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://github.com/going-haywire/haywire&quot;</span>
+</span><span id="__span-0-54"><a id="__codelineno-0-54" name="__codelineno-0-54" href="#__codelineno-0-54"></a><span class="c1"># … and the rest, documented in haybale-toml.md</span>
+</span><span id="__span-0-55"><a id="__codelineno-0-55" name="__codelineno-0-55" href="#__codelineno-0-55"></a>
+</span><span id="__span-0-56"><a id="__codelineno-0-56" name="__codelineno-0-56" href="#__codelineno-0-56"></a><span class="c1"># A [deprecated] block, when the author declared one, is written LAST in the</span>
+</span><span id="__span-0-57"><a id="__codelineno-0-57" name="__codelineno-0-57" href="#__codelineno-0-57"></a><span class="c1"># row — it is a table, and TOML parses every bare key after a table header into</span>
+</span><span id="__span-0-58"><a id="__codelineno-0-58" name="__codelineno-0-58" href="#__codelineno-0-58"></a><span class="c1"># that table. Anything emitted after it would silently join it.</span>
+</span><span id="__span-0-59"><a id="__codelineno-0-59" name="__codelineno-0-59" href="#__codelineno-0-59"></a><span class="k">[haybales.deprecated]</span>
+</span><span id="__span-0-60"><a id="__codelineno-0-60" name="__codelineno-0-60" href="#__codelineno-0-60"></a><span class="n">since</span><span class="w">             </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.41&quot;</span>
+</span><span id="__span-0-61"><a id="__codelineno-0-61" name="__codelineno-0-61" href="#__codelineno-0-61"></a><span class="n">reason</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Superseded by haybale-vision.&quot;</span>
+</span><span id="__span-0-62"><a id="__codelineno-0-62" name="__codelineno-0-62" href="#__codelineno-0-62"></a><span class="n">successor</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-vision&quot;</span>
+</span><span id="__span-0-63"><a id="__codelineno-0-63" name="__codelineno-0-63" href="#__codelineno-0-63"></a>
+</span><span id="__span-0-64"><a id="__codelineno-0-64" name="__codelineno-0-64" href="#__codelineno-0-64"></a><span class="k">[[haybales]]</span>
+</span><span id="__span-0-65"><a id="__codelineno-0-65" name="__codelineno-0-65" href="#__codelineno-0-65"></a><span class="c1"># One block per library in the project, all bumped to the same version.</span>
+</span><span id="__span-0-66"><a id="__codelineno-0-66" name="__codelineno-0-66" href="#__codelineno-0-66"></a><span class="n">name</span><span class="w">              </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-studio&quot;</span>
+</span><span id="__span-0-67"><a id="__codelineno-0-67" name="__codelineno-0-67" href="#__codelineno-0-67"></a><span class="n">version</span><span class="w">           </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.40&quot;</span>
+</span><span id="__span-0-68"><a id="__codelineno-0-68" name="__codelineno-0-68" href="#__codelineno-0-68"></a><span class="n">install_spec</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-studio @ git+https://github.com/going-haywire/haywire.git@v0.0.40#subdirectory=barn/haybale-studio&quot;</span>
+</span><span id="__span-0-69"><a id="__codelineno-0-69" name="__codelineno-0-69" href="#__codelineno-0-69"></a><span class="n">source</span><span class="w">            </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;git&quot;</span>
 </span></code></pre></div>
 <p>A PyPI-published row is shorter — the install spec is a plain requirement and
 there is no repository to resolve paths against:</p>
@@ -3411,8 +3471,11 @@ there is no repository to resolve paths against:</p>
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a><span class="n">require</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haywire-core&gt;=0.0.39&quot;</span>
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="n">description</span><span class="w">  </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;Image processing nodes for haywire&quot;</span>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a><span class="n">source</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pypi&quot;</span>
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">install_spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-image&gt;=1.0.0&quot;</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a><span class="n">install_spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-image==1.0.0&quot;</span>
 </span></code></pre></div>
+<p>A PyPI row is written when the project declares
+<code>[tool.haywire.marketstall].distribute = "pypi"</code> — see
+<a href="#distribute"><code>distribute</code></a> below.</p>
 <p>Empty and default-valued fields are omitted on write, so a real row is only as
 long as the library is descriptive.</p>
 <h2 id="field-inheritance">Field inheritance<a class="headerlink" href="#field-inheritance" title="Permanent link">&para;</a></h2>
@@ -3555,7 +3618,7 @@ they appear. The runtime dataclass is <code>Haybale</code>
 <tr>
 <td><code>install_spec</code></td>
 <td>—</td>
-<td>generated — <code>{name} @ git+{origin}.git@{tag}#subdirectory={lib_rel}</code></td>
+<td>generated — <code>{name} @ git+{origin}.git@{tag}#subdirectory={lib_rel}</code>, or <code>{name}=={version}</code> under <code>distribute = "pypi"</code></td>
 <td><code>"haybale-core @ git+https://…@v0.0.40#subdirectory=barn/haybale-core"</code></td>
 </tr>
 <tr>
@@ -3668,12 +3731,52 @@ market or a stall, and is unrelated to <code>origin</code>.</p>
 </tr>
 </tbody>
 </table>
+<h2 id="distribute"><code>distribute</code><a class="headerlink" href="#distribute" title="Permanent link">&para;</a></h2>
+<p>Which coordinate a project's rows install by. Project-scoped, declared once in
+the <strong>repo root</strong> pyproject — the unit of publishing is the project, so a repo
+cannot emit some git rows and some PyPI ones.</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[tool.haywire.marketstall]</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">distribute</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pypi&quot;</span><span class="w">   </span><span class="c1"># or &quot;git&quot; (the default)</span>
+</span></code></pre></div>
+<table>
+<thead>
+<tr>
+<th><code>distribute</code></th>
+<th><code>source</code></th>
+<th><code>install_spec</code></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>"git"</code> (default)</td>
+<td><code>"git"</code></td>
+<td><code>haybale-foo @ git+https://…@v1.2.3#subdirectory=barn/haybale-foo</code></td>
+</tr>
+<tr>
+<td><code>"pypi"</code></td>
+<td><code>"pypi"</code></td>
+<td><code>haybale-foo==1.2.3</code></td>
+</tr>
+</tbody>
+</table>
+<p><strong>One coordinate per version, never both.</strong> <code>identity_matches</code> reads a PyPI row
+and a git row of the same name as <em>different libraries</em>, so a consumer
+subscribed to two feeds that disagree is asked to block one of two rows
+describing one release.</p>
+<p>Declared rather than probed: a probe of PyPI answers wrongly for exactly the
+release that matters most — the first one, where the name is not registered
+yet. The reader is lenient (anything absent or unrecognised means <code>"git"</code>), and
+the declaration is checked at <strong>preconditions</strong> instead: <code>"pypi"</code> against a name
+PyPI does not know fails the preflight, before a tag is pushed. That check is
+skipped when PyPI cannot be reached, so it never blocks an offline publish.</p>
 <h2 id="tag-pinning">Tag pinning<a class="headerlink" href="#tag-pinning" title="Permanent link">&para;</a></h2>
-<p><code>install_spec</code> is pinned to the release tag <code>v&lt;version&gt;</code> <strong>only</strong> when the row
-is produced through the full share pipeline, which resolves and
+<p>A <strong>git</strong> <code>install_spec</code> is pinned to the release tag <code>v&lt;version&gt;</code> <strong>only</strong> when
+the row is produced through the full share pipeline, which resolves and
 collision-checks the version before the write. A standalone
-<code>write_marketstall()</code> call — CI's generator, or a checkout that never ran the
-wizard — emits an unpinned spec that floats to the current branch.</p>
+<code>write_marketstall()</code> call — a checkout that never ran the wizard — emits an
+unpinned spec that floats to the current branch.</p>
+<p>A <strong>pypi</strong> <code>install_spec</code> is pinned either way: its ref is the version, which is
+always known.</p>
 <p>Every other path in the row is repo-relative and resolves against
 <code>install_spec</code>'s ref, so a single ref governs the whole row and the fields
 cannot disagree about which commit was published. Earlier rows baked absolute
@@ -3693,8 +3796,8 @@ resolves the same coordinates from its own
 <a href="../haybale-toml/"><code>haybale.toml</code></a>, which carries <code>origin</code>, <code>origin_provider</code> and
 <code>version</code>.</p>
 <h2 id="publishing-one">Publishing one<a class="headerlink" href="#publishing-one" title="Permanent link">&para;</a></h2>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w">     </span><span class="c1"># bump every barn library in lockstep, rewrite this file</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--dry-run<span class="w">        </span><span class="c1"># report what a publish would do; write nothing</span>
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch<span class="w">     </span><span class="c1"># bump every barn library in lockstep, rewrite this file</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>uv<span class="w"> </span>run<span class="w"> </span>haywire<span class="w"> </span>share<span class="w"> </span>--dry-run<span class="w">        </span><span class="c1"># report what a publish would do; write nothing</span>
 </span></code></pre></div>
 <p>The unit of publishing is the project, not the library: every <code>barn/*</code> library
 is bumped to the same version and written into one marketstall. The full author

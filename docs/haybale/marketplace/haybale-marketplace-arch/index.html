@@ -16,7 +16,7 @@
         <link rel="prev" href="../marketplace-canon/">
       
       
-        <link rel="next" href="../../../guides/node-roles/">
+        <link rel="next" href="../curated-marketplace/">
       
       
         
@@ -1032,6 +1032,8 @@
       
         
       
+        
+      
     
     
     
@@ -1630,6 +1632,41 @@
   
 </nav>
       
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
     </li>
   
 
@@ -4485,7 +4522,7 @@ is exactly what a marketplace install is for.</p>
 <p>All three read the same <code>DriftReport.linked_registrations</code> / <code>linked_missing</code> and apply the same union. That property is load-bearing and was not always true: the wizard rendered registrations it never wrote, because <code>_collect</code> omitted them from the <code>ShareDecisions</code> it handed <code>apply_all</code>, while the CLI applied the same registrations on identical input. <code>DriftReport.linked_registrations</code> exists as a single hoisted property for exactly this reason — its docstring records that the logic "was duplicated in both, divergently, before this property existed."</p>
 <h3 id="not-a-return-of-the-old-detect-dependencies-button">Not a return of the old Detect Dependencies button<a class="headerlink" href="#not-a-return-of-the-old-detect-dependencies-button" title="Permanent link">&para;</a></h3>
 <p>An earlier version of this dialog had a "Detect Dependencies" button that scanned <em>both</em> <code>linked_libraries</code> and pip dependencies, offering Union/Replace across both. It was removed because the pip-dependency side created two uncoordinated writers to the same <code>[project] dependencies</code> list — this button and the Share wizard's own writer — which is what let the framework floor get silently clobbered. That bug never existed on the <code>linked_libraries</code> side: those entries were already "applied automatically, never a choice" even inside the Share flow, so a second surface applying the same provably-true rule does not recreate the conflict. Note also that only Union survives here; Replace was the destructive half and has no equivalent on any surface.</p>
-<p>The same detection backs the CLI: step 2 of <code>SharePipeline</code> and <code>haywire deps check</code> both call <code>detect_share_drift()</code> (<a href="../../../architecture/sharing/share-pipeline-arch/#22-step-2-dependency-drift">share-pipeline-arch §2.2</a>). For the author-facing workflow, see the <a href="../../../guides/sharing-libraries/#63-keeping-the-manifests-honest">sharing-libraries guide §3</a>.</p>
+<p>The same detection backs the CLI: step 2 of <code>SharePipeline</code> and <code>haywire deps check</code> both call <code>detect_share_drift()</code> (<a href="../../../architecture/sharing/share-pipeline-arch/#22-step-2-detect">share-pipeline-arch §2.2</a>). For the author-facing workflow, see the <a href="../../../guides/sharing-libraries/#63-keeping-the-manifests-honest">sharing-libraries guide §3</a>.</p>
 <h2 id="7-failure-surfaces">7. Failure surfaces<a class="headerlink" href="#7-failure-surfaces" title="Permanent link">&para;</a></h2>
 <p>The Library Browser handles three classes of failure with three distinct visual treatments. All use <code>--hw-*</code> design tokens; never hardcoded reds or yellows.</p>
 <table>

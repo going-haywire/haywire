@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -4190,7 +4227,7 @@ as small as a clean definitions/tiers-only module would be in isolation.</p>
 <p><strong>Cell-mutation spine.</strong> No <em>structural</em> action ever resets a cell. Once created, a field's cell persists for the life of the bag; its <strong>value</strong> returns to the default only on an explicit <code>reset()</code> (or moves by edit, or — in P5 — by edge-drive). <code>reset</code> clears <code>_set_keys</code> and writes the no-override value back via <code>cell.set_value(...)</code> (so the cell event notifies subscribers/widgets); it never removes the cell. This is what makes the cell a stable identity a future port can bind to.</p>
 <p><strong>Serialization stays bare.</strong> The graph settings block keeps its existing wire shape — <code>bag.to_dict()</code> emits <code>{attr_name: bare_value}</code> per locally-set field (via <code>cell.get_value()</code>, not the IType <code>to_dict</code> dict), and <code>from_dict</code> writes each value back into the cell. Complex ITypes still round-trip losslessly because the <em>cell</em> guarantees the IType round-trip; the settings-block shape is unchanged, so existing saved graphs load. See <a href="#74-serialisation">§7.4</a>.</p>
 <p><strong>Settings are IType-only.</strong> <code>SettingDescriptor.__set_name__</code> rejects any non-IType field at class-definition time, so every field has a cell — <code>_cell_for</code> always returns one and raises <code>TypeError</code> for a descriptor that somehow bypassed enforcement. There is no cell-less fallback store. (An earlier defensive <code>_plain: dict</code> for <code>object</code>-typed fields was removed once this invariant was committed to; a value that genuinely isn't an IType belongs in <code>self.store</code>/<code>self.cache</code>, not in settings.)</p>
-<p><strong>Promotion builds on this cell (P5, landed).</strong> <em>Promotion</em> — a field + a direction — makes a port a second view of this same cell. See <a href="#65-promotion--field--direction">§6.5 Promotion = field + direction</a> and <a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>. P5 retired the UI's throwaway-<code>DataField</code> bridge for node bags; ADR 0013 finished the job for the registry path — <code>SettingWidgetModel</code> always binds a real shared cell (the bag's instance cell, or <code>registry.cell_for(key)</code> for persistent settings).</p>
+<p><strong>Promotion builds on this cell (P5, landed).</strong> <em>Promotion</em> — a field + a direction — makes a port a second view of this same cell. See <a href="#65-promotion-field-direction">§6.5 Promotion = field + direction</a> and <a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>. P5 retired the UI's throwaway-<code>DataField</code> bridge for node bags; ADR 0013 finished the job for the registry path — <code>SettingWidgetModel</code> always binds a real shared cell (the bag's instance cell, or <code>registry.cell_for(key)</code> for persistent settings).</p>
 <p><strong>Registry-owned cells (ADR 0013).</strong> A wired persistent field has no per-instance state (writes go to the tiers), so its live cell is owned by the registry — one <code>DataField</code> per definition, created lazily by <code>registry.cell_for(key)</code>, seeded via <code>resolve()</code>, kept current by the write-through in <code>_notify_subscribers</code>, and dropped with its definition on hot-reload unregister. Instances' <code>_cell_for</code> <em>borrows</em> it: one cell, N views.</p>
 <h3 id="65-promotion-field-direction">6.5 Promotion = field + direction<a class="headerlink" href="#65-promotion-field-direction" title="Permanent link">&para;</a></h3>
 <p><em>Promoting</em> a setting assigns it a <strong>direction</strong> and surfaces it as a DATA port. A promoted port and the setting it binds are <strong>one cell, two views</strong>: the port borrows the setting's <a href="#64-single-cell-value-model">§6.4 cell</a> <em>by reference</em> via <code>DataPort.bind_field</code>, so there is no second value and no read-tier bridge (<a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>).</p>

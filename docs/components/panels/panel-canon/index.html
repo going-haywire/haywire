@@ -1061,6 +1061,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Important concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hosting-a-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hosting a surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#draw-and-draw_disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draw() and draw_disabled()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-a-nested-panel-may-not-assume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a nested panel may not assume
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -1109,10 +1148,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#built-in-focuses-haybale_studiofocuses" class="md-nav__link">
+  <a href="#built-in-surfaces" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Built-in focuses (haybale_studio.focuses)
+        Built-in Surfaces
       
     </span>
   </a>
@@ -1194,6 +1233,8 @@
   
     
     
+      
+        
       
         
       
@@ -1370,6 +1411,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3269,6 +3345,45 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Important concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#hosting-a-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Hosting a surface
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#draw-and-draw_disabled" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        draw() and draw_disabled()
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#what-a-nested-panel-may-not-assume" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        What a nested panel may not assume
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3317,10 +3432,10 @@
 </li>
         
           <li class="md-nav__item">
-  <a href="#built-in-focuses-haybale_studiofocuses" class="md-nav__link">
+  <a href="#built-in-surfaces" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Built-in focuses (haybale_studio.focuses)
+        Built-in Surfaces
       
     </span>
   </a>
@@ -3363,7 +3478,7 @@
 <h1 id="panel-canonical-example">Panel — Canonical Example<a class="headerlink" href="#panel-canonical-example" title="Permanent link">&para;</a></h1>
 <h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
 <p>A <strong>panel</strong> is a context-sensitive sub-section that appears inside a <strong>panel-aware editor</strong> — most commonly the Properties editor on the right sidebar. Unlike editors, panels do not manage their own slot. They are discovered at runtime from <code>PanelRegistry</code>, polled for visibility, and rendered inside a host editor's layout.</p>
-<p>You author a panel when you want to contribute UI to a panel-aware editor (Properties is the primary one) without writing a new editor. Define a class, decorate with <code>@panel(focus=..., label=...)</code>, implement <code>poll(ctx) → bool</code> to declare when it should be visible, and <code>draw(ctx, layout)</code> to render its content. The host editor handles the rest — layout positioning, ordering, collapsibility, hot-reload.</p>
+<p>You author a panel when you want to contribute UI to a panel-aware editor (Properties is the primary one) without writing a new editor. Define a class, decorate with <code>@panel(surface=..., label=...)</code>, implement <code>poll(ctx) → bool</code> to declare when it should be visible, and <code>draw(ctx, layout)</code> to render its content. The host editor handles the rest — layout positioning, ordering, collapsibility, hot-reload.</p>
 <p>This separation means:</p>
 <ul>
 <li>Panel authors never worry about layout positioning.</li>
@@ -3453,11 +3568,11 @@
 - <strong>Composition is easy.</strong> Any library can contribute panels to the same editor without coordinating internal state.</p>
 <p>If you need to hold state, you need a proper container (an editor) that manages the full lifecycle.</p>
 <h2 id="2-how-it-fits">2. How it fits<a class="headerlink" href="#2-how-it-fits" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@panel(focus=...)                         PanelRegistry              Host editor
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@panel(surface=...)                       PanelRegistry              Host editor
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>class MyPanel(BasePanel):                 registers                  (e.g. PropertiesEditor)
 </span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    actions: MyActionsProtocol            via @panel decorator         ↓ at render time:
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    @classmethod                                                       get_panels_for_focus(focus)
-</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    def poll(cls, ctx): ...                                              → filter by Focus.id
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>    @classmethod                                                       get_panels(surface)
+</span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>    def poll(cls, ctx): ...                                              → filter by Surface.id
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>    def draw(self, ctx, layout): ...                                     → sort by `order`
 </span><span id="__span-0-7"><a id="__codelineno-0-7" name="__codelineno-0-7" href="#__codelineno-0-7"></a>                                                                         for each returned class:
 </span><span id="__span-0-8"><a id="__codelineno-0-8" name="__codelineno-0-8" href="#__codelineno-0-8"></a>                                                                           if poll(ctx):
@@ -3465,19 +3580,19 @@
 </span><span id="__span-0-10"><a id="__codelineno-0-10" name="__codelineno-0-10" href="#__codelineno-0-10"></a>                                                                             inside ui.expansion
 </span><span id="__span-0-11"><a id="__codelineno-0-11" name="__codelineno-0-11" href="#__codelineno-0-11"></a>
 </span><span id="__span-0-12"><a id="__codelineno-0-12" name="__codelineno-0-12" href="#__codelineno-0-12"></a>                                                               Context-menu host at popup time:
-</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                                                                       get_panels_for_action(
-</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                                                                           action_protocol, focus)
-</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                                                         → filter by action +
-</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                                                                             Focus.id
-</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                                                                         inject host → panel.actions
+</span><span id="__span-0-13"><a id="__codelineno-0-13" name="__codelineno-0-13" href="#__codelineno-0-13"></a>                                                                       get_panels(surface)
+</span><span id="__span-0-14"><a id="__codelineno-0-14" name="__codelineno-0-14" href="#__codelineno-0-14"></a>                                                                         → filter by Surface.id
+</span><span id="__span-0-15"><a id="__codelineno-0-15" name="__codelineno-0-15" href="#__codelineno-0-15"></a>                                                                         (same query — no fork)
+</span><span id="__span-0-16"><a id="__codelineno-0-16" name="__codelineno-0-16" href="#__codelineno-0-16"></a>                                                                         inject host → panel.actions
+</span><span id="__span-0-17"><a id="__codelineno-0-17" name="__codelineno-0-17" href="#__codelineno-0-17"></a>                                                                         per surface.provides
 </span></code></pre></div>
 <p>Two registration paths feed <code>PanelRegistry</code>:</p>
 <ul>
 <li><strong>Library-side scan</strong> — panels in your library's <code>panels/</code> folder, registered in <code>register_components(...)</code> via <code>add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)</code>.</li>
-<li><strong><code>@panel</code> decorator</strong> — runs at import time, attaches <code>class_identity</code> (a <code>PanelIdentity</code> carrying <code>focus</code>, <code>label</code>, <code>order</code>, <code>action_protocol</code>, etc.).</li>
+<li><strong><code>@panel</code> decorator</strong> — runs at import time, attaches <code>class_identity</code> (a <code>PanelIdentity</code> carrying <code>surface</code>, <code>hosts</code>, <code>label</code>, <code>order</code>, etc.).</li>
 </ul>
 <p><strong>Boundaries.</strong> Editors that <em>host</em> panels — see <a href="../../editors/editor-canon/">components/editors</a>. The studio shell that owns the Properties editor — see <a href="../../../architecture/studio/studio-arch/">architecture/studio</a>. Library/session state read inside panels — see <a href="../../states/state-canon/">components/states</a>.</p>
-<p><strong>One shared gate for every host.</strong> No host implements the poll/draw loop itself. <code>haywire.ui.panel.host_rendering</code> owns it, and all three panel hosts funnel through the same two functions:</p>
+<p><strong>One shared gate for every host.</strong> No host implements the poll/draw loop itself. <code>haywire.ui.panel.host_rendering</code> owns it, and all three panel hosts funnel through the same functions:</p>
 <table>
 <thead>
 <tr>
@@ -3488,18 +3603,22 @@
 <tbody>
 <tr>
 <td><code>visible_panels(classes, ctx)</code></td>
-<td>The single visibility gate. Poll-filters a list down to what should show, in order. A panel whose <code>poll()</code> returns <code>False</code> — or raises — is dropped, with raises logged through the error boundary.</td>
+<td>The visibility gate for hosts that only ever skip an inapplicable panel. Poll-filters a list down to what should show, in order. A panel whose <code>poll()</code> returns <code>False</code> — or raises — is dropped, with raises logged through the error boundary.</td>
 </tr>
 <tr>
-<td><code>render_panel(cls, ctx, layout, actions_host=...)</code></td>
-<td>Instantiates one panel, injects <code>panel.actions</code>, and draws it under the same error boundary. A panel that raises renders an inline <code>error_label</code> instead of crashing its host.</td>
+<td><code>partition_panels(classes, ctx)</code></td>
+<td>The superset: splits into <code>(applies, disabled)</code>, for hosts that render a panel's own inapplicable state via <code>draw_disabled()</code> (context menus). <code>access=</code>-denied panels are dropped from <strong>both</strong> lists — a greyed entry would advertise what the principal may not have.</td>
+</tr>
+<tr>
+<td><code>render_panel(cls, ctx, layout, actions_host=..., disabled=False)</code></td>
+<td>Instantiates one panel, injects <code>panel.actions</code>, and draws it (<code>draw()</code>, or <code>draw_disabled()</code> when <code>disabled=True</code>) under the same error boundary. A panel that raises renders an inline <code>error_label</code> instead of crashing its host.</td>
 </tr>
 </tbody>
 </table>
-<p>The three hosts are <code>PropertiesEditor</code> (persistent display panels), <code>BaseContextMenuProvider</code> (right-click menus), and the graph canvas <code>SelectionToolbarProvider</code>. Because the filter is shared, anything that decides <em>whether a panel may show</em> — <code>poll()</code>, and <code>access=</code> under <a href="../../../adr/0027-studio-authentication/">ADR 0027</a> — is written once in <code>visible_panels()</code> and takes effect in all three at once.</p>
-<p>Two consequences worth knowing when authoring a host: <code>_open_menu()</code> refuses to build a popup at all when <code>visible_panels()</code> returns empty (so a menu with nothing to show never appears as an empty box), and <code>render_panel()</code> assumes its caller already poll-filtered — a new host that calls it directly without <code>visible_panels()</code> bypasses the gate.</p>
+<p>The three hosts are <code>PropertiesEditor</code> (persistent display panels), <code>BaseContextMenuProvider</code> (right-click menus), and the graph canvas <code>SelectionToolbarProvider</code>. Because the filter is shared, anything that decides <em>whether a panel may show</em> — <code>poll()</code>, and <code>access=</code> under <a href="../../../adr/0027-studio-authentication/">ADR 0027</a> — is written once here and takes effect in all three at once.</p>
+<p>Two consequences worth knowing when authoring a host: <code>_open_menu()</code> refuses to build a popup at all when nothing in either list would draw (so a menu with nothing to show never appears as an empty box — see §3, "Hosting a surface" below for how nesting complicates "nothing to show"), and <code>render_panel()</code> assumes its caller already filtered — a new host that calls it directly without <code>visible_panels()</code> / <code>partition_panels()</code> bypasses the gate.</p>
 <h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
-<p><strong>The <code>@panel</code> decorator.</strong> Required on every panel class. Two parameters are mandatory: <code>focus=</code> (a <code>Focus</code> subclass that determines visibility) and <code>label=</code> (display label).</p>
+<p><strong>The <code>@panel</code> decorator.</strong> Required on every panel class. Two parameters are mandatory: <code>surface=</code> (a <code>Surface</code> subclass that determines visibility) and <code>label=</code> (display label).</p>
 <table>
 <thead>
 <tr>
@@ -3511,10 +3630,16 @@
 </thead>
 <tbody>
 <tr>
-<td><code>focus</code></td>
+<td><code>surface</code></td>
 <td>yes</td>
 <td>—</td>
-<td><code>Focus</code> subclass discriminator (e.g. <code>NodeFocus</code>). The panel only appears when this focus is the active one <em>and</em> its <code>available(ctx)</code> returns <code>True</code>.</td>
+<td><code>Surface</code> subclass discriminator (e.g. <code>NodeInspector</code>). The panel only appears while this Surface's <code>poll(ctx)</code> returns <code>True</code>, matched by <code>surface.id</code> — never by class object, since a class can go stale across hot-reload (<a href="../../../adr/0009-surface-id-stable-key/">ADR-0009</a>).</td>
+</tr>
+<tr>
+<td><code>hosts</code></td>
+<td>no</td>
+<td><code>()</code></td>
+<td>Tuple of <code>Surface</code> subclasses this panel may itself render, via <code>self.render_surface(S, ctx)</code> inside <code>draw()</code>. The empty default makes the panel a <em>leaf</em>. See "Hosting a surface" below.</td>
 </tr>
 <tr>
 <td><code>label</code></td>
@@ -3532,7 +3657,7 @@
 <td><code>order</code></td>
 <td>no</td>
 <td><code>100</code></td>
-<td>Sort order within a focus (lower = higher position).</td>
+<td>Sort order within a surface (lower = higher position).</td>
 </tr>
 <tr>
 <td><code>default_open</code></td>
@@ -3552,83 +3677,146 @@
 <td>class name</td>
 <td>Unique short ID within the library.</td>
 </tr>
+<tr>
+<td><code>redraw_on</code></td>
+<td>no</td>
+<td><code>()</code></td>
+<td>Tuple of <code>Signal</code> subclasses the panel wants its host editor to redraw on.</td>
+</tr>
+<tr>
+<td><code>access</code></td>
+<td>no</td>
+<td><code>AccessTier.VIEW</code></td>
+<td>Minimum <code>AccessTier</code> to see this panel — see <a href="../../../adr/0027-studio-authentication/">ADR 0027</a>.</td>
+</tr>
 </tbody>
 </table>
-<p><strong>Three orthogonal facets.</strong> A panel has three independent facets that compose freely:</p>
+<p><strong>Two orthogonal facets.</strong> A panel has two independent facets that compose freely:</p>
 <ol>
-<li><strong>Focus</strong> (<code>focus=FocusClass</code> decorator argument) — routing topic; determines where the panel appears and under which toolbar tab.</li>
-<li><strong>Verb surface</strong> (<code>actions: SomeProtocol</code> class-body annotation) — optional; declares the actions this panel calls on its host. The framework reads the <code>actions:</code> annotation at decoration time via <code>typing.get_type_hints</code> and stores it on <code>PanelIdentity.action_protocol</code>. At mount time, the framework sets <code>panel.actions = host</code> if the host satisfies the Protocol; the panel accesses the host as <code>self.actions.method(...)</code>. Display panels (no host needed) simply omit the annotation — <code>panel.actions</code> stays <code>None</code>.</li>
-<li><strong>Refresh</strong> (<code>redraw_on=(...)</code> tuple of Signal subclasses on the decorator) — signals that should trigger a host-editor redraw when this panel is mounted.</li>
+<li><strong>Surface</strong> (<code>surface=SurfaceClass</code> decorator argument) — routing topic; determines where the panel appears, and, for a Properties-editor Surface that declares <code>presentation</code>, under which toolbar tab.</li>
+<li><strong>Host contract</strong> (<code>actions: SomeProtocol</code> class-body annotation) — optional; type-checker visibility only, on what the <em>Surface</em> — via its <code>provides</code> — already promises will be injected as <code>self.actions</code>. The framework has never read this annotation; it exists purely so <code>self.actions.method(...)</code> type-checks. A Surface with no <code>provides</code> needs no <code>actions:</code> annotation at all, and <code>self.actions</code> stays <code>None</code>.</li>
 </ol>
-<p><strong>Action contract — <code>actions:</code> annotation.</strong> An <code>actions:</code> annotation is a Protocol class that names the methods the panel may call on its host. The host supplies the implementations; matching is structural. <code>PanelRegistry.get_panels_for_action(action_protocol, focus)</code> returns panels whose annotated Protocol is satisfied by the host, filtered by focus — this is the query used by context-menu hosts. Display panels (e.g. Properties-sidebar panels) have no <code>actions:</code> annotation and are queried with <code>get_panels_for_focus(focus)</code> instead.</p>
-<p>A library that needs its panels to call back into the host defines its own Protocol and annotates the class body:</p>
+<p>There used to be a third facet — a "verb surface" read from the class-body annotation itself, independent of the routing Surface. It no longer exists: <code>provides</code> moved onto the <code>Surface</code>, so a panel's host contract is now entirely a property of <em>where it is registered</em>, not something the panel separately declares. See "Hosting a surface" below for how the host that fills <code>self.actions</code> is decided.</p>
+<p><strong>Host contract — <code>provides</code>.</strong> Whether a panel receives a host in <code>self.actions</code>, and what type, is decided by the <em>Surface's</em> <code>provides</code> — a <code>runtime_checkable</code> <code>Protocol</code>, or <code>None</code> if the Surface asks nothing of its host. Panels on that Surface may declare a matching <code>actions:</code> annotation purely for the type-checker; the framework never reads it, and the query used to look panels up is the same one either way — <code>PanelRegistry.get_panels(surface)</code>, filtered by <code>surface.id</code>. There is no display/action fork any more: which panels a surface yields depends on the surface id alone, never on whether an <code>actions:</code> annotation is present.</p>
+<p>A library that needs its panels to call back into a host defines its own Protocol and names it on the Surface:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@runtime_checkable</span>
-</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">NodeContextActions</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
-</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">delete_node</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">node_id</span><span class="p">:</span> <span class="nb">str</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">SelectionActions</span><span class="p">(</span><span class="n">Protocol</span><span class="p">):</span>
+</span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">delete_selection</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span> <span class="o">...</span>
+</span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>
+</span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a><span class="k">class</span><span class="w"> </span><span class="nc">SelectionMenu</span><span class="p">(</span><span class="n">Surface</span><span class="p">):</span>
+</span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>    <span class="nb">id</span> <span class="o">=</span> <span class="s2">&quot;selection&quot;</span>
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    <span class="n">provides</span> <span class="o">=</span> <span class="n">SelectionActions</span>
 </span></code></pre></div>
-<p><strong>Focus contract — <code>focus=</code>.</strong> A <code>Focus</code> is a class with a stable <code>id</code>, a <code>label</code>, an <code>icon</code>, and an <code>available(ctx)</code> classmethod. The Properties editor's ScopeToolbar lists every focus referenced by any display panel; clicking a tab makes that focus active. Built-in focuses live in <code>haybale_studio.focuses</code>:</p>
+<p><strong>Built-in Surfaces.</strong> Each is marked <strong>inspector</strong> (a Properties-editor tab, declares <code>presentation</code>) or <strong>menu</strong> (a context menu or toolbar, no <code>presentation</code>). Built-in Surfaces live in <code>haywire.barn.builtin.surfaces</code> (framework-wide) or a library's own <code>surfaces/</code> package (e.g. <code>haybale_graph_editor.surfaces</code>):</p>
 <table>
 <thead>
 <tr>
-<th>Focus class</th>
+<th>Surface class</th>
 <th><code>id</code></th>
-<th><code>available(ctx)</code></th>
+<th>Kind</th>
+<th><code>poll(ctx)</code></th>
 </tr>
 </thead>
 <tbody>
 <tr>
-<td><code>AppFocus</code></td>
+<td><code>AppSettings</code></td>
 <td><code>app</code></td>
+<td>inspector</td>
 <td>always true</td>
 </tr>
 <tr>
-<td><code>ExecutionFocus</code></td>
+<td><code>ExecutionInspector</code></td>
 <td><code>execution</code></td>
+<td>inspector</td>
 <td>always true</td>
 </tr>
 <tr>
-<td><code>CanvasFocus</code></td>
+<td><code>CanvasSettings</code></td>
 <td><code>canvas</code></td>
+<td>inspector</td>
 <td>always true</td>
 </tr>
 <tr>
-<td><code>GraphFocus</code></td>
+<td><code>GraphInspector</code></td>
 <td><code>graph</code></td>
+<td>inspector</td>
 <td>active graph not None</td>
 </tr>
 <tr>
-<td><code>NodeFocus</code></td>
+<td><code>NodeInspector</code></td>
 <td><code>node</code></td>
+<td>inspector</td>
 <td>active node not None</td>
 </tr>
 <tr>
-<td><code>EdgeFocus</code></td>
+<td><code>SettingsInspector</code></td>
+<td><code>settings</code></td>
+<td>inspector</td>
+<td>active node not None</td>
+</tr>
+<tr>
+<td><code>PortInspector</code></td>
+<td><code>ports</code></td>
+<td>inspector</td>
+<td>active node not None</td>
+</tr>
+<tr>
+<td><code>EdgeInspector</code></td>
 <td><code>edge</code></td>
+<td>inspector</td>
 <td>active edge not None</td>
 </tr>
 <tr>
-<td><code>PortFocus</code></td>
-<td><code>ports</code></td>
-<td>active node not None</td>
+<td><code>EdgeMenu</code></td>
+<td><code>edge-menu</code></td>
+<td>menu</td>
+<td>active edge not None</td>
 </tr>
 <tr>
-<td><code>PinFocus</code></td>
+<td><code>PinMenu</code></td>
 <td><code>pin</code></td>
+<td>menu</td>
 <td>active port not None</td>
 </tr>
 <tr>
-<td><code>SelectionFocus</code></td>
+<td><code>SelectionMenu</code></td>
 <td><code>selection</code></td>
+<td>menu</td>
 <td>any nodes/edges selected</td>
 </tr>
 <tr>
-<td><code>SettingsFocus</code></td>
-<td><code>settings</code></td>
-<td>active node not None</td>
+<td><code>SelectionToolbar</code></td>
+<td><code>toolbar</code></td>
+<td>menu</td>
+<td>any nodes/edges selected</td>
+</tr>
+<tr>
+<td><code>GraphContext</code></td>
+<td><code>graph-context</code></td>
+<td>menu</td>
+<td>active graph not None</td>
+</tr>
+<tr>
+<td><code>GraphToolBar</code> / <code>GraphContextBody</code> / <code>GraphMoreActions</code></td>
+<td><code>graph-toolbar</code> / <code>graph-body</code> / <code>graph-more</code></td>
+<td>menu</td>
+<td>hosted by <code>GraphContextPanel</code> / <code>GraphMorePanel</code> — see <a href="../../../guides/panels/">guides/panels</a></td>
+</tr>
+<tr>
+<td><code>FileMenu</code></td>
+<td><code>file</code></td>
+<td>menu</td>
+<td>right-clicked file has a matching extension</td>
+</tr>
+<tr>
+<td><code>AccountMenu</code></td>
+<td><code>account</code></td>
+<td>menu</td>
+<td>always true</td>
 </tr>
 </tbody>
 </table>
-<p>Focus matching is by <code>id</code>, not by class identity — class objects can drift after hot-reload, but ids remain stable.</p>
+<p>Surface matching is by <code>id</code>, not by class identity — class objects can drift after hot-reload, but ids remain stable (<a href="../../../adr/0009-surface-id-stable-key/">ADR-0009</a>).</p>
 <p><strong>Two lifecycle methods.</strong> Every panel implements:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@classmethod</span>
 </span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="n">SessionContext</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
@@ -3644,24 +3832,23 @@
 </span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a>    <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
 </span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a>        <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="sa">f</span><span class="s1">&#39;Active: </span><span class="si">{</span><span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span><span class="o">.</span><span class="n">name</span><span class="si">}</span><span class="s1">&#39;</span><span class="p">)</span>
 </span></code></pre></div>
-<p><code>poll</code> is a classmethod (no instance state needed for visibility decisions). <code>draw</code> is an instance method — the host editor instantiates the panel before calling it. Action panels access the injected host via <code>self.actions</code>; display panels leave <code>self.actions</code> at its default <code>None</code>.</p>
-<p><strong>Action panel</strong> (has an <code>actions:</code> annotation; mounted by a context-menu host):</p>
+<p><code>poll</code> is a classmethod (no instance state needed for visibility decisions). <code>draw</code> is an instance method — the host editor instantiates the panel before calling it. A panel on a Surface with <code>provides</code> set accesses the injected host via <code>self.actions</code>; a panel on a Surface with <code>provides = None</code> leaves <code>self.actions</code> at its default <code>None</code>.</p>
+<p><strong>Panel on a Surface with a host contract</strong> (mounted by a context-menu host):</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui</span><span class="w"> </span><span class="kn">import</span> <span class="n">elements</span> <span class="k">as</span> <span class="n">hui</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_lib.actions</span><span class="w"> </span><span class="kn">import</span> <span class="n">SelectionContextActions</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_lib.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">SelectionFocus</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">actions</span><span class="o">=</span><span class="n">SelectionContextActions</span><span class="p">,</span> <span class="n">focus</span><span class="o">=</span><span class="n">SelectionFocus</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">)</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteSelectionPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionContextActions</span>   <span class="c1"># framework injects host at mount</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">delete_selection</span><span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="kn">from</span><span class="w"> </span><span class="nn">my_lib.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">SelectionActions</span><span class="p">,</span> <span class="n">SelectionMenu</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">SelectionMenu</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;delete&quot;</span><span class="p">)</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteSelectionPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionActions</span>   <span class="c1"># type-checker visibility only; the framework never reads this</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">delete_selection</span><span class="p">)</span>
 </span></code></pre></div>
-<p><strong>Display panel</strong> (no <code>actions:</code> annotation; mounted by PropertiesEditor):</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">focus</span><span class="o">=</span><span class="n">SettingsFocus</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Workbench&quot;</span><span class="p">)</span>
+<p><strong>Panel on a Surface with no host contract</strong> (mounted by PropertiesEditor):</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">SettingsInspector</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Workbench&quot;</span><span class="p">)</span>
 </span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">ThemeSettingsPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
 </span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
 </span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>        <span class="o">...</span>
@@ -3673,6 +3860,54 @@
 </span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a><span class="k">return</span> <span class="kc">False</span>                                              <span class="c1"># never visible (debugging)</span>
 </span></code></pre></div>
 <p>Library-owned reactive state lives on a <code>SessionState</code> subclass (<code>ctx.data[Cls]</code>) or <code>AppState</code> subclass (<code>ctx.app_data[Cls]</code>). For the canvas, that state is <code>EditState</code>. See <a href="../../states/state-canon/">components/states</a>.</p>
+<h3 id="hosting-a-surface">Hosting a surface<a class="headerlink" href="#hosting-a-surface" title="Permanent link">&para;</a></h3>
+<p>A panel renders further Surfaces of its own by declaring them in <code>hosts=</code> and calling <code>self.render_surface(surface, ctx, actions=None)</code> inside <code>draw()</code>. This is the whole of nesting — menus, submenus, toolbars and inspector tabs are the same rule at different depths (ADR-0029). Rendering a Surface <strong>not</strong> named in <code>hosts=</code> is an authoring error: <code>render_surface</code> checks <code>surface.id</code> against the panel's declared <code>hosts</code> and refuses (an inline <code>error_label</code>, not a crash) if it isn't there. This is the one rule most likely to bite an author moving fast, because nothing forces the two to agree until render time — <code>hosts=</code> is what the registry walks to build the redraw union and the root/nested split <em>without rendering anything</em>, so a mismatch between what a panel declares and what it actually calls doesn't show up until someone opens that menu.</p>
+<p>The <code>actions=</code> argument decides which host the nested panels receive — and it is <strong>piped by default, never inferred</strong>:</p>
+<table>
+<thead>
+<tr>
+<th>Case</th>
+<th>What the panel is</th>
+<th>Call</th>
+<th>Host passed</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Pipe (common)</td>
+<td>Arranges layout only; implements nothing itself</td>
+<td><code>self.render_surface(S, ctx)</code></td>
+<td><code>self.actions</code> (whatever host this panel itself received)</td>
+</tr>
+<tr>
+<td>Own</td>
+<td>Implements the nested surface's <code>provides</code> Protocol itself</td>
+<td><code>self.render_surface(S, ctx, actions=self)</code></td>
+<td><code>self</code></td>
+</tr>
+<tr>
+<td>Delegate</td>
+<td>Neither implements it nor received it — knows of some other object that does</td>
+<td><code>self.render_surface(S, ctx, actions=obj)</code></td>
+<td><code>obj</code></td>
+</tr>
+</tbody>
+</table>
+<p>Pipe is the default and by far the most common case — most hosting panels are pure layout (a row of icons, a column of regions) and never implement an action Protocol themselves. Passing nothing simply relays whatever host this panel was given.</p>
+<p><strong>Why never inferred.</strong> An earlier draft of this mechanism tried to <em>detect</em> which case applied — prefer <code>self</code> if it happened to satisfy the nested Surface's Protocol, otherwise fall back to the received host. That breaks silently the moment a panel happens to structurally match a Protocol it was never meant to implement: a Protocol with no members (or one whose method names collide by coincidence) matches almost anything via <code>isinstance</code>, so inference would occasionally strand the real provider one hop up without any error at all. <code>render_surface</code>'s <code>isinstance</code> check still runs — but only to <em>validate</em> the object that was explicitly chosen, never to choose one. If you get the pipe/own/delegate call wrong, the failure is loud (an <code>error_label</code> reading "Host <code>X</code> does not satisfy <code>Y</code>"), not a silently-broken button three hops down.</p>
+<h3 id="draw-and-draw_disabled"><code>draw()</code> and <code>draw_disabled()</code><a class="headerlink" href="#draw-and-draw_disabled" title="Permanent link">&para;</a></h3>
+<p><code>draw()</code> may assume <code>poll()</code> just returned <code>True</code> — the surface applies, and (for a menu) the host has already resolved the actions object. It must not run for its own visibility check a second time; that decision was already made.</p>
+<p><code>draw_disabled()</code> is called instead of <code>draw()</code> when <code>poll()</code> returned <code>False</code>, on hosts that render <code>draw_disabled()</code> at all (the context-menu hosts, via <code>partition_panels</code>; the PropertiesEditor does not — an inapplicable display panel simply doesn't appear). Its default implementation is a no-op, so a panel that never overrides it keeps vanishing exactly as every panel does today — this is the zero-migration guarantee, not an oversight. Override it to follow the platform convention for a fixed-shape command menu: an inapplicable command greys rather than disappearing (see <code>DeleteSelectionMenuPanel</code> in <a href="../../../guides/panels/">guides/panels</a> for a worked example).</p>
+<p><strong>The rule that makes it a second method instead of a branch in <code>draw()</code>: <code>draw_disabled()</code> must not touch the state <code>poll()</code> gated on.</strong> <code>poll()</code> decided the panel doesn't apply; <code>draw_disabled()</code> renders that fact, it does not re-derive or mutate it. A <code>draw_disabled()</code> that reads <code>ctx.data[EditState].active_node</code> because "it's probably fine" is one library update away from crashing on <code>None</code> the day <code>poll()</code>'s condition changes shape.</p>
+<p><strong>The <code>access=</code> asymmetry.</strong> A panel denied by <code>access=</code> (below the principal's <code>AccessTier</code>) renders <strong>neither</strong> method — it is filtered out before <code>poll()</code> even runs, by <code>partition_panels</code>'s access check. This is deliberate and different from the <code>poll()</code>-false case: a greyed disabled row still <em>advertises</em> the command exists ("Delete — you can't right now"), which is fine when the reason is selection state and wrong when the reason is the principal's access tier. Access denial must not leak "this command exists" information via a visible-but-disabled row.</p>
+<h3 id="what-a-nested-panel-may-not-assume">What a nested panel may not assume<a class="headerlink" href="#what-a-nested-panel-may-not-assume" title="Permanent link">&para;</a></h3>
+<p>A panel rendered via <code>render_surface</code> — at any depth — may not assume:</p>
+<ul>
+<li><strong>Its depth.</strong> The same panel class can be a root panel today and end up nested three levels down tomorrow if some other library adds a <code>hosts=</code> edge above it. Nothing about a panel's own code can tell it how deep it sits.</li>
+<li><strong>Its siblings.</strong> A nested panel does not know what else rendered into the same popup, menu level, or flyout — including panels from other libraries it has never heard of. <code>layout.state_bag</code> keys are namespaced for exactly this reason (see below).</li>
+<li><strong>Whether it sits in a flyout.</strong> <code>hui.submenu_row</code> / <code>hui.flyout</code> bodies and a top-level popup scope both ultimately call the same <code>render_panel</code>; a panel's own <code>draw()</code> has no way to tell which box it landed in, and must not try to.</li>
+<li><strong>Whether its host honours <code>redraw_on</code>.</strong> <code>redraw_on</code> is unioned and subscribed by <em>persistent</em> hosts (the PropertiesEditor) on mount. A transient host — a context menu, a flyout — is built fresh every time it opens and torn down on close; it never subscribes to anything, so a panel expecting a <code>redraw_on</code> signal to refresh its transient host's content will simply never see that refresh happen. If a panel needs to react to a signal while mounted in a transient host, it has to read current state on each <code>draw()</code>, not rely on the signal to trigger one.</li>
+</ul>
 <p><strong><code>PanelLayout</code> API — what <code>draw</code> gets.</strong> <code>PanelLayout</code> is <strong>not</strong> a façade over <code>hui</code>. It is the panel's container, bound as a context manager. Render by activating it with <code>with layout:</code> and calling <code>hui.*</code> functions directly — <code>hui</code> (<a href="../../../reference/design-guide/">reference/design-guide</a> §8) is the single rendering vocabulary:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
 </span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
@@ -3722,79 +3957,79 @@
 </ul>
 <p><strong>Why this pattern exists:</strong> Panels need to remember UI state for good UX (e.g., which sections are collapsed), but panels must be stateless (for clean hot-reload and composition). The solution: the host owns the state dict and loans it to panels. Panels are ephemeral; the dict is persistent.</p>
 <p><strong>Rule:</strong> Do not look for <code>layout.label()</code> / <code>layout.button()</code> / <code>layout.empty_state()</code> style helpers — they no longer exist. Use the <code>hui.*</code> function of the same name inside <code>with layout:</code>. For key/value metadata prefer <code>hui.info_row()</code> over <code>hui.label("Key: value")</code> (see design-guide §8.6).</p>
-<p><strong>Ordering.</strong> <code>order=</code> controls vertical position within a focus. Convention: 0–99 for built-in panels, 100+ for library panels, 1000+ for "always-last" panels (debug, advanced).</p>
+<p><strong>Ordering.</strong> <code>order=</code> controls vertical position within a surface. Convention: 0–99 for built-in panels, 100+ for library panels, 1000+ for "always-last" panels (debug, advanced).</p>
 <p><strong><code>hb_*</code> methods are safe.</strong> Custom helper methods on a panel class should start with <code>hb_</code>, <code>my_</code>, <code>custom_</code>, or <code>ext_</code> — same convention as nodes. Avoids future-framework name clashes.</p>
-<p><strong>Imports</strong> (verified against codebase 2026-05):</p>
+<p><strong>Imports:</strong></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
 </span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
 </span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Built-in focuses live in haybale-studio</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFocus</span><span class="p">,</span> <span class="n">GraphFocus</span><span class="p">,</span> <span class="n">EdgeFocus</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="c1"># For action panels: import your library&#39;s own Protocol</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># from my_lib.actions import MyContextActions</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a><span class="c1"># Built-in surfaces live in haywire.barn.builtin.surfaces (framework-wide)</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a><span class="c1"># or a library&#39;s own surfaces/ package (e.g. haybale_graph_editor.surfaces).</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppSettings</span><span class="p">,</span> <span class="n">ExecutionInspector</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="c1"># For a panel that calls back into its host: import the Surface&#39;s own Protocol</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="c1"># from my_lib.surfaces import MySurface, MyActions</span>
 </span></code></pre></div>
-<p><strong>Hot-reload.</strong> <code>PanelRegistry</code> extends <code>BaseRegistry</code>. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next <code>poll → draw</code> cycle. Focus ids are the stable lookup key, so reloads don't break scope tabs.</p>
+<p><strong>Hot-reload.</strong> <code>PanelRegistry</code> extends <code>BaseRegistry</code>. New panel classes are picked up at the host editor's next render boundary. Existing panel instances are re-instantiated on the next <code>poll → draw</code> cycle. Surface ids are the stable lookup key, so reloads don't break surface tabs.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p>Source: <a href="../../../barn/haybale-testing/haybale_testing/panels/graph/menu/"><code>barn/haybale-testing/haybale_testing/panels/graph/menu/</code></a></p>
-<p><strong>Simple action panel</strong> — <code>TestDeleteNodeMenuPanel</code> from <code>barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py</code>. Demonstrates the minimal action-panel skeleton: <code>@panel</code> decorator, <code>actions: TestNodeContextActions</code> class-body annotation, <code>poll()</code> checking <code>EditState</code>, <code>draw()</code> rendering with <code>with layout: hui.button(...)</code> and dispatching through <code>self.actions</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">TestNodeContextActions</span><span class="p">,</span>
-</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">TestNodeFocus</span><span class="p">,</span>
-</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
-</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
-</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="p">)</span>
-</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestDeleteNodeMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestNodeContextActions</span>
-</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>
-</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>
-</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="n">node</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span>
-</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>            <span class="k">return</span>
-</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>        <span class="n">node_id</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">node_id</span>
-</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span>
-</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                <span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
-</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
-</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>                <span class="n">on_click</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">test_delete_node</span><span class="p">(</span><span class="n">node_id</span><span class="p">),</span>
-</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>            <span class="p">)</span>
-</span><span id="__span-9-30"><a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a>
-</span><span id="__span-9-31"><a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>
-</span><span id="__span-9-32"><a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a><span class="nd">@panel</span><span class="p">(</span>
+<p><strong>Simple action panel</strong> — <code>TestDeleteNodeMenuPanel</code> from <code>barn/haybale-testing/haybale_testing/panels/graph/menu/node/node.py</code>. Demonstrates the minimal action-panel skeleton: <code>@panel</code> decorator, <code>actions: TestNodeActions</code> class-body annotation, <code>poll()</code> checking <code>EditState</code>, <code>draw()</code> rendering with <code>with layout: hui.menu_row(...)</code> and dispatching through <code>self.actions</code>:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">TestNodeMenu</span><span class="p">,</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a><span class="p">)</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestDeleteNodeMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestNodeActions</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>        <span class="n">node</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_node</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="k">if</span> <span class="n">node</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>            <span class="k">return</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>        <span class="n">node_id</span> <span class="o">=</span> <span class="n">node</span><span class="o">.</span><span class="n">node_id</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>                <span class="s2">&quot;Delete Node&quot;</span><span class="p">,</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>                <span class="n">on_click</span><span class="o">=</span><span class="k">lambda</span><span class="p">:</span> <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">test_delete_node</span><span class="p">(</span><span class="n">node_id</span><span class="p">),</span>
+</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>            <span class="p">)</span>
+</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>
+</span><span id="__span-9-29"><a id="__codelineno-9-29" name="__codelineno-9-29" href="#__codelineno-9-29"></a>
+</span><span id="__span-9-30"><a id="__codelineno-9-30" name="__codelineno-9-30" href="#__codelineno-9-30"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-9-31"><a id="__codelineno-9-31" name="__codelineno-9-31" href="#__codelineno-9-31"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">TestNodeMenu</span><span class="p">,</span>
+</span><span id="__span-9-32"><a id="__codelineno-9-32" name="__codelineno-9-32" href="#__codelineno-9-32"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Copy Node&quot;</span><span class="p">,</span>
 </span></code></pre></div>
 <p>from: <code>TestDeleteNodeMenuPanel</code> — registry_key: <code>haybale-testing:panel:TestDeleteNodeMenuPanel</code></p>
 <p><strong>SessionState-reading panel</strong> — <code>TestSessionStateMenuPanel</code> from <code>barn/haybale-testing/haybale_testing/panels/graph/menu/canvas/canvas.py</code>. Demonstrates <code>poll()</code> reading a <code>SessionState</code> signal field and <code>draw()</code> displaying it with <code>with layout: hui.label(...)</code>:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">TestCanvasContextActions</span><span class="p">,</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">TestCanvasFocus</span><span class="p">,</span>
-</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test SessionState Panel&quot;</span><span class="p">,</span>
-</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span>
-</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
-</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestSessionStateMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads TestSessionState.counter — exists to anchor the eager import.&quot;&quot;&quot;</span>
-</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
-</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestCanvasContextActions</span>
-</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
-</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
-</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>
-</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>        <span class="n">counter</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span>
-</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;counter: </span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">TestCanvasMenu</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Test SessionState Panel&quot;</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">99</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a><span class="p">)</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">TestSessionStateMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Reads TestSessionState.counter — exists to anchor the eager import.&quot;&quot;&quot;</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">TestCanvasActions</span>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>        <span class="n">counter</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">TestSessionState</span><span class="p">]</span><span class="o">.</span><span class="n">counter</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;counter: </span><span class="si">{</span><span class="n">counter</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>TestSessionStateMenuPanel</code> — registry_key: <code>haybale-testing:panel:TestSessionStateMenuPanel</code></p>
 <p>What these examples exercise:</p>
@@ -3807,11 +4042,11 @@
 </thead>
 <tbody>
 <tr>
-<td><code>@panel(focus=..., label=..., order=...)</code></td>
+<td><code>@panel(surface=..., label=..., order=...)</code></td>
 <td>both panels</td>
 </tr>
 <tr>
-<td><code>actions: SomeProtocol</code> class-body annotation (action panels only)</td>
+<td><code>actions: SomeProtocol</code> class-body annotation (only where the Surface's <code>provides</code> is set)</td>
 <td><code>TestDeleteNodePanel</code></td>
 </tr>
 <tr>
@@ -3827,11 +4062,11 @@
 <td>both panels</td>
 </tr>
 <tr>
-<td><code>with layout: hui.button(label, icon, on_click)</code></td>
+<td><code>with layout: hui.menu_row(label, icon, on_click)</code></td>
 <td><code>TestDeleteNodePanel</code></td>
 </tr>
 <tr>
-<td>Dispatching through the action contract via <code>self.actions</code></td>
+<td>Dispatching through the host contract via <code>self.actions</code></td>
 <td><code>self.actions.test_delete_node(node_id)</code></td>
 </tr>
 <tr>
@@ -3853,83 +4088,25 @@
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
 <h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@panel(focus=FocusClass, label='...')</code> — both required</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@panel(surface=SurfaceClass, label='...')</code> — both required</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Inherit from <code>BasePanel</code></li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For action panels: add <code>actions: MyActionsProtocol</code> as a class-body annotation (no decorator argument needed)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Where the Surface declares <code>provides</code>: add <code>actions: MyActionsProtocol</code> as a class-body annotation (type-checker visibility only, no decorator argument)</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For a panel that renders further Surfaces of its own: declare them in <code>hosts=(...)</code> and call <code>self.render_surface(surface, ctx)</code> inside <code>draw()</code> — never render a Surface not listed in <code>hosts=</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Implement <code>poll(cls, ctx) -&gt; bool</code> — fast visibility check (<code>@classmethod</code>)</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Implement <code>draw(self, ctx, layout)</code> — render content; access host as <code>self.actions.method(...)</code></li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> For a panel in a fixed-shape command menu (context menu, toolbar overflow): implement <code>draw_disabled(self, ctx, layout)</code> too, without touching the state <code>poll()</code> gated on</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Set <code>order=</code> deliberately (100+ for library panels)</li>
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Render via <code>with layout:</code> then call <code>hui.*</code> directly (<code>hui.info_row</code>, <code>hui.button</code>, <code>hui.empty_state</code>, …); drop to raw <code>ui.*</code> only for patterns <code>hui</code> doesn't cover</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Render via <code>with layout:</code> then call <code>hui.*</code> directly (<code>hui.info_row</code>, <code>hui.empty_state</code>, …); on a <em>menu</em> surface every command is <code>hui.menu_row</code> / <code>hui.submenu_row</code>, never <code>hui.button</code> (see design-guide §8.8b); drop to raw <code>ui.*</code> only for patterns <code>hui</code> doesn't cover</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Custom helpers: <code>hb_*</code> prefix</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Place in <code>panels/</code> folder; register via <code>add_folder_to_registry(folder_path=..., registry_cls=PanelRegistry)</code> in <code>register_components</code></li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">PanelLayout</span>
 </span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">panel</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haybale_studio.focuses</span><span class="w"> </span><span class="kn">import</span> <span class="n">NodeFocus</span><span class="p">,</span> <span class="n">EdgeFocus</span><span class="p">,</span> <span class="n">GraphFocus</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.barn.builtin.surfaces</span><span class="w"> </span><span class="kn">import</span> <span class="n">AppSettings</span><span class="p">,</span> <span class="n">ExecutionInspector</span><span class="p">,</span> <span class="n">CanvasSettings</span>
 </span></code></pre></div>
-<h3 id="built-in-focuses-haybale_studiofocuses">Built-in focuses (<code>haybale_studio.focuses</code>)<a class="headerlink" href="#built-in-focuses-haybale_studiofocuses" title="Permanent link">&para;</a></h3>
-<table>
-<thead>
-<tr>
-<th>Focus class</th>
-<th><code>id</code></th>
-<th><code>available(ctx)</code></th>
-</tr>
-</thead>
-<tbody>
-<tr>
-<td><code>AppFocus</code></td>
-<td><code>app</code></td>
-<td>always</td>
-</tr>
-<tr>
-<td><code>ExecutionFocus</code></td>
-<td><code>execution</code></td>
-<td>always</td>
-</tr>
-<tr>
-<td><code>CanvasFocus</code></td>
-<td><code>canvas</code></td>
-<td>always</td>
-</tr>
-<tr>
-<td><code>GraphFocus</code></td>
-<td><code>graph</code></td>
-<td>active graph not None</td>
-</tr>
-<tr>
-<td><code>NodeFocus</code></td>
-<td><code>node</code></td>
-<td>active node not None</td>
-</tr>
-<tr>
-<td><code>EdgeFocus</code></td>
-<td><code>edge</code></td>
-<td>active edge not None</td>
-</tr>
-<tr>
-<td><code>PortFocus</code></td>
-<td><code>ports</code></td>
-<td>active node not None</td>
-</tr>
-<tr>
-<td><code>PinFocus</code></td>
-<td><code>pin</code></td>
-<td>active port not None</td>
-</tr>
-<tr>
-<td><code>SelectionFocus</code></td>
-<td><code>selection</code></td>
-<td>any nodes/edges selected</td>
-</tr>
-<tr>
-<td><code>SettingsFocus</code></td>
-<td><code>settings</code></td>
-<td>active node not None</td>
-</tr>
-</tbody>
-</table>
+<h3 id="built-in-surfaces">Built-in Surfaces<a class="headerlink" href="#built-in-surfaces" title="Permanent link">&para;</a></h3>
+<p>See §3, "Built-in Surfaces" above for the full table (id, inspector/menu kind, <code>poll(ctx)</code>).</p>
 <h3 id="common-pitfalls">Common pitfalls<a class="headerlink" href="#common-pitfalls" title="Permanent link">&para;</a></h3>
 <table>
 <thead>
@@ -3952,12 +4129,8 @@
 <td>Current contract is 2-arg: <code>draw(self, ctx, layout)</code>; access host via <code>self.actions</code> instead</td>
 </tr>
 <tr>
-<td>Putting <code>action=</code> in <code>@panel(...)</code> decorator</td>
-<td>The verb surface is a class-body annotation (<code>actions: MyProtocol</code>), not a decorator argument</td>
-</tr>
-<tr>
-<td>Calling <code>self.actions</code> in a display panel (no annotation)</td>
-<td><code>self.actions</code> is <code>None</code> for display panels; only annotate when a host is actually needed</td>
+<td>Calling <code>self.actions</code> in a panel on a Surface with <code>provides = None</code></td>
+<td><code>self.actions</code> is <code>None</code> there; only annotate <code>actions:</code> where the Surface's <code>provides</code> is actually set</td>
 </tr>
 <tr>
 <td>Caching panel state in <code>__init__</code></td>
@@ -3966,6 +4139,18 @@
 <tr>
 <td>Calling <code>ui.*</code> outside <code>draw()</code> (e.g. in <code>__init__</code>)</td>
 <td>NiceGUI elements need a slot context; only <code>draw</code> provides one via <code>layout</code></td>
+</tr>
+<tr>
+<td>Hosting a Surface not declared in <code>hosts=</code></td>
+<td><code>render_surface</code> refuses and renders an inline <code>error_label</code> — the check is against <code>hosts=</code>, not against what actually gets called</td>
+</tr>
+<tr>
+<td>Expecting <code>redraw_on</code> to fire under a transient host (a context menu, a flyout)</td>
+<td>Transient hosts never subscribe to signals — they are built fresh on open and torn down on close. Only a persistent host (the PropertiesEditor) unions and subscribes to <code>redraw_on</code></td>
+</tr>
+<tr>
+<td>Expecting a greyed panel's <code>draw()</code> to run</td>
+<td>A greyed row was rendered by <code>draw_disabled()</code>, not <code>draw()</code> — <code>poll()</code> returned <code>False</code>, so <code>draw()</code> never ran at all for that mount</td>
 </tr>
 </tbody>
 </table>

@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3751,11 +3788,15 @@
 <li>Each CSS variable is re-injected via <code>document.documentElement.style.setProperty(...)</code>.</li>
 <li>The browser re-paints; no page reload.</li>
 </ol>
-<p>NodeTheme reload is similar but the canvas re-fetches <code>theme.get_color()</code> for affected nodes only.</p>
+<p>A node-flavoured theme's reload is similar: the studio re-injects that tier's
+CSS variables (global <code>:root</code>, or the graph's <code>.graph-canvas</code> element if the
+reloaded theme is the graph's active one) and the browser re-resolves every
+<code>var()</code> reference downstream — no per-node Python fetch. See
+<a href="../../../components/themes/theme-canon/">theme-canon</a>.</p>
 <h2 id="4-boundary">4. Boundary<a class="headerlink" href="#4-boundary" title="Permanent link">&para;</a></h2>
 <p>Hot-reload is <strong>not</strong>:</p>
 <ul>
-<li>A <strong>safe mechanism for production code</strong> — file watching is <code>EDITABLE</code> / <code>FOLDER</code> install only (<a href="../../library-system/library-system-arch/#23-installtype-enum">library-system §2.3</a>). Pip-from-wheel installs (<code>REGULAR</code>) have no live source path.</li>
+<li>A <strong>safe mechanism for production code</strong> — file watching is <code>EDITABLE</code> / <code>FOLDER</code> install only (<a href="../../library-system/library-system-arch/#23-installtype-enum-haywirecorelibraryinstall_typepy">library-system §2.3</a>). Pip-from-wheel installs (<code>REGULAR</code>) have no live source path.</li>
 <li>A <strong>module-unloading tool</strong> — The managed path evicts and replaces the module in <code>sys.modules</code>, but old class objects held by closures or direct references remain in memory until GC collects them. Restart is the most thorough cleanup.</li>
 </ul>
 <h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>

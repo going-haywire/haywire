@@ -1024,6 +1024,8 @@
       
         
       
+        
+      
     
     
     
@@ -1191,6 +1193,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3301,7 +3338,7 @@ the canvas hot path to catch.</p>
   enum would make core import studio.</li>
 <li><strong><code>haywire_studio.auth</code></strong> — roster I/O, scrypt, cookie signing, the gate, the
   login routes, the <code>haywire user</code> / <code>haywire auth</code> CLI.</li>
-<li><strong>Core</strong> (<code>haywire.barn.builtin.focuses.AccountFocus</code>,
+<li><strong>Core</strong> (<code>haywire.barn.builtin.surfaces.AccountMenu</code>,
   <code>haywire.ui.app.account_menu.AccountMenuProvider</code>, and the footer icon /
   StatusBar identity label / TopBar presence chips in <code>haywire.ui.app.shell</code>)
   — the account menu's chrome. None of this is a registerable component, so
@@ -3309,7 +3346,7 @@ the canvas hot path to catch.</p>
   library.</li>
 <li><strong><code>haybale-studio</code></strong> — the account menu's <em>contents</em> (<code>LogoutPanel</code>,
   <code>OpenRosterPanel</code>, <code>RotateSecretPanel</code> — ordinary panels against
-  <code>AccountFocus</code>) and the <code>RosterEditor</code>, because only a library can register
+  <code>AccountMenu</code>) and the <code>RosterEditor</code>, because only a library can register
   a panel or an editor.</li>
 </ul>
 <p><strong>The gate is app-owned and never library-owned.</strong> Libraries are disableable,

@@ -1192,6 +1192,8 @@
       
         
       
+        
+      
     
     
     
@@ -1359,6 +1361,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3509,7 +3546,7 @@
 </span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>        <span class="c1"># self.session_id is now available (str) — set by the container</span>
 </span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>        <span class="n">load_cursor_for</span><span class="p">(</span><span class="bp">self</span><span class="o">.</span><span class="n">session_id</span><span class="p">)</span>
 </span></code></pre></div>
-<p><strong>Composing <code>LibrarySettings</code> inside <code>AppState</code>.</strong> Recommended pattern for state with persisted, user-tweakable knobs (poll rate, port, cache size). Both <code>__init__</code> and <code>on_enable</code> are safe instantiation sites — the container will not call either before the owning library's <code>enable()</code> has finished registering its <code>LibrarySettings</code> classes (see <a href="../../settings/setting-canon/#startup-timing">settings: startup timing</a>). The <code>on_enable</code> placement is preferred as a matter of code discipline: it groups every resolved dependency (<code>SessionManager</code>, workspace root, settings) at one lifecycle point, makes the field types non-<code>Optional</code>-by-convention symmetric across all deps, and keeps <code>__init__</code> cheap.</p>
+<p><strong>Composing <code>LibrarySettings</code> inside <code>AppState</code>.</strong> Recommended pattern for state with persisted, user-tweakable knobs (poll rate, port, cache size). Both <code>__init__</code> and <code>on_enable</code> are safe instantiation sites — the container will not call either before the owning library's <code>enable()</code> has finished registering its <code>LibrarySettings</code> classes (see <a href="../../settings/setting-canon/#where-you-can-construct-it">settings: startup timing</a>). The <code>on_enable</code> placement is preferred as a matter of code discipline: it groups every resolved dependency (<code>SessionManager</code>, workspace root, settings) at one lifecycle point, makes the field types non-<code>Optional</code>-by-convention symmetric across all deps, and keeps <code>__init__</code> cheap.</p>
 <p>Class body instantiation is unsafe — at module import time the <code>SettingsRegistry</code> may not exist yet.</p>
 <p><strong><code>SessionState</code> is prohibited from composing <code>LibrarySettings</code>.</strong> Per-session state shouldn't read persisted singleton settings — if both apply to the same concern, hold the settings on a sibling <code>AppState</code> and reference it through <code>ctx.app_data[...]</code>.</p>
 <p><strong>Hot-reload semantics.</strong> Implemented as <code>disable + enable</code>:</p>
@@ -3641,9 +3678,9 @@
 </span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>
 </span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.panel</span><span class="w"> </span><span class="kn">import</span> <span class="n">BasePanel</span><span class="p">,</span> <span class="n">panel</span>
 </span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">focus</span><span class="o">=</span><span class="n">GraphFocus</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;MIDI Devices&#39;</span><span class="p">)</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="nd">@panel</span><span class="p">(</span><span class="n">surface</span><span class="o">=</span><span class="n">GraphInspector</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s1">&#39;MIDI Devices&#39;</span><span class="p">)</span>
 </span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="k">class</span><span class="w"> </span><span class="nc">MidiDeviceListPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">,</span> <span class="n">actions</span><span class="p">):</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">,</span> <span class="n">layout</span><span class="p">):</span>
 </span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a>        <span class="c1"># AppState — same instance for everyone</span>
 </span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a>        <span class="n">pool</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">app_data</span><span class="p">[</span><span class="n">MidiPool</span><span class="p">]</span>
 </span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a>

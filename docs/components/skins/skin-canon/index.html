@@ -1015,6 +1015,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context menus: data-hw-menu-surface-id, and what a skin cannot address
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context menus: data-hw-menu-surface-id, and what a skin cannot address">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ghost-pins-are-excluded-from-pin-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ghost pins are excluded from pin detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#todo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -1198,6 +1226,8 @@
       
         
       
+        
+      
     
     
     
@@ -1365,6 +1395,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3323,6 +3388,34 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Context menus: data-hw-menu-surface-id, and what a skin cannot address
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Context menus: data-hw-menu-surface-id, and what a skin cannot address">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ghost-pins-are-excluded-from-pin-detection" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ghost pins are excluded from pin detection
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#todo" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3555,6 +3648,46 @@ own vector. This is also why <code>NodeSkinSettings</code> declares geometry for
 (<code>card_padding</code>/<code>card_padding_block</code>, <code>pin_row_height</code>/<code>pin_column_width</code>) rather than one
 reinterpreted set — that bag is library-global, so there is no single "current direction"
 to reinterpret against.</p>
+<h2 id="context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address">Context menus: <code>data-hw-menu-surface-id</code>, and what a skin cannot address<a class="headerlink" href="#context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address" title="Permanent link">&para;</a></h2>
+<p>A skin can add its own right-click menu on any element it renders, by writing one DOM
+attribute:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>data-hw-menu-surface-id=&quot;&lt;your-surface-id&gt;&quot;
+</span></code></pre></div>
+<p>The canvas detects this declaratively (<code>closest('[data-hw-menu-surface-id]')</code>, so the
+<em>innermost</em> annotated ancestor wins if you nest them) and fires a <code>ContextMenuSurfaceEvent</code>
+carrying the id. Whatever <code>Surface</code> your library registered under that id — with panels
+registered against it — opens as the menu. <strong>The surface is entirely your library's to
+declare and own; the framework does not pre-create anything for an id it hasn't seen.</strong> An
+id that resolves to nothing (no registered <code>Surface</code> with that <code>id</code>) opens nothing at all,
+silently, and logs a warning server-side — there is no error rendered on the canvas, so if
+your menu never appears, check the server log for "no menu opened" before suspecting the
+DOM attribute.</p>
+<p><strong>This is the only menu a skin controls.</strong> The pin, node, edge, and canvas (right-click on
+empty space) menus are <strong>structural or framework-declared</strong>, not reachable through this
+attribute:</p>
+<ul>
+<li><strong>Pin menu</strong> — detected structurally from <code>data-pin-id</code>, which <code>render_pin</code> emits on
+  every pin from every skin. A skin therefore neither opts a pin into having a menu nor can
+  suppress the built-in one; that stopped being a skin decision entirely (see ADR-0029,
+  "Routing"). Writing <code>data-hw-menu-surface-id</code> on a pin element has no effect — the
+  structural pin check runs first and wins.</li>
+<li><strong>Node, edge, canvas menus</strong> — all framework-declared <code>Surface</code>s (<code>NodeInspector</code>'s
+  sibling menus, <code>EdgeMenu</code>, <code>GraphContext</code>), reached by their own structural/declarative
+  paths independent of this attribute.</li>
+</ul>
+<p>Use <code>data-hw-menu-surface-id</code> for a menu on some <em>other</em> element your skin renders — a
+custom badge, an inline control, a region of the card that isn't the node or a pin — that
+you want right-clickable with commands only your library knows about.</p>
+<h3 id="ghost-pins-are-excluded-from-pin-detection">Ghost pins are excluded from pin detection<a class="headerlink" href="#ghost-pins-are-excluded-from-pin-detection" title="Permanent link">&para;</a></h3>
+<p>The structural pin detector is <code>[data-pin-id]:not([data-pin-flow-type="ghost"]), [data-port-id]</code>
+— note the exclusion. A ghost pin is a drop affordance (the temporary target shown while
+dragging a connection to an empty area of a node), not a real port: its id names no entry in
+<code>node.ports</code>, so a menu opened there would both resolve nothing <em>and</em> swallow the click that
+would otherwise fall through to the node's own context menu. If you author a skin that emits
+ghost pins with <code>data-pin-flow-type="ghost"</code> (the convention <code>render_pin</code> itself follows),
+right-clicking one correctly falls through past the pin check to whatever is next —
+normally the node. Do not expect a ghost pin to carry a menu; it is deliberately excluded,
+not an oversight to work around.</p>
 <h2 id="todo">TODO<a class="headerlink" href="#todo" title="Permanent link">&para;</a></h2>
 <ul class="task-list">
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Write content</li>

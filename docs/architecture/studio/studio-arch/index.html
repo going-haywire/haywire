@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3595,7 +3632,7 @@
 <ul>
 <li><strong>Session isolation</strong> — each browser tab is a fully independent session with its own selection state, interaction mode, editor instances, and library-owned reactive state. Multiple users can connect to the same running haywire server simultaneously without interfering.</li>
 <li><strong>Pub/sub decoupling</strong> — editors, panels, and the shell do not talk to each other directly. Every interaction flows as a <code>Signal</code> published on a per-session typed bus: observations (concrete <code>Signal</code> subclasses like <code>SelectionMoved</code>, <code>GraphDataMutated</code>) describe state moves; imperatives (<code>CommandSignal</code> subclasses like <code>Reveal</code>, <code>Close</code>) request workspace-tree mutations. Authors emit with <code>Session.publish(...)</code> and subscribe with <code>Session.subscribe(SignalType, handler)</code> (or via the <code>@redraw_on</code> / <code>@react_on</code> decorators on editor methods). Cross-session synchronisation is opt-in per signal class.</li>
-<li><strong>Open extensibility</strong> — both editors and panels are registered via DI-managed registries (<code>EditorTypeRegistry</code>, <code>PanelRegistry</code>). A library can ship its own editors, panels, and <code>Focus</code> classes that are auto-discovered and inserted into the UI, following the same two-stage decorator + folder-scan pattern used by nodes, widgets, and themes.</li>
+<li><strong>Open extensibility</strong> — both editors and panels are registered via DI-managed registries (<code>EditorTypeRegistry</code>, <code>PanelRegistry</code>). A library can ship its own editors, panels, and <code>Surface</code> classes that are auto-discovered and inserted into the UI, following the same two-stage decorator + folder-scan pattern used by nodes, widgets, and themes.</li>
 </ul>
 <h2 id="2-components">2. Components<a class="headerlink" href="#2-components" title="Permanent link">&para;</a></h2>
 <h3 id="21-the-layout-model-slots-and-bars">2.1 The layout model — slots and bars<a class="headerlink" href="#21-the-layout-model-slots-and-bars" title="Permanent link">&para;</a></h3>
@@ -3763,9 +3800,9 @@
 <p>Editors fill slots; panels fill the inside of panel-aware editors. Both register via DI registries:</p>
 <ul>
 <li><code>EditorTypeRegistry</code> — <code>BaseEditor</code> subclasses, decorated with <code>@editor(...)</code>. Registered by libraries via <code>add_folder_to_registry(folder_path=..., registry_cls=EditorTypeRegistry)</code> in <code>register_components()</code>. Built-in framework editors (currently none — all editors live in <code>haybale-studio</code> or other libraries) would bootstrap via <code>register_builtin_editors()</code>.</li>
-<li><code>PanelRegistry</code> — <code>BasePanel</code> subclasses, decorated with <code>@panel(action=..., focus=...)</code>. Registered the same way. Panel-aware editors (e.g. <code>PropertiesEditor</code>) call <code>panel_registry.get_panels_for(actions_provider=self, focus=...)</code>, which filters panels by structural <code>isinstance(actions_provider, action)</code> and by <code>Focus.id</code> match.</li>
+<li><code>PanelRegistry</code> — <code>BasePanel</code> subclasses, decorated with <code>@panel(surface=..., hosts=...)</code>. Registered the same way. Panel-aware hosts call <code>panel_registry.get_panels(surface)</code>, filtered by <code>Surface.id</code> match alone — there is no display/action fork; whether a panel needs a host in <code>self.actions</code> is decided by the Surface's own <code>provides</code> Protocol, checked at the point of nesting.</li>
 </ul>
-<p>For the editor authoring surface — <code>BaseEditor</code>, <code>draw</code>, the <code>@redraw_on</code> / <code>@react_on</code> handler decorators, <code>OpenBehavior</code> modes, slot constraints — see <a href="../../../components/editors/editor-canon/">components/editors</a>. For the panel surface — <code>@panel</code>, <code>Focus</code> classes, <code>PanelLayout</code> — see <a href="../../../components/panels/panel-canon/">components/panels</a>.</p>
+<p>For the editor authoring surface — <code>BaseEditor</code>, <code>draw</code>, the <code>@redraw_on</code> / <code>@react_on</code> handler decorators, <code>OpenBehavior</code> modes, slot constraints — see <a href="../../../components/editors/editor-canon/">components/editors</a>. For the panel surface — <code>@panel</code>, <code>Surface</code> classes, <code>PanelLayout</code> — see <a href="../../../components/panels/panel-canon/">components/panels</a>.</p>
 <h2 id="3-data-flow">3. Data flow<a class="headerlink" href="#3-data-flow" title="Permanent link">&para;</a></h2>
 <h3 id="31-page-render-at-session-connect">3.1 Page render at session connect<a class="headerlink" href="#31-page-render-at-session-connect" title="Permanent link">&para;</a></h3>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a>Browser opens NiceGUI page
@@ -3867,8 +3904,8 @@
 <p>A library extends the studio by adding any of:</p>
 <ul>
 <li><strong>Editors</strong> — <code>@editor(...)</code> + <code>BaseEditor</code> subclass + <code>add_folder_to_registry(..., EditorTypeRegistry)</code> in <code>register_components()</code>. Decorate handler methods with <code>@redraw_on(...)</code> / <code>@react_on(...)</code> to subscribe to signals.</li>
-<li><strong>Panels</strong> — <code>@panel(action=..., focus=..., redraw_on=(...,))</code> + <code>BasePanel</code> subclass + <code>add_folder_to_registry(..., PanelRegistry)</code>. The host editor unions its registered panels' <code>redraw_on=</code> and subscribes the wrapper to the effective set.</li>
-<li><strong><code>Focus</code> classes</strong> — <code>Focus</code> subclass + register via panel/focus discovery; <code>PropertiesEditor</code> picks them up automatically through <code>PanelRegistry.get_focuses_for(...)</code>.</li>
+<li><strong>Panels</strong> — <code>@panel(surface=..., hosts=..., redraw_on=(...,))</code> + <code>BasePanel</code> subclass + <code>add_folder_to_registry(..., PanelRegistry)</code>. <code>PropertiesEditor</code> unions <code>redraw_on=</code> across its current root surfaces' <code>hosts=</code> trees (via a <code>PanelRedrawCoordinator</code>) and subscribes the wrapper to the effective set.</li>
+<li><strong><code>Surface</code> classes</strong> — <code>Surface</code> subclass + register via a panel's <code>surface=</code>/<code>hosts=</code>; <code>PropertiesEditor</code> picks up every root surface (named by some panel's <code>surface=</code>, hosted by none) automatically through <code>PanelRegistry.get_root_surfaces()</code>.</li>
 <li><strong>Custom <code>Signal</code> subclasses</strong> — declare in the library (concrete <code>Signal</code> for observations, <code>CommandSignal</code> for imperatives), emit via <code>session.publish(...)</code>, list the declaring library in <code>LibraryIdentity.dependencies</code> of any library that subscribes.</li>
 </ul>
 <p>The studio framework provides the slots, the signal/lifecycle channels, the editor and panel base classes, and <code>SessionContext</code>. Every concrete user-facing piece of the studio — graph editor, properties editor, library browser, file viewer, etc. — lives in <code>haybale-studio</code> or other libraries, registered through these extension points.</p>

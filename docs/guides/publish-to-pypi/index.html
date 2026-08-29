@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -1616,10 +1653,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-point-your-readme-at-the-feed" class="md-nav__link">
+  <a href="#5-declare-how-you-distribute" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Point your README at the feed
+        5. Declare how you distribute
       
     </span>
   </a>
@@ -3278,10 +3315,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#5-point-your-readme-at-the-feed" class="md-nav__link">
+  <a href="#5-declare-how-you-distribute" class="md-nav__link">
     <span class="md-ellipsis">
       
-        5. Point your README at the feed
+        5. Declare how you distribute
       
     </span>
   </a>
@@ -3340,7 +3377,7 @@
 
 <h1 id="publishing-to-pypi-author-guide">Publishing to PyPI — Author guide<a class="headerlink" href="#publishing-to-pypi-author-guide" title="Permanent link">&para;</a></h1>
 <p><a href="../sharing-libraries/">sharing-libraries</a> gets your library to consumers as a <strong>git clone</strong> — they install from a tag or a branch of your repository. This guide covers the other distribution path: publishing the library as a <strong>released package on PyPI</strong>, so consumers <code>pip install haybale-my-lib</code> instead of cloning source.</p>
-<p>The two paths are complementary, not alternatives. A published project ends up advertising both, and the marketstall marker block in your README lists the PyPI feed first because a released package is the primary way most people will consume your library.</p>
+<p><strong>They are alternatives, not complements — pick one per project.</strong> A library published at one version must have exactly one install coordinate. <code>identity_matches</code> treats a PyPI row and a git row of the same name as <em>different libraries</em>, so a consumer subscribed to two feeds that disagree about yours is asked to block one of two rows describing the same release. You declare which one you publish with <code>distribute</code>, in §5.</p>
 <h2 id="1-what-it-solves">1. What it solves<a class="headerlink" href="#1-what-it-solves" title="Permanent link">&para;</a></h2>
 <p>Installing from git works, but it makes the consumer's machine do your build. <code>uv pip install "haybale-my-lib @ git+https://..."</code> literally runs <code>git clone</code> (shallow, when the ref resolves server-side) and then builds a wheel from the checkout — even with <code>#subdirectory=</code>, which filters <em>after</em> cloning the whole repo. That means the consumer needs <code>git</code>, network access to your host, credentials if the repo is private, and a working run of your build backend. It also means anything your build touches must be committed: gitignored files are simply absent for them, and LFS assets arrive as pointer text.</p>
 <p>A PyPI release inverts all of that. The wheel is built once, by you, in CI — a fixed, self-contained artifact that resolves by version and never changes once uploaded.</p>
@@ -3348,9 +3385,10 @@
 <ol>
 <li>A <strong>PyPI account</strong> and a <strong>claimed distribution name</strong>.</li>
 <li>A <strong>CI workflow</strong> that builds a wheel on every version tag and uploads it.</li>
-<li>A <strong>deployed feed</strong> (<code>marketplace.toml</code>) listing your released packages, hosted somewhere consumers can reach — GitHub Pages in the example below.</li>
+<li>One line of config — <code>distribute = "pypi"</code> — which makes <code>haywire share</code> write PyPI coordinates into the <code>marketstall.toml</code> it already generates.</li>
 </ol>
-<p>Steps 1 and 2 are one-time setup. After that, <code>haywire share --bump patch</code> pushes a tag and CI does the rest.</p>
+<p>All three are one-time setup. After that, <code>haywire share --bump patch</code> pushes a tag and CI does the rest.</p>
+<p>There is no separate feed to deploy. Your repo-root <code>marketstall.toml</code> <strong>is</strong> the feed, reachable at its raw URL; earlier versions of this guide had you publish a second, hand-written <code>marketplace.toml</code> to GitHub Pages, which existed only because that file was always git-flavoured.</p>
 <h2 id="2-before-you-start-claim-the-name">2. Before you start — claim the name<a class="headerlink" href="#2-before-you-start-claim-the-name" title="Permanent link">&para;</a></h2>
 <p>PyPI distribution names are <strong>globally unique and first-come</strong>. Claim yours before you write any CI, because discovering the name is taken after you've wired everything up means renaming the package.</p>
 <ol>
@@ -3399,7 +3437,7 @@
 </table>
 <p>The environment name must match the <code>environment:</code> block in the workflow. If you haven't uploaded yet, use PyPI's <em>pending publisher</em> form instead — it reserves the name and the trust relationship together, so your first upload is also your name claim.</p>
 <h2 id="4-the-workflow">4. The workflow<a class="headerlink" href="#4-the-workflow" title="Permanent link">&para;</a></h2>
-<p>Copy this to <code>.github/workflows/publish.yml</code>. It builds and publishes a <strong>single-package</strong> repository on every <code>v*.*.*</code> tag, then deploys a marketplace feed to GitHub Pages.</p>
+<p>Copy this to <code>.github/workflows/publish.yml</code>. It builds and publishes a <strong>single-package</strong> repository on every <code>v*.*.*</code> tag.</p>
 <p><strong>Edit the <code>env:</code> block at the top and nothing else.</strong> Every value you need to change is collected there — distribution name, label, description, author, repo URL — and the steps below read them, so there are no placeholders buried further down the file. The version is never hardcoded: it is derived from the tag that triggered the run.</p>
 <div class="language-yaml highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish Release</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>
@@ -3417,160 +3455,123 @@
 </span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a><span class="w">  </span><span class="c1"># Your PyPI distribution name — must match [project].name in pyproject.toml.</span>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a><span class="w">  </span><span class="nt">DIST_NAME</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">haybale-my-lib</span>
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a><span class="w">  </span><span class="c1"># Human-readable name shown in the Library Browser.</span>
-</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="w">  </span><span class="nt">LIBRARY_LABEL</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">My Library</span>
-</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="c1"># One line. Shown under the label in the browser.</span>
-</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">  </span><span class="nt">LIBRARY_DESCRIPTION</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">What your library does</span>
-</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">  </span><span class="nt">LIBRARY_AUTHOR</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Your Name</span>
-</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">  </span><span class="c1"># Your repository, used for the &quot;source&quot; link on the catalog entry.</span>
-</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">  </span><span class="nt">SOURCE_URL</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://github.com/you/haybale-my-lib</span>
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>
+</span><span id="__span-1-18"><a id="__codelineno-1-18" name="__codelineno-1-18" href="#__codelineno-1-18"></a><span class="nt">jobs</span><span class="p">:</span>
+</span><span id="__span-1-19"><a id="__codelineno-1-19" name="__codelineno-1-19" href="#__codelineno-1-19"></a><span class="w">  </span><span class="nt">build</span><span class="p">:</span>
+</span><span id="__span-1-20"><a id="__codelineno-1-20" name="__codelineno-1-20" href="#__codelineno-1-20"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build wheel</span>
+</span><span id="__span-1-21"><a id="__codelineno-1-21" name="__codelineno-1-21" href="#__codelineno-1-21"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+</span><span id="__span-1-22"><a id="__codelineno-1-22" name="__codelineno-1-22" href="#__codelineno-1-22"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+</span><span id="__span-1-23"><a id="__codelineno-1-23" name="__codelineno-1-23" href="#__codelineno-1-23"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
 </span><span id="__span-1-24"><a id="__codelineno-1-24" name="__codelineno-1-24" href="#__codelineno-1-24"></a>
-</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="nt">jobs</span><span class="p">:</span>
-</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">  </span><span class="nt">build</span><span class="p">:</span>
-</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build wheel</span>
-</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
-</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
-</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
-</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a>
-</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install uv</span>
-</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">astral-sh/setup-uv@v3</span>
-</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
-</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a><span class="w">          </span><span class="nt">enable-cache</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
-</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a>
-</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Set up Python ${{ env.PYTHON_VERSION }}</span>
-</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv python install ${{ env.PYTHON_VERSION }}</span>
-</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a>
-</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install project</span>
-</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv sync --dev</span>
-</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a>
-</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="w">      </span><span class="c1"># Your gate. Keep it cheap and keep it here: a broken release is far</span>
-</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="w">      </span><span class="c1"># more expensive to withdraw from PyPI than to catch before upload.</span>
-</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run tests</span>
-</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run pytest -q</span>
-</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a>
-</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build wheel + sdist</span>
-</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-</span><span id="__span-1-50"><a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="w">          </span><span class="no">rm -rf dist/</span>
-</span><span id="__span-1-51"><a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a><span class="w">          </span><span class="no">uv build</span>
-</span><span id="__span-1-52"><a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a>
-</span><span id="__span-1-53"><a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/upload-artifact@v4</span>
-</span><span id="__span-1-54"><a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
-</span><span id="__span-1-55"><a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist</span>
-</span><span id="__span-1-56"><a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist/</span>
-</span><span id="__span-1-57"><a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a><span class="w">          </span><span class="nt">if-no-files-found</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error</span>
-</span><span id="__span-1-58"><a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a>
-</span><span id="__span-1-59"><a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="w">  </span><span class="nt">publish</span><span class="p">:</span>
-</span><span id="__span-1-60"><a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish to PyPI</span>
-</span><span id="__span-1-61"><a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
-</span><span id="__span-1-62"><a id="__codelineno-1-62" name="__codelineno-1-62" href="#__codelineno-1-62"></a><span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">build</span>
-</span><span id="__span-1-63"><a id="__codelineno-1-63" name="__codelineno-1-63" href="#__codelineno-1-63"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
-</span><span id="__span-1-64"><a id="__codelineno-1-64" name="__codelineno-1-64" href="#__codelineno-1-64"></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypi</span><span class="w">                       </span><span class="c1"># must match the Trusted Publisher config</span>
-</span><span id="__span-1-65"><a id="__codelineno-1-65" name="__codelineno-1-65" href="#__codelineno-1-65"></a><span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://pypi.org/project/${{ env.DIST_NAME }}/</span>
-</span><span id="__span-1-66"><a id="__codelineno-1-66" name="__codelineno-1-66" href="#__codelineno-1-66"></a><span class="w">    </span><span class="nt">permissions</span><span class="p">:</span>
-</span><span id="__span-1-67"><a id="__codelineno-1-67" name="__codelineno-1-67" href="#__codelineno-1-67"></a><span class="w">      </span><span class="nt">contents</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read</span>
-</span><span id="__span-1-68"><a id="__codelineno-1-68" name="__codelineno-1-68" href="#__codelineno-1-68"></a><span class="w">      </span><span class="nt">id-token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write</span><span class="w">                  </span><span class="c1"># required for Trusted Publishing (OIDC)</span>
-</span><span id="__span-1-69"><a id="__codelineno-1-69" name="__codelineno-1-69" href="#__codelineno-1-69"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
-</span><span id="__span-1-70"><a id="__codelineno-1-70" name="__codelineno-1-70" href="#__codelineno-1-70"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/download-artifact@v4</span>
-</span><span id="__span-1-71"><a id="__codelineno-1-71" name="__codelineno-1-71" href="#__codelineno-1-71"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
-</span><span id="__span-1-72"><a id="__codelineno-1-72" name="__codelineno-1-72" href="#__codelineno-1-72"></a><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist</span>
-</span><span id="__span-1-73"><a id="__codelineno-1-73" name="__codelineno-1-73" href="#__codelineno-1-73"></a><span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist/</span>
-</span><span id="__span-1-74"><a id="__codelineno-1-74" name="__codelineno-1-74" href="#__codelineno-1-74"></a>
-</span><span id="__span-1-75"><a id="__codelineno-1-75" name="__codelineno-1-75" href="#__codelineno-1-75"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish</span>
-</span><span id="__span-1-76"><a id="__codelineno-1-76" name="__codelineno-1-76" href="#__codelineno-1-76"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypa/gh-action-pypi-publish@release/v1</span>
-</span><span id="__span-1-77"><a id="__codelineno-1-77" name="__codelineno-1-77" href="#__codelineno-1-77"></a><span class="w">        </span><span class="c1"># No `password:` — the OIDC identity above is the credential.</span>
-</span><span id="__span-1-78"><a id="__codelineno-1-78" name="__codelineno-1-78" href="#__codelineno-1-78"></a>
-</span><span id="__span-1-79"><a id="__codelineno-1-79" name="__codelineno-1-79" href="#__codelineno-1-79"></a><span class="w">  </span><span class="nt">deploy-feed</span><span class="p">:</span>
-</span><span id="__span-1-80"><a id="__codelineno-1-80" name="__codelineno-1-80" href="#__codelineno-1-80"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deploy marketplace feed to GitHub Pages</span>
-</span><span id="__span-1-81"><a id="__codelineno-1-81" name="__codelineno-1-81" href="#__codelineno-1-81"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
-</span><span id="__span-1-82"><a id="__codelineno-1-82" name="__codelineno-1-82" href="#__codelineno-1-82"></a><span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">publish</span>
-</span><span id="__span-1-83"><a id="__codelineno-1-83" name="__codelineno-1-83" href="#__codelineno-1-83"></a><span class="w">    </span><span class="nt">permissions</span><span class="p">:</span>
-</span><span id="__span-1-84"><a id="__codelineno-1-84" name="__codelineno-1-84" href="#__codelineno-1-84"></a><span class="w">      </span><span class="nt">contents</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write</span><span class="w">                  </span><span class="c1"># to push the gh-pages branch</span>
-</span><span id="__span-1-85"><a id="__codelineno-1-85" name="__codelineno-1-85" href="#__codelineno-1-85"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
-</span><span id="__span-1-86"><a id="__codelineno-1-86" name="__codelineno-1-86" href="#__codelineno-1-86"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/checkout@v4</span>
-</span><span id="__span-1-87"><a id="__codelineno-1-87" name="__codelineno-1-87" href="#__codelineno-1-87"></a>
-</span><span id="__span-1-88"><a id="__codelineno-1-88" name="__codelineno-1-88" href="#__codelineno-1-88"></a><span class="w">      </span><span class="c1"># Reads the env: block at the top of this file — nothing to edit here.</span>
-</span><span id="__span-1-89"><a id="__codelineno-1-89" name="__codelineno-1-89" href="#__codelineno-1-89"></a><span class="w">      </span><span class="c1"># The version comes from the tag that triggered the run (v1.2.0 → 1.2.0),</span>
-</span><span id="__span-1-90"><a id="__codelineno-1-90" name="__codelineno-1-90" href="#__codelineno-1-90"></a><span class="w">      </span><span class="c1"># so the feed can never advertise a version you didn&#39;t publish.</span>
-</span><span id="__span-1-91"><a id="__codelineno-1-91" name="__codelineno-1-91" href="#__codelineno-1-91"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Write marketplace.toml</span>
-</span><span id="__span-1-92"><a id="__codelineno-1-92" name="__codelineno-1-92" href="#__codelineno-1-92"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
-</span><span id="__span-1-93"><a id="__codelineno-1-93" name="__codelineno-1-93" href="#__codelineno-1-93"></a><span class="w">          </span><span class="no">mkdir -p feed</span>
-</span><span id="__span-1-94"><a id="__codelineno-1-94" name="__codelineno-1-94" href="#__codelineno-1-94"></a><span class="w">          </span><span class="no">VERSION=&quot;${GITHUB_REF_NAME#v}&quot;</span>
-</span><span id="__span-1-95"><a id="__codelineno-1-95" name="__codelineno-1-95" href="#__codelineno-1-95"></a><span class="w">          </span><span class="no">cat &gt; feed/marketplace.toml &lt;&lt;EOF</span>
-</span><span id="__span-1-96"><a id="__codelineno-1-96" name="__codelineno-1-96" href="#__codelineno-1-96"></a><span class="w">          </span><span class="no"># Released packages for ${DIST_NAME}.</span>
-</span><span id="__span-1-97"><a id="__codelineno-1-97" name="__codelineno-1-97" href="#__codelineno-1-97"></a><span class="w">          </span><span class="no"># Subscribe to this URL in the haywire Library Browser.</span>
-</span><span id="__span-1-98"><a id="__codelineno-1-98" name="__codelineno-1-98" href="#__codelineno-1-98"></a><span class="w">          </span><span class="no"># Generated by .github/workflows/publish.yml — do not edit by hand.</span>
-</span><span id="__span-1-99"><a id="__codelineno-1-99" name="__codelineno-1-99" href="#__codelineno-1-99"></a>
-</span><span id="__span-1-100"><a id="__codelineno-1-100" name="__codelineno-1-100" href="#__codelineno-1-100"></a><span class="w">          </span><span class="no">[[haybales]]</span>
-</span><span id="__span-1-101"><a id="__codelineno-1-101" name="__codelineno-1-101" href="#__codelineno-1-101"></a><span class="w">          </span><span class="no">name = &quot;${DIST_NAME}&quot;</span>
-</span><span id="__span-1-102"><a id="__codelineno-1-102" name="__codelineno-1-102" href="#__codelineno-1-102"></a><span class="w">          </span><span class="no">label = &quot;${LIBRARY_LABEL}&quot;</span>
-</span><span id="__span-1-103"><a id="__codelineno-1-103" name="__codelineno-1-103" href="#__codelineno-1-103"></a><span class="w">          </span><span class="no">version = &quot;${VERSION}&quot;</span>
-</span><span id="__span-1-104"><a id="__codelineno-1-104" name="__codelineno-1-104" href="#__codelineno-1-104"></a><span class="w">          </span><span class="no">description = &quot;${LIBRARY_DESCRIPTION}&quot;</span>
-</span><span id="__span-1-105"><a id="__codelineno-1-105" name="__codelineno-1-105" href="#__codelineno-1-105"></a><span class="w">          </span><span class="no">author = &quot;${LIBRARY_AUTHOR}&quot;</span>
-</span><span id="__span-1-106"><a id="__codelineno-1-106" name="__codelineno-1-106" href="#__codelineno-1-106"></a><span class="w">          </span><span class="no">source = &quot;pypi&quot;</span>
-</span><span id="__span-1-107"><a id="__codelineno-1-107" name="__codelineno-1-107" href="#__codelineno-1-107"></a><span class="w">          </span><span class="no">install_spec = &quot;${DIST_NAME}&quot;</span>
-</span><span id="__span-1-108"><a id="__codelineno-1-108" name="__codelineno-1-108" href="#__codelineno-1-108"></a><span class="w">          </span><span class="no">tags = []</span>
-</span><span id="__span-1-109"><a id="__codelineno-1-109" name="__codelineno-1-109" href="#__codelineno-1-109"></a><span class="w">          </span><span class="no">dependencies = []</span>
-</span><span id="__span-1-110"><a id="__codelineno-1-110" name="__codelineno-1-110" href="#__codelineno-1-110"></a><span class="w">          </span><span class="no">source_url = &quot;${SOURCE_URL}&quot;</span>
-</span><span id="__span-1-111"><a id="__codelineno-1-111" name="__codelineno-1-111" href="#__codelineno-1-111"></a><span class="w">          </span><span class="no">EOF</span>
-</span><span id="__span-1-112"><a id="__codelineno-1-112" name="__codelineno-1-112" href="#__codelineno-1-112"></a>
-</span><span id="__span-1-113"><a id="__codelineno-1-113" name="__codelineno-1-113" href="#__codelineno-1-113"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Deploy to GitHub Pages</span>
-</span><span id="__span-1-114"><a id="__codelineno-1-114" name="__codelineno-1-114" href="#__codelineno-1-114"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">peaceiris/actions-gh-pages@v4</span>
-</span><span id="__span-1-115"><a id="__codelineno-1-115" name="__codelineno-1-115" href="#__codelineno-1-115"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
-</span><span id="__span-1-116"><a id="__codelineno-1-116" name="__codelineno-1-116" href="#__codelineno-1-116"></a><span class="w">          </span><span class="nt">github_token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">${{ secrets.GITHUB_TOKEN }}</span>
-</span><span id="__span-1-117"><a id="__codelineno-1-117" name="__codelineno-1-117" href="#__codelineno-1-117"></a><span class="w">          </span><span class="nt">publish_dir</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">./feed</span>
-</span><span id="__span-1-118"><a id="__codelineno-1-118" name="__codelineno-1-118" href="#__codelineno-1-118"></a><span class="w">          </span><span class="nt">publish_branch</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">gh-pages</span>
-</span><span id="__span-1-119"><a id="__codelineno-1-119" name="__codelineno-1-119" href="#__codelineno-1-119"></a><span class="w">          </span><span class="nt">keep_files</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-1-25"><a id="__codelineno-1-25" name="__codelineno-1-25" href="#__codelineno-1-25"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install uv</span>
+</span><span id="__span-1-26"><a id="__codelineno-1-26" name="__codelineno-1-26" href="#__codelineno-1-26"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">astral-sh/setup-uv@v3</span>
+</span><span id="__span-1-27"><a id="__codelineno-1-27" name="__codelineno-1-27" href="#__codelineno-1-27"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="__span-1-28"><a id="__codelineno-1-28" name="__codelineno-1-28" href="#__codelineno-1-28"></a><span class="w">          </span><span class="nt">enable-cache</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">true</span>
+</span><span id="__span-1-29"><a id="__codelineno-1-29" name="__codelineno-1-29" href="#__codelineno-1-29"></a>
+</span><span id="__span-1-30"><a id="__codelineno-1-30" name="__codelineno-1-30" href="#__codelineno-1-30"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Set up Python ${{ env.PYTHON_VERSION }}</span>
+</span><span id="__span-1-31"><a id="__codelineno-1-31" name="__codelineno-1-31" href="#__codelineno-1-31"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv python install ${{ env.PYTHON_VERSION }}</span>
+</span><span id="__span-1-32"><a id="__codelineno-1-32" name="__codelineno-1-32" href="#__codelineno-1-32"></a>
+</span><span id="__span-1-33"><a id="__codelineno-1-33" name="__codelineno-1-33" href="#__codelineno-1-33"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Install project</span>
+</span><span id="__span-1-34"><a id="__codelineno-1-34" name="__codelineno-1-34" href="#__codelineno-1-34"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv sync --dev</span>
+</span><span id="__span-1-35"><a id="__codelineno-1-35" name="__codelineno-1-35" href="#__codelineno-1-35"></a>
+</span><span id="__span-1-36"><a id="__codelineno-1-36" name="__codelineno-1-36" href="#__codelineno-1-36"></a><span class="w">      </span><span class="c1"># Your gate. Keep it cheap and keep it here: a broken release is far</span>
+</span><span id="__span-1-37"><a id="__codelineno-1-37" name="__codelineno-1-37" href="#__codelineno-1-37"></a><span class="w">      </span><span class="c1"># more expensive to withdraw from PyPI than to catch before upload.</span>
+</span><span id="__span-1-38"><a id="__codelineno-1-38" name="__codelineno-1-38" href="#__codelineno-1-38"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Run tests</span>
+</span><span id="__span-1-39"><a id="__codelineno-1-39" name="__codelineno-1-39" href="#__codelineno-1-39"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">uv run pytest -q</span>
+</span><span id="__span-1-40"><a id="__codelineno-1-40" name="__codelineno-1-40" href="#__codelineno-1-40"></a>
+</span><span id="__span-1-41"><a id="__codelineno-1-41" name="__codelineno-1-41" href="#__codelineno-1-41"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Build wheel + sdist</span>
+</span><span id="__span-1-42"><a id="__codelineno-1-42" name="__codelineno-1-42" href="#__codelineno-1-42"></a><span class="w">        </span><span class="nt">run</span><span class="p">:</span><span class="w"> </span><span class="p p-Indicator">|</span>
+</span><span id="__span-1-43"><a id="__codelineno-1-43" name="__codelineno-1-43" href="#__codelineno-1-43"></a><span class="w">          </span><span class="no">rm -rf dist/</span>
+</span><span id="__span-1-44"><a id="__codelineno-1-44" name="__codelineno-1-44" href="#__codelineno-1-44"></a><span class="w">          </span><span class="no">uv build</span>
+</span><span id="__span-1-45"><a id="__codelineno-1-45" name="__codelineno-1-45" href="#__codelineno-1-45"></a>
+</span><span id="__span-1-46"><a id="__codelineno-1-46" name="__codelineno-1-46" href="#__codelineno-1-46"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/upload-artifact@v4</span>
+</span><span id="__span-1-47"><a id="__codelineno-1-47" name="__codelineno-1-47" href="#__codelineno-1-47"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="__span-1-48"><a id="__codelineno-1-48" name="__codelineno-1-48" href="#__codelineno-1-48"></a><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist</span>
+</span><span id="__span-1-49"><a id="__codelineno-1-49" name="__codelineno-1-49" href="#__codelineno-1-49"></a><span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist/</span>
+</span><span id="__span-1-50"><a id="__codelineno-1-50" name="__codelineno-1-50" href="#__codelineno-1-50"></a><span class="w">          </span><span class="nt">if-no-files-found</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">error</span>
+</span><span id="__span-1-51"><a id="__codelineno-1-51" name="__codelineno-1-51" href="#__codelineno-1-51"></a>
+</span><span id="__span-1-52"><a id="__codelineno-1-52" name="__codelineno-1-52" href="#__codelineno-1-52"></a><span class="w">  </span><span class="nt">publish</span><span class="p">:</span>
+</span><span id="__span-1-53"><a id="__codelineno-1-53" name="__codelineno-1-53" href="#__codelineno-1-53"></a><span class="w">    </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish to PyPI</span>
+</span><span id="__span-1-54"><a id="__codelineno-1-54" name="__codelineno-1-54" href="#__codelineno-1-54"></a><span class="w">    </span><span class="nt">runs-on</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">ubuntu-latest</span>
+</span><span id="__span-1-55"><a id="__codelineno-1-55" name="__codelineno-1-55" href="#__codelineno-1-55"></a><span class="w">    </span><span class="nt">needs</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">build</span>
+</span><span id="__span-1-56"><a id="__codelineno-1-56" name="__codelineno-1-56" href="#__codelineno-1-56"></a><span class="w">    </span><span class="nt">environment</span><span class="p">:</span>
+</span><span id="__span-1-57"><a id="__codelineno-1-57" name="__codelineno-1-57" href="#__codelineno-1-57"></a><span class="w">      </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypi</span><span class="w">                       </span><span class="c1"># must match the Trusted Publisher config</span>
+</span><span id="__span-1-58"><a id="__codelineno-1-58" name="__codelineno-1-58" href="#__codelineno-1-58"></a><span class="w">      </span><span class="nt">url</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">https://pypi.org/project/${{ env.DIST_NAME }}/</span>
+</span><span id="__span-1-59"><a id="__codelineno-1-59" name="__codelineno-1-59" href="#__codelineno-1-59"></a><span class="w">    </span><span class="nt">permissions</span><span class="p">:</span>
+</span><span id="__span-1-60"><a id="__codelineno-1-60" name="__codelineno-1-60" href="#__codelineno-1-60"></a><span class="w">      </span><span class="nt">contents</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">read</span>
+</span><span id="__span-1-61"><a id="__codelineno-1-61" name="__codelineno-1-61" href="#__codelineno-1-61"></a><span class="w">      </span><span class="nt">id-token</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">write</span><span class="w">                  </span><span class="c1"># required for Trusted Publishing (OIDC)</span>
+</span><span id="__span-1-62"><a id="__codelineno-1-62" name="__codelineno-1-62" href="#__codelineno-1-62"></a><span class="w">    </span><span class="nt">steps</span><span class="p">:</span>
+</span><span id="__span-1-63"><a id="__codelineno-1-63" name="__codelineno-1-63" href="#__codelineno-1-63"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">actions/download-artifact@v4</span>
+</span><span id="__span-1-64"><a id="__codelineno-1-64" name="__codelineno-1-64" href="#__codelineno-1-64"></a><span class="w">        </span><span class="nt">with</span><span class="p">:</span>
+</span><span id="__span-1-65"><a id="__codelineno-1-65" name="__codelineno-1-65" href="#__codelineno-1-65"></a><span class="w">          </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist</span>
+</span><span id="__span-1-66"><a id="__codelineno-1-66" name="__codelineno-1-66" href="#__codelineno-1-66"></a><span class="w">          </span><span class="nt">path</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">dist/</span>
+</span><span id="__span-1-67"><a id="__codelineno-1-67" name="__codelineno-1-67" href="#__codelineno-1-67"></a>
+</span><span id="__span-1-68"><a id="__codelineno-1-68" name="__codelineno-1-68" href="#__codelineno-1-68"></a><span class="w">      </span><span class="p p-Indicator">-</span><span class="w"> </span><span class="nt">name</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">Publish</span>
+</span><span id="__span-1-69"><a id="__codelineno-1-69" name="__codelineno-1-69" href="#__codelineno-1-69"></a><span class="w">        </span><span class="nt">uses</span><span class="p">:</span><span class="w"> </span><span class="l l-Scalar l-Scalar-Plain">pypa/gh-action-pypi-publish@release/v1</span>
+</span><span id="__span-1-70"><a id="__codelineno-1-70" name="__codelineno-1-70" href="#__codelineno-1-70"></a><span class="w">        </span><span class="c1"># No `password:` — the OIDC identity above is the credential.</span>
 </span></code></pre></div>
-<p>Enable Pages once, under repo <em>Settings</em> → <em>Pages</em> → source <code>gh-pages</code>. The feed then lives at <code>https://&lt;you&gt;.github.io/&lt;repo&gt;/marketplace.toml</code>.</p>
-<div class="admonition warning">
-<p class="admonition-title"><code>source = \"pypi\"</code> changes what <code>install_spec</code> means</p>
-<p>With <code>source = "git"</code>, <code>install_spec</code> is a full <code>name @ git+URL</code> clone spec. With <code>source = "pypi"</code> it is just the bare distribution name — pip resolves it from the index. Mixing the two up produces a feed that looks valid and fails at install.</p>
-</div>
+<p>Everything descriptive — label, description, tags, authors — comes from your library's <code>haybale.toml</code> when <code>haywire share</code> writes the marketstall, so the workflow never restates it. That is why the <code>env:</code> block has one entry.</p>
 <h3 id="other-ci-providers">Other CI providers<a class="headerlink" href="#other-ci-providers" title="Permanent link">&para;</a></h3>
-<p>The only provider-specific parts are the OIDC identity and the Pages deploy. GitLab CI, Circle, and others can publish to PyPI the same way — consult <a href="https://docs.pypi.org/trusted-publishers/">the PyPI Trusted Publishers docs</a> for the provider list, and fall back to an API token (<code>UV_PUBLISH_TOKEN</code> / <code>TWINE_PASSWORD</code>) where OIDC isn't supported. The build step is always <code>uv build</code>; the upload is always <code>uv publish</code> or <code>twine upload dist/*</code>.</p>
-<h2 id="5-point-your-readme-at-the-feed">5. Point your README at the feed<a class="headerlink" href="#5-point-your-readme-at-the-feed" title="Permanent link">&para;</a></h2>
-<p>Add the feed URL to your <strong>project root</strong> <code>pyproject.toml</code>:</p>
+<p>The only provider-specific part is the OIDC identity. GitLab CI, Circle, and others can publish to PyPI the same way — consult <a href="https://docs.pypi.org/trusted-publishers/">the PyPI Trusted Publishers docs</a> for the provider list, and fall back to an API token (<code>UV_PUBLISH_TOKEN</code> / <code>TWINE_PASSWORD</code>) where OIDC isn't supported. The build step is always <code>uv build</code>; the upload is always <code>uv publish</code> or <code>twine upload dist/*</code>.</p>
+<h2 id="5-declare-how-you-distribute">5. Declare how you distribute<a class="headerlink" href="#5-declare-how-you-distribute" title="Permanent link">&para;</a></h2>
+<p>Add one key to your <strong>project root</strong> <code>pyproject.toml</code>:</p>
 <div class="language-toml highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="k">[tool.haywire.marketstall]</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">pypi_marketplace_url</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;https://you.github.io/haybale-my-lib/marketplace.toml&quot;</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="n">distribute</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pypi&quot;</span><span class="w">   </span><span class="c1"># or &quot;git&quot; (the default)</span>
 </span></code></pre></div>
-<p>This is project-scoped config, authored once — not a per-run flag. On the next <code>haywire share</code>, the README marker block gains the PyPI feed on top of the two git URLs:</p>
-<div class="language-markdown highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a>&lt;!-- marketstall:share-url:start --&gt;
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="sb">```sh</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="c1"># Released packages (recommended):</span>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>https://you.github.io/haybale-my-lib/marketplace.toml
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a><span class="c1"># Always the latest (tracks the current branch):</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>https://github.com/you/haybale-my-lib/blob/main/marketstall.toml
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a><span class="c1"># Frozen to this version:</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>https://github.com/you/haybale-my-lib/blob/v0.0.1/marketstall.toml
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a><span class="sb">```</span>
-</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>&lt;!-- marketstall:share-url:end --&gt;
+<p>That is the whole configuration. On the next <code>haywire share</code>, every row in your <code>marketstall.toml</code> is written as a PyPI coordinate:</p>
+<div class="language-toml highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">[[haybales]]</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="n">name</span><span class="w">         </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-lib&quot;</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a><span class="n">version</span><span class="w">      </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;0.0.2&quot;</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a><span class="n">source</span><span class="w">       </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;pypi&quot;</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a><span class="n">install_spec</span><span class="w"> </span><span class="o">=</span><span class="w"> </span><span class="s2">&quot;haybale-my-lib==0.0.2&quot;</span>
 </span></code></pre></div>
-<p>Three links, three install stories: install a released package, track the branch, or freeze to a tag. Omit the key and you get the two git links exactly as before — the line is only added when you declare a feed.</p>
-<p>The block is rewritten <strong>wholesale</strong> on every publish, which is why the URL lives in config rather than on the command line: a flag you forgot once would silently delete the link.</p>
+<p>Note that <code>install_spec</code> pins the <strong>exact version the row advertises</strong>. It is not the bare distribution name: a row saying <code>version = "0.0.2"</code> that installed whatever PyPI currently served would make the Library Browser's update indicator (<code>installed &lt; row.version</code>) never settle — it would offer an update forever, and clicking it would reinstall the same thing.</p>
+<p>Your README's marker block is unchanged, and still lists two URLs:</p>
+<div class="language-markdown highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>&lt;!-- marketstall:share-url:start --&gt;
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>Always the latest (tracks the current branch):
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="sb">```sh</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>https://github.com/you/haybale-my-lib/blob/main/marketstall.toml
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a><span class="sb">```</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>Frozen to this version:
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="sb">```sh</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>https://github.com/you/haybale-my-lib/blob/v0.0.1/marketstall.toml
+</span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a><span class="sb">```</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>&lt;!-- marketstall:share-url:end --&gt;
+</span></code></pre></div>
+<p>One URL per fenced block, deliberately: a git host's copy button yields the
+whole block, so two URLs sharing one fence means a reader aiming at either gets
+both — and pasting that into Add Source fails.</p>
+<p>Both now point at PyPI coordinates rather than clone specs. Subscribing to the first tracks your releases; the second freezes to the one you published at that tag.</p>
+<div class="admonition warning">
+<p class="admonition-title">Declare it before your first release</p>
+<p><code>haywire share</code> checks the declaration at preflight: <code>distribute = "pypi"</code> against a distribution name PyPI does not know fails <strong>before</strong> a tag is pushed, rather than surfacing when a consumer tries to install. Use PyPI's <em>pending publisher</em> form (§3) so the name exists before your first run. The check is skipped when PyPI cannot be reached, so it never blocks an offline publish.</p>
+</div>
 <h2 id="6-cutting-a-release">6. Cutting a release<a class="headerlink" href="#6-cutting-a-release" title="Permanent link">&para;</a></h2>
 <p>With setup done, releasing is the normal share flow:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>haywire<span class="w"> </span>share<span class="w"> </span>--bump<span class="w"> </span>patch
 </span></code></pre></div>
 <p>That bumps the version, regenerates docs, rebuilds <code>marketstall.toml</code>, commits, tags <code>v0.0.2</code>, and pushes. The tag push triggers the workflow: tests → wheel → PyPI → feed. Watch it in the Actions tab; the whole run is typically a couple of minutes.</p>
 <p>Verify by checking <code>https://pypi.org/project/haybale-my-lib/</code> shows the new version, then installing it clean:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>haybale-my-lib<span class="o">==</span><span class="m">0</span>.0.2
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>pip<span class="w"> </span>install<span class="w"> </span>haybale-my-lib<span class="o">==</span><span class="m">0</span>.0.2
 </span></code></pre></div>
 <h2 id="7-traps">7. Traps<a class="headerlink" href="#7-traps" title="Permanent link">&para;</a></h2>
 <p><strong>A version number is permanent.</strong> PyPI refuses re-uploads of a version even after you delete it. A botched <code>0.0.2</code> means <code>0.0.3</code>, never a corrected <code>0.0.2</code>. This is why the test gate belongs before the upload step, and why TestPyPI exists.</p>
 <p><strong>Yanking is not deleting.</strong> If a release is broken, <a href="https://pypi.org/help/#yanked">yank</a> it — resolvers skip yanked versions unless a consumer pinned that exact version. Deleting it instead breaks anyone who already pinned it.</p>
 <p><strong>Your wheel may not contain what you think.</strong> <code>uv build</code> includes what your build backend is told to include. Verify before your first upload:</p>
-<div class="language-sh highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>uv<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>zipfile<span class="w"> </span>-l<span class="w"> </span>dist/*.whl
+<div class="language-sh highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a>uv<span class="w"> </span>build<span class="w"> </span><span class="o">&amp;&amp;</span><span class="w"> </span>python<span class="w"> </span>-m<span class="w"> </span>zipfile<span class="w"> </span>-l<span class="w"> </span>dist/*.whl
 </span></code></pre></div>
 <p>A library whose <code>__init__.py</code> carries the <code>@library(...)</code> decorator but whose wheel omits a subpackage will install and then fail to register at runtime.</p>
 <p><strong><code>[tool.haywire.marketstall]</code> is read from the project root.</strong> Not from the library's own <code>pyproject.toml</code> when those differ. In a single-package repo they're the same file; in a monorepo with <code>barn/*</code>, the key belongs in the root.</p>
-<p><strong>The feed version must be bumped with the package.</strong> In the workflow above it's derived from the tag (<code>${GITHUB_REF_NAME#v}</code>), so it tracks automatically. If you hand-write the feed instead, a stale <code>version</code> field advertises a release consumers can't resolve.</p>
-<p><strong>Don't quote the feed heredoc.</strong> The workflow writes <code>&lt;&lt;EOF</code>, not <code>&lt;&lt;'EOF'</code>, because the body depends on shell expansion of the <code>env:</code> values. Quoting the delimiter turns the whole block literal and deploys a feed containing <code>name = "${DIST_NAME}"</code> — which parses as valid TOML and fails only when a consumer tries to install it.</p>
+<p><strong>Don't publish both coordinates for one library.</strong> <code>distribute</code> is project-scoped and applies to every library in the repo, which is deliberate: the unit of publishing is the project. A repo that somehow advertised git rows in one feed and PyPI rows in another would make its own library look like two libraries in conflict to anyone subscribed to both.</p>
+<p><strong>The feed tracks the package automatically.</strong> <code>version</code> and <code>install_spec</code> are both written from your <code>haybale.toml</code> at publish time, by the same run that pushes the tag CI builds from — so the feed cannot advertise a release you did not publish.</p>
 <h2 id="8-related">8. Related<a class="headerlink" href="#8-related" title="Permanent link">&para;</a></h2>
 <ul>
 <li><a href="../sharing-libraries/">sharing-libraries</a> — the git-clone path and the full authoring flow</li>
-<li><a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> — the consumer's side of the feed you just deployed</li>
+<li><a href="../subscribing-to-marketplaces/">subscribing-to-marketplaces</a> — the consumer's side of the feed you just published</li>
+<li><a href="../../reference/files/marketstall-toml/">marketstall.toml</a> — the row schema and <code>distribute</code></li>
 <li><a href="../../haybale/haybale-canon/">haybale-canon</a> — required package layout</li>
 <li><a href="../../haybale/marketplace/haybale-marketplace-arch/#8-why-the-model-is-shaped-this-way">haybale-marketplace-arch §8</a> — why the flow is shaped this way</li>
 </ul>

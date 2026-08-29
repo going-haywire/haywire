@@ -1024,6 +1024,8 @@
       
         
       
+        
+      
     
     
     
@@ -1191,6 +1193,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3093,10 +3130,10 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-menu-selection-panel" class="md-nav__link">
+  <a href="#graph-menu-selection-panel-with-its-disabled-form" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph menu / selection panel
+        Graph menu / selection panel (with its disabled form)
       
     </span>
   </a>
@@ -3115,10 +3152,43 @@
 </li>
       
         <li class="md-nav__item">
-  <a href="#graph-menu-skin-panel" class="md-nav__link">
+  <a href="#graph-toolbar-dropdown-panel-content-below-the-toolbar" class="md-nav__link">
     <span class="md-ellipsis">
       
-        Graph menu / skin panel
+        Graph toolbar / dropdown panel (content below the toolbar)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graph-menu-overflow-panel-a-hosting-panel-that-is-itself-nested" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph menu / overflow panel (a hosting panel that is itself nested)
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#graph-menu-pin-panel" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Graph menu / pin panel
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#skin-menu-panel-a-librarys-own-surface" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Skin menu panel (a library's own Surface)
       
     </span>
   </a>
@@ -3154,9 +3224,9 @@
 
 
 <h1 id="panel-types-worked-examples">Panel types — worked examples<a class="headerlink" href="#panel-types-worked-examples" title="Permanent link">&para;</a></h1>
-<p>The panel authoring API — the <code>@panel</code> decorator, <code>BasePanel</code>, <code>poll()</code>, <code>draw()</code>, focus objects, action protocols — is documented in <a href="../../components/panels/panel-canon/">components/panels/panel-canon</a>. This guide shows what's distinctive about each <strong>panel type</strong>: where it lives in the folder hierarchy, what suffix it carries, and a minimal live example.</p>
+<p>The panel authoring API — the <code>@panel</code> decorator, <code>BasePanel</code>, <code>poll()</code>, <code>draw()</code>, Surfaces, <code>provides</code> — is documented in <a href="../../components/panels/panel-canon/">components/panels/panel-canon</a>. This guide shows what's distinctive about each <strong>panel type</strong>: where it lives in the folder hierarchy, what suffix it carries, and a minimal live example.</p>
 <h2 id="folder-structure-and-naming-logic">Folder structure and naming logic<a class="headerlink" href="#folder-structure-and-naming-logic" title="Permanent link">&para;</a></h2>
-<p>Panels sit under <code>panels/</code> in each library. The folder structure is <strong>advisory only</strong> — it helps humans navigate the codebase, but does not affect where panels appear. What's load-bearing is the <code>@panel</code> decorator (specifically <code>actions=</code> and the focus protocol), plus the <code>poll()</code> method to gate visibility.</p>
+<p>Panels sit under <code>panels/</code> in each library. The folder structure is <strong>advisory only</strong> — it helps humans navigate the codebase, but does not affect where panels appear. What's load-bearing is the <code>@panel</code> decorator's <code>surface=</code> (and <code>hosts=</code>, for a panel that nests further Surfaces of its own), plus the <code>poll()</code> method to gate visibility.</p>
 <p>Panels follow a three-level naming convention for organization:</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>panels/
 </span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>  &lt;editor&gt;/          # which editor surface (properties, graph, file_browser)
@@ -3167,32 +3237,32 @@
 - <code>*Panel</code> — display panel shown in the PropertiesEditor sidebar (read-only or settings).
 - <code>*MenuPanel</code> — action panel shown in a context menu (canvas, node, edge, selection, port, file).
 - <code>*ToolbarPanel</code> — action panel shown in the floating toolbar.</p>
-<p>The suffix helps you recognize panel type at a glance, but the <strong>actual placement</strong> depends on the focus and actions you register with <code>@panel</code>.</p>
+<p>The suffix helps you recognize panel type at a glance, but the <strong>actual placement</strong> depends on the <code>surface=</code> you register with <code>@panel</code>.</p>
 <div class="language-text highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a>panels/
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a>  properties/
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    introspect/     ← organize read-only identity, status, runtime info, errors here
 </span><span id="__span-1-4"><a id="__codelineno-1-4" name="__codelineno-1-4" href="#__codelineno-1-4"></a>    setting/        ← organize editable settings (app, canvas, node user-settings) here
 </span><span id="__span-1-5"><a id="__codelineno-1-5" name="__codelineno-1-5" href="#__codelineno-1-5"></a>
 </span><span id="__span-1-6"><a id="__codelineno-1-6" name="__codelineno-1-6" href="#__codelineno-1-6"></a>  graph/
-</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    toolbar/        ← organize floating toolbar panels (ToolbarFocus) here
+</span><span id="__span-1-7"><a id="__codelineno-1-7" name="__codelineno-1-7" href="#__codelineno-1-7"></a>    toolbar/        ← organize floating toolbar panels (SelectionToolbar) here
 </span><span id="__span-1-8"><a id="__codelineno-1-8" name="__codelineno-1-8" href="#__codelineno-1-8"></a>    menu/
-</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>      canvas/       ← organize right-click empty canvas panels (CanvasFocus) here
-</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>      selection/    ← organize right-click node or multi-selection panels (SelectionFocus) here
+</span><span id="__span-1-9"><a id="__codelineno-1-9" name="__codelineno-1-9" href="#__codelineno-1-9"></a>      context/      ← organize the canvas right-click menu&#39;s panels (GraphContext and its hosted regions) here
+</span><span id="__span-1-10"><a id="__codelineno-1-10" name="__codelineno-1-10" href="#__codelineno-1-10"></a>      selection/    ← organize right-click node or multi-selection panels (SelectionMenu) here
 </span><span id="__span-1-11"><a id="__codelineno-1-11" name="__codelineno-1-11" href="#__codelineno-1-11"></a>      node/         ← reserved for future node-scoped panels; currently empty in production
-</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>      edge/         ← organize right-click edge panels (EdgeFocus) here
-</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>      port/         ← organize right-click pin panels (PinFocus) here
-</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>      skin/         ← organize right-click custom menu panels (custom Focus) here
+</span><span id="__span-1-12"><a id="__codelineno-1-12" name="__codelineno-1-12" href="#__codelineno-1-12"></a>      edge/         ← organize right-click edge panels (EdgeMenu) here
+</span><span id="__span-1-13"><a id="__codelineno-1-13" name="__codelineno-1-13" href="#__codelineno-1-13"></a>      port/         ← organize right-click pin panels (PinMenu) here
+</span><span id="__span-1-14"><a id="__codelineno-1-14" name="__codelineno-1-14" href="#__codelineno-1-14"></a>      skin/         ← organize right-click custom menu panels (a library&#39;s own Surface, reached via `data-hw-menu-surface-id`) here
 </span><span id="__span-1-15"><a id="__codelineno-1-15" name="__codelineno-1-15" href="#__codelineno-1-15"></a>
 </span><span id="__span-1-16"><a id="__codelineno-1-16" name="__codelineno-1-16" href="#__codelineno-1-16"></a>  file_browser/
-</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    menu/           ← organize file browser right-click panels (FileFocus) here
+</span><span id="__span-1-17"><a id="__codelineno-1-17" name="__codelineno-1-17" href="#__codelineno-1-17"></a>    menu/           ← organize file browser right-click panels (FileMenu) here
 </span></code></pre></div>
-<p><strong>Important:</strong> The folder labels above indicate the <em>focus type</em> and <em>context</em>. The folder location itself does not determine appearance — the <code>@panel</code> decorator's <code>actions=</code> parameter and <code>poll()</code> method are what actually wire the panel to the right place.</p>
+<p><strong>Important:</strong> The folder labels above indicate the <em>Surface</em> and <em>context</em>. The folder location itself does not determine appearance — the <code>@panel</code> decorator's <code>surface=</code> parameter and <code>poll()</code> method are what actually wire the panel to the right place.</p>
 <h2 id="properties-introspect-panel">Properties / introspect panel<a class="headerlink" href="#properties-introspect-panel" title="Permanent link">&para;</a></h2>
-<p>Introspect panels register against focus objects (e.g. <code>NodeFocus</code>, <code>EdgeFocus</code>) and render read-only identity or state information in the PropertiesEditor.</p>
+<p>Introspect panels register against inspector Surfaces (e.g. <code>NodeInspector</code>, <code>EdgeInspector</code>) and render read-only identity or state information in the PropertiesEditor.</p>
 <p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/properties/introspect/node.py</code></p>
 <p><code>NodeInfoPanel</code> shows the selected node's label, class name, and node ID:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">NodeFocus</span><span class="p">,</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">NodeInspector</span><span class="p">,</span>
 </span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Node Properties&quot;</span><span class="p">,</span>
 </span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">node_info</span><span class="p">,</span>
 </span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a>    <span class="n">default_open</span><span class="o">=</span><span class="kc">False</span><span class="p">,</span>
@@ -3228,13 +3298,13 @@
 </span><span id="__span-2-35"><a id="__codelineno-2-35" name="__codelineno-2-35" href="#__codelineno-2-35"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
 <p>from: <code>NodeInfoPanel</code> — registry_key: <code>haybale-graph-editor:panel:NodeInfoPanel</code></p>
-<p><strong>Type-specific:</strong> no <code>actions=</code> on <code>@panel</code> — introspect panels are display-only. <code>poll()</code> gates on <code>ctx.data[EditState].active_node</code>, so the panel appears only while a node is selected. <code>with layout:</code> places all rows inside the panel's container.</p>
+<p><strong>Type-specific:</strong> no <code>provides</code> on <code>NodeInspector</code> — introspect panels are display-only and declare no <code>actions:</code> annotation. <code>poll()</code> gates on <code>ctx.data[EditState].active_node</code>, so the panel appears only while a node is selected. <code>with layout:</code> places all rows inside the panel's container.</p>
 <h2 id="properties-settings-panel">Properties / settings panel<a class="headerlink" href="#properties-settings-panel" title="Permanent link">&para;</a></h2>
-<p>Settings panels register against settings-scope focuses (<code>CanvasFocus</code>, <code>AppFocus</code>, <code>ExecutionFocus</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
+<p>Settings panels register against inspector Surfaces for settings scopes (<code>CanvasSettings</code>, <code>AppSettings</code>, <code>ExecutionInspector</code>, <code>DebugSurface</code>) and render a schema using <code>render_schema()</code> in the PropertiesEditor.</p>
 <p>Source: <code>barn/haybale-studio/haybale_studio/panels/properties/setting/canvas.py</code></p>
 <p><code>CanvasSettingsPanel</code> renders the entire <code>CanvasSettings</code> schema into the panel:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">CanvasFocus</span><span class="p">,</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">CanvasSurface</span><span class="p">,</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Canvas&quot;</span><span class="p">,</span>
 </span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span>
 </span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
@@ -3250,219 +3320,243 @@
 </span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
 </span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>        <span class="n">registry</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">library_service</span><span class="o">.</span><span class="n">get_settings_registry</span><span class="p">()</span>
 </span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>        <span class="n">render_schema</span><span class="p">(</span><span class="n">CanvasSettings</span><span class="p">,</span> <span class="n">registry</span><span class="p">)</span>
-</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>
-</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>
-</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a><span class="nd">@panel</span><span class="p">(</span>
 </span></code></pre></div>
 <p>from: <code>CanvasSettingsPanel</code> — registry_key: <code>haybale-studio:panel:CanvasSettingsPanel</code></p>
-<p><strong>Type-specific:</strong> no <code>actions=</code>, no <code>poll()</code> override — settings panels are always visible for their focus. <code>render_schema(SettingsClass, registry)</code> renders every field in the schema as a labelled input widget.</p>
+<p><strong>Type-specific:</strong> no <code>actions:</code> annotation, no <code>poll()</code> override — settings panels are always visible for their Surface. <code>render_schema(SettingsClass, registry)</code> renders every field in the schema as a labelled input widget.</p>
 <h2 id="graph-menu-canvas-panel">Graph menu / canvas panel<a class="headerlink" href="#graph-menu-canvas-panel" title="Permanent link">&para;</a></h2>
-<p>Canvas menu panels register against <code>CanvasFocus</code> with <code>actions=CanvasContextActions</code> and surface on right-click on empty canvas space.</p>
-<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/canvas/canvas.py</code></p>
-<p><code>CreateNodeMenuPanel</code> renders the full node-creation menu with search:</p>
+<p>The canvas right-click menu is a small tree of Surfaces, not one flat panel list — it is the primary example of a <strong>hosting panel</strong> with regions. <code>GraphContext</code> (<code>barn/haybale-graph-editor/haybale_graph_editor/surfaces/graph_context.py</code>) is the root Surface that <code>on_canvas_context</code> opens; <code>GraphContextPanel</code> is the sole panel registered on it, and it implements none of <code>GraphActions</code> itself — <code>SessionContextMenuProvider</code> does. <code>GraphContextPanel</code> <strong>pipes</strong>: it calls <code>self.render_surface(S, ctx)</code> without an <code>actions=</code> argument, so each nested Surface receives <code>self.actions</code> (the host <code>GraphContextPanel</code> itself received) rather than <code>GraphContextPanel</code>.</p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/graph/context.py</code></p>
+<p><code>GraphContextPanel</code> arranges an icon-shortcut row and a prime area, each its own hosted Surface, into the <em>same</em> popup:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">CanvasContextActions</span><span class="p">,</span>
-</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">CanvasFocus</span><span class="p">,</span>
-</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Create Node&quot;</span><span class="p">,</span>
-</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">add</span><span class="p">,</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">GraphContext</span><span class="p">,</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="n">hosts</span><span class="o">=</span><span class="p">(</span><span class="n">GraphToolBar</span><span class="p">,</span> <span class="n">GraphContextBody</span><span class="p">),</span>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Graph Context&quot;</span><span class="p">,</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">canvas</span><span class="p">,</span>
 </span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
 </span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a><span class="p">)</span>
-</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">CreateNodeMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Render the hierarchical node-creation menu with search on canvas right-click.&quot;&quot;&quot;</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">GraphContextPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Layout-only root of the canvas menu: shortcut row, then prime area.&quot;&quot;&quot;</span>
 </span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a>
-</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">CanvasContextActions</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">GraphActions</span>
 </span><span id="__span-4-12"><a id="__codelineno-4-12" name="__codelineno-4-12" href="#__codelineno-4-12"></a>
-</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>        <span class="k">return</span> <span class="kc">True</span>
-</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>
-</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-4-19"><a id="__codelineno-4-19" name="__codelineno-4-19" href="#__codelineno-4-19"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-4-20"><a id="__codelineno-4-20" name="__codelineno-4-20" href="#__codelineno-4-20"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-4-21"><a id="__codelineno-4-21" name="__codelineno-4-21" href="#__codelineno-4-21"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-4-22"><a id="__codelineno-4-22" name="__codelineno-4-22" href="#__codelineno-4-22"></a>        <span class="n">node_factory</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">app</span><span class="o">.</span><span class="n">node_factory</span>
-</span><span id="__span-4-23"><a id="__codelineno-4-23" name="__codelineno-4-23" href="#__codelineno-4-23"></a>        <span class="k">if</span> <span class="n">node_factory</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-4-24"><a id="__codelineno-4-24" name="__codelineno-4-24" href="#__codelineno-4-24"></a>            <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-4-25"><a id="__codelineno-4-25" name="__codelineno-4-25" href="#__codelineno-4-25"></a>                <span class="n">hui</span><span class="o">.</span><span class="n">error_label</span><span class="p">(</span><span class="s2">&quot;No node factory available.&quot;</span><span class="p">)</span>
-</span><span id="__span-4-26"><a id="__codelineno-4-26" name="__codelineno-4-26" href="#__codelineno-4-26"></a>            <span class="k">return</span>
-</span><span id="__span-4-27"><a id="__codelineno-4-27" name="__codelineno-4-27" href="#__codelineno-4-27"></a>
-</span><span id="__span-4-28"><a id="__codelineno-4-28" name="__codelineno-4-28" href="#__codelineno-4-28"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_on_node_selected</span><span class="p">(</span><span class="n">node_info</span><span class="p">:</span> <span class="n">NodeInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-4-29"><a id="__codelineno-4-29" name="__codelineno-4-29" href="#__codelineno-4-29"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">create_node_at_click</span><span class="p">(</span><span class="n">node_info</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">registry_key</span><span class="p">)</span>
-</span><span id="__span-4-30"><a id="__codelineno-4-30" name="__codelineno-4-30" href="#__codelineno-4-30"></a>
-</span><span id="__span-4-31"><a id="__codelineno-4-31" name="__codelineno-4-31" href="#__codelineno-4-31"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_on_context_click</span><span class="p">(</span><span class="n">node_info</span><span class="p">:</span> <span class="n">NodeInfo</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-4-32"><a id="__codelineno-4-32" name="__codelineno-4-32" href="#__codelineno-4-32"></a>            <span class="k">if</span> <span class="n">node_info</span><span class="o">.</span><span class="n">library</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-4-33"><a id="__codelineno-4-33" name="__codelineno-4-33" href="#__codelineno-4-33"></a>                <span class="c1"># Assigning emits SessionContext.active_component synthetically.</span>
-</span><span id="__span-4-34"><a id="__codelineno-4-34" name="__codelineno-4-34" href="#__codelineno-4-34"></a>                <span class="n">ctx</span><span class="o">.</span><span class="n">active_component</span> <span class="o">=</span> <span class="n">node_info</span><span class="o">.</span><span class="n">identity</span><span class="o">.</span><span class="n">registry_key</span>
-</span><span id="__span-4-35"><a id="__codelineno-4-35" name="__codelineno-4-35" href="#__codelineno-4-35"></a>
-</span><span id="__span-4-36"><a id="__codelineno-4-36" name="__codelineno-4-36" href="#__codelineno-4-36"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-4-37"><a id="__codelineno-4-37" name="__codelineno-4-37" href="#__codelineno-4-37"></a>            <span class="n">builder</span> <span class="o">=</span> <span class="n">NodeMenuBuilder</span><span class="p">(</span>
-</span><span id="__span-4-38"><a id="__codelineno-4-38" name="__codelineno-4-38" href="#__codelineno-4-38"></a>                <span class="n">node_factory</span><span class="p">,</span>
-</span><span id="__span-4-39"><a id="__codelineno-4-39" name="__codelineno-4-39" href="#__codelineno-4-39"></a>                <span class="n">on_node_selected</span><span class="o">=</span><span class="n">_on_node_selected</span><span class="p">,</span>
-</span><span id="__span-4-40"><a id="__codelineno-4-40" name="__codelineno-4-40" href="#__codelineno-4-40"></a>                <span class="n">on_context_click</span><span class="o">=</span><span class="n">_on_context_click</span><span class="p">,</span>
-</span><span id="__span-4-41"><a id="__codelineno-4-41" name="__codelineno-4-41" href="#__codelineno-4-41"></a>            <span class="p">)</span>
-</span><span id="__span-4-42"><a id="__codelineno-4-42" name="__codelineno-4-42" href="#__codelineno-4-42"></a>            <span class="n">builder</span><span class="o">.</span><span class="n">create_node_menu</span><span class="p">(</span><span class="n">recent_nodes</span><span class="o">=</span><span class="p">[],</span> <span class="n">show_search</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
-</span><span id="__span-4-43"><a id="__codelineno-4-43" name="__codelineno-4-43" href="#__codelineno-4-43"></a>
-</span><span id="__span-4-44"><a id="__codelineno-4-44" name="__codelineno-4-44" href="#__codelineno-4-44"></a>
-</span><span id="__span-4-45"><a id="__codelineno-4-45" name="__codelineno-4-45" href="#__codelineno-4-45"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-4-13"><a id="__codelineno-4-13" name="__codelineno-4-13" href="#__codelineno-4-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-4-14"><a id="__codelineno-4-14" name="__codelineno-4-14" href="#__codelineno-4-14"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-4-15"><a id="__codelineno-4-15" name="__codelineno-4-15" href="#__codelineno-4-15"></a>            <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;items-center gap-1&quot;</span><span class="p">):</span>
+</span><span id="__span-4-16"><a id="__codelineno-4-16" name="__codelineno-4-16" href="#__codelineno-4-16"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">GraphToolBar</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+</span><span id="__span-4-17"><a id="__codelineno-4-17" name="__codelineno-4-17" href="#__codelineno-4-17"></a>            <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">column</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full&quot;</span><span class="p">):</span>
+</span><span id="__span-4-18"><a id="__codelineno-4-18" name="__codelineno-4-18" href="#__codelineno-4-18"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">GraphContextBody</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
 </span></code></pre></div>
-<p>from: <code>CreateNodeMenuPanel</code> — registry_key: <code>haybale-graph-editor:panel:CreateNodeMenuPanel</code></p>
-<p><strong>Type-specific:</strong> <code>actions=CanvasContextActions</code> wires the panel to the canvas action protocol. <code>poll()</code> returns <code>True</code> unconditionally — the canvas menu always has at least "Create Node". <code>self.actions.create_node_at_click(registry_key)</code> dispatches via the action protocol; the host resolves the concrete implementation.</p>
-<h2 id="graph-menu-selection-panel">Graph menu / selection panel<a class="headerlink" href="#graph-menu-selection-panel" title="Permanent link">&para;</a></h2>
-<p>Selection menu panels register against <code>SelectionFocus</code> and surface when one or more nodes or edges are selected.</p>
+<p>from: <code>GraphContextPanel</code> — registry_key: <code>haybale-graph-editor:panel:GraphContextPanel</code></p>
+<p><strong>Type-specific:</strong> <code>hosts=(GraphToolBar, GraphContextBody)</code> declares the two Surfaces this panel may render; calling <code>self.render_surface()</code> on anything not listed there is an authoring error (see <a href="../../components/panels/panel-canon/">panel-canon §3, "Hosting a surface"</a>). <code>GraphContextPanel</code> has no <code>actions:</code> annotation of its own — it never calls a verb directly, only passes the host along. <code>CreateNodeMenuPanel</code>, registered on <code>GraphContextBody</code>, is what actually renders the node-creation menu with search; <code>PastePanel</code>, registered on <code>GraphToolBar</code>, is the paste shortcut icon. Both receive <code>GraphActions</code> — <code>SessionContextMenuProvider</code> — by the same pipe, two hops down from where it was first injected.</p>
+<h2 id="graph-menu-selection-panel-with-its-disabled-form">Graph menu / selection panel (with its disabled form)<a class="headerlink" href="#graph-menu-selection-panel-with-its-disabled-form" title="Permanent link">&para;</a></h2>
+<p>Selection menu panels register against <code>SelectionMenu</code> and surface when one or more nodes or edges are selected. This surface is also what the floating toolbar's "⋯" hosts, so every panel here defines <code>draw_disabled()</code> too: an inapplicable command greys rather than disappearing, since this is the menu a user can right-click into with an empty selection.</p>
 <p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/selection/selection.py</code></p>
-<p><code>DeleteSelectionMenuPanel</code> deletes every selected node and edge in one undo step:</p>
+<p><code>DeleteSelectionMenuPanel</code> deletes every selected node and edge in one undo step, and renders its own greyed form when nothing is selected:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">SelectionContextActions</span><span class="p">,</span>
-</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">SelectionFocus</span><span class="p">,</span>
-</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span>
-</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
-</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
-</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="p">)</span>
-</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteSelectionMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Delete every node and edge in the current selection in one undoable step.&quot;&quot;&quot;</span>
-</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>
-</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionContextActions</span>
-</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>
-</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="n">edit</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span>
-</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">edit</span><span class="o">.</span><span class="n">selected_nodes</span> <span class="ow">or</span> <span class="n">edit</span><span class="o">.</span><span class="n">selected_edges</span><span class="p">)</span>
-</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>
-</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="n">n_nodes</span><span class="p">,</span> <span class="n">n_edges</span> <span class="o">=</span> <span class="n">_selection_counts</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
-</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span>
-</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>                <span class="n">selection_label</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">,</span> <span class="n">n_nodes</span><span class="p">,</span> <span class="n">n_edges</span><span class="p">),</span>
-</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
-</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>                <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">delete_selection</span><span class="p">,</span>
-</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>            <span class="p">)</span>
-</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>
-</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a>
-</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-5-2"><a id="__codelineno-5-2" name="__codelineno-5-2" href="#__codelineno-5-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">SelectionMenu</span><span class="p">,</span>
+</span><span id="__span-5-3"><a id="__codelineno-5-3" name="__codelineno-5-3" href="#__codelineno-5-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete Selection&quot;</span><span class="p">,</span>
+</span><span id="__span-5-4"><a id="__codelineno-5-4" name="__codelineno-5-4" href="#__codelineno-5-4"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-5-5"><a id="__codelineno-5-5" name="__codelineno-5-5" href="#__codelineno-5-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
+</span><span id="__span-5-6"><a id="__codelineno-5-6" name="__codelineno-5-6" href="#__codelineno-5-6"></a><span class="p">)</span>
+</span><span id="__span-5-7"><a id="__codelineno-5-7" name="__codelineno-5-7" href="#__codelineno-5-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteSelectionMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-5-8"><a id="__codelineno-5-8" name="__codelineno-5-8" href="#__codelineno-5-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Delete every node and edge in the current selection in one undoable step.&quot;&quot;&quot;</span>
+</span><span id="__span-5-9"><a id="__codelineno-5-9" name="__codelineno-5-9" href="#__codelineno-5-9"></a>
+</span><span id="__span-5-10"><a id="__codelineno-5-10" name="__codelineno-5-10" href="#__codelineno-5-10"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionActions</span>
+</span><span id="__span-5-11"><a id="__codelineno-5-11" name="__codelineno-5-11" href="#__codelineno-5-11"></a>
+</span><span id="__span-5-12"><a id="__codelineno-5-12" name="__codelineno-5-12" href="#__codelineno-5-12"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-5-13"><a id="__codelineno-5-13" name="__codelineno-5-13" href="#__codelineno-5-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-5-14"><a id="__codelineno-5-14" name="__codelineno-5-14" href="#__codelineno-5-14"></a>        <span class="n">edit</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span>
+</span><span id="__span-5-15"><a id="__codelineno-5-15" name="__codelineno-5-15" href="#__codelineno-5-15"></a>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">edit</span><span class="o">.</span><span class="n">selected_nodes</span> <span class="ow">or</span> <span class="n">edit</span><span class="o">.</span><span class="n">selected_edges</span><span class="p">)</span>
+</span><span id="__span-5-16"><a id="__codelineno-5-16" name="__codelineno-5-16" href="#__codelineno-5-16"></a>
+</span><span id="__span-5-17"><a id="__codelineno-5-17" name="__codelineno-5-17" href="#__codelineno-5-17"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-5-18"><a id="__codelineno-5-18" name="__codelineno-5-18" href="#__codelineno-5-18"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-5-19"><a id="__codelineno-5-19" name="__codelineno-5-19" href="#__codelineno-5-19"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-5-20"><a id="__codelineno-5-20" name="__codelineno-5-20" href="#__codelineno-5-20"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-5-21"><a id="__codelineno-5-21" name="__codelineno-5-21" href="#__codelineno-5-21"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-5-22"><a id="__codelineno-5-22" name="__codelineno-5-22" href="#__codelineno-5-22"></a>        <span class="n">n_nodes</span><span class="p">,</span> <span class="n">n_edges</span> <span class="o">=</span> <span class="n">_selection_counts</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span>
+</span><span id="__span-5-23"><a id="__codelineno-5-23" name="__codelineno-5-23" href="#__codelineno-5-23"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-5-24"><a id="__codelineno-5-24" name="__codelineno-5-24" href="#__codelineno-5-24"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span>
+</span><span id="__span-5-25"><a id="__codelineno-5-25" name="__codelineno-5-25" href="#__codelineno-5-25"></a>                <span class="n">selection_label</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">,</span> <span class="n">n_nodes</span><span class="p">,</span> <span class="n">n_edges</span><span class="p">),</span>
+</span><span id="__span-5-26"><a id="__codelineno-5-26" name="__codelineno-5-26" href="#__codelineno-5-26"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-5-27"><a id="__codelineno-5-27" name="__codelineno-5-27" href="#__codelineno-5-27"></a>                <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">delete_selection</span><span class="p">,</span>
+</span><span id="__span-5-28"><a id="__codelineno-5-28" name="__codelineno-5-28" href="#__codelineno-5-28"></a>            <span class="p">)</span>
+</span><span id="__span-5-29"><a id="__codelineno-5-29" name="__codelineno-5-29" href="#__codelineno-5-29"></a>
+</span><span id="__span-5-30"><a id="__codelineno-5-30" name="__codelineno-5-30" href="#__codelineno-5-30"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw_disabled</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-5-31"><a id="__codelineno-5-31" name="__codelineno-5-31" href="#__codelineno-5-31"></a><span class="w">        </span><span class="sd">&quot;&quot;&quot;The static form, greyed — what the row should say with nothing selected.&quot;&quot;&quot;</span>
+</span><span id="__span-5-32"><a id="__codelineno-5-32" name="__codelineno-5-32" href="#__codelineno-5-32"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-5-33"><a id="__codelineno-5-33" name="__codelineno-5-33" href="#__codelineno-5-33"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span><span class="s2">&quot;Delete&quot;</span><span class="p">,</span> <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span> <span class="n">enabled</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>DeleteSelectionMenuPanel</code> — registry_key: <code>haybale-graph-editor:panel:DeleteSelectionMenuPanel</code></p>
-<p><strong>Type-specific:</strong> <code>poll()</code> gates on <code>edit.selected_nodes or edit.selected_edges</code> — the panel is hidden when nothing is selected. <code>selection_label()</code> (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").</p>
+<p><strong>Type-specific:</strong> <code>poll()</code> gates on <code>edit.selected_nodes or edit.selected_edges</code> — when it is <code>False</code>, the host calls <code>draw_disabled()</code> instead of skipping the panel, so a fixed-shape command list never reflows or vanishes as the selection changes. <code>draw_disabled()</code> renders the same label, greyed and unclickable (<code>hui.menu_row(..., enabled=False)</code>) — it must not touch selection state, only render the inapplicable form. The default <code>draw_disabled()</code> (inherited, not overridden) is a no-op, so a panel that skips it keeps vanishing exactly as before; only a panel meant to appear in a fixed-shape menu like this one overrides it. <code>selection_label()</code> (a helper in the same file) generates a count-aware button label ("Delete 3 Nodes", "Delete Edge", "Delete Selection").</p>
 <h2 id="graph-toolbar-panel">Graph toolbar panel<a class="headerlink" href="#graph-toolbar-panel" title="Permanent link">&para;</a></h2>
-<p>Toolbar panels register against <code>ToolbarFocus</code> and contribute a single icon button to the floating toolbar that appears over a canvas selection.</p>
+<p>Toolbar panels register against <code>SelectionToolbar</code> and contribute a single icon button to the floating toolbar that appears over a canvas selection.</p>
 <p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py</code></p>
 <p><code>CopyToolbarPanel</code> renders a single copy icon:</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">SelectionContextActions</span><span class="p">,</span>
-</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">ToolbarFocus</span><span class="p">,</span>
-</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Copy&quot;</span><span class="p">,</span>
-</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">copy</span><span class="p">,</span>
-</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="p">)</span>
-</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">CopyToolbarPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionContextActions</span>
-</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>
-</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>        <span class="n">edit</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span>
-</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>        <span class="k">return</span> <span class="nb">bool</span><span class="p">(</span><span class="n">edit</span><span class="o">.</span><span class="n">selected_nodes</span> <span class="ow">or</span> <span class="n">edit</span><span class="o">.</span><span class="n">selected_edges</span><span class="p">)</span>
-</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a>
-</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">copy</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Copy&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">copy_selection</span><span class="p">)</span>
-</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>
-</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a>
-</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-6-2"><a id="__codelineno-6-2" name="__codelineno-6-2" href="#__codelineno-6-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">SelectionToolbar</span><span class="p">,</span>
+</span><span id="__span-6-3"><a id="__codelineno-6-3" name="__codelineno-6-3" href="#__codelineno-6-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Copy&quot;</span><span class="p">,</span>
+</span><span id="__span-6-4"><a id="__codelineno-6-4" name="__codelineno-6-4" href="#__codelineno-6-4"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">copy</span><span class="p">,</span>
+</span><span id="__span-6-5"><a id="__codelineno-6-5" name="__codelineno-6-5" href="#__codelineno-6-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-6-6"><a id="__codelineno-6-6" name="__codelineno-6-6" href="#__codelineno-6-6"></a><span class="p">)</span>
+</span><span id="__span-6-7"><a id="__codelineno-6-7" name="__codelineno-6-7" href="#__codelineno-6-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">CopyToolbarPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-6-8"><a id="__codelineno-6-8" name="__codelineno-6-8" href="#__codelineno-6-8"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionActions</span>
+</span><span id="__span-6-9"><a id="__codelineno-6-9" name="__codelineno-6-9" href="#__codelineno-6-9"></a>
+</span><span id="__span-6-10"><a id="__codelineno-6-10" name="__codelineno-6-10" href="#__codelineno-6-10"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-6-11"><a id="__codelineno-6-11" name="__codelineno-6-11" href="#__codelineno-6-11"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-6-12"><a id="__codelineno-6-12" name="__codelineno-6-12" href="#__codelineno-6-12"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">icon_action</span><span class="p">(</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">copy</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Copy&quot;</span><span class="p">,</span> <span class="n">on_click</span><span class="o">=</span><span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">copy_selection</span><span class="p">)</span>
+</span><span id="__span-6-13"><a id="__codelineno-6-13" name="__codelineno-6-13" href="#__codelineno-6-13"></a>
+</span><span id="__span-6-14"><a id="__codelineno-6-14" name="__codelineno-6-14" href="#__codelineno-6-14"></a>
+</span><span id="__span-6-15"><a id="__codelineno-6-15" name="__codelineno-6-15" href="#__codelineno-6-15"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-6-16"><a id="__codelineno-6-16" name="__codelineno-6-16" href="#__codelineno-6-16"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">SelectionToolbar</span><span class="p">,</span>
+</span><span id="__span-6-17"><a id="__codelineno-6-17" name="__codelineno-6-17" href="#__codelineno-6-17"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Delete&quot;</span><span class="p">,</span>
+</span><span id="__span-6-18"><a id="__codelineno-6-18" name="__codelineno-6-18" href="#__codelineno-6-18"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">delete</span><span class="p">,</span>
+</span><span id="__span-6-19"><a id="__codelineno-6-19" name="__codelineno-6-19" href="#__codelineno-6-19"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">20</span><span class="p">,</span>
+</span><span id="__span-6-20"><a id="__codelineno-6-20" name="__codelineno-6-20" href="#__codelineno-6-20"></a><span class="p">)</span>
+</span><span id="__span-6-21"><a id="__codelineno-6-21" name="__codelineno-6-21" href="#__codelineno-6-21"></a><span class="k">class</span><span class="w"> </span><span class="nc">DeleteToolbarPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
 </span></code></pre></div>
 <p>from: <code>CopyToolbarPanel</code> — registry_key: <code>haybale-graph-editor:panel:CopyToolbarPanel</code></p>
 <p><strong>Type-specific:</strong> <code>draw()</code> renders exactly one <code>hui.icon_action(...)</code>. The toolbar host owns the <code>ui.row</code> container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.</p>
-<h2 id="graph-menu-skin-panel">Graph menu / skin panel<a class="headerlink" href="#graph-menu-skin-panel" title="Permanent link">&para;</a></h2>
-<p>A skin panel is a <code>*MenuPanel</code> registered against a custom focus set by the skin layer via DOM attributes. Two attributes control which focus the context menu fires:</p>
-<ul>
-<li><code>data-hw-custom-menu-focus-id</code> — fires when the user right-clicks a node (node-level custom menu).</li>
-<li><code>data-hw-port-menu-focus-id</code> — fires when the user right-clicks a port pin (port-level custom menu).</li>
-</ul>
-<p>The skin writes these attributes on the rendered node card or pin element. The framework reads them on right-click and fires the focus object named by the attribute value. Panels registering against that focus appear in the context menu.</p>
-<p><code>NodeContextActions</code> (an empty marker protocol in <code>context_menu_actions.py</code>) is the skin extension point for <code>data-hw-custom-menu-focus-id</code>. <code>PortContextActions</code> is the equivalent for <code>data-hw-port-menu-focus-id</code>.</p>
-<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py</code></p>
-<p><code>PortInfoMenuPanel</code> shows port metadata (id, description, flow type, data type) in the port context menu:</p>
+<h2 id="graph-toolbar-dropdown-panel-content-below-the-toolbar">Graph toolbar / dropdown panel (content below the toolbar)<a class="headerlink" href="#graph-toolbar-dropdown-panel-content-below-the-toolbar" title="Permanent link">&para;</a></h2>
+<p>The other thing a toolbar icon can host: a <em>panel</em>, not a menu. <code>AppearanceToolbarPanel</code> hosts <code>NodeAppearance</code> in a <code>hui.dropdown</code>, which opens <strong>below</strong> the toolbar rather than beside it (<code>align=</code> and <code>direction=</code> place it — the same panel can hang below, stand above, or centre on its icon), on click rather than hover, and without <code>auto-close</code> — a menu's auto-close dismisses on any click inside, so the first click into a field would shut the panel. The rule of thumb is in <a href="../../reference/design-guide/">design-guide §8.8c</a>: commands go in a <code>hui.flyout</code>, content goes in a <code>hui.dropdown</code>.</p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/appearance.py</code></p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">PortContextActions</span><span class="p">,</span>
-</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">PinFocus</span><span class="p">,</span>
-</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Port Info&quot;</span><span class="p">,</span>
-</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">edge</span><span class="p">,</span>
-</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">SelectionToolbar</span><span class="p">,</span>
+</span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>    <span class="n">hosts</span><span class="o">=</span><span class="p">(</span><span class="n">NodeAppearance</span><span class="p">,),</span>
+</span><span id="__span-7-4"><a id="__codelineno-7-4" name="__codelineno-7-4" href="#__codelineno-7-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Appearance&quot;</span><span class="p">,</span>
+</span><span id="__span-7-5"><a id="__codelineno-7-5" name="__codelineno-7-5" href="#__codelineno-7-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">theme</span><span class="p">,</span>
+</span><span id="__span-7-6"><a id="__codelineno-7-6" name="__codelineno-7-6" href="#__codelineno-7-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">30</span><span class="p">,</span>
 </span><span id="__span-7-7"><a id="__codelineno-7-7" name="__codelineno-7-7" href="#__codelineno-7-7"></a><span class="p">)</span>
-</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">PortInfoMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">PortContextActions</span>
+</span><span id="__span-7-8"><a id="__codelineno-7-8" name="__codelineno-7-8" href="#__codelineno-7-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">AppearanceToolbarPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-7-9"><a id="__codelineno-7-9" name="__codelineno-7-9" href="#__codelineno-7-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The ⧉ icon that drops the appearance fields below the toolbar.</span>
 </span><span id="__span-7-10"><a id="__codelineno-7-10" name="__codelineno-7-10" href="#__codelineno-7-10"></a>
-</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_port</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-7-11"><a id="__codelineno-7-11" name="__codelineno-7-11" href="#__codelineno-7-11"></a><span class="sd">    Unlike its neighbours it *does* declare a ``poll``: ``SelectionToolbar``</span>
+</span><span id="__span-7-12"><a id="__codelineno-7-12" name="__codelineno-7-12" href="#__codelineno-7-12"></a><span class="sd">    gates on &quot;something is selected&quot;, which an edges-only selection satisfies,</span>
+</span><span id="__span-7-13"><a id="__codelineno-7-13" name="__codelineno-7-13" href="#__codelineno-7-13"></a><span class="sd">    and there is nothing to style without a node.</span>
 </span><span id="__span-7-14"><a id="__codelineno-7-14" name="__codelineno-7-14" href="#__codelineno-7-14"></a>
-</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>        <span class="n">port</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_port</span>
-</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>        <span class="k">if</span> <span class="n">port</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>            <span class="k">return</span>
-</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>        <span class="k">with</span> <span class="n">layout</span><span class="o">.</span><span class="n">container</span><span class="p">:</span>
-</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">section_label</span><span class="p">(</span><span class="n">port</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
-</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>            <span class="k">if</span> <span class="n">port</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
-</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>                <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">port</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
-</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flow: </span><span class="si">{</span><span class="n">port</span><span class="o">.</span><span class="n">flow_type</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-7-28"><a id="__codelineno-7-28" name="__codelineno-7-28" href="#__codelineno-7-28"></a>            <span class="n">type_key</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="n">stored_type</span><span class="o">.</span><span class="n">class_identity</span><span class="o">.</span><span class="n">registry_key</span>
-</span><span id="__span-7-29"><a id="__codelineno-7-29" name="__codelineno-7-29" href="#__codelineno-7-29"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type: </span><span class="si">{</span><span class="n">type_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
-</span><span id="__span-7-30"><a id="__codelineno-7-30" name="__codelineno-7-30" href="#__codelineno-7-30"></a>
-</span><span id="__span-7-31"><a id="__codelineno-7-31" name="__codelineno-7-31" href="#__codelineno-7-31"></a>
-</span><span id="__span-7-32"><a id="__codelineno-7-32" name="__codelineno-7-32" href="#__codelineno-7-32"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-7-15"><a id="__codelineno-7-15" name="__codelineno-7-15" href="#__codelineno-7-15"></a><span class="sd">    It pipes, like every other hosting panel here — ``NodeAppearance``</span>
+</span><span id="__span-7-16"><a id="__codelineno-7-16" name="__codelineno-7-16" href="#__codelineno-7-16"></a><span class="sd">    declares no ``provides``, so the host travels on unexamined.</span>
+</span><span id="__span-7-17"><a id="__codelineno-7-17" name="__codelineno-7-17" href="#__codelineno-7-17"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-7-18"><a id="__codelineno-7-18" name="__codelineno-7-18" href="#__codelineno-7-18"></a>
+</span><span id="__span-7-19"><a id="__codelineno-7-19" name="__codelineno-7-19" href="#__codelineno-7-19"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">SelectionActions</span>
+</span><span id="__span-7-20"><a id="__codelineno-7-20" name="__codelineno-7-20" href="#__codelineno-7-20"></a>
+</span><span id="__span-7-21"><a id="__codelineno-7-21" name="__codelineno-7-21" href="#__codelineno-7-21"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-7-22"><a id="__codelineno-7-22" name="__codelineno-7-22" href="#__codelineno-7-22"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-7-23"><a id="__codelineno-7-23" name="__codelineno-7-23" href="#__codelineno-7-23"></a>        <span class="k">return</span> <span class="n">_appearance_bag</span><span class="p">(</span><span class="n">ctx</span><span class="p">)</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-7-24"><a id="__codelineno-7-24" name="__codelineno-7-24" href="#__codelineno-7-24"></a>
+</span><span id="__span-7-25"><a id="__codelineno-7-25" name="__codelineno-7-25" href="#__codelineno-7-25"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-7-26"><a id="__codelineno-7-26" name="__codelineno-7-26" href="#__codelineno-7-26"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-7-27"><a id="__codelineno-7-27" name="__codelineno-7-27" href="#__codelineno-7-27"></a>            <span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">dropdown</span><span class="p">(</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">theme</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;Appearance&quot;</span><span class="p">,</span> <span class="n">align</span><span class="o">=</span><span class="s2">&quot;center&quot;</span><span class="p">,</span> <span class="n">direction</span><span class="o">=</span><span class="s2">&quot;up&quot;</span><span class="p">):</span>
+</span></code></pre></div>
+<p>from: <code>AppearanceToolbarPanel</code> — registry_key: <code>haybale-graph-editor:panel:AppearanceToolbarPanel</code></p>
+<p><strong>Type-specific:</strong> it declares a <code>poll()</code> where its toolbar neighbours do not — <code>SelectionToolbar.poll</code> is "something is selected", which an edges-only selection satisfies, and there is nothing to style without a node. What lands inside is <code>NodeAppearancePanel</code>, whose <code>draw()</code> is one call: <code>render_settings(bag, categories=("appearance",))</code> — the live <code>appearance</code> slice of the node's own props bag, with the same rows, reset chrome and subscriptions the properties editor renders, sliced rather than copied. Two things a dropdown body must respect: wrap content in <code>hw-panel</code> (the <code>QMenu</code> portals to <code>&lt;body&gt;</code>, outside the toolbar popup, so <code>.hw-panel</code>-scoped CSS otherwise misses it), and put the fields in a <em>panel</em> on a hosted surface — the emptiness rule counts what <code>render_panel</code> drew, so fields rendered straight into the body would grey the icon.</p>
+<h2 id="graph-menu-overflow-panel-a-hosting-panel-that-is-itself-nested">Graph menu / overflow panel (a hosting panel that is itself nested)<a class="headerlink" href="#graph-menu-overflow-panel-a-hosting-panel-that-is-itself-nested" title="Permanent link">&para;</a></h2>
+<p><code>GraphMorePanel</code> (also in <code>panels/graph/menu/graph/context.py</code>) is the canvas menu's "…" — a panel that both is a leaf on one Surface (<code>GraphToolBar</code>) and hosts another (<code>GraphMoreActions</code>) itself. It shows the general shape any extension-point overflow takes: a library that wants to add a canvas-menu command with no obvious home renders into <code>GraphMoreActions</code> instead of asking the framework to add a new built-in Surface.</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">GraphToolBar</span><span class="p">,</span>
+</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">hosts</span><span class="o">=</span><span class="p">(</span><span class="n">GraphMoreActions</span><span class="p">,),</span>
+</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;More Actions&quot;</span><span class="p">,</span>
+</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="s2">&quot;more_horiz&quot;</span><span class="p">,</span>
+</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">999</span><span class="p">,</span>
+</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
+</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">GraphMorePanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;The &quot;…&quot; — a panel that is itself a host.</span>
+</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
+</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a><span class="sd">    The provider travels one hop further by the pipe default, so a panel</span>
+</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a><span class="sd">    landing on ``GraphMoreActions`` reaches it through three hops without any</span>
+</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a><span class="sd">    of them being an inherited tree edge.</span>
+</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>
+</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a><span class="sd">    An empty flyout greys this row retroactively: ``GraphMoreActions`` is an</span>
+</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a><span class="sd">    extension point, and its resting state is having nothing on it.</span>
+</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>
+</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">GraphActions</span>
+</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>
+</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span> <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>            <span class="k">with</span> <span class="n">hui</span><span class="o">.</span><span class="n">flyout</span><span class="p">(</span><span class="s2">&quot;more_horiz&quot;</span><span class="p">,</span> <span class="n">tooltip</span><span class="o">=</span><span class="s2">&quot;More actions&quot;</span><span class="p">):</span>
+</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>                <span class="bp">self</span><span class="o">.</span><span class="n">render_surface</span><span class="p">(</span><span class="n">GraphMoreActions</span><span class="p">,</span> <span class="n">ctx</span><span class="p">)</span>
+</span></code></pre></div>
+<p>from: <code>GraphMorePanel</code> — registry_key: <code>haybale-graph-editor:panel:GraphMorePanel</code></p>
+<p><strong>Type-specific:</strong> <code>hui.flyout("more_horiz", tooltip="More actions")</code> opens a submenu body; <code>self.render_surface(GraphMoreActions, ctx)</code> renders whatever is registered there inside it, still piping <code>self.actions</code> two hops down from the original host. An empty <code>GraphMoreActions</code> — no library has extended it yet — greys the "…" icon retroactively rather than opening an empty flyout; see <a href="../../components/panels/panel-canon/">panel-canon §3, "What a nested panel may not assume"</a> and <code>.insights/feedback_nicegui_nested_menu_flyouts.md</code>.</p>
+<h2 id="graph-menu-pin-panel">Graph menu / pin panel<a class="headerlink" href="#graph-menu-pin-panel" title="Permanent link">&para;</a></h2>
+<p>Pin (port) context-menu panels register against <code>PinMenu</code> and surface when the user right-clicks a pin. Reached structurally, not declaratively: the canvas detects a pin from <code>data-pin-id</code> (emitted by every skin's rendered pins), so every skin gets this menu and none can suppress it.</p>
+<p>Source: <code>barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py</code></p>
+<p><code>PortInfoMenuPanel</code> shows port metadata (id, description, flow type, data type) in the pin context menu:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-9-1"><a id="__codelineno-9-1" name="__codelineno-9-1" href="#__codelineno-9-1"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">PinMenu</span><span class="p">,</span>
+</span><span id="__span-9-3"><a id="__codelineno-9-3" name="__codelineno-9-3" href="#__codelineno-9-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Port Info&quot;</span><span class="p">,</span>
+</span><span id="__span-9-4"><a id="__codelineno-9-4" name="__codelineno-9-4" href="#__codelineno-9-4"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">edge</span><span class="p">,</span>
+</span><span id="__span-9-5"><a id="__codelineno-9-5" name="__codelineno-9-5" href="#__codelineno-9-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-9-6"><a id="__codelineno-9-6" name="__codelineno-9-6" href="#__codelineno-9-6"></a><span class="p">)</span>
+</span><span id="__span-9-7"><a id="__codelineno-9-7" name="__codelineno-9-7" href="#__codelineno-9-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">PortInfoMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-9-8"><a id="__codelineno-9-8" name="__codelineno-9-8" href="#__codelineno-9-8"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">PortActions</span>
+</span><span id="__span-9-9"><a id="__codelineno-9-9" name="__codelineno-9-9" href="#__codelineno-9-9"></a>
+</span><span id="__span-9-10"><a id="__codelineno-9-10" name="__codelineno-9-10" href="#__codelineno-9-10"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-9-11"><a id="__codelineno-9-11" name="__codelineno-9-11" href="#__codelineno-9-11"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-9-12"><a id="__codelineno-9-12" name="__codelineno-9-12" href="#__codelineno-9-12"></a>        <span class="k">return</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_port</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span>
+</span><span id="__span-9-13"><a id="__codelineno-9-13" name="__codelineno-9-13" href="#__codelineno-9-13"></a>
+</span><span id="__span-9-14"><a id="__codelineno-9-14" name="__codelineno-9-14" href="#__codelineno-9-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-9-15"><a id="__codelineno-9-15" name="__codelineno-9-15" href="#__codelineno-9-15"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-9-16"><a id="__codelineno-9-16" name="__codelineno-9-16" href="#__codelineno-9-16"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-9-17"><a id="__codelineno-9-17" name="__codelineno-9-17" href="#__codelineno-9-17"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-9-18"><a id="__codelineno-9-18" name="__codelineno-9-18" href="#__codelineno-9-18"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-19"><a id="__codelineno-9-19" name="__codelineno-9-19" href="#__codelineno-9-19"></a>        <span class="n">port</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">EditState</span><span class="p">]</span><span class="o">.</span><span class="n">active_port</span>
+</span><span id="__span-9-20"><a id="__codelineno-9-20" name="__codelineno-9-20" href="#__codelineno-9-20"></a>        <span class="k">if</span> <span class="n">port</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-9-21"><a id="__codelineno-9-21" name="__codelineno-9-21" href="#__codelineno-9-21"></a>            <span class="k">return</span>
+</span><span id="__span-9-22"><a id="__codelineno-9-22" name="__codelineno-9-22" href="#__codelineno-9-22"></a>        <span class="k">with</span> <span class="n">layout</span><span class="o">.</span><span class="n">container</span><span class="p">:</span>
+</span><span id="__span-9-23"><a id="__codelineno-9-23" name="__codelineno-9-23" href="#__codelineno-9-23"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">section_label</span><span class="p">(</span><span class="n">port</span><span class="o">.</span><span class="n">id</span><span class="p">)</span>
+</span><span id="__span-9-24"><a id="__codelineno-9-24" name="__codelineno-9-24" href="#__codelineno-9-24"></a>            <span class="k">if</span> <span class="n">port</span><span class="o">.</span><span class="n">description</span><span class="p">:</span>
+</span><span id="__span-9-25"><a id="__codelineno-9-25" name="__codelineno-9-25" href="#__codelineno-9-25"></a>                <span class="n">hui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">port</span><span class="o">.</span><span class="n">description</span><span class="p">)</span>
+</span><span id="__span-9-26"><a id="__codelineno-9-26" name="__codelineno-9-26" href="#__codelineno-9-26"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Flow: </span><span class="si">{</span><span class="n">port</span><span class="o">.</span><span class="n">flow_type</span><span class="o">.</span><span class="n">value</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
+</span><span id="__span-9-27"><a id="__codelineno-9-27" name="__codelineno-9-27" href="#__codelineno-9-27"></a>            <span class="n">type_key</span> <span class="o">=</span> <span class="n">port</span><span class="o">.</span><span class="n">stored_type</span><span class="o">.</span><span class="n">class_identity</span><span class="o">.</span><span class="n">registry_key</span>
+</span><span id="__span-9-28"><a id="__codelineno-9-28" name="__codelineno-9-28" href="#__codelineno-9-28"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">info_label</span><span class="p">(</span><span class="sa">f</span><span class="s2">&quot;Type: </span><span class="si">{</span><span class="n">type_key</span><span class="si">}</span><span class="s2">&quot;</span><span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>PortInfoMenuPanel</code> — registry_key: <code>haybale-graph-editor:panel:PortInfoMenuPanel</code></p>
-<p><strong>Type-specific:</strong> <code>actions=PortContextActions</code> is an empty marker — there are no methods to dispatch; the panel only reads <code>ctx.data[EditState].active_port</code>. <code>layout.container</code> (not <code>with layout:</code>) is used here to render directly into the bare container without an extra wrapper.</p>
+<p><strong>Type-specific:</strong> <code>provides = PortActions</code> on <code>PinMenu</code> is a small Protocol (one verb: <code>demote_setting</code>) — the sibling panel <code>DetachSettingMenuPanel</code> is the only one that calls it, shown only on a promoted inlet. <code>PortInfoMenuPanel</code> itself declares no <code>actions:</code> annotation; it only reads <code>ctx.data[EditState].active_port</code>. <code>layout.container</code> (not <code>with layout:</code>) is used here to render directly into the bare container without an extra wrapper.</p>
+<h2 id="skin-menu-panel-a-librarys-own-surface">Skin menu panel (a library's own Surface)<a class="headerlink" href="#skin-menu-panel-a-librarys-own-surface" title="Permanent link">&para;</a></h2>
+<p>A skin can add its own context menu on any element it renders, by writing <code>data-hw-menu-surface-id="&lt;your-surface-id&gt;"</code> on that element and registering a <code>Surface</code> — with panels against it — under that id. This is <strong>not</strong> how the pin, node, edge, or canvas menus work; those are structural or framework-declared and cannot be redirected this way. See <a href="../../components/skins/skin-canon/">skin-canon's context-menu section</a> for the attribute contract.</p>
 <h2 id="file-browser-menu-panel">File browser menu panel<a class="headerlink" href="#file-browser-menu-panel" title="Permanent link">&para;</a></h2>
-<p>File browser menu panels register against <code>FileFocus</code> (from haybale-studio) and surface in the FileBrowser's right-click menu.</p>
+<p>File browser menu panels register against <code>FileMenu</code> (from haybale-studio) and surface in the FileBrowser's right-click menu.</p>
 <p>Source: <code>barn/haybale-haystack/haybale_haystack/panels/file_browser/menu/file.py</code></p>
 <p><code>OpenInHaystackMenuPanel</code> opens a <code>.haywire</code> graph file in the GraphEditor:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-8-1"><a id="__codelineno-8-1" name="__codelineno-8-1" href="#__codelineno-8-1"></a><span class="nd">@panel</span><span class="p">(</span>
-</span><span id="__span-8-2"><a id="__codelineno-8-2" name="__codelineno-8-2" href="#__codelineno-8-2"></a>    <span class="n">actions</span><span class="o">=</span><span class="n">FileBrowserActions</span><span class="p">,</span>
-</span><span id="__span-8-3"><a id="__codelineno-8-3" name="__codelineno-8-3" href="#__codelineno-8-3"></a>    <span class="n">focus</span><span class="o">=</span><span class="n">FileFocus</span><span class="p">,</span>
-</span><span id="__span-8-4"><a id="__codelineno-8-4" name="__codelineno-8-4" href="#__codelineno-8-4"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Open in Haystack&quot;</span><span class="p">,</span>
-</span><span id="__span-8-5"><a id="__codelineno-8-5" name="__codelineno-8-5" href="#__codelineno-8-5"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span>
-</span><span id="__span-8-6"><a id="__codelineno-8-6" name="__codelineno-8-6" href="#__codelineno-8-6"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
-</span><span id="__span-8-7"><a id="__codelineno-8-7" name="__codelineno-8-7" href="#__codelineno-8-7"></a><span class="p">)</span>
-</span><span id="__span-8-8"><a id="__codelineno-8-8" name="__codelineno-8-8" href="#__codelineno-8-8"></a><span class="k">class</span><span class="w"> </span><span class="nc">OpenInHaystackMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
-</span><span id="__span-8-9"><a id="__codelineno-8-9" name="__codelineno-8-9" href="#__codelineno-8-9"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Open a .haywire graph file in the GraphEditor via the Haystack.&quot;&quot;&quot;</span>
-</span><span id="__span-8-10"><a id="__codelineno-8-10" name="__codelineno-8-10" href="#__codelineno-8-10"></a>
-</span><span id="__span-8-11"><a id="__codelineno-8-11" name="__codelineno-8-11" href="#__codelineno-8-11"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">FileBrowserActions</span>
-</span><span id="__span-8-12"><a id="__codelineno-8-12" name="__codelineno-8-12" href="#__codelineno-8-12"></a>
-</span><span id="__span-8-13"><a id="__codelineno-8-13" name="__codelineno-8-13" href="#__codelineno-8-13"></a>    <span class="nd">@classmethod</span>
-</span><span id="__span-8-14"><a id="__codelineno-8-14" name="__codelineno-8-14" href="#__codelineno-8-14"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
-</span><span id="__span-8-15"><a id="__codelineno-8-15" name="__codelineno-8-15" href="#__codelineno-8-15"></a>        <span class="n">f</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">FileBrowserState</span><span class="p">]</span><span class="o">.</span><span class="n">right_clicked_file</span>
-</span><span id="__span-8-16"><a id="__codelineno-8-16" name="__codelineno-8-16" href="#__codelineno-8-16"></a>        <span class="k">return</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_GRAPH_EXTS</span>
-</span><span id="__span-8-17"><a id="__codelineno-8-17" name="__codelineno-8-17" href="#__codelineno-8-17"></a>
-</span><span id="__span-8-18"><a id="__codelineno-8-18" name="__codelineno-8-18" href="#__codelineno-8-18"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
-</span><span id="__span-8-19"><a id="__codelineno-8-19" name="__codelineno-8-19" href="#__codelineno-8-19"></a>        <span class="bp">self</span><span class="p">,</span>
-</span><span id="__span-8-20"><a id="__codelineno-8-20" name="__codelineno-8-20" href="#__codelineno-8-20"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
-</span><span id="__span-8-21"><a id="__codelineno-8-21" name="__codelineno-8-21" href="#__codelineno-8-21"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
-</span><span id="__span-8-22"><a id="__codelineno-8-22" name="__codelineno-8-22" href="#__codelineno-8-22"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-23"><a id="__codelineno-8-23" name="__codelineno-8-23" href="#__codelineno-8-23"></a>        <span class="n">path</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">FileBrowserState</span><span class="p">]</span><span class="o">.</span><span class="n">right_clicked_file</span>
-</span><span id="__span-8-24"><a id="__codelineno-8-24" name="__codelineno-8-24" href="#__codelineno-8-24"></a>        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-25"><a id="__codelineno-8-25" name="__codelineno-8-25" href="#__codelineno-8-25"></a>            <span class="k">return</span>
-</span><span id="__span-8-26"><a id="__codelineno-8-26" name="__codelineno-8-26" href="#__codelineno-8-26"></a>
-</span><span id="__span-8-27"><a id="__codelineno-8-27" name="__codelineno-8-27" href="#__codelineno-8-27"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_do_open</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-28"><a id="__codelineno-8-28" name="__codelineno-8-28" href="#__codelineno-8-28"></a>            <span class="n">hs</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">app_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">HaystackState</span><span class="p">)</span>
-</span><span id="__span-8-29"><a id="__codelineno-8-29" name="__codelineno-8-29" href="#__codelineno-8-29"></a>            <span class="k">if</span> <span class="n">hs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
-</span><span id="__span-8-30"><a id="__codelineno-8-30" name="__codelineno-8-30" href="#__codelineno-8-30"></a>                <span class="k">return</span>
-</span><span id="__span-8-31"><a id="__codelineno-8-31" name="__codelineno-8-31" href="#__codelineno-8-31"></a>            <span class="n">entry</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">open_graph</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
-</span><span id="__span-8-32"><a id="__codelineno-8-32" name="__codelineno-8-32" href="#__codelineno-8-32"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">reveal</span><span class="p">(</span><span class="n">GraphEditor</span><span class="p">,</span> <span class="n">binding_id</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">binding_id</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
-</span><span id="__span-8-33"><a id="__codelineno-8-33" name="__codelineno-8-33" href="#__codelineno-8-33"></a>
-</span><span id="__span-8-34"><a id="__codelineno-8-34" name="__codelineno-8-34" href="#__codelineno-8-34"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
-</span><span id="__span-8-35"><a id="__codelineno-8-35" name="__codelineno-8-35" href="#__codelineno-8-35"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">button</span><span class="p">(</span>
-</span><span id="__span-8-36"><a id="__codelineno-8-36" name="__codelineno-8-36" href="#__codelineno-8-36"></a>                <span class="s2">&quot;Open in Haystack&quot;</span><span class="p">,</span>
-</span><span id="__span-8-37"><a id="__codelineno-8-37" name="__codelineno-8-37" href="#__codelineno-8-37"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span>
-</span><span id="__span-8-38"><a id="__codelineno-8-38" name="__codelineno-8-38" href="#__codelineno-8-38"></a>                <span class="n">on_click</span><span class="o">=</span><span class="n">_do_open</span><span class="p">,</span>
-</span><span id="__span-8-39"><a id="__codelineno-8-39" name="__codelineno-8-39" href="#__codelineno-8-39"></a>            <span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="nd">@panel</span><span class="p">(</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a>    <span class="n">surface</span><span class="o">=</span><span class="n">FileMenu</span><span class="p">,</span>
+</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Open in Haystack&quot;</span><span class="p">,</span>
+</span><span id="__span-10-4"><a id="__codelineno-10-4" name="__codelineno-10-4" href="#__codelineno-10-4"></a>    <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span>
+</span><span id="__span-10-5"><a id="__codelineno-10-5" name="__codelineno-10-5" href="#__codelineno-10-5"></a>    <span class="n">order</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span>
+</span><span id="__span-10-6"><a id="__codelineno-10-6" name="__codelineno-10-6" href="#__codelineno-10-6"></a><span class="p">)</span>
+</span><span id="__span-10-7"><a id="__codelineno-10-7" name="__codelineno-10-7" href="#__codelineno-10-7"></a><span class="k">class</span><span class="w"> </span><span class="nc">OpenInHaystackMenuPanel</span><span class="p">(</span><span class="n">BasePanel</span><span class="p">):</span>
+</span><span id="__span-10-8"><a id="__codelineno-10-8" name="__codelineno-10-8" href="#__codelineno-10-8"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Open a .haywire graph file in the GraphEditor via the Haystack.&quot;&quot;&quot;</span>
+</span><span id="__span-10-9"><a id="__codelineno-10-9" name="__codelineno-10-9" href="#__codelineno-10-9"></a>
+</span><span id="__span-10-10"><a id="__codelineno-10-10" name="__codelineno-10-10" href="#__codelineno-10-10"></a>    <span class="n">actions</span><span class="p">:</span> <span class="n">FileActions</span>
+</span><span id="__span-10-11"><a id="__codelineno-10-11" name="__codelineno-10-11" href="#__codelineno-10-11"></a>
+</span><span id="__span-10-12"><a id="__codelineno-10-12" name="__codelineno-10-12" href="#__codelineno-10-12"></a>    <span class="nd">@classmethod</span>
+</span><span id="__span-10-13"><a id="__codelineno-10-13" name="__codelineno-10-13" href="#__codelineno-10-13"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">poll</span><span class="p">(</span><span class="bp">cls</span><span class="p">,</span> <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">bool</span><span class="p">:</span>
+</span><span id="__span-10-14"><a id="__codelineno-10-14" name="__codelineno-10-14" href="#__codelineno-10-14"></a>        <span class="n">f</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">FileBrowserState</span><span class="p">]</span><span class="o">.</span><span class="n">right_clicked_file</span>
+</span><span id="__span-10-15"><a id="__codelineno-10-15" name="__codelineno-10-15" href="#__codelineno-10-15"></a>        <span class="k">return</span> <span class="n">f</span> <span class="ow">is</span> <span class="ow">not</span> <span class="kc">None</span> <span class="ow">and</span> <span class="n">f</span><span class="o">.</span><span class="n">suffix</span><span class="o">.</span><span class="n">lower</span><span class="p">()</span> <span class="ow">in</span> <span class="n">_GRAPH_EXTS</span>
+</span><span id="__span-10-16"><a id="__codelineno-10-16" name="__codelineno-10-16" href="#__codelineno-10-16"></a>
+</span><span id="__span-10-17"><a id="__codelineno-10-17" name="__codelineno-10-17" href="#__codelineno-10-17"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">draw</span><span class="p">(</span>
+</span><span id="__span-10-18"><a id="__codelineno-10-18" name="__codelineno-10-18" href="#__codelineno-10-18"></a>        <span class="bp">self</span><span class="p">,</span>
+</span><span id="__span-10-19"><a id="__codelineno-10-19" name="__codelineno-10-19" href="#__codelineno-10-19"></a>        <span class="n">ctx</span><span class="p">:</span> <span class="s2">&quot;SessionContext&quot;</span><span class="p">,</span>
+</span><span id="__span-10-20"><a id="__codelineno-10-20" name="__codelineno-10-20" href="#__codelineno-10-20"></a>        <span class="n">layout</span><span class="p">:</span> <span class="n">PanelLayout</span><span class="p">,</span>
+</span><span id="__span-10-21"><a id="__codelineno-10-21" name="__codelineno-10-21" href="#__codelineno-10-21"></a>    <span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-22"><a id="__codelineno-10-22" name="__codelineno-10-22" href="#__codelineno-10-22"></a>        <span class="n">path</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">data</span><span class="p">[</span><span class="n">FileBrowserState</span><span class="p">]</span><span class="o">.</span><span class="n">right_clicked_file</span>
+</span><span id="__span-10-23"><a id="__codelineno-10-23" name="__codelineno-10-23" href="#__codelineno-10-23"></a>        <span class="k">if</span> <span class="n">path</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-24"><a id="__codelineno-10-24" name="__codelineno-10-24" href="#__codelineno-10-24"></a>            <span class="k">return</span>
+</span><span id="__span-10-25"><a id="__codelineno-10-25" name="__codelineno-10-25" href="#__codelineno-10-25"></a>
+</span><span id="__span-10-26"><a id="__codelineno-10-26" name="__codelineno-10-26" href="#__codelineno-10-26"></a>        <span class="k">def</span><span class="w"> </span><span class="nf">_do_open</span><span class="p">()</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-27"><a id="__codelineno-10-27" name="__codelineno-10-27" href="#__codelineno-10-27"></a>            <span class="n">hs</span> <span class="o">=</span> <span class="n">ctx</span><span class="o">.</span><span class="n">app_data</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">HaystackState</span><span class="p">)</span>
+</span><span id="__span-10-28"><a id="__codelineno-10-28" name="__codelineno-10-28" href="#__codelineno-10-28"></a>            <span class="k">if</span> <span class="n">hs</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+</span><span id="__span-10-29"><a id="__codelineno-10-29" name="__codelineno-10-29" href="#__codelineno-10-29"></a>                <span class="k">return</span>
+</span><span id="__span-10-30"><a id="__codelineno-10-30" name="__codelineno-10-30" href="#__codelineno-10-30"></a>            <span class="n">entry</span> <span class="o">=</span> <span class="n">hs</span><span class="o">.</span><span class="n">open_graph</span><span class="p">(</span><span class="n">path</span><span class="p">)</span>
+</span><span id="__span-10-31"><a id="__codelineno-10-31" name="__codelineno-10-31" href="#__codelineno-10-31"></a>            <span class="bp">self</span><span class="o">.</span><span class="n">actions</span><span class="o">.</span><span class="n">reveal</span><span class="p">(</span><span class="n">GraphEditor</span><span class="p">,</span> <span class="n">binding_id</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">binding_id</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">entry</span><span class="o">.</span><span class="n">display_name</span><span class="p">)</span>
+</span><span id="__span-10-32"><a id="__codelineno-10-32" name="__codelineno-10-32" href="#__codelineno-10-32"></a>
+</span><span id="__span-10-33"><a id="__codelineno-10-33" name="__codelineno-10-33" href="#__codelineno-10-33"></a>        <span class="k">with</span> <span class="n">layout</span><span class="p">:</span>
+</span><span id="__span-10-34"><a id="__codelineno-10-34" name="__codelineno-10-34" href="#__codelineno-10-34"></a>            <span class="n">hui</span><span class="o">.</span><span class="n">menu_row</span><span class="p">(</span>
+</span><span id="__span-10-35"><a id="__codelineno-10-35" name="__codelineno-10-35" href="#__codelineno-10-35"></a>                <span class="s2">&quot;Open in Haystack&quot;</span><span class="p">,</span>
+</span><span id="__span-10-36"><a id="__codelineno-10-36" name="__codelineno-10-36" href="#__codelineno-10-36"></a>                <span class="n">icon</span><span class="o">=</span><span class="n">hui</span><span class="o">.</span><span class="n">icon</span><span class="o">.</span><span class="n">graph</span><span class="p">,</span>
+</span><span id="__span-10-37"><a id="__codelineno-10-37" name="__codelineno-10-37" href="#__codelineno-10-37"></a>                <span class="n">on_click</span><span class="o">=</span><span class="n">_do_open</span><span class="p">,</span>
+</span><span id="__span-10-38"><a id="__codelineno-10-38" name="__codelineno-10-38" href="#__codelineno-10-38"></a>            <span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>OpenInHaystackMenuPanel</code> — registry_key: <code>haybale-haystack:panel:OpenInHaystackMenuPanel</code></p>
 <p><strong>Type-specific:</strong> <code>poll()</code> checks the file extension via <code>ctx.data[FileBrowserState].right_clicked_file</code>. <code>self.actions.reveal(EditorClass, binding_id, label)</code> tells the studio to open or focus the named editor bound to that file. The panel lives in haybale-haystack (not haybale-studio) because it depends on <code>HaystackState</code>, which is owned by that library.</p>

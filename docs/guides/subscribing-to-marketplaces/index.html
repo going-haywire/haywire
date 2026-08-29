@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -1600,6 +1637,34 @@
   
     <nav class="md-nav" aria-label="1. Subscribe and install">
       <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#10-what-you-already-subscribe-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0 What you already subscribe to
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.0 What you already subscribe to">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Channels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
         
           <li class="md-nav__item">
   <a href="#11-add-a-source" class="md-nav__link">
@@ -3351,6 +3416,34 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
+  <a href="#10-what-you-already-subscribe-to" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        1.0 What you already subscribe to
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="1.0 What you already subscribe to">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#channels" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Channels
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#11-add-a-source" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3594,11 +3687,68 @@ a URL — and you choose which to follow. Nothing pushes, nothing auto-installs:
 you add a source, you refresh, you install.</p>
 <p>Everything happens in the <strong>Library Browser</strong>, the studio's left-hand panel. Its
 toolbar has exactly three buttons: Refresh, Add Source, Edit File.</p>
+<h3 id="10-what-you-already-subscribe-to">1.0 What you already subscribe to<a class="headerlink" href="#10-what-you-already-subscribe-to" title="Permanent link">&para;</a></h3>
+<p>A fresh install starts with two subscriptions, written into
+<code>~/.haywire/db/haybale_marketplace/marketplace.toml</code> on first run:</p>
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>https://going-haywire.github.io/haywire/marketplace.toml            the framework&#39;s own libraries
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>https://going-haywire.github.io/marketplace/stable/marketplace.toml the curated catalogue
+</span></code></pre></div>
+<p>The first carries the libraries that ship with haywire, released in lockstep
+with it. The second is the <strong>curated catalogue</strong> — going-haywire libraries in
+their own repos, plus selected third-party ones.</p>
+<h4 id="channels">Channels<a class="headerlink" href="#channels" title="Permanent link">&para;</a></h4>
+<p>The curated catalogue publishes the same libraries on three URLs. They differ
+only in what has been <em>proven</em> about the version each one names:</p>
+<table>
+<thead>
+<tr>
+<th>channel</th>
+<th>you get</th>
+<th>proven</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>stable</code> <strong>(default)</strong></td>
+<td>versions vetted as a set</td>
+<td>installs <strong>and loads together with every other library in the set</strong></td>
+</tr>
+<tr>
+<td><code>latest</code></td>
+<td>the newest as of the last catalogue release</td>
+<td>installs and loads on its own</td>
+</tr>
+<tr>
+<td><code>edge</code></td>
+<td>whatever is newest on PyPI right now</td>
+<td>only that the library is in the catalogue</td>
+</tr>
+</tbody>
+</table>
+<p><code>stable</code> is the default because of a failure nothing in the studio can see:
+libraries install into <strong>one shared environment, one at a time</strong>, and each
+install is a separate dependency resolution. Installing B can quietly upgrade
+something A needed at an older pin, and A then breaks the next time you load
+it. A set proven to resolve together is the only thing that closes that.</p>
+<p>To follow a different channel, open
+<code>~/.haywire/db/haybale_marketplace/marketplace.toml</code> and change the <code>url</code> — the
+other two are written in as comments, so you can uncomment one and comment the
+other. <strong>Subscribe to exactly one of the three.</strong> Two at once offer the same
+library names at different versions, which every refresh then reports as a
+conflict you have to settle by hand.</p>
+<p>Past catalogue releases stay published permanently, so an installation that
+must not move can pin to one:
+<a href="https://going-haywire.github.io/marketplace/archives.html">archives</a>.</p>
+<div class="admonition note">
+<p class="admonition-title">What being in the catalogue does and does not mean</p>
+<p>A listed library exists on PyPI, its name maps to that distribution, and —
+in <code>stable</code> — that version resolves alongside the rest. <strong>Nobody reads the
+source.</strong> Being listed is not a security review; evaluate a library as you
+would any package you install from PyPI.</p>
+</div>
 <h3 id="11-add-a-source">1.1 Add a source<a class="headerlink" href="#11-add-a-source" title="Permanent link">&para;</a></h3>
 <p>Click <strong>Add Source</strong> and paste the URL the author gave you — typically a GitHub
-link to their <code>marketstall.toml</code>. The official haywire feed is:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>https://going-haywire.github.io/haywire/marketplace.toml
-</span></code></pre></div>
+link to their <code>marketstall.toml</code>.</p>
 <p>The dialog takes one field. You do not pick a type: the runtime fetches the
 body, works out whether it is one author's feed or an aggregator's catalog, and
 subscribes accordingly. A refresh fires automatically, and a green toast reports

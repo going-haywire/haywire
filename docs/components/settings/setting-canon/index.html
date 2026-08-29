@@ -1275,6 +1275,8 @@
       
         
       
+        
+      
     
     
     
@@ -1442,6 +1444,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3739,14 +3776,27 @@ carries <strong>zero options</strong> — every declaration site supplies its ow
 <div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">class</span><span class="w"> </span><span class="nc">DebugSettings</span><span class="p">(</span><span class="n">FrameworkSettings</span><span class="p">,</span> <span class="n">namespace</span><span class="o">=</span><span class="n">NAMESPACE_DEBUG</span><span class="p">):</span>
 </span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;Global preferences for debug features.&quot;&quot;&quot;</span>
 </span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
-</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="c1"># Logging — global baseline -&gt; if key changes, apply it to GLOBAL_BASELINE_LOG_LEVEL_KEY</span>
-</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="n">log_level</span> <span class="o">=</span> <span class="n">setting</span><span class="p">[</span><span class="n">CHOICES</span><span class="p">](</span>
-</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>        <span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
-</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Global Log Level&quot;</span><span class="p">,</span>
-</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum log level for the haywire root logger&quot;</span><span class="p">,</span>
-</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="n">category</span><span class="o">=</span><span class="n">CATEGORY_LOG_LEVEL</span><span class="p">,</span>
-</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="n">_LEVEL_CHOICES</span><span class="p">},</span>
-</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>    <span class="p">)</span>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="c1"># One value drives all three retention caps in the log path: the stdout</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>    <span class="c1"># backlog replayed into a freshly-opened panel (StdoutTee.max_history), the</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="c1"># Log editor&#39;s Copy/Clear mirror, and the lines kept in the DOM. They must</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>    <span class="c1"># stay equal or Copy stops matching what is on screen.</span>
+</span><span id="__span-3-8"><a id="__codelineno-3-8" name="__codelineno-3-8" href="#__codelineno-3-8"></a>    <span class="n">log_scrollback_lines</span> <span class="o">=</span> <span class="n">setting</span><span class="p">[</span><span class="n">INT</span><span class="p">](</span>
+</span><span id="__span-3-9"><a id="__codelineno-3-9" name="__codelineno-3-9" href="#__codelineno-3-9"></a>        <span class="mi">500</span><span class="p">,</span>
+</span><span id="__span-3-10"><a id="__codelineno-3-10" name="__codelineno-3-10" href="#__codelineno-3-10"></a>        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Log Scrollback Lines&quot;</span><span class="p">,</span>
+</span><span id="__span-3-11"><a id="__codelineno-3-11" name="__codelineno-3-11" href="#__codelineno-3-11"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Lines the Log panel retains before dropping the oldest&quot;</span><span class="p">,</span>
+</span><span id="__span-3-12"><a id="__codelineno-3-12" name="__codelineno-3-12" href="#__codelineno-3-12"></a>        <span class="n">category</span><span class="o">=</span><span class="n">CATEGORY_LOG_OUTPUT</span><span class="p">,</span>
+</span><span id="__span-3-13"><a id="__codelineno-3-13" name="__codelineno-3-13" href="#__codelineno-3-13"></a>        <span class="nb">min</span><span class="o">=</span><span class="mi">50</span><span class="p">,</span>
+</span><span id="__span-3-14"><a id="__codelineno-3-14" name="__codelineno-3-14" href="#__codelineno-3-14"></a>        <span class="nb">max</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span>
+</span><span id="__span-3-15"><a id="__codelineno-3-15" name="__codelineno-3-15" href="#__codelineno-3-15"></a>    <span class="p">)</span>
+</span><span id="__span-3-16"><a id="__codelineno-3-16" name="__codelineno-3-16" href="#__codelineno-3-16"></a>
+</span><span id="__span-3-17"><a id="__codelineno-3-17" name="__codelineno-3-17" href="#__codelineno-3-17"></a>    <span class="c1"># Logging — global baseline -&gt; if key changes, apply it to GLOBAL_BASELINE_LOG_LEVEL_KEY</span>
+</span><span id="__span-3-18"><a id="__codelineno-3-18" name="__codelineno-3-18" href="#__codelineno-3-18"></a>    <span class="n">log_level</span> <span class="o">=</span> <span class="n">setting</span><span class="p">[</span><span class="n">CHOICES</span><span class="p">](</span>
+</span><span id="__span-3-19"><a id="__codelineno-3-19" name="__codelineno-3-19" href="#__codelineno-3-19"></a>        <span class="s2">&quot;INFO&quot;</span><span class="p">,</span>
+</span><span id="__span-3-20"><a id="__codelineno-3-20" name="__codelineno-3-20" href="#__codelineno-3-20"></a>        <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Global Log Level&quot;</span><span class="p">,</span>
+</span><span id="__span-3-21"><a id="__codelineno-3-21" name="__codelineno-3-21" href="#__codelineno-3-21"></a>        <span class="n">description</span><span class="o">=</span><span class="s2">&quot;Minimum log level for the haywire root logger&quot;</span><span class="p">,</span>
+</span><span id="__span-3-22"><a id="__codelineno-3-22" name="__codelineno-3-22" href="#__codelineno-3-22"></a>        <span class="n">category</span><span class="o">=</span><span class="n">CATEGORY_LOG_LEVEL</span><span class="p">,</span>
+</span><span id="__span-3-23"><a id="__codelineno-3-23" name="__codelineno-3-23" href="#__codelineno-3-23"></a>        <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;options&quot;</span><span class="p">:</span> <span class="n">_LEVEL_CHOICES</span><span class="p">},</span>
+</span><span id="__span-3-24"><a id="__codelineno-3-24" name="__codelineno-3-24" href="#__codelineno-3-24"></a>    <span class="p">)</span>
 </span></code></pre></div>
 <p>Because <code>CHOICES</code> carries identity STRING↔CHOICES adapters (both directions,
 pure passthrough), a plain string port can connect to — or be promoted from —
@@ -3828,7 +3878,7 @@ a <code>CHOICES</code>-typed setting with no special-case handling.</p>
 <p>The outer key is the accessor name; the inner dict maps field name → locally-set value.</p>
 <p><strong>LibrarySettings registration.</strong> A <code>@settings</code>-decorated class is picked up by <code>BaseRegistry</code>'s hot-reload machinery automatically when the library loads. No explicit <code>register_schema()</code> call is needed in normal usage. (For explicit registration in a <code>register_components()</code> override, see the LibrarySettings section in the example below.)</p>
 <p><strong>Important ordering rule for <code>shadow()</code> / <code>watch()</code> between modules.</strong> A node class using <code>shadow(MyLibSettings.api_url)</code> must be <strong>defined after</strong> <code>MyLibSettings</code>. The <code>@settings(namespace='my_lib')</code> decorator sets <code>_setting_key</code> on each descriptor at class evaluation time; if your node imports <code>MyLibSettings</code> later, that's fine — but if both live in the same module, declaration order matters.</p>
-<p><strong>Promoting a setting to a port (field + direction).</strong> A setting can be <em>promoted</em> to a DATA port so the graph can drive it or read it. Promotion is a <strong>field + a direction</strong>; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see <a href="../../../architecture/settings/settings-arch/#65-promotion--field--direction">architecture §6.5</a> and <a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>).</p>
+<p><strong>Promoting a setting to a port (field + direction).</strong> A setting can be <em>promoted</em> to a DATA port so the graph can drive it or read it. Promotion is a <strong>field + a direction</strong>; the port and the setting become one cell, two views (the port borrows the setting's cell by reference — see <a href="../../../architecture/settings/settings-arch/#65-promotion-field-direction">architecture §6.5</a> and <a href="../../../adr/0014-promotion-as-direction/">ADR 0014</a>).</p>
 <div class="language-python highlight"><pre><span></span><code><span id="__span-7-1"><a id="__codelineno-7-1" name="__codelineno-7-1" href="#__codelineno-7-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.node.promotion</span><span class="w"> </span><span class="kn">import</span> <span class="n">promote_setting</span><span class="p">,</span> <span class="n">demote_setting</span>
 </span><span id="__span-7-2"><a id="__codelineno-7-2" name="__codelineno-7-2" href="#__codelineno-7-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.core.types.enums</span><span class="w"> </span><span class="kn">import</span> <span class="n">PortType</span>
 </span><span id="__span-7-3"><a id="__codelineno-7-3" name="__codelineno-7-3" href="#__codelineno-7-3"></a>

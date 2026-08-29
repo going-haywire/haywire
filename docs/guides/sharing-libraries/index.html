@@ -1030,6 +1030,8 @@
       
         
       
+        
+      
     
     
     
@@ -1197,6 +1199,41 @@
     
   
     Marketplace — architecture
+  
+
+    
+  </span>
+  
+  
+    
+  
+  
+    <span class="md-status md-status--draft"></span>
+  
+
+  
+
+      </a>
+    </li>
+  
+
+              
+            
+              
+                
+  
+  
+  
+  
+    <li class="md-nav__item">
+      <a href="../../haybale/marketplace/curated-marketplace/" class="md-nav__link">
+        
+  
+  
+  <span class="md-ellipsis">
+    
+  
+    Curated marketplace
   
 
     
@@ -3614,7 +3651,7 @@ stays useful on a feature branch or a PR checkout.</p>
 <code>marketstall.toml</code> — mostly a verbatim copy of your <code>haybale.toml</code>, plus the
 coordinates a library cannot state about itself (<code>install_spec</code>, <code>source</code>,
 <code>require</code>). You never author this file; publishing writes it.</p>
-<p>Two things worth knowing as an author:</p>
+<p>Three things worth knowing as an author:</p>
 <ul>
 <li><code>install_spec</code> pins to the release tag <code>v&lt;version&gt;</code> created by this run — not
   the branch you published from — so it stays correct even after your branch is
@@ -3623,7 +3660,18 @@ coordinates a library cannot state about itself (<code>install_spec</code>, <cod
   <code>pyproject.toml</code>. Keep it as low as your library actually allows: a floor
   restricts <em>consumers</em>, and raising it forces every one of them to update
   before they can install you.</li>
+<li><strong><code>distribute</code> decides the coordinate.</strong> This guide covers the git path,
+  which is the default. A project that publishes to PyPI declares
+  <code>distribute = "pypi"</code> in its root <code>pyproject.toml</code> and gets
+  <code>install_spec = "haybale-my-lib==0.0.2"</code> instead — see
+  <a href="../publish-to-pypi/">publish-to-pypi</a>.</li>
 </ul>
+<p>Pick one and stay with it. A library at one version must have exactly one
+  install coordinate: the runtime reads a PyPI row and a git row of the same
+  name as <em>different libraries</em>, so publishing both would make your own
+  library look like two libraries in conflict to anyone subscribed to both
+  feeds. <code>distribute</code> is project-scoped for the same reason — the unit of
+  publishing is the project, so a repo cannot mix the two.</p>
 <p>Field by field: <a href="../../reference/files/marketstall-toml/">marketstall.toml</a>.</p>
 <h2 id="4-what-has-to-be-true-before-you-publish">4. What has to be true before you publish<a class="headerlink" href="#4-what-has-to-be-true-before-you-publish" title="Permanent link">&para;</a></h2>
 <p>Any precondition failure stops <code>haywire share</code> and reports the single earliest
