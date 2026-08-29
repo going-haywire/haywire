@@ -27,14 +27,58 @@ you add a source, you refresh, you install.
 Everything happens in the **Library Browser**, the studio's left-hand panel. Its
 toolbar has exactly three buttons: Refresh, Add Source, Edit File.
 
+### 1.0 What you already subscribe to
+
+A fresh install starts with two subscriptions, written into
+`~/.haywire/db/haybale_marketplace/marketplace.toml` on first run:
+
+```text
+https://going-haywire.github.io/haywire/marketplace.toml            the framework's own libraries
+https://going-haywire.github.io/marketplace/stable/marketplace.toml the curated catalogue
+```
+
+The first carries the libraries that ship with haywire, released in lockstep
+with it. The second is the **curated catalogue** — going-haywire libraries in
+their own repos, plus selected third-party ones.
+
+#### Channels
+
+The curated catalogue publishes the same libraries on three URLs. They differ
+only in what has been *proven* about the version each one names:
+
+| channel | you get | proven |
+| --- | --- | --- |
+| `stable` **(default)** | versions vetted as a set | installs **and loads together with every other library in the set** |
+| `latest` | the newest as of the last catalogue release | installs and loads on its own |
+| `edge` | whatever is newest on PyPI right now | only that the library is in the catalogue |
+
+`stable` is the default because of a failure nothing in the studio can see:
+libraries install into **one shared environment, one at a time**, and each
+install is a separate dependency resolution. Installing B can quietly upgrade
+something A needed at an older pin, and A then breaks the next time you load
+it. A set proven to resolve together is the only thing that closes that.
+
+To follow a different channel, open
+`~/.haywire/db/haybale_marketplace/marketplace.toml` and change the `url` — the
+other two are written in as comments, so you can uncomment one and comment the
+other. **Subscribe to exactly one of the three.** Two at once offer the same
+library names at different versions, which every refresh then reports as a
+conflict you have to settle by hand.
+
+Past catalogue releases stay published permanently, so an installation that
+must not move can pin to one:
+[archives](https://going-haywire.github.io/marketplace/archives.html).
+
+!!! note "What being in the catalogue does and does not mean"
+    A listed library exists on PyPI, its name maps to that distribution, and —
+    in `stable` — that version resolves alongside the rest. **Nobody reads the
+    source.** Being listed is not a security review; evaluate a library as you
+    would any package you install from PyPI.
+
 ### 1.1 Add a source
 
 Click **Add Source** and paste the URL the author gave you — typically a GitHub
-link to their `marketstall.toml`. The official haywire feed is:
-
-```text
-https://going-haywire.github.io/haywire/marketplace.toml
-```
+link to their `marketstall.toml`.
 
 The dialog takes one field. You do not pick a type: the runtime fetches the
 body, works out whether it is one author's feed or an aggregator's catalog, and

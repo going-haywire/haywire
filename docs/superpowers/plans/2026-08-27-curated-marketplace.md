@@ -31,12 +31,12 @@ uv run pytest -m "not browser and not perf" -q > /tmp/t.log 2>&1; echo "exit=$?"
 
 Anything failing after an edit that was not failing here belongs to the edit.
 
-## Stage 1 — the tomlkit char-array defect (P1, independent) — **CODE LANDED**
+## Stage 1 — the tomlkit char-array defect (P1, independent) — **LANDED**
 
-> **Done, 2026-08-28**, except the last line of this stage (regenerating
-> `haybale-visiongraph`'s marketstall), which is deliberately deferred to Stage 3
-> so the file is rewritten once, as a `pypi` row, rather than republished as a
-> `git` row we have already decided to replace.
+> **Done, 2026-08-28.** The deferred last line — regenerating
+> `haybale-visiongraph`'s marketstall — was completed with Stage 3, so the file
+> was rewritten once as a `pypi` row rather than republished as a `git` row we
+> had already decided to replace. Published as v0.0.38.
 >
 > Fixed at the parse boundary rather than per-writer: `plain()` in
 > `core/tomlio.py`, beside `read_toml`, recursively strips tomlkit's wrapper
@@ -156,15 +156,18 @@ No deprecation window — it has no consumers. `tests/test_share_readme_markers.
 has two tests naming it directly (`test_share_save_writes_pypi_link_from_config`,
 `test_share_save_without_pypi_config_omits_the_link`); they go with it.
 
-## Stage 4 — the default subscription (LAST — blocked on the feed being live)
+## Stage 4 — the default subscription — **LANDED**
 
-> **Do not land this before the curated feed deploys.** It writes a default
-> subscription to `going-haywire.github.io/marketplace/stable/marketplace.toml`.
-> Until that URL resolves, every fresh install's first refresh gets
-> `RefreshOutcome.UNAVAILABLE` on that source with **no cached body to fall back
-> on** — the HTTP cache is populated on success only. Every new user would see a
-> permanently unavailable source with no way to know it is expected. It is a
-> twenty-line change; make it the final commit of the whole effort.
+> **Unblocked and landed 2026-08-29.** The gate was that the curated feed had to
+> be live first — a default subscription to a URL that 404s gives every fresh
+> install a `RefreshOutcome.UNAVAILABLE` source with no cached body to fall back
+> on, and nothing tells the user it is expected.
+>
+> Verified against the live feed before wiring it in: all six published URLs
+> return 200; `stable` and `latest` carry `haybale-visiongraph==0.0.38` while
+> `edge` carries the bare name; every row parses with the consumer's own
+> `parse_global_marketplace`; `name`/`version` are exactly `str`; and no row
+> leaks the cache-only `via`/`last_seen`/`stale` fields.
 
 `ensure_marketplace_config()`
 (`barn/haybale-marketplace/haybale_marketplace/config.py:24`)
@@ -203,7 +206,7 @@ What this repo needs to know about it:
   change reaches it only after a release. Build it against the fixed generator's
   behaviour, not the current one.
 
-## Stage 6 — docs — **PARTIALLY LANDED**
+## Stage 6 — docs — **LANDED**
 
 Done, in `a446ec07` and `c8599d00`:
 
@@ -214,12 +217,14 @@ Done, in `a446ec07` and `c8599d00`:
   have rebuilt exactly what Stage 3 removed.
 - `docs/guides/sharing-libraries.md` — `distribute` and the one-coordinate rule.
 
-Still blocked, because they describe things that do not exist yet:
+Done with Stage 4, now that the things they describe exist:
 
-- `docs/guides/subscribing-to-marketplaces.md` — the three channels and their
-  URLs. Needs Stage 5's first deploy.
-- `docs/reference/files/marketplace-toml.md` — the new default subscriptions.
-  Needs Stage 4.
+- `docs/guides/subscribing-to-marketplaces.md` — a new §1.0 covering what a
+  fresh install already subscribes to, the three channels and what each proves,
+  how to switch by editing the file, the one-channel-at-a-time rule, the
+  archives, and what being listed does *not* mean.
+- `docs/reference/files/marketplace-toml.md` — the default file now has two
+  subscriptions and is written from a text template so its comments survive.
 - [glossary.md](../../reference/glossary.md) — already written during the
   inquisition. Re-read it after Stage 3; the `distribute` and
   *one coordinate per version* entries describe behaviour that lands there.
@@ -227,27 +232,25 @@ Still blocked, because they describe things that do not exist yet:
 ## Sequencing
 
 ```text
-Stage 1   LANDED  96532c13  parse-boundary normalisation + 10 tests
-Stage 2   LANDED  c8599d00  ─┐ one commit: install_spec names the exact
-Stage 3   LANDED  c8599d00  ─┘ version, in both writers
-Stage 6   PARTIAL a446ec07  the half that describes what now exists
-                 ↓
-Stage 5   separate session, separate repo — first deploy
-                 ↓
-Stage 4   LAST. Blocked until the curated feed URLs resolve.
-          Stage 6's other half unblocks with it.
+Stage 1   LANDED  96532c13  parse-boundary normalisation
+Stage 2   LANDED  c8599d00  ─┐ install_spec names the exact version,
+Stage 3   LANDED  c8599d00  ─┘ in both writers
+          LANDED  4b841ba8  docs staged from new dirs; one URL per README block
+Stage 5   LANDED            separate repo, first tag published 2026-08-29
+Stage 4   LANDED            default = official feed + curated stable
+Stage 6   LANDED            reference + all three guides
 ```
 
-Open in this repo: nothing. The next move is Stage 5, in its own session, from
-`2026-08-28-marketplace-repo-buildout.md`.
+**The plan is complete.** `haybale-visiongraph 0.0.38` is published to PyPI and
+carried by all three channels.
 
-Open elsewhere: the `haybale-visiongraph` repo still declares
-`pypi_marketplace_url`, still deploys a hand-written feed to Pages, and its
-committed `marketstall.toml` is still the corrupt one. Four steps —
-swap the key for `distribute = "pypi"`, delete the `deploy-feed` job, re-run
-`share`, delete the deployed file — and that repo matches the new model. Its
-`publish.yml` already publishes to PyPI via a Trusted Publisher, so nothing
-else there needs building.
+Remaining, and outside this repo:
+
+- The stale `going-haywire.github.io/haybale-visiongraph/marketplace.toml` is
+  still served and no longer updated. Deleting that `gh-pages` branch needs a
+  push.
+- The curated repo's own follow-ups live in its README and issue tracker, not
+  here.
 
 Stages 1, 2 and 3 are independent of the new repo and can land in any order;
 each is worth doing on its own merits regardless of whether the curated

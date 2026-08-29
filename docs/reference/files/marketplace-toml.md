@@ -45,7 +45,12 @@ reference further stalls, a stall body contains only `[[haybales]]`.
 ```toml
 # ~/.haywire/db/haybale_marketplace/marketplace.toml
 # What this user subscribes to. Hand-editable — this is the recovery path when
-# a source misbehaves. Created with the official feed on first run.
+# a source misbehaves, and the only way to change which curated channel you
+# follow. Created on first run with TWO subscriptions: the official feed
+# (below) and the curated catalogue's `stable` channel, plus commented-out
+# `latest` and `edge` urls and a line on what each channel proves. It is
+# written from a text template rather than serialized from a dict, so those
+# comments survive — see `haybale_marketplace/config.py`.
 
 # ── an aggregator's catalog ─────────────────────────────────────────────────
 # Its body is read one level deep: the [[stalls]] URLs it lists are fetched,
