@@ -246,6 +246,27 @@ Expected: `Release version check passed`. This is the same gate both publish
 workflows run against the tag, so a failure here is a failure that would
 otherwise surface only after tagging and pushing. Stop and fix if it fails.
 
+Then regenerate the per-library docs. This is a **different** thing from the bake
+below, and the two are easy to confuse:
+
+| | `haywire docs --all` (this step) | `scripts/bake_docs.py` (next step) |
+| --- | --- | --- |
+| reads | live component registrations | the hand-written `docs/` site |
+| writes | `barn/*/README.md`, `<lib>/{OVERVIEW,QUICKREF}.md`, `<lib>/docs/*.md` | `_baked_docs/` |
+| committed? | **yes** — part of the release commit | no, gitignored |
+
+```bash
+uv run haywire docs --all
+```
+
+Expected: a `Total coverage gaps: N` summary. The gap lines are advisory (components
+with no docstring) and do **not** block a release.
+
+It **MUST run after the bump**: the generator stamps each index with the version it
+reads from `haybale.toml` at generation time, so running it before the bump stamps the
+OLD version. Nothing else regenerates these files and no CI job checks them, so a
+skipped step here is invisible until someone runs the generator by hand.
+
 Then bake the docs. `scripts/bake_docs.py` regenerates the gitignored
 `packages/haywire-core/src/haywire/_baked_docs/` tree that the haywire-core wheel
 force-includes as `haywire/docs`. The bake rewrites source-file links to
@@ -267,6 +288,7 @@ Then stage the bumped files plus the freshly-locked file and commit:
 
 ```bash
 git add -u
+git add barn packages          # picks up NEW generated doc files
 git commit -m "chore: release v<NEW_VERSION>"
 ```
 
@@ -278,9 +300,16 @@ workspace `exclude`), git aborts the whole `git add` with
 `pathspec '…' is beyond a symbolic link` and **nothing gets staged** — the commit then
 silently fails with "no changes added." `git add -u` sidesteps this entirely: it only
 touches files git already tracks, and the visiongraph symlink is untracked, so it's
-never considered. This is safe because Step 2 guaranteed a clean tree, so the only
-tracked modifications are this release's 10 `pyproject.toml`s, 9 `haybale.toml`s
-(8 barn libraries + framework-owned `builtin`), and `uv.lock`.
+never considered.
+
+`-u` alone is not sufficient, though: it ignores untracked files, and the doc step
+writes a NEW file whenever a component is added or renamed — a rename being a delete
+plus an add, `-u` catches the delete and drops the add, committing a half-applied
+rename. Hence the second line, which passes directories rather than globs so the
+shell never expands them.
+
+Step 2 guaranteed a clean tree, so everything staged is this release's own work: the
+version bumps, `uv.lock`, and the regenerated per-library docs.
 
 Single-line subject, no body. The commit subject is exactly that — `chore: release v`
 prefix followed by the version. The CI workflow doesn't care about the message, but
