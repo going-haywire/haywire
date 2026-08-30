@@ -285,18 +285,17 @@ def test_pins_stay_clickable_under_the_resize_grips(page: Page, harness):
     assert pins, "fixture node exposes no real pins — nothing to overlap"
 
     for pin in pins:
-        page.mouse.move(pin["x"], pin["y"])   # hover first: the handover is on mousemove
+        page.mouse.move(pin["x"], pin["y"])  # hover first: the handover is on mousemove
         page.mouse.down()
         page.mouse.up()
         page.wait_for_timeout(120)
 
     seen = page.evaluate("() => window.__hwSeen")
-    assert seen and all(t == "pin" for t in seen), (
+    assert seen, f"no mousedown reached any target for pins {[p['id'] for p in pins]}"
+    assert all(t == "pin" for t in seen), (
         f"a grip swallowed a pin's mousedown: {seen} for pins "
         f"{[p['id'] for p in pins]} — connections cannot be drawn from those pins"
     )
 
     # And the node must not have been resized by any of that.
-    assert _slot_style(page, nid) == "", (
-        f"clicking a pin started a resize: {_slot_style(page, nid)!r}"
-    )
+    assert _slot_style(page, nid) == "", f"clicking a pin started a resize: {_slot_style(page, nid)!r}"
