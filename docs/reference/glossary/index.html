@@ -5474,9 +5474,34 @@
 <td>Dense layout, settings layout</td>
 </tr>
 <tr>
+<td><strong>NodeDetail</strong></td>
+<td>The density rank of an uncollapsed node card — <code>COMPACT</code> (pins) &lt; <code>STANDARD</code> (+ inline widgets) &lt; <code>FULL</code> (+ port labels, diagnostics detail). A <strong>StrEnum</strong> with a <code>rank</code> property and an <code>includes()</code> predicate, twinning <code>AccessTier</code>: wire values stay strings so adding a rank later renumbers nothing, and <code>coerce</code> degrades to the default rather than raising on the render path. Carried by <code>NodeProperties.detail</code> through the framework &lt; graph &lt; node chain. A <strong>construction</strong> gate, not a CSS one — omitted elements are never built.</td>
+<td>detail level, LOD (LOD is the separate zoom axis — see <strong>LOD</strong>)</td>
+</tr>
+<tr>
+<td><strong>Node visibility</strong></td>
+<td>The resolved answer to "what does this card draw", returned by <code>NodeSkin.show_of(wrapper)</code>. Composes <strong>Node collapse</strong>, <strong>NodeDetail</strong>, <strong>Group collapse</strong> and link state into one value object exposing intent-named properties (<code>show.label</code>, <code>show.widget</code>, <code>show.diagnostics</code>), a port filter (<code>show.ports(node)</code>), and the raw axes (<code>show.detail</code>, <code>show.collapsed</code>) as an escape hatch. Skins ask it what to draw and never compare ranks themselves, so the rank→element mapping has exactly one owner. Properties, never methods: <code>if show.label:</code> on a method is silently always true.</td>
+<td>show object, detail resolver</td>
+</tr>
+<tr>
+<td><strong>LOD</strong></td>
+<td>Level of detail on the <strong>zoom</strong> axis only: <code>pan.vue</code> stamps <code>data-lod-level</code> (<code>raw</code> / <code>low</code> / <code>medium</code> / <code>high</code>) on the pan container from the current zoom, and CSS hides <code>.zoom-pan-lod1..3</code> accordingly. Decides what is <strong>painted</strong> of what already exists; <strong>NodeDetail</strong> decides what exists. The two do not compose — no rank arithmetic between them.</td>
+<td>detail (reserve for NodeDetail)</td>
+</tr>
+<tr>
+<td><strong>Node collapse</strong></td>
+<td>The per-node fold of the whole card down to its minimum — card, title, badges, pins of linked ports, and the root <strong>Ghost pins</strong>. Carried by <code>NodeProperties.collapsed</code>, resolved through <strong>graph &lt; node</strong> — two tiers, not three: a studio-wide fold would open every graph showing nothing, and the graph tier already persists the answer in the <code>.haywire</code> file. Contrast <strong>NodeDetail</strong>, which does carry a framework tier. A <strong>construction</strong> gate: a collapsed node does not build the omitted elements, it does not merely hide them. Distinct from <strong>Group collapse</strong>; never say "collapsed" unqualified when both are in scope.</td>
+<td>node fold, minimize</td>
+</tr>
+<tr>
+<td><strong>Group collapse</strong></td>
+<td>The fold of one <strong>port group</strong> inside a node card, stored as the <code>expanded</code> boolean on the group's own control port and applied by <code>get_visible_ports()</code> via <code>_is_any_ancestor_collapsed</code>. Hides that group's child ports only; a hidden child that is linked still renders an ordinary Pin in the card header. Distinct from <strong>Node collapse</strong>.</td>
+<td>collapsed group (acceptable, but qualify it)</td>
+</tr>
+<tr>
 <td><strong>Ghost pin</strong></td>
-<td>The visual indicator (low-opacity colour via <code>--hw-ghost-pin</code>) on a port that is unconnected; rendered by node skins</td>
-<td>Unconnected pin, empty pin</td>
+<td>An always-present <strong>drop affordance</strong> on a node card — the <code>root_in</code> / <code>root_out</code> anchors rendered by node skins in <code>--hw-ghost-pin</code> (low-opacity, dashed) and carrying <code>data-pin-flow-type="ghost"</code>. Its id names <strong>no entry in <code>node.ports</code></strong>, which is why the canvas excludes it from structural pin detection (no pin menu) — see <a href="../../components/skins/skin-canon/#ghost-pins-are-excluded-from-pin-detection">skin-canon</a>. A ghost pin is never "linked": it stands in for the node as a whole, not for a port. A port hidden by a collapsed group renders an ordinary <strong>Pin</strong> in the card header, not a ghost.</td>
+<td>Unconnected pin, empty pin (a ghost is not a port at all); do <strong>not</strong> call a hidden-but-connected port's header pin a ghost pin</td>
 </tr>
 </tbody>
 </table>

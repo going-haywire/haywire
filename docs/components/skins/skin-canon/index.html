@@ -954,6 +954,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#respecting-the-nodes-detail-and-collapse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Respecting the node's detail and collapse
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Respecting the node&#39;s detail and collapse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ask-the-resolver-never-the-rank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ask the resolver, never the rank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#these-are-construction-gates-not-css" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        These are construction gates, not CSS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ignoring-it-is-safe-and-measurable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ignoring it is safe, and measurable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#respecting-the-nodes-layout-direction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3327,6 +3377,56 @@
 </li>
       
         <li class="md-nav__item">
+  <a href="#respecting-the-nodes-detail-and-collapse" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Respecting the node's detail and collapse
+      
+    </span>
+  </a>
+  
+    <nav class="md-nav" aria-label="Respecting the node&#39;s detail and collapse">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#ask-the-resolver-never-the-rank" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ask the resolver, never the rank
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#these-are-construction-gates-not-css" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        These are construction gates, not CSS
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#ignoring-it-is-safe-and-measurable" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Ignoring it is safe, and measurable
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
+</li>
+      
+        <li class="md-nav__item">
   <a href="#respecting-the-nodes-layout-direction" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3523,31 +3623,94 @@ intrinsic sizing produces from the card subtree. Measuring it in <code>auto</cod
 the clamp rather than the content. See <code>.insights/feedback_css_containment_node_floor.md</code>.</p>
 </blockquote>
 <h3 id="do-not-style-widget-container">Do not style <code>.widget-container</code><a class="headerlink" href="#do-not-style-widget-container" title="Permanent link">&para;</a></h3>
-<p>Inline-widget reveal is owned by the framework, not by the skin. <code>canvas.vue</code> declares:</p>
-<div class="language-css highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="o">[</span><span class="nt">data-node-id</span><span class="o">]</span><span class="w"> </span><span class="p">.</span><span class="nc">widget-container</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="w">    </span><span class="k">opacity</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
-</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="w">    </span><span class="k">transition</span><span class="p">:</span><span class="w"> </span><span class="k">opacity</span><span class="w"> </span><span class="mf">0.3</span><span class="kt">s</span><span class="w"> </span><span class="kc">ease</span><span class="p">,</span><span class="w"> </span><span class="k">max-height</span><span class="w"> </span><span class="mf">0.3</span><span class="kt">s</span><span class="w"> </span><span class="kc">ease</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
-</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="w">    </span><span class="k">max-height</span><span class="p">:</span><span class="w"> </span><span class="mi">0</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
-</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="w">    </span><span class="k">overflow</span><span class="p">:</span><span class="w"> </span><span class="kc">hidden</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
-</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="p">}</span>
-</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a>
-</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="o">[</span><span class="nt">data-node-id</span><span class="o">]</span><span class="p">.</span><span class="nc">node-selected</span><span class="w"> </span><span class="p">.</span><span class="nc">widget-container</span><span class="w"> </span><span class="p">{</span>
-</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="w">    </span><span class="k">opacity</span><span class="p">:</span><span class="w"> </span><span class="mi">1</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
-</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="w">    </span><span class="k">max-height</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="kt">px</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
-</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="p">}</span>
+<p>Inline-widget sizing is owned by the framework, not by the skin. <code>canvas.vue</code> declares:</p>
+<div class="language-css highlight"><pre><span></span><code><span id="__span-2-1"><a id="__codelineno-2-1" name="__codelineno-2-1" href="#__codelineno-2-1"></a><span class="c">/* A widget that EXISTS is visible. Whether it exists is decided in Python, by</span>
+</span><span id="__span-2-2"><a id="__codelineno-2-2" name="__codelineno-2-2" href="#__codelineno-2-2"></a><span class="c">   the node&#39;s NodeDetail rank (ADR 0032) — STANDARD and above build widgets,</span>
+</span><span id="__span-2-3"><a id="__codelineno-2-3" name="__codelineno-2-3" href="#__codelineno-2-3"></a><span class="c">   COMPACT does not.</span>
+</span><span id="__span-2-4"><a id="__codelineno-2-4" name="__codelineno-2-4" href="#__codelineno-2-4"></a><span class="c"> *</span>
+</span><span id="__span-2-5"><a id="__codelineno-2-5" name="__codelineno-2-5" href="#__codelineno-2-5"></a><span class="c"> * This used to be a reveal: opacity 0 / max-height 0 by default, restored on</span>
+</span><span id="__span-2-6"><a id="__codelineno-2-6" name="__codelineno-2-6" href="#__codelineno-2-6"></a><span class="c"> * `.node-selected`, so a widget was built for every node and shown only for</span>
+</span><span id="__span-2-7"><a id="__codelineno-2-7" name="__codelineno-2-7" href="#__codelineno-2-7"></a><span class="c"> * the selected one. Under a construction gate that second authority is worse</span>
+</span><span id="__span-2-8"><a id="__codelineno-2-8" name="__codelineno-2-8" href="#__codelineno-2-8"></a><span class="c"> * than redundant — it would hide a widget the rank had just decided to draw,</span>
+</span><span id="__span-2-9"><a id="__codelineno-2-9" name="__codelineno-2-9" href="#__codelineno-2-9"></a><span class="c"> * with no error and nothing to inspect. The transition went with it: a rank</span>
+</span><span id="__span-2-10"><a id="__codelineno-2-10" name="__codelineno-2-10" href="#__codelineno-2-10"></a><span class="c"> * change rebuilds the card, and a CSS transition does not run on a freshly</span>
+</span><span id="__span-2-11"><a id="__codelineno-2-11" name="__codelineno-2-11" href="#__codelineno-2-11"></a><span class="c"> * mounted element, so it could never have fired.</span>
+</span><span id="__span-2-12"><a id="__codelineno-2-12" name="__codelineno-2-12" href="#__codelineno-2-12"></a><span class="c"> *</span>
+</span><span id="__span-2-13"><a id="__codelineno-2-13" name="__codelineno-2-13" href="#__codelineno-2-13"></a><span class="c"> * What survives verbatim is the SIZE contract: the 200px default ceiling and</span>
+</span><span id="__span-2-14"><a id="__codelineno-2-14" name="__codelineno-2-14" href="#__codelineno-2-14"></a><span class="c"> * the `overflow: hidden` that enforces it. */</span>
+</span><span id="__span-2-15"><a id="__codelineno-2-15" name="__codelineno-2-15" href="#__codelineno-2-15"></a><span class="o">[</span><span class="nt">data-node-id</span><span class="o">]</span><span class="w"> </span><span class="p">.</span><span class="nc">widget-container</span><span class="w"> </span><span class="p">{</span>
+</span><span id="__span-2-16"><a id="__codelineno-2-16" name="__codelineno-2-16" href="#__codelineno-2-16"></a><span class="w">    </span><span class="k">max-height</span><span class="p">:</span><span class="w"> </span><span class="mi">200</span><span class="kt">px</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
+</span><span id="__span-2-17"><a id="__codelineno-2-17" name="__codelineno-2-17" href="#__codelineno-2-17"></a><span class="w">    </span><span class="k">overflow</span><span class="p">:</span><span class="w"> </span><span class="kc">hidden</span><span class="w"> </span><span class="cp">!important</span><span class="p">;</span>
+</span><span id="__span-2-18"><a id="__codelineno-2-18" name="__codelineno-2-18" href="#__codelineno-2-18"></a><span class="p">}</span>
 </span></code></pre></div>
-<p>Two consequences for skin authors:</p>
-<ol>
-<li>A skin's own <code>opacity</code> / <code>max-height</code> rules on <code>.widget-container</code> are silently
-   outranked. A <code>:hover</code>-based reveal in a skin's stylesheet simply never fires — the
-   framework reveals on <strong><code>.node-selected</code></strong>, which it puts on the <code>[data-node-id]</code>
-   container (an <em>ancestor</em> of the card), not on the card itself.</li>
-<li><code>!important</code> on the <code>transition</code> shorthand replaces the whole property, so even
-   properties the framework does not set — <code>transform</code>, say — stop animating.</li>
-</ol>
-<p>Per-widget size and reveal ceilings are declared on the widget instead, through
-<code>@widget(min_width=, min_height=, max_height=)</code>. See
+<p>A skin's own <code>max-height</code> / <code>overflow</code> rules on <code>.widget-container</code> are silently
+outranked by those <code>!important</code> declarations. Per-widget ceilings are declared on the
+widget instead, through <code>@widget(min_width=, min_height=, max_height=)</code>. See
 <a href="../../widgets/widget-canon/">widget-canon.md</a>.</p>
+<p><strong>Visibility is not decided here.</strong> A widget that exists is visible; whether it exists is
+decided in Python by the node's <code>NodeDetail</code> rank (see below). Until ADR 0032 this block
+was a <em>reveal</em> — every node built its widgets and only the <strong>selected</strong> one showed them,
+via <code>.node-selected</code> on the <code>[data-node-id]</code> container. If you find a skin or a doc still
+describing that, it is stale.</p>
+<h2 id="respecting-the-nodes-detail-and-collapse">Respecting the node's detail and collapse<a class="headerlink" href="#respecting-the-nodes-detail-and-collapse" title="Permanent link">&para;</a></h2>
+<p>A card's density is not fixed either. Two axes decide how much of a node is drawn, both
+resolved per node through the settings tier chain, exactly like <code>skin</code> and
+<code>layout_direction</code>. See <a href="../../../adr/0032-node-detail-and-collapse/">ADR 0032</a>.</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>tiers</th>
+<th>what it says</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Node collapse</strong> (<code>props.collapsed</code>)</td>
+<td>graph &lt; node</td>
+<td>fold to title, badges and the pins of <em>linked</em> ports</td>
+</tr>
+<tr>
+<td><strong>NodeDetail</strong> (<code>props.detail</code>)</td>
+<td>framework &lt; graph &lt; node</td>
+<td><code>COMPACT</code> (pins) &lt; <code>STANDARD</code> (+ widgets) &lt; <code>FULL</code> (+ labels, diagnostics detail)</td>
+</tr>
+</tbody>
+</table>
+<h3 id="ask-the-resolver-never-the-rank">Ask the resolver, never the rank<a class="headerlink" href="#ask-the-resolver-never-the-rank" title="Permanent link">&para;</a></h3>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">main_card</span><span class="p">:</span> <span class="n">ui</span><span class="o">.</span><span class="n">card</span><span class="p">,</span> <span class="n">wrapper</span><span class="p">:</span> <span class="n">NodeWrapper</span><span class="p">):</span>
+</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">show</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">show_of</span><span class="p">(</span><span class="n">wrapper</span><span class="p">)</span>          <span class="c1"># NodeSkin helper</span>
+</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>
+</span><span id="__span-3-4"><a id="__codelineno-3-4" name="__codelineno-3-4" href="#__codelineno-3-4"></a>    <span class="k">for</span> <span class="n">port</span> <span class="ow">in</span> <span class="n">show</span><span class="o">.</span><span class="n">ports</span><span class="p">(</span><span class="n">node</span><span class="p">):</span>
+</span><span id="__span-3-5"><a id="__codelineno-3-5" name="__codelineno-3-5" href="#__codelineno-3-5"></a>        <span class="o">...</span>
+</span><span id="__span-3-6"><a id="__codelineno-3-6" name="__codelineno-3-6" href="#__codelineno-3-6"></a>    <span class="k">if</span> <span class="n">show</span><span class="o">.</span><span class="n">label</span><span class="p">:</span>
+</span><span id="__span-3-7"><a id="__codelineno-3-7" name="__codelineno-3-7" href="#__codelineno-3-7"></a>        <span class="n">ui</span><span class="o">.</span><span class="n">label</span><span class="p">(</span><span class="n">port</span><span class="o">.</span><span class="n">label</span><span class="p">)</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;text-xs zoom-pan-lod2&quot;</span><span class="p">)</span>
+</span></code></pre></div>
+<p><code>show.label</code>, <code>show.widget</code> and <code>show.diagnostics</code> are <strong>properties, not methods</strong> —
+<code>if show.label():</code> would be a bug you cannot see, since a bound method is always truthy.
+<code>show.detail</code> and <code>show.collapsed</code> are there for anything the vocabulary does not cover.</p>
+<p>The point of asking rather than comparing is that the rank→element mapping has one owner.
+A skin that writes <code>if detail == NodeDetail.FULL</code> has copied policy that will drift the
+next time a tier moves. Standalone skins (not subclassing <code>NodeSkin</code>) call
+<code>resolve_node_visibility(wrapper)</code> from <code>haywire.ui.skin.visibility</code> directly.</p>
+<h3 id="these-are-construction-gates-not-css">These are construction gates, not CSS<a class="headerlink" href="#these-are-construction-gates-not-css" title="Permanent link">&para;</a></h3>
+<p>Do not build what the rank excludes. Hiding it instead defeats the entire purpose:
+per <a href="../../../adr/0006-node-render-performance/">ADR 0006</a> the cost driver is element
+<em>count</em> — every element is built on the Python side and re-walked by NiceGUI on every
+page update, whether or not it is painted. This is the one hard rule of the contract.</p>
+<p>It is also what separates these axes from <strong>LOD</strong>, which is zoom-driven, lives entirely
+in CSS, and decides only what is <em>painted</em> of what already exists. The two do not
+compose and there is no arithmetic between them — keep tagging elements
+<code>zoom-pan-lod1..3</code> as before.</p>
+<h3 id="ignoring-it-is-safe-and-measurable">Ignoring it is safe, and measurable<a class="headerlink" href="#ignoring-it-is-safe-and-measurable" title="Permanent link">&para;</a></h3>
+<p>Nothing enforces this. A skin that never calls <code>show_of</code> renders everything at every
+rank: slower, never broken — the same posture <code>render_pin</code> takes for <code>LayoutDirection</code>.
+The cost is that graph-level collapse silently does nothing for nodes using that skin, so
+a user pulling the lever on a 300-node graph gets a partial result with no explanation.</p>
+<p>Two skins ignore the axes <strong>on purpose</strong>: the error skin (a failed render must show its
+failure at any density) and the reroute skin (already smaller than a folded card would
+be). <code>tests/ui/skin/test_node_visibility.py</code> holds that exemption list; in-repo skins not
+on it must consult the resolver.</p>
 <h2 id="respecting-the-nodes-layout-direction">Respecting the node's layout direction<a class="headerlink" href="#respecting-the-nodes-layout-direction" title="Permanent link">&para;</a></h2>
 <p>A node's flow direction is <strong>not</strong> fixed left-to-right. <code>LayoutDirection</code> resolves per
 node through the framework &lt; graph &lt; node chain, exactly like <code>skin</code> does, and takes four
@@ -3557,9 +3720,9 @@ is purely how a card is drawn.</p>
 <p><code>SkinFactory</code> caches <strong>one skin instance per registry key</strong>, shared across every node in
 every open graph. A skin therefore has no per-node state, and direction must be read off
 the wrapper on each render:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-3-1"><a id="__codelineno-3-1" name="__codelineno-3-1" href="#__codelineno-3-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">main_card</span><span class="p">:</span> <span class="n">ui</span><span class="o">.</span><span class="n">card</span><span class="p">,</span> <span class="n">wrapper</span><span class="p">:</span> <span class="n">NodeWrapper</span><span class="p">):</span>
-</span><span id="__span-3-2"><a id="__codelineno-3-2" name="__codelineno-3-2" href="#__codelineno-3-2"></a>    <span class="n">layout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_of</span><span class="p">(</span><span class="n">wrapper</span><span class="p">)</span>          <span class="c1"># NodeSkin helper</span>
-</span><span id="__span-3-3"><a id="__codelineno-3-3" name="__codelineno-3-3" href="#__codelineno-3-3"></a>    <span class="o">...</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="k">def</span><span class="w"> </span><span class="nf">render</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">main_card</span><span class="p">:</span> <span class="n">ui</span><span class="o">.</span><span class="n">card</span><span class="p">,</span> <span class="n">wrapper</span><span class="p">:</span> <span class="n">NodeWrapper</span><span class="p">):</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>    <span class="n">layout</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">layout_of</span><span class="p">(</span><span class="n">wrapper</span><span class="p">)</span>          <span class="c1"># NodeSkin helper</span>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>    <span class="o">...</span>
 </span></code></pre></div>
 <p>Standalone skins (those not subclassing <code>NodeSkin</code>) call
 <code>resolve_layout_direction(wrapper)</code> from <code>haywire.ui.skin.pin_render</code> directly — or
@@ -3568,7 +3731,7 @@ override, which is what <code>RerouteSkin</code> does: a dot on a wire should fo
 <p>Both resolvers degrade to <code>l2r</code> rather than raising. They run on the render path, so a
 stale or unrecognised stored value must never take a card down.</p>
 <h3 id="pass-it-to-render_pin-and-let-it-derive-both-halves">Pass it to <code>render_pin</code> — and let it derive both halves<a class="headerlink" href="#pass-it-to-render_pin-and-let-it-derive-both-halves" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">render_pin</span><span class="p">(</span><span class="n">port</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">layout</span><span class="p">,</span> <span class="n">pin_gutter</span><span class="o">=...</span><span class="p">,</span> <span class="n">card_padding</span><span class="o">=...</span><span class="p">,</span> <span class="n">pin_protrusion</span><span class="o">=...</span><span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a><span class="n">render_pin</span><span class="p">(</span><span class="n">port</span><span class="p">,</span> <span class="n">node_id</span><span class="p">,</span> <span class="n">layout</span><span class="o">=</span><span class="n">layout</span><span class="p">,</span> <span class="n">pin_gutter</span><span class="o">=...</span><span class="p">,</span> <span class="n">card_padding</span><span class="o">=...</span><span class="p">,</span> <span class="n">pin_protrusion</span><span class="o">=...</span><span class="p">)</span>
 </span></code></pre></div>
 <p><code>render_pin</code> derives <strong>both</strong> the pin's CSS side and its <code>data-pin-dir-x/y</code> vector from
 that one argument. Never compute them separately: the vector is what the edge layer reads
@@ -3590,9 +3753,10 @@ not. Pins move to the card's top and bottom edges, where there is no room for a 
 an inline widget, so <code>NodeSkin.render_pin_strip()</code> lays out <strong>bare pins</strong> and inlet/outlet
 values are reached through the properties editor instead. Consequences:</p>
 <ul>
-<li>Port labels and inline widgets do not render for inlets/outlets. <code>show_labels</code> still
-  governs config labels.</li>
-<li><code>show_tooltips</code> matters more here — a tooltip is the only thing identifying a pin.</li>
+<li>Port labels and inline widgets do not render for inlets/outlets. The node's
+  <code>NodeDetail</code> rank still governs config labels.</li>
+<li>Tooltips matter more here — a tooltip is the only thing identifying a pin. They are
+  unconditional since ADR 0032, for exactly this reason.</li>
 <li><strong>Groups are skipped.</strong> A collapsible hierarchy has no meaning in a flat strip, so group
   control ports and everything nested under one are left out of the strip entirely.</li>
 <li>Config ports are unaffected in every direction: they carry no pin, so they have no edge
@@ -3651,7 +3815,7 @@ to reinterpret against.</p>
 <h2 id="context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address">Context menus: <code>data-hw-menu-surface-id</code>, and what a skin cannot address<a class="headerlink" href="#context-menus-data-hw-menu-surface-id-and-what-a-skin-cannot-address" title="Permanent link">&para;</a></h2>
 <p>A skin can add its own right-click menu on any element it renders, by writing one DOM
 attribute:</p>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-5-1"><a id="__codelineno-5-1" name="__codelineno-5-1" href="#__codelineno-5-1"></a>data-hw-menu-surface-id=&quot;&lt;your-surface-id&gt;&quot;
+<div class="language-text highlight"><pre><span></span><code><span id="__span-6-1"><a id="__codelineno-6-1" name="__codelineno-6-1" href="#__codelineno-6-1"></a>data-hw-menu-surface-id=&quot;&lt;your-surface-id&gt;&quot;
 </span></code></pre></div>
 <p>The canvas detects this declaratively (<code>closest('[data-hw-menu-surface-id]')</code>, so the
 <em>innermost</em> annotated ancestor wins if you nest them) and fires a <code>ContextMenuSurfaceEvent</code>
