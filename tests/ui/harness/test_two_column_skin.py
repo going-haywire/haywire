@@ -85,6 +85,23 @@ def test_the_fixture_really_uses_the_two_column_skin(page: Page, harness) -> Non
     assert _column_headings_in_order(page) == ["Inputs", "Outputs"]
 
 
+def test_the_fixture_renders_exactly_one_card(page: Page, harness) -> None:
+    """The other half of the premise: ONE card, so the helpers can trust their scope.
+
+    Every helper queries `.split-node-card` unscoped, so a duplicate card
+    surfaces as a wrong column ORDER (`['Inputs', 'Inputs', 'Outputs',
+    'Outputs']`) and points at the skin instead of at the duplicate. Asserting
+    the count directly keeps the diagnosis on the real cause — `add_node_visual`
+    used to orphan a rival card on a second NODE_ADDED.
+    """
+    _open(page)
+    assert page.evaluate("() => document.querySelectorAll('.split-node-card').length") == 1
+    node_ids = page.evaluate(
+        "() => [...document.querySelectorAll('[data-node-id]')].map(e => e.dataset.nodeId)"
+    )
+    assert len(set(node_ids)) == 1, f"one fixture node expected, saw {sorted(set(node_ids))}"
+
+
 def test_l2r_puts_inputs_on_the_left(page: Page, harness) -> None:
     _open(page)
     _switch(page, "set-l2r")

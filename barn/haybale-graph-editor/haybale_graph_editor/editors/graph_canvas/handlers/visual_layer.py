@@ -222,10 +222,30 @@ class VisualLayerHandlers:
     # -------------------------------------------------------------------------
 
     def add_node_visual(self, node: BaseNode, position: Tuple[float, float] = (100, 100)) -> bool:
-        """Create and register a UINode for the given node."""
+        """Create and register a UINode for the given node.
+
+        Idempotent per node id, mirroring ``remove_node_visual``'s guard.
+        Overwriting ``node_panels[node_id]`` would drop only the PYTHON
+        reference — the first UINode's container stays mounted in
+        ``canvas_vue``, orphaning a card that duplicates its ``data-node-id``
+        and every pin uuid, so ``getElementById`` resolves edges to whichever
+        copy comes first.
+
+        Warns rather than returning quietly: a second add is not expected,
+        since ``sync_with_graph`` already synthesises NODE_ADDED for every node.
+        """
         x, y = position
         node_id = node.node_id
         logger.debug(f"Adding node visual for {node_id} at position ({x}, {y})")
+
+        existing = self.node_panels.get(node_id)
+        if existing is not None:
+            logger.warning(
+                f"⚠️ Node visual for {node_id} already exists; refreshing in place "
+                "rather than mounting a duplicate"
+            )
+            self.refresh_node_visual(existing, ChangeReason.NODE_ADDED)
+            return True
 
         wrapper = self.graph.get_node_wrapper(node_id)
         if not wrapper:
