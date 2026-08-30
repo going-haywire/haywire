@@ -32,6 +32,13 @@ class GraphActions(Protocol):
     def paste_at_click(self) -> None: ...
     def focus_on_graph(self) -> None: ...
 
+    # ADR 0032. The counterpart to the graph-tier card settings: mirrors are
+    # "unset tracks, set ignores", so a graph whose nodes have been folded or
+    # re-ranked by hand can never have its tier reassert over them again
+    # without this. Graph-wide, unlike the selection-scoped reset on the node
+    # menu.
+    def clear_node_card_overrides(self) -> int: ...
+
 
 class GraphContext(Surface):
     """Root of the canvas right-click menu."""

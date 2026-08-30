@@ -8,6 +8,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.pin_render import render_pin, add_pin_tooltip, resolve_layout_direction
+from haywire.ui.skin.visibility import NodeVisibility, resolve_node_visibility
 from haywire.ui import elements as hui
 from haywire.ui.utils import generate_pin_uuid
 
@@ -92,12 +93,26 @@ class NodeSkin(BaseSkin, ABC):
         """
         return resolve_layout_direction(wrapper)
 
+    def show_of(self, wrapper: NodeWrapper) -> NodeVisibility:
+        """Resolve what this node's card draws — collapse and detail together.
+
+        Ask the returned object rather than comparing ranks yourself: the
+        rank→element mapping has exactly one owner, so re-tiering later does
+        not touch this skin. See ADR 0032 and
+        ``haywire.ui.skin.visibility``.
+
+        Pure function of the wrapper, for the same reason as
+        :meth:`layout_of` — never store it on ``self``.
+        """
+        return resolve_node_visibility(wrapper)
+
     def render_port(
         self,
         port: DataPort,
         wrapper: NodeWrapper,
         widget_classes: str = "",
         layout: LayoutDirection | None = None,
+        show: NodeVisibility | None = None,
     ):
         """Render a port according to its port type.
 
@@ -105,10 +120,14 @@ class NodeSkin(BaseSkin, ABC):
         card edge (see :meth:`render_pin_strip`), not here — a bare pin has no
         room for the label/widget column this builds. Config ports are pinless
         and render identically in every direction.
+
+        ``show`` resolves from the wrapper when omitted, mirroring ``layout``.
+        Pass it when rendering many ports so the chain resolves once per card.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
+        show = self.show_of(wrapper) if show is None else show
         if port.is_config():
-            self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
+            self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2", show=show)
         elif port.is_inlet() or port.is_outlet():
             self._render_port_horizontal(
                 port,
@@ -116,6 +135,7 @@ class NodeSkin(BaseSkin, ABC):
                 side=layout.side_for(port),
                 layout=layout,
                 widget_classes="widget-container zoom-pan-lod2",
+                show=show,
             )
 
     def _render_port_horizontal(
@@ -126,6 +146,7 @@ class NodeSkin(BaseSkin, ABC):
         side: str,
         layout: LayoutDirection,
         widget_classes: str = "",
+        show: NodeVisibility | None = None,
     ):
         """Render a port as `pin column | content` (or the mirror of it).
 
@@ -135,7 +156,13 @@ class NodeSkin(BaseSkin, ABC):
         its ``PIN_GUTTER``-wide cell and ``overflow: visible`` lets it straddle
         the card edge. ``align-self: center`` on the content matches the pin, so
         label and widget share the pin's vertical center.
+
+        Below FULL the label is gone, so the content column takes the port's
+        tooltip: without it, identifying a widget would mean hovering the 20px
+        pin beside it rather than the thing you are looking at. The tooltip is
+        lazy, so an unhovered row pays nothing for it.
         """
+        show = self.show_of(wrapper) if show is None else show
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
         pin_first = side == "left"
         columns = f"{g}px 1fr" if pin_first else f"1fr {g}px"
@@ -169,11 +196,14 @@ class NodeSkin(BaseSkin, ABC):
                     f"grid-column: {content_column}; align-self: center; display: flex; "
                     f"flex-direction: column; {content_align} {content_margins} min-width: 0;"
                 )
-            ):
-                if self._ui_settings.show_labels:
+            ) as content:
+                if show.label:
                     ui.label(port.label).classes("text-xs zoom-pan-lod2")
-                if port.widget_key is not None and port.should_show_widget():
+                if show.widget and port.widget_key is not None and port.should_show_widget():
                     self.render_widget(port, wrapper.node_id, classes=widget_classes)
+
+            if not show.label:
+                add_pin_tooltip(content, port)
 
             if not pin_first:
                 self._render_pin(
@@ -197,8 +227,8 @@ class NodeSkin(BaseSkin, ABC):
 
         No labels and no widgets: a pin strip has no room for them, and the
         properties editor already exposes every inlet/outlet value. Tooltips
-        therefore carry the whole identification burden here — they stay wired
-        even though `_render_pin` makes them conditional on the setting.
+        therefore carry the whole identification burden here — which is part of
+        why ADR 0032 made them unconditional rather than a setting.
 
         ``ghost_for`` adds this direction's root ghost pin to the strip. The
         strip IS the card edge, which is the only place a ghost's outward offset
@@ -250,8 +280,15 @@ class NodeSkin(BaseSkin, ABC):
                     cell_style=f"flex: 0 0 auto; min-width: {w}px; text-align: center;",
                 )
 
-    def _render_config(self, port, wrapper: NodeWrapper, widget_classes: str = ""):
+    def _render_config(
+        self,
+        port,
+        wrapper: NodeWrapper,
+        widget_classes: str = "",
+        show: NodeVisibility | None = None,
+    ):
         """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
+        show = self.show_of(wrapper) if show is None else show
         indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
         with (
             ui.element("div")
@@ -261,15 +298,17 @@ class NodeSkin(BaseSkin, ABC):
                 f"padding-left: {indent}px; padding-right: {indent}px;"
             )
         ) as config_row:
-            if self._ui_settings.show_labels:
+            if show.label:
                 ui.label(port.label).classes("text-xs zoom-pan-lod2")
-            if port.widget_key is not None and port.should_show_widget():
+            if show.widget and port.widget_key is not None and port.should_show_widget():
                 self.render_widget(port, wrapper.node_id, classes=widget_classes)
 
         # Config ports render no pin, so they cannot carry a pin tooltip.
         # Attach the same label/description tooltip to the whole config row.
-        if self._ui_settings.show_tooltips:
-            add_pin_tooltip(config_row, port)
+        # Unconditional since ADR 0032: below FULL this row has no label, so the
+        # tooltip is the only thing naming it. Lazy, so an unhovered row pays
+        # nothing.
+        add_pin_tooltip(config_row, port)
 
     def _render_pin(
         self,
@@ -306,8 +345,11 @@ class NodeSkin(BaseSkin, ABC):
             # detects a pin from the `data-pin-id` render_pin already emits,
             # and which surface it opens is the framework's decision — a skin
             # neither opts in nor can suppress it (ADR-0029, Routing).
-            if self._ui_settings.show_tooltips:
-                add_pin_tooltip(pin_el, pin)
+            #
+            # Unconditional since ADR 0032 retired `show_tooltips`: a bare pin
+            # in a strip, on a folded card, or below FULL has no label, so the
+            # tooltip carries the whole identification burden.
+            add_pin_tooltip(pin_el, pin)
 
     def _render_root_ghost_pins(
         self,
@@ -372,6 +414,38 @@ class NodeSkin(BaseSkin, ABC):
                     f'data-hw-layout="{layout.value}" data-pin-color="#888888"'
                 )
             )
+
+    def _render_comment_badge(self, wrapper: NodeWrapper) -> None:
+        """A badge for the node's comment, if it has one. Hover to read it.
+
+        Emptiness is the whole visibility rule (ADR 0032): text means a badge,
+        no text means nothing. There is no companion "show it" flag — the old
+        ``show_comment`` bought only what an empty comment already gives.
+
+        Drawn at the COLLAPSED tier, i.e. unconditionally, so a note survives
+        folding. That is when it matters most: a folded node is a box with a
+        title, and the comment is often the only thing saying why it is there.
+
+        The tooltip is built eagerly rather than on first hover, unlike a pin's.
+        A pin tooltip is one of ~23 per node and pays for laziness; this is at
+        most one per node, and only on nodes that have a comment at all.
+        """
+        try:
+            comment = (wrapper.node.props.comment or "").strip()
+        except Exception:
+            return
+        if not comment:
+            return
+
+        btn = ui.button(icon=hui.icon.message).props("flat dense round")
+        btn.classes("text-xl px-2 py-1")
+        # Left of the diagnostics badge, which sits at the same offset on the
+        # right — so a node with both shows them side by side rather than
+        # stacked on top of each other.
+        btn.style("position: absolute; top: -25px; right: 32px;")
+        btn.props(f'data-node-id="{wrapper.node_id}"')
+        with btn:
+            ui.tooltip(comment).classes("text-xs whitespace-normal").style("max-width: 22rem")
 
     def _render_diagnostics_button(
         self,

@@ -14,7 +14,7 @@ from haywire.barn.builtin.widgets.basic_widgets import SimpleLabelWidget
 from haywire.core.namespaces import CATEGORY_NODE_SKINS, NAMESPACE_UI_NODE_DEFAULT_SKIN
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.core.settings import setting
-from haywire.core.types.enums import LayoutDirection
+from haywire.core.types.enums import LayoutDirection, NodeDetail
 
 
 def _layout_direction_choices():
@@ -44,6 +44,11 @@ def _default_skin():
         return get_skin_registry().get_default_skin_registry_key()
     except Exception:
         return "default"
+
+
+def _node_detail_choices():
+    """Static options — no registry lookup, so no try/except needed."""
+    return {d.value: d.label for d in NodeDetail}
 
 
 def _node_theme_choices():
@@ -92,6 +97,16 @@ class NodeDefaultSkinSettings(FrameworkSettings, namespace=NAMESPACE_UI_NODE_DEF
         description="Direction flow reads across node cards in the studio",
         category=CATEGORY_NODE_SKINS,
         widget_config={"options": _layout_direction_choices},
+    )
+    # No framework counterpart for node COLLAPSE, deliberately: a studio-wide
+    # fold would open every graph showing nothing, and the graph tier already
+    # persists that answer in the .haywire file. See ADR 0032.
+    studio_node_detail = setting[CHOICES](
+        NodeDetail.FULL.value,
+        label="Default Node Detail",
+        description="How much of a node card is drawn, before a graph or node overrides it",
+        category=CATEGORY_NODE_SKINS,
+        widget_config={"options": _node_detail_choices},
     )
     studio_node_theme = setting[CHOICES](
         "",

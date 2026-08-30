@@ -66,24 +66,78 @@ first.
 
 ### Do not style `.widget-container`
 
-Inline-widget reveal is owned by the framework, not by the skin. `canvas.vue` declares:
+Inline-widget sizing is owned by the framework, not by the skin. `canvas.vue` declares:
 
 ```css
---8<-- "packages/haywire-core/src/haywire/ui/components/graph/canvas.vue:widget-container-reveal"
+--8<-- "packages/haywire-core/src/haywire/ui/components/graph/canvas.vue:widget-container-sizing"
 ```
 
-Two consequences for skin authors:
-
-1. A skin's own `opacity` / `max-height` rules on `.widget-container` are silently
-   outranked. A `:hover`-based reveal in a skin's stylesheet simply never fires — the
-   framework reveals on **`.node-selected`**, which it puts on the `[data-node-id]`
-   container (an *ancestor* of the card), not on the card itself.
-2. `!important` on the `transition` shorthand replaces the whole property, so even
-   properties the framework does not set — `transform`, say — stop animating.
-
-Per-widget size and reveal ceilings are declared on the widget instead, through
-`@widget(min_width=, min_height=, max_height=)`. See
+A skin's own `max-height` / `overflow` rules on `.widget-container` are silently
+outranked by those `!important` declarations. Per-widget ceilings are declared on the
+widget instead, through `@widget(min_width=, min_height=, max_height=)`. See
 [widget-canon.md](../widgets/widget-canon.md).
+
+**Visibility is not decided here.** A widget that exists is visible; whether it exists is
+decided in Python by the node's `NodeDetail` rank (see below). Until ADR 0032 this block
+was a *reveal* — every node built its widgets and only the **selected** one showed them,
+via `.node-selected` on the `[data-node-id]` container. If you find a skin or a doc still
+describing that, it is stale.
+
+## Respecting the node's detail and collapse
+
+A card's density is not fixed either. Two axes decide how much of a node is drawn, both
+resolved per node through the settings tier chain, exactly like `skin` and
+`layout_direction`. See [ADR 0032](../../adr/0032-node-detail-and-collapse.md).
+
+| | tiers | what it says |
+| --- | --- | --- |
+| **Node collapse** (`props.collapsed`) | graph < node | fold to title, badges and the pins of *linked* ports |
+| **NodeDetail** (`props.detail`) | framework < graph < node | `COMPACT` (pins) < `STANDARD` (+ widgets) < `FULL` (+ labels, diagnostics detail) |
+
+### Ask the resolver, never the rank
+
+```python
+def render(self, main_card: ui.card, wrapper: NodeWrapper):
+    show = self.show_of(wrapper)          # NodeSkin helper
+
+    for port in show.ports(node):
+        ...
+    if show.label:
+        ui.label(port.label).classes("text-xs zoom-pan-lod2")
+```
+
+`show.label`, `show.widget` and `show.diagnostics` are **properties, not methods** —
+`if show.label():` would be a bug you cannot see, since a bound method is always truthy.
+`show.detail` and `show.collapsed` are there for anything the vocabulary does not cover.
+
+The point of asking rather than comparing is that the rank→element mapping has one owner.
+A skin that writes `if detail == NodeDetail.FULL` has copied policy that will drift the
+next time a tier moves. Standalone skins (not subclassing `NodeSkin`) call
+`resolve_node_visibility(wrapper)` from `haywire.ui.skin.visibility` directly.
+
+### These are construction gates, not CSS
+
+Do not build what the rank excludes. Hiding it instead defeats the entire purpose:
+per [ADR 0006](../../adr/0006-node-render-performance.md) the cost driver is element
+*count* — every element is built on the Python side and re-walked by NiceGUI on every
+page update, whether or not it is painted. This is the one hard rule of the contract.
+
+It is also what separates these axes from **LOD**, which is zoom-driven, lives entirely
+in CSS, and decides only what is *painted* of what already exists. The two do not
+compose and there is no arithmetic between them — keep tagging elements
+`zoom-pan-lod1..3` as before.
+
+### Ignoring it is safe, and measurable
+
+Nothing enforces this. A skin that never calls `show_of` renders everything at every
+rank: slower, never broken — the same posture `render_pin` takes for `LayoutDirection`.
+The cost is that graph-level collapse silently does nothing for nodes using that skin, so
+a user pulling the lever on a 300-node graph gets a partial result with no explanation.
+
+Two skins ignore the axes **on purpose**: the error skin (a failed render must show its
+failure at any density) and the reroute skin (already smaller than a folded card would
+be). `tests/ui/skin/test_node_visibility.py` holds that exemption list; in-repo skins not
+on it must consult the resolver.
 
 ## Respecting the node's layout direction
 
@@ -140,9 +194,10 @@ not. Pins move to the card's top and bottom edges, where there is no room for a 
 an inline widget, so `NodeSkin.render_pin_strip()` lays out **bare pins** and inlet/outlet
 values are reached through the properties editor instead. Consequences:
 
-- Port labels and inline widgets do not render for inlets/outlets. `show_labels` still
-  governs config labels.
-- `show_tooltips` matters more here — a tooltip is the only thing identifying a pin.
+- Port labels and inline widgets do not render for inlets/outlets. The node's
+  `NodeDetail` rank still governs config labels.
+- Tooltips matter more here — a tooltip is the only thing identifying a pin. They are
+  unconditional since ADR 0032, for exactly this reason.
 - **Groups are skipped.** A collapsible hierarchy has no meaning in a flat strip, so group
   control ports and everything nested under one are left out of the strip entirely.
 - Config ports are unaffected in every direction: they carry no pin, so they have no edge

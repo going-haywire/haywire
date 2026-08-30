@@ -3401,31 +3401,43 @@ path.connection-warning {
 }
 /* --8<-- [end:node-card-manual-resize] */
 
-/* --8<-- [start:widget-container-reveal] */
+/* --8<-- [start:widget-container-sizing] */
+/* A widget that EXISTS is visible. Whether it exists is decided in Python, by
+   the node's NodeDetail rank (ADR 0032) — STANDARD and above build widgets,
+   COMPACT does not.
+ *
+ * This used to be a reveal: opacity 0 / max-height 0 by default, restored on
+ * `.node-selected`, so a widget was built for every node and shown only for
+ * the selected one. Under a construction gate that second authority is worse
+ * than redundant — it would hide a widget the rank had just decided to draw,
+ * with no error and nothing to inspect. The transition went with it: a rank
+ * change rebuilds the card, and a CSS transition does not run on a freshly
+ * mounted element, so it could never have fired.
+ *
+ * What survives verbatim is the SIZE contract: the 200px default ceiling and
+ * the `overflow: hidden` that enforces it. */
 [data-node-id] .widget-container {
-    opacity: 0 !important;
-    transition: opacity 0.3s ease, max-height 0.3s ease !important;
-    max-height: 0 !important;
+    max-height: 200px !important;
     overflow: hidden !important;
 }
-
-[data-node-id].node-selected .widget-container {
-    opacity: 1 !important;
-    max-height: 200px !important;
-}
-/* --8<-- [end:widget-container-reveal] */
+/* --8<-- [end:widget-container-sizing] */
 
 /* ---- Declared size box (@widget(min_width=, min_height=, max_height=)) ----
    Stamped by haywire/ui/widget/sizing.py through the one render funnel every
    skin calls (BaseSkin.render_widget), so custom skins inherit this without
    cooperating. See docs/components/widgets/widget-canon.md. */
 
+/* All four rules below were scoped to `.node-selected` while widget visibility
+   was a reveal. They are size declarations, not visibility ones, so they now
+   apply to every node whose rank built the widget — see the sizing block
+   above. Each rule's VALUE is unchanged; only the selector lost its
+   `.node-selected`. */
+
 /* max_height — a definite px ceiling replacing the 200px default, for a widget
    whose CONTENT is unbounded (a long label, a growing list). Must stay a fixed
-   px value, never a percentage: max-height transitions need a definite
-   reference to animate, and a percentage of an auto-height ancestor resolves
-   to none, so the browser snaps instead of easing. */
-[data-node-id].node-selected .widget-container[data-hw-widget-max-height] {
+   px value, never a percentage: a percentage of an auto-height ancestor
+   resolves to none, so the ceiling silently stops applying. */
+[data-node-id] .widget-container[data-hw-widget-max-height] {
     max-height: var(--hw-widget-max-height) !important;
 }
 
@@ -3436,9 +3448,6 @@ path.connection-warning {
 [data-node-id] .widget-container[data-hw-widget-inline-box] {
     contain: inline-size !important;
     contain-intrinsic-width: var(--hw-widget-min-width) !important;
-}
-
-[data-node-id].node-selected .widget-container[data-hw-widget-inline-box] {
     max-height: var(--hw-widget-max-height, none) !important;
 }
 
@@ -3458,15 +3467,11 @@ path.connection-warning {
    element being stretched by its parent.
 
    Growth needs the ceiling gone, so a boxed widget opts out of the 200px
-   default. Declaring max_height too puts an animatable ceiling back (the var
-   resolves) at the cost of capping growth there; without it, the reveal snaps
-   instead of easing because none is not an animatable length. */
+   default. Declaring max_height too puts the ceiling back (the var resolves)
+   at the cost of capping growth there. */
 [data-node-id] .widget-container[data-hw-widget-box] {
     contain: size !important;
     contain-intrinsic-size: var(--hw-widget-min-width) var(--hw-widget-min-height) !important;
-}
-
-[data-node-id].node-selected .widget-container[data-hw-widget-box] {
     max-height: var(--hw-widget-max-height, none) !important;
 }
 

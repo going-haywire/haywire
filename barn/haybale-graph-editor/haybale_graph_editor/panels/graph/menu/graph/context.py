@@ -166,3 +166,55 @@ class CreateNodeMenuPanel(BasePanel):
                 on_context_click=_on_context_click,
             )
             builder.create_node_menu(recent_nodes=[], show_search=True)
+
+
+@panel(
+    surface=GraphMoreActions,
+    label="Reset Node Cards",
+    icon=hui.icon.reset,
+    order=10,
+)
+class ResetNodeCardsMenuPanel(BasePanel):
+    """Make every node in the graph follow the graph's card settings again.
+
+    The graph tier is only as useful as its reach, and "unset tracks, set
+    ignores" means it loses reach every time a user folds one node by hand.
+    This is the way back — the graph-wide counterpart to the selection-scoped
+    reset on the node menu (ADR 0032).
+
+    It lives behind the "…" rather than in the prime area because it is a
+    correction, not a routine command: reached when the graph-level collapse
+    stops covering everything, which is rare and puzzling enough to be worth
+    hunting for.
+    """
+
+    actions: GraphActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        from haybale_graph_editor.state.edit_state import EditState
+
+        return ctx.data[EditState].active_graph is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.menu_row(
+                "Reset Node Cards",
+                icon=hui.icon.reset,
+                tooltip=(
+                    "Clear every node's own detail and collapse, so all of them "
+                    "follow this graph's settings again"
+                ),
+                on_click=self._reset,
+            )
+
+    def _reset(self) -> None:
+        """Report the count: a reset that finds nothing to clear looks broken
+        otherwise, and "nothing to clear" is the common case."""
+        from nicegui import ui as _ui
+
+        cleared = self.actions.clear_node_card_overrides()
+        if cleared:
+            _ui.notify(f"{cleared} node(s) now follow the graph", type="positive")
+        else:
+            _ui.notify("Every node already follows the graph", type="info")

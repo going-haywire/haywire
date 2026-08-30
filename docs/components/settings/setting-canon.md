@@ -145,6 +145,15 @@ algorithm = setting[CHOICES](
 # (use for dynamic lists from a registry; plugin-added entries appear automatically)
 theme = setting[CHOICES]('', widget_config={'options': lambda: get_theme_registry().list_workbench_keys()})
 ```
+> **`CHOICES` stores a string.** It is a `STRING` subtype, so whatever a field
+> holds is serialized as text — which is what makes it the right home for an
+> enum-backed setting, and the reason those enums are declared as `StrEnum`
+> rather than `IntEnum` (`LayoutDirection`, `NodeDetail`, `AccessTier`). The
+> wire value is the enum's own `.value`, so adding a member later renumbers
+> nothing in saved graphs. Pair each with a `coerce()` classmethod that
+> degrades to a sane default rather than raising: a stale or hand-edited string
+> reaches the render path, where an exception takes a node card down.
+
 
 A real example from the codebase (`haywire/core/debug/debug_settings.py`):
 

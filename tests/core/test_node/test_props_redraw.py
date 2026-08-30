@@ -76,12 +76,13 @@ class TestPropsChangeTriggersRedraw:
         values = {
             "muted": True,
             "collapsed": True,
-            "condensed": True,
+            # Must differ from the resolved value or __set__ short-circuits on
+            # equality and no redraw fires — detail defaults to FULL.
+            "detail": "compact",
             "pinned": True,
             "skin": "some:skin:key",
             "layout_direction": "t2b",
             "comment": "hello",
-            "show_comment": True,
         }
         assert set(values) == set(NodeProperties.REDRAW_FIELDS)
 
@@ -149,7 +150,7 @@ class TestPropsChangeTriggersRedraw:
 
         results: List[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
-        wrapper.node.props.condensed = True
+        wrapper.node.props.pinned = True
 
         assert len(_redraw_results(results, wrapper.node_id)) == 1, (
             "one props change after a rebuild must produce exactly one redraw mark"

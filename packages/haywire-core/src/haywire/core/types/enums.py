@@ -1,4 +1,4 @@
-from enum import Enum, IntFlag
+from enum import Enum, IntFlag, StrEnum
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -164,6 +164,84 @@ _LAYOUT_DIRECTION_GLYPH_TRANSFORMS: dict[LayoutDirection, str] = {
     LayoutDirection.RIGHT_TO_LEFT: "scaleX(-1)",
     LayoutDirection.TOP_TO_BOTTOM: "rotate(90deg)",
     LayoutDirection.BOTTOM_TO_TOP: "rotate(-90deg)",
+}
+
+
+class NodeDetail(StrEnum):
+    """
+    How much of an uncollapsed node card is drawn. See ADR 0032.
+
+    Cumulative: each rank draws everything the rank below it draws, plus its
+    own. Resolved per node through the framework < graph < node chain
+    (``node.props.detail``), so one graph may legitimately mix densities.
+
+    - COMPACT: every pin, nothing else
+    - STANDARD: + inline widgets
+    - FULL: + port labels and diagnostics detail
+
+    Labels sit *above* widgets deliberately: pin and config-row tooltips
+    already carry identification, and a label is one element per port against
+    a widget's whole subtree — so cheap-first makes both steps of the ladder
+    buy something.
+
+    A **construction** gate, not a CSS one: a skin does not build what the rank
+    excludes. This is what separates it from the zoom-driven LOD system, which
+    only decides what is *painted* of what already exists (ADR 0006).
+
+    A ``StrEnum`` with an explicit :attr:`rank`, exactly like ``AccessTier``
+    and for the same reason: the wire values stay strings, so adding a rank
+    later renumbers nothing in saved graphs. A density scale is precisely the
+    kind that grows a member.
+    """
+
+    COMPACT = "compact"
+    STANDARD = "standard"
+    FULL = "full"
+
+    @property
+    def label(self) -> str:
+        """Human-readable name for settings widgets."""
+        return _NODE_DETAIL_LABELS[self]
+
+    @property
+    def rank(self) -> int:
+        """Position in the cumulative order — higher draws more."""
+        return _NODE_DETAIL_RANKS[self]
+
+    def includes(self, other: "NodeDetail") -> bool:
+        """True when drawing at this rank also draws everything *other* does."""
+        return self.rank >= other.rank
+
+    @classmethod
+    def coerce(cls, value: object) -> "NodeDetail":
+        """Resolve a stored value, falling back to FULL rather than raising.
+
+        Settings store the enum's ``str`` value (CHOICES is a STRING subtype),
+        and this runs on the render path — an unrecognised or stale string must
+        degrade to the most legible card, never take one down. Degrading
+        *upward* is deliberate: a node that draws too much is a performance
+        cost, one that draws too little looks broken.
+        """
+        if isinstance(value, cls):
+            return value
+        if isinstance(value, str):
+            try:
+                return cls(value)
+            except ValueError:
+                return cls.FULL
+        return cls.FULL
+
+
+_NODE_DETAIL_LABELS: dict[NodeDetail, str] = {
+    NodeDetail.COMPACT: "Compact — pins only",
+    NodeDetail.STANDARD: "Standard — pins and widgets",
+    NodeDetail.FULL: "Full — pins, widgets and labels",
+}
+
+_NODE_DETAIL_RANKS: dict[NodeDetail, int] = {
+    NodeDetail.COMPACT: 0,
+    NodeDetail.STANDARD: 1,
+    NodeDetail.FULL: 2,
 }
 
 

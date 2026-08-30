@@ -6,6 +6,7 @@
     class="hw-popup-overlay"
     :style="overlayStyle"
     @click.self="onOverlayClick"
+    @contextmenu.self="onOverlayContextMenu"
   >
     <!-- Floating card -->
     <div
@@ -215,6 +216,54 @@ export default {
       if (this.backdropClickClose) {
         this.close();
       }
+    },
+
+    /** Right-click OUTSIDE the card, while this popup is capturing.
+     *
+     * A `backdropClickClose` popup covers the viewport with a transparent
+     * `inset: 0` overlay at `pointer-events: auto`, so a right-click aimed at
+     * a node lands here instead. With no handler the browser showed its OWN
+     * context menu — and our menu stayed open, needing a separate left-click
+     * to dismiss.
+     *
+     * Close, then hand the gesture on to whatever the user was actually
+     * aiming at, so right-clicking a second node swaps menus in one gesture.
+     * The re-dispatch is a real `contextmenu` event at the same coordinates,
+     * which is what canvas.vue's own listener expects — no special-casing
+     * there, and it works for any target, not just nodes.
+     *
+     * `elementFromPoint` is read only AFTER the overlay is taken out of
+     * hit-testing, otherwise it returns the overlay and this re-enters
+     * itself. `visible = false` is not enough on its own: the style change
+     * has to be flushed before the browser will hit-test against the new
+     * layout, hence the `nextTick`.
+     */
+    onOverlayContextMenu(e) {
+      if (!this.backdropClickClose) return;
+      // Never let the native menu through — it is the visible symptom, and it
+      // would also cover whatever menu we open next.
+      e.preventDefault();
+
+      const { clientX, clientY } = e;
+      this.close();
+
+      this.$nextTick(() => {
+        const target = document.elementFromPoint(clientX, clientY);
+        // Guard against re-entry: if the overlay is somehow still under the
+        // cursor, drop the gesture rather than dispatching into ourselves.
+        if (!target || this.$el.contains(target)) return;
+        target.dispatchEvent(new MouseEvent('contextmenu', {
+          bubbles: true,
+          cancelable: true,
+          view: window,
+          clientX,
+          clientY,
+          // A real contextmenu event carries the secondary button; handlers
+          // that check it (or forward it on) would otherwise see button 0.
+          button: 2,
+          buttons: 2,
+        }));
+      });
     },
 
     onTitleMousedown(e) {

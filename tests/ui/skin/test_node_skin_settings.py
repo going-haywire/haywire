@@ -66,3 +66,16 @@ def test_no_skin_reads_a_field_that_was_deleted():
 def test_deleted_debug_fields_stay_deleted(gone):
     """Deleted 2026-08-22: declared but never read since introduction."""
     assert gone not in _declared_fields()
+
+
+@pytest.mark.parametrize("gone", ["show_labels", "show_tooltips"])
+def test_visibility_fields_left_this_bag_for_node_detail(gone):
+    """Deleted by ADR 0032. Element visibility is per node and per graph, not
+    one studio-wide switch, so it now resolves through ``NodeDetail``:
+    ``show_labels`` became the FULL rank, and ``show_tooltips`` went entirely
+    because a tooltip is the only thing identifying a port below FULL.
+
+    Re-adding either would give the card two authorities over the same
+    element, with the settings-panel one winning silently."""
+    assert gone not in _declared_fields()
+    assert gone not in _fields_read_by_skins()

@@ -60,6 +60,25 @@ class IContextMenuProvider:
     implementations are not coupled to canvas-specific types.
     """
 
+    def close_open_menu(self) -> None:
+        """Dismiss whatever menu is currently open, if any.
+
+        Not an intent — a lifecycle verb the dispatcher calls before routing a
+        new gesture, so a second right-click replaces the open menu instead of
+        stacking on it.
+
+        .. warning::
+           This class is a plain interface, not a ``typing.Protocol``, and
+           concrete providers list it **first**
+           (``SessionContextMenuProvider(IContextMenuProvider,
+           BaseContextMenuProvider)``). So every ``...`` body here **shadows**
+           the mixin's real implementation via the MRO — silently, since the
+           stub returns ``None`` rather than raising. Anything declared here
+           must therefore be re-declared on the concrete provider, which is
+           why the intent methods below all reappear there.
+        """
+        ...
+
     def on_canvas_context(
         self,
         pos: Tuple[float, float],
@@ -165,6 +184,17 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         self._on_emit_sync_event = on_emit_sync_event
         self._canvas_vue = canvas_vue
         self._open_ctx: Optional[_OpenMenuContext] = None  # per-popup gesture state
+
+    def close_open_menu(self) -> None:
+        """Dismiss the open menu — see ``BaseContextMenuProvider``.
+
+        Re-declared purely to defeat the MRO: ``IContextMenuProvider`` is
+        listed first among this class's bases, so its ``...`` stub would
+        otherwise shadow the mixin's implementation and this would become a
+        silent no-op. That is exactly what happened when the verb was first
+        added, and nothing failed — the menu simply never closed.
+        """
+        BaseContextMenuProvider.close_open_menu(self)
 
     def _open_menu(
         self,
@@ -496,6 +526,111 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             )
         )
 
+    def _selected_props(self):
+        """The props bag of every selected node that still resolves.
+
+        A selection can name a node that has since gone (deleted under a menu
+        that was already open), so each lookup is checked rather than assumed.
+        """
+        edit = self._context.data[EditState]
+        graph = edit.active_graph
+        if graph is None:
+            return []
+        bags = []
+        for node_id in edit.selected_nodes:
+            wrapper = graph.get_node_wrapper(node_id)
+            props = getattr(getattr(wrapper, "node", None), "props", None)
+            if props is not None:
+                bags.append(props)
+        return bags
+
+    def set_selection_collapsed(self, collapsed: bool) -> None:
+        """Fold or unfold every selected node (ADR 0032).
+
+        A plain prop write, not an event: ``collapsed`` is in
+        ``REDRAW_FIELDS``, so the redraw rides the existing subscription.
+        Writing the value a node already resolves to is a no-op that leaves it
+        TRACKING its graph — which is the behaviour we want from a toggle, not
+        a bug to work around.
+        """
+        for props in self._selected_props():
+            props.collapsed = collapsed
+
+    def selection_is_collapsed(self) -> bool:
+        """True when every selected node is folded.
+
+        A mixed selection reads as "not folded", so :meth:`toggle_selection_collapsed`
+        folds all of it rather than unfolding the folded ones.
+        """
+        bags = self._selected_props()
+        return bool(bags) and all(getattr(p, "collapsed", False) for p in bags)
+
+    def toggle_selection_collapsed(self) -> bool:
+        """Flip the fold state of the selection, and report the new state.
+
+        The decision is made HERE, on each click, rather than captured when the
+        menu drew. ``hui.menu_row`` does not close its popup, so a menu stays
+        open after a command — a row that closed over the state it read at draw
+        time would keep re-sending the same value, and the toggle would only
+        ever work once. That is exactly what it did.
+        """
+        collapsed = not self.selection_is_collapsed()
+        self.set_selection_collapsed(collapsed)
+        return collapsed
+
+    def set_selection_detail(self, detail: str) -> None:
+        """Set the density rank on every selected node (ADR 0032)."""
+        for props in self._selected_props():
+            props.detail = detail
+
+    def clear_node_card_overrides(self) -> int:
+        """Make EVERY node in the graph follow the graph's card settings again.
+
+        Returns how many nodes had an opinion to drop, so the caller can say so
+        — a command that silently does nothing on an already-clean graph reads
+        as broken.
+
+        This is what keeps the graph tier usable over time. Mirrors are "unset
+        tracks, set ignores" per hop, so each node the user folds or re-ranks by
+        hand permanently stops listening; without a way back, the graph-wide
+        collapse gradually covers fewer and fewer nodes with no indication why.
+        """
+        edit = self._context.data[EditState]
+        graph = edit.active_graph
+        if graph is None:
+            return 0
+
+        cleared = 0
+        for wrapper in graph.node_wrappers.values():
+            props = getattr(getattr(wrapper, "node", None), "props", None)
+            if props is None:
+                continue
+            touched = False
+            for field in ("detail", "collapsed"):
+                try:
+                    if props.is_locally_set(field):
+                        props.reset(field)
+                        touched = True
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.debug(f"resetting {field} failed: {exc}")
+            cleared += 1 if touched else 0
+        logger.info(f"cleared card overrides on {cleared} node(s)")
+        return cleared
+
+    def clear_selection_detail_overrides(self) -> None:
+        """Drop each selected node's own answer so it follows its graph again.
+
+        The counterpart to the two setters: without it a node that has ever
+        been given a rank or folded by hand is pinned forever, and the graph
+        tier can never reassert over it ("unset tracks, set ignores").
+        """
+        for props in self._selected_props():
+            for field in ("detail", "collapsed"):
+                try:
+                    props.reset(field)
+                except Exception as exc:  # pragma: no cover - defensive
+                    logger.debug(f"resetting {field} failed: {exc}")
+
     def dissolve_reroute(self, node_id: str) -> None:
         """Emit DissolveRerouteEvent for the given reroute node.
 
@@ -554,7 +689,23 @@ class ContextMenuHandlers:
         ContextMenuPortEvent,
     )
     def process_context_menu(self, event):
-        """Route context-menu events to the provider as intent calls."""
+        """Route context-menu events to the provider as intent calls.
+
+        A menu already open is dismissed first, so right-clicking a second node
+        swaps menus in one gesture rather than stacking two live popups. This
+        has to happen HERE rather than in ``_open_menu``: the intent handlers
+        below seed ``EditState`` and ``_OpenMenuContext`` before opening
+        anything, and the previous menu's ``on_close`` resets exactly those —
+        so closing any later would have the old gesture's cleanup wipe the new
+        gesture's state.
+
+        The browser-side half of the same behaviour is
+        ``HwPopup.onOverlayContextMenu``: while a menu is up its overlay
+        captures the click, so the right-click that produced this event was
+        re-dispatched from there.
+        """
+        self.provider.close_open_menu()
+
         if isinstance(event, ContextMenuCanvasEvent):
             logger.debug(f"Canvas context menu at ({event.screenX}, {event.screenY})")
             pending = None

@@ -578,6 +578,17 @@ class NodeData:
         """
         return list(self.iter_visible_ports(include_sections=include_sections))
 
+    def get_all_ports(self) -> List[DataPort]:
+        """Every port in display order, ignoring group collapse and sections.
+
+        The unfiltered counterpart to :meth:`get_visible_ports`, for callers
+        that must see ports a collapsed group hides — a folded node card, whose
+        linked pins have to include those, or an edge would lose its endpoint
+        (see ``haywire.ui.skin.visibility``). Public wrapper around
+        ``_iter_ports`` so the display ordering keeps one definition.
+        """
+        return list(self._iter_ports())
+
     def iter_section_ports(self, section: Optional[str] = None) -> Iterator[DataPort]:
         """
         Yield ports that belong to sections, in display order.

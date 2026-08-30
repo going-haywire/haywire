@@ -2,6 +2,8 @@
 
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionToolbar
 
+from tests.protocol_stubs import stub_for
+
 
 def test_toolbar_surface_has_distinct_id():
     assert SelectionToolbar.id == "toolbar"
@@ -31,14 +33,9 @@ def test_toolbar_provides_selection_actions():
 def test_selection_actions_is_runtime_checkable():
     # @runtime_checkable is the real contract: render_surface validates the
     # chosen host with isinstance(), which static typing cannot enforce.
-    class _Provider:
-        def copy_selection(self) -> None: ...
-        def paste_at_click(self) -> None: ...
-        def delete_selection(self) -> None: ...
-        def redraw_selection(self) -> None: ...
-        def revalidate_selection(self) -> None: ...
-        def reset_selection(self) -> None: ...
-        def dissolve_reroute(self, node_id: str) -> None: ...
+    # Derived from the Protocol, not hand-listed: a verb added to
+    # SelectionActions must not break this file. See tests/protocol_stubs.py.
+    provider = stub_for(SelectionActions)
 
     class _PartialProvider:
         """Three of seven — what SelectionToolbarProvider used to be."""
@@ -47,5 +44,5 @@ def test_selection_actions_is_runtime_checkable():
         def delete_selection(self) -> None: ...
         def open_overflow_menu(self) -> None: ...
 
-    assert isinstance(_Provider(), SelectionActions)
+    assert isinstance(provider, SelectionActions)
     assert not isinstance(_PartialProvider(), SelectionActions)

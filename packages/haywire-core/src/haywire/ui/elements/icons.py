@@ -144,6 +144,14 @@ class AppIcon:
     """Dropdown chevron / expand menu."""
     expand_full: Final[str] = "open_in_full"
     """Expand to full / modal view."""
+    node_collapse: Final[str] = "unfold_less"
+    """Fold a node card down to its header (ADR 0032). The action, not the state."""
+    node_expand: Final[str] = "unfold_more"
+    """Unfold a folded node card. Paired with ``node_collapse``: a toggle shows
+    whichever of the two it would DO next, so the icon reads as the verb the
+    row's label already says, never as a state indicator contradicting it."""
+    node_detail: Final[str] = "tune"
+    """Node density rank (NodeDetail) — the Detail submenu and its rows."""
     open_external: Final[str] = "open_in_new"
     """Open in external editor or browser."""
 

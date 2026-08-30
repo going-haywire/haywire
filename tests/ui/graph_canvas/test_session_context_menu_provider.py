@@ -405,3 +405,252 @@ def test_on_selection_context_writes_selection_from_payload(monkeypatch):
 
     assert edit.selected_nodes == {"n1", "n2"}
     assert edit.selected_edges == {"e1"}
+
+
+class TestMenuSupersedesTheOpenOne:
+    """Right-clicking a second node replaces the open menu in one gesture.
+
+    Two halves make that work and both are easy to regress:
+
+    - browser side, ``HwPopup.onOverlayContextMenu`` re-dispatches the click
+      that its own overlay swallowed (otherwise the NATIVE menu appears);
+    - Python side, the dispatcher closes the open menu before routing the new
+      intent.
+
+    Only the Python half is testable here. The ORDERING is the substance: the
+    previous menu's ``on_close`` resets ``EditState`` and ``_OpenMenuContext``,
+    and the intent handlers seed both before opening anything — so closing any
+    later than the dispatcher would have the old gesture's cleanup wipe the new
+    gesture's state.
+    """
+
+    def _handlers(self, provider):
+        from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
+            ContextMenuHandlers,
+        )
+
+        return ContextMenuHandlers(visual_layer=MagicMock(), provider=provider)
+
+    def test_close_open_menu_is_a_noop_without_a_menu(self):
+        provider = _make_provider()
+        provider.close_open_menu()  # must not raise
+        assert provider._open_popup is None
+
+    def test_close_open_menu_closes_and_lets_on_close_clear_the_handle(self):
+        """It must NOT clear _open_popup itself — Popup.close() fires on_close
+        synchronously, and that is what owns the attribute."""
+        provider = _make_provider()
+        popup = MagicMock()
+        provider._open_popup = popup
+
+        provider.close_open_menu()
+
+        popup.close.assert_called_once()
+
+    def test_a_dead_popup_does_not_take_the_next_menu_down(self):
+        """Page closed under a pending gesture: closing raises, and the next
+        menu must still open."""
+        provider = _make_provider()
+        popup = MagicMock()
+        popup.close.side_effect = RuntimeError("client is gone")
+        provider._open_popup = popup
+
+        provider.close_open_menu()
+
+        assert provider._open_popup is None
+
+    def test_dispatcher_closes_before_routing_the_intent(self):
+        """The ordering guarantee, asserted as an ordering rather than by
+        outcome — an intent that ran first would see the previous gesture's
+        cleanup land on top of the state it had just written."""
+        from haywire.ui.components.graph.event_definitions import ContextMenuSelectedEvent
+
+        provider = _make_provider()
+        calls: list[str] = []
+        cast(Any, provider).close_open_menu = lambda: calls.append("close")
+        cast(Any, provider).on_selection_context = lambda *a, **k: calls.append("intent")
+
+        self._handlers(provider).process_context_menu(
+            ContextMenuSelectedEvent(
+                screenX=1.0,
+                screenY=2.0,
+                canvasX=3.0,
+                canvasY=4.0,
+                selectedNodes=["n1"],
+                selectedEdges=[],
+            )
+        )
+
+        assert calls == ["close", "intent"]
+
+
+def test_no_interface_stub_shadows_a_real_implementation():
+    """Every verb declared on IContextMenuProvider must be re-declared on the
+    concrete provider.
+
+    ``SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider)``
+    lists the interface FIRST, so a `...` stub there wins the MRO over the
+    mixin's working implementation — and loses silently, because a stub returns
+    None instead of raising. `close_open_menu` shipped broken this way for
+    exactly as long as it took to write a test for it.
+    """
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
+        IContextMenuProvider,
+    )
+
+    declared = {
+        name
+        for name, attr in vars(IContextMenuProvider).items()
+        if callable(attr) and not name.startswith("__")
+    }
+    shadowed = [
+        name
+        for name in sorted(declared)
+        if getattr(SessionContextMenuProvider, name).__qualname__.startswith("IContextMenuProvider.")
+    ]
+    assert not shadowed, (
+        f"{shadowed} resolve to IContextMenuProvider's empty stub on "
+        f"SessionContextMenuProvider — calling them does nothing, silently. "
+        f"Re-declare each on the concrete provider (delegating to "
+        f"BaseContextMenuProvider where that is the real implementation)."
+    )
+
+
+class TestCollapseToggle:
+    """The collapse row toggles on EVERY click, not just the first.
+
+    ``hui.menu_row`` does not dismiss its popup, so the menu stays on screen
+    after a command. The first version of this row read the fold state when it
+    DREW and closed over it, which meant every subsequent click re-sent the
+    same value: it folded, and then would not unfold. The decision lives on the
+    provider now, evaluated per click.
+    """
+
+    def _provider_with_node(self, collapsed: bool = False):
+        provider = _make_provider()
+        props = SimpleNamespace(collapsed=collapsed)
+        wrapper = SimpleNamespace(node=SimpleNamespace(props=props))
+        graph = MagicMock()
+        graph.get_node_wrapper.return_value = wrapper
+        stub = cast(Any, provider)._test_edit_stub
+        stub.active_graph = graph
+        stub.selected_nodes = {"n1"}
+        return provider, props
+
+    def test_repeated_toggles_alternate(self):
+        provider, props = self._provider_with_node(collapsed=False)
+
+        assert provider.toggle_selection_collapsed() is True
+        assert props.collapsed is True
+        assert provider.toggle_selection_collapsed() is False
+        assert props.collapsed is False
+        assert provider.toggle_selection_collapsed() is True
+        assert props.collapsed is True
+
+    def test_toggle_returns_the_new_state_for_the_row_to_relabel_with(self):
+        provider, _props = self._provider_with_node(collapsed=True)
+        assert provider.toggle_selection_collapsed() is False
+
+    def test_a_mixed_selection_reads_as_not_collapsed(self):
+        """So the first press folds everything, rather than unfolding the
+        already-folded half of the selection."""
+        provider = _make_provider()
+        folded = SimpleNamespace(node=SimpleNamespace(props=SimpleNamespace(collapsed=True)))
+        loose = SimpleNamespace(node=SimpleNamespace(props=SimpleNamespace(collapsed=False)))
+        graph = MagicMock()
+        graph.get_node_wrapper.side_effect = lambda nid: {"a": folded, "b": loose}[nid]
+        stub = cast(Any, provider)._test_edit_stub
+        stub.active_graph = graph
+        stub.selected_nodes = {"a", "b"}
+
+        assert provider.selection_is_collapsed() is False
+        assert provider.toggle_selection_collapsed() is True
+        assert folded.node.props.collapsed is True
+        assert loose.node.props.collapsed is True
+
+    def test_empty_selection_is_not_collapsed_and_toggling_is_harmless(self):
+        provider = _make_provider()
+        assert provider.selection_is_collapsed() is False
+        provider.toggle_selection_collapsed()  # must not raise
+
+    def test_a_vanished_node_is_skipped_not_fatal(self):
+        """A selection can name a node deleted under an already-open menu."""
+        provider = _make_provider()
+        graph = MagicMock()
+        graph.get_node_wrapper.return_value = None
+        stub = cast(Any, provider)._test_edit_stub
+        stub.active_graph = graph
+        stub.selected_nodes = {"gone"}
+
+        assert provider._selected_props() == []
+        assert provider.selection_is_collapsed() is False
+        provider.toggle_selection_collapsed()  # must not raise
+
+
+class TestGraphWideCardReset:
+    """`clear_node_card_overrides` is what keeps the graph tier usable.
+
+    Mirrors are "unset tracks, set ignores" per hop, so every node folded by
+    hand permanently stops listening to the graph. Without a way back, a
+    graph-wide collapse covers fewer and fewer nodes over time, with nothing
+    saying why.
+    """
+
+    def _graph_of(self, provider, *locally_set: bool):
+        wrappers = {}
+        for i, is_set in enumerate(locally_set):
+            props = MagicMock()
+            props.is_locally_set.side_effect = lambda field, s=is_set: s
+            wrappers[f"n{i}"] = SimpleNamespace(node=SimpleNamespace(props=props))
+        graph = SimpleNamespace(node_wrappers=wrappers)
+        cast(Any, provider)._test_edit_stub.active_graph = graph
+        return wrappers
+
+    def test_it_resets_both_axes_on_every_node_that_has_an_opinion(self):
+        provider = _make_provider()
+        wrappers = self._graph_of(provider, True, True)
+
+        assert provider.clear_node_card_overrides() == 2
+        for wrapper in wrappers.values():
+            reset_fields = {c.args[0] for c in wrapper.node.props.reset.call_args_list}
+            assert reset_fields == {"detail", "collapsed"}
+
+    def test_it_leaves_tracking_nodes_alone(self):
+        """Resetting a field that is not locally set would be a no-op anyway,
+        but counting it would overstate what the command did."""
+        provider = _make_provider()
+        wrappers = self._graph_of(provider, False, False)
+
+        assert provider.clear_node_card_overrides() == 0
+        for wrapper in wrappers.values():
+            wrapper.node.props.reset.assert_not_called()
+
+    def test_the_count_is_nodes_touched_not_fields_reset(self):
+        """The caller reports it to the user, so it has to mean "nodes"."""
+        provider = _make_provider()
+        self._graph_of(provider, True, False, True)
+
+        assert provider.clear_node_card_overrides() == 2
+
+    def test_no_graph_is_zero_not_a_crash(self):
+        provider = _make_provider()
+        cast(Any, provider)._test_edit_stub.active_graph = None
+        assert provider.clear_node_card_overrides() == 0
+
+    def test_one_exploding_node_does_not_abort_the_rest(self):
+        """A stale wrapper must not leave the graph half-reset."""
+        provider = _make_provider()
+        bad = MagicMock()
+        bad.is_locally_set.return_value = True
+        bad.reset.side_effect = RuntimeError("stale bag")
+        good = MagicMock()
+        good.is_locally_set.return_value = True
+        cast(Any, provider)._test_edit_stub.active_graph = SimpleNamespace(
+            node_wrappers={
+                "bad": SimpleNamespace(node=SimpleNamespace(props=bad)),
+                "good": SimpleNamespace(node=SimpleNamespace(props=good)),
+            }
+        )
+
+        provider.clear_node_card_overrides()  # must not raise
+        assert good.reset.call_count == 2

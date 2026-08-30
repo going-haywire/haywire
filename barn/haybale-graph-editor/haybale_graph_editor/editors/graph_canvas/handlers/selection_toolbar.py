@@ -286,6 +286,38 @@ class SelectionToolbarProvider:
     def dissolve_reroute(self, node_id: str) -> None:
         self._delegate("dissolve_reroute", node_id)
 
+    # ADR 0032 card axes. Required here even though the toolbar draws no rows
+    # for them itself: its ⋯ hosts SelectionMenu directly, and render_surface
+    # isinstance-checks the host against that surface's `provides`. A verb
+    # missing here does not fail at the missing row — it fails the whole menu.
+    def set_selection_collapsed(self, collapsed: bool) -> None:
+        self._delegate("set_selection_collapsed", collapsed)
+
+    def selection_is_collapsed(self) -> bool:
+        return bool(self._delegate_result("selection_is_collapsed"))
+
+    def toggle_selection_collapsed(self) -> bool:
+        return bool(self._delegate_result("toggle_selection_collapsed"))
+
+    def set_selection_detail(self, detail: str) -> None:
+        self._delegate("set_selection_detail", detail)
+
+    def clear_selection_detail_overrides(self) -> None:
+        self._delegate("clear_selection_detail_overrides")
+
+    def _delegate_result(self, verb: str, *args: object) -> object:
+        """Forward a verb that RETURNS something, rather than a fire-and-forget one.
+
+        ``_delegate`` swallows the return value, which is fine for commands and
+        wrong for a query like ``selection_is_collapsed``. With no provider the
+        answer is ``None`` — callers coerce, and a toggle reading False simply
+        offers to collapse.
+        """
+        if self._menu_provider is None:
+            logger.warning("SelectionToolbarProvider: no menu provider to delegate %r to", verb)
+            return None
+        return getattr(self._menu_provider, verb)(*args)
+
     def _delegate(self, verb: str, *args: object) -> None:
         """Forward one verb to the SessionContextMenuProvider.
 

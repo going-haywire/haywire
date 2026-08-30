@@ -6,6 +6,8 @@ raise ``TypeError`` there — deep in a flyout, with no useful frame — which i
 why ``Surface.__init_subclass__`` rejects one at class-definition time.
 """
 
+from tests.protocol_stubs import protocol_verbs, stub_for
+
 from haybale_graph_editor.surfaces import (
     EdgeActions,
     GraphActions,
@@ -14,34 +16,27 @@ from haybale_graph_editor.surfaces import (
 )
 
 
-class _CompleteImpl:
-    """Implements every Protocol — used to verify isinstance against all four."""
+def _complete():
+    """An object satisfying all four Protocols, derived from them.
 
-    def create_node_at_click(self, registry_key: str) -> None: ...
-    def paste_at_click(self) -> None: ...
-    def focus_on_graph(self) -> None: ...
-    def delete_edge(self, edge_id: str) -> None: ...
-    def reconnect_active_edge(self) -> None: ...
-    def split_edge_with_reroute(self, edge_id: str) -> None: ...
-    def copy_selection(self) -> None: ...
-    def delete_selection(self) -> None: ...
-    def redraw_selection(self) -> None: ...
-    def revalidate_selection(self) -> None: ...
-    def reset_selection(self) -> None: ...
-    def dissolve_reroute(self, node_id: str) -> None: ...
-    def demote_setting(self, port_id: str) -> None: ...
+    Hand-listing these verbs meant every Protocol widening broke this file —
+    four times while SelectionActions grew the ADR-0032 card verbs. Deriving
+    them keeps the assertions about ``@runtime_checkable`` rather than about
+    whether someone remembered to update a list.
+    """
+    return stub_for(GraphActions, EdgeActions, SelectionActions, PortActions)
 
 
 def test_graph_actions_is_runtime_checkable():
-    assert isinstance(_CompleteImpl(), GraphActions)
+    assert isinstance(_complete(), GraphActions)
 
 
 def test_edge_actions_is_runtime_checkable():
-    assert isinstance(_CompleteImpl(), EdgeActions)
+    assert isinstance(_complete(), EdgeActions)
 
 
 def test_selection_actions_is_runtime_checkable():
-    assert isinstance(_CompleteImpl(), SelectionActions)
+    assert isinstance(_complete(), SelectionActions)
 
 
 def test_port_actions_declares_the_demote_verb():
@@ -72,17 +67,30 @@ def test_no_empty_marker_protocol_survives():
         assert not isinstance(Anything(), protocol), protocol.__name__
 
 
-def test_selection_actions_includes_the_batch_verbs():
-    class _SelImpl:
-        def copy_selection(self) -> None: ...
-        def paste_at_click(self) -> None: ...
-        def delete_selection(self) -> None: ...
-        def redraw_selection(self) -> None: ...
-        def revalidate_selection(self) -> None: ...
-        def reset_selection(self) -> None: ...
-        def dissolve_reroute(self, node_id: str) -> None: ...
+def test_selection_actions_declares_the_batch_and_card_verbs():
+    """The Protocol's membership, asserted against the Protocol itself.
 
-    assert isinstance(_SelImpl(), SelectionActions)
+    Previously a stub listing each verb, which only ever restated the class
+    body it was checking. Naming the verbs here instead makes the assertion
+    about the CONTRACT: removing one is a decision that fails a test, not a
+    stub that quietly keeps passing.
+    """
+    verbs = protocol_verbs(SelectionActions)
+    assert {
+        "copy_selection",
+        "paste_at_click",
+        "delete_selection",
+        "redraw_selection",
+        "revalidate_selection",
+        "reset_selection",
+        "dissolve_reroute",
+        # ADR 0032 card axes — every host of SelectionMenu must satisfy these.
+        "set_selection_collapsed",
+        "selection_is_collapsed",
+        "toggle_selection_collapsed",
+        "set_selection_detail",
+        "clear_selection_detail_overrides",
+    } <= verbs
 
 
 def test_selection_missing_a_batch_verb_does_not_satisfy_the_protocol():
@@ -94,3 +102,31 @@ def test_selection_missing_a_batch_verb_does_not_satisfy_the_protocol():
         # missing redraw_selection / revalidate_selection / reset_selection
 
     assert not isinstance(_Partial(), SelectionActions)
+
+
+def test_both_hosts_of_selection_menu_satisfy_its_protocol():
+    """SelectionMenu has TWO hosts: the context-menu provider and the toolbar,
+    whose ⋯ renders the same surface.
+
+    ``render_surface`` isinstance-checks the host against ``provides``, so a
+    verb added to ``SelectionActions`` and implemented on only one of them does
+    not fail at the missing row — it fails the whole menu, at the other host.
+    The toolbar delegates rather than reimplements, so keeping up is one line
+    per verb; forgetting it is silent until someone opens that ⋯.
+    """
+    from haybale_graph_editor.editors.graph_canvas.handlers.context_menu import (
+        SessionContextMenuProvider,
+    )
+    from haybale_graph_editor.editors.graph_canvas.handlers.selection_toolbar import (
+        SelectionToolbarProvider,
+    )
+
+    verbs = protocol_verbs(SelectionActions)
+    assert verbs, "SelectionActions declares no verbs — this test would be vacuous"
+
+    for host in (SessionContextMenuProvider, SelectionToolbarProvider):
+        missing = sorted(v for v in verbs if not hasattr(host, v))
+        assert not missing, (
+            f"{host.__name__} does not implement {missing} from SelectionActions — "
+            f"every host of SelectionMenu must satisfy it or the menu fails to render"
+        )

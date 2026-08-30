@@ -69,6 +69,35 @@ class BaseContextMenuProvider:
             clamp_to_viewport=True,
         )
 
+    def close_open_menu(self) -> None:
+        """Dismiss the menu this provider currently has open, if any.
+
+        **Call this before a new gesture seeds any state, not from inside
+        ``_open_menu``.** Closing fires the previous popup's ``on_close``,
+        which resets that gesture's edit state and its ``_OpenMenuContext``.
+        By the time ``_open_menu`` runs, the *new* gesture has already written
+        both — an intent handler sets ``active_node`` / ``pending_connection``
+        and only then opens the menu — so closing there would have the old
+        cleanup wipe the new gesture's context. The single dispatch point
+        (``ContextMenuHandlers.process_context_menu``) is early enough that the
+        old cleanup can only touch the gesture it belongs to.
+
+        Closing is what clears ``_open_popup``, via that ``on_close`` — so this
+        must not clear the attribute itself, or the cleanup would see a
+        provider with no open menu and the two would disagree.
+
+        Never raises: a popup whose client has gone (page closed under a
+        pending gesture) must not take the next menu down with it.
+        """
+        popup = self._open_popup
+        if popup is None:
+            return
+        try:
+            popup.close()
+        except Exception as exc:
+            logger.debug(f"closing previous context menu failed: {exc}")
+            self._open_popup = None
+
     def _open_menu(
         self,
         surface: type["Surface"],

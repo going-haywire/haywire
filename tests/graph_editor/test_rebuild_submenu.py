@@ -25,6 +25,9 @@ from haywire.ui.panel import PanelRegistry
 from haywire.ui.panel.host_rendering import render_panel
 from haywire.ui.panel.layout import PanelLayout
 
+from tests.protocol_stubs import stub_for
+
+from haybale_graph_editor.surfaces import SelectionActions
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     RebuildSelectionMenuPanel,
     RedrawSelectionMenuPanel,
@@ -59,19 +62,15 @@ def _ctx(nodes):  # untyped, like test_render_surface's own stub: a SessionConte
     return SimpleNamespace(data=data, app=MagicMock(), session_id="t", can_access=lambda required: True)
 
 
-class _ActionsStub:
-    """A real class, not a MagicMock: ``render_surface`` validates the chosen
-    host with ``isinstance`` against a runtime Protocol, and 3.12 resolves
-    those members statically — a MagicMock's lazy attributes do not satisfy it.
-    """
+def _actions_stub():
+    """A real object, not a MagicMock: ``render_surface`` validates the chosen
+    host with ``isinstance`` against a runtime Protocol, and 3.12 resolves those
+    members statically — a MagicMock's lazy attributes do not satisfy it.
 
-    def copy_selection(self) -> None: ...
-    def paste_at_click(self) -> None: ...
-    def delete_selection(self) -> None: ...
-    def redraw_selection(self) -> None: ...
-    def revalidate_selection(self) -> None: ...
-    def reset_selection(self) -> None: ...
-    def dissolve_reroute(self, node_id: str) -> None: ...
+    Derived from ``SelectionActions`` rather than hand-listed, so a verb added
+    to the Protocol does not break this file. See ``tests/protocol_stubs.py``.
+    """
+    return stub_for(SelectionActions)
 
 
 def _registry() -> PanelRegistry:
@@ -107,7 +106,7 @@ async def test_rebuild_row_hosts_the_three_commands_and_stays_live(user: User) -
                 RebuildSelectionMenuPanel,
                 _ctx({"n1"}),
                 layout,
-                actions_host=_ActionsStub(),
+                actions_host=_actions_stub(),
                 registry=_registry(),
             )
             captured["layout"] = layout
@@ -146,7 +145,7 @@ async def test_rebuild_row_greys_without_a_selection(user: User) -> None:
                 RebuildSelectionMenuPanel,
                 ctx,
                 layout,
-                actions_host=_ActionsStub(),
+                actions_host=_actions_stub(),
                 registry=_registry(),
                 disabled=True,
             )

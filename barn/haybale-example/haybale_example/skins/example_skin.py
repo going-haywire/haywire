@@ -4,6 +4,7 @@ from haywire.core.node.base import BaseNode
 
 from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.decorator import skin
+from haywire.ui.skin.visibility import NodeVisibility
 
 from haybale_studio.skins.node_skin import NodeSkin
 
@@ -31,14 +32,15 @@ class ExampleNodeSkin(NodeSkin):
         # Custom math-themed CSS.
         #
         # Deliberately NOT styled here: `.widget-container`. Inline-widget
-        # reveal belongs to the framework, not to a skin — canvas.vue declares
-        # `[data-node-id] .widget-container { opacity: 0 !important;
-        # max-height: 0 !important; transition: ... !important }` and reveals
-        # on `.node-selected`. A skin's own opacity/max-height/transition rules
-        # on that class are silently outranked, and `!important` on the
-        # transition shorthand means even non-conflicting properties stop
-        # animating. This skin used to carry a `:hover` reveal here that never
-        # once fired.
+        # SIZING belongs to the framework — canvas.vue declares a `max-height`
+        # and `overflow` on that class with `!important`, so a skin's own rules
+        # are silently outranked. Per-widget ceilings go on the widget, via
+        # `@widget(max_height=)`.
+        #
+        # Nor is widget VISIBILITY a CSS question any more: a widget that
+        # exists is visible, and whether it exists is `show.widget` below
+        # (ADR 0032). This skin used to carry a `:hover` reveal here that never
+        # once fired, back when the framework revealed on `.node-selected`.
         ui.add_head_html(f"""
         <style>
         .{node_id} .text-h6 {{
@@ -77,10 +79,62 @@ class ExampleNodeSkin(NodeSkin):
         # stops growing at `max-w-sm` while the slot keeps expanding.
         # `math-node-card` is a sibling class, NOT a substitute.
         layout = self.layout_of(wrapper)
-        if layout.is_vertical:
-            self._render_vertical(main_card, node, wrapper, layout, node_id)
+        show = self.show_of(wrapper)
+        if show.collapsed:
+            self._render_collapsed(main_card, node, wrapper, layout, node_id, show)
+        elif layout.is_vertical:
+            self._render_vertical(main_card, node, wrapper, layout, node_id, show)
         else:
-            self._render_horizontal(main_card, node, wrapper, layout, node_id)
+            self._render_horizontal(main_card, node, wrapper, layout, node_id, show)
+
+    def _render_collapsed(
+        self,
+        main_card: ui.card,
+        node: BaseNode,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        node_id: str,
+        show: NodeVisibility,
+    ):
+        """Folded: the header band, with linked pins flanking it.
+
+        A folded card keeps the skin's identity — the icon and the themed
+        border still say which skin drew it — but nothing else. ``show.ports``
+        returns only LINKED ports, so an unwired node folds to a bare header
+        and a wired one keeps exactly the pins its edges need.
+
+        Vertical layouts fold to a horizontal one: a single row has no top or
+        bottom edge for a pin to sit on, and a vertically-sided pin in a
+        mid-card row offsets INWARD. ``_fold_layout`` on the default skin makes
+        the same move for the same reason.
+        """
+        fold_layout = layout
+        if layout.is_vertical:
+            fold_layout = (
+                LayoutDirection.LEFT_TO_RIGHT
+                if layout.inlet_side == "top"
+                else LayoutDirection.RIGHT_TO_LEFT
+            )
+
+        main_card.classes(f"w-full node-card zoom-pan-lod0 math-node-card {node_id}")
+
+        with main_card:
+            linked = show.ports(node)
+            with ui.row().classes("drag-handle w-full items-center gap-2"):
+                self._render_pin_stack([p for p in linked if p.is_inlet()], wrapper, fold_layout)
+                ui.icon("calculate", color="yellow").classes("text-lg")
+                ui.label("Math Node").classes("text-h6 flex-1")
+                self._render_pin_stack([p for p in linked if not p.is_inlet()], wrapper, fold_layout)
+
+    def _render_pin_stack(self, ports, wrapper: NodeWrapper, layout: LayoutDirection):
+        """Bare pins in a column beside the title. Each pin's edge and direction
+        vector both come from ``layout`` inside ``_render_pin``, so they cannot
+        disagree."""
+        if not ports:
+            return
+        with ui.column().classes("gap-0 items-center"):
+            for port in ports:
+                self._render_pin(port, wrapper, layout=layout)
 
     def _render_vertical(
         self,
@@ -89,6 +143,7 @@ class ExampleNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         node_id: str,
+        show: NodeVisibility,
     ):
         """Vertical layouts (T2B / B2T): inlets/outlets become pin strips on
         the card's top/bottom edges; only configs stay in the body.
@@ -100,7 +155,7 @@ class ExampleNodeSkin(NodeSkin):
         )
 
         with main_card:
-            ports = node.get_visible_ports()
+            ports = show.ports(node)
             configs = [port for port in ports if port.is_config()]
             inlets = [port for port in ports if port.is_inlet()]
             outlets = [port for port in ports if port.is_outlet()]
@@ -120,11 +175,16 @@ class ExampleNodeSkin(NodeSkin):
             # Configs, spanning the whole card. `_render_config` already lays
             # each row out at `width: 100%`, so the band takes whatever width
             # the card has.
+            #
+            # The band's own heading follows `show.label` like any other label:
+            # a skin's chrome is not exempt from the rank it was handed, and
+            # below FULL a heading over unlabelled rows names nothing.
             if configs:
                 with ui.column().classes("w-full gap-1"):
-                    ui.label("Config").classes("font-bold text-sm")
+                    if show.label:
+                        ui.label("Config").classes("font-bold text-sm")
                     for port in configs:
-                        self.render_port(port, wrapper, layout=layout)
+                        self.render_port(port, wrapper, layout=layout, show=show)
 
             self.render_pin_strip(outlets if top_first else inlets, wrapper, layout)
 
@@ -135,6 +195,7 @@ class ExampleNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         node_id: str,
+        show: NodeVisibility,
     ):
         """Horizontal layouts (L2R / R2L): configs span the top, inlets and
         outlets sit side by side beneath.
@@ -142,7 +203,7 @@ class ExampleNodeSkin(NodeSkin):
         main_card.classes(f"w-full min-w-64 max-w-sm node-card zoom-pan-lod0 math-node-card {node_id}")
 
         with main_card:
-            ports = node.get_visible_ports()
+            ports = show.ports(node)
             configs = [port for port in ports if port.is_config()]
             inlets = [port for port in ports if port.is_inlet()]
             outlets = [port for port in ports if port.is_outlet()]
@@ -157,9 +218,10 @@ class ExampleNodeSkin(NodeSkin):
             # width the card has. Pinless ports have no edge to move to.
             if configs:
                 with ui.column().classes("w-full gap-1"):
-                    ui.label("Config").classes("font-bold text-sm")
+                    if show.label:
+                        ui.label("Config").classes("font-bold text-sm")
                     for port in configs:
-                        self.render_port(port, wrapper, layout=layout)
+                        self.render_port(port, wrapper, layout=layout, show=show)
 
             # Inlets and outlets side by side beneath. An empty column is
             # omitted rather than rendered blank, so an outlet-only node keeps
@@ -181,6 +243,7 @@ class ExampleNodeSkin(NodeSkin):
                         if not group:
                             continue
                         with ui.column().classes("flex-1 gap-1 min-w-0"):
-                            ui.label(heading).classes("font-bold text-sm")
+                            if show.label:
+                                ui.label(heading).classes("font-bold text-sm")
                             for port in group:
-                                self.render_port(port, wrapper, layout=layout)
+                                self.render_port(port, wrapper, layout=layout, show=show)

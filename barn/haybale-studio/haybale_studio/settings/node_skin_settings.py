@@ -4,12 +4,12 @@
 from haywire.core.settings.settings_library import LibrarySettings
 from haywire.core.settings import setting
 from haywire.core.settings.decorator import settings
-from haywire.barn.builtin.types import BOOL, INT
+from haywire.barn.builtin.types import INT
 
 
 @settings(namespace="ui.node.skin", label="Node Skin")
 class NodeSkinSettings(LibrarySettings):
-    """Settings controlling node layout, pin geometry, and element visibility.
+    """Settings controlling node layout and pin geometry.
 
     These settings are consumed directly by NodeSkin and its subclasses.
 
@@ -20,21 +20,17 @@ class NodeSkinSettings(LibrarySettings):
     introduction until they were deleted — under a docstring asserting the
     opposite. ``test_node_skin_settings.py`` now checks this by grepping the
     skins, so the claim cannot rot again.
+
+    **What is deliberately NOT here.** Element visibility left this bag in
+    ADR 0032: it is per node and per graph, not one studio-wide switch, and it
+    now resolves through ``NodeDetail`` (see ``haywire.ui.skin.visibility``).
+    ``show_labels`` became the FULL rank; ``show_tooltips`` was deleted
+    outright, because lazy tooltips had already removed its performance
+    rationale and — with labels at FULL — a tooltip is the only thing
+    identifying a port at COMPACT and STANDARD. A toggle that can render an
+    unreadable node is not a preference worth keeping.
     """
 
-    # Visibility
-    show_labels = setting[BOOL](
-        True,
-        label="Show Port Labels",
-        description="Display labels next to ports",
-        category="visibility",
-    )
-    show_tooltips = setting[BOOL](
-        True,
-        label="Show Tooltips",
-        description="Display tooltips on port hover",
-        category="visibility",
-    )
     # Pin geometry
     pin_gutter = setting[INT](
         20,

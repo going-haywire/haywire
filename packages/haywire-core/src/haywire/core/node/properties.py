@@ -14,6 +14,7 @@ from haywire.core.settings.descriptor import graph
 from haywire.core.graph.properties import GraphProperties
 from haywire.core.skin.settings import (
     _layout_direction_choices,
+    _node_detail_choices,
     _node_skin_choices,
     _node_theme_choices,
 )
@@ -31,18 +32,22 @@ class NodeProperties(NodeSettings):
     REDRAW_FIELDS: tuple[str, ...] = (
         "muted",
         "collapsed",
-        "condensed",
+        "detail",
         "pinned",
         "skin",
         "layout_direction",
         "comment",
-        "show_comment",
     )
     """Fields whose change triggers a full node-card redraw.
 
     NodeWrapper subscribes to these after each build; layout fields
     (posX/posY/width/height/…) are deliberately absent — position changes
     ride the cheaper NODE_MOVED path and fire on every drag tick.
+
+    ``collapsed`` and ``detail`` belong here for a reason specific to them:
+    both are CONSTRUCTION gates, so a change must rebuild the card rather than
+    restyle it. Hiding with CSS would leave every element built, mounted and
+    re-walked, which is the cost the axes exist to avoid (ADR 0032, ADR 0006).
 
     So are the two appearance fields (``node_theme``, ``color_override``):
     both resolve to CSS custom properties written onto the node's host slot,
@@ -61,20 +66,17 @@ class NodeProperties(NodeSettings):
         category="state",
         description="Mark this node as muted (execution skipping not yet implemented)",
     )
-    collapsed = setting[BOOL](
-        False,
+    collapsed = graph(
+        src=GraphProperties.collapsed,
         label="Collapsed",
         order=20,
         category="state",
-        description="Collapse node to show only header",
+        description="Fold to card, title, badges and the pins of linked ports",
     )
-    condensed = setting[BOOL](
-        False,
-        label="Condensed",
-        order=30,
-        category="state",
-        description="Show node in condensed view",
-    )
+    # `condensed` lived here from introduction until 2026-08-30, read by no
+    # skin the whole time. It named a middle density between collapsed and
+    # full, which is now `detail` — resolved through three tiers instead of
+    # being a per-node bool nobody wired. See ADR 0032.
     pinned = setting[BOOL](
         False,
         label="Pinned",
@@ -104,6 +106,15 @@ class NodeProperties(NodeSettings):
         category="appearance",
         order=15,
         widget_config={"options": _layout_direction_choices},
+    )
+
+    detail = graph(
+        src=GraphProperties.detail,
+        label="Detail",
+        description="How much of THIS node's card is drawn. Overrides the graph's.",
+        category="appearance",
+        order=16,
+        widget_config={"options": _node_detail_choices},
     )
 
     node_theme = graph(
@@ -141,19 +152,18 @@ class NodeProperties(NodeSettings):
     # Annotation
     # -----------------------------------------------------------------
 
+    # Emptiness is the whole visibility mechanism — the same bargain
+    # `color_override` makes. A node with text gets a badge beside its
+    # diagnostics badge, at the COLLAPSED tier so an annotation stays readable
+    # on a folded node; a node without text gets nothing. The old companion
+    # `show_comment` bool bought exactly "no badge", which an empty comment
+    # already gives, and was rendered by no skin in its entire life (ADR 0032).
     comment = setting[STRING](
         "",
         label="Comment",
         order=10,
         category="annotation",
-        description="Comment displayed above the node",
-    )
-    show_comment = setting[BOOL](
-        False,
-        label="Show Comment",
-        order=20,
-        category="annotation",
-        description="Display the comment bubble",
+        description="Note shown as a badge on the node; hover the badge to read it",
     )
 
     # -----------------------------------------------------------------
