@@ -181,12 +181,12 @@ def _build_error_skin_graph(node_factory):
 
 
 def _build_two_column_graph(node_factory):
-    """One node on the two-column ExampleNodeSkin, for the R2L column-order test.
+    """One node on the two-column SplitNodeSkin, for the R2L column-order test.
 
-    It is the only in-repo skin whose horizontal layout is not the default's
-    single stack, so it is the only place the "columns follow flow direction"
-    rule is observable. Returns (graph, editor) so the route can flip the
-    graph-tier layout_direction.
+    It is the only user-selectable in-repo skin whose horizontal layout is not
+    the stacked skin's single column, so it is the place the "columns follow
+    flow direction" rule is observable. Returns (graph, editor) so the route
+    can flip the graph-tier layout_direction.
     """
     from haywire.core.graph.base import BaseGraph
     from haywire.core.graph.editor import Editor
@@ -198,7 +198,7 @@ def _build_two_column_graph(node_factory):
     # outlet to compare their columns, and a source node has no inlets.
     node = graph.create_node_wrapper(_RECONNECT_SINK_KEY, position=(3700.0, 3700.0))
     assert node is not None, f"could not create {_RECONNECT_SINK_KEY}"
-    node.node.props.skin = "haybale-example:skin:ExampleNodeSkin"
+    node.node.props.skin = "haybale-studio:skin:SplitNodeSkin"
     return graph, editor
 
 
@@ -701,7 +701,7 @@ def register_routes(library_service) -> None:
     # -------------------------------------------------------------------------
     # GET /graph-two-column
     #
-    # A node on the two-column ExampleNodeSkin plus direction buttons. Backs the
+    # A node on the two-column SplitNodeSkin plus direction buttons. Backs the
     # column-order rule: under R2L the columns swap with the pins, so a pin and
     # its own label stay on the same side of the card.
     # -------------------------------------------------------------------------

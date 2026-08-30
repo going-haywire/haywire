@@ -7,7 +7,7 @@ whole card to reach the column their labels live in.
 
 The rule this pins down — "the inlet column is whichever side inlets' pins
 protrude from" — is stated in docs/components/skins/skin-canon.md and applies
-to any multi-column skin, not just ExampleNodeSkin.
+to any multi-column skin, not just SplitNodeSkin.
 """
 
 import pytest
@@ -35,7 +35,7 @@ def _switch(page: Page, testid: str) -> None:
 def _column_headings_in_order(page: Page) -> list[str]:
     """The 'Inputs'/'Outputs' captions, left to right on screen."""
     return page.evaluate(
-        """() => [...document.querySelectorAll('.math-node-card .font-bold')]
+        """() => [...document.querySelectorAll('.split-node-card .font-bold')]
             .filter(e => ['Inputs', 'Outputs'].includes(e.textContent.trim()))
             .map(e => ({ t: e.textContent.trim(), x: e.getBoundingClientRect().left }))
             .sort((a, b) => a.x - b.x)
@@ -47,7 +47,7 @@ def _pin_side(page: Page, pin_dir: str) -> str:
     """Which card edge a pin of this direction offsets toward."""
     return page.evaluate(
         """(dir) => {
-            const pin = [...document.querySelectorAll('.math-node-card .connection-pin')]
+            const pin = [...document.querySelectorAll('.split-node-card .connection-pin')]
                 .find(e => e.dataset.pinDir === dir);
             if (!pin) throw new Error('no pin with dir ' + dir);
             const s = getComputedStyle(pin);
@@ -60,7 +60,7 @@ def _pin_side(page: Page, pin_dir: str) -> str:
 def _label_centre_x(page: Page, heading: str) -> float:
     return page.evaluate(
         """(h) => {
-            const el = [...document.querySelectorAll('.math-node-card .font-bold')]
+            const el = [...document.querySelectorAll('.split-node-card .font-bold')]
                 .find(e => e.textContent.trim() === h);
             const r = el.getBoundingClientRect();
             return r.left + r.width / 2;
@@ -72,7 +72,7 @@ def _label_centre_x(page: Page, heading: str) -> float:
 def _card_centre_x(page: Page) -> float:
     return page.evaluate(
         """() => {
-            const r = document.querySelector('.math-node-card').getBoundingClientRect();
+            const r = document.querySelector('.split-node-card').getBoundingClientRect();
             return r.left + r.width / 2;
         }"""
     )
@@ -81,7 +81,7 @@ def _card_centre_x(page: Page) -> float:
 def test_the_fixture_really_uses_the_two_column_skin(page: Page, harness) -> None:
     """Guard the premise — otherwise this silently tests the default skin."""
     _open(page)
-    assert page.evaluate("() => !!document.querySelector('.math-node-card')")
+    assert page.evaluate("() => !!document.querySelector('.split-node-card')")
     assert _column_headings_in_order(page) == ["Inputs", "Outputs"]
 
 

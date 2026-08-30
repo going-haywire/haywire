@@ -21,6 +21,3 @@
 - `haybale-example:widget:KnobWidget` — KnobWidget — knob widget
 - `haybale-example:widget:TemperatureWidget` — TemperatureWidget — Temperature with unit conversion
 - `haybale-example:widget:ValidatedNumberWidget` — ValidatedNumberWidget — Number widget with range clamping
-
-## skin
-- `haybale-example:skin:ExampleNodeSkin` — ExampleNodeSkin — Custom skin for nodes with special styling

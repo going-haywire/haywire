@@ -106,6 +106,167 @@ class NodeSkin(BaseSkin, ABC):
         """
         return resolve_node_visibility(wrapper)
 
+    def card_classes(self, wrapper: NodeWrapper) -> str:
+        """Extra classes this skin's card carries beyond the shared contract.
+
+        The shared ones — ``w-full node-card zoom-pan-lod0`` — are added by
+        whoever builds the card; ``node-card`` in particular is a behavioural
+        contract, not styling (canvas.vue keys the manual-resize clamp release
+        off it), so it is never a subclass's to forget.
+
+        Override to add a skin's own token, e.g. a CSS-scoping class.
+        """
+        return ""
+
+    def _render_title(self, node) -> None:
+        """The node's name in the header row.
+
+        The one piece of header chrome a skin routinely wants its own version
+        of — an icon, a different weight. Overriding this rather than the whole
+        header is what lets every skin share one folded card.
+
+        Whatever an override draws, it draws the NODE's label: a hardcoded
+        title is wrong on every node that is not the one it was written for.
+        """
+        ui.label(node.identity.label).classes("text-h6 flex-grow")
+
+    @staticmethod
+    def _fold_layout(layout: LayoutDirection) -> LayoutDirection:
+        """The direction a FOLDED card draws pins in — always a horizontal one.
+
+        A folded card is a single row, so there is no top or bottom edge for a
+        vertical layout's pins to sit on: left in place they would offset
+        against a mid-card row and land *inside* the card, the same trap the
+        ghost pins hit before they moved into the edge strips.
+
+        Mapping a vertical direction to the horizontal one that keeps its sense
+        of "start": T2B has inlets on the leading edge, so it folds to L2R; B2T
+        has them on the trailing edge, so it folds to R2L. Folding a vertical
+        node therefore re-routes its wires, which is honest — the card changed
+        shape, and the edge layer reads each pin's own emitted vector, so the
+        curves follow without anything else being told.
+        """
+        if not layout.is_vertical:
+            return layout
+        return LayoutDirection.LEFT_TO_RIGHT if layout.inlet_side == "top" else LayoutDirection.RIGHT_TO_LEFT
+
+    def _render_pin_column(
+        self,
+        ports: List[DataPort],
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+    ):
+        """Stack bare pins beside the title, the way hidden-connected pins already are.
+
+        Placement is entirely ``layout``'s: each pin's CSS side and its
+        ``data-pin-dir-x/y`` vector are both derived inside ``_render_pin``, so
+        this cannot put the two out of step.
+        """
+        if not ports:
+            return
+        with ui.column().classes("gap-0 items-center"):
+            for port in ports:
+                self._render_pin(port, wrapper, layout=layout)
+
+    def _render_collapsed(
+        self,
+        main_card: ui.card,
+        node,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        card_style: str,
+        show: NodeVisibility,
+    ):
+        """A folded card: the header row, and nothing else.
+
+        Shared by every skin, because a folded card has no layout left to
+        differ about — it is one row whatever the skin does when open. What a
+        skin still owns is its chrome: ``card_classes`` for the card's own
+        token and ``_render_title`` for the header.
+
+        Structurally this *is* the horizontal header — title in the middle,
+        pins in a column on each side — which is why it needs no new layout
+        machinery. The difference is which pins: ``show.ports`` hands back
+        every LINKED port and drops the rest, so a 23-port node with two edges
+        folds to two pins rather than 23. That drop, not the missing labels, is
+        where the element-count win lives (ADR 0032).
+
+        Group collapse is ignored here on purpose — a port buried in a folded
+        group still gets its pin, because an edge must find its endpoint and a
+        folded card is all header. The resolver owns that rule; see
+        ``haywire.ui.skin.visibility``.
+
+        The diagnostics badge and the root ghost pins are NOT optional. A
+        folded node that hides its errors is the silent-failure pattern this
+        codebase keeps writing insight files about, and one with no ghost pin
+        has no drop anchor — an edge drag onto it simply does nothing.
+
+        The width clamps are dropped for the same reason the vertical branch
+        drops them: they size a label+widget content column this card does not
+        have.
+        """
+        main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(card_style)
+        fold_layout = self._fold_layout(layout)
+
+        with main_card:
+            self._render_diagnostics_badge(wrapper)
+
+            linked = show.ports(node)
+            with ui.row().classes("drag-handle w-full items-center"):
+                self._render_root_ghost_pins(wrapper, fold_layout)
+                self._render_pin_column([p for p in linked if p.is_inlet()], wrapper, fold_layout)
+                self._render_title(node)
+                self._render_pin_column([p for p in linked if not p.is_inlet()], wrapper, fold_layout)
+
+    def _render_diagnostics_badge(self, wrapper: NodeWrapper) -> List["HaywireException"]:
+        """The unified error/warning badge. Drawn at EVERY rank, folded included.
+
+        A node nobody can see is broken is worse than a slow one, so this is
+        not gated by detail — hiding an error indicator at low density is the
+        silent-failure pattern this codebase keeps writing insight files about.
+        Its click-through menu stays wired for the same reason a badge exists
+        at all: one that opens nothing is a broken affordance, and the menu
+        body only costs elements on nodes that actually have diagnostics, which
+        is near zero on the large graphs the detail axis exists for.
+
+        What ``show.diagnostics`` gates is the inline notice — see
+        :meth:`_render_alternates_notice`.
+
+        Returns the runtime errors, so a caller can decide about the notice
+        without re-reading node state.
+        """
+        runtime_errors = wrapper.state.get_errors() or []
+        deprecation_str = wrapper.node.identity.deprecation_warning
+        if runtime_errors or wrapper.state.has_warning() or deprecation_str:
+            self._render_diagnostics_button(
+                runtime_errors,
+                wrapper.state.warnings,
+                wrapper.node_id,
+                deprecation_str=deprecation_str,
+            )
+        # The comment badge is the other always-drawn marker, and rides the
+        # same call so no render path can pick up one and forget the other.
+        self._render_comment_badge(wrapper)
+        return runtime_errors
+
+    def _render_alternates_notice(
+        self,
+        wrapper: NodeWrapper,
+        runtime_errors: List["HaywireException"],
+        show: NodeVisibility,
+    ):
+        """The inline "Alternate versions available" line — FULL only.
+
+        This is the one genuinely inline piece of diagnostics *detail*: the
+        badge's own menu body is already behind a click. Rare enough that
+        gating it saves little, but it is what makes ``show.diagnostics``
+        answer a real question rather than none.
+        """
+        if runtime_errors and show.diagnostics and wrapper._alternate_registry_keys:
+            ui.label(f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}").classes(
+                "text-sm hw-text-warning mb-2"
+            )
+
     def render_port(
         self,
         port: DataPort,

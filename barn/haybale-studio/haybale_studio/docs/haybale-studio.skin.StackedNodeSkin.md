@@ -1,12 +1,17 @@
-# DefaultNodeSkin
+# Stacked
 
-`haybale-studio:skin:DefaultNodeSkin` · kind: skin
+`haybale-studio:skin:StackedNodeSkin` · kind: skin
 
-Default skin with collapsible group support
+One port column, outlets over configs over inlets, with collapsible groups
 
 ## Notes
 
-Default skin that provides the standard node appearance with group support.
+The default skin: every port type stacked in ONE column.
+
+Named for that column. The order within it is outlets → configs → inlets,
+and each pin is sided by the node's LayoutDirection rather than by which
+band it is in — which is what distinguishes this from
+:class:`SplitNodeSkin`, where inlets and outlets take a column each.
 
 Features:
 - Ports stacked in one column, each pin sided by the node's LayoutDirection

@@ -10,7 +10,6 @@ keywords = ["example", "demo", "tutorial"]
 dependencies = [
     "haywire-core>=0.1.3",
     "haybale-core>=0.1.3",
-    "haybale-studio>=0.1.3",
     "nicegui>=3.12.1",
     "typing_extensions"]
 

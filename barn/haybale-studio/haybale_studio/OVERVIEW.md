@@ -56,7 +56,8 @@ Library for haywire studio
 - **Properties** — Context-sensitive property panels for the active selection.
 
 ## Skins
-- **DefaultNodeSkin** — Default skin with collapsible group support
+- **Split** — Configs across the top, inlets and outlets in columns side by side
+- **Stacked** — One port column, outlets over configs over inlets, with collapsible groups
 
 ## Themes
 - **Default Node Theme** — 

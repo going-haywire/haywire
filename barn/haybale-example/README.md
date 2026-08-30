@@ -28,6 +28,3 @@ Example library for demonstrating multi-library support
 - **KnobWidget** — knob widget
 - **TemperatureWidget** — Temperature with unit conversion
 - **ValidatedNumberWidget** — Number widget with range clamping
-
-## Skins
-- **ExampleNodeSkin** — Custom skin for nodes with special styling

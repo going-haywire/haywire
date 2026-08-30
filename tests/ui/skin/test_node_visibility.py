@@ -221,17 +221,18 @@ class TestSkinsHonourTheAxes:
     # `test_every_known_skin_dir_exists` is for.
     _SKIN_DIRS = (
         _ROOT / "barn/haybale-studio/haybale_studio/skins",
-        _ROOT / "barn/haybale-example/haybale_example/skins",
         _ROOT / "packages/haywire-core/src/haywire/barn/builtin/skins",
     )
 
     # Skins that ignore the axes ON PURPOSE. Each entry is a decision, not a
     # backlog item — adding one means arguing why that card should stay
     # full-size when the user folds every node in the graph.
+    #
+    # The error skin is NOT here. It shows everything, but it says so through
+    # the axes rather than around them: it overrides ``show_of`` to return a
+    # wide-open NodeVisibility, so the sweep below sees it consulting the
+    # contract and every ``show.`` call on its render path stays honest.
     _EXEMPT = {
-        # A failed render must show its failure at any density. Folding an
-        # error card would hide the one thing it exists to say.
-        "error_skin.py",
         # Already a bare dot on a wire — a folded card would be BIGGER, and it
         # has no labels or widgets for a rank to remove.
         "reroute_skin.py",
@@ -241,7 +242,7 @@ class TestSkinsHonourTheAxes:
         """Guard the premise — a stale path makes the sweep below vacuous."""
         for directory in self._SKIN_DIRS:
             assert directory.is_dir(), f"skin directory not found: {directory}"
-        assert (self._SKIN_DIRS[0] / "default_skin.py").is_file()
+        assert (self._SKIN_DIRS[0] / "stacked_skin.py").is_file()
 
     def test_every_non_exempt_skin_consults_node_visibility(self):
         unaware = []

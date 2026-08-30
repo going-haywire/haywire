@@ -858,7 +858,6 @@ version = "0.1.3"
 source = { editable = "barn/haybale-example" }
 dependencies = [
     { name = "haybale-core" },
-    { name = "haybale-studio" },
     { name = "haywire-core" },
     { name = "nicegui" },
     { name = "typing-extensions" },
@@ -867,7 +866,6 @@ dependencies = [
 [package.metadata]
 requires-dist = [
     { name = "haybale-core", editable = "barn/haybale-core" },
-    { name = "haybale-studio", editable = "barn/haybale-studio" },
     { name = "haywire-core", editable = "packages/haywire-core" },
     { name = "nicegui", specifier = ">=3.12.1" },
     { name = "typing-extensions" },

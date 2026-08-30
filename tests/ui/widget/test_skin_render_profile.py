@@ -2,7 +2,7 @@
 
 The widget cost-attribution test (``test_widget_cost_attribution.py``) showed
 ``render_widget`` is only ~13% of render wall time; the other ~87% is the rest
-of the node card built by the default skin (``DefaultNodeSkin`` /
+of the node card built by the default skin (``StackedNodeSkin`` /
 ``NodeSkin.render_port`` / ``_render_pin`` / tooltips). This test attributes
 *that* 87% two ways, so the next optimization is aimed by data, not hypothesis:
 

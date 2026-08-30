@@ -15,7 +15,7 @@ class DisplayNode(BaseNode):
 
     def init(self):
         # Configure UI
-        self.props.skin = "example:skin:ExampleNodeSkin"
+        self.props.skin = "haybale-studio:skin:SplitNodeSkin"
 
         # Using the new .as_inlet() API
         self.add(

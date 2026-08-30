@@ -1,4 +1,4 @@
-"""The detail axes actually change what DefaultNodeSkin builds.
+"""The detail axes actually change what StackedNodeSkin builds.
 
 The rest of the ADR-0032 suite is pure logic: the enum, the resolver, the
 truth table. None of it renders, and every existing skin-render test is
@@ -114,21 +114,22 @@ class TestElementCountFallsWithDetail:
         )
 
 
-class TestExampleSkinHonoursTheAxes:
-    """The example skin is the reference an author copies, so it has to model
+class TestSplitSkinHonoursTheAxes:
+    """The split skin is the reference an author copies, so it has to model
     the contract — not merely compile against it.
 
-    It is also the only in-repo skin with a materially different layout (two
-    bands, its own section headings), which makes it the one most likely to
-    thread ``show`` somewhere the default skin never exercises.
+    It is also the only user-selectable in-repo skin with a materially
+    different layout (two bands, its own section headings), which makes it the
+    one most likely to thread ``show`` somewhere the stacked skin never
+    exercises.
     """
 
     @pytest.fixture
     def example_ctx(self, render_ctx):
-        from haybale_example.skins.example_skin import ExampleNodeSkin
+        from haybale_studio.skins.split_skin import SplitNodeSkin
 
         skin_factory, graph, wrapper, _default_key = render_ctx
-        return skin_factory, graph, wrapper, ExampleNodeSkin.class_identity.registry_key
+        return skin_factory, graph, wrapper, SplitNodeSkin.class_identity.registry_key
 
     def test_ranks_build_fewer_elements(self, example_ctx):
         full = _count_at(example_ctx, NodeDetail.FULL)

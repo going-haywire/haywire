@@ -54,7 +54,8 @@
 - `haybale-studio:editor:TerminalEditor` — Log — Application output. Captures Python logging and print() output.
 
 ## skin
-- `haybale-studio:skin:DefaultNodeSkin` — DefaultNodeSkin — Default skin with collapsible group support
+- `haybale-studio:skin:SplitNodeSkin` — Split — Configs across the top, inlets and outlets in columns side by side
+- `haybale-studio:skin:StackedNodeSkin` — Stacked — One port column, outlets over configs over inlets, with collapsible groups
 
 ## theme
 - `haybale-studio:theme:DefaultNodeTheme` — Default Node Theme — 

@@ -1,7 +1,7 @@
 """
-Default NodeSkin with group support
+Stacked NodeSkin — one port column, with group support
 
-This skin provides the standard node appearance with collapsible groups
+Ports of every direction stack in a single column; this is the default skin.
 """
 
 from typing import List
@@ -17,10 +17,19 @@ from haywire.ui.skin.visibility import NodeVisibility
 from .node_skin import NodeSkin
 
 
-@skin(description="Default skin with collapsible group support", _is_default=True)
-class DefaultNodeSkin(NodeSkin):
+@skin(
+    label="Stacked",
+    description="One port column, outlets over configs over inlets, with collapsible groups",
+    _is_default=True,
+)
+class StackedNodeSkin(NodeSkin):
     """
-    Default skin that provides the standard node appearance with group support.
+    The default skin: every port type stacked in ONE column.
+
+    Named for that column. The order within it is outlets → configs → inlets,
+    and each pin is sided by the node's LayoutDirection rather than by which
+    band it is in — which is what distinguishes this from
+    :class:`SplitNodeSkin`, where inlets and outlets take a column each.
 
     Features:
     - Ports stacked in one column, each pin sided by the node's LayoutDirection
@@ -36,18 +45,15 @@ class DefaultNodeSkin(NodeSkin):
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         """Render the complete node UI with groups."""
         node = wrapper.node
-        layout = self.layout_of(wrapper)
-        show = self.show_of(wrapper)
+        layout: LayoutDirection = self.layout_of(wrapper)
+        show: NodeVisibility = self.show_of(wrapper)
 
         padding = self.CARD_H_PADDING
         # Pure var() consumption — no per-node branching, ever. A graph or a
-        # node overrides the look by redefining these vars on an ancestor
-        # element (see a @theme(theme_type='node') class); the browser re-resolves
-        # them without this skin being re-rendered or even consulted.
+        # node overrides the look via a @theme(theme_type='node') class);
+        # the browser re-resolves them without this skin being re-rendered.
         #
-        # `background`, not `background-color`: a token may hold a gradient,
-        # which is an <image> and would make a `background-color` declaration
-        # invalid — silently dropping the whole card colour.
+        # `background`, not `background-color`: a token may hold a gradient
         card_style = (
             "background: var(--hw-node-bg); "
             "border: var(--hw-node-border-width) solid var(--hw-node-border-color); "
@@ -57,133 +63,12 @@ class DefaultNodeSkin(NodeSkin):
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
         if show.collapsed:
+            # Folded, this card is the shared header row — see NodeSkin.
             self._render_collapsed(main_card, node, wrapper, layout, card_style, show)
         elif layout.is_vertical:
             self._render_vertical(main_card, node, wrapper, layout, card_style, show)
         else:
             self._render_horizontal(main_card, node, wrapper, layout, card_style, show)
-
-    def _render_collapsed(
-        self,
-        main_card: ui.card,
-        node,
-        wrapper: NodeWrapper,
-        layout: LayoutDirection,
-        card_style: str,
-        show: NodeVisibility,
-    ):
-        """A folded card: the header row, and nothing else.
-
-        Structurally this *is* the horizontal header — title in the middle,
-        pins in a column on each side — which is why it needs no new layout
-        machinery. The difference is which pins: ``show.ports`` hands back
-        every LINKED port and drops the rest, so a 23-port node with two edges
-        folds to two pins rather than 23. That drop, not the missing labels, is
-        where the element-count win lives (ADR 0032).
-
-        Group collapse is ignored here on purpose — a port buried in a folded
-        group still gets its pin, because an edge must find its endpoint and a
-        folded card is all header. The resolver owns that rule; see
-        ``haywire.ui.skin.visibility``.
-
-        The width clamps are dropped for the same reason the vertical branch
-        drops them: they size a label+widget content column this card does not
-        have.
-        """
-        main_card.classes("w-full node-card zoom-pan-lod0").style(card_style)
-        fold_layout = self._fold_layout(layout)
-
-        with main_card:
-            self._render_diagnostics_badge(wrapper)
-
-            linked = show.ports(node)
-            with ui.row().classes("drag-handle w-full items-center"):
-                self._render_root_ghost_pins(wrapper, fold_layout)
-                self._render_pin_column([p for p in linked if p.is_inlet()], wrapper, fold_layout)
-                ui.label(node.identity.label).classes("text-h6 flex-grow")
-                self._render_pin_column([p for p in linked if not p.is_inlet()], wrapper, fold_layout)
-
-    @staticmethod
-    def _fold_layout(layout: LayoutDirection) -> LayoutDirection:
-        """The direction a FOLDED card draws pins in — always a horizontal one.
-
-        A folded card is a single row, so there is no top or bottom edge for a
-        vertical layout's pins to sit on: left in place they would offset
-        against a mid-card row and land *inside* the card, the same trap the
-        ghost pins hit before they moved into the edge strips.
-
-        Mapping a vertical direction to the horizontal one that keeps its sense
-        of "start": T2B has inlets on the leading edge, so it folds to L2R; B2T
-        has them on the trailing edge, so it folds to R2L. Folding a vertical
-        node therefore re-routes its wires, which is honest — the card changed
-        shape, and the edge layer reads each pin's own emitted vector, so the
-        curves follow without anything else being told.
-        """
-        if not layout.is_vertical:
-            return layout
-        return LayoutDirection.LEFT_TO_RIGHT if layout.inlet_side == "top" else LayoutDirection.RIGHT_TO_LEFT
-
-    def _render_pin_column(
-        self,
-        ports: List[DataPort],
-        wrapper: NodeWrapper,
-        layout: LayoutDirection,
-    ):
-        """Stack bare pins beside the title, the way hidden-connected pins already are.
-
-        Placement is entirely ``layout``'s: each pin's CSS side and its
-        ``data-pin-dir-x/y`` vector are both derived inside ``_render_pin``, so
-        this cannot put the two out of step.
-        """
-        if not ports:
-            return
-        with ui.column().classes("gap-0 items-center"):
-            for port in ports:
-                self._render_pin(port, wrapper, layout=layout)
-
-    def _render_diagnostics_badge(self, wrapper: NodeWrapper) -> List:
-        """The unified error/warning badge. Drawn at EVERY rank, folded included.
-
-        A node nobody can see is broken is worse than a slow one, so this is
-        not gated by detail — hiding an error indicator at low density is the
-        silent-failure pattern this codebase keeps writing insight files about.
-        Its click-through menu stays wired for the same reason a badge exists
-        at all: one that opens nothing is a broken affordance, and the menu
-        body only costs elements on nodes that actually have diagnostics, which
-        is near zero on the large graphs the detail axis exists for.
-
-        What ``show.diagnostics`` gates is the inline notice — see
-        :meth:`_render_alternates_notice`.
-
-        Returns the runtime errors, so a caller can decide about the notice
-        without re-reading node state.
-        """
-        runtime_errors = wrapper.state.get_errors() or []
-        deprecation_str = wrapper.node.identity.deprecation_warning
-        if runtime_errors or wrapper.state.has_warning() or deprecation_str:
-            self._render_diagnostics_button(
-                runtime_errors,
-                wrapper.state.warnings,
-                wrapper.node_id,
-                deprecation_str=deprecation_str,
-            )
-        # The comment badge is the other always-drawn marker, and rides the
-        # same call so no render path can pick up one and forget the other.
-        self._render_comment_badge(wrapper)
-        return runtime_errors
-
-    def _render_alternates_notice(self, wrapper: NodeWrapper, runtime_errors: List, show: NodeVisibility):
-        """The inline "Alternate versions available" line — FULL only.
-
-        This is the one genuinely inline piece of diagnostics *detail*: the
-        badge's own menu body is already behind a click. Rare enough that
-        gating it saves little, but it is what makes ``show.diagnostics``
-        answer a real question rather than none.
-        """
-        if runtime_errors and show.diagnostics and wrapper._alternate_registry_keys:
-            ui.label(f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}").classes(
-                "text-sm hw-text-warning mb-2"
-            )
 
     def _render_vertical(
         self,
@@ -223,7 +108,7 @@ class DefaultNodeSkin(NodeSkin):
             # up INSIDE the card rather than out to an edge.
             with ui.row().classes("drag-handle w-full items-center"):
                 # Node title (centered/flexible)
-                ui.label(node.identity.label).classes("text-h6 flex-grow")
+                self._render_title(node)
                 self._render_alternates_notice(wrapper, runtime_errors, show)
 
             # Main content: only configs stay in the body — inlets and outlets
@@ -271,21 +156,13 @@ class DefaultNodeSkin(NodeSkin):
                 # still lands on. Not ghost pins: a ghost is the root drop
                 # anchor above, names no entry in node.ports, and is never
                 # linked. See the glossary.
-                hidden_inlets = node.get_hidden_connected_ports(is_inlet=True)
-                if hidden_inlets:
-                    with ui.column().classes("gap-0 items-center"):
-                        for port in hidden_inlets:
-                            self._render_pin(port, wrapper, layout=layout)
+                self._render_pin_column(node.get_hidden_connected_ports(is_inlet=True), wrapper, layout)
 
                 # Node title (centered/flexible)
-                ui.label(node.identity.label).classes("text-h6 flex-grow")
+                self._render_title(node)
 
                 # Same for outlets — ordinary pins, not ghosts.
-                hidden_outlets = node.get_hidden_connected_ports(is_inlet=False)
-                if hidden_outlets:
-                    with ui.column().classes("gap-0 items-center"):
-                        for port in hidden_outlets:
-                            self._render_pin(port, wrapper, layout=layout)
+                self._render_pin_column(node.get_hidden_connected_ports(is_inlet=False), wrapper, layout)
 
                 self._render_alternates_notice(wrapper, runtime_errors, show)
 
@@ -372,7 +249,7 @@ class DefaultNodeSkin(NodeSkin):
             if port.port_type != port_type:
                 continue
 
-            # Skip child ports (they're rendered inside their parent group)
+            # Skip child ports (they're rendered inside their parent groups)
             if port.parent_group:
                 continue
 

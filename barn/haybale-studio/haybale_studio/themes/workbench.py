@@ -50,7 +50,7 @@ class HaywireDarkTheme(BaseTheme):
 
     # Node chrome — Tier 1 (card surface; overridable per graph and per node).
     #
-    # The border values are seeded from what DefaultNodeSkin hardcoded, not from
+    # The border values are seeded from what StackedNodeSkin hardcoded, not from
     # the old `node_border = "#2e2e48"`: that token existed but no skin ever read
     # it, so honouring it would restyle every node to a colour nobody has seen.
     node_bg = "#1e1e2e"
@@ -150,7 +150,7 @@ class HaywireLightTheme(BaseTheme):
 
     # Node chrome — Tier 1 (card surface; overridable per graph and per node).
     #
-    # Border seeded from DefaultNodeSkin's literal, as in the dark theme: the
+    # Border seeded from StackedNodeSkin's literal, as in the dark theme: the
     # old `node_border = "#ffffff"` was never read by any skin.
     node_bg = "rgba(255,255,255,0.3)"
     node_border_color = "#333333"
