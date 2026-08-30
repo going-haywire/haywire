@@ -19,6 +19,5 @@ Library installer + browser editors
 - **Marketplace State** — 
 
 ## Editors
-- **Component Detail** — Detailed documentation for the selected node component.
 - **Libraries** — Searchable list of installed and available libraries.
 - **Library Detail** — Detailed information for the selected library.

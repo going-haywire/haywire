@@ -1,53 +1,67 @@
-# graph_editor — component index (v0.1.0)
+# haybale-graph-editor — component index (v0.1.3)
 
 ## farmhand
-- `graph_editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
-- `graph_editor:farmhand:connect` — Connect — Connect an outlet to an inlet.
-- `graph_editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting.
-- `graph_editor:farmhand:inspect_node` — Inspect node — One node's ports, settings, and health, at a chosen depth.
-- `graph_editor:farmhand:move_nodes` — Move nodes — Move nodes to absolute positions ({node_id: {x, y}}).
-- `graph_editor:farmhand:promote_setting` — Promote setting — Promote a settings field to a data port. Not undo-routed (UI parity; later work).
-- `graph_editor:farmhand:query_graph` — Query graph — Nodes (with ports) and edges of an open graph.
-- `graph_editor:farmhand:redo` — Redo — Redo the last undone change on this graph's SHARED human+agent timeline.
-- `graph_editor:farmhand:remove_elements` — Remove elements — Remove nodes and/or edges (also the way to disconnect).
-- `graph_editor:farmhand:set_property` — Set property — Set a node property (port value or settings field) by name. Undo-recorded.
-- `graph_editor:farmhand:undo` — Undo — Undo the last change on this graph's SHARED human+agent timeline.
+- `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
+- `haybale-graph-editor:farmhand:connect` — Connect — Connect an outlet to an inlet.
+- `haybale-graph-editor:farmhand:demote_setting` — Demote setting — Remove a promoted port, returning the field to a plain setting.
+- `haybale-graph-editor:farmhand:inspect_node` — Inspect node — One node's ports, settings, and health, at a chosen depth.
+- `haybale-graph-editor:farmhand:move_nodes` — Move nodes — Move nodes to absolute positions ({node_id: {x, y}}).
+- `haybale-graph-editor:farmhand:promote_setting` — Promote setting — Promote a settings field to a data port. Not undo-routed (UI parity; later work).
+- `haybale-graph-editor:farmhand:query_graph` — Query graph — Nodes (with ports) and edges of an open graph.
+- `haybale-graph-editor:farmhand:redo` — Redo — Redo the last undone change on this graph's SHARED human+agent timeline.
+- `haybale-graph-editor:farmhand:remove_elements` — Remove elements — Remove nodes and/or edges (also the way to disconnect).
+- `haybale-graph-editor:farmhand:set_metadata` — Set graph metadata — Set a graph's document metadata (label, description, author, version).
+- `haybale-graph-editor:farmhand:set_property` — Set property — Set a node property (port value or settings field) by name. Undo-recorded.
+- `haybale-graph-editor:farmhand:undo` — Undo — Undo the last change on this graph's SHARED human+agent timeline.
 
 ## state
-- `graph_editor:state:EditState` — Edit State — 
+- `haybale-graph-editor:state:EditState` — Edit State — 
 
 ## panel
-- `graph_editor:panel:CopySelectionMenuPanel` — Copy Selection — 
-- `graph_editor:panel:CopyToolbarPanel` — Copy — 
-- `graph_editor:panel:CreateNodeMenuPanel` — Create Node — 
-- `graph_editor:panel:DeleteEdgeMenuPanel` — Delete Connection — 
-- `graph_editor:panel:DeleteSelectionMenuPanel` — Delete Selection — 
-- `graph_editor:panel:DeleteToolbarPanel` — Delete — 
-- `graph_editor:panel:DetachSettingMenuPanel` — Detach from setting — 
-- `graph_editor:panel:DissolveRerouteMenuPanel` — Dissolve Reroute — 
-- `graph_editor:panel:EdgeErrorsMenuPanel` — Connection Errors — 
-- `graph_editor:panel:EdgeErrorsPanel` — Connection Errors — 
-- `graph_editor:panel:EdgePathPanel` — Connection Path — 
-- `graph_editor:panel:EdgeStatsPanel` — Execution Statistics — 
-- `graph_editor:panel:EdgeWarningsMenuPanel` — Connection Warnings — 
-- `graph_editor:panel:EdgeWarningsPanel` — Connection Warnings — 
-- `graph_editor:panel:GraphInfoPanel` — Graph Info — 
-- `graph_editor:panel:GraphSettingsPanel` — Graph Settings — 
-- `graph_editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
-- `graph_editor:panel:NodeErrorsPanel` — Node Errors — 
-- `graph_editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — 
-- `graph_editor:panel:NodeInfoPanel` — Node Properties — 
-- `graph_editor:panel:NodePortsPanel` — Ports — 
-- `graph_editor:panel:NodePropertiesPanel` — Node Properties — 
-- `graph_editor:panel:NodeSettingsPanel` — Node Settings — 
-- `graph_editor:panel:NodeStatusPanel` — Status — 
-- `graph_editor:panel:OverflowToolbarPanel` — More — 
-- `graph_editor:panel:PasteMenuPanel` — Paste — 
-- `graph_editor:panel:PortInfoMenuPanel` — Port Info — 
-- `graph_editor:panel:ReconnectEdgeMenuPanel` — Reconnect Edge — 
-- `graph_editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — 
-- `graph_editor:panel:ResetSelectionMenuPanel` — Reset Selection — 
-- `graph_editor:panel:RevalidateSelectionMenuPanel` — Revalidate Selection — 
+- `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — 
+- `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail & Collapse — 
+- `haybale-graph-editor:panel:CollapseSelectionMenuPanel` — Collapse — 
+- `haybale-graph-editor:panel:CollapseToolbarPanel` — Collapse — 
+- `haybale-graph-editor:panel:CopySelectionMenuPanel` — Copy Selection — 
+- `haybale-graph-editor:panel:CopyToolbarPanel` — Copy — 
+- `haybale-graph-editor:panel:CreateNodeMenuPanel` — Create Node — 
+- `haybale-graph-editor:panel:DeleteEdgeMenuPanel` — Delete Connection — 
+- `haybale-graph-editor:panel:DeleteSelectionMenuPanel` — Delete Selection — 
+- `haybale-graph-editor:panel:DeleteToolbarPanel` — Delete — 
+- `haybale-graph-editor:panel:DetachSettingMenuPanel` — Detach from setting — 
+- `haybale-graph-editor:panel:DetailRankMenuPanel` — Detail Ranks — 
+- `haybale-graph-editor:panel:DetailSelectionMenuPanel` — Detail — 
+- `haybale-graph-editor:panel:DissolveRerouteMenuPanel` — Dissolve Reroute — 
+- `haybale-graph-editor:panel:EdgeErrorsMenuPanel` — Connection Errors — 
+- `haybale-graph-editor:panel:EdgeErrorsPanel` — Connection Errors — 
+- `haybale-graph-editor:panel:EdgePathPanel` — Connection Path — 
+- `haybale-graph-editor:panel:EdgeStatsPanel` — Execution Statistics — 
+- `haybale-graph-editor:panel:EdgeWarningsMenuPanel` — Connection Warnings — 
+- `haybale-graph-editor:panel:EdgeWarningsPanel` — Connection Warnings — 
+- `haybale-graph-editor:panel:FocusGraphPanel` — Focus on Graph — 
+- `haybale-graph-editor:panel:GraphContextPanel` — Graph Context — 
+- `haybale-graph-editor:panel:GraphInfoPanel` — Graph Info — 
+- `haybale-graph-editor:panel:GraphMetadataPanel` — Graph Metadata — 
+- `haybale-graph-editor:panel:GraphMorePanel` — More Actions — 
+- `haybale-graph-editor:panel:GraphSettingsPanel` — Graph Settings — 
+- `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
+- `haybale-graph-editor:panel:NodeAppearancePanel` — Node Appearance — 
+- `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 
+- `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — 
+- `haybale-graph-editor:panel:NodeInfoPanel` — Node Properties — 
+- `haybale-graph-editor:panel:NodePortsPanel` — Ports — 
+- `haybale-graph-editor:panel:NodePropertiesPanel` — Node Properties — 
+- `haybale-graph-editor:panel:NodeSettingsPanel` — Node Settings — 
+- `haybale-graph-editor:panel:NodeStatusPanel` — Status — 
+- `haybale-graph-editor:panel:PastePanel` — Paste — 
+- `haybale-graph-editor:panel:PortInfoMenuPanel` — Port Info — 
+- `haybale-graph-editor:panel:RebuildSelectionMenuPanel` — Rebuild — 
+- `haybale-graph-editor:panel:ReconnectEdgeMenuPanel` — Reconnect Edge — 
+- `haybale-graph-editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — 
+- `haybale-graph-editor:panel:ResetNodeCardsMenuPanel` — Reset Node Cards — 
+- `haybale-graph-editor:panel:ResetSelectionMenuPanel` — Reset Selection — 
+- `haybale-graph-editor:panel:RevalidateSelectionMenuPanel` — Revalidate Selection — 
+- `haybale-graph-editor:panel:SelectionOverflowPanel` — More — 
 
 ## editor
-- `graph_editor:editor:GraphEditor` — Graph Editor — Visual node graph editor for wiring data processing pipelines.
+- `haybale-graph-editor:editor:GraphEditor` — Graph Editor — Visual node graph editor for wiring data processing pipelines.

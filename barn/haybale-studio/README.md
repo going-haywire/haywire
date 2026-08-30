@@ -27,6 +27,8 @@ Library for haywire studio
 - **File Browser State** — 
 
 ## Panels
+- **Activity** — 
+- **Agent activity** — 
 - **Canvas** — 
 - **Debug Overlay** — 
 - **Default Skins** — 
@@ -34,16 +36,22 @@ Library for haywire studio
 - **Editor** — 
 - **Execution** — 
 - **Log Levels** — 
+- **Manage principals** — 
 - **Minimap** — 
-- **Network** — 
 - **Open in Code Editor** — 
 - **Open in File Viewer** — 
+- **Security** — 
+- **Sign everyone out** — 
+- **Sign out** — 
 - **Skins** — Skin Configuration:Node dimensions, typography and label visibility.
 - **Workbench** — 
 - **Zoom & Pan** — 
 
 ## Editors
+- **Accounts** — Manage who may reach this studio
+- **Agent Activity** — Farmhand tool calls made by agent principals
 - **Code Editor** — Text/code editor with syntax highlighting (Markdown, Python, JSON, TOML, YAML, JS/TS, CSS/HTML/XML, Shell, plain text). Markdown files have a Preview tab. Save and Save As supported.
+- **Component Detail** — Detailed documentation for the selected component.
 - **Component Source** — Source code of the currently selected component.
 - **Errors** — Error ledger. Lists HaywireExceptions logged since startup; click one for details.
 - **File Viewer** — Displays the contents of a file selected in the Files browser.
@@ -53,3 +61,8 @@ Library for haywire studio
 
 ## Skins
 - **DefaultNodeSkin** — Default skin with collapsible group support
+
+## Themes
+- **Default Node Theme** — 
+- **Haywire Dark** — 
+- **Haywire Light** —

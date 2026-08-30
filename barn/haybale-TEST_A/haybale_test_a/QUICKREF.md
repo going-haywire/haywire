@@ -1,4 +1,4 @@
-# test_a — component index (v0.1.0)
+# haybale-TEST_A — component index (v0.1.3)
 
 ## type
-- `test_a:type:TestData` — Test Data — Simple test data structure for cross-library testing
+- `haybale-TEST_A:type:TestData` — Test Data — Simple test data structure for cross-library testing

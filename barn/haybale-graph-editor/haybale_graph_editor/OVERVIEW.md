@@ -12,6 +12,7 @@ Visual graph editor library — host-agnostic
 - **Query graph** — Nodes (with ports) and edges of an open graph.
 - **Redo** — Redo the last undone change on this graph's SHARED human+agent timeline.
 - **Remove elements** — Remove nodes and/or edges (also the way to disconnect).
+- **Set graph metadata** — Set a graph's document metadata (label, description, author, version).
 - **Set property** — Set a node property (port value or settings field) by name. Undo-recorded.
 - **Undo** — Undo the last change on this graph's SHARED human+agent timeline.
 
@@ -19,6 +20,9 @@ Visual graph editor library — host-agnostic
 - **Edit State** — 
 
 ## Panels
+- **Appearance** — 
+- **Collapse** — 
+- **Collapse** — 
 - **Connection Errors** — 
 - **Connection Errors** — 
 - **Connection Path** — 
@@ -31,12 +35,19 @@ Visual graph editor library — host-agnostic
 - **Delete Connection** — 
 - **Delete Selection** — 
 - **Detach from setting** — 
+- **Detail** — 
+- **Detail Ranks** — 
 - **Dissolve Reroute** — 
 - **Execution Statistics** — 
+- **Focus on Graph** — 
+- **Graph Context** — 
 - **Graph Info** — 
+- **Graph Metadata** — 
 - **Graph Settings** — 
 - **Insert Reroute** — 
 - **More** — 
+- **More Actions** — 
+- **Node Appearance** — 
 - **Node Errors** — 
 - **Node Errors** — 
 - **Node Properties** — 
@@ -45,8 +56,11 @@ Visual graph editor library — host-agnostic
 - **Paste** — 
 - **Port Info** — 
 - **Ports** — 
+- **Rebuild** — 
 - **Reconnect Edge** — 
 - **Redraw Selection** — 
+- **Reset Detail & Collapse** — 
+- **Reset Node Cards** — 
 - **Reset Selection** — 
 - **Revalidate Selection** — 
 - **Status** — 

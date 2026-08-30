@@ -1,4 +1,4 @@
-# share — component index (v0.1.0)
+# haybale-share — component index (v0.1.3)
 
 ## editor
-- `share:editor:ShareEditor` — Share — Publish this project: dependencies, version, docs, commit, tag, push.
+- `haybale-share:editor:ShareEditor` — Share — Publish this project: dependencies, version, docs, commit, tag, push.

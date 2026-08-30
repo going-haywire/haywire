@@ -40,7 +40,7 @@ main_card.classes("w-full min-w-64 max-w-sm node-card zoom-pan-lod0 my-skin-card
 
 ### `node-card` is a literal token, not a prefix
 
-CSS class selectors match **whole tokens**. `my-skin-card`, `math-node-card`, and
+CSS class selectors match **whole tokens**. `my-skin-card`, `split-node-card`, and
 `error-node-card` do *not* match `.node-card` — they are sibling classes, not variants.
 Name your skin's own class whatever you like, but apply `node-card` **alongside** it.
 
