@@ -66,6 +66,49 @@ def test_container_methods_key_consistently_simple_mode():
     assert bag.is_locally_set("strength") is True
 
 
+def test_node_bag_key_is_accessor_dot_field():
+    """A @node stamps '<accessor>.<field>' — not the node's registry_key.
+
+    Node bags never reach SettingsRegistry, so the key is only ever a per-node
+    identifier; the accessor alone disambiguates same-named fields across bags.
+    """
+    from haywire.core.node import BaseNode, node
+
+    @node(label="KeyProbe")
+    class _KeyProbeNode(BaseNode):
+        class filter(NodeSettings):
+            strength = setting[FLOAT](0.5)
+
+        def init(self):
+            pass
+
+        def worker(self, context):
+            return None
+
+    desc = _KeyProbeNode._settings_bags["filter"].__dict__["strength"]
+    assert desc._setting_key == "filter.strength"
+    assert desc.storage_key == "filter.strength"
+
+
+def test_inherited_props_bag_is_not_stamped_with_first_node_name():
+    """Regression: the shared ``props`` descriptors carry the accessor only.
+
+    ``props`` is declared once on BaseNode, so its descriptor objects are shared
+    by every node class. The old "stamp once, first writer wins" rule keyed every
+    node's fields under whichever node class happened to be decorated first.
+    """
+    from haybale_testing.nodes.testbed.print_node import TestPrintNode
+    from haywire.barn.builtin.nodes.reroute import RerouteNode
+
+    for cls in (TestPrintNode, RerouteNode):
+        bag_cls = cls._settings_bags["props"]
+        for field in ("skin", "muted"):
+            # getattr, not __dict__: both fields are declared on the
+            # NodeProperties base, and class-level access on a descriptor
+            # returns the descriptor itself.
+            assert getattr(bag_cls, field)._setting_key == f"props.{field}"
+
+
 def test_storage_key_extended_mode_uses_full_key():
     # A FrameworkSettings subclass with namespace= populates _setting_key on its
     # descriptors at class-definition time (schema.py __init_subclass__). This is

@@ -19,14 +19,16 @@ structural validator accepts a reroute with no ports (see
 
 This node lives in the framework-owned **builtin** library (not a plugin) so
 headless graphs can always load reroutes without importing any display-only
-library: it binds its skin by registry-key *string*, never importing the skin
-class.
+library: it declares its skin by registry-key *string* on its own ``props``
+bag, never importing the skin class.
 """
 
 from __future__ import annotations
 
+from haywire.barn.builtin.types import CHOICES
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
+from haywire.core.settings import setting
 from haywire.core.settings.descriptor import UiState
 from haywire.core.types.enums import PortType
 
@@ -46,19 +48,41 @@ class RerouteNode(BaseNode):
     introspection rather than naming fixed ids.
     """
 
+    # Subclasses the INHERITED bag (BaseNode.props), not NodeProperties: the
+    # inherited bag is what @node's conflict check compares against, and it is
+    # itself a NodeProperties subclass, so anything it declares is kept too.
+    # mypy sees BaseNode.props as the `props: NodeProperties` instance
+    # annotation from BaseNode's TYPE_CHECKING branch, hence the ignore.
+    class props(BaseNode.props):  # type: ignore[valid-type,misc]
+        """Overrides the framework ``skin`` prop; inherits every other field.
+
+        A reroute renders in exactly one skin — that is a constraint of what the
+        node IS, not a preference, so this replaces ``NodeProperties.skin``'s
+        ``graph()`` mirror with a plain field: the graph's (or studio's) default
+        skin must never reach a reroute, and "reset to default" returns HERE
+        rather than falling to the graph tier.
+
+        Bound by registry-key STRING, never by importing the skin class:
+        importing it would pull haywire.ui + nicegui onto the headless
+        execution path. The renderer resolves the key lazily at render time.
+        """
+
+        skin = setting[CHOICES](
+            "haywire-core:skin:RerouteSkin",
+            label="Skin",
+            description="Reroute nodes always use the minimal reroute skin",
+            category="appearance",
+            order=10,
+        )
+
     def init(self) -> None:
         # No data ports. The typed inlet/outlet are added by the edge-split
         # action right after creation.
         pass
 
     def post_init(self) -> None:
-        # Bind this node to its minimal skin by registry-key STRING. We do NOT
-        # import the skin class: importing it would pull haywire.ui + nicegui
-        # onto the headless execution path. The renderer resolves this key to the
-        # skin class lazily at render time (UI-only path). post_init runs on both
-        # fresh creation and load, so the binding is self-contained and survives
-        # reload without being persisted.
-        self.props.skin = "haywire-core:skin:RerouteSkin"
+        # Whole-category chrome gating; the skin binding itself is declared on
+        # the props bag above. Runs on both fresh creation and load.
         for cat in ("state", "appearance", "annotation", "layout"):
             self.props.set_ui_state_all(UiState.HIDDEN, category=cat)
 

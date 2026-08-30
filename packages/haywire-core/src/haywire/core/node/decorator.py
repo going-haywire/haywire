@@ -12,7 +12,7 @@ from haywire.core.node import BaseNode, NodeIdentity, NodeBehaviorFlags, BEHAVIO
 T = TypeVar("T")
 
 
-def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
+def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
     """
     Scan the node class body for all ``Settings`` subclasses, assign ``_setting_key``
     to their ``setting`` descriptors, and store the result as ``cls._settings_bags``.
@@ -21,26 +21,43 @@ def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
 
     ``_setting_key`` format::
 
-        '{registry_key_dotted}.{settings_name}.{field_name}'
-        e.g. 'haybale_core.node.transform.filter.strength'
+        '{settings_name}.{field_name}'
+        e.g. 'filter.strength'
+
+    Node bags are never registered with ``SettingsRegistry``, so this key is
+    not a global address — it is only ever a per-node identifier (``_set_keys``,
+    ``_cells``, ``_ui_state``, ``_promoted_keys``, and the id of a promoted
+    port). The accessor already disambiguates fields of the same name across
+    bags on one node, so the node's registry_key adds nothing. Prefixing it
+    was also actively wrong: the descriptors of an INHERITED bag (every
+    node's ``props``) are shared objects, so the first-decorated node's name
+    got stamped onto every other node's fields.
+
+    Re-stamped on every ``@node``, deliberately: a bag subclassed per node
+    class must key off ITS accessor, and re-stamping an inherited descriptor
+    with the same accessor is idempotent.
 
     Conflict check: raises ``ValueError`` at class-definition time if an
-    accessor name shadows any existing non-Settings attribute on the node MRO.
+    accessor name shadows any existing non-Settings attribute on the node MRO,
+    or shadows an inherited bag WITHOUT subclassing it. Redeclaring an
+    inherited bag as a subclass is the supported way for a node to override a
+    framework prop's default (e.g. ``RerouteNode`` pinning its own skin).
     """
     from haywire.core.settings import NodeSettings, setting
 
     bags: dict[str, type] = {}
-    ns = registry_key.replace(":", ".")
 
     # Walk MRO base-first so subclass declarations win over inherited ones
     for klass in reversed(node_cls.__mro__):
         for name, val in klass.__dict__.items():
             if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
                 continue
-            # Set _setting_key on every setting descriptor that doesn't already have one
+            # Stamp '<accessor>.<field>' on every setting descriptor. Unconditional
+            # (not "only if unset"): the key depends solely on the accessor, so
+            # re-stamping a shared inherited descriptor writes the same string.
             for field_name, descriptor in val._property_settings().items():
-                if isinstance(descriptor, setting) and not descriptor._setting_key:
-                    descriptor._setting_key = f"{ns}.{name}.{field_name}"
+                if isinstance(descriptor, setting):
+                    descriptor._setting_key = f"{name}.{field_name}"
             bags[name] = val
 
     # Conflict check — must not shadow existing attributes on the MRO
@@ -57,12 +74,20 @@ def _wire_settings_schemas(node_cls: type[BaseNode], registry_key: str) -> None:
                     f"({type(existing).__name__}). Choose a different inner class name."
                 )
             if klass is not node_cls and accessor_name in node_cls.__dict__:
-                # Subclass is redefining an inherited NodeSettings bag — not allowed
-                raise ValueError(
-                    f"@node: '{accessor_name}' on {node_cls.__name__} shadows the inherited "
-                    f"settings bag '{accessor_name}' defined on {klass.__name__}. "
-                    f"Choose a different inner class name."
-                )
+                # The node redeclares an inherited bag. Legal ONLY as a subclass
+                # of the inherited one: that EXTENDS the bag (inheriting every
+                # field it does not redeclare), which is how a node overrides a
+                # framework prop's default — see NodeProperties and RerouteNode.
+                # An unrelated class of the same name would silently drop the
+                # inherited fields, so it stays an error.
+                own = node_cls.__dict__[accessor_name]
+                if not (isinstance(own, type) and issubclass(own, existing)):
+                    raise ValueError(
+                        f"@node: '{accessor_name}' on {node_cls.__name__} shadows the inherited "
+                        f"settings bag '{accessor_name}' defined on {klass.__name__} without "
+                        f"subclassing it, which would drop its fields. Either subclass "
+                        f"{klass.__name__}.{accessor_name} or choose a different inner class name."
+                    )
 
     node_cls._settings_bags = bags
 
@@ -264,8 +289,9 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         inner_cls.class_behavior = NodeBehaviorFlags(**behavior_kwargs)
         inner_cls.class_library = library_identity
 
-        # Wire Settings schemas using registry_key as the single source of truth
-        _wire_settings_schemas(inner_cls, identity_kwargs["registry_key"])
+        # Wire Settings schemas; field keys are '<accessor>.<field>', scoped to
+        # the node instance rather than to the registry_key.
+        _wire_settings_schemas(inner_cls)
 
         return inner_cls
 

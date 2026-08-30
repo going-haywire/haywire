@@ -46,13 +46,27 @@ def create_port_spec(type_cls: type["IType"], port_type: PortType, id: str, **kw
     Args:
         type_cls: The IType class (FLOAT, ArrayType[STRING], etc.)
         port_type: port type
-        id: Port identifier
+        id: Port identifier. Must not contain '.' — see below.
         **kwargs: Port configuration (label, default, widget, etc.)
 
     Returns:
         PortSpec ready for node.add()
 
+    Raises:
+        ValueError: if an author-declared *id* contains a '.'.
+
+    A promoted setting's port id IS its ``storage_key``, which is
+    ``'<accessor>.<field>'`` — so the dotted namespace belongs to promotion.
+    Reserving it keeps an author-declared port from colliding with a promoted
+    one (they share ``node.ports`` and the farmhand name-resolution order).
+    ``promoted=True`` marks the framework's own promotion path, which is the
+    only legitimate producer of a dotted id.
     """
+    if "." in id and not kwargs.get("promoted", False):
+        raise ValueError(
+            f"port id {id!r} contains '.', which is reserved for promoted settings "
+            f"(a promoted port's id is '<accessor>.<field>'). Choose an id without a dot."
+        )
 
     # Normalize default if provided
     if "default" in kwargs:
