@@ -37,6 +37,7 @@ class NodeProperties(NodeSettings):
         "skin",
         "layout_direction",
         "comment",
+        "label",
     )
     """Fields whose change triggers a full node-card redraw.
 
@@ -54,6 +55,46 @@ class NodeProperties(NodeSettings):
     which the browser re-resolves without the card being rebuilt. Redrawing for
     a colour is what destroyed the input being typed into.
     """
+
+    # -----------------------------------------------------------------
+    # Annotation
+    # -----------------------------------------------------------------
+    #
+    # Declared FIRST because `render_settings` renders in DECLARATION order and
+    # does not re-sort — a category's position in this file is its position in
+    # the panel. (`order=` is honoured by the `render_keys` path instead, so the
+    # numbers here are kept sane but are not what orders this bag.)
+
+    # What the node is called in THIS graph, replacing its class label on the
+    # card and in the inspector's Label row. Emptiness is the whole "unset"
+    # mechanism, as with `comment` and `color_override` — there is no separate
+    # "use custom label" flag to keep in sync.
+    #
+    # Resolution lives in ONE place, `NodeData.display_label`, rather than an
+    # `or` repeated at each read site: a skin that forgot the `or` would show
+    # the class label forever, and the user would see their name work on one
+    # skin and not another with nothing on screen to explain why.
+    label = setting[STRING](
+        "",
+        label="Label",
+        order=5,
+        category="annotation",
+        description="Name for this node, replacing its class label (empty = use the class label)",
+    )
+
+    # Emptiness is the whole visibility mechanism — the same bargain
+    # `color_override` makes. A node with text gets a badge beside its
+    # diagnostics badge, at the COLLAPSED tier so an annotation stays readable
+    # on a folded node; a node without text gets nothing. The old companion
+    # `show_comment` bool bought exactly "no badge", which an empty comment
+    # already gives, and was rendered by no skin in its entire life (ADR 0032).
+    comment = setting[STRING](
+        "",
+        label="Comment",
+        order=10,
+        category="annotation",
+        description="Note shown as a badge on the node; hover the badge to read it",
+    )
 
     # -----------------------------------------------------------------
     # Visual state
@@ -146,24 +187,6 @@ class NodeProperties(NodeSettings):
         category="appearance",
         description="Custom background color for this node (empty = use the theme's)",
         widget_config={"alpha": True},
-    )
-
-    # -----------------------------------------------------------------
-    # Annotation
-    # -----------------------------------------------------------------
-
-    # Emptiness is the whole visibility mechanism — the same bargain
-    # `color_override` makes. A node with text gets a badge beside its
-    # diagnostics badge, at the COLLAPSED tier so an annotation stays readable
-    # on a folded node; a node without text gets nothing. The old companion
-    # `show_comment` bool bought exactly "no badge", which an empty comment
-    # already gives, and was rendered by no skin in its entire life (ADR 0032).
-    comment = setting[STRING](
-        "",
-        label="Comment",
-        order=10,
-        category="annotation",
-        description="Note shown as a badge on the node; hover the badge to read it",
     )
 
     # -----------------------------------------------------------------

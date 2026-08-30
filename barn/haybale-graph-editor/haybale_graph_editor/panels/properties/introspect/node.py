@@ -42,13 +42,16 @@ class NodeInfoPanel(BasePanel):
         if node is None:
             return
         try:
-            label = node.node.identity.label if hasattr(node, "node") else str(node)
+            # The RESOLVED name — what the card shows. The class label is still
+            # one row down as "Class", which is the greppable answer to "what is
+            # this really?", so this row never needs to carry both.
+            label = node.node.display_label if hasattr(node, "node") else str(node)
             cls_name = node.node.__class__.__name__ if hasattr(node, "node") else type(node).__name__
             node_id = getattr(node, "node_id", str(node))
         except Exception:
             label, cls_name, node_id = "?", "?", "?"
         with layout:
-            hui.info_row("Name", str(label))
+            hui.info_row("Label", str(label))
             hui.info_row("Class", str(cls_name))
             hui.info_row("ID", str(node_id))
 

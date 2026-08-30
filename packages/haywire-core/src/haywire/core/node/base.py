@@ -59,6 +59,11 @@ class BaseNode(NodeData):
         """
         super().__init__(node_id, wrapper)
 
+    @property
+    def display_label(self) -> str:
+        """The name this node goes by — its own label, else its class's."""
+        return self.props.label.strip() or self.identity.label
+
     @abstractmethod
     def init(self):
         """

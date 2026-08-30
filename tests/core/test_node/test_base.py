@@ -71,6 +71,43 @@ class TestBaseNodeWithLibraries:
         else:
             pytest.skip("No nodes available in test libraries")
 
+    def test_display_label_falls_back_to_the_class_label(self, graph_with_library_system: BaseGraph):
+        """An un-named node goes by its class label."""
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+        wrapper = graph_with_library_system.create_node_wrapper(
+            TestPrintNode.class_identity.registry_key, (0, 0)
+        )
+        assert wrapper.node.props.label == ""
+        assert wrapper.node.display_label == TestPrintNode.class_identity.label
+
+    def test_display_label_prefers_the_instance_label(self, graph_with_library_system: BaseGraph):
+        """A named node goes by its own name, and clearing it restores the class label."""
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+        wrapper = graph_with_library_system.create_node_wrapper(
+            TestPrintNode.class_identity.registry_key, (0, 0)
+        )
+        wrapper.node.props.label = "Left Motor"
+        assert wrapper.node.display_label == "Left Motor"
+
+        wrapper.node.props.label = ""
+        assert wrapper.node.display_label == TestPrintNode.class_identity.label
+
+    def test_display_label_treats_whitespace_as_unset(self, graph_with_library_system: BaseGraph):
+        """Whitespace-only is absent — the same rule props.comment uses.
+
+        The raw value is kept as typed; only the resolution strips.
+        """
+        from haybale_testing.nodes.testbed.print_node import TestPrintNode
+
+        wrapper = graph_with_library_system.create_node_wrapper(
+            TestPrintNode.class_identity.registry_key, (0, 0)
+        )
+        wrapper.node.props.label = "   "
+        assert wrapper.node.display_label == TestPrintNode.class_identity.label
+        assert wrapper.node.props.label == "   "
+
     def test_cleanup_survives_throwing_on_teardown(
         self, graph_with_library_system: BaseGraph, integration_node_factory: NodeFactory
     ):

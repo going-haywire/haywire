@@ -83,6 +83,7 @@ class TestPropsChangeTriggersRedraw:
             "skin": "some:skin:key",
             "layout_direction": "t2b",
             "comment": "hello",
+            "label": "My Node",
         }
         assert set(values) == set(NodeProperties.REDRAW_FIELDS)
 

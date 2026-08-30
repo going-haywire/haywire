@@ -105,10 +105,13 @@ class NodeSkin(BaseSkin, ABC):
     def _render_title(self, node) -> None:
         """The node's name in the header row. Override for an icon or a weight.
 
-        An override must still draw ``node.identity.label`` — this is the hook
-        that lets every skin share one folded card.
+        An override must still draw ``node.display_label`` — this is the hook
+        that lets every skin share one folded card. Draw ``display_label``, not
+        ``identity.label``: it is the class label until the user names this
+        instance in ``props.label``, and a skin reading the identity directly
+        ignores that name with nothing on screen to say why.
         """
-        ui.label(node.identity.label).classes("text-h6 flex-grow")
+        ui.label(node.display_label).classes("text-h6 flex-grow")
 
     @staticmethod
     def _fold_layout(layout: LayoutDirection) -> LayoutDirection:
