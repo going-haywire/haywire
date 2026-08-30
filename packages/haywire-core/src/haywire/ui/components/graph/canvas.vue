@@ -3176,7 +3176,18 @@ export default {
    blues (design rule). */
 .hw-resize-gadget {
     --hw-grip: var(--hw-node-selected, var(--hw-accent, #4a90e2));
-    z-index: 9;
+    /* Above the node it tracks, which is necessarily SELECTED (the gadget only
+       shows for a single-node selection) and so carries
+       `[data-node-id].node-selected { z-index: 1000 !important }` — 1001 on
+       hover. The gadget is a sibling in the same stacking context, so at any
+       lower value the node paints over it and the EDGE grips stop hit-testing:
+       they sit at `-4px`, i.e. half over the card, so elementFromPoint at a
+       grip's centre returns the card and the mousedown never reaches
+       onResizeGripDown. (Corner grips are offset -50%, mostly clear of the
+       card, which is why those kept working and only the edge drags broke.)
+       The gadget itself is pointer-events:none, so being on top costs the node
+       no clicks — only the grips take pointer events. */
+    z-index: 1002;
     outline: 1px solid color-mix(in srgb, var(--hw-grip) 70%, transparent);
     outline-offset: 0;
 }
