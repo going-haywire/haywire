@@ -232,3 +232,71 @@ def test_drag_right_grip_sets_width_minimum(page: Page, harness):
 # skin's 384px max-w-sm clamp whatever the content is. Extend that route if the
 # commit-side recompose (per-axis floor detection → size_adapt) ever needs
 # browser coverage; it is a few lines of pure comparison in onResizeGripDown.
+
+
+def test_pins_stay_clickable_under_the_resize_grips(page: Page, harness):
+    """A pin under an edge grip must still receive the mousedown.
+
+    The gadget paints ABOVE the node — it has to, or the edge grips are not
+    hit-testable at all — and the edge grips span the card border for the
+    node's whole height. That is exactly where pins live: they straddle the
+    border by design, so on any node with pins the two overlap and no offset
+    separates them.
+
+    z-index cannot arbitrate. A pin's ``z-index: 10000`` is trapped inside the
+    selected node's own stacking context (``.node-selected`` is
+    ``z-index: 1000``), so it orders the pin only WITHIN its node, never
+    against the gadget — a sibling of that node's container. ``canvas.vue``
+    therefore hands the grips' hit area back to a hovered pin
+    (``_syncGripPassthrough``).
+
+    Without that handover the node still resizes and still looks right, and
+    every other test here passes — the only symptom is that connections can no
+    longer be drawn from half the pins. Hence this test.
+    """
+    _open(page)
+    nid = _node_id(page)
+
+    box = _slot_box(page, nid)
+    page.mouse.click(box["sx"] + 30, box["sy"] + 14)
+    page.wait_for_timeout(500)
+    page.wait_for_selector('.hw-resize-grip[data-handle="right"]')
+
+    # Record what each mousedown actually lands on, at the document level.
+    page.evaluate(
+        """() => {
+            window.__hwSeen = [];
+            document.addEventListener('mousedown', (e) => {
+                const t = e.target;
+                window.__hwSeen.push(
+                    t.classList.contains('connection-pin') ? 'pin'
+                    : (t.dataset && t.dataset.handle) ? 'grip' : 'other');
+            }, true);
+        }"""
+    )
+
+    pins = page.evaluate(
+        """() => [...document.querySelectorAll('.connection-pin')]
+            .filter(p => p.dataset.pinFlowType !== 'ghost')
+            .map(p => { const r = p.getBoundingClientRect();
+                        return {id: p.dataset.pinId,
+                                x: r.left + r.width / 2, y: r.top + r.height / 2}; })"""
+    )
+    assert pins, "fixture node exposes no real pins — nothing to overlap"
+
+    for pin in pins:
+        page.mouse.move(pin["x"], pin["y"])   # hover first: the handover is on mousemove
+        page.mouse.down()
+        page.mouse.up()
+        page.wait_for_timeout(120)
+
+    seen = page.evaluate("() => window.__hwSeen")
+    assert seen and all(t == "pin" for t in seen), (
+        f"a grip swallowed a pin's mousedown: {seen} for pins "
+        f"{[p['id'] for p in pins]} — connections cannot be drawn from those pins"
+    )
+
+    # And the node must not have been resized by any of that.
+    assert _slot_style(page, nid) == "", (
+        f"clicking a pin started a resize: {_slot_style(page, nid)!r}"
+    )

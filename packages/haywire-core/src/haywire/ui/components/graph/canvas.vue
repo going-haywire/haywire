@@ -464,6 +464,44 @@ export default {
             };
         },
 
+        /** Let a pin under the cursor take the gesture instead of a grip.
+         *
+         *  Pins straddle the card border by design, and the edge grips span
+         *  that same border for the node's whole height — so on a node with
+         *  pins they overlap, and no offset separates them (measured: pins at
+         *  x 230-257 / 575-602 against grips at 238-249 / 583-594). z-index
+         *  cannot arbitrate either: a pin's `z-index: 10000` is trapped inside
+         *  the selected node's own stacking context (`.node-selected` is
+         *  `z-index: 1000`), so it orders the pin only WITHIN its node, never
+         *  against the gadget — which is a sibling of that node's container.
+         *
+         *  Nor can the grip simply decline the event in its own mousedown: the
+         *  browser dispatches to the topmost element, so declining suppresses
+         *  the resize but never hands the click to the pin — the connection
+         *  drag just never starts.
+         *
+         *  So the grips are made transparent to hit-testing while the cursor
+         *  is over a pin. That is a real handover: the pin becomes the topmost
+         *  hit and its own listeners fire normally.
+         *
+         *  The tie breaks toward the pin deliberately. A pin is ~20px of target
+         *  that can only start a connection; a resize can also be started from
+         *  any other point along the edge, or from a corner grip. Losing a
+         *  connection drag to an accidental resize is the expensive mistake,
+         *  and the pins are the smaller target.
+         */
+        _syncGripPassthrough(e) {
+            if (!this.resizeGadget.visible || window.__hwResizeDragging) return;
+            const grips = this.$el.querySelectorAll('.hw-resize-grip');
+            if (!grips.length) return;
+            // Hit-test with the grips already transparent, so the answer is
+            // "what is under the cursor when the grips are not in the way".
+            grips.forEach(g => { g.style.pointerEvents = 'none'; });
+            const under = document.elementFromPoint(e.clientX, e.clientY);
+            const overPin = !!(under && under.closest('.connection-pin'));
+            if (!overPin) grips.forEach(g => { g.style.pointerEvents = ''; });
+        },
+
         onResizeGripDown(e, handle) {
             e.preventDefault();
             e.stopPropagation();
@@ -1244,6 +1282,11 @@ export default {
 
         handleMouseMove(e) {
             this.edgeDrag.lastMousePos = { x: e.clientX, y: e.clientY };
+
+            // Hand the resize grips' hit area back to any pin under the cursor.
+            // Runs before the early returns below: it must settle while the
+            // pointer merely HOVERS, since by mousedown it is already too late.
+            this._syncGripPassthrough(e);
 
             if (this.boxSelectionState.isActive) {
                 this._updateBoxSelection(e);
@@ -3179,14 +3222,17 @@ export default {
     /* Above the node it tracks, which is necessarily SELECTED (the gadget only
        shows for a single-node selection) and so carries
        `[data-node-id].node-selected { z-index: 1000 !important }` — 1001 on
-       hover. The gadget is a sibling in the same stacking context, so at any
-       lower value the node paints over it and the EDGE grips stop hit-testing:
-       they sit at `-4px`, i.e. half over the card, so elementFromPoint at a
-       grip's centre returns the card and the mousedown never reaches
-       onResizeGripDown. (Corner grips are offset -50%, mostly clear of the
-       card, which is why those kept working and only the edge drags broke.)
-       The gadget itself is pointer-events:none, so being on top costs the node
-       no clicks — only the grips take pointer events. */
+       hover. The gadget is a sibling of that node's container in the same
+       stacking context, so at any lower value the node paints over it and the
+       EDGE grips stop hit-testing: they sit at -4px, half over the card, so
+       elementFromPoint at a grip's centre returns the card and the mousedown
+       never reaches onResizeGripDown.
+       This necessarily puts the grips over the pins as well — a pin's
+       z-index:10000 is trapped inside the node's own stacking context and
+       cannot lift it above the gadget. That tie is broken in
+       onResizeGripDown, which hands the gesture back to any pin under the
+       cursor. The gadget itself is pointer-events:none, so only the grips
+       take pointer events. */
     z-index: 1002;
     outline: 1px solid color-mix(in srgb, var(--hw-grip) 70%, transparent);
     outline-offset: 0;
