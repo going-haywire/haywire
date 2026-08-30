@@ -26,10 +26,10 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
 
     # Grid
     grid_enabled = setting[BOOL](
-        True, label="Show Grid", description="Display grid on canvas", category="ui.canvas"
+        False, label="Show Grid", description="Display grid on canvas", category="ui.canvas"
     )
     grid_size = setting[INT](
-        20,
+        50,
         label="Grid Size",
         description="Grid cell size in pixels",
         category="ui.canvas",
@@ -37,7 +37,7 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         max=100,
     )
     grid_subdivisions = setting[INT](
-        5,
+        1,
         label="Grid Subdivisions",
         description="Minor grid lines per major line",
         category="ui.canvas",
@@ -45,13 +45,13 @@ class CanvasSettings(FrameworkSettings, namespace="ui.canvas"):
         max=10,
     )
     snap_to_grid = setting[BOOL](
-        True,
+        False,
         label="Snap to Grid",
         description="Snap nodes to grid when moving",
         category="ui.canvas",
     )
     snap_scale_to_grid = setting[BOOL](
-        True,
+        False,
         label="Snap Scale to Grid",
         description="Snap the dragged edge to the grid when resizing a node",
         category="ui.canvas",
