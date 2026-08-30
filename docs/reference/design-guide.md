@@ -227,30 +227,59 @@ row; there is no second place to change.
 
 ### 2.9 Z-Index Scale
 
-Haywire uses a fixed z-index scale. Do not use arbitrary values.
+Stacking order is **two scales, not one**, and they never compare. Both are
+static CSS in `ui/app/shell.py` — not theme tokens, because stacking order is
+structural, not a user-swappable colour.
 
-| Layer             | Value | Use for                                |
-| ----------------- | ----- | -------------------------------------- |
-| `--hw-z-panel`    | 10    | Floating panels, resizable handles     |
-| `--hw-z-dropdown` | 100   | Dropdown menus, autocomplete popups    |
-| `--hw-z-tooltip`  | 200   | Tooltips                               |
-| `--hw-z-modal`    | 300   | Modal dialogs and their backdrops      |
-| `--hw-z-notify`   | 400   | Toast notifications (above everything) |
+#### The overlay ladder
 
-**Rule:** Never use a bare `z-index: 9999` or arbitrary integer. If a new stacking context is needed, add a token here.
+Every app-global layer that portals to `<body>` and so genuinely competes.
+Derived from **one** external constant: Quasar hardcodes `QMenu` and `QDialog`
+both at **6000** and arbitrates between them by DOM order. Quasar exposes no
+custom property for this, so the app restates it and every rung is arithmetic
+on it.
 
-#### The Quasar-overlay tier
+| Layer                       | Value | Use for                                          |
+| --------------------------- | ----- | ------------------------------------------------ |
+| `--hw-z-popup-backdrop`     | 5000  | A `Popup`'s overlay / backdrop                   |
+| `--hw-z-popup`              | 5001  | The `Popup` card                                 |
+| `--hw-z-quasar-interaction` | 6000  | *External.* `QMenu`, `QDialog` — Quasar's own    |
+| `--hw-z-menu-over-menu`     | 6001  | A flyout: a `QMenu` opened from inside a `QMenu` |
 
-The scale above governs haywire's own elements. Quasar brings its own layers that sit far above it — `QDialog` and `QMenu` both default to **6000** — so anything that must clear *them* lives in a separate tier, defined as static CSS in `ui/app/shell.py` (not theme tokens: stacking order is structural, not a swappable colour).
+**`Popup` sits below the interaction tier on purpose.** That is what makes a
+plain `ui.context_menu()`, `ui.select` or colour picker inside a `Popup` work
+with **no lift and no special wrapper** — the QMenu teleports to `<body>` and
+its 6000 simply wins over the card. Do not "fix" a Popup that a menu covers by
+raising the Popup; that is what created the lift machinery this replaced.
 
-| Layer               | Value | Use for                                        |
-| ------------------- | ----- | ---------------------------------------------- |
-| `--hw-z-popup`      | 7001  | The `Popup` card — above Quasar dialogs (6000) |
-| `--hw-z-popup-menu` | 7100  | A menu/dropdown opened from inside a `Popup`   |
+**Ceiling — do not exceed 9000.** Quasar's *feedback* tier sits above
+everything haywire draws: `QTooltip` at **9000**, `QNotification` at **9500**.
+A toast or tooltip must stay visible over any app overlay. That is deliberate,
+not an oversight to correct.
 
-**Rule:** a `ui.select` inside a `Popup` must lift its dropdown, or the option list renders *behind* the card — invisible and unclickable, so the select looks empty. Use `hui.select_field(in_popup=True)`.
+**Rule:** never a bare `z-index: 9999` or arbitrary integer in this tier. Add a
+rung to the table above, derived from `--hw-z-quasar-interaction`.
 
-**Do not lift unconditionally.** The QMenu teleports to `<body>`, so a lifted dropdown escapes its parent's stacking context entirely. A panel or node widget sitting *behind* a popup would have its dropdown float above that popup. Panels and widgets keep the default; only in-popup selects opt in.
+#### The Popup/dialog direction rule
+
+- `ui.dialog()` opened **from** a `Popup` — fine. The dialog's 6000 lands above.
+- A `Popup` opened from an **already-open** `ui.dialog()` — broken. It renders
+  behind the dialog and is invisible. **Close the dialog first**, as
+  `_overview_install_flow.py` does before handing off to the install modals.
+
+Nothing enforces this: the failure is loud and immediate (the modal simply
+does not appear), so it reports itself the first time anyone hits it.
+
+#### The canvas ladder
+
+Local to the graph canvas and ordered *within its own stacking context*, so it
+never competes with the overlay ladder despite larger raw numbers. Edge SVG <
+node container < selected node < resize gadget < marquee < canvas overlays.
+
+Pin-interior values (`10000`+ on `.connection-pin`) are **trapped inside a
+node** and rank nothing outside it — a pin's 10000 does not beat the resize
+gadget's 1002. Magnitude here implies no cross-context rank; see the comments
+in `canvas.vue` for the cases where that tie had to be broken in JS instead.
 
 See .insights/feedback_nicegui_nested_menu_flyouts.md (#2) for the original diagnosis.
 

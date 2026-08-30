@@ -90,16 +90,29 @@ export default {
         // Hidden: must not capture any pointer events
         return { position: 'fixed', inset: '0', zIndex: -1, pointerEvents: 'none' };
       }
-      // zIndex 7000/7001 — above Quasar dialogs (default 6000) so haywire
-      // modals can layer over any legacy ui.dialog() that still exists in
-      // an editor. The long-term direction is to migrate all such dialogs
-      // to Popup; until that's done, keep this higher than Quasar's default.
+      // zIndex 5000/5001 — deliberately BELOW Quasar's interaction tier
+      // (QMenu and QDialog both hardcode 6000). That is what makes a plain
+      // ui.context_menu(), ui.select or colour picker opened inside a Popup
+      // work with no per-site lift: the QMenu teleports to <body>, so its
+      // 6000 simply wins over the card here.
+      //
+      // These were bumped to 7000/7001 in d48f1161 to clear one ui.dialog()
+      // (the marketplace library Edit dialog) that hid a Popup opened from
+      // it. That dialog is a Popup itself now, and no remaining ui.dialog()
+      // opens a Popup while still showing — so the bump is reverted and the
+      // lift machinery it forced (POPUP_MENU_Z, _lift_nested_popups,
+      // select_field(in_popup=)) goes with it.
+      //
+      // The rule this trades for, documented in design-guide.md §2.9: a
+      // ui.dialog() opened FROM a Popup is fine (it lands above); a Popup
+      // opened from an ALREADY-OPEN ui.dialog() renders behind it and is
+      // invisible — close the dialog first.
       if (this.propsPositioned) {
         // Originally positioned — transparent overlay, no backdrop
         return {
           position: 'fixed',
           inset: '0',
-          zIndex: 7000,
+          zIndex: 5000,
           background: 'transparent',
           pointerEvents: this.backdropClickClose ? 'auto' : 'none',
         };
@@ -108,7 +121,7 @@ export default {
       return {
         position: 'fixed',
         inset: '0',
-        zIndex: 7000,
+        zIndex: 5000,
         background: this.backdropColor,
         display: this.isPositioned ? 'block' : 'flex',
         alignItems: this.isPositioned ? undefined : 'center',
@@ -133,7 +146,7 @@ export default {
           left: this.currentX + 'px',
           top:  this.currentY + 'px',
           margin: 0,
-          zIndex: 7001,
+          zIndex: 5001,
           transform: this.centerX ? 'translateX(-50%)' : undefined,
         };
       }
@@ -141,7 +154,7 @@ export default {
         ...base,
         position: 'relative',
         margin: '20px',
-        zIndex: 7001,
+        zIndex: 5001,
       };
     },
   },

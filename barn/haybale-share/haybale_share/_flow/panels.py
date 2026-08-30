@@ -281,9 +281,7 @@ def _decision(subject: str, context: str, token: str) -> ui.column:
 def _render_addition_row(flow: ShareFlow, lib_dir: Path, dep: str, controls: dict, token: str) -> None:
     installed = flow.installed_version(dep)
     with _decision(dep, f"in {lib_dir.name}", token):
-        pin = hui.select_field(options=PIN_OPTIONS, value="none", label="Declare as", in_popup=True).classes(
-            "w-full"
-        )
+        pin = hui.select_field(options=PIN_OPTIONS, value="none", label="Declare as").classes("w-full")
         custom = hui.input_field(placeholder=f">={installed}" if installed else ">=1.0")
         custom.bind_visibility_from(pin, "value", lambda v: v == "custom")
     controls["additions"].append((lib_dir, dep, installed, pin, custom))
@@ -312,9 +310,7 @@ def _render_floor_row(lib_dir: Path, row: tuple[str, str, str], controls: dict, 
     OLDEST version that works and nothing here can compute that."""
     dist, declared, installed = row
     with _decision(f"{dist} — declared {declared}, installed {installed}", f"in {lib_dir.name}", token):
-        mode = hui.select_field(options=FLOOR_OPTIONS, value="keep", label="Floor", in_popup=True).classes(
-            "w-full"
-        )
+        mode = hui.select_field(options=FLOOR_OPTIONS, value="keep", label="Floor").classes("w-full")
         custom = hui.input_field(placeholder=f">={installed}")
         custom.bind_visibility_from(mode, "value", lambda v: v == "custom")
     controls["floors"].append((lib_dir, dist, installed, mode, custom))
@@ -367,9 +363,7 @@ def _render_framework(flow: ShareFlow) -> Callable[[], str | None]:
         f"haywire-core, installed: {plan.installed or 'unknown'}. Written into every "
         "barn library's pyproject.toml.",
     ):
-        choice = hui.select_field(options=options, value=default, label="Requires", in_popup=True).classes(
-            "w-full"
-        )
+        choice = hui.select_field(options=options, value=default, label="Requires").classes("w-full")
         custom = hui.input_field(placeholder=">=0.0.31")
         custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
 
@@ -409,9 +403,7 @@ def _render_version(flow: ShareFlow) -> Callable[[], str]:
 
         options = {kw: f"{kw} → {resolved}" for kw, resolved in plan.suggestions.items()}
         options["custom"] = "custom…"
-        choice = hui.select_field(options=options, value="patch", label="Bump", in_popup=True).classes(
-            "w-full"
-        )
+        choice = hui.select_field(options=options, value="patch", label="Bump").classes("w-full")
         custom = hui.input_field(placeholder="X.Y.Z")
         custom.bind_visibility_from(choice, "value", lambda v: v == "custom")
 

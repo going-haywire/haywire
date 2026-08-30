@@ -24,26 +24,50 @@ elements that didn't exist yet and re-injected/re-anchored the menu on every hov
 **Do not** reintroduce close-timer machinery. Verify with:
 `ui.menu()._render_markdown()` → `''` when closed.
 
-## 2. QMenu z-index (6000) is BELOW the Popup card (7001)
+## 2. QMenu z-index (6000) vs the Popup card — RESOLVED, read this before the rest
 
-The `Popup` Vue card renders at `z-index: 7001` (see `popup.vue` `cardStyle`). Quasar's
-`QMenu` defaults to `z-index: 6000`, so an unstyled flyout renders **behind** the popup
-("menu appears behind the context menu"). Fix: every menu gets `.style(_MENU_Z)` where
-`_MENU_Z = "z-index: 7100"`. The QMenu teleports to `<body>`, so the popup card's
-`overflow: auto` does NOT clip it — only the z-order was wrong.
+**This section described a problem that no longer exists. Kept because the
+reasoning below it still governs the *dropdown* case, and because the way it
+was wrong is instructive.**
 
-**This bites `ui.select` too, and it looks like a different bug.** A select's
-dropdown IS a QMenu, so inside a `Popup` the option list opens behind the card:
-the DOM is correct and the options are present, but the user sees an empty,
-unusable select. Diagnosing it from server-side `_props`/`_to_dict` will show
-everything is fine — the failure is purely stacking. Use
-`hui.select_field(in_popup=True)`, which applies the lift via the
-`--hw-z-popup-menu` token (design-guide.md §2.9).
+The `Popup` card used to render at `z-index: 7001`, above Quasar's `QMenu`
+default of 6000, so every menu inside a popup rendered *behind* it and needed a
+hand-stamped lift (`_MENU_Z = 7100`, then 7110 for a menu inside that, and so
+on). That 7001 was never a design: it was a tactical bump in `d48f1161` to
+clear **one** `ui.dialog()` — the marketplace library Edit dialog — that hid a
+Popup opened from it. That dialog became a `Popup` itself soon after, and the
+bump's justification silently expired while every layer built on top of it
+stayed.
 
-Do **not** make the lift unconditional in the wrapper: because the QMenu
+**The Popup now sits at 5000/5001, BELOW Quasar's interaction tier.** A menu,
+select or colour picker inside a popup clears the card on its own. There is no
+`in_popup=` flag, no `POPUP_MENU_Z`, and nothing to opt into — see
+design-guide.md §2.9 for the ladder, which derives every rung from the one
+external constant (`QMenu`/`QDialog` = 6000).
+
+**The trade:** a `ui.dialog()` opened *from* a Popup is fine and supported; a
+Popup opened from an *already-open* `ui.dialog()` renders behind it and is
+invisible. Close the dialog first.
+
+### What still needs a lift: a dropdown's body
+
+A `hui.dropdown` panel **is** a QMenu, sitting one rung above the interaction
+tier (`FLYOUT_Z` = `--hw-z-menu-over-menu`). So anything inside it that opens
+its own portal — a select's option list, a colour picker, a row's context menu
+— lands on the bare tier *underneath the panel that spawned it*.
+`_lift_nested_popups` exists for exactly this and only this.
+
+Do **not** make that lift unconditional in the wrapper: because the QMenu
 teleports to `<body>`, a lifted dropdown escapes its parent's stacking context,
-so a panel or node widget *behind* a popup would have its dropdown float above
-that popup. Only in-popup selects opt in.
+so a panel or node widget behind an overlay would float above it. Only a
+dropdown's own body is lifted, by the dropdown itself.
+
+**The trap that bit twice:** `ui.context_menu()` renders a `q-menu` but
+`ContextMenu` is a **sibling** of `Menu` (both subclass `Element` directly), so
+`isinstance(el, ui.menu)` silently misses every row menu. That is why a
+settings row's right-click menu opened behind the dropdown hosting it. The lift
+now matches both types; a test asserts the sibling relationship so a future
+NiceGUI change that makes them related is noticed rather than assumed.
 
 ## 3. Direction: fly out to the side, not down
 

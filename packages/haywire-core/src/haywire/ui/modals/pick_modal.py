@@ -9,7 +9,6 @@ from typing import Callable, Optional, Sequence
 
 from nicegui import ui
 
-from haywire.ui import elements as hui
 from haywire.ui.components.popup import Popup
 
 
@@ -67,11 +66,8 @@ def pick_modal(
             value=options[0],
             with_input=searchable,
         ).classes("w-full mt-2")
-        # Quasar's QMenu (the dropdown panel) defaults to z-index 6000, which
-        # sits BELOW the Popup card (7001) — so the option list renders behind
-        # the modal. Lift it above the popup, matching the nested-menu fix.
-        # See .insights/feedback_nicegui_nested_menu_flyouts.md (#2).
-        select.props(f'popup-content-style="z-index: {hui.POPUP_MENU_Z}"')
+        # No z-index lift: the Popup card sits BELOW Quasar's interaction tier
+        # (design-guide.md §2.9), so this QMenu's own 6000 already clears it.
         select.props("dense use-input" if searchable else "dense")
 
         def _do_confirm() -> None:

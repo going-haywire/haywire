@@ -31,11 +31,6 @@ from haywire.ui.elements.icons import AppIcon
 # Colour & style constants (internal)
 # ──────────────────────────────────────────────────────────────────────────────
 
-# Stacking layer for a menu opened from inside a Popup — see the --hw-z-*
-# vars in app/shell.py and design-guide.md §2.9. The literal is the fallback
-# for pages that render without the shell's static CSS (previews, tests).
-POPUP_MENU_Z = "var(--hw-z-popup-menu, 7100)"
-
 _BORDER = "border-bottom: 1px solid var(--hw-border);"
 _BORDER_RIGHT = "border-right: 1px solid var(--hw-border);"
 _BORDER_LEFT = "border-left: 1px solid var(--hw-border);"
@@ -803,7 +798,6 @@ def select_field(
     label: str | None = None,
     min_width: str = "160px",
     on_change: Callable | None = None,
-    in_popup: bool = False,
     **kwargs: Any,
 ) -> ui.select:
     """
@@ -817,21 +811,16 @@ def select_field(
     ``options`` accepts a list (value == label) or a dict (value -> label),
     matching NiceGUI's ``ui.select``.
 
-    Set ``in_popup=True`` when the select lives inside a :class:`Popup`. The
-    dropdown is a Quasar QMenu (z-6000) and the Popup card renders at z-7001,
-    so without the lift the option list opens *behind* the popup and the
-    select looks empty and unusable.
-
-    It is deliberately opt-in rather than always-on: the QMenu teleports to
-    ``<body>``, so lifting it unconditionally would let the dropdown of a
-    panel or node widget *behind* a popup float above that popup. Panels and
-    widgets must keep the default.
+    No stacking parameter: the dropdown is a Quasar QMenu (z-6000) and a
+    :class:`Popup` card sits *below* that tier, so a select inside a popup
+    already opens in front of it. Inside a ``hui.dropdown`` — itself a QMenu
+    one rung higher — the enclosing dropdown lifts its own body content
+    (``_lift_nested_popups``); callers never opt in. See design-guide.md §2.9.
 
     Usage::
 
         hui.select_field(options=["A", "B"], value="A", label="Mode")
         hui.select_field(options={"a": "Option A"}, value="a", label="Mode")
-        hui.select_field(options=["A", "B"], in_popup=True)  # inside a Popup
     """
     sel = (
         ui.select(options=options, value=value, label=label, **kwargs)
@@ -839,8 +828,6 @@ def select_field(
         .classes("text-sm")
         .style(f"min-width: {min_width};")
     )
-    if in_popup:
-        sel.props(f'popup-content-style="z-index: {POPUP_MENU_Z}"')
     if on_change:
         sel.on_value_change(on_change)
     return sel

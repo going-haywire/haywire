@@ -3167,9 +3167,29 @@ export default {
 </script>
 
 <style scoped>
+/* The CANVAS LADDER — ordering among the canvas root's own children.
+ *
+ * Local by construction: these siblings share one stacking context, so the
+ * ladder never compares with the overlay ladder in app/shell.py despite the
+ * larger raw numbers here. See design-guide.md §2.9.
+ *
+ * NOT tokenised, deliberately: the `.connection-pin` values (10000+) inside a
+ * node card, and the transient values the drag paths write from JS. Both are
+ * trapped in a node's own stacking context and rank nothing at this level — a
+ * pin's 10000 does not beat the resize gadget's `--hw-z-canvas-gadget`. The
+ * comments at those sites carry the reasoning; a token name would only make
+ * them look comparable to these, which is the exact confusion to avoid.
+ */
 .graph-canvas {
     position: relative;
     overflow: visible;
+
+    --hw-z-canvas-edges: 1;
+    --hw-z-canvas-nodes: 2;
+    --hw-z-canvas-marquee: 999;
+    --hw-z-canvas-selected: 1000;
+    --hw-z-canvas-hover: 1001;
+    --hw-z-canvas-gadget: 1002;
 }
 
 .debug-info {
@@ -3181,7 +3201,7 @@ export default {
     padding: 8px 12px;
     border-radius: 4px;
     font-size: 12px;
-    z-index: 1000;
+    z-index: var(--hw-z-canvas-selected, 1000);
 }
 
 .connection-svg {
@@ -3189,7 +3209,7 @@ export default {
     top: 0;
     left: 0;
     pointer-events: auto;
-    z-index: 1;
+    z-index: var(--hw-z-canvas-edges, 1);
 }
 
 .node-container {
@@ -3197,7 +3217,7 @@ export default {
     top: 0;
     left: 0;
     pointer-events: none;
-    z-index: 2;
+    z-index: var(--hw-z-canvas-nodes, 2);
 }
 
 .graph-canvas.dragging {
@@ -3209,7 +3229,7 @@ export default {
     border: 2px solid rgba(74, 144, 226, 0.8);
     background-color: rgba(74, 144, 226, 0.1);
     pointer-events: none;
-    z-index: 999;
+    z-index: var(--hw-z-canvas-marquee, 999);
     border-radius: 2px;
 }
 
@@ -3233,7 +3253,7 @@ export default {
        onResizeGripDown, which hands the gesture back to any pin under the
        cursor. The gadget itself is pointer-events:none, so only the grips
        take pointer events. */
-    z-index: 1002;
+    z-index: var(--hw-z-canvas-gadget, 1002);
     outline: 1px solid color-mix(in srgb, var(--hw-grip) 70%, transparent);
     outline-offset: 0;
 }
@@ -3292,14 +3312,14 @@ export default {
 
 /* Hover — subtle accent border; distinct from selected glow and active ring */
 [data-node-id]:hover {
-    z-index: 1001 !important;
+    z-index: var(--hw-z-canvas-hover, 1001) !important;
     cursor: grab;
     outline: 1px solid var(--hw-accent-hover) !important;
     outline-offset: 1px;
 }
 
 [data-node-id].dragging-node {
-    z-index: 1001 !important;
+    z-index: var(--hw-z-canvas-hover, 1001) !important;
     cursor: grabbing !important;
     box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
     transform: translateZ(0);
@@ -3312,7 +3332,7 @@ export default {
 
 /* Selected — soft shadow glow ring; suppress default outline */
 [data-node-id].node-selected {
-    z-index: 1000 !important;
+    z-index: var(--hw-z-canvas-selected, 1000) !important;
     outline: none !important;
     box-shadow: 0 8px 25px var(--hw-node-shadow),
         0 0 0 2px var(--hw-node-selected) !important;

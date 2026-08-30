@@ -243,8 +243,8 @@ async def test_popups_spawned_inside_a_dropdown_are_lifted_above_it(user: User) 
 @pytest.mark.anyio
 async def test_a_flyout_does_not_lift_nested_popups(user: User) -> None:
     """The lift is the dropdown's bargain only. A command flyout holds menu
-    rows, and lifting there would raise a panel's dropdown above popups it
-    should sit under (see hui.select_field's in_popup= reasoning)."""
+    rows, and lifting there would let a panel's dropdown escape to <body> and
+    float above overlays it should sit under (design-guide.md §2.9)."""
     captured: dict[str, object] = {}
 
     @ui.page("/")

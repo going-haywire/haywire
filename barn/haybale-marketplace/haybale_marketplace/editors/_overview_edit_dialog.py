@@ -266,7 +266,6 @@ def build_edit_dialog(
                     value=current_os,
                     multiple=True,
                     label="Supported OS (leave empty = all platforms)",
-                    in_popup=True,
                 )
                 .classes("w-full")
                 .props("use-chips")
@@ -290,7 +289,6 @@ def build_edit_dialog(
                 ),
             },
             value=lib.identity.on_reload,
-            in_popup=True,
         ).classes("w-full")
 
         # The full distribution name, not a stem with a "haybale-" prepend slot:

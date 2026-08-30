@@ -163,16 +163,14 @@ def save_as_modal(
                     _refresh()
 
                 # Not select_field: this sits in a flex row and must not carry
-                # the wrapper's 160px min-width. The popup-content-style lift
-                # is what select_field(in_popup=True) would have applied —
-                # without it the dropdown opens behind the Popup card.
+                # the wrapper's 160px min-width. No z-index lift is needed —
+                # the Popup card sits below Quasar's interaction tier, so this
+                # dropdown's own 6000 clears it (design-guide.md §2.9).
                 ui.select(
                     options=list(suffixes),
                     value=selected_suffix,
                     on_change=_on_suffix_change,
-                ).props("dense").props(f'popup-content-style="z-index: {hui.POPUP_MENU_Z}"').classes(
-                    "flex-shrink-0"
-                )
+                ).props("dense").classes("flex-shrink-0")
             elif len(suffixes) == 1:
                 suffix_label = ui.label(suffixes[0]).classes("text-xs font-mono hw-text-dim flex-shrink-0")
 

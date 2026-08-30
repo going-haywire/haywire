@@ -91,12 +91,32 @@ meant the harness rendered Quasar dropdowns with browser defaults
 very thing it exists to show.
 """
 STATIC_CSS = (
-    # Z-index layers for the Quasar-overlay tier. NOT theme tokens:
-    # stacking order is structural, not a user-swappable colour.
-    # Quasar's own dialogs and QMenus both default to 6000, which is
-    # why the haywire Popup card sits above them at 7001 and menus
-    # opened from inside a popup need 7100 to clear it.
-    " :root { --hw-z-popup: 7001; --hw-z-popup-menu: 7100; }"
+    # The OVERLAY LADDER — every app-global layer that portals to <body> and
+    # so genuinely competes. NOT theme tokens: stacking order is structural,
+    # not a user-swappable colour. See design-guide.md §2.9.
+    #
+    # Derived from ONE external constant, --hw-z-quasar-interaction (6000):
+    # Quasar hardcodes QMenu and QDialog both at 6000 and arbitrates between
+    # them by DOM order. It exposes no custom property for this, so the app
+    # restates it here and every rung below is arithmetic on it — a Quasar
+    # upgrade that moves the tier is one edit.
+    #
+    # The ladder deliberately stops below Quasar's FEEDBACK tier (QTooltip
+    # 9000, QNotification 9500): a toast or tooltip must stay visible over
+    # any app overlay. 9000 is the budget, not a rung.
+    #
+    # Popup sits BELOW the interaction tier on purpose — that is what lets a
+    # plain ui.context_menu()/ui.select inside a Popup work with no lift.
+    " :root {"
+    "   --hw-z-quasar-interaction: 6000;"
+    "   --hw-z-popup-backdrop: 5000;"
+    "   --hw-z-popup: 5001;"
+    "   --hw-z-menu-over-menu: 6001;"
+    " }"
+    # A flyout is a QMenu opened from inside another QMenu; both default to
+    # the interaction tier, so a nested one ties with its parent and wins
+    # only on portal insertion order. One rung up breaks the tie explicitly.
+    " .hw-menu-over-menu { z-index: var(--hw-z-menu-over-menu, 6001); }"
     # Page background
     " body, .q-page, .q-tab-panels { background: var(--hw-bg-page) !important; }"
     # Layout

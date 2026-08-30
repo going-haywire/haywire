@@ -53,7 +53,16 @@ from nicegui import ui
 
 from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, menu_row
 
-# Above the context-menu popup card (z-index 7001); Quasar QMenu defaults to 6000.
+# One rung above Quasar's interaction tier (QMenu hardcodes 6000).
+#
+# This is NOT about clearing the Popup — a Popup sits at 5001, below the whole
+# tier, so a flyout drawn inside one already wins. It is about menu-over-menu:
+# a flyout IS a QMenu opened from inside another QMenu, so parent and child
+# both land on 6000 and the child wins only on portal insertion order. The
+# extra rung makes that explicit rather than incidental.
+#
+# Derived from --hw-z-quasar-interaction in app/shell.py; the literal is the
+# fallback for pages rendered without the shell's static CSS (previews, tests).
 #
 # Deliberately no width here. A QMenu is already shrink-to-fit, so a flyout that
 # stretches to the browser edge is never the menu's own sizing — it is an
@@ -61,7 +70,7 @@ from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, menu_row
 # makes the menu's max-content the sum of every leaf on one line. Setting
 # `width: max-content` / a max-width cap here only re-measures or truncates that
 # same wrong number; the fix belongs on the leaf, and `hui.button` carries it.
-FLYOUT_Z = "z-index: 7100"
+FLYOUT_Z = "z-index: var(--hw-z-menu-over-menu, 6001)"
 
 # Flyout to the right of the anchor, cascading rightward for nested submenus.
 FLYOUT_PROPS = 'anchor="top end" self="top start"'
@@ -461,22 +470,38 @@ class FlyoutIcon:
 # no CSS descendant rule can reach it; the lift has to be stamped on the element
 # while it is being built. Above the dropdown's own layer, not merely equal to
 # it, so stacking never depends on portal insertion order.
-_NESTED_POPUP_Z = "z-index: calc(var(--hw-z-popup-menu, 7100) + 10)"
+_NESTED_POPUP_Z = "z-index: calc(var(--hw-z-menu-over-menu, 6001) + 1)"
 
 
 def _lift_nested_popups(body: ui.element) -> None:
     """Raise every popup-spawning control drawn inside a dropdown body.
 
+    A dropdown panel is itself a ``QMenu`` sitting one rung above Quasar's
+    interaction tier (``FLYOUT_Z``), so anything it contains that opens its
+    own portal — a select's option list, a colour picker, a row's context
+    menu — lands on the bare tier *underneath the panel that spawned it* and
+    is invisible. One further rung clears the panel.
+
+    This is NOT the Popup problem. A ``Popup`` sits below the interaction tier
+    (see ``popup.vue``), so a menu inside a *popup* needs no help at all; only
+    a menu inside a *dropdown* does, because a dropdown is a QMenu itself.
+
     The dropdown does this for its whole body rather than asking content to
-    opt in (``hui.select_field(in_popup=True)``'s bargain): the body is often
-    a hosted surface whose widgets are built by the widget factory, where no
-    caller is in a position to pass a flag. Panels and node widgets outside a
-    dropdown keep the default — lifting those unconditionally is exactly what
-    ``select_field``'s docstring warns against.
+    opt in: the body is often a hosted surface whose widgets are built by the
+    widget factory, where no caller is in a position to pass a flag. Content
+    outside a dropdown keeps the default — an unconditional lift would let a
+    panel's dropdown escape to <body> and float above overlays it should sit
+    under.
+
+    ``ui.context_menu()`` is matched explicitly. It renders a ``q-menu`` like
+    ``ui.menu`` does, but ``ContextMenu`` is a *sibling* of ``Menu`` (both
+    subclass ``Element`` directly), so an ``isinstance(el, ui.menu)`` test
+    silently misses every row menu — which is exactly how a settings row's
+    right-click menu came to open behind the dropdown that spawned it.
     """
     for element in body.descendants():
-        if isinstance(element, ui.menu):
-            # A colour picker (and any nested flyout) IS the portal.
+        if isinstance(element, (ui.menu, ui.context_menu)):
+            # A colour picker, a nested flyout, or a row menu IS the portal.
             element.style(_NESTED_POPUP_Z)
         elif isinstance(element, ui.select):
             element.props(f'popup-content-style="{_NESTED_POPUP_Z}"')
