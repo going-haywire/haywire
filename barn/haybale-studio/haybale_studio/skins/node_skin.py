@@ -20,21 +20,15 @@ if TYPE_CHECKING:
 
 
 class NodeSkin(BaseSkin, ABC):
-    """
-    Base class for all NiceGui NodeSkin classes.
+    """Base class for all NiceGui NodeSkin classes.
 
-    NodeSkin instances are cached and reused by the SkinFactory. They hold a
-    NodeUISettings instance for live access to layout and visibility settings,
-    but carry no per-node render state.
+    SkinFactory caches ONE instance per registry key and reuses it across every
+    node in every open graph, so a skin must hold no per-node render state —
+    everything comes from the wrapper passed in on each call.
 
-    Layout values are driven by NodeUISettings and read on every render call:
-        card_padding    — horizontal padding applied to the card (px).
-        pin_gutter      — width of the pin column (px). Also sets the icon size.
-        pin_protrusion  — how far the pin center sits outside the card's visible edge (px).
-                          0 = flush with card border; positive = further out;
-                          negative = pin pulled inward.
-        content_gap     — offset between the gutter column edge and the label/widget (px).
-        pin_row_height  — height of the pin cell, sets vertical centering target (px)
+    Geometry is read live from ``NodeSkinSettings`` (which documents each
+    field) through the upper-case properties below, so a settings change takes
+    effect on the next render.
     """
 
     def __init__(self, widget_factory: "IWidgetFactory"):
@@ -72,61 +66,47 @@ class NodeSkin(BaseSkin, ABC):
     def vertical_card_style(self) -> str:
         """Extra card CSS a vertical layout needs, for skins to append.
 
-        Two things, both load-bearing:
-
-        - the block padding is PAINTED, not merely read. ``render_pin`` offsets
-          every pin against ``CARD_V_PADDING``; if the card actually paints
-          something else, all pins seat off their edge identically — which
-          reads as a design choice rather than a bug.
-        - ``position: relative`` makes the card the containing block for the
-          absolutely-positioned pin strips (see :meth:`render_pin_strip`).
+        Both declarations are load-bearing: the card must PAINT
+        ``CARD_V_PADDING`` (``render_pin`` offsets every pin against it — paint
+        something else and all pins seat off their edge identically, reading as
+        a design choice rather than a bug), and ``position: relative`` makes
+        the card the containing block for the pin strips.
         """
         v = self.CARD_V_PADDING
         return f"position: relative; padding-top: {v}px; padding-bottom: {v}px;"
 
     def layout_of(self, wrapper: NodeWrapper) -> LayoutDirection:
-        """Resolve this node's layout direction.
+        """This node's layout direction.
 
-        A pure function of the wrapper on purpose: SkinFactory caches ONE skin
-        instance per registry key across every node in every open graph, so
-        direction must never be stored on ``self``.
+        Never cache the result on ``self``: SkinFactory shares ONE skin
+        instance across every node in every open graph.
         """
         return resolve_layout_direction(wrapper)
 
     def show_of(self, wrapper: NodeWrapper) -> NodeVisibility:
-        """Resolve what this node's card draws — collapse and detail together.
+        """What this node's card draws — collapse and detail together.
 
-        Ask the returned object rather than comparing ranks yourself: the
-        rank→element mapping has exactly one owner, so re-tiering later does
-        not touch this skin. See ADR 0032 and
-        ``haywire.ui.skin.visibility``.
-
-        Pure function of the wrapper, for the same reason as
-        :meth:`layout_of` — never store it on ``self``.
+        Ask the returned object rather than comparing ranks yourself, so
+        re-tiering does not touch this skin (ADR 0032). Never cache it on
+        ``self``, as with :meth:`layout_of`.
         """
         return resolve_node_visibility(wrapper)
 
     def card_classes(self, wrapper: NodeWrapper) -> str:
-        """Extra classes this skin's card carries beyond the shared contract.
+        """Extra classes this skin's card carries — override to add a skin token.
 
-        The shared ones — ``w-full node-card zoom-pan-lod0`` — are added by
-        whoever builds the card; ``node-card`` in particular is a behavioural
-        contract, not styling (canvas.vue keys the manual-resize clamp release
-        off it), so it is never a subclass's to forget.
-
-        Override to add a skin's own token, e.g. a CSS-scoping class.
+        The shared ``w-full node-card zoom-pan-lod0`` are added by whoever
+        builds the card, so they are never a subclass's to repeat.
+        ``node-card`` is behavioural, not styling: canvas.vue keys the
+        manual-resize clamp release off it.
         """
         return ""
 
     def _render_title(self, node) -> None:
-        """The node's name in the header row.
+        """The node's name in the header row. Override for an icon or a weight.
 
-        The one piece of header chrome a skin routinely wants its own version
-        of — an icon, a different weight. Overriding this rather than the whole
-        header is what lets every skin share one folded card.
-
-        Whatever an override draws, it draws the NODE's label: a hardcoded
-        title is wrong on every node that is not the one it was written for.
+        An override must still draw ``node.identity.label`` — this is the hook
+        that lets every skin share one folded card.
         """
         ui.label(node.identity.label).classes("text-h6 flex-grow")
 
@@ -134,17 +114,15 @@ class NodeSkin(BaseSkin, ABC):
     def _fold_layout(layout: LayoutDirection) -> LayoutDirection:
         """The direction a FOLDED card draws pins in — always a horizontal one.
 
-        A folded card is a single row, so there is no top or bottom edge for a
-        vertical layout's pins to sit on: left in place they would offset
-        against a mid-card row and land *inside* the card, the same trap the
-        ghost pins hit before they moved into the edge strips.
+        A folded card is one row, so a vertical layout has no top/bottom edge
+        left to seat pins on; left as-is they offset against a mid-card row and
+        land INSIDE the card.
 
-        Mapping a vertical direction to the horizontal one that keeps its sense
-        of "start": T2B has inlets on the leading edge, so it folds to L2R; B2T
-        has them on the trailing edge, so it folds to R2L. Folding a vertical
-        node therefore re-routes its wires, which is honest — the card changed
-        shape, and the edge layer reads each pin's own emitted vector, so the
-        curves follow without anything else being told.
+        Each vertical direction maps to the horizontal one keeping its sense of
+        "start": T2B has inlets on the leading edge → L2R, B2T on the trailing
+        edge → R2L. This re-routes the node's wires, which is intended — the
+        edge layer reads each pin's emitted vector, so curves follow on their
+        own.
         """
         if not layout.is_vertical:
             return layout
@@ -156,17 +134,44 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
     ):
-        """Stack bare pins beside the title, the way hidden-connected pins already are.
+        """Stack bare pins on one card edge — the horizontal twin of a pin strip.
 
-        Placement is entirely ``layout``'s: each pin's CSS side and its
-        ``data-pin-dir-x/y`` vector are both derived inside ``_render_pin``, so
-        this cannot put the two out of step.
+        Absolutely positioned, because ``render_pin`` seats a pin by pulling it
+        off its STATIC position, which must therefore be the card's content
+        edge. In flow it is not: the ghost pin and the row's 16px gap push the
+        column ~28px inward, and every pin seats that far off its border.
+
+        The containing block is the HEADER ROW (built by :meth:`header_row`),
+        not the card — the row is full-bleed inside the card's padding, so its
+        edge is that content edge, and pins stay on their own row instead of
+        the card's vertical middle.
+
+        Both the CSS side and the ``data-pin-dir-x/y`` vector come from
+        ``layout`` inside ``_render_pin``, so they cannot drift apart.
         """
         if not ports:
             return
-        with ui.column().classes("gap-0 items-center"):
+        edge = layout.side_for(ports[0])
+        with (
+            ui.column()
+            .classes("gap-0 items-center")
+            .style(f"position: absolute; {edge}: 0; top: 50%; transform: translateY(-50%);")
+        ):
             for port in ports:
                 self._render_pin(port, wrapper, layout=layout)
+
+    def header_row(self, extra_classes: str = "") -> ui.row:
+        """The card's header row — every skin's title goes here.
+
+        Carries the ``position: relative`` that :meth:`_render_pin_column`
+        anchors to. A hand-built header loses it silently: the pins fall back
+        to the nearest positioned ancestor and seat off the border.
+        """
+        return (
+            ui.row()
+            .classes(f"drag-handle w-full items-center {extra_classes}".rstrip())
+            .style("position: relative;")
+        )
 
     def _render_collapsed(
         self,
@@ -179,31 +184,21 @@ class NodeSkin(BaseSkin, ABC):
     ):
         """A folded card: the header row, and nothing else.
 
-        Shared by every skin, because a folded card has no layout left to
-        differ about — it is one row whatever the skin does when open. What a
-        skin still owns is its chrome: ``card_classes`` for the card's own
-        token and ``_render_title`` for the header.
+        Shared by every skin — a folded card has no layout left to differ
+        about. A skin still owns its chrome via ``card_classes`` and
+        :meth:`_render_title`.
 
-        Structurally this *is* the horizontal header — title in the middle,
-        pins in a column on each side — which is why it needs no new layout
-        machinery. The difference is which pins: ``show.ports`` hands back
-        every LINKED port and drops the rest, so a 23-port node with two edges
-        folds to two pins rather than 23. That drop, not the missing labels, is
-        where the element-count win lives (ADR 0032).
+        ``show.ports`` returns only LINKED ports, so a 23-port node with two
+        edges folds to two pins. That drop, not the missing labels, is the
+        element-count win (ADR 0032). Group collapse is deliberately ignored: a
+        port inside a folded group still needs a pin for its edge to land on.
 
-        Group collapse is ignored here on purpose — a port buried in a folded
-        group still gets its pin, because an edge must find its endpoint and a
-        folded card is all header. The resolver owns that rule; see
-        ``haywire.ui.skin.visibility``.
+        The diagnostics badge and root ghost pins are NOT optional — a folded
+        node that hides its errors fails silently, and one without a ghost pin
+        has no drop anchor, so an edge drag onto it does nothing.
 
-        The diagnostics badge and the root ghost pins are NOT optional. A
-        folded node that hides its errors is the silent-failure pattern this
-        codebase keeps writing insight files about, and one with no ghost pin
-        has no drop anchor — an edge drag onto it simply does nothing.
-
-        The width clamps are dropped for the same reason the vertical branch
-        drops them: they size a label+widget content column this card does not
-        have.
+        Width clamps are dropped: they size a label+widget column this card has
+        no room for.
         """
         main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(card_style)
         fold_layout = self._fold_layout(layout)
@@ -212,7 +207,7 @@ class NodeSkin(BaseSkin, ABC):
             self._render_diagnostics_badge(wrapper)
 
             linked = show.ports(node)
-            with ui.row().classes("drag-handle w-full items-center"):
+            with self.header_row():
                 self._render_root_ghost_pins(wrapper, fold_layout)
                 self._render_pin_column([p for p in linked if p.is_inlet()], wrapper, fold_layout)
                 self._render_title(node)
@@ -221,18 +216,12 @@ class NodeSkin(BaseSkin, ABC):
     def _render_diagnostics_badge(self, wrapper: NodeWrapper) -> List["HaywireException"]:
         """The unified error/warning badge. Drawn at EVERY rank, folded included.
 
-        A node nobody can see is broken is worse than a slow one, so this is
-        not gated by detail — hiding an error indicator at low density is the
-        silent-failure pattern this codebase keeps writing insight files about.
-        Its click-through menu stays wired for the same reason a badge exists
-        at all: one that opens nothing is a broken affordance, and the menu
-        body only costs elements on nodes that actually have diagnostics, which
-        is near zero on the large graphs the detail axis exists for.
+        Never gated by detail, menu included: a node hiding the fact that it is
+        broken is worse than a slow one. The menu body only costs elements on
+        nodes that actually have diagnostics. ``show.diagnostics`` gates the
+        inline notice instead (:meth:`_render_alternates_notice`).
 
-        What ``show.diagnostics`` gates is the inline notice — see
-        :meth:`_render_alternates_notice`.
-
-        Returns the runtime errors, so a caller can decide about the notice
+        Returns the runtime errors so a caller can decide about that notice
         without re-reading node state.
         """
         runtime_errors = wrapper.state.get_errors() or []
@@ -257,10 +246,8 @@ class NodeSkin(BaseSkin, ABC):
     ):
         """The inline "Alternate versions available" line — FULL only.
 
-        This is the one genuinely inline piece of diagnostics *detail*: the
-        badge's own menu body is already behind a click. Rare enough that
-        gating it saves little, but it is what makes ``show.diagnostics``
-        answer a real question rather than none.
+        The one piece of diagnostics detail that is genuinely inline; the
+        badge's menu body is already behind a click.
         """
         if runtime_errors and show.diagnostics and wrapper._alternate_registry_keys:
             ui.label(f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}").classes(
@@ -277,13 +264,12 @@ class NodeSkin(BaseSkin, ABC):
     ):
         """Render a port according to its port type.
 
-        In a vertical layout inlets and outlets belong in a pin strip on the
-        card edge (see :meth:`render_pin_strip`), not here — a bare pin has no
-        room for the label/widget column this builds. Config ports are pinless
-        and render identically in every direction.
+        Horizontal layouts only for inlets/outlets — vertically they belong in
+        :meth:`render_pin_strip`, which has no room for the label/widget column
+        this builds. Config ports are pinless and render the same either way.
 
-        ``show`` resolves from the wrapper when omitted, mirroring ``layout``.
-        Pass it when rendering many ports so the chain resolves once per card.
+        ``layout`` and ``show`` resolve from the wrapper when omitted; pass
+        them when rendering many ports so the chain resolves once per card.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         show = self.show_of(wrapper) if show is None else show
@@ -309,19 +295,15 @@ class NodeSkin(BaseSkin, ABC):
         widget_classes: str = "",
         show: NodeVisibility | None = None,
     ):
-        """Render a port as `pin column | content` (or the mirror of it).
+        """Render a port as `pin column | content`, or the mirror of it.
 
-        ``side`` is ``"left"`` or ``"right"`` and decides the grid column order
-        and which margin gets the tight ``CONTENT_GAP``: the content inset
-        matches regardless of which side the pin is on. The pin is centered in
-        its ``PIN_GUTTER``-wide cell and ``overflow: visible`` lets it straddle
-        the card edge. ``align-self: center`` on the content matches the pin, so
-        label and widget share the pin's vertical center.
+        ``side`` (``"left"``/``"right"``) flips the grid column order and which
+        margin gets the tight ``CONTENT_GAP``, so the content inset matches
+        either way. ``overflow: visible`` lets the pin straddle the card edge.
 
-        Below FULL the label is gone, so the content column takes the port's
-        tooltip: without it, identifying a widget would mean hovering the 20px
-        pin beside it rather than the thing you are looking at. The tooltip is
-        lazy, so an unhovered row pays nothing for it.
+        Below FULL there is no label, so the tooltip moves to the content
+        column — otherwise identifying a widget means hovering the 20px pin
+        beside it.
         """
         show = self.show_of(wrapper) if show is None else show
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
@@ -386,35 +368,23 @@ class NodeSkin(BaseSkin, ABC):
     ):
         """Render bare pins in a row along one card edge, for vertical layouts.
 
-        No labels and no widgets: a pin strip has no room for them, and the
-        properties editor already exposes every inlet/outlet value. Tooltips
-        therefore carry the whole identification burden here — which is part of
-        why ADR 0032 made them unconditional rather than a setting.
+        No labels or widgets — tooltips carry the whole identification burden
+        here. ``ghost_for`` adds this direction's root ghost pin; the strip IS
+        the card edge, the only place a ghost's outward offset resolves.
 
-        ``ghost_for`` adds this direction's root ghost pin to the strip. The
-        strip IS the card edge, which is the only place a ghost's outward offset
-        resolves correctly — inline in a mid-card header row it would just shift
-        16px inward.
+        ``position: absolute`` is required, not cosmetic: in flow the strip
+        reserves a full pin-row of empty space inside the card, and a negative
+        margin cannot reclaim it because the card's ``row-gap`` still allocates
+        a slot beside the flex item.
 
-        The strip takes NO part in the card's layout. Its pins are pushed out
-        past the border by ``position: relative``, which leaves them in flow, so
-        an in-flow strip reserves a full pin-row of empty space inside the card
-        — the gap between the border and the node title. Collapsing that with a
-        negative margin is not enough: the strip stays a flex item of the card,
-        so the card's ``row-gap`` still allocates a gap slot beside it. Only
-        ``position: absolute`` takes it out of flex layout altogether.
+        Offsets resolve against the card's padding box (``top``/``bottom`` =
+        ``CARD_V_PADDING``), putting each pin's static position exactly where
+        it sat in flow so ``render_pin``'s offset lands it on the border. The
+        explicit ``height`` keeps that true when only the smaller ghost pin is
+        present.
 
-        Positioned against the card's PADDING box (``top``/``bottom`` =
-        ``CARD_V_PADDING``), so each pin's static position is exactly where it
-        sat in flow and ``render_pin``'s ``card_padding + gutter//2 +
-        protrusion`` offset lands it on the border unchanged. The explicit
-        ``height`` keeps that true when the strip holds only the smaller ghost
-        pin.
-
-        Requires the card to be a containing block; skins get that by styling
-        their card through :meth:`vertical_card_style`, which sets
-        ``position: relative`` explicitly rather than relying on Quasar's
-        ``.q-card`` default.
+        The card must be a containing block — see :meth:`vertical_card_style`;
+        do not rely on Quasar's ``.q-card`` default.
         """
         if not ports and ghost_for is None:
             return
@@ -478,18 +448,12 @@ class NodeSkin(BaseSkin, ABC):
         layout: LayoutDirection | None = None,
         cell_style: str = "",
     ):
-        """Render a pin with connection system compatibility.
+        """Render a pin, supplying this skin's geometry to the framework helper.
 
-        Thin wrapper over the framework ``render_pin`` helper, supplying this
-        skin's geometry settings. ``cell_style`` is forwarded to place the pin
-        into a grid cell. Wires the right-click port menu and attaches a hover
-        tooltip when enabled in settings.
-
-        The padding handed to ``render_pin`` must be the one on the axis this
-        pin crosses — horizontal pins clear the card's left/right padding,
-        vertical pins its top/bottom padding. Passing the wrong one seats every
-        pin slightly off its edge, identically on every node, which reads as a
-        design choice rather than a bug.
+        ``card_padding`` must be the padding on the axis this pin CROSSES —
+        left/right for horizontal pins, top/bottom for vertical. The wrong one
+        seats every pin slightly off its edge, identically on every node, which
+        reads as a design choice rather than a bug.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         pin_el = render_pin(
@@ -518,25 +482,18 @@ class NodeSkin(BaseSkin, ABC):
         layout: LayoutDirection | None = None,
         only: "PortType | None" = None,
     ):
-        """
-        Render inline ghost pins into the current flex context.
+        """Render inline ghost pins into the current flex context.
 
-        Both are regular flex items — no absolute positioning. Using inline flex
-        items means getBoundingClientRect() always returns correct screen
-        coordinates for the JavaScript edge-drawing code, regardless of which
-        element acts as the CSS positioning context.
+        Regular flex items, never absolutely positioned, so
+        getBoundingClientRect() reports correct screen coordinates to the
+        edge-drawing JS whatever the positioning context.
 
-        Horizontally both go in the header row: the inlet takes natural order
-        (left end) and the outlet uses `order: 999` so flexbox places it last
-        (right end), after the node title and any hidden-port pins.
+        Horizontally both sit in the header row, the outlet pushed last with
+        ``order: 999``. Vertically the caller passes ``only=`` to place each in
+        its matching edge strip — the strip IS the card edge, and a ghost left
+        in a mid-card row offsets INTO the card instead of out to the border.
 
-        Vertically the caller renders them one at a time into the matching edge
-        strip (``only=``), because the strip IS the card edge. A ghost left in
-        the header row would offset against a mid-card row — `top: -16px` there
-        moves it 16px further INTO the card, not out to the edge.
-
-        Sides and vectors both come from LayoutDirection so they cannot drift
-        apart — the ghost pins used to carry a third hardcoded copy of them.
+        Sides and vectors both come from LayoutDirection so they cannot drift.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         node_id = wrapper.node_id
@@ -552,12 +509,9 @@ class NodeSkin(BaseSkin, ABC):
             # vertically each ghost is alone in its own strip.
             order = "order: 999; " if (not vertical and not is_inlet) else ""
             # Vertically the ghost shares a strip with the real pins, so it
-            # takes render_pin's offset verbatim — same padding, same gutter
-            # half (the strip's height comes from the 20px pins, not from the
-            # ghost's own 12px box), same protrusion. That lands every pin on
-            # the strip on one edge line. The historical -16px literal happens
-            # to match the default horizontal padding and says nothing about
-            # the block axis, which is why it left the ghost inside the card.
+            # takes render_pin's offset verbatim (the gutter half comes from
+            # the 20px pins, not the ghost's own 12px box) — that puts every
+            # pin on the strip on one edge line.
             offset = self.CARD_V_PADDING + self.PIN_GUTTER // 2 + self.PIN_PROTRUSION if vertical else 16
             (
                 ui.element("div")
@@ -579,17 +533,12 @@ class NodeSkin(BaseSkin, ABC):
     def _render_comment_badge(self, wrapper: NodeWrapper) -> None:
         """A badge for the node's comment, if it has one. Hover to read it.
 
-        Emptiness is the whole visibility rule (ADR 0032): text means a badge,
-        no text means nothing. There is no companion "show it" flag — the old
-        ``show_comment`` bought only what an empty comment already gives.
+        Emptiness is the whole visibility rule (ADR 0032) — no companion flag.
+        Drawn unconditionally so a note survives folding, where it matters
+        most: a folded node is a box with a title.
 
-        Drawn at the COLLAPSED tier, i.e. unconditionally, so a note survives
-        folding. That is when it matters most: a folded node is a box with a
-        title, and the comment is often the only thing saying why it is there.
-
-        The tooltip is built eagerly rather than on first hover, unlike a pin's.
-        A pin tooltip is one of ~23 per node and pays for laziness; this is at
-        most one per node, and only on nodes that have a comment at all.
+        The tooltip is built eagerly, unlike a pin's, because there is at most
+        one per node and only on nodes that have a comment.
         """
         try:
             comment = (wrapper.node.props.comment or "").strip()
@@ -617,14 +566,10 @@ class NodeSkin(BaseSkin, ABC):
     ) -> None:
         """Render a single badge unifying errors and advisory warnings.
 
-        One icon, one floating count (errors + warnings + deprecation), colored
-        by the highest severity present: red when the node has any runtime error,
-        otherwise amber for advisory-only notices.
-
-        Left-click opens one popup listing errors first (fatal), then advisory
-        warnings and any deprecation notice. Right-click still falls through to
-        the selection context menu (via `data-node-id`), which carries the Node
-        Errors panel on ``SelectionMenu``.
+        One icon and one count, coloured by highest severity: red for any
+        runtime error, amber for advisory-only. Left-click opens the popup;
+        right-click falls through to the selection context menu via
+        ``data-node-id``.
 
         Args:
             errors: Runtime errors (fatal — make the node invalid).

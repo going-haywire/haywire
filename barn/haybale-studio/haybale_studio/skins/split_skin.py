@@ -153,7 +153,7 @@ class SplitNodeSkin(NodeSkin):
             inlets = [port for port in ports if port.is_inlet()]
             outlets = [port for port in ports if port.is_outlet()]
 
-            with ui.row().classes("drag-handle w-full items-center gap-2"):
+            with self.header_row("gap-2"):
                 # Root ghost pins — always-present fallback connection anchors,
                 # sided by the layout direction. Horizontally they belong in the
                 # header row, where they are ordinary flex items.

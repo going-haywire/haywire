@@ -147,7 +147,7 @@ class StackedNodeSkin(NodeSkin):
             runtime_errors = self._render_diagnostics_badge(wrapper)
 
             # Header with node label and ghost pins for hidden connected ports.
-            with ui.row().classes("drag-handle w-full items-center"):
+            with self.header_row():
                 # Root ghost pins — always-present fallback connection
                 # anchors, sided by the layout direction
                 self._render_root_ghost_pins(wrapper, layout)
