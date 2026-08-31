@@ -495,7 +495,7 @@ class HaywireException(Exception):
 
     edge_id: Optional[str] = None
     """The offending edge's id (adapter/edge errors). Self-encodes endpoints
-    (``edge::out@nodeA>>in@nodeB``). A string, not an EdgeWrapper reference."""
+    (``nodeA[out]->nodeB[in]``). A string, not an EdgeWrapper reference."""
 
     # ========================================================================
     # TECHNICAL DETAILS (for advanced users / debugging)

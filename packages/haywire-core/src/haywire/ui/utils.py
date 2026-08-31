@@ -4,7 +4,7 @@ import shutil
 import logging
 import subprocess
 import platform
-from typing import Callable, NamedTuple
+from typing import Callable
 
 from nicegui import ui
 
@@ -56,7 +56,18 @@ def generate_edge_uuid(
     """
     Generate a unique edge identifier for UI and graph systems.
 
-    This uses Format 2: edge::outlet_pin_id@outlet_node_id>>inlet_node_id@inlet_pin_id
+    Format: ``{outlet_node_id}[{outlet_pin_id}]->{inlet_node_id}[{inlet_pin_id}]`` —
+    written source-to-sink, matching the direction the data flows.
+
+    Note this deliberately does NOT compose from :func:`generate_pin_uuid`. Pin
+    UUIDs are their own DOM-id scheme (``{pin_id}@{node_id}``); edge ids are
+    opaque tokens whose only contract is that Python and ``canvas.vue``'s
+    ``_buildEdgeID`` produce byte-identical strings. The separator is ``->``
+    rather than ``>>`` because ``>>`` is already the port-hierarchy separator
+    used by the pin fallback strings (see ``EdgeWrapper.outletPinFallback``).
+
+    The id is used verbatim as an SVG element id, so it must stay free of
+    whitespace.
 
     Args:
         outlet_node_id: The source node's unique identifier
@@ -68,79 +79,10 @@ def generate_edge_uuid(
         Unique edge identifier
 
     Example:
-        generate_edge_id('node_123', 'output', 'node_456', 'input')
-        -> 'edge::output@node_123>>input@node_456'
+        generate_edge_uuid('node_123', 'output', 'node_456', 'input')
+        -> 'node_123[output]->node_456[input]'
     """
-    outlet_uuid = generate_pin_uuid(outlet_node_id, outlet_pin_id)
-    inlet_uuid = generate_pin_uuid(inlet_node_id, inlet_pin_id)
-    return f"edge::{outlet_uuid}>>{inlet_uuid}"
-
-
-class EdgeComponents(NamedTuple):
-    """Components of a parsed edge ID."""
-
-    outlet_node_id: str
-    outlet_pin_id: str
-    inlet_node_id: str
-    inlet_pin_id: str
-
-
-def parse_edge_id(edge_id: str) -> EdgeComponents:
-    """
-    Parse an edge identifier back into its components.
-
-    Args:
-        edge_id: Edge ID in format edge::outlet_node_id__outlet_pin_id>>inlet_node_id__inlet_pin_id
-
-    Returns:
-        EdgeComponents with outlet_node_id, outlet_pin_id, inlet_node_id, inlet_pin_id
-
-    Raises:
-        ValueError: If edge_id format is invalid
-
-    Example:
-        parse_edge_id('edge::output@node_123>>input@node_456')
-        -> EdgeComponents(outlet_node_id='node_123', outlet_pin_id='output',
-                               inlet_node_id='node_456', inlet_pin_id='input')
-    """
-    # Split by :: to get prefix and the rest
-    if "::" not in edge_id:
-        raise ValueError(
-            f"Invalid connection ID format: {edge_id}. "
-            f"Expected format: edge::outlet_pin_id@outlet_node_id>>inlet_node_id@inlet_pin_id"
-        )
-
-    prefix, rest = edge_id.split("::", 1)
-
-    if prefix != "edge":
-        raise ValueError(f"Edge ID must start with 'edge', got: {prefix}")
-
-    # Split by >> to get outlet and inlet parts
-    if ">>" not in rest:
-        raise ValueError(
-            f"Invalid edge ID format: {edge_id}. Expected '>>' separator between outlet_uuid and inlet_uuid"
-        )
-
-    outlet_part, inlet_part = rest.split(">>", 1)
-
-    # Parse outlet part (node_id__pin_id)
-    outlet_parts = outlet_part.split("@")
-    if len(outlet_parts) != 2:
-        raise ValueError(f"Invalid outlet format in edge ID: {outlet_part}. Expected pin_id@node_id")
-    outlet_pin_id, outlet_node_id = outlet_parts
-
-    # Parse inlet part (node_id__pin_id)
-    inlet_parts = inlet_part.split("@")
-    if len(inlet_parts) != 2:
-        raise ValueError(f"Invalid inlet format in edge ID: {inlet_part}. Expected pin_id@node_id")
-    inlet_pin_id, inlet_node_id = inlet_parts
-
-    return EdgeComponents(
-        outlet_node_id=outlet_node_id,
-        outlet_pin_id=outlet_pin_id,
-        inlet_node_id=inlet_node_id,
-        inlet_pin_id=inlet_pin_id,
-    )
+    return f"{outlet_node_id}[{outlet_pin_id}]->{inlet_node_id}[{inlet_pin_id}]"
 
 
 def _build_editor_command(template: str, filepath: str, line_number: int | None) -> list[str] | None:

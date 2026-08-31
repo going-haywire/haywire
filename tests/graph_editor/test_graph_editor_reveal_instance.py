@@ -74,7 +74,7 @@ def test_matching_graph_id_selects_edge():
     graph = SimpleNamespace(
         graph_id="webcam",
         filestem="Webcam",
-        edge_wrappers={"edge::o@a>>i@b": edge_wrapper},
+        edge_wrappers={"a[o]->b[i]": edge_wrapper},
     )
     editor._canvas_manager = SimpleNamespace(graph=graph)
 
@@ -83,9 +83,7 @@ def test_matching_graph_id_selects_edge():
     data.__getitem__.return_value = edit_stub
     context = SimpleNamespace(data=data, session=MagicMock())
 
-    editor._on_reveal_graph_instance(
-        context, RevealGraphInstance(graph_id="webcam", edge_id="edge::o@a>>i@b")
-    )
+    editor._on_reveal_graph_instance(context, RevealGraphInstance(graph_id="webcam", edge_id="a[o]->b[i]"))
 
     assert edit_stub.active_edge is edge_wrapper
     assert context.session.publish.call_count == 2

@@ -1542,7 +1542,7 @@
     }
   },
   "edges": {
-    "edge::exec@BeginPlayNode_8d7335c8>>start@TickEmitNode_8accf22d": {
+    "BeginPlayNode_8d7335c8[exec]->TickEmitNode_8accf22d[start]": {
       "source_node_id": "BeginPlayNode_8d7335c8",
       "outlet_port_id": "exec",
       "sink_node_id": "TickEmitNode_8accf22d",
@@ -1551,7 +1551,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::listen_callback@TickEventNode_f06e7bcb>>callback_names@TickEmitNode_8accf22d": {
+    "TickEventNode_f06e7bcb[listen_callback]->TickEmitNode_8accf22d[callback_names]": {
       "source_node_id": "TickEventNode_f06e7bcb",
       "outlet_port_id": "listen_callback",
       "sink_node_id": "TickEmitNode_8accf22d",
@@ -1560,7 +1560,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::exec@TickEventNode_f06e7bcb>>execute@ForLoopNode_97b173f2": {
+    "TickEventNode_f06e7bcb[exec]->ForLoopNode_97b173f2[execute]": {
       "source_node_id": "TickEventNode_f06e7bcb",
       "outlet_port_id": "exec",
       "sink_node_id": "ForLoopNode_97b173f2",
@@ -1569,7 +1569,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::loop_body@ForLoopNode_97b173f2>>exec@ControlSwitch_48a0d650": {
+    "ForLoopNode_97b173f2[loop_body]->ControlSwitch_48a0d650[exec]": {
       "source_node_id": "ForLoopNode_97b173f2",
       "outlet_port_id": "loop_body",
       "sink_node_id": "ControlSwitch_48a0d650",
@@ -1578,7 +1578,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::index@ForLoopNode_97b173f2>>value_a@MathOP_cdb83482": {
+    "ForLoopNode_97b173f2[index]->MathOP_cdb83482[value_a]": {
       "source_node_id": "ForLoopNode_97b173f2",
       "outlet_port_id": "index",
       "sink_node_id": "MathOP_cdb83482",
@@ -1589,7 +1589,7 @@
       ],
       "is_lazy": false
     },
-    "edge::index@ForLoopNode_97b173f2>>value_b@MathOP_cdb83482": {
+    "ForLoopNode_97b173f2[index]->MathOP_cdb83482[value_b]": {
       "source_node_id": "ForLoopNode_97b173f2",
       "outlet_port_id": "index",
       "sink_node_id": "MathOP_cdb83482",
@@ -1600,7 +1600,7 @@
       ],
       "is_lazy": false
     },
-    "edge::result@MathOP_cdb83482>>with@ControlSwitch_48a0d650": {
+    "MathOP_cdb83482[result]->ControlSwitch_48a0d650[with]": {
       "source_node_id": "MathOP_cdb83482",
       "outlet_port_id": "result",
       "sink_node_id": "ControlSwitch_48a0d650",
@@ -1611,7 +1611,7 @@
       ],
       "is_lazy": false
     },
-    "edge::exec@ShutdownNode_0fb7bb57>>stop@TickEmitNode_8accf22d": {
+    "ShutdownNode_0fb7bb57[exec]->TickEmitNode_8accf22d[stop]": {
       "source_node_id": "ShutdownNode_0fb7bb57",
       "outlet_port_id": "exec",
       "sink_node_id": "TickEmitNode_8accf22d",
@@ -1620,7 +1620,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::true@ControlSwitch_48a0d650>>exec@LoggerNode_0eafb662": {
+    "ControlSwitch_48a0d650[true]->LoggerNode_0eafb662[exec]": {
       "source_node_id": "ControlSwitch_48a0d650",
       "outlet_port_id": "true",
       "sink_node_id": "LoggerNode_0eafb662",
@@ -1629,7 +1629,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::result@MathOP_cdb83482>>message@LoggerNode_0eafb662": {
+    "MathOP_cdb83482[result]->LoggerNode_0eafb662[message]": {
       "source_node_id": "MathOP_cdb83482",
       "outlet_port_id": "result",
       "sink_node_id": "LoggerNode_0eafb662",

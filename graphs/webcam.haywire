@@ -2175,7 +2175,7 @@
     }
   },
   "edges": {
-    "edge::exec@BeginPlayNode_87f32274>>start@WebCameraNode_15b5bccb": {
+    "BeginPlayNode_87f32274[exec]->WebCameraNode_15b5bccb[start]": {
       "source_node_id": "BeginPlayNode_87f32274",
       "outlet_port_id": "exec",
       "sink_node_id": "WebCameraNode_15b5bccb",
@@ -2184,7 +2184,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::exec@ShutdownNode_f1b20b45>>stop@WebCameraNode_15b5bccb": {
+    "ShutdownNode_f1b20b45[exec]->WebCameraNode_15b5bccb[stop]": {
       "source_node_id": "ShutdownNode_f1b20b45",
       "outlet_port_id": "exec",
       "sink_node_id": "WebCameraNode_15b5bccb",
@@ -2193,7 +2193,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::subscription@NumpyFrameEventNode_5c871b36>>callbacks@WebCameraNode_15b5bccb": {
+    "NumpyFrameEventNode_5c871b36[subscription]->WebCameraNode_15b5bccb[callbacks]": {
       "source_node_id": "NumpyFrameEventNode_5c871b36",
       "outlet_port_id": "subscription",
       "sink_node_id": "WebCameraNode_15b5bccb",
@@ -2202,7 +2202,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::frame_ready@NumpyFrameEventNode_5c871b36>>execute@SegmentationNode_09e0c64d": {
+    "NumpyFrameEventNode_5c871b36[frame_ready]->SegmentationNode_09e0c64d[execute]": {
       "source_node_id": "NumpyFrameEventNode_5c871b36",
       "outlet_port_id": "frame_ready",
       "sink_node_id": "SegmentationNode_09e0c64d",
@@ -2211,7 +2211,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::rgb@NumpyFrameEventNode_5c871b36>>frame@SegmentationNode_09e0c64d": {
+    "NumpyFrameEventNode_5c871b36[rgb]->SegmentationNode_09e0c64d[frame]": {
       "source_node_id": "NumpyFrameEventNode_5c871b36",
       "outlet_port_id": "rgb",
       "sink_node_id": "SegmentationNode_09e0c64d",
@@ -2220,7 +2220,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::result@SegmentationNode_09e0c64d>>result@AnnotateNode_5e8896eb": {
+    "SegmentationNode_09e0c64d[result]->AnnotateNode_5e8896eb[result]": {
       "source_node_id": "SegmentationNode_09e0c64d",
       "outlet_port_id": "result",
       "sink_node_id": "AnnotateNode_5e8896eb",
@@ -2229,7 +2229,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::rgb@NumpyFrameEventNode_5c871b36>>frame@AnnotateNode_5e8896eb": {
+    "NumpyFrameEventNode_5c871b36[rgb]->AnnotateNode_5e8896eb[frame]": {
       "source_node_id": "NumpyFrameEventNode_5c871b36",
       "outlet_port_id": "rgb",
       "sink_node_id": "AnnotateNode_5e8896eb",
@@ -2238,7 +2238,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::annotated@AnnotateNode_5e8896eb>>frame@FrameDisplayNode_e397b53f": {
+    "AnnotateNode_5e8896eb[annotated]->FrameDisplayNode_e397b53f[frame]": {
       "source_node_id": "AnnotateNode_5e8896eb",
       "outlet_port_id": "annotated",
       "sink_node_id": "FrameDisplayNode_e397b53f",
@@ -2247,7 +2247,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::frame_ready@AnnotateNode_5e8896eb>>execute@FrameDisplayNode_e397b53f": {
+    "AnnotateNode_5e8896eb[frame_ready]->FrameDisplayNode_e397b53f[execute]": {
       "source_node_id": "AnnotateNode_5e8896eb",
       "outlet_port_id": "frame_ready",
       "sink_node_id": "FrameDisplayNode_e397b53f",
@@ -2256,7 +2256,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::result_ready@SegmentationNode_09e0c64d>>execute@ObjectDetectorNode_16498c61": {
+    "SegmentationNode_09e0c64d[result_ready]->ObjectDetectorNode_16498c61[execute]": {
       "source_node_id": "SegmentationNode_09e0c64d",
       "outlet_port_id": "result_ready",
       "sink_node_id": "ObjectDetectorNode_16498c61",
@@ -2265,7 +2265,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::result_ready@ObjectDetectorNode_16498c61>>execute@AnnotateNode_5e8896eb": {
+    "ObjectDetectorNode_16498c61[result_ready]->AnnotateNode_5e8896eb[execute]": {
       "source_node_id": "ObjectDetectorNode_16498c61",
       "outlet_port_id": "result_ready",
       "sink_node_id": "AnnotateNode_5e8896eb",
@@ -2274,7 +2274,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::result@ObjectDetectorNode_16498c61>>result@AnnotateNode_5e8896eb": {
+    "ObjectDetectorNode_16498c61[result]->AnnotateNode_5e8896eb[result]": {
       "source_node_id": "ObjectDetectorNode_16498c61",
       "outlet_port_id": "result",
       "sink_node_id": "AnnotateNode_5e8896eb",
@@ -2283,7 +2283,7 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "edge::rgb@NumpyFrameEventNode_5c871b36>>frame@ObjectDetectorNode_16498c61": {
+    "NumpyFrameEventNode_5c871b36[rgb]->ObjectDetectorNode_16498c61[frame]": {
       "source_node_id": "NumpyFrameEventNode_5c871b36",
       "outlet_port_id": "rgb",
       "sink_node_id": "ObjectDetectorNode_16498c61",

@@ -120,11 +120,11 @@ def test_reveal_instance_publishes_reveal_graph_instance_for_edge():
 
     ctx = MagicMock()
     err = HaywireException.create("x")
-    err.enrich(graph_id="webcam", edge_id="edge::o@a>>i@b")
+    err.enrich(graph_id="webcam", edge_id="a[o]->b[i]")
 
     reveal_instance(err, ctx)
 
     published = ctx.session.publish.call_args[0][0]
     assert published.graph_id == "webcam"
-    assert published.edge_id == "edge::o@a>>i@b"
+    assert published.edge_id == "a[o]->b[i]"
     assert published.node_id is None

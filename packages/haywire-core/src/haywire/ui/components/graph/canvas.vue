@@ -2463,6 +2463,12 @@ export default {
             const inletConnectDir = this._getPinDirectionVector(inletPin);
             
             const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            // edge_id contains [ ] and > — a valid DOM id, but NOT a valid CSS
+            // selector ('>' parses as the child combinator). Look it up (and the
+            // derived `${edge_id}_hitarea` / `gradient_${edge_id}` ids) with
+            // getElementById, which takes a literal string, or with the
+            // path[data-edge-id="..."] attribute form. querySelector('#' + edge_id)
+            // throws a SyntaxError unless the id is passed through CSS.escape().
             path.setAttribute('id', edge_id);
             path.setAttribute('data-edge-id', edge_id);
             path.setAttribute('fill', 'none');
@@ -2895,58 +2901,13 @@ export default {
             return isFormElement || isQuasarElement || isWidgetContainer || isMarkedInteractive;
         },
 
-        _parseEdgeID(edge_id) {
-            // Split by :: to get prefix and the rest
-            if (!edge_id.includes('::')) {
-                console.error(`Invalid connection ID format: ${edge_id}. Expected format: edge::outlet_pin_id@outlet_node_id>>inlet_pin_id@inlet_node_id`);
-                return null;
-            }
-
-            const [prefix, rest] = edge_id.split('::', 2);
-
-            if (prefix !== 'edge') {
-                console.error(`Edge ID must start with 'edge', got: ${prefix}`);
-                return null;
-            }
-
-            // Split by >> to get outlet and inlet parts
-            if (!rest.includes('>>')) {
-                console.error(`Invalid connection ID format: ${edge_id}. Expected '>>' separator between outlet and inlet`);
-                return null;
-            }
-
-            const [outletPart, inletPart] = rest.split('>>', 2);
-
-            // Parse outlet part (pin_id@node_id)
-            const outletParts = outletPart.split('@');
-            if (outletParts.length !== 2) {
-                console.error(`Invalid outlet format in connection ID: ${outletPart}. Expected pin_id@node_id`);
-                return null;
-            }
-            const [outletPinId, outletNodeId] = outletParts;
-
-            // Parse inlet part (pin_id@node_id)
-            const inletParts = inletPart.split('@');
-            if (inletParts.length !== 2) {
-                console.error(`Invalid inlet format in connection ID: ${inletPart}. Expected pin_id@node_id`);
-                return null;
-            }
-            const [inletPinId, inletNodeId] = inletParts;
-
-            return {
-                outletNodeId: outletNodeId,
-                outletPinId: outletPinId,
-                inletNodeId: inletNodeId,
-                inletPinId: inletPinId,
-                outletPinFullId: `${outletPinId}@${outletNodeId}`,
-                inletPinFullId: `${inletPinId}@${inletNodeId}`
-            };
-        },
-
         _buildEdgeID(sourceNodeId, outletPinId, sinkNodeId, inletPinId) {
-            const outletPin = this._buildPinUUID(sourceNodeId, outletPinId);
-            const inletPin = this._buildPinUUID(sinkNodeId, inletPinId);
-            return `edge::${outletPin}>>${inletPin}`;
+            // Must stay byte-identical to Python's generate_edge_uuid() in
+            // haywire/ui/utils.py — edge ids cross the wire in both directions.
+            // Note this does NOT compose from _buildPinUUID: pin UUIDs are a
+            // separate DOM-id scheme. The separator is '->' and not '>>'
+            // because '>>' is the port-hierarchy separator (_findPinInHierarchy).
+            return `${sourceNodeId}[${outletPinId}]->${sinkNodeId}[${inletPinId}]`;
         },
 
         _buildPinUUID(nodeId, pinId) {

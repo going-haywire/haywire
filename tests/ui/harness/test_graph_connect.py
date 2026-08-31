@@ -29,7 +29,7 @@ pytestmark = pytest.mark.ui
 
 # Edge between the source's exec outlet and the sink's exec inlet, oriented
 # outlet→inlet regardless of which end the user clicked first.
-_EXPECTED_EDGE_RE = r"^edge::exec@TestBeginPlayNode_.+>>exec@TestPrintNode_.+$"
+_EXPECTED_EDGE_RE = r"^TestBeginPlayNode_.+\[exec\]->TestPrintNode_.+\[exec\]$"
 
 
 def _pin_center(page: Page, id_fragment: str) -> dict:
