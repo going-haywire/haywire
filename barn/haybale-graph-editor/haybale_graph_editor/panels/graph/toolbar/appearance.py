@@ -44,7 +44,14 @@ APPEARANCE_CATEGORY = "appearance"
 
 
 def _appearance_bag(ctx: "SessionContext") -> Any | None:
-    """The active node's props bag, or None when there is no node to style."""
+    """The active node's props bag, or None when there is no node to style.
+
+    Deliberately NOT ``_gating.locked_bag``, despite the family resemblance:
+    this one carries no selection-size rule, because the fields inside the
+    dropdown are scoped to the selection's *primary* node on purpose (see
+    :class:`NodeAppearancePanel`). The gate on the hosting panel does use
+    ``locked_bag`` — that one is a single-node affordance.
+    """
     wrapper = ctx.data[EditState].active_node
     if wrapper is None:
         return None
@@ -60,21 +67,17 @@ def _appearance_bag(ctx: "SessionContext") -> Any | None:
     order=30,
 )
 class AppearanceToolbarPanel(BasePanel):
-    """The ⧉ icon that drops the appearance fields below the toolbar.
+    """The ⧉ icon that drops the appearance fields above the toolbar.
 
-    Unlike its neighbours it *does* declare a ``poll``: ``SelectionToolbar``
-    gates on "something is selected", which an edges-only selection satisfies,
-    and there is nothing to style without a node.
-
-    It pipes, like every other hosting panel here — ``NodeAppearance``
-    declares no ``provides``, so the host travels on unexamined.
+    Gated on the selection's primary node being unlocked
     """
 
     actions: SelectionActions
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
-        return _appearance_bag(ctx) is not None
+        bag = _appearance_bag(ctx)
+        return bag is not None and bag.locked is not True  # None or False
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:

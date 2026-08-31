@@ -82,11 +82,11 @@ def test_manual_resize_is_not_clamped(page: Page, harness) -> None:
         """() => {
             const slot = document.querySelector('.ui-node-slot');
             const card = document.querySelector('.error-node-card');
-            const prev = slot.getAttribute('data-size-adapt');
-            slot.setAttribute('data-size-adapt', 'manual');
+            const prev = slot.getAttribute('data-node-props-size-adapt');
+            slot.setAttribute('data-node-props-size-adapt', 'manual');
             const maxW = getComputedStyle(card).maxWidth;
-            if (prev === null) slot.removeAttribute('data-size-adapt');
-            else slot.setAttribute('data-size-adapt', prev);
+            if (prev === null) slot.removeAttribute('data-node-props-size-adapt');
+            else slot.setAttribute('data-node-props-size-adapt', prev);
             return maxW;
         }"""
     )

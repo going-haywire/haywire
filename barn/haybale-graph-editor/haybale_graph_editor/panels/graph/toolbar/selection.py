@@ -23,6 +23,7 @@ from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
 from ....surfaces import SelectionActions, SelectionMenu, SelectionToolbar
+from ._gating import locked_bag, selection_has_locked
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -49,7 +50,19 @@ class CopyToolbarPanel(BasePanel):
     order=20,
 )
 class DeleteToolbarPanel(BasePanel):
+    """Delete the selection — hidden when a locked node is in it.
+
+    Unlike Copy, which stays unconditional because copying a locked node harms
+    nothing. Gated on :func:`selection_has_locked` rather than
+    ``locked_bag``: this verb applies to any selection size, so it must not
+    inherit the Lock button's single-node rule.
+    """
+
     actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return not selection_has_locked(ctx)
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
@@ -81,6 +94,13 @@ class CollapseToolbarPanel(BasePanel):
 
     actions: SelectionActions
 
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        # A locked node's geometry is frozen, so folding it is not on offer.
+        # Any selection size — see selection_has_locked on why this is not
+        # the Lock button's locked_bag.
+        return not selection_has_locked(ctx)
+
     @staticmethod
     def _icon(collapsed: bool) -> str:
         return hui.icon.node_expand if collapsed else hui.icon.node_collapse
@@ -103,6 +123,84 @@ class CollapseToolbarPanel(BasePanel):
 
         def _toggle() -> None:
             now = self.actions.toggle_selection_collapsed()
+            btn.props(f"icon={self._icon(now)}")
+            btn.update()
+            tip.set_text(self._tip(now))
+
+        btn.on("click", lambda _e=None: _toggle())
+
+
+@panel(
+    surface=SelectionToolbar,
+    label="Lock",
+    icon=hui.icon.locked,
+    order=27,
+)
+class LockToolbarPanel(BasePanel):
+    """Lock or unlock ONE node — protection against accidental manipulation.
+
+    **Single-selection only, deliberately.** Unlike its neighbours, this panel
+    polls: locking is never applied to a group. That is what spares the design
+    a mixed-state rule — with no way to lock a set, a set is never partly
+    locked, so the button has exactly two states to render instead of three.
+    The cost is accepted: there is no bulk unlock, on the expectation that
+    locking is a rare, deliberate act on a few precious nodes.
+
+    Reads ``active_node`` (the Active axis — the inspector subject) rather than
+    the Selection axis its siblings act on, and writes ``props.locked``
+    directly: a plain prop write, NOT an undoable action. Ctrl-Z must never be
+    able to silently strip protection an undo was not aiming at.
+
+    A locked node refuses drag and resize in canvas.vue (which reads the
+    ``data-node-props-locked`` attribute UINode stamps) and is skipped by
+    delete. Nothing marks the card at rest — locked is a protection mechanism,
+    not a display state; the missing resize gadget is the signal once you
+    select it.
+
+    **Icon and tooltip report the STATE**, unlike CollapseToolbarPanel beside
+    it, which names the action its next press performs. The two differ because
+    the buttons answer different questions: a fold is a gesture you repeat
+    while reading, so "what will this do?" is what helps; a lock is a standing
+    condition you glance at, so "what is true now?" is. A closed padlock
+    meaning "click to lock" would also read backwards against every padlock a
+    user has met. What both buttons keep is icon and tooltip agreeing.
+    """
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return locked_bag(ctx) is not None
+
+    @staticmethod
+    def _icon(locked: bool) -> str:
+        return hui.icon.locked if locked else hui.icon.unlocked
+
+    @staticmethod
+    def _tip(locked: bool) -> str:
+        return "locked" if locked else "unlocked"
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        props = locked_bag(ctx)
+        if props is None:
+            return
+        locked = bool(props.locked)
+
+        with layout:
+            # Tooltip built by hand for the same reason CollapseToolbarPanel
+            # does it: icon_action's `tooltip=` leaves no handle to retext, and
+            # calling .tooltip() again stacks a second one.
+            btn = hui.icon_action(self._icon(locked))
+            with btn:
+                tip = ui.tooltip(self._tip(locked))
+
+        def _toggle() -> None:
+            # Re-read on click rather than closing over the draw-time value:
+            # the toolbar does not necessarily re-render between clicks, and a
+            # captured state makes a toggle work exactly once.
+            bag = locked_bag(ctx)
+            if bag is None:
+                return
+            now = not bool(bag.locked)
+            bag.locked = now
             btn.props(f"icon={self._icon(now)}")
             btn.update()
             tip.set_text(self._tip(now))

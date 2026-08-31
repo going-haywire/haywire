@@ -200,10 +200,35 @@ engine has not got.
   absent one, so it goes rather than waits.
 - **`pinned` becomes `locked`.** The old name and description scoped it to
   "prevent auto-layout from moving this node" — a layout pass that does not
-  exist. `locked` is the promise actually wanted: no accidental move, no
-  accidental delete. Enforcement lands separately, in `GraphEditor`, so the
-  invariant holds for canvas drags and Farmhand tools alike rather than
-  depending on each caller remembering to check.
+  exist. `locked` is the promise actually wanted: protection from accidental
+  drag, resize and delete.
+
+`locked` is enforced **client-side**, in `canvas.vue`, off a `data-node-props-locked`
+attribute. A server-side check was designed first and abandoned: the canvas
+moves nodes in the browser during a drag and reports positions only at the end,
+so the core could refuse to *persist* a move but not to *perform* one — the node
+would slide under the cursor and snap back, which reads as a glitch rather than
+a rule. With Farmhand tools deliberately exempt (an agent's call is always
+deliberate), no caller was left for a core filter to catch.
+
+Consequently `locked` is a **guardrail, not access control**: agents bypass it
+and any user can untick it. It covers geometry and existence only — settings,
+widgets and edges stay editable.
+
+**Protection runs through the Selection axis** (the rule Miro uses): a locked
+node is skipped by marquee-select and never joins a multi-selection in either
+direction — neither shift-clicking one into a selection, nor adding anything to
+a lone selected locked node. A node that cannot enter a selection cannot be
+reached by a batch command, so drag, delete and fold are all protected by one
+rule instead of a filter re-stated per verb. Selecting a locked node **alone**
+stays possible and is the point: its properties panel is the only way to unlock
+it, so a lock that could not be clicked would be a trap.
+
+Two consequences worth naming. Locking applies to one node at a time, so a
+selection is never *partly* locked and no mixed-state toggle has to be
+designed — at the cost of no bulk unlock. And the per-verb filters that remain
+(drag pickup, delete) are backstops for the lone-locked-node case rather than
+the primary guard.
 
 No migration either way: `Settings.from_dict` skips unknown value keys, so a
 saved graph carrying `props.muted` or `props.pinned` drops the key silently and

@@ -26,8 +26,13 @@ def test_copy_and_delete_are_leaves():
 def test_panels_declare_no_poll_of_their_own(make_ctx_with_selection):
     """SelectionToolbar.poll is exactly "something is selected"; the host gates
     the surface once before querying, so restating that on each panel would be
-    a second place to keep in sync for no behaviour."""
+    a second place to keep in sync for no behaviour.
+
+    Copy and the ⋯ overflow qualify. Delete does NOT, and deliberately: it
+    declares its own poll to hide on a locked node, whose deletion is refused.
+    Copying a locked node is harmless, so Copy stays unconditional.
+    """
     empty = make_ctx_with_selection(nodes=set(), edges=set())
-    for cls in (CopyToolbarPanel, DeleteToolbarPanel, SelectionOverflowPanel):
+    for cls in (CopyToolbarPanel, SelectionOverflowPanel):
         assert cls.poll(empty) is True
     assert SelectionToolbar.poll(empty) is False

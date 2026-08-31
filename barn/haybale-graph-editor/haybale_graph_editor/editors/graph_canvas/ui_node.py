@@ -69,6 +69,7 @@ class UINode:
         self.sync_event_emitter: Optional[Callable[[Any], None]] = None
 
         self._subscribe_slot_fields()
+        self._apply_locked_attr()
 
     @property
     def position(self) -> Optional[tuple[float, float]]:
@@ -242,6 +243,30 @@ class UINode:
         props = self.wrapper.node.props
         for field_name in ("width", "height", "size_adapt", "node_theme", "color_override"):
             props.subscribe_field(field_name, self._on_slot_field_change)
+        # `locked` rides its own handler: it stamps the CONTAINER, not the slot,
+        # because canvas.vue reads it off `[data-node-id]` when deciding what a
+        # drag picks up — and custom attributes, unlike CSS vars, do not
+        # inherit down to it from an ancestor.
+        props.subscribe_field("locked", lambda _v, _o: self._apply_locked_attr())
+
+    def _apply_locked_attr(self) -> None:
+        """Stamp ``data-node-props-locked`` on the container for canvas.vue to read.
+
+        Present-and-"true" only when locked; removed entirely otherwise, so the
+        client can test presence rather than parse a value. The gesture guards
+        (drag pickup, resize gadget) live in canvas.vue — this is the only
+        thing that tells them which nodes are locked.
+
+        The ``data-node-props-`` prefix is the convention for an attribute that
+        mirrors a ``NodeProperties`` field, so the reader can find its source
+        from the name alone. canvas.vue carries the full index of these
+        attributes at the top of its ``<script>``; add to it when adding one.
+        """
+        if self.wrapper.node.props.locked:
+            self.container._props["data-node-props-locked"] = "true"
+        else:
+            self.container._props.pop("data-node-props-locked", None)
+        self.container.update()
 
     def _node_theme_declarations(self) -> list[str]:
         """This node's theme as CSS var declarations — empty unless it diverges.
@@ -293,8 +318,11 @@ class UINode:
         and attached edges stay intact). An ``auto`` axis carries no inline
         size, so the slot sizes to its card's content and the ResizeObserver
         (see :meth:`_attach_size_observer`) measures it back into props.
-        ``data-size-adapt`` is stamped so the client-side observer can skip
-        manual axes and the card-fill CSS (canvas.vue) can key off it.
+        ``data-node-props-size-adapt`` is stamped so the client-side observer
+        can skip manual axes and the card-fill CSS (canvas.vue) can key off it.
+        Unlike its siblings this one is NOT write-only: canvas.vue flips it
+        during a resize drag, so treat it as shared state. See the attribute
+        index at the top of canvas.vue's ``<script>``.
 
         Size and appearance MUST share this one method: the write below is
         ``replace=``, deliberately authoritative, so a second writer using
@@ -331,7 +359,7 @@ class UINode:
         # and a cleared colour clears its var, rather than merging stale
         # declarations.
         self.container_slot.style(replace="; ".join(decls))
-        self.container_slot._props["data-size-adapt"] = mode
+        self.container_slot._props["data-node-props-size-adapt"] = mode
         self.container_slot.update()
 
     def _emit_sync_event_redraw(self):

@@ -433,13 +433,47 @@ class VisualLayerHandlers:
             if height is not None and abs(height - props.height) > 1.0:
                 props.height = float(height)
 
+    def _is_locked(self, node_id: str) -> bool:
+        """True when the node exists and carries ``props.locked``."""
+        wrapper = self.graph.get_node_wrapper(node_id)
+        if wrapper is None:
+            return False
+        return bool(wrapper.node.props.locked)
+
     @handles_event(UserRemoveEvent)
     def process_element_removal(self, event: UserRemoveEvent):
-        """Handle unified element removal."""
-        total = len(event.nodes) + len(event.edges)
-        logger.info(f"🗑️ Removing {total} elements: {len(event.nodes)} nodes, {len(event.edges)} connections")
-        if self.editor.remove_elements(event.nodes, event.edges):
-            ui.notify(f"Deleted {total} element(s)", type="positive")
+        """Handle unified element removal, skipping locked nodes.
+
+        The primary guard is upstream, in the selection model: canvas.vue keeps
+        a locked node out of any multi-selection, so the usual delete never
+        carries one. What reaches here is the case that survives that rule — a
+        locked node selected ALONE (which stays possible, since its properties
+        panel is the only way to unlock it) and then deleted.
+
+        Kept as a filter rather than a veto so the shape holds whatever the
+        selection model does later, and the skip is REPORTED either way: a
+        silent skip is the failure mode where the user assumes it worked.
+
+        Only the node is protected; its edges are not. An edge belongs to two
+        nodes, so letting one veto operations on its neighbour would surprise in
+        the other direction (see the locked-node design, ADR 0032's successor
+        notes in properties.py).
+        """
+        nodes = [n for n in event.nodes if not self._is_locked(n)]
+        skipped = len(event.nodes) - len(nodes)
+
+        if not nodes and not event.edges:
+            if skipped:
+                ui.notify(f"{skipped} locked node(s) — nothing deleted", type="warning")
+            return
+
+        total = len(nodes) + len(event.edges)
+        logger.info(f"🗑️ Removing {total} elements: {len(nodes)} nodes, {len(event.edges)} connections")
+        if self.editor.remove_elements(nodes, event.edges):
+            msg = f"Deleted {total} element(s)"
+            if skipped:
+                msg += f" — {skipped} locked node(s) skipped"
+            ui.notify(msg, type="positive")
         else:
             ui.notify("Failed to delete elements", type="warning")
 

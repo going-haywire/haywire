@@ -29,7 +29,7 @@ Two consequences that cost real debugging time:
 
 At rest the skin clamps the card (`min-w-64 max-w-sm`), so a node with 1280px of
 content measures **384px** — the clamp, not the content. The card-fill CSS
-releases that clamp only in manual mode (`[data-size-adapt="manual*"]`). A browser
+releases that clamp only in manual mode (`[data-node-props-size-adapt="manual*"]`). A browser
 test that measures the floor in `auto` mode measures the clamp and proves
 nothing; `test_widget_size_box.py::_floor` flips to manual, clears the inline
 min, reads, and restores. This is also why the bug is invisible until you drag —

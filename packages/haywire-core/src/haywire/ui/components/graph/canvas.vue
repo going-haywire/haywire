@@ -55,6 +55,37 @@
 // window.EventCreators, and window.EventValidators that the component uses as globals.
 import 'graph_events';
 
+/* ---------------------------------------------------------------------------
+ * DOM attributes this component reads, and who writes them
+ * ---------------------------------------------------------------------------
+ * These are a cross-language contract: Python stamps the attribute, this file
+ * reads it back during a gesture. Nothing checks the spelling on either side,
+ * so a typo fails SILENTLY — the selector simply never matches and the
+ * behaviour quietly stops. Constants cannot fix it (the CSS rules below key
+ * off the same strings inside selectors), so the names carry their own
+ * provenance instead:
+ *
+ *   data-node-props-*   MIRRORS A FIELD ON `NodeProperties` (the props bag).
+ *                       Stamped by UINode in ui_node.py.
+ *     …-locked          props.locked — refuses drag pickup, hides the resize
+ *                       gadget. On the [data-node-id] CONTAINER.
+ *     …-size-adapt      props.size_adapt — per-axis manual/auto sizing. On the
+ *                       .ui-node-slot, and written back by THIS file during a
+ *                       resize drag, so it is shared state, not one-way.
+ *
+ *   data-node-id        The node's id; the container every lookup starts from.
+ *                       Written by visual_layer.py and pin_render.py.
+ *   data-pin-id         A pin's id; drives pin-menu detection.
+ *   data-pin-dir-x/y    A pin's direction vector, from LayoutDirection. MUST
+ *                       agree with the pin's CSS side — see pin_render.py; a
+ *                       mismatch draws edges from the right edge with the
+ *                       wrong curve and reports no error.
+ *                       All three written by ui/skin/pin_render.py.
+ *
+ * Adding one? Follow the data-node-props-* rule if it mirrors a props field,
+ * and record it here — this block is the only index of the contract.
+ * ------------------------------------------------------------------------ */
+
 export default {
     name: 'GraphCanvas',
 
@@ -341,7 +372,7 @@ export default {
 
         _attachSizeObserver(nodeElement) {
             // The host slot (.ui-node-slot) carries the applied size + clip and
-            // the data-size-adapt stamp (see UINode._apply_size). An auto axis
+            // the data-node-props-size-adapt stamp (see UINode._apply_size). An auto axis
             // has no inline size, so the slot hugs content and we report the
             // measured offset back into props; a manual axis is user-owned and
             // is skipped. Idempotent: disconnect-then-attach.
@@ -358,7 +389,7 @@ export default {
                 if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
                     this._fitResizeGadget();
                 }
-                const mode = slot.getAttribute('data-size-adapt') || 'auto';
+                const mode = slot.getAttribute('data-node-props-size-adapt') || 'auto';
                 const autoW = (mode === 'auto' || mode === 'manual_height');
                 const autoH = (mode === 'auto' || mode === 'manual_width');
                 const width = autoW ? slot.offsetWidth : null;
@@ -446,6 +477,10 @@ export default {
             const parts = this._resizeParts(nodeId);
             if (!parts) { this.resizeGadget.visible = false; return; }
             const { container, slot } = parts;
+            // A locked node's geometry is frozen, so it gets no gadget at all.
+            // The absent handles are the signal: locked is a protection
+            // mechanism, not a display state, so nothing marks the card at rest.
+            if (this._isNodeLocked(container)) { this.resizeGadget.visible = false; return; }
             // A tracked node holds its REAL size: the gadget is fit from layout
             // size, which the hover-magnify transform doesn't change — snap any
             // active magnify back (and _magnifySuppressedFor blocks new ones).
@@ -524,13 +559,13 @@ export default {
             // Merge the dragged axis with any axis already manual, so a height
             // drag on a manual_width node yields 'manual' instead of silently
             // dropping the width lock. Stamp the merged mode immediately: the
-            // card-fill CSS keys off data-size-adapt, and stamping only at
+            // card-fill CSS keys off data-node-props-size-adapt, and stamping only at
             // commit would leave the card clamped (max-w-sm) during the drag.
-            const prevMode = slot.getAttribute('data-size-adapt') || 'auto';
+            const prevMode = slot.getAttribute('data-node-props-size-adapt') || 'auto';
             const manW = affW || prevMode === 'manual_width' || prevMode === 'manual';
             const manH = affH || prevMode === 'manual_height' || prevMode === 'manual';
             const size_adapt = (manW && manH) ? 'manual' : manW ? 'manual_width' : 'manual_height';
-            slot.setAttribute('data-size-adapt', size_adapt);
+            slot.setAttribute('data-node-props-size-adapt', size_adapt);
 
             // The dragged size is the user's intended MINIMUM (see
             // UINode._apply_size) — the slot may refuse to go below its
@@ -616,18 +651,18 @@ export default {
                 const SLOP = 4;  // px — a hair below the floor shouldn't reset
                 let floorW = actualW, floorH = actualH;
                 if (affW) {
-                    slot.setAttribute('data-size-adapt', prevMode);
+                    slot.setAttribute('data-node-props-size-adapt', prevMode);
                     slot.style.minWidth = '';
                     floorW = slot.offsetWidth;
                     slot.style.minWidth = intentW + 'px';
-                    slot.setAttribute('data-size-adapt', size_adapt);
+                    slot.setAttribute('data-node-props-size-adapt', size_adapt);
                 }
                 if (affH) {
-                    slot.setAttribute('data-size-adapt', prevMode);
+                    slot.setAttribute('data-node-props-size-adapt', prevMode);
                     slot.style.minHeight = '';
                     floorH = slot.offsetHeight;
                     slot.style.minHeight = intentH + 'px';
-                    slot.setAttribute('data-size-adapt', size_adapt);
+                    slot.setAttribute('data-node-props-size-adapt', size_adapt);
                 }
                 const wHitFloor = affW && intentW < floorW - SLOP;
                 const hHitFloor = affH && intentH < floorH - SLOP;
@@ -1610,6 +1645,11 @@ export default {
             }
         },
 
+        /** True when the node carries props.locked (stamped by UINode). */
+        _isNodeLocked(nodeElement) {
+            return !!nodeElement && nodeElement.hasAttribute('data-node-props-locked');
+        },
+
         _getDraggedElements(primaryElement, isShiftClick) {
             const elements = [];
 
@@ -1637,7 +1677,16 @@ export default {
             }
             // Note: Edges can't be dragged, so we only handle nodes
 
-            return elements;
+            // Locked nodes are dropped from the drag set. In practice this
+            // only ever fires for a lone locked node grabbed directly: a
+            // locked node cannot enter a multi-selection (see
+            // _findNodesInRectangle and _shiftWouldMixWithLocked), so a group
+            // drag never contains one and never splits apart mid-gesture.
+            //
+            // Filtering HERE, before startPositions are taken, is what makes
+            // the node refuse to move at all rather than move and snap back on
+            // the next redraw — the reason this guard is client-side.
+            return elements.filter(el => el.type !== 'node' || !this._isNodeLocked(el.element));
         },
 
         _handleUnifiedDragMove(e) {
@@ -1787,12 +1836,47 @@ export default {
             }
         },
 
+        /** True if a locked node is in the way of extending the selection.
+         *
+         *  The Miro rule, both directions: a locked node never joins a
+         *  multi-selection, and a selected locked node never gains company.
+         *  Selecting one ALONE stays possible — the properties panel is the
+         *  only way to unlock it, so a lock that could not be clicked would be
+         *  a trap.
+         */
+        _shiftWouldMixWithLocked(elementType, elementId) {
+            if (elementType === 'node') {
+                const el = document.querySelector(`[data-node-id="${elementId}"]`);
+                // Adding a locked node to an existing selection.
+                if (this._isNodeLocked(el) && this._selectionSize() > 0) return true;
+            }
+            // Adding anything to a selection that is a lone locked node.
+            for (const id of this.selectionState.selectedNodes) {
+                if (id === elementId && elementType === 'node') continue;
+                if (this._isNodeLocked(document.querySelector(`[data-node-id="${id}"]`))) return true;
+            }
+            return false;
+        },
+
+        _selectionSize() {
+            return this.selectionState.selectedNodes.size + this.selectionState.selectedEdges.size;
+        },
+
         _handleElementSelection(isShiftClick, elementType, elementId) {
             console.log(`Element clicked: ${elementType}:${elementId}, shift: ${isShiftClick}`);
 
             const active = this.selectionState.activeElement;
             const isActive = active && active.kind === elementType && active.id === elementId;
             const isSelected = this._isElementSelected(elementType, elementId);
+
+            // A shift-click that would mix a locked node with anything else
+            // degrades to a plain click: the target becomes the whole
+            // selection rather than joining one. Refusing outright would leave
+            // the user shift-clicking with nothing happening and no reason on
+            // screen; replacing keeps the gesture productive.
+            if (isShiftClick && !isActive && this._shiftWouldMixWithLocked(elementType, elementId)) {
+                isShiftClick = false;
+            }
 
             if (isShiftClick) {
                 if (isActive) {
@@ -2082,13 +2166,20 @@ export default {
         _findNodesInRectangle(rect) {
             const intersectingNodes = [];
             const nodeElements = document.querySelectorAll('[data-node-id]');
-            
+
             nodeElements.forEach(nodeElement => {
                 const nodeId = nodeElement.dataset.nodeId;
                 if (!nodeId) return;
 
+                // A locked node is not marquee-selectable (the Miro rule). It
+                // is skipped HERE rather than filtered out of each command,
+                // because a node that cannot enter a selection cannot be
+                // dragged, deleted or folded by one — the protection falls out
+                // of the selection model instead of being re-stated per verb.
+                if (this._isNodeLocked(nodeElement)) return;
+
                 const nodeRect = this._getNodeBoundingRect(nodeElement);
-                
+
                 if (this._rectanglesIntersect(rect, nodeRect)) {
                     intersectingNodes.push(nodeId);
                 }
@@ -3426,15 +3517,15 @@ path.connection-warning {
    grows the card into a min-height slot without ever shrinking below its
    content. */
 /* --8<-- [start:node-card-manual-resize] */
-.ui-node-slot[data-size-adapt="manual"] .node-card,
-.ui-node-slot[data-size-adapt="manual_width"] .node-card {
+.ui-node-slot[data-node-props-size-adapt="manual"] .node-card,
+.ui-node-slot[data-node-props-size-adapt="manual_width"] .node-card {
     align-self: stretch !important;
     width: auto !important;
     min-width: 0 !important;
     max-width: none !important;
 }
-.ui-node-slot[data-size-adapt="manual"] .node-card,
-.ui-node-slot[data-size-adapt="manual_height"] .node-card {
+.ui-node-slot[data-node-props-size-adapt="manual"] .node-card,
+.ui-node-slot[data-node-props-size-adapt="manual_height"] .node-card {
     flex: 1 0 auto !important;
 }
 /* --8<-- [end:node-card-manual-resize] */

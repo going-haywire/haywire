@@ -539,9 +539,10 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         bags = []
         for node_id in edit.selected_nodes:
             wrapper = graph.get_node_wrapper(node_id)
-            props = getattr(getattr(wrapper, "node", None), "props", None)
-            if props is not None:
-                bags.append(props)
+            if wrapper is not None:
+                props = wrapper.node.props
+                if props is not None:
+                    bags.append(props)
         return bags
 
     def set_selection_collapsed(self, collapsed: bool) -> None:

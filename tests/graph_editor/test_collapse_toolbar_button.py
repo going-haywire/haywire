@@ -86,10 +86,16 @@ def test_it_sits_on_the_selection_toolbar():
     assert CollapseToolbarPanel.class_identity.surface is SelectionToolbar
 
 
-def test_it_declares_no_poll_like_its_neighbours():
-    """SelectionToolbar.poll is already "something is selected", and the host
-    gates once before querying — restating it here would be a second copy."""
-    assert "poll" not in vars(CollapseToolbarPanel)
+def test_it_polls_only_to_hide_itself_on_a_locked_node():
+    """``SelectionToolbar.poll`` ("something is selected") is not restated here
+    — the host gates that once before querying. The panel's own ``poll`` earns
+    its place by adding something the surface cannot know: a locked node's
+    geometry is frozen, so folding it is not on offer.
+
+    Collapse and Delete both carry it; Copy does not, because copying a locked
+    node is harmless.
+    """
+    assert "poll" in vars(CollapseToolbarPanel)
 
 
 class TestItReadsStateRatherThanCapturingIt:

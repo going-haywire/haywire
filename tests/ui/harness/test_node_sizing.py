@@ -95,7 +95,7 @@ def test_manual_width_is_a_minimum(page: Page, harness):
     assert box["width"] >= 140.0 - 1.0, f"slot below its minimum: {box}"
 
     # The card must FILL the slot: the skin's own clamps (min-w-64 max-w-sm)
-    # are released by the data-size-adapt CSS, so card width == slot width.
+    # are released by the data-node-props-size-adapt CSS, so card width == slot width.
     card_w = _card_width(page, nid)
     assert card_w is not None and abs(card_w - box["width"]) < 2.0, (  # noqa: PT018
         f"card does not fill the manual-width slot: card={card_w} slot={box['width']}"

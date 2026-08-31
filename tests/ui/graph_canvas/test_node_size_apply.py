@@ -43,7 +43,7 @@ def test_apply_size_manual_writes_both_axes_as_minimums():
     style = _style_str(n)
     assert "min-width: 300" in style
     assert "min-height: 180" in style
-    assert cast(Any, n.container_slot)._props["data-size-adapt"] == "manual"
+    assert cast(Any, n.container_slot)._props["data-node-props-size-adapt"] == "manual"
     cast(Any, n.container_slot).update.assert_called()
 
 
@@ -77,7 +77,7 @@ def test_apply_size_auto_clears_inline_size():
     # auto axes carry no inline width/height (empty declarations)
     assert "width:" not in style
     assert "height:" not in style
-    assert cast(Any, n.container_slot)._props["data-size-adapt"] == "auto"
+    assert cast(Any, n.container_slot)._props["data-node-props-size-adapt"] == "auto"
 
 
 def test_size_change_restyles_slot_without_redraw():
@@ -96,7 +96,33 @@ def test_subscribe_slot_fields_wires_size_and_appearance():
     n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_slot_fields()
     watched = {call.args[0] for call in n.wrapper.node.props.subscribe_field.call_args_list}
-    assert watched == {"width", "height", "size_adapt", "node_theme", "color_override"}
+    # `locked` is subscribed here too but is NOT a slot field: it stamps
+    # `data-node-props-locked` on the CONTAINER (canvas.vue reads it off `[data-node-id]`
+    # to decide what a drag picks up), so it runs its own handler rather than
+    # _on_slot_field_change. Listed separately to keep that distinction visible
+    # rather than letting it blur into the style-write set.
+    assert watched == {
+        "width",
+        "height",
+        "size_adapt",
+        "node_theme",
+        "color_override",
+        "locked",
+    }
+
+
+def test_locked_is_wired_to_the_container_not_the_slot():
+    """The guard on the distinction above: `locked` must not be routed through
+    the slot-style handler, which would stamp the attribute where canvas.vue
+    cannot see it (custom attributes do not inherit down from an ancestor)."""
+    n = _ui_node_with_props("auto", 200.0, 200.0)
+    n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
+    n._subscribe_slot_fields()
+
+    handlers = {call.args[0]: call.args[1] for call in n.wrapper.node.props.subscribe_field.call_args_list}
+    assert handlers["locked"] is not n._on_slot_field_change
+    for slot_field in ("width", "height", "size_adapt", "node_theme", "color_override"):
+        assert handlers[slot_field] == n._on_slot_field_change
 
 
 # ---------------------------------------------------------------------------
@@ -164,3 +190,45 @@ def test_dead_resize_handle_stub_removed():
     from haybale_studio.skins.node_skin import NodeSkin
 
     assert not hasattr(NodeSkin, "_add_resize_handle")
+
+
+# ---------------------------------------------------------------------------
+# locked — a CONTAINER attribute, not a slot style
+# ---------------------------------------------------------------------------
+#
+# This attribute is the entire enforcement mechanism: canvas.vue reads it off
+# `[data-node-id]` to decide what a drag picks up and whether to fit the resize
+# gadget. If it stops being stamped, nothing throws — locked nodes simply
+# become draggable again, silently.
+
+
+def _ui_node_with_locked(locked: bool) -> UINode:
+    node = _ui_node_with_props("auto", 200.0, 200.0)
+    node.wrapper.node.props.locked = locked
+    container = MagicMock()
+    container._props = {}
+    node.container = container
+    return node
+
+
+def test_locked_node_is_stamped_for_the_canvas():
+    n = _ui_node_with_locked(True)
+    n._apply_locked_attr()
+    assert cast(Any, n.container)._props["data-node-props-locked"] == "true"
+    cast(Any, n.container).update.assert_called()
+
+
+def test_unlocked_node_carries_no_attribute_at_all():
+    """Removed rather than set false, so the client tests presence."""
+    n = _ui_node_with_locked(False)
+    n._apply_locked_attr()
+    assert "data-node-props-locked" not in cast(Any, n.container)._props
+
+
+def test_unlocking_clears_a_previously_stamped_attribute():
+    """The regression that would leave a node permanently undraggable."""
+    n = _ui_node_with_locked(True)
+    n._apply_locked_attr()
+    n.wrapper.node.props.locked = False
+    n._apply_locked_attr()
+    assert "data-node-props-locked" not in cast(Any, n.container)._props

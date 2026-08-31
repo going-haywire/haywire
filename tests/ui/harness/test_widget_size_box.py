@@ -59,7 +59,7 @@ def _floor(page: Page, node_id: str) -> dict:
     Mirrors the commit-time measurement in ``onResizeGripDown``'s ``onUp``: clear
     the inline minimum and read the content-driven size back. Crucially it reads
     in MANUAL mode — the skin's ``min-w-64 max-w-sm`` clamp is released there
-    (the card-fill CSS keys off ``data-size-adapt``), so a node with oversized
+    (the card-fill CSS keys off ``data-node-props-size-adapt``), so a node with oversized
     content only reveals its real floor once manual mode unlocks it. Measured in
     ``auto`` this returns 384px, the ``max-w-sm`` clamp, whatever the content is.
     """
@@ -68,13 +68,13 @@ def _floor(page: Page, node_id: str) -> dict:
             const container = document.querySelector(`[data-node-id="${nid}"]`);
             const slot = container && container.querySelector('.ui-node-slot');
             if (!slot) return null;
-            const prevMode = slot.getAttribute('data-size-adapt') || 'auto';
+            const prevMode = slot.getAttribute('data-node-props-size-adapt') || 'auto';
             const prevW = slot.style.minWidth, prevH = slot.style.minHeight;
-            slot.setAttribute('data-size-adapt', 'manual');
+            slot.setAttribute('data-node-props-size-adapt', 'manual');
             slot.style.minWidth = ''; slot.style.minHeight = '';
             const out = { width: slot.offsetWidth, height: slot.offsetHeight };
             slot.style.minWidth = prevW; slot.style.minHeight = prevH;
-            slot.setAttribute('data-size-adapt', prevMode);
+            slot.setAttribute('data-node-props-size-adapt', prevMode);
             return out;
         }""",
         node_id,
