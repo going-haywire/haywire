@@ -78,6 +78,7 @@ class TestBaseNodeWithLibraries:
         wrapper = graph_with_library_system.create_node_wrapper(
             TestPrintNode.class_identity.registry_key, (0, 0)
         )
+        assert wrapper is not None
         assert wrapper.node.props.label == ""
         assert wrapper.node.display_label == TestPrintNode.class_identity.label
 
@@ -88,6 +89,7 @@ class TestBaseNodeWithLibraries:
         wrapper = graph_with_library_system.create_node_wrapper(
             TestPrintNode.class_identity.registry_key, (0, 0)
         )
+        assert wrapper is not None
         wrapper.node.props.label = "Left Motor"
         assert wrapper.node.display_label == "Left Motor"
 
@@ -104,6 +106,7 @@ class TestBaseNodeWithLibraries:
         wrapper = graph_with_library_system.create_node_wrapper(
             TestPrintNode.class_identity.registry_key, (0, 0)
         )
+        assert wrapper is not None
         wrapper.node.props.label = "   "
         assert wrapper.node.display_label == TestPrintNode.class_identity.label
         assert wrapper.node.props.label == "   "
