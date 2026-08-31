@@ -45,6 +45,7 @@
 - `haybale-graph-editor:panel:GraphMorePanel` — More Actions — 
 - `haybale-graph-editor:panel:GraphSettingsPanel` — Graph Settings — 
 - `haybale-graph-editor:panel:InsertRerouteMenuPanel` — Insert Reroute — 
+- `haybale-graph-editor:panel:LockToolbarPanel` — Lock — 
 - `haybale-graph-editor:panel:NodeAppearancePanel` — Node Appearance — 
 - `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 
 - `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — 

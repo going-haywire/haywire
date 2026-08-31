@@ -45,6 +45,7 @@ Visual graph editor library — host-agnostic
 - **Graph Metadata** — 
 - **Graph Settings** — 
 - **Insert Reroute** — 
+- **Lock** — 
 - **More** — 
 - **More Actions** — 
 - **Node Appearance** — 
