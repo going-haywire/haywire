@@ -1,4 +1,4 @@
-# haywire/ui/prefs/minimap.py
+# haywire/ui/components/minimap/settings.py
 """Minimap layout and visibility preference singleton."""
 
 from haywire.core.namespaces import NAMESPACE_UI_MINIMAP

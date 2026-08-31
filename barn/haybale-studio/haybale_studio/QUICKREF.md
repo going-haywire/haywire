@@ -25,7 +25,6 @@
 - `haybale-studio:panel:CanvasSettingsPanel` — Canvas — 
 - `haybale-studio:panel:DebugOverlaySettingsPanel` — Debug Overlay — 
 - `haybale-studio:panel:DebugSettingsPanel` — Log Levels — 
-- `haybale-studio:panel:EdgeUISettingsPanel` — Edges — 
 - `haybale-studio:panel:EditingSettingsPanel` — Editing — 
 - `haybale-studio:panel:EditorZoomPanSettingsPanel` — Zoom & Pan — 
 - `haybale-studio:panel:ExecutionSettingsPanel` — Execution — 

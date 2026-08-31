@@ -4,7 +4,6 @@ from .properties.setting.app import EditingSettingsPanel
 from .properties.setting.app import ActivitySettingsPanel
 from .properties.setting.canvas import CanvasSettingsPanel
 from .properties.setting.canvas import NodeSkinSettingsPanel
-from .properties.setting.canvas import EdgeUISettingsPanel
 from .properties.setting.canvas import EditorZoomPanSettingsPanel
 from .properties.setting.canvas import MinimapSettingsPanel
 from .properties.setting.debug import DebugOverlaySettingsPanel
@@ -23,7 +22,6 @@ __all__ = [
     "DebugOverlaySettingsPanel",
     "DebugSettingsPanel",
     "EditingSettingsPanel",
-    "EdgeUISettingsPanel",
     "EditorZoomPanSettingsPanel",
     "ExecutionSettingsPanel",
     "MinimapSettingsPanel",

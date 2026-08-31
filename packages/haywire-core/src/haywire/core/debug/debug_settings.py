@@ -1,4 +1,4 @@
-# haywire/ui/prefs/debug.py
+# haywire/core/debug/debug_settings.py
 """Debug and development preference singleton."""
 
 from haywire.core.namespaces import CATEGORY_LOG_LEVEL, CATEGORY_LOG_OUTPUT, NAMESPACE_DEBUG

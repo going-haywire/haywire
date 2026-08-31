@@ -1,4 +1,4 @@
-# haywire/ui/prefs/execution.py
+# haywire/core/execution/settings.py
 """Execution behaviour preference singleton."""
 
 from haywire.core.settings import setting

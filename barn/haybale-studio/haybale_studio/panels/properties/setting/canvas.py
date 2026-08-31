@@ -10,7 +10,6 @@ this module.
 
 CanvasSettingsPanel          — grid, zoom, pan behaviour
 NodeSkinSettingsPanel        — node dimensions, typography, label visibility
-EdgeUISettingsPanel          — edge routing, width, animation
 EditorZoomPanSettingsPanel   — zoom/pan behaviour settings
 MinimapSettingsPanel         — minimap position and visibility
 
@@ -28,7 +27,6 @@ from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_schema
 from haywire.ui.components.minimap.settings import MinimapSettings
 from haywire.ui.components.graph.settings import CanvasSettings
-from haywire.ui.prefs.edge_ui import EdgeUISettings
 from haywire.barn.builtin.surfaces import CanvasSettings as CanvasSurface
 
 from ....settings.node_skin_settings import NodeSkinSettings
@@ -74,25 +72,6 @@ class NodeSkinSettingsPanel(BasePanel):
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
         render_schema(NodeSkinSettings, registry)
-
-
-@panel(
-    surface=CanvasSurface,
-    label="Edges",
-    icon=hui.icon.edge,
-    order=30,
-    default_open=False,
-)
-class EdgeUISettingsPanel(BasePanel):
-    """Edge routing, width and animation behaviour."""
-
-    def draw(
-        self,
-        ctx: "SessionContext",
-        layout: PanelLayout,
-    ) -> None:
-        registry = ctx.app.library_service.get_settings_registry()
-        render_schema(EdgeUISettings, registry)
 
 
 @panel(

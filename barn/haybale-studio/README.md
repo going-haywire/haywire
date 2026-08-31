@@ -32,7 +32,6 @@ Library for haywire studio
 - **Canvas** — 
 - **Debug Overlay** — 
 - **Default Skins** — 
-- **Edges** — 
 - **Editing** — 
 - **Execution** — 
 - **Log Levels** — 
