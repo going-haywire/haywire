@@ -279,17 +279,19 @@ class BaseGraph:
     # NODE MANAGEMENT
     # =========================================================================
 
-    def generate_unique_node_id(self, prefix: str = "node") -> str:
+    def generate_unique_node_id(self, registry_key: str = "node") -> str:
         """
         Generate a unique node ID that doesn't conflict with existing nodes.
 
         Args:
-            prefix: Prefix for the node ID
+            registry_key: The registry key for the node type
         Returns:
             A unique node ID string
         """
+        prefix = get_registry_id_from_key(registry_key)
+
         while True:
-            node_id = f"{prefix}_{uuid.uuid4().hex[:8]}"
+            node_id = f"{prefix}_{uuid.uuid4().hex[:6]}"
             if node_id not in self.node_wrappers:
                 return node_id
 
@@ -321,7 +323,7 @@ class BaseGraph:
         from ..node.node_wrapper import NodeWrapper
 
         if node_id is None:
-            node_id = self.generate_unique_node_id(get_registry_id_from_key(registry_key))
+            node_id = self.generate_unique_node_id(registry_key)
         # Create new wrapper
         wrapper = NodeWrapper(registry_key=registry_key, node_id=node_id, graph=self, position=position)
 

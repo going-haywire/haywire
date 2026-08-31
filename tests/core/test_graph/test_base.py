@@ -6,6 +6,7 @@ Tests graph creation and basic operations.
 
 import pytest
 from haywire.core.graph.base import BaseGraph
+from haywire.core.library.utils import get_registry_id_from_key
 
 
 @pytest.mark.unit
@@ -32,3 +33,26 @@ class TestBaseGraph:
         """A freshly built graph starts with an empty node container."""
         assert empty_graph.node_wrappers == {}
         assert empty_graph.get_node_wrapper("missing") is None
+
+    def test_generated_id_is_prefixed_by_registry_id(self, empty_graph: BaseGraph):
+        """The id carries the node type, not the raw registry key."""
+        node_id = empty_graph.generate_unique_node_id("mylib.math.Add")
+        assert node_id.startswith(f"{get_registry_id_from_key('mylib.math.Add')}_")
+
+    def test_generated_ids_are_distinct(self, empty_graph: BaseGraph):
+        """Same registry key, many mints — the random suffix keeps them apart."""
+        ids = {empty_graph.generate_unique_node_id("k") for _ in range(200)}
+        assert len(ids) == 200
+
+    def test_generated_id_retries_past_an_occupied_id(self, empty_graph: BaseGraph, monkeypatch):
+        """The suffix is short (6 hex), so collisions are reachable: an id already
+        in node_wrappers must be skipped rather than handed out twice."""
+        suffixes = iter(["aaaaaa", "aaaaaa", "bbbbbb"])
+        monkeypatch.setattr(
+            "haywire.core.graph.base.uuid.uuid4",
+            lambda: type("U", (), {"hex": next(suffixes)})(),
+        )
+        prefix = get_registry_id_from_key("k")
+        empty_graph.node_wrappers[f"{prefix}_aaaaaa"] = object()  # type: ignore[assignment]
+
+        assert empty_graph.generate_unique_node_id("k") == f"{prefix}_bbbbbb"

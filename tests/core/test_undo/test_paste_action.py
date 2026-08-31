@@ -123,7 +123,7 @@ def test_paste_builds_child_actions_with_new_ids_and_remapped_edges(monkeypatch)
 
     class _G:
         # No node_factory needed — paste does not pre-validate registry_keys.
-        def generate_unique_node_id(self, prefix="node"):
+        def generate_unique_node_id(self, registry_key="node"):
             return next(ids)
 
     action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
@@ -159,7 +159,7 @@ def test_paste_builds_actions_for_unknown_registry_keys_too():
     )
 
     class _G:
-        def generate_unique_node_id(self, prefix="node"):
+        def generate_unique_node_id(self, registry_key="node"):
             return "new_x"
 
     action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
@@ -178,7 +178,7 @@ def test_paste_offsets_positions_to_paste_point():
     payload["bounding_box"] = {"min_x": 100.0, "min_y": 200.0, "max_x": 100.0, "max_y": 200.0}
 
     class _G:
-        def generate_unique_node_id(self, prefix="node"):
+        def generate_unique_node_id(self, registry_key="node"):
             return "new_x"
 
     # paste at (500, 600): offset = (500-100, 600-200) = (400, 400)
@@ -209,7 +209,7 @@ def test_editor_paste_clipboard_adds_action_and_returns_new_ids():
         "G",
         (),
         {
-            "generate_unique_node_id": lambda self, prefix="node": "new_x",
+            "generate_unique_node_id": lambda self, registry_key="node": "new_x",
         },
     )()
     ed.history_manager = cast(Any, _HM())
@@ -250,12 +250,38 @@ def test_paste_node_actions_carry_pre_minted_ids():
     ids = iter(["mint_a", "mint_b"])
 
     class _G:
-        def generate_unique_node_id(self, prefix="node"):
+        def generate_unique_node_id(self, registry_key="node"):
             return next(ids)
 
     action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
     node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
     assert {a.node_id for a in node_actions} == {"mint_a", "mint_b"}
+
+
+def test_paste_skips_an_id_already_minted_in_the_same_paste():
+    """The graph only checks ids it already holds, and pasted siblings are not in
+    the graph yet at mint time — so paste must dedup against its own mints or two
+    pasted nodes can collide (reachable with the short 6-hex suffix)."""
+    from haywire.core.undo.actions.graph_actions import PasteClipboardAction, AddNodeAction
+
+    payload = _payload(
+        nodes={
+            "n1": {"node_id": "n1", "registry_key": "k", "position": [0, 0], "node_data": {}},
+            "n2": {"node_id": "n2", "registry_key": "k", "position": [10, 0], "node_data": {}},
+        },
+        edges={},
+    )
+    # The graph hands out the same id twice before yielding a fresh one.
+    ids = iter(["dup", "dup", "fresh"])
+
+    class _G:
+        def generate_unique_node_id(self, registry_key="node"):
+            return next(ids)
+
+    action = PasteClipboardAction(graph=cast(Any, _G)(), payload=payload, paste_x=0.0, paste_y=0.0)
+    node_actions = [a for a in action.actions if isinstance(a, AddNodeAction)]
+    assert {a.node_id for a in node_actions} == {"dup", "fresh"}
+    assert action.new_node_ids == ["dup", "fresh"]
 
 
 def test_paste_execution_edge_connects_created_nodes():
@@ -294,7 +320,7 @@ def test_paste_execution_edge_connects_created_nodes():
             self.edges = []
             self._counter = 0
 
-        def generate_unique_node_id(self, prefix="node"):
+        def generate_unique_node_id(self, registry_key="node"):
             self._counter += 1
             return f"minted_{self._counter}"
 
@@ -368,7 +394,7 @@ def test_editor_paste_clipboard_returns_none_on_error():
             raise RuntimeError("boom")
 
     ed = Editor.__new__(Editor)
-    ed.graph = type("G", (), {"generate_unique_node_id": lambda self, prefix="node": "new_x"})()
+    ed.graph = type("G", (), {"generate_unique_node_id": lambda self, registry_key="node": "new_x"})()
     ed.history_manager = cast(Any, _HM())
 
     assert ed.paste_clipboard(payload, 0.0, 0.0) is None

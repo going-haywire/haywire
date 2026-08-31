@@ -521,7 +521,9 @@ class PasteClipboardAction(CompositeAction):
         #    validation — unknown types become placeholders, like file load).
         id_map: Dict[str, str] = {}
         for old_id, node in nodes.items():
-            new_id = graph.generate_unique_node_id()
+            new_id = graph.generate_unique_node_id(node["registry_key"])
+            while new_id in self.new_node_ids:
+                new_id = graph.generate_unique_node_id(node["registry_key"])
             id_map[old_id] = new_id
             self.new_node_ids.append(new_id)
             pos = node.get("position") or [0.0, 0.0]
@@ -678,7 +680,7 @@ class SplitEdgeWithRerouteAction(CompositeAction):
         itype = outlet_port.stored_type
 
         # Pre-mint the reroute node id so the edge children can reference it.
-        new_node_id = graph.generate_unique_node_id(prefix="reroute")
+        new_node_id = graph.generate_unique_node_id(registry_key=registry_key)
         self.reroute_node_id = new_node_id
 
         actions: List[IAction] = [

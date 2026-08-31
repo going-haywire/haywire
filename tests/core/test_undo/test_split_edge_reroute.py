@@ -67,7 +67,7 @@ def test_split_action_resolves_outlet_type_and_builds_children():
         def get_node_wrapper(self, node_id):
             return _NodeWrapper()
 
-        def generate_unique_node_id(self, prefix="node"):
+        def generate_unique_node_id(self, registry_key="node"):
             return "reroute_1"
 
     action = _build_split_action(_G())
