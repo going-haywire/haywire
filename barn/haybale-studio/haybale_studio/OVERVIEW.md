@@ -29,7 +29,7 @@ Library for haywire studio
 - **Debug Overlay** — 
 - **Default Skins** — 
 - **Edges** — 
-- **Editor** — 
+- **Editing** — 
 - **Execution** — 
 - **Log Levels** — 
 - **Manage principals** — 

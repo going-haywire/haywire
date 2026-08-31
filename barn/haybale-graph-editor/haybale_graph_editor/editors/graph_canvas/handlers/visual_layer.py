@@ -42,10 +42,12 @@ from haywire.ui.components.graph.event_definitions import (
 from ..event_handlers import handles_event
 from ..ui_node import UINode
 from ..ui_edge import UIEdge
+from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.graph.editor import Editor
     from haywire.core.graph.base import BaseGraph
+    from haywire.core.node.node_wrapper import NodeWrapper
     from haywire.ui.skin.factory import SkinFactory
     from haywire.ui.components.graph.canvas import GraphCanvasVue
     from haywire.core.session.context import SessionContext
@@ -368,6 +370,25 @@ class VisualLayerHandlers:
         )
         self.canvas_vue.emit_sync_event(sync_event)
 
+    def _make_sole_active_node(self, wrapper: "NodeWrapper") -> None:
+        """Make ``wrapper`` the whole selection, and its active (primary) element.
+
+        A freshly created node is a single-element, user-initiated change, so it
+        gets a primary — unlike a bulk paste, which selects without one (see the
+        Active axis / Active-promotion glossary entries). Writes EditState first,
+        then pushes the same state to the canvas so both sides agree.
+        """
+        if self.context is None:
+            return
+        node_id = wrapper.node_id
+        edit_state = self.context.data[EditState]
+        edit_state.selected_nodes = {node_id}
+        edit_state.selected_edges = set()
+        edit_state.active_node = wrapper
+        edit_state.active_edge = None
+        self.context.active_component = wrapper.registry_key
+        self.sync_selections([node_id], [], active={"kind": "node", "id": node_id})
+
     def clear_all_visuals(self):
         """Clear all visual representations and notify Vue."""
         self.remove_all_edge_visuals()
@@ -492,6 +513,7 @@ class VisualLayerHandlers:
                 ui.notify(f"Created {event.registryKey} node", type="positive")
                 if event.pending_connection:
                     self._try_auto_wire(wrapper, event.pending_connection)
+                self._make_sole_active_node(wrapper)
             else:
                 ui.notify(f"Failed to create node of type: {event.registryKey}", type="negative")
         except Exception as e:

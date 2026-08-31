@@ -156,16 +156,24 @@ class SelectionHandlers:
         ui.notify(f"Pasted {n} node{'s' if n != 1 else ''}", type="positive")
 
         # Auto-select the freshly pasted subgraph so the user can drag it
-        # immediately, but with NO primary (a programmatic bulk change clears
-        # the active element — see the Active axis glossary entry). Update both
-        # the local record and the session EditState, then push to the canvas.
+        # immediately. A single pasted node also becomes the primary (it is an
+        # unambiguous target, like a freshly created one); a multi-node paste is
+        # a bulk change and gets NO primary — see the Active axis glossary entry.
+        # Update both the local record and the session EditState, then push to
+        # the canvas.
         self.selected_nodes = set(new_node_ids)
         self.selected_edges = set(new_edge_ids)
+        sole_node = self.graph.get_node_wrapper(new_node_ids[0]) if len(new_node_ids) == 1 else None
         if self._session is not None:
-            edit_state = self._session.context.data[EditState]
+            ctx = self._session.context
+            edit_state = ctx.data[EditState]
             edit_state.selected_nodes = self.selected_nodes
             edit_state.selected_edges = self.selected_edges
-            edit_state.active_node = None
+            edit_state.active_node = sole_node
             edit_state.active_edge = None
+            ctx.active_component = sole_node.registry_key if sole_node is not None else None
         if self._visual_layer is not None:
-            self._visual_layer.sync_selections(new_node_ids, new_edge_ids, active={"kind": "", "id": ""})
+            active = (
+                {"kind": "node", "id": new_node_ids[0]} if sole_node is not None else {"kind": "", "id": ""}
+            )
+            self._visual_layer.sync_selections(new_node_ids, new_edge_ids, active=active)

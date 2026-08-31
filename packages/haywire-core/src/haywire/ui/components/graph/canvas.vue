@@ -1230,6 +1230,13 @@ export default {
         handleMouseDown(event) {
             if (event.button === 2) return; // Skip right-click
             if (event.button === 1) return; // Skip middle-click — handled by pan.vue
+            // NOTE: these button indices are deliberately hardcoded. Making the
+            // pan button configurable in isolation does NOT work: this handler is
+            // the single entry point for click-select, drag-move AND box-select,
+            // so skipping the pan button here disables all three. Left-drag pan
+            // therefore requires re-homing selection onto another gesture — i.e.
+            // the whole mouse-interaction scheme has to be designed as one, not
+            // one button at a time.
 
             const target = event.target;
 

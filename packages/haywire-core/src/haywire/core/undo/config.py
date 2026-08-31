@@ -1,12 +1,29 @@
 """
 Configuration for the Haywire undo system.
 
-This module provides configuration options for customizing the behavior
-of the undo system, including performance settings, grouping behavior,
-and user interface options.
+Every field here is read by :class:`~haywire.core.undo.history_manager.HistoryManager`.
+Earlier revisions carried a wider set (memory caps, action compression, lazy
+execution, integrity validation, keyboard-shortcut toggles) describing behaviour
+that was never implemented; those were removed rather than left as knobs that
+silently did nothing.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+
+def _default_max_actions() -> int:
+    """Read the user's undo limit, falling back if settings aren't up yet.
+
+    Resolved lazily (per construction) rather than at import: this module is
+    imported early, before ``UndoSettings`` is necessarily registered. Same
+    tolerate-absence approach as ``ActivityTracker._sync_history_size``.
+    """
+    try:
+        from .settings import UndoSettings
+
+        return UndoSettings().max_actions
+    except Exception:
+        return 100
 
 
 @dataclass
@@ -14,16 +31,18 @@ class UndoConfig:
     """
     Configuration for the undo system behavior.
 
-    This class encapsulates all configurable aspects of the undo system,
-    allowing fine-tuning of performance, behavior, and user experience.
+    Most fields are internal tuning. ``max_actions`` is the exception: it is
+    the one knob users see, so it defaults to ``UndoSettings.max_actions``
+    rather than a literal. An explicit value still wins — that is how
+    ``DEVELOPMENT_CONFIG`` pins its own limit.
     """
 
     # History limits
-    max_actions: int = 100
-    """Maximum number of actions to keep in history"""
+    max_actions: int = field(default_factory=_default_max_actions)
+    """Maximum number of actions to keep in history.
 
-    max_memory_mb: int = 50
-    """Maximum memory usage for action history in megabytes"""
+    Defaults to the user's ``UndoSettings.max_actions``, read at construction.
+    """
 
     # Grouping behavior
     enable_auto_grouping: bool = True
@@ -32,18 +51,9 @@ class UndoConfig:
     grouping_time_window_ms: int = 500
     """Time window for grouping rapid actions in milliseconds"""
 
-    auto_fence_on_gesture_end: bool = True
-    """Automatically add fences when user gestures complete"""
-
     # Action merging
     enable_action_merging: bool = True
     """Enable merging of compatible consecutive actions"""
-
-    merge_move_actions: bool = True
-    """Merge consecutive node move actions"""
-
-    merge_selection_actions: bool = True
-    """Merge consecutive selection change actions"""
 
     merge_time_window_ms: int = 100
     """Time window for merging actions in milliseconds"""
@@ -52,61 +62,21 @@ class UndoConfig:
     show_undo_notifications: bool = True
     """Show notifications when undo/redo operations complete"""
 
-    enable_keyboard_shortcuts: bool = True
-    """Enable Ctrl+Z/Ctrl+Y keyboard shortcuts"""
-
-    undo_notification_duration_ms: int = 2000
-    """Duration to show undo notifications"""
-
-    # Performance
-    lazy_action_execution: bool = False
-    """Defer expensive calculations until undo/redo execution"""
-
-    compress_old_actions: bool = True
-    """Compress old actions to save memory"""
-
-    compression_threshold_actions: int = 50
-    """Number of actions after which compression starts"""
-
     # Debug and development
     enable_debug_logging: bool = False
-    """Enable detailed logging for debugging"""
+    """Enable detailed logging for debugging.
 
-    track_performance_metrics: bool = False
-    """Track detailed performance metrics"""
+    Also forces every action to flush immediately instead of grouping, so the
+    log reads one line per action — see ``HistoryManager.add_action``.
+    """
 
-    validate_action_integrity: bool = True
-    """Validate action state before and after execution"""
-
-
-# Default configurations for different use cases
 
 DEVELOPMENT_CONFIG = UndoConfig(
     max_actions=50,
     enable_debug_logging=True,
-    track_performance_metrics=True,
     show_undo_notifications=True,
-    validate_action_integrity=True,
 )
-"""Configuration optimized for development and debugging"""
+"""Configuration optimized for development and debugging.
 
-PERFORMANCE_CONFIG = UndoConfig(
-    max_actions=200,
-    enable_action_merging=True,
-    lazy_action_execution=True,
-    compress_old_actions=True,
-    enable_debug_logging=False,
-    track_performance_metrics=False,
-    validate_action_integrity=False,
-)
-"""Configuration optimized for performance"""
-
-MINIMAL_CONFIG = UndoConfig(
-    max_actions=25,
-    enable_auto_grouping=False,
-    enable_action_merging=False,
-    show_undo_notifications=False,
-    compress_old_actions=False,
-    track_performance_metrics=False,
-)
-"""Minimal configuration with basic undo functionality only"""
+Note that pinning ``max_actions`` opts out of the user's ``UndoSettings``.
+"""

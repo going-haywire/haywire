@@ -110,9 +110,9 @@ def _open_file_in_editor(filepath: str, line_number: int | None = None):
         return
 
     # Prefer the user-configured external editor command (framework setting).
-    from haywire.ui.prefs.editor import EditorSettings
+    from haywire.core.tooling.settings import ExternalToolsSettings
 
-    configured = _build_editor_command(EditorSettings().external_editor_command, filepath, line_number)
+    configured = _build_editor_command(ExternalToolsSettings().editor_command, filepath, line_number)
     if configured is not None:
         try:
             if configured[0] == "start":  # Windows built-in

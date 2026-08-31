@@ -14,13 +14,20 @@ from haywire.core.session.context import SessionContext
 
 
 def _make_ctx_with_edit_state(register_edit_state):
-    """Build a SessionContext with EditState registered for one session."""
+    """Build a SessionContext with EditState registered for one session.
+
+    ``ctx.session`` is attached the way ``Session.__init__`` does in
+    production: writing a SessionContext signal field (e.g.
+    ``active_component``) emits through it, so a context with no session
+    raises AttributeError on the first such write.
+    """
     container = LibraryStateContainer(LibraryStateRegistry())
     sid = "t"
     EditStateCls = register_edit_state(container, sid)
     app = MagicMock()
     app.library_state_container = container
     ctx = SessionContext(session_id=sid, app=app)
+    ctx.session = MagicMock()
     return ctx, EditStateCls
 
 
@@ -32,7 +39,7 @@ def test_copy_selection_handler_writes_to_session_context(register_edit_state):
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 
     ctx, EditStateCls = _make_ctx_with_edit_state(register_edit_state)
-    session = MagicMock()
+    session = ctx.session
     session.context = ctx
 
     # Build a fake graph with one node. serialize() must return a real dict:
@@ -72,7 +79,7 @@ def test_paste_clipboard_handler_reads_from_session_context(register_edit_state)
     from haybale_graph_editor.editors.graph_canvas.handlers.selection import SelectionHandlers
 
     ctx, EditStateCls = _make_ctx_with_edit_state(register_edit_state)
-    session = MagicMock()
+    session = ctx.session
     session.context = ctx
 
     editor = MagicMock()

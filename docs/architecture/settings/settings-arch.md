@@ -566,7 +566,7 @@ value, source = registry.resolve('ui.node.bg_color')
 # → ('#ffffff', 'default')
 ```
 
-The framework's built-in `FrameworkSettings` schemas live under `haywire.ui.prefs` (`CanvasSettings`, `EdgeUISettings`, `EditorSettings`), `haywire.core.execution.settings` (`ExecutionSettings`), and `haywire.core.debug.debug_settings` (`DebugSettings`), plus skin/minimap/zoom variants under `haywire.ui.*`. `create_test_settings_registry` accepts a `register_builtins` parameter for opt-out, but at the time of writing the parameter is not yet wired through the function body — pass `predefined_settings` if you need specific keys pre-defined.
+The framework's built-in `FrameworkSettings` schemas sit beside the subsystem each one configures: `haywire.ui.prefs` (`EdgeUISettings`), `haywire.ui.components.graph.settings` (`CanvasSettings`), `haywire.core.execution.settings` (`ExecutionSettings`), `haywire.core.debug.debug_settings` (`DebugSettings`), `haywire.core.undo.settings` (`UndoSettings`), and `haywire.core.tooling.settings` (`ExternalToolsSettings`), plus skin/minimap/zoom variants under `haywire.ui.*`. `create_test_settings_registry` accepts a `register_builtins` parameter for opt-out, but at the time of writing the parameter is not yet wired through the function body — pass `predefined_settings` if you need specific keys pre-defined.
 
 ### 9.2 `create_test_bag(bag_cls=None, predefined_local=None, predefined_global=None)`
 

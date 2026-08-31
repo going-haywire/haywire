@@ -9,7 +9,6 @@ from haywire_studio.security.document import SecurityDocument
 from nicegui import ui, app
 
 # Core imports
-from haywire.core.undo.config import DEVELOPMENT_CONFIG
 from haywire.core.di.config import create_library_system_service
 from haywire.core.di.context import set_workspace_root
 from haywire.core.errors.ledger import get_error_ledger
@@ -170,8 +169,6 @@ class HaywireApp:
 
     def setup_library_system(self):
         """Initialize the library system service (shared across sessions)."""
-        self.undo_config = DEVELOPMENT_CONFIG
-
         library_paths = []
         workspace_libs = os.path.join(self.workspace_root, "barn")
         if os.path.isdir(workspace_libs):

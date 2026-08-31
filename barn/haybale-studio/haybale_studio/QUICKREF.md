@@ -26,7 +26,7 @@
 - `haybale-studio:panel:DebugOverlaySettingsPanel` — Debug Overlay — 
 - `haybale-studio:panel:DebugSettingsPanel` — Log Levels — 
 - `haybale-studio:panel:EdgeUISettingsPanel` — Edges — 
-- `haybale-studio:panel:EditorSettingsPanel` — Editor — 
+- `haybale-studio:panel:EditingSettingsPanel` — Editing — 
 - `haybale-studio:panel:EditorZoomPanSettingsPanel` — Zoom & Pan — 
 - `haybale-studio:panel:ExecutionSettingsPanel` — Execution — 
 - `haybale-studio:panel:LogoutPanel` — Sign out — 

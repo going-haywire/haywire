@@ -1,21 +1,20 @@
 # haywire/ui/prefs/__init__.py
 """
-Framework preference singletons — Settings + field() subclasses for the
-old haybale-studio FrameworkSettings classes.
+Edge-appearance preferences.
 
-All classes configure UI behaviour (canvas, edges, nodes, minimap, editor
-interaction) and are consumed by framework renderers and editors.
+The convention elsewhere is that a ``FrameworkSettings`` schema lives beside
+the subsystem it configures (``core/undo/settings.py``,
+``ui/components/zoom/settings.py``, …). This package is what remains of an
+older catch-all grouping; ``EdgeUISettings`` should move next to the edge
+rendering code, at which point the package goes away.
 
-Registered as DI singletons in HaywireModule.  Panels access them via:
+Panels render these by schema, not by DI lookup:
 
-    instance = context.app.injector.get(ExecutionSettings)
-    render_reactive(instance)
+    render_schema(EdgeUISettings, registry)
 """
 
-from .editor import EditorSettings
 from .edge_ui import EdgeUISettings
 
 __all__ = [
-    "EditorSettings",
     "EdgeUISettings",
 ]

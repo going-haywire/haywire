@@ -4,7 +4,7 @@ Application settings panels, on the ``AppSettings`` surface.
 
 ThemeSettingsPanel    — active workbench theme
 NodeSkinDefaultPanel  — default node skin settings
-EditorSettingsPanel   — undo, auto-save, interaction, clipboard, node creation
+EditingSettingsPanel  — undo history, external editor command
 ActivitySettingsPanel — Farmhand activity tracker: history size, audit log path
 SecurityPanel         — read-only posture report plus the studio port
 """
@@ -21,7 +21,8 @@ from haywire.ui.panel.render_utils import render_schema
 
 from haybale_studio.settings.theme_settings import WorkbenchThemeSettings, NodeThemeSettings
 from haywire.core.skin.settings import NodeDefaultSkinSettings
-from haywire.ui.prefs.editor import EditorSettings
+from haywire.core.tooling.settings import ExternalToolsSettings
+from haywire.core.undo.settings import UndoSettings
 from haywire.core.farmhand.settings import ActivitySettings
 
 from haywire.barn.builtin.surfaces import AppSettings
@@ -77,13 +78,13 @@ class NodeSkinDefaultPanel(BasePanel):
 
 @panel(
     surface=AppSettings,
-    label="Editor",
+    label="Editing",
     icon=hui.icon.edit,
     order=30,
     default_open=False,
 )
-class EditorSettingsPanel(BasePanel):
-    """Undo, auto-save, interaction, clipboard and node-creation behaviour."""
+class EditingSettingsPanel(BasePanel):
+    """Undo history, and the external editor Haywire opens files in."""
 
     def draw(
         self,
@@ -91,7 +92,8 @@ class EditorSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(EditorSettings, registry)
+        render_schema(UndoSettings, registry)
+        render_schema(ExternalToolsSettings, registry)
 
 
 @panel(

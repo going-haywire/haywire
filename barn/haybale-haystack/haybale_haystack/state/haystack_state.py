@@ -216,15 +216,19 @@ class HaystackState(AppState):
         Injects ``LoopScheduler`` so the debounced validation pass — and the
         ``GraphDataMutated`` broadcast it triggers — runs on the NiceGUI main
         thread rather than a background timer thread.
+
+        The editor takes the default ``UndoConfig``, which reads the user's
+        ``UndoSettings.max_actions``. This path used to pass
+        ``DEVELOPMENT_CONFIG`` — every user graph therefore ran with debug
+        logging on and a hardcoded 50-step limit that ignored the setting.
         """
         from haywire.core.graph.base import BaseGraph
         from haywire.core.graph.editor import Editor
-        from haywire.core.undo.config import DEVELOPMENT_CONFIG
         from haybale_studio.loop_scheduler import LoopScheduler
 
         assert self._node_factory is not None, "on_enable must run before _make_graph_and_editor"
         graph = BaseGraph(name, validation_scheduler=LoopScheduler())
-        editor = Editor(graph, self._node_factory, undo_config=DEVELOPMENT_CONFIG)
+        editor = Editor(graph, self._node_factory)
         return graph, editor
 
     # ------------------------------------------------------------------
