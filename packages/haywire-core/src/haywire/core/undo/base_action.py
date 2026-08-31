@@ -90,6 +90,18 @@ class ActionBase(IAction, ABC):
         except Exception as e:
             raise RuntimeError(f"Failed to undo action {self.description}: {e}") from e
 
+    def mark_executed(self) -> None:
+        """
+        Mark this action as already applied, without running it.
+
+        A merged action stands for work its operands have *already* performed
+        on the graph, so it enters history in the executed state: undo must
+        reverse it, and execute() must not re-apply it (for a delta-based move
+        that would double the movement). ``merge()`` implementations call this
+        on the action they return.
+        """
+        self._executed = True
+
     def _execute_impl(self) -> None:
         """
         Implement the actual execution logic.

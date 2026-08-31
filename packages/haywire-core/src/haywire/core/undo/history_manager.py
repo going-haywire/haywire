@@ -104,12 +104,12 @@ class HistoryManager(IHistoryManager):
         # Grouping state
         self._pending_actions: List[IAction] = []
         self._last_fence_time = time.time()
-        self._gesture_in_progress = False
 
-        # Performance tracking
-        self._action_count = 0
-        self._memory_usage = 0
+        # Merge window: the timestamp of the last action added, which is the
+        # candidate the next one may merge into.
         self._last_merge_time: float = 0.0
+
+        self._action_count = 0
 
     def add_action(self, action: IAction) -> None:
         """
@@ -135,7 +135,14 @@ class HistoryManager(IHistoryManager):
         # Try to merge with the last action if merging is enabled
         if self.config.enable_action_merging and self._should_merge_action(action, current_time):
             self._merge_with_last_action(action)
+            self._maintain_history_limits()
+            self._action_count += 1
             return
+
+        # Every action is a merge candidate for the next one, so the window is
+        # measured from the last action added — not only from the last actual
+        # merge, which left the timestamp at 0.0 and made merging unreachable.
+        self._last_merge_time = current_time
 
         # Add to pending actions for grouping
         self._pending_actions.append(action)
@@ -156,7 +163,6 @@ class HistoryManager(IHistoryManager):
 
         # Update tracking
         self._action_count += 1
-        self._last_action_time = current_time
 
         if self.config.enable_debug_logging:
             logger.debug(f"Added action: {action.description}")
@@ -180,6 +186,10 @@ class HistoryManager(IHistoryManager):
         fence = Fence(timestamp=current_time)
         self.history.append(fence)
         self._last_fence_time = current_time
+
+        # Fences are appended directly, bypassing add_action's maintenance, so
+        # collapse consecutive ones here or empty gestures grow history forever.
+        self._trim_trailing_fences()
 
         if self.config.enable_debug_logging:
             logger.debug("Added fence")
@@ -285,7 +295,6 @@ class HistoryManager(IHistoryManager):
         self.current_index = -1
         self._pending_actions.clear()
         self._action_count = 0
-        self._memory_usage = 0
 
         if self.config.enable_debug_logging:
             logger.debug("Cleared all history")
@@ -306,8 +315,14 @@ class HistoryManager(IHistoryManager):
     # Private helper methods
 
     def _should_merge_action(self, action: IAction, current_time: float) -> bool:
-        """Check if the action should be merged with the last action."""
-        if not self.history or not self._pending_actions:
+        """Check if the action should be merged with the last action.
+
+        Only ``_pending_actions`` matters: merging rewrites the pending tail,
+        so an empty ``history`` (nothing flushed yet) is no obstacle. Requiring
+        a non-empty ``history`` here used to block merging for the whole first
+        group of a session.
+        """
+        if not self._pending_actions:
             return False
 
         last_action = self._pending_actions[-1]
@@ -323,13 +338,21 @@ class HistoryManager(IHistoryManager):
         return last_action.can_merge(action)
 
     def _merge_with_last_action(self, action: IAction) -> None:
-        """Merge the action with the last action."""
+        """Merge the action with the last action.
+
+        Both operands are superseded by the merged action and can never be
+        undone or redone again, so each is cleaned up — the same contract
+        eviction and redo-branch discard honour.
+        """
         if self._pending_actions:
             last_action = self._pending_actions[-1]
             merged_action = last_action.merge(action)
             if merged_action:
                 self._pending_actions[-1] = merged_action
                 self._last_merge_time = time.time()
+
+                last_action.cleanup()
+                action.cleanup()
 
                 if self.config.enable_debug_logging:
                     logger.debug(f"Merged actions: {action.description}")
@@ -426,17 +449,56 @@ class HistoryManager(IHistoryManager):
             return item.description
 
     def _maintain_history_limits(self) -> None:
-        """Maintain history within configured limits."""
-        # Remove old items if we exceed the action limit
-        if len(self.history) > self.config.max_actions:
-            items_to_remove = len(self.history) - self.config.max_actions
+        """Maintain history within configured limits.
 
-            # Cleanup items that will be removed
-            for item in self.history[:items_to_remove]:
-                self._cleanup_item(item)
+        ``max_actions`` caps *undoable* items. Fences are boundaries, not
+        actions, so they are not counted — a canvas drag emits two per gesture
+        and counting them evicted real undo steps well before the user's limit.
+        Fences leading the trimmed history are dropped too, since a fence with
+        nothing before it groups nothing.
+        """
+        action_count = sum(1 for item in self.history if not isinstance(item, Fence))
+        if action_count <= self.config.max_actions:
+            return
 
-            self.history = self.history[items_to_remove:]
-            self.current_index = max(-1, self.current_index - items_to_remove)
+        excess = action_count - self.config.max_actions
+
+        # Walk forward until `excess` actions have been passed; everything up
+        # to that point (actions and the fences among them) is discarded.
+        items_to_remove = 0
+        seen = 0
+        for index, item in enumerate(self.history):
+            if not isinstance(item, Fence):
+                seen += 1
+                if seen == excess:
+                    items_to_remove = index + 1
+                    break
+
+        # Also drop fences now stranded at the head of the history.
+        while items_to_remove < len(self.history) and isinstance(self.history[items_to_remove], Fence):
+            items_to_remove += 1
+
+        for item in self.history[:items_to_remove]:
+            self._cleanup_item(item)
+
+        self.history = self.history[items_to_remove:]
+        self.current_index = max(-1, self.current_index - items_to_remove)
+
+    def _trim_trailing_fences(self) -> None:
+        """Collapse repeated fences at the tail of the history.
+
+        Gestures that produce no action (a click that starts and ends a drag)
+        still bracket themselves with fences. Without this they accumulate
+        unboundedly, since fences do not count towards ``max_actions``.
+        """
+        while (
+            len(self.history) >= 2
+            and isinstance(self.history[-1], Fence)
+            and isinstance(self.history[-2], Fence)
+        ):
+            self.history.pop()
+            if self.current_index >= len(self.history):
+                self.current_index = len(self.history) - 1
 
     def _show_notification(self, message: str) -> None:
         """Show a notification message (placeholder for UI integration)."""
@@ -479,5 +541,4 @@ class HistoryManager(IHistoryManager):
             "pending_actions": len(self._pending_actions),
             "can_undo": self.can_undo(),
             "can_redo": self.can_redo(),
-            "memory_usage": self._memory_usage,
         }

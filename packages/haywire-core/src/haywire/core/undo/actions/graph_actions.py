@@ -251,6 +251,11 @@ class MoveNodesAction(ActionBase):
             description = f"Move {node_count} nodes"
 
         merged = MoveNodesAction(self.graph, self.nodes, combined_deltaX, combined_deltaY, description)
+        # Both operands have already moved the nodes, and the combined delta
+        # covers both. The merged action therefore enters history as already
+        # executed: undoing it subtracts the full delta, and it must never be
+        # re-executed on top of the movement that is already on the canvas.
+        merged.mark_executed()
 
         return merged
 

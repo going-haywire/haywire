@@ -67,5 +67,4 @@ class NoOpHistoryManager(IHistoryManager):
             "pending_actions": 0,
             "can_undo": False,
             "can_redo": False,
-            "memory_usage": 0,
         }
