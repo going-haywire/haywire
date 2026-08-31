@@ -13,7 +13,7 @@ get: any of summary, node_id, ports, settings, props, state (required, non-empty
   node_id: node_id + registry_key
   ports: ports grouped as inlets/outlets/configs
   settings: author-declared settings bags, nested {bag: {category: [rows]}} at data='info' and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit
-  props: framework properties (position, size, muted, skin) — never mixed into settings
+  props: framework properties (position, size, locked, skin) — never mixed into settings
   state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; read this after editing a node's source to learn WHICH stage failed
 data: one of info, value, all (default info) — how much per row
   info: what it IS — label, description, category/data_type. NO values. Start here.

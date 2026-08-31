@@ -102,7 +102,7 @@ def test_inherited_props_bag_is_not_stamped_with_first_node_name():
 
     for cls in (TestPrintNode, RerouteNode):
         bag_cls = cls._settings_bags["props"]
-        for field in ("skin", "muted"):
+        for field in ("skin", "locked"):
             # getattr, not __dict__: both fields are declared on the
             # NodeProperties base, and class-level access on a descriptor
             # returns the descriptor itself.

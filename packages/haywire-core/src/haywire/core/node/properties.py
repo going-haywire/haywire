@@ -5,7 +5,7 @@ NodeInstanceSettings — per-node-instance observable props.
 Migrated from NodeSettings + setting() to Settings + setting().
 No longer part of the Settings resolution chain.
 
-Access via:  node.props.muted,  node.props.collapsed, ...
+Access via:  node.props.locked,  node.props.collapsed, ...
 Serialized under the 'props' key in graph JSON.
 """
 
@@ -25,15 +25,14 @@ class NodeProperties(NodeSettings):
     """
     Framework-provided props available on every node instance.
 
-    Accessed as ``node.props`` (e.g. ``self.props.muted``).
+    Accessed as ``node.props`` (e.g. ``self.props.locked``).
     Serialized under ``'props'`` key in the graph JSON.
     """
 
     REDRAW_FIELDS: tuple[str, ...] = (
-        "muted",
         "collapsed",
         "detail",
-        "pinned",
+        "locked",
         "skin",
         "layout_direction",
         "comment",
@@ -100,13 +99,6 @@ class NodeProperties(NodeSettings):
     # Visual state
     # -----------------------------------------------------------------
 
-    muted = setting[BOOL](
-        False,
-        label="Muted",
-        order=10,
-        category="state",
-        description="Mark this node as muted (execution skipping not yet implemented)",
-    )
     collapsed = graph(
         src=GraphProperties.collapsed,
         label="Collapsed",
@@ -118,12 +110,16 @@ class NodeProperties(NodeSettings):
     # skin the whole time. It named a middle density between collapsed and
     # full, which is now `detail` — resolved through three tiers instead of
     # being a per-node bool nobody wired. See ADR 0032.
-    pinned = setting[BOOL](
+    #
+    # NOT YET ENFORCED — the field stores and serializes, nothing reads it.
+    # Enforcement belongs in GraphEditor (move/remove), not at each call site,
+    # so canvas drags and Farmhand tools are covered by the same check.
+    locked = setting[BOOL](
         False,
-        label="Pinned",
+        label="Locked",
         order=40,
         category="state",
-        description="Prevent auto-layout from moving this node",
+        description="Protect this node from being moved or deleted by accident (not yet enforced)",
     )
 
     # -----------------------------------------------------------------

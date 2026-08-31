@@ -9,4 +9,4 @@
 
 ## Notes
 
-Displays per-instance node settings (muted, collapsed, pinned, etc.).
+Displays per-instance node settings (collapsed, locked, skin, etc.).

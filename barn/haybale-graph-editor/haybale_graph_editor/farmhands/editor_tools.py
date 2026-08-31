@@ -596,7 +596,7 @@ _DIRECTIONS = ("inlet", "outlet", "config")
     "  ports: ports grouped as inlets/outlets/configs\n"
     "  settings: author-declared settings bags, nested {bag: {category: [rows]}} at data='info' "
     "and {bag: [rows]} deeper — never a flat list, so bag identity is always explicit\n"
-    "  props: framework properties (position, size, muted, skin) — never mixed into settings\n"
+    "  props: framework properties (position, size, locked, skin) — never mixed into settings\n"
     "  state: is_valid + per-stage lifecycle booleans + errors [{stage, message}] + warnings; "
     "read this after editing a node's source to learn WHICH stage failed\n"
     f"data: one of {', '.join(_DATA_LEVELS)} (default info) — how much per row\n"

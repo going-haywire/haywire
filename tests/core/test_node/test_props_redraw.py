@@ -50,10 +50,6 @@ class TestRedrawFieldsSchema:
             assert name in fields, f"'{name}' is gone — update STYLE_WRITE_FIELDS"
             assert name not in NodeProperties.REDRAW_FIELDS
 
-    def test_muted_description_does_not_promise_execution_skipping(self):
-        desc = NodeProperties._property_settings()["muted"]
-        assert "not yet implemented" in (desc._description or "")
-
 
 @pytest.mark.integration
 class TestPropsChangeTriggersRedraw:
@@ -74,12 +70,11 @@ class TestPropsChangeTriggersRedraw:
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
         values = {
-            "muted": True,
             "collapsed": True,
             # Must differ from the resolved value or __set__ short-circuits on
             # equality and no redraw fires — detail defaults to FULL.
             "detail": "compact",
-            "pinned": True,
+            "locked": True,
             "skin": "some:skin:key",
             "layout_direction": "t2b",
             "comment": "hello",
@@ -151,7 +146,7 @@ class TestPropsChangeTriggersRedraw:
 
         results: List[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
-        wrapper.node.props.pinned = True
+        wrapper.node.props.locked = True
 
         assert len(_redraw_results(results, wrapper.node_id)) == 1, (
             "one props change after a rebuild must produce exactly one redraw mark"
@@ -168,7 +163,7 @@ class TestPropsChangeTriggersRedraw:
 
         results: List[ValidationResult] = []
         graph_obj.subscribe_to_validation(results.append)
-        wrapper.node.props.muted = True
+        wrapper.node.props.locked = True
 
         assert len(_redraw_results(results, wrapper.node_id)) == 1, (
             "duplicate subscription would produce two redraw marks for one change"

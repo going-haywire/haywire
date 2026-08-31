@@ -186,3 +186,26 @@ collapsed group renders an ordinary pin. Corrected, along with new entries for
 **Node collapse**, **Group collapse**, **NodeDetail**, **Node visibility** and
 **LOD** — the last three of which exist to stop "detail" and "LOD" being used
 for each other.
+
+## Superseded in part (2026-08-31): `muted` removed, `pinned` renamed `locked`
+
+Decision 10 above kept two flags — "`muted` and `pinned` stay: they are state,
+not density." That reasoning was right about the *category* and wrong about the
+*fields*: being state is what spared them from this ADR's density cleanup, but
+neither ever grew a reader, so both sat in the panel promising behaviour the
+engine has not got.
+
+- **`muted` is deleted.** It advertised execution skipping, which is a VM-level
+  feature nobody has scoped. A checkbox that does nothing is worse than an
+  absent one, so it goes rather than waits.
+- **`pinned` becomes `locked`.** The old name and description scoped it to
+  "prevent auto-layout from moving this node" — a layout pass that does not
+  exist. `locked` is the promise actually wanted: no accidental move, no
+  accidental delete. Enforcement lands separately, in `GraphEditor`, so the
+  invariant holds for canvas drags and Farmhand tools alike rather than
+  depending on each caller remembering to check.
+
+No migration either way: `Settings.from_dict` skips unknown value keys, so a
+saved graph carrying `props.muted` or `props.pinned` drops the key silently and
+`locked` starts at its default — the same mechanism decision 10's five retired
+flags relied on.

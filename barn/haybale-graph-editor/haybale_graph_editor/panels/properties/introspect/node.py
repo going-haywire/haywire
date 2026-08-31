@@ -64,7 +64,7 @@ class NodeInfoPanel(BasePanel):
     default_open=True,
 )
 class NodePropertiesPanel(BasePanel):
-    """Displays per-instance node settings (muted, collapsed, pinned, etc.)."""
+    """Displays per-instance node settings (collapsed, locked, skin, etc.)."""
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

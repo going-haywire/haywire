@@ -42,7 +42,7 @@ class BaseNode(NodeData):
     else:
 
         class props(NodeProperties):
-            """Per-instance observable props (muted, collapsed, skin, position, …).
+            """Per-instance observable props (collapsed, locked, skin, position, …).
 
             Inner-class form is the schema declaration discovered by the @node
             decorator's _wire_settings_schemas. At construction time NodeData.__init__
