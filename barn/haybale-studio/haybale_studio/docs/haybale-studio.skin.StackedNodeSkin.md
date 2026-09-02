@@ -20,5 +20,5 @@ Features:
   strips on the card's top/bottom edges, leaving only configs in the body
 - Collapsible groups with visual hierarchy — horizontal layouts only
 - Header pins for ports a collapsed group hides but an edge still needs
-- Node collapse and NodeDetail honoured through ``show_of`` (ADR 0032)
+- Node collapse honoured through ``is_collapsed`` (ADR 0032)
 - Automatic port ordering

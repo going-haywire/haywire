@@ -92,61 +92,12 @@ class BaseWidget(IWidget, ABC):
     def on_model_changed(self, value: Any) -> None:
         """Override for custom model→view sync. Default drives bind()-ings.
 
-        Skipped entirely when this widget is CSS-hidden by NodeDetail
-        (2026-09): the DOM element exists but a hidden widget receiving no
-        value updates keeps "a low rank costs ~nothing" true for server
-        traffic, not just element count. A widget with no NodeDetail context
-        (built outside a node card) always dispatches — see
-        :meth:`_is_detail_hidden`.
-
         Subclasses that override should call ``super().on_model_changed(value)``
         to keep their bind()-registered elements live, or omit the super() call
         to take full ownership of sync.
         """
-        if self._is_detail_hidden():
-            return
         for binding in self._bindings:
             binding.sync_to_view()
-
-    def _is_detail_hidden(self) -> bool:
-        """True when NodeDetail's resolved rank excludes this widget.
-
-        Deliberately does NOT consult ``collapsed``: a folded card is still a
-        CONSTRUCTION gate (unchanged by the 2026-09 CSS-filter redesign), so a
-        widget on a collapsed card is never built and this method never runs
-        against one — there is no live ``BaseWidget`` instance to ask. Only
-        ``detail`` needs checking here.
-
-        Reads ``props.detail`` directly rather than going through
-        ``resolve_node_visibility()``/``NodeVisibility``: that helper's
-        try/except degrade-on-explode posture and its other three properties
-        (``pins_all``/``label``/``diagnostics``) exist for the RENDER path,
-        where a card must never fail to build. This runs on every dispatched
-        value change instead — a much hotter path — and a widget reaching this
-        point already proves construction succeeded, so the extra safety net
-        and unused properties are pure overhead here.
-
-        Defaults to False (always dispatch) when there is no NodeDetail
-        context to consult — degrading toward MORE traffic, not less, matches
-        NodeVisibility's own degrade-upward posture (a widget that silently
-        stops updating looks broken; one that updates while hidden is only a
-        performance cost).
-
-        ``self.port`` is typed as ``WidgetModel`` (a Protocol with no notion of
-        an owning node), but the concrete ``DataPort`` a real widget is built
-        against carries a private ``_wrapper`` back-reference to its
-        ``NodeWrapper``. Reached defensively via ``getattr`` rather than a cast:
-        a widget built against a bare stand-in port (benchmarks, unit tests, a
-        future non-node ``WidgetModel``) has no such attribute and must dispatch
-        normally, not raise.
-        """
-        wrapper = getattr(self.port, "_wrapper", None)
-        if wrapper is None:
-            return False
-
-        from haywire.core.types import NodeDetail
-
-        return not NodeDetail.coerce(wrapper.node.props.detail).includes(NodeDetail.WIDGETS)
 
     # ---- SUGAR ----------------------------------------------------------
     def bind(

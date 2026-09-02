@@ -8,7 +8,6 @@ from haywire.core.node.node_wrapper import NodeWrapper
 
 from haywire.ui.skin.base import BaseSkin
 from haywire.ui.skin.pin_render import render_pin, add_pin_tooltip, resolve_layout_direction
-from haywire.ui.skin.visibility import NodeVisibility, resolve_node_visibility
 from haywire.ui import elements as hui
 from haywire.ui.utils import generate_pin_uuid
 
@@ -83,14 +82,23 @@ class NodeSkin(BaseSkin, ABC):
         """
         return resolve_layout_direction(wrapper)
 
-    def show_of(self, wrapper: NodeWrapper) -> NodeVisibility:
-        """What this node's card draws — collapse and detail together.
+    def is_collapsed(self, wrapper: NodeWrapper) -> bool:
+        """Whether THIS node's card is folded (ADR 0032, Node collapse).
 
-        Ask the returned object rather than comparing ranks yourself, so
-        re-tiering does not touch this skin (ADR 0032). Never cache it on
-        ``self``, as with :meth:`layout_of`.
+        Reads ``node.props.collapsed``, whose mirror already resolves the
+        graph < node chain. Degrades to unfolded rather than raising — this
+        runs on the render path and must never take a node card down.
+
+        Overridable so a skin can opt out of folding entirely (see
+        ``ErrorNodeSkin.is_collapsed``) without duplicating the render
+        branch that reads it. Never cache the result on ``self``, as with
+        :meth:`layout_of`: ``SkinFactory`` shares ONE skin instance across
+        every node in every open graph.
         """
-        return resolve_node_visibility(wrapper)
+        try:
+            return bool(wrapper.node.props.collapsed)
+        except Exception:
+            return False
 
     def card_classes(self, wrapper: NodeWrapper) -> str:
         """Extra classes this skin's card carries — override to add a skin token.
@@ -183,7 +191,6 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        show: NodeVisibility,
     ):
         """A folded card: the header row, and nothing else.
 
@@ -191,8 +198,8 @@ class NodeSkin(BaseSkin, ABC):
         about. A skin still owns its chrome via ``card_classes`` and
         :meth:`_render_title`.
 
-        ``show.ports`` returns only LINKED ports, so a 23-port node with two
-        edges folds to two pins. That drop, not the missing labels, is the
+        ``get_folded_ports`` returns only LINKED ports, so a 23-port node with
+        two edges folds to two pins. That drop, not the missing labels, is the
         element-count win (ADR 0032). Group collapse is deliberately ignored: a
         port inside a folded group still needs a pin for its edge to land on.
 
@@ -209,7 +216,7 @@ class NodeSkin(BaseSkin, ABC):
         with main_card:
             self._render_diagnostics_badge(wrapper)
 
-            linked = show.ports(node)
+            linked = node.get_folded_ports()
             with self.header_row():
                 self._render_root_ghost_pins(wrapper, fold_layout)
                 self._render_pin_column([p for p in linked if p.is_inlet()], wrapper, fold_layout)
@@ -221,8 +228,9 @@ class NodeSkin(BaseSkin, ABC):
 
         Never gated by detail, menu included: a node hiding the fact that it is
         broken is worse than a slow one. The menu body only costs elements on
-        nodes that actually have diagnostics. ``show.diagnostics`` gates the
-        inline notice instead (:meth:`_render_alternates_notice`).
+        nodes that actually have diagnostics. The separate inline notice
+        (:meth:`_render_alternates_notice`) is what canvas.vue's
+        ``.hw-detail-diagnostic`` CSS rule hides below FULL.
 
         Returns the runtime errors so a caller can decide about that notice
         without re-reading node state.
@@ -245,7 +253,6 @@ class NodeSkin(BaseSkin, ABC):
         self,
         wrapper: NodeWrapper,
         runtime_errors: List["HaywireException"],
-        show: NodeVisibility,
     ):
         """The inline "Alternate versions available" line — FULL only.
 
@@ -253,10 +260,12 @@ class NodeSkin(BaseSkin, ABC):
         badge's menu body is already behind a click.
 
         Always BUILT when there is something to say (2026-09 CSS-filter
-        redesign); ``show.diagnostics`` only decides the ``.hw-detail-diagnostic``
-        class, hidden below FULL by canvas.vue's ``[data-node-props-detail]``
-        rule. ``runtime_errors`` and ``wrapper._alternate_registry_keys`` are
-        real absence, not a rank gate, so they still guard construction.
+        redesign). The ``.hw-detail-diagnostic`` class is unconditional;
+        canvas.vue's ``[data-node-props-detail]`` rule hides it below FULL
+        from the DOM attribute directly, so nothing needs consulting here any
+        more to decide the class. ``runtime_errors`` and
+        ``wrapper._alternate_registry_keys`` are real absence, not a rank
+        gate, so they still guard construction.
         """
         if runtime_errors and wrapper._alternate_registry_keys:
             classes = "text-sm hw-text-warning mb-2 hw-detail-diagnostic"
@@ -270,7 +279,6 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         widget_classes: str = "",
         layout: LayoutDirection | None = None,
-        show: NodeVisibility | None = None,
     ):
         """Render a port according to its port type.
 
@@ -278,13 +286,12 @@ class NodeSkin(BaseSkin, ABC):
         :meth:`render_pin_strip`, which has no room for the label/widget column
         this builds. Config ports are pinless and render the same either way.
 
-        ``layout`` and ``show`` resolve from the wrapper when omitted; pass
-        them when rendering many ports so the chain resolves once per card.
+        ``layout`` resolves from the wrapper when omitted; pass it when
+        rendering many ports so the chain resolves once per card.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
-        show = self.show_of(wrapper) if show is None else show
         if port.is_config():
-            self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2", show=show)
+            self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
         elif port.is_inlet() or port.is_outlet():
             self._render_port_horizontal(
                 port,
@@ -292,7 +299,6 @@ class NodeSkin(BaseSkin, ABC):
                 side=layout.side_for(port),
                 layout=layout,
                 widget_classes="widget-container zoom-pan-lod2",
-                show=show,
             )
 
     def _render_port_horizontal(
@@ -303,7 +309,6 @@ class NodeSkin(BaseSkin, ABC):
         side: str,
         layout: LayoutDirection,
         widget_classes: str = "",
-        show: NodeVisibility | None = None,
     ):
         """Render a port as `pin column | content`, or the mirror of it.
 
@@ -311,14 +316,12 @@ class NodeSkin(BaseSkin, ABC):
         margin gets the tight ``CONTENT_GAP``, so the content inset matches
         either way. ``overflow: visible`` lets the pin straddle the card edge.
 
-        The label and widget are always BUILT now (2026-09 CSS-filter
-        redesign) — ``show.label``/``show.widget`` only decide their
-        ``.hw-detail-*`` class, hidden below LABELS/WIDGETS respectively by
-        canvas.vue. Below LABELS the label is CSS-hidden, so the tooltip moves
-        to the content column — otherwise identifying a widget means hovering
-        the 20px pin beside it.
+        The label and widget are always BUILT and unconditionally carry their
+        ``.hw-detail-*`` class (2026-09 CSS-filter redesign) — canvas.vue's
+        ``[data-node-props-detail]`` rule does the rank-based hiding from the
+        DOM attribute directly, so nothing here needs to consult anything to
+        decide what to build or which class to add.
         """
-        show = self.show_of(wrapper) if show is None else show
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
         pin_first = side == "left"
         columns = f"{g}px 1fr" if pin_first else f"1fr {g}px"
@@ -357,8 +360,7 @@ class NodeSkin(BaseSkin, ABC):
                 if port.widget_key is not None and port.should_show_widget():
                     self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
 
-            if not show.label:
-                add_pin_tooltip(content, port)
+            add_pin_tooltip(content, port)
 
             if not pin_first:
                 self._render_pin(
@@ -428,10 +430,8 @@ class NodeSkin(BaseSkin, ABC):
         port,
         wrapper: NodeWrapper,
         widget_classes: str = "",
-        show: NodeVisibility | None = None,
     ):
         """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
-        show = self.show_of(wrapper) if show is None else show
         indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
         with (
             ui.element("div")
@@ -487,10 +487,9 @@ class NodeSkin(BaseSkin, ABC):
             # the tooltip carries the whole identification burden.
             add_pin_tooltip(pin_el, pin)
             # PINS is the floor: linked ports only. An unlinked pin is always
-            # BUILT (show.ports() does not filter it out unfolded — see
-            # NodeVisibility.ports()) but carries this class so canvas.vue's
-            # [data-node-props-detail="pins"] rule hides it, matching
-            # PINS_ALL and above.
+            # BUILT (get_visible_ports() does not filter it out unfolded) but
+            # carries this class so canvas.vue's [data-node-props-detail="pins"]
+            # rule hides it, matching PINS_ALL and above.
             if not pin.is_linked():
                 pin_el.classes("hw-detail-pins_all")
 

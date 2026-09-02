@@ -253,21 +253,35 @@ constructed WIDGETS-equivalent (see `.scratch/pan-perf/RESULTS.md` and
   (`PINS`/`PINS_ALL`/`WIDGETS`/`LABELS`/`FULL`) — a floor step for "unlinked
   pins" is now distinct from "linked pins only", where the old COMPACT
   conflated them.
-- Every element a rank could exclude is now always built. What a skin adds is
-  a `.hw-detail-*` class (`haywire/ui/skin/visibility.py`'s `pins_all`/
-  `widget`/`label`/`diagnostics` properties), matched by
-  `[data-node-props-detail]` rules in `canvas.vue` — the SAME mechanism
-  `locked` already used for its own attribute, and the same TECHNIQUE
-  (attribute-selector + `display:none`) the zoom-driven LOD system uses,
-  though the two remain conceptually separate (ADR 0006).
+- Every element a rank could exclude is now always built, and unconditionally
+  carries its `.hw-detail-*` class — a plain string literal at each skin
+  `_render_*` call site, matched by `[data-node-props-detail]` rules in
+  `canvas.vue` — the SAME mechanism `locked` already used for its own
+  attribute, and the same TECHNIQUE (attribute-selector + `display:none`) the
+  zoom-driven LOD system uses, though the two remain conceptually separate
+  (ADR 0006).
 - `detail` left `NodeProperties.REDRAW_FIELDS`; `collapsed` did not. **Node
   collapse is unaffected by this supersession** — it stays a real
   construction gate, exactly as decision 3 originally specified, because
   nothing in the pan measurement touched it.
-- A CSS-hidden widget's model→view push traffic is now explicitly suppressed
-  (`BaseWidget._is_detail_hidden`), closing the gap a pure CSS-filter would
-  otherwise open: "hidden but built" must not mean "hidden but still costing
-  server round-trips every frame".
+
+**Correction (2026-09-02, same day): `NodeVisibility` does not carry the
+rank.** The first cut of this redesign gave `NodeVisibility` a `detail`
+field and four rank-derived properties (`pins_all`/`widget`/`label`/
+`diagnostics`) that a skin was meant to consult to decide which
+`.hw-detail-*` class to add. In practice every skin call site ended up
+writing the class **unconditionally** — there was no per-rank branching left
+to do once "hide it" moved entirely into CSS — which left those four
+properties, and the `detail` field itself, with no reader anywhere but their
+own tests. `NodeVisibility` was cut back to just `collapsed: bool` and
+`ports()`, the two things still genuinely construction-time decisions.
+`UINode._apply_detail_attr` already read `props.detail` directly (not
+through `NodeVisibility`) to stamp the DOM attribute, so nothing downstream
+of the CSS rule needed the deleted properties either. A `BaseWidget.
+_is_detail_hidden` model→view dispatch suppression was tried in the same
+pass and dropped for the same reason plus its own: the settings-chain
+resolution it required cost more per dispatched value change than the
+traffic it saved, on the hot path rather than the render path.
 
 **Breaking change, no migration.** Old saved-graph values `"compact"`/
 `"standard"` are unrecognised strings under the new enum and degrade to

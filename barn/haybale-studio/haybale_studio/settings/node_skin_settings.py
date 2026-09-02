@@ -23,7 +23,8 @@ class NodeSkinSettings(LibrarySettings):
 
     **What is deliberately NOT here.** Element visibility left this bag in
     ADR 0032: it is per node and per graph, not one studio-wide switch, and it
-    now resolves through ``NodeDetail`` (see ``haywire.ui.skin.visibility``).
+    now resolves through ``NodeDetail`` (``haywire.core.types.NodeDetail``,
+    a CSS filter since 2026-09 — see ADR 0032's "Superseded" section).
     ``show_labels`` became the FULL rank; ``show_tooltips`` was deleted
     outright, because lazy tooltips had already removed its performance
     rationale and — with labels at FULL — a tooltip is the only thing

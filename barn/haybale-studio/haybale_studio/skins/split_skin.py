@@ -12,7 +12,6 @@ from haywire.core.node.base import BaseNode
 
 from haywire.core.types.enums import LayoutDirection
 from haywire.ui.skin.decorator import skin
-from haywire.ui.skin.visibility import NodeVisibility
 
 from .node_skin import NodeSkin
 
@@ -54,7 +53,6 @@ class SplitNodeSkin(NodeSkin):
     def render(self, main_card: ui.card, wrapper: NodeWrapper):
         node: BaseNode = wrapper.node
         layout = self.layout_of(wrapper)
-        show = self.show_of(wrapper)
 
         padding = self.CARD_H_PADDING
         # Pure var() consumption, same as the stacked skin: the look belongs to
@@ -76,15 +74,15 @@ class SplitNodeSkin(NodeSkin):
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
 
-        if show.collapsed:
+        if self.is_collapsed(wrapper):
             # Folded, this card is the shared header row — see NodeSkin. The
             # two bands have nothing to say about a single row, so there is no
             # split-specific fold path.
-            self._render_collapsed(main_card, node, wrapper, layout, card_style, show)
+            self._render_collapsed(main_card, node, wrapper, layout, card_style)
         elif layout.is_vertical:
-            self._render_vertical(main_card, node, wrapper, layout, card_style, show)
+            self._render_vertical(main_card, node, wrapper, layout, card_style)
         else:
-            self._render_horizontal(main_card, node, wrapper, layout, card_style, show)
+            self._render_horizontal(main_card, node, wrapper, layout, card_style)
 
     def _render_vertical(
         self,
@@ -93,7 +91,6 @@ class SplitNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        show: NodeVisibility,
     ):
         """Vertical layouts (T2B / B2T): inlets/outlets become pin strips on
         the card's top/bottom edges; only configs stay in the body.
@@ -112,7 +109,7 @@ class SplitNodeSkin(NodeSkin):
         with main_card:
             runtime_errors = self._render_diagnostics_badge(wrapper)
 
-            ports = show.ports(node)
+            ports = node.get_visible_ports()
             configs = [port for port in ports if port.is_config()]
             inlets = [port for port in ports if port.is_inlet()]
             outlets = [port for port in ports if port.is_outlet()]
@@ -126,9 +123,9 @@ class SplitNodeSkin(NodeSkin):
 
             with ui.row().classes("drag-handle w-full items-center gap-2"):
                 self._render_title(node)
-                self._render_alternates_notice(wrapper, runtime_errors, show)
+                self._render_alternates_notice(wrapper, runtime_errors)
 
-            self._render_config_band(configs, wrapper, layout, show)
+            self._render_config_band(configs, wrapper, layout)
 
             self.render_pin_strip(outlets if top_first else inlets, wrapper, layout)
 
@@ -139,7 +136,6 @@ class SplitNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        show: NodeVisibility,
     ):
         """Horizontal layouts (L2R / R2L): configs span the top, inlets and
         outlets sit side by side beneath.
@@ -151,7 +147,7 @@ class SplitNodeSkin(NodeSkin):
         with main_card:
             runtime_errors = self._render_diagnostics_badge(wrapper)
 
-            ports = show.ports(node)
+            ports = node.get_visible_ports()
             configs = [port for port in ports if port.is_config()]
             inlets = [port for port in ports if port.is_inlet()]
             outlets = [port for port in ports if port.is_outlet()]
@@ -172,9 +168,9 @@ class SplitNodeSkin(NodeSkin):
 
                 self._render_pin_column(node.get_hidden_connected_ports(is_inlet=False), wrapper, layout)
 
-                self._render_alternates_notice(wrapper, runtime_errors, show)
+                self._render_alternates_notice(wrapper, runtime_errors)
 
-            self._render_config_band(configs, wrapper, layout, show)
+            self._render_config_band(configs, wrapper, layout)
 
             # Inlets and outlets side by side beneath. An empty column is
             # omitted rather than rendered blank, so an outlet-only node keeps
@@ -198,28 +194,27 @@ class SplitNodeSkin(NodeSkin):
                         with ui.column().classes("flex-1 gap-1 min-w-0"):
                             ui.label(heading).classes("font-bold text-sm hw-detail-label")
                             for port in group:
-                                self.render_port(port, wrapper, layout=layout, show=show)
+                                self.render_port(port, wrapper, layout=layout)
 
     def _render_config_band(
         self,
         configs,
         wrapper: NodeWrapper,
         layout: LayoutDirection,
-        show: NodeVisibility,
     ):
         """Configs, spanning the whole card.
 
         ``_render_config`` already lays each row out at `width: 100%`, so the
         band takes whatever width the card has.
 
-        The band's own heading follows `show.label` like any other label: a
-        skin's chrome is not exempt from the rank it was handed, and below
-        LABELS a heading over unlabelled rows names nothing. Always BUILT now
-        (2026-09 CSS-filter redesign) — the class is what CSS-hides it.
+        The band's own heading is always BUILT and unconditionally carries
+        ``hw-detail-label`` (2026-09 CSS-filter redesign) — canvas.vue's
+        ``[data-node-props-detail]`` rule hides it below LABELS from the DOM
+        attribute directly, so nothing needs consulting here.
         """
         if not configs:
             return
         with ui.column().classes("w-full gap-1"):
             ui.label("Config").classes("font-bold text-sm hw-detail-label")
             for port in configs:
-                self.render_port(port, wrapper, layout=layout, show=show)
+                self.render_port(port, wrapper, layout=layout)

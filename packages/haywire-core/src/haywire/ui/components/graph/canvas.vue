@@ -3566,7 +3566,7 @@ path.connection-warning {
  * attribute — data-node-props-detail, by UINode._apply_detail_attr — and CSS
  * hides whatever the rank excludes via descendant combinators. Every element
  * below is ALWAYS BUILT; nothing here is a construction gate. See
- * haywire/ui/skin/visibility.py for the rank -> class mapping this mirrors.
+ * node_skin.py's `_render_*` methods for where each class is written.
  *
  * Ranks, low to high: pins < pins_all < widgets < labels < full. Each rule
  * below hides what a rank does NOT yet include — so `pins` (the floor) hides
@@ -3574,7 +3574,15 @@ path.connection-warning {
  *
  * `display: none`, matching pan.vue's LOD rules and the perf/detail-via-css
  * probe: takes the elements out of layout and paint, not just opacity, which
- * is what the pan-performance measurement (decision A) actually tested. */
+ * is what the pan-performance measurement (decision A) actually tested.
+ *
+ * `!important` is required, not decorative: `.hw-detail-pins_all` lands on
+ * the same `ui.icon` element as `.connection-pin`, whose own block above sets
+ * `display: inline-flex !important` for hover/z-index reasons unrelated to
+ * NodeDetail. A plain `display: none` here loses to that regardless of
+ * selector specificity — !important always wins over non-!important — so an
+ * unlinked pin kept rendering at PINS with no error and no visible sign the
+ * rule had even matched. */
 [data-node-props-detail="pins"] .hw-detail-pins_all,
 [data-node-props-detail="pins"] .hw-detail-widget,
 [data-node-props-detail="pins"] .hw-detail-label,
@@ -3585,7 +3593,7 @@ path.connection-warning {
 [data-node-props-detail="widgets"] .hw-detail-label,
 [data-node-props-detail="widgets"] .hw-detail-diagnostic,
 [data-node-props-detail="labels"] .hw-detail-diagnostic {
-    display: none;
+    display: none !important;
 }
 /* --8<-- [end:node-detail-css-classes] */
 

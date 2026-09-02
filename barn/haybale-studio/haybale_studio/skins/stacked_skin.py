@@ -12,7 +12,6 @@ from haywire.core.types import DataPort
 
 from haywire.core.types.enums import LayoutDirection, PortType
 from haywire.ui.skin.decorator import skin
-from haywire.ui.skin.visibility import NodeVisibility
 
 from .node_skin import NodeSkin
 
@@ -38,7 +37,7 @@ class StackedNodeSkin(NodeSkin):
       strips on the card's top/bottom edges, leaving only configs in the body
     - Collapsible groups with visual hierarchy — horizontal layouts only
     - Header pins for ports a collapsed group hides but an edge still needs
-    - Node collapse and NodeDetail honoured through ``show_of`` (ADR 0032)
+    - Node collapse honoured through ``is_collapsed`` (ADR 0032)
     - Automatic port ordering
     """
 
@@ -46,7 +45,6 @@ class StackedNodeSkin(NodeSkin):
         """Render the complete node UI with groups."""
         node = wrapper.node
         layout: LayoutDirection = self.layout_of(wrapper)
-        show: NodeVisibility = self.show_of(wrapper)
 
         padding = self.CARD_H_PADDING
         # Pure var() consumption — no per-node branching, ever. A graph or a
@@ -65,13 +63,13 @@ class StackedNodeSkin(NodeSkin):
             "backdrop-filter: var(--hw-node-backdrop-blur, none); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
-        if show.collapsed:
+        if self.is_collapsed(wrapper):
             # Folded, this card is the shared header row — see NodeSkin.
-            self._render_collapsed(main_card, node, wrapper, layout, card_style, show)
+            self._render_collapsed(main_card, node, wrapper, layout, card_style)
         elif layout.is_vertical:
-            self._render_vertical(main_card, node, wrapper, layout, card_style, show)
+            self._render_vertical(main_card, node, wrapper, layout, card_style)
         else:
-            self._render_horizontal(main_card, node, wrapper, layout, card_style, show)
+            self._render_horizontal(main_card, node, wrapper, layout, card_style)
 
     def _render_vertical(
         self,
@@ -80,7 +78,6 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        show: NodeVisibility,
     ):
         """Vertical layouts (T2B / B2T): inlets and outlets become bare pin
         strips on the card's top/bottom edges, leaving only configs in the body.
@@ -103,7 +100,7 @@ class StackedNodeSkin(NodeSkin):
             # rather than hardcoding INLET is what keeps the `top: -Npx` offsets
             # pushing outward: a strip rendered at the top of the card but sided
             # "bottom" offsets DOWN, i.e. inward.
-            self._render_edge_strip(node, wrapper, layout, self._top_port_type(layout), show)
+            self._render_edge_strip(node, wrapper, layout, self._top_port_type(layout))
 
             # Header with node label. Ghost pins move into the edge strips
             # instead of the header: they are inline flex items, so a
@@ -112,7 +109,7 @@ class StackedNodeSkin(NodeSkin):
             with ui.row().classes("drag-handle w-full items-center"):
                 # Node title (centered/flexible)
                 self._render_title(node)
-                self._render_alternates_notice(wrapper, runtime_errors, show)
+                self._render_alternates_notice(wrapper, runtime_errors)
 
             # Main content: only configs stay in the body — inlets and outlets
             # became edge strips.
@@ -120,14 +117,13 @@ class StackedNodeSkin(NodeSkin):
                 with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
                         self._render_port_hierarchy(
-                            show.ports(node),
+                            node.get_visible_ports(),
                             wrapper=wrapper,
                             port_type=PortType.CONFIG,
                             layout=layout,
-                            show=show,
                         )
 
-            self._render_edge_strip(node, wrapper, layout, self._bottom_port_type(layout), show)
+            self._render_edge_strip(node, wrapper, layout, self._bottom_port_type(layout))
 
     def _render_horizontal(
         self,
@@ -136,7 +132,6 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         card_style: str,
-        show: NodeVisibility,
     ):
         """Horizontal layouts (L2R / R2L): every port type stacks in one
         column, each pin sided by the layout, with ghost pins in the header.
@@ -167,21 +162,20 @@ class StackedNodeSkin(NodeSkin):
                 # Same for outlets — ordinary pins, not ghosts.
                 self._render_pin_column(node.get_hidden_connected_ports(is_inlet=False), wrapper, layout)
 
-                self._render_alternates_notice(wrapper, runtime_errors, show)
+                self._render_alternates_notice(wrapper, runtime_errors)
 
             # Main content: every port type stacks in one column, each pin
             # sided by the layout.
             with ui.row().classes("w-full gap-2"):
                 with ui.column().classes("flex-1 gap-1"):
                     if node.ports:
-                        visible = show.ports(node)
+                        visible = node.get_visible_ports()
                         for port_type in (PortType.OUTLET, PortType.CONFIG, PortType.INLET):
                             self._render_port_hierarchy(
                                 visible,
                                 wrapper=wrapper,
                                 port_type=port_type,
                                 layout=layout,
-                                show=show,
                             )
 
     @staticmethod
@@ -200,7 +194,6 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         layout: LayoutDirection,
         port_type: PortType,
-        show: NodeVisibility,
     ):
         """Collect a direction's visible ports and lay them along a card edge.
 
@@ -210,10 +203,14 @@ class StackedNodeSkin(NodeSkin):
         Groups are skipped entirely here (settled decision): a collapsible
         hierarchy has no meaning in a flat strip, so group control ports and
         every port nested under one are left out rather than flattened in.
+
+        Only called from the unfolded (vertical) render path — a folded card
+        has no edge strips at all — so this always wants
+        ``get_visible_ports()``, never the folded filter.
         """
         ports = [
             port
-            for port in show.ports(node)
+            for port in node.get_visible_ports()
             if port.port_type == port_type and not port.is_group and not port.parent_group
         ]
         hidden = node.get_hidden_connected_ports(is_inlet=port_type == PortType.INLET)
@@ -230,7 +227,6 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         port_type: PortType,
         layout: LayoutDirection | None = None,
-        show: NodeVisibility | None = None,
     ):
         """
         Render ports with hierarchical group structure.
@@ -239,14 +235,12 @@ class StackedNodeSkin(NodeSkin):
         recursively inside their parent groups.
 
         Args:
-            ports: List of visible ports (from ``show.ports(node)``)
+            ports: List of visible ports (from ``node.get_visible_ports()``)
             wrapper: NodeWrapper containing the node
             port_type: Which port direction to render
             layout: Resolved layout direction; looked up from the wrapper when omitted
-            show: Resolved node visibility; looked up from the wrapper when omitted
         """
         layout = self.layout_of(wrapper) if layout is None else layout
-        show = self.show_of(wrapper) if show is None else show
         for port in ports:
             # Skip ports of wrong direction
             if port.port_type != port_type:
@@ -258,14 +252,13 @@ class StackedNodeSkin(NodeSkin):
 
             # Render based on port type
             if port.is_group:
-                self._render_group(port, ports, wrapper, port_type, layout, show)
+                self._render_group(port, ports, wrapper, port_type, layout)
             else:
                 self.render_port(
                     port,
                     wrapper,
                     widget_classes="widget-container zoom-pan-lod2",
                     layout=layout,
-                    show=show,
                 )
 
     def _render_group(
@@ -275,7 +268,6 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         port_type: PortType,
         layout: LayoutDirection | None = None,
-        show: NodeVisibility | None = None,
     ):
         """
         Render a collapsible group with visual hierarchy.
@@ -285,10 +277,11 @@ class StackedNodeSkin(NodeSkin):
         - Group header with toggle widget
         - Child ports (if expanded)
 
-        The toggle is a widget, so it follows ``show.widget`` like any other:
-        always BUILT (2026-09 CSS-filter redesign), tagged ``hw-detail-widget``
-        so canvas.vue hides it below WIDGETS — a group then renders as its
-        (still-indented) children with no visible control.
+        The toggle is always BUILT and unconditionally carries
+        ``hw-detail-widget`` (2026-09 CSS-filter redesign) — canvas.vue's
+        ``[data-node-props-detail]`` rule hides it below WIDGETS from the DOM
+        attribute directly, so a group then renders as its (still-indented)
+        children with no visible control, with nothing to consult here.
 
         Args:
             group_port: The group control port (boolean inlet)
@@ -296,10 +289,8 @@ class StackedNodeSkin(NodeSkin):
             wrapper: NodeWrapper containing the node
             port_type: Port Type
             layout: Resolved layout direction; looked up from the wrapper when omitted
-            show: Resolved node visibility; looked up from the wrapper when omitted
         """
         layout = self.layout_of(wrapper) if layout is None else layout
-        show = self.show_of(wrapper) if show is None else show
         node = wrapper.node
         is_expanded = node.value(group_port.id)
 
@@ -323,12 +314,11 @@ class StackedNodeSkin(NodeSkin):
                 for child_port in sorted(children, key=lambda p: p.order):
                     # Recursively handle nested groups
                     if child_port.is_group:
-                        self._render_group(child_port, all_ports, wrapper, port_type, layout, show)
+                        self._render_group(child_port, all_ports, wrapper, port_type, layout)
                     else:
                         self.render_port(
                             child_port,
                             wrapper,
                             widget_classes="widget-container zoom-pan-lod2",
                             layout=layout,
-                            show=show,
                         )

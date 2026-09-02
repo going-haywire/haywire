@@ -9,17 +9,10 @@ from nicegui import ui
 
 from haywire.core.node.base import BaseNode
 from haywire.core.node.node_wrapper import NodeWrapper
-from haywire.core.types import NodeDetail
 
 from haywire.ui.skin.decorator import skin
-from haywire.ui.skin.visibility import NodeVisibility
 
 from .node_skin import NodeSkin
-
-# Every axis wide open. Not resolved from the node, on purpose — see
-# ErrorNodeSkin.show_of. Module-level because NodeVisibility is a frozen value
-# with no node reference, so one instance is safe to share.
-_SHOW_EVERYTHING = NodeVisibility(collapsed=False, detail=NodeDetail.FULL)
 
 
 @skin(
@@ -40,25 +33,15 @@ class ErrorNodeSkin(NodeSkin):
     inherits another skin's render path can be taken down by that skin's bugs,
     which is the one thing this card must not do.
 
-    It ALWAYS shows everything — see :meth:`show_of`.
+    It ALWAYS shows everything: ``render()`` never checks Node collapse at
+    all, and reads ``node.get_visible_ports()`` unconditionally rather than
+    the folded-card filter. Node collapse is a performance trade — draw fewer
+    ports on cards you are not reading. This is the card you ARE reading, and
+    the node behind it is already broken: hiding its ports to save elements
+    would withhold exactly the information the user opened it for. A node
+    folded to a title is a particularly bad failure mode here, since the fold
+    would hide the fact that anything is wrong.
     """
-
-    def show_of(self, wrapper: NodeWrapper) -> NodeVisibility:
-        """Everything, always: no folding, no detail rank.
-
-        The ADR-0032 axes are a performance trade — draw fewer elements on
-        cards you are not reading. This is the card you ARE reading, and the
-        node behind it is already broken: hiding its labels, its widgets or its
-        ports to save elements would withhold exactly the information the user
-        opened it for. A node folded to a title is a particularly bad failure
-        mode here, since the fold would hide the fact that anything is wrong.
-
-        Note this is the same value ``resolve_node_visibility`` degrades to when
-        it cannot read a node's props — "draw too much" is already the
-        framework's chosen failure direction, and this skin simply takes it
-        unconditionally.
-        """
-        return _SHOW_EVERYTHING
 
     def card_classes(self, wrapper: NodeWrapper) -> str:
         """`error-node-card` is a sibling token, NOT a substitute for
@@ -106,7 +89,6 @@ class ErrorNodeSkin(NodeSkin):
         )
 
         layout = self.layout_of(wrapper)
-        show = self.show_of(wrapper)
 
         with main_card:
             # Header. The badge call is the shared one, so this card cannot pick
@@ -116,7 +98,7 @@ class ErrorNodeSkin(NodeSkin):
                 self._render_root_ghost_pins(wrapper, layout)
                 self._render_title(node)
             runtime_errors = self._render_diagnostics_badge(wrapper)
-            self._render_alternates_notice(wrapper, runtime_errors, show)
+            self._render_alternates_notice(wrapper, runtime_errors)
 
             # Main content: inlets and outlets in two columns.
             #
@@ -126,11 +108,11 @@ class ErrorNodeSkin(NodeSkin):
             # copy does not merely look doubled — it shadows the real pin and
             # edges attach to whichever came first in document order.
             #
-            # `show.ports` rather than `node.ports.values()`: the filter also
+            # `get_visible_ports()` rather than `node.ports.values()`: it also
             # drops sections and group control ports, neither of which is a
-            # renderable port. Since `show_of` never folds here, it returns
-            # every visible port.
-            ports = show.ports(node)
+            # renderable port. This skin never folds, so it is always the
+            # full visible list, never the collapsed filter.
+            ports = node.get_visible_ports()
             inlets = [p for p in ports if p.is_inlet()]
             outlets = [p for p in ports if p.is_outlet()]
 
@@ -146,7 +128,7 @@ class ErrorNodeSkin(NodeSkin):
                         if group:
                             ui.label(heading).classes("font-bold text-sm")
                             for port in group:
-                                self.render_port(port, wrapper, layout=layout, show=show)
+                                self.render_port(port, wrapper, layout=layout)
 
             # Config ports carry no pin, so they belong to neither column.
             # Rendering them full width beneath keeps them visible — this is
@@ -156,7 +138,7 @@ class ErrorNodeSkin(NodeSkin):
             if configs:
                 with ui.column().classes("w-full gap-1"):
                     for config in configs:
-                        self.render_port(config, wrapper, layout=layout, show=show)
+                        self.render_port(config, wrapper, layout=layout)
 
             # Footer with port counts
             with ui.row().classes("w-full justify-between mt-2"):

@@ -77,55 +77,85 @@ outranked by those `!important` declarations. Per-widget ceilings are declared o
 widget instead, through `@widget(min_width=, min_height=, max_height=)`. See
 [widget-canon.md](../widgets/widget-canon.md).
 
-**Visibility is not decided here.** A widget that exists is visible; whether it exists is
-decided in Python by the node's `NodeDetail` rank (see below). Until ADR 0032 this block
-was a *reveal* — every node built its widgets and only the **selected** one showed them,
-via `.node-selected` on the `[data-node-id]` container. If you find a skin or a doc still
+**Visibility is not decided here.** A widget that exists is visible unless CSS hides it;
+whether it exists is decided by Node collapse alone (see below) — as of 2026-09, NodeDetail
+no longer omits anything from construction either. Until ADR 0032 this block was a
+*reveal* — every node built its widgets and only the **selected** one showed them, via
+`.node-selected` on the `[data-node-id]` container. If you find a skin or a doc still
 describing that, it is stale.
 
 ## Respecting the node's detail and collapse
 
 A card's density is not fixed either. Two axes decide how much of a node is drawn, both
 resolved per node through the settings tier chain, exactly like `skin` and
-`layout_direction`. See [ADR 0032](../../adr/0032-node-detail-and-collapse.md).
+`layout_direction`. See [ADR 0032](../../adr/0032-node-detail-and-collapse.md), including
+its "Superseded in part (2026-09-02)" section — the table below already reflects it.
 
-| | tiers | what it says |
-| --- | --- | --- |
-| **Node collapse** (`props.collapsed`) | graph < node | fold to title, badges and the pins of *linked* ports |
-| **NodeDetail** (`props.detail`) | framework < graph < node | `COMPACT` (pins) < `STANDARD` (+ widgets) < `FULL` (+ labels, diagnostics detail) |
+| | tiers | what it says | mechanism |
+| --- | --- | --- | --- |
+| **Node collapse** (`props.collapsed`) | graph < node | fold to title, badges and the pins of *linked* ports | **construction gate** — the folded elements are never built |
+| **NodeDetail** (`props.detail`) | framework < graph < node | `PINS` (linked ports) < `PINS_ALL` (+ unlinked) < `WIDGETS` (+ inline widgets) < `LABELS` (+ port labels) < `FULL` (+ diagnostics detail) | **CSS filter** — every element is always built |
 
-### Ask the resolver, never the rank
+### Ask the resolver for collapse; write the class unconditionally for detail
+
+The two axes are no longer symmetric, so they are not asked the same way.
+
+**Node collapse** still gates construction, and you still ask the resolver rather than
+comparing yourself:
 
 ```python
 def render(self, main_card: ui.card, wrapper: NodeWrapper):
     show = self.show_of(wrapper)          # NodeSkin helper
 
-    for port in show.ports(node):
+    if show.collapsed:
+        ...                                # fold path: build less
+    for port in show.ports(node):          # linked-only when folded
         ...
-    if show.label:
-        ui.label(port.label).classes("text-xs zoom-pan-lod2")
 ```
 
-`show.label`, `show.widget` and `show.diagnostics` are **properties, not methods** —
-`if show.label():` would be a bug you cannot see, since a bound method is always truthy.
-`show.detail` and `show.collapsed` are there for anything the vocabulary does not cover.
+`show.collapsed` and `show.ports(node)` are the whole of `NodeVisibility`'s surface. It
+does NOT carry the detail rank (that lived here briefly and was cut — see ADR 0032's
+"Superseded" section for why): asking it `show.label`/`show.widget`/`show.diagnostics`
+no longer compiles.
 
-The point of asking rather than comparing is that the rank→element mapping has one owner.
-A skin that writes `if detail == NodeDetail.FULL` has copied policy that will drift the
-next time a tier moves. Standalone skins (not subclassing `NodeSkin`) call
-`resolve_node_visibility(wrapper)` from `haywire.ui.skin.visibility` directly.
+**NodeDetail** never gates construction any more. Every port's label and widget are
+always built, and the skin writes the matching `.hw-detail-*` class as a plain,
+unconditional string — there is nothing left to branch on:
 
-### These are construction gates, not CSS
+```python
+ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
+if port.widget_key is not None and port.should_show_widget():
+    self.render_widget(port, wrapper.node_id, classes="widget-container hw-detail-widget")
+```
 
-Do not build what the rank excludes. Hiding it instead defeats the entire purpose:
-per [ADR 0006](../../adr/0006-node-render-performance.md) the cost driver is element
-*count* — every element is built on the Python side and re-walked by NiceGUI on every
-page update, whether or not it is painted. This is the one hard rule of the contract.
+`canvas.vue`'s `[data-node-props-detail]` rule, keyed off the DOM attribute
+`UINode._apply_detail_attr` stamps directly from `props.detail`, does the rank-based
+hiding — a skin never reads the rank to decide anything. `port.widget_key is not None`
+and `port.should_show_widget()` are real absence (this port has no widget at all), not a
+density gate, so they still guard construction.
 
-It is also what separates these axes from **LOD**, which is zoom-driven, lives entirely
-in CSS, and decides only what is *painted* of what already exists. The two do not
-compose and there is no arithmetic between them — keep tagging elements
-`zoom-pan-lod1..3` as before.
+The one exception is the PINS/PINS_ALL split on the pin itself: an unlinked pin carries
+`hw-detail-pins_all` when `not pin.is_linked()` — that condition comes from the port, not
+from a resolved `NodeVisibility` axis.
+
+### Collapse is a construction gate; NodeDetail is not
+
+Do not build what Node collapse excludes — per [ADR 0006](../../adr/0006-node-render-performance.md)
+the cost driver for that axis is element *count*, and hiding with CSS would leave every
+folded element built and re-walked by NiceGUI regardless. This is still a hard rule for
+**collapse**.
+
+The mirror-image rule holds for **NodeDetail**: do NOT gate its construction. The
+measurement that flipped this (`.scratch/pan-perf/RESULTS.md`, decision A) found the
+per-rank cost was pan-time paint/layout, which `display: none` removes identically to
+never building the element — so a construction gate there buys nothing but a slower,
+NiceGUI-whole-tree-render card rebuild on every rank change.
+
+This is also what makes NodeDetail's mechanism converge with **LOD**, which is
+zoom-driven, lives entirely in CSS, and decides only what is *painted* of what already
+exists. The two still do not compose and there is no rank arithmetic between them — keep
+tagging elements `zoom-pan-lod1..3` as before, alongside whichever `hw-detail-*` class
+applies.
 
 ### Ignoring it is safe, and measurable
 

@@ -16,4 +16,11 @@ it renders through its own body rather than subclassing: a fallback that
 inherits another skin's render path can be taken down by that skin's bugs,
 which is the one thing this card must not do.
 
-It ALWAYS shows everything — see :meth:`show_of`.
+It ALWAYS shows everything: ``render()`` never checks Node collapse at
+all, and reads ``node.get_visible_ports()`` unconditionally rather than
+the folded-card filter. Node collapse is a performance trade — draw fewer
+ports on cards you are not reading. This is the card you ARE reading, and
+the node behind it is already broken: hiding its ports to save elements
+would withhold exactly the information the user opened it for. A node
+folded to a title is a particularly bad failure mode here, since the fold
+would hide the fact that anything is wrong.

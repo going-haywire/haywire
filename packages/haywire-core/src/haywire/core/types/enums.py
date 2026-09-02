@@ -190,16 +190,28 @@ class NodeDetail(StrEnum):
     buy something.
 
     A **CSS filter**, not a construction gate: every element at every rank is
-    BUILT. What differs per rank is a ``.hw-detail-*`` class added to each
-    element (see ``haywire.ui.skin.visibility.NodeVisibility``), matched by a
-    ``display: none`` rule keyed off the ``data-node-props-detail`` attribute
-    ``UINode`` stamps on the node's container. This is deliberately the same
-    mechanism the zoom-driven LOD system (ADR 0006) uses for its own classes
-    — the two remain conceptually separate (LOD decides what is painted of
-    what exists at THIS frame; NodeDetail decides what a rank includes) even
-    though they now share a technique. Because nothing is omitted from
-    construction, ``detail`` is NOT in ``NodeProperties.REDRAW_FIELDS`` — a
-    rank change is a class-attribute flip, not a card rebuild.
+    BUILT, and every one unconditionally carries its ``.hw-detail-*`` class
+    (see the skin ``_render_*`` methods in ``barn/haybale-studio/.../skins/``).
+    A ``display: none`` rule in ``canvas.vue``, keyed off the
+    ``data-node-props-detail`` attribute ``UINode`` stamps directly from this
+    enum's value, does the rank-based hiding — Python never re-derives which
+    rank a card is at to decide anything; it only stamps the one attribute.
+    This is deliberately the same mechanism the zoom-driven LOD system (ADR
+    0006) uses for its own classes — the two remain conceptually separate
+    (LOD decides what is painted of what exists at THIS frame; NodeDetail
+    decides what a rank includes) even though they share a technique. Because
+    nothing is omitted from construction, ``detail`` is NOT in
+    ``NodeProperties.REDRAW_FIELDS`` — a rank change is a class-attribute
+    flip, not a card rebuild.
+
+    No Python object resolves this rank for a skin to consult (2026-09): an
+    earlier cut of this redesign added a ``NodeVisibility`` value carrying a
+    ``detail`` field and four rank-derived properties deciding which class to
+    add, but once every class became an unconditional literal those
+    properties — and the value itself — had no reader left, and both were
+    deleted. What remains for **Node collapse** (a genuinely different,
+    still construction-gated axis) is ``NodeSkin.is_collapsed(wrapper)``, a
+    plain ``bool``.
 
     A ``StrEnum`` with an explicit :attr:`rank`, exactly like ``AccessTier``
     and for the same reason: the wire values stay strings, so adding a rank

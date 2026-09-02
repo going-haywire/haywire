@@ -584,10 +584,27 @@ class NodeData:
         The unfiltered counterpart to :meth:`get_visible_ports`, for callers
         that must see ports a collapsed group hides — a folded node card, whose
         linked pins have to include those, or an edge would lose its endpoint
-        (see ``haywire.ui.skin.visibility``). Public wrapper around
-        ``_iter_ports`` so the display ordering keeps one definition.
+        (see :meth:`get_folded_ports`). Public wrapper around ``_iter_ports``
+        so the display ordering keeps one definition.
         """
         return list(self._iter_ports())
+
+    def get_folded_ports(self) -> List[DataPort]:
+        """The ports a FOLDED node card draws: every *linked* port, whatever
+        its group state.
+
+        Group collapse is ignored on purpose — an edge must always find its
+        endpoint, and a folded card is all header, so there is nowhere else
+        for a hidden port's pin to go. Unlinked ports are dropped, which is
+        what makes a folded 23-port node actually small. Sections and group
+        control ports are excluded, matching :meth:`get_hidden_connected_ports`;
+        a group control port is never linked, so it falls out anyway.
+        """
+        return [
+            port
+            for port in self.get_all_ports()
+            if not port.section and not port.is_group and port.is_linked()
+        ]
 
     def iter_section_ports(self, section: Optional[str] = None) -> Iterator[DataPort]:
         """
