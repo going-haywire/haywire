@@ -2,6 +2,11 @@
 NodeDetail (design session, 2026-09): the DOM element exists (CSS filter,
 not construction gate) but must not keep paying server->view traffic while
 invisible.
+
+No collapsed-card case here: collapse is still a CONSTRUCTION gate (unchanged
+by the CSS-filter redesign), so a collapsed card's widgets are never built —
+there is no live BaseWidget instance to ask, and _is_detail_hidden()
+deliberately does not re-check collapsed itself. See its docstring.
 """
 
 from typing import Any, cast
@@ -16,8 +21,7 @@ pytestmark = pytest.mark.unit
 
 
 class _FakeProps:
-    def __init__(self, collapsed: bool, detail: str):
-        self.collapsed = collapsed
+    def __init__(self, detail: str):
         self.detail = detail
 
 
@@ -69,9 +73,9 @@ class _RecordingWidget(BaseWidget):
         return self.fake_binding.sync_count
 
 
-def _widget_with_visibility(detail: str, collapsed: bool = False) -> _RecordingWidget:
+def _widget_with_visibility(detail: str) -> _RecordingWidget:
     port = make_float_port()
-    cast(Any, port)._wrapper = _FakeWrapper(_FakeProps(collapsed, detail))
+    cast(Any, port)._wrapper = _FakeWrapper(_FakeProps(detail))
     return _RecordingWidget(port)
 
 
@@ -91,14 +95,22 @@ def test_dispatch_fires_normally_when_widget_is_visible():
     assert w.dispatch_count == before + 1
 
 
-def test_folded_card_also_suppresses_dispatch():
-    """Folding is still the stronger gate — a folded card's widgets are
-    CSS-hidden regardless of the detail rank underneath."""
-    w = _widget_with_visibility(NodeDetail.FULL.value, collapsed=True)
+def test_pins_all_is_still_below_the_widgets_floor():
+    """WIDGETS is the threshold, not FULL — PINS_ALL is one rank short."""
+    w = _widget_with_visibility(NodeDetail.PINS_ALL.value)
     w.render()
     before = w.dispatch_count
     w.port.set_value(5.0)
     assert w.dispatch_count == before
+
+
+def test_widgets_rank_itself_dispatches():
+    """WIDGETS is the floor that includes widgets, not just above it."""
+    w = _widget_with_visibility(NodeDetail.WIDGETS.value)
+    w.render()
+    before = w.dispatch_count
+    w.port.set_value(5.0)
+    assert w.dispatch_count == before + 1
 
 
 def test_widgets_with_no_visibility_context_dispatch_normally():

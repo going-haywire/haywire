@@ -111,6 +111,21 @@ class BaseWidget(IWidget, ABC):
     def _is_detail_hidden(self) -> bool:
         """True when NodeDetail's resolved rank excludes this widget.
 
+        Deliberately does NOT consult ``collapsed``: a folded card is still a
+        CONSTRUCTION gate (unchanged by the 2026-09 CSS-filter redesign), so a
+        widget on a collapsed card is never built and this method never runs
+        against one — there is no live ``BaseWidget`` instance to ask. Only
+        ``detail`` needs checking here.
+
+        Reads ``props.detail`` directly rather than going through
+        ``resolve_node_visibility()``/``NodeVisibility``: that helper's
+        try/except degrade-on-explode posture and its other three properties
+        (``pins_all``/``label``/``diagnostics``) exist for the RENDER path,
+        where a card must never fail to build. This runs on every dispatched
+        value change instead — a much hotter path — and a widget reaching this
+        point already proves construction succeeded, so the extra safety net
+        and unused properties are pure overhead here.
+
         Defaults to False (always dispatch) when there is no NodeDetail
         context to consult — degrading toward MORE traffic, not less, matches
         NodeVisibility's own degrade-upward posture (a widget that silently
@@ -129,10 +144,9 @@ class BaseWidget(IWidget, ABC):
         if wrapper is None:
             return False
 
-        from haywire.ui.skin.visibility import resolve_node_visibility
+        from haywire.core.types import NodeDetail
 
-        show = resolve_node_visibility(wrapper)
-        return not show.widget
+        return not NodeDetail.coerce(wrapper.node.props.detail).includes(NodeDetail.WIDGETS)
 
     # ---- SUGAR ----------------------------------------------------------
     def bind(
