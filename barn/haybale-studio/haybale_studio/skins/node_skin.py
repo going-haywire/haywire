@@ -251,10 +251,17 @@ class NodeSkin(BaseSkin, ABC):
 
         The one piece of diagnostics detail that is genuinely inline; the
         badge's menu body is already behind a click.
+
+        Always BUILT when there is something to say (2026-09 CSS-filter
+        redesign); ``show.diagnostics`` only decides the ``.hw-detail-diagnostic``
+        class, hidden below FULL by canvas.vue's ``[data-node-props-detail]``
+        rule. ``runtime_errors`` and ``wrapper._alternate_registry_keys`` are
+        real absence, not a rank gate, so they still guard construction.
         """
-        if runtime_errors and show.diagnostics and wrapper._alternate_registry_keys:
+        if runtime_errors and wrapper._alternate_registry_keys:
+            classes = "text-sm hw-text-warning mb-2 hw-detail-diagnostic"
             ui.label(f"Alternate versions available: {', '.join(wrapper._alternate_registry_keys)}").classes(
-                "text-sm hw-text-warning mb-2"
+                classes
             )
 
     def render_port(
@@ -304,9 +311,12 @@ class NodeSkin(BaseSkin, ABC):
         margin gets the tight ``CONTENT_GAP``, so the content inset matches
         either way. ``overflow: visible`` lets the pin straddle the card edge.
 
-        Below FULL there is no label, so the tooltip moves to the content
-        column — otherwise identifying a widget means hovering the 20px pin
-        beside it.
+        The label and widget are always BUILT now (2026-09 CSS-filter
+        redesign) — ``show.label``/``show.widget`` only decide their
+        ``.hw-detail-*`` class, hidden below LABELS/WIDGETS respectively by
+        canvas.vue. Below LABELS the label is CSS-hidden, so the tooltip moves
+        to the content column — otherwise identifying a widget means hovering
+        the 20px pin beside it.
         """
         show = self.show_of(wrapper) if show is None else show
         g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
@@ -343,10 +353,9 @@ class NodeSkin(BaseSkin, ABC):
                     f"flex-direction: column; {content_align} {content_margins} min-width: 0;"
                 )
             ) as content:
-                if show.label:
-                    ui.label(port.label).classes("text-xs zoom-pan-lod2")
-                if show.widget and port.widget_key is not None and port.should_show_widget():
-                    self.render_widget(port, wrapper.node_id, classes=widget_classes)
+                ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
+                if port.widget_key is not None and port.should_show_widget():
+                    self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
 
             if not show.label:
                 add_pin_tooltip(content, port)
@@ -432,10 +441,9 @@ class NodeSkin(BaseSkin, ABC):
                 f"padding-left: {indent}px; padding-right: {indent}px;"
             )
         ) as config_row:
-            if show.label:
-                ui.label(port.label).classes("text-xs zoom-pan-lod2")
-            if show.widget and port.widget_key is not None and port.should_show_widget():
-                self.render_widget(port, wrapper.node_id, classes=widget_classes)
+            ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
+            if port.widget_key is not None and port.should_show_widget():
+                self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
 
         # Config ports render no pin, so they cannot carry a pin tooltip.
         # Attach the same label/description tooltip to the whole config row.
@@ -475,9 +483,16 @@ class NodeSkin(BaseSkin, ABC):
             # neither opts in nor can suppress it (ADR-0029, Routing).
             #
             # Unconditional since ADR 0032 retired `show_tooltips`: a bare pin
-            # in a strip, on a folded card, or below FULL has no label, so the
-            # tooltip carries the whole identification burden.
+            # in a strip, on a folded card, or below LABELS has no label, so
+            # the tooltip carries the whole identification burden.
             add_pin_tooltip(pin_el, pin)
+            # PINS is the floor: linked ports only. An unlinked pin is always
+            # BUILT (show.ports() does not filter it out unfolded — see
+            # NodeVisibility.ports()) but carries this class so canvas.vue's
+            # [data-node-props-detail="pins"] rule hides it, matching
+            # PINS_ALL and above.
+            if not pin.is_linked():
+                pin_el.classes("hw-detail-pins_all")
 
     def _render_root_ghost_pins(
         self,

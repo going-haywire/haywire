@@ -196,8 +196,7 @@ class SplitNodeSkin(NodeSkin):
                         if not group:
                             continue
                         with ui.column().classes("flex-1 gap-1 min-w-0"):
-                            if show.label:
-                                ui.label(heading).classes("font-bold text-sm")
+                            ui.label(heading).classes("font-bold text-sm hw-detail-label")
                             for port in group:
                                 self.render_port(port, wrapper, layout=layout, show=show)
 
@@ -214,13 +213,13 @@ class SplitNodeSkin(NodeSkin):
         band takes whatever width the card has.
 
         The band's own heading follows `show.label` like any other label: a
-        skin's chrome is not exempt from the rank it was handed, and below FULL
-        a heading over unlabelled rows names nothing.
+        skin's chrome is not exempt from the rank it was handed, and below
+        LABELS a heading over unlabelled rows names nothing. Always BUILT now
+        (2026-09 CSS-filter redesign) — the class is what CSS-hides it.
         """
         if not configs:
             return
         with ui.column().classes("w-full gap-1"):
-            if show.label:
-                ui.label("Config").classes("font-bold text-sm")
+            ui.label("Config").classes("font-bold text-sm hw-detail-label")
             for port in configs:
                 self.render_port(port, wrapper, layout=layout, show=show)

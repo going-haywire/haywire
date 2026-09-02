@@ -6,9 +6,14 @@ truth table. None of it renders, and every existing skin-render test is
 would say nothing about whether these axes reach a card at all.
 
 This file closes that hole by rendering real nodes through ``SkinFactory`` and
-counting the elements that come out. It asserts the *direction and shape* of
-the change rather than exact counts, so a skin restyle does not break it while
-a skin that stops honouring the axes does.
+inspecting the elements that come out. Since the 2026-09 CSS-filter redesign
+(ADR 0032's "Superseded" section) NodeDetail no longer changes which elements
+are BUILT — every rank builds the same element count. What changes is which
+``.hw-detail-*`` class each element carries, matched by canvas.vue's
+``[data-node-props-detail]`` rules. So this file asserts "the element exists
+AND carries the class its rank implies" rather than "the element exists only
+above some rank" — a skin restyle does not break it while a skin that stops
+tagging elements does.
 """
 
 from __future__ import annotations
@@ -36,7 +41,7 @@ def _node(graph):
     """A node whose ports actually carry visible widgets AND labels.
 
     The choice matters: a node whose only port is an outlet cannot distinguish
-    STANDARD from COMPACT, because outlets default to ``ShowWidgetStrategy.NEVER``
+    WIDGETS from PINS, because outlets default to ``ShowWidgetStrategy.NEVER``
     and so draw no widget at either rank. ``PerformanceTester`` generates
     unlinked FLOAT inlets with NumberWidgets, which is the case the ranks are
     actually about.
@@ -49,7 +54,7 @@ def _node(graph):
     wrapper.node.ports["port_count"].set_value(_PORT_COUNT)
     graph.force_validation()
     shown = [p for p in wrapper.node.get_visible_ports() if p.should_show_widget()]
-    assert shown, "fixture node draws no widgets — it cannot tell STANDARD from COMPACT"
+    assert shown, "fixture node draws no widgets — it cannot tell WIDGETS from PINS"
     return wrapper
 
 
@@ -59,6 +64,19 @@ def _render(skin_factory: SkinFactory, wrapper, skin_key: str) -> int:
     with container:
         skin_factory.render(skin_registry_key=skin_key, wrapper=wrapper)
     return len(list(container.descendants()))
+
+
+def _render_container(skin_factory: SkinFactory, wrapper, skin_key: str) -> ui.element:
+    """Render one card into a throwaway container; return the container itself
+    so a caller can inspect classes, not just count elements."""
+    container = ui.element("div")
+    with container:
+        skin_factory.render(skin_registry_key=skin_key, wrapper=wrapper)
+    return container
+
+
+def _elements_with_class(container: ui.element, css_class: str) -> list:
+    return [el for el in container.descendants() if css_class in el._classes]
 
 
 @pytest.fixture
@@ -80,38 +98,76 @@ def _count_at(render_ctx, detail: NodeDetail, collapsed: bool = False) -> int:
     return _render(skin_factory, wrapper, skin_key)
 
 
-class TestElementCountFallsWithDetail:
-    """The whole justification for the axes being CONSTRUCTION gates: lowering
-    the rank must build FEWER elements, not merely hide them (ADR 0006)."""
+def _render_at(render_ctx, detail: NodeDetail, collapsed: bool = False) -> ui.element:
+    skin_factory, _graph_obj, wrapper, skin_key = render_ctx
+    wrapper.node.props.detail = detail.value
+    wrapper.node.props.collapsed = collapsed
+    return _render_container(skin_factory, wrapper, skin_key)
 
-    def test_each_rank_builds_strictly_fewer_elements(self, render_ctx):
+
+class TestElementCountIsStableAcrossRanks:
+    """2026-09: NodeDetail stopped being a construction gate. Every rank now
+    builds the SAME elements — an unfolded card's element count must not move
+    with the rank at all, because nothing is omitted from construction any
+    more (ADR 0032's "Superseded" section)."""
+
+    def test_every_unfolded_rank_builds_the_same_element_count(self, render_ctx):
         full = _count_at(render_ctx, NodeDetail.FULL)
-        standard = _count_at(render_ctx, NodeDetail.STANDARD)
-        compact = _count_at(render_ctx, NodeDetail.COMPACT)
+        labels = _count_at(render_ctx, NodeDetail.LABELS)
+        widgets = _count_at(render_ctx, NodeDetail.WIDGETS)
+        pins_all = _count_at(render_ctx, NodeDetail.PINS_ALL)
+        pins = _count_at(render_ctx, NodeDetail.PINS)
 
-        assert standard < full, (
-            f"STANDARD ({standard}) must drop the labels FULL ({full}) draws — "
-            f"if these are equal the rank is being hidden with CSS, not gated"
+        assert pins == pins_all == widgets == labels == full, (
+            f"element counts diverged across ranks (pins={pins}, "
+            f"pins_all={pins_all}, widgets={widgets}, labels={labels}, "
+            f"full={full}) — a rank is still gating construction instead of "
+            f"tagging a CSS class"
         )
-        assert compact < standard, f"COMPACT ({compact}) must drop the widgets STANDARD ({standard}) draws"
 
-    def test_folding_is_the_cheapest_of_all(self, render_ctx):
-        """A folded, edge-free node drops every pin too — this is the lever the
-        graph-level collapse toggle exists to pull."""
-        compact = _count_at(render_ctx, NodeDetail.COMPACT)
+    def test_folding_is_still_the_cheapest(self, render_ctx):
+        """Collapse is UNCHANGED — still a real construction gate, so a folded
+        card still builds fewer elements than any unfolded rank."""
+        full = _count_at(render_ctx, NodeDetail.FULL)
         folded = _count_at(render_ctx, NodeDetail.FULL, collapsed=True)
 
-        assert folded < compact, (
-            f"folded ({folded}) must be cheaper than COMPACT ({compact}) — an "
-            f"unlinked node folds to title and badges with no pins at all"
+        assert folded < full, (
+            f"folded ({folded}) must be cheaper than an unfolded card ({full}) — "
+            f"an unlinked node folds to title and badges with no pins at all"
         )
 
     def test_folding_ignores_the_detail_rank(self, render_ctx):
         """`collapsed` short-circuits every predicate, so the rank underneath
         it cannot leak back into the card."""
         assert _count_at(render_ctx, NodeDetail.FULL, collapsed=True) == _count_at(
-            render_ctx, NodeDetail.COMPACT, collapsed=True
+            render_ctx, NodeDetail.PINS, collapsed=True
         )
+
+
+class TestDetailClassesGateVisibility:
+    """The replacement for the old construction-gate assertions: the widget
+    and label elements are BUILT at every rank, and only their `.hw-detail-*`
+    class differs — canvas.vue's [data-node-props-detail] rules do the hiding.
+    """
+
+    def test_widget_carries_its_class_at_every_rank(self, render_ctx):
+        for detail in NodeDetail:
+            container = _render_at(render_ctx, detail)
+            widgets = _elements_with_class(container, "hw-detail-widget")
+            assert widgets, f"widget element missing at {detail} — it must always be BUILT"
+
+    def test_label_carries_its_class_at_every_rank(self, render_ctx):
+        for detail in NodeDetail:
+            container = _render_at(render_ctx, detail)
+            labels = _elements_with_class(container, "hw-detail-label")
+            assert labels, f"label element missing at {detail} — it must always be BUILT"
+
+    def test_folded_card_builds_no_detail_classed_elements(self, render_ctx):
+        """Folding is still a construction gate — nothing to tag because
+        nothing is built."""
+        container = _render_at(render_ctx, NodeDetail.FULL, collapsed=True)
+        assert not _elements_with_class(container, "hw-detail-widget")
+        assert not _elements_with_class(container, "hw-detail-label")
 
 
 class TestSplitSkinHonoursTheAxes:
@@ -131,17 +187,16 @@ class TestSplitSkinHonoursTheAxes:
         skin_factory, graph, wrapper, _default_key = render_ctx
         return skin_factory, graph, wrapper, SplitNodeSkin.class_identity.registry_key
 
-    def test_ranks_build_fewer_elements(self, example_ctx):
+    def test_ranks_build_the_same_element_count(self, example_ctx):
         full = _count_at(example_ctx, NodeDetail.FULL)
-        standard = _count_at(example_ctx, NodeDetail.STANDARD)
-        compact = _count_at(example_ctx, NodeDetail.COMPACT)
+        widgets = _count_at(example_ctx, NodeDetail.WIDGETS)
+        pins = _count_at(example_ctx, NodeDetail.PINS)
 
-        assert standard < full
-        assert compact < standard
+        assert pins == widgets == full
 
     def test_folds(self, example_ctx):
         folded = _count_at(example_ctx, NodeDetail.FULL, collapsed=True)
-        assert folded < _count_at(example_ctx, NodeDetail.COMPACT)
+        assert folded < _count_at(example_ctx, NodeDetail.PINS)
 
     @pytest.mark.parametrize("detail", list(NodeDetail))
     @pytest.mark.parametrize("collapsed", [False, True])

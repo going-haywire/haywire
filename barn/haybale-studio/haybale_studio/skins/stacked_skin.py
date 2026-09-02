@@ -286,8 +286,9 @@ class StackedNodeSkin(NodeSkin):
         - Child ports (if expanded)
 
         The toggle is a widget, so it follows ``show.widget`` like any other:
-        below STANDARD a group renders as its (still-indented) children with no
-        control, because there is nothing left on the card to toggle.
+        always BUILT (2026-09 CSS-filter redesign), tagged ``hw-detail-widget``
+        so canvas.vue hides it below WIDGETS — a group then renders as its
+        (still-indented) children with no visible control.
 
         Args:
             group_port: The group control port (boolean inlet)
@@ -307,8 +308,8 @@ class StackedNodeSkin(NodeSkin):
             # Group header with toggle
             with ui.row().classes("w-full items-center gap-1"):
                 # Render group toggle widget
-                if show.widget and group_port.widget_key is not None and group_port.should_show_widget():
-                    self.render_widget(group_port, wrapper.node_id, classes="zoom-pan-lod2")
+                if group_port.widget_key is not None and group_port.should_show_widget():
+                    self.render_widget(group_port, wrapper.node_id, classes="zoom-pan-lod2 hw-detail-widget")
 
             # Group children (if expanded)
             if is_expanded:
