@@ -1358,7 +1358,11 @@ design rules.
 - Apply `--hw-danger-bg`, `--hw-ghost-pin`, and other canvas-specific tokens
 - Use `box-shadow` via `var(--hw-node-shadow)` or an additional error-state
   shadow — canvas objects are the only place where multiple shadows are allowed
-- Use `backdrop-filter` for frosted-glass node effects (use sparingly)
+- Use `backdrop-filter` for frosted-glass node effects — via
+  `var(--hw-node-backdrop-blur, none)`, never hardcoded, and only on a
+  translucent card. It is the single most expensive thing a card can carry
+  (measured 1.90x on zoomed-out pan across 200 nodes) and is invisible behind
+  an opaque `node_bg`. See theme-canon
 - Apply canvas-tier transition durations (`0.2s`–`0.3s`)
 
 **Typography inside skins:**

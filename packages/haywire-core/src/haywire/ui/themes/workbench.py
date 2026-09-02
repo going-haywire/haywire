@@ -109,6 +109,15 @@ class BaseTheme:
         "node_header_bg": "--hw-node-header-bg",
         "node_header_text_color": "--hw-node-header-text-color",
         "node_text_color": "--hw-node-text-color",
+        # A backdrop blur is EXPENSIVE and the default is "none" for that
+        # reason. It blurs everything behind the card, recomputed per card per
+        # frame: on a 200-node graph panned zoomed out, blur(10px) measured
+        # 1.90x on framerate (34.68 -> 66.00 fps) and doubled p99 from 25ms to
+        # 50ms. Set it only on a theme whose card is actually translucent —
+        # behind an opaque node_bg the blur is composited underneath and cannot
+        # be seen, so it is pure cost. Takes a full filter value ("blur(10px)"),
+        # not a length.
+        "node_backdrop_blur": "--hw-node-backdrop-blur",
         # Node chrome — canvas affordances expressing editor state.
         #
         # Consumed by canvas.vue on [data-node-id]. The graph and global tiers

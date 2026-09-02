@@ -69,7 +69,10 @@ class SplitNodeSkin(NodeSkin):
             "border: var(--hw-node-border-width) solid var(--hw-node-border-color); "
             "border-radius: var(--hw-node-border-radius); "
             "color: var(--hw-node-text-color); "
-            f"backdrop-filter: blur(10px); "
+            # Tokenised, and the fallback is `none` deliberately: a backdrop
+            # blur is expensive enough (1.90x on zoomed-out pan) that a theme
+            # should have to ask for it. See _CSS_TOKEN_MAP.
+            "backdrop-filter: var(--hw-node-backdrop-blur, none); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
 

@@ -96,7 +96,12 @@ class ErrorNodeSkin(NodeSkin):
         main_card.classes(
             f"w-full min-w-64 max-w-sm node-card zoom-pan-lod0 {self.card_classes(wrapper)} {node_id}"
         ).style(
-            f"background-color: var(--hw-warning); backdrop-filter: blur(10px); "
+            # No backdrop-filter, and no --hw-node-backdrop-blur either: this
+            # card hardcodes an opaque --hw-warning rather than reading
+            # --hw-node-bg, so a backdrop blur is composited underneath it and
+            # is unobservable in either shipped theme. Consuming the token here
+            # would be a var that is set, accepted, and does nothing.
+            f"background-color: var(--hw-warning); "
             f"overflow: visible; padding-left: {padding}px; padding-right: {padding}px;"
         )
 

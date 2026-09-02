@@ -83,10 +83,13 @@ class FooTheme(BaseTheme):
 | `node_header_bg` | Header strip background |
 | `node_header_text_color` | Header label colour |
 | `node_text_color` | Card body text colour, incl. inline widgets — see the forwarding note below |
+| `node_backdrop_blur` | Card backdrop filter, e.g. `"blur(10px)"`. Defaults to `none` — **expensive**, see the note below |
 
 ...plus every other token in the map (`text_body`, `bg_input`, `accent`, `border`, ...), scoped to whichever DOM subtree the theme's tier writes into.
 
 Lengths carry their unit **inside the value** (`"3px"`, not `3`): `var()` is textual substitution, so `border: 3 solid red` is invalid CSS and fails silently.
+
+**`node_backdrop_blur` costs real framerate, and only pays off on a translucent card.** It blurs everything behind the card, recomputed per card per frame. On a 200-node graph panned while zoomed out, `blur(10px)` measured **1.90x on framerate** (34.68 → 66.00 fps) and doubled p99 frame time from 25ms to 50ms. Behind an opaque `node_bg` the blurred backdrop is composited underneath the card and cannot be seen at all — so it is pure cost with no visible effect. That is why the default is `none`, and why of the two shipped themes only the light one (whose `node_bg` is `rgba(255,255,255,0.3)`) asks for it; the dark theme sets `"none"` explicitly. Set it only if your card is genuinely translucent, and expect to pay for it on large graphs.
 
 **Widget content inside a node card follows the node theme too.** A Quasar-backed widget (`ui.input`, `ui.select`, ...) does not inherit `color`/`background` from an ancestor the way a plain element does — Quasar paints its own field internals from its own defaults. `shell.py`'s `STATIC_CSS` carries a `.ui-node-slot`-scoped forwarding block (mirroring the `.hw-panel` one panels use) that routes `q-field__control`, `q-field__label`, etc. through the same semantic tokens (`--hw-text-body`, `--hw-bg-input`, ...) — so a node-flavoured theme overriding those tokens reaches widget text/backgrounds inside its scope, not just the card chrome. The node title's text colour specifically resolves `--hw-node-text-color` with a fallback to `--hw-text-body`, so an explicit node-tier `node_text_color` still wins there.
 

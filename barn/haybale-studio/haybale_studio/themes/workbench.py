@@ -60,6 +60,12 @@ class HaywireDarkTheme(BaseTheme):
     node_header_bg = "#252540"
     node_header_text_color = "rgba(255,255,255,0.87)"
     node_text_color = "#c0c0e0"
+    # No blur: node_bg above is fully opaque, so a backdrop blur is composited
+    # underneath the card and cannot be seen — it was measured costing 1.90x on
+    # zoomed-out pan for nothing. The light theme, whose card IS translucent,
+    # sets blur(10px). Stated explicitly rather than omitted so the asymmetry
+    # between the two shipped themes reads as deliberate.
+    node_backdrop_blur = "none"
     # Tier 2 (canvas affordances; global/graph tier only — see theme-canon).
     node_selected = "#4f8ef7"
     node_active = "#8fb8ff"
@@ -159,6 +165,12 @@ class HaywireLightTheme(BaseTheme):
     node_header_bg = "#f0f0f6"
     node_header_text_color = "rgba(0,0,0,0.87)"
     node_text_color = "rgba(0,0,0,0.87)"
+    # Kept, and it is the expensive one: node_bg above is translucent, so the
+    # blur is what makes a card read as frosted glass rather than as a wash of
+    # whatever it happens to be over. It costs — 1.90x on zoomed-out pan on a
+    # 200-node graph, recomputed per card per frame. A theme that wants that
+    # framerate back sets "none" here, as the dark theme does.
+    node_backdrop_blur = "blur(10px)"
     # Tier 2 (canvas affordances; global/graph tier only — see theme-canon).
     node_selected = "#4f8ef7"
     node_active = "#1f5fd0"
