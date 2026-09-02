@@ -3,10 +3,18 @@ name: node-detail-and-lod-classes
 description: Handoff — two open design decisions on node detail and the LOD classes, with the measurements that constrain them; the pan performance work they came out of is landed
 metadata:
   type: project
-  status: open
+  status: resolved
 ---
 
 # Node detail and the LOD classes: two decisions to make
+
+**Resolved 2026-09-02.** Both decisions below went the "fast path": the gate
+measurement (Decision A) came back fast (~1s for a 200-node selection change),
+so both were implemented as designed. See
+`docs/superpowers/plans/2026-09-02-node-detail-and-lod-classes.md` for the
+implementation plan and `docs/adr/0032-node-detail-and-collapse.md`'s
+"Superseded in part (2026-09-02)" section for the landed design. This file's
+body below is kept verbatim as the design brief that led there.
 
 The zoomed-out pan problem is **solved and landed**. What is left is a design
 question it uncovered: `NodeDetail` is a construction gate, and it measured

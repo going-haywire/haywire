@@ -234,3 +234,47 @@ No migration either way: `Settings.from_dict` skips unknown value keys, so a
 saved graph carrying `props.muted` or `props.pinned` drops the key silently and
 `locked` starts at its default — the same mechanism decision 10's five retired
 flags relied on.
+
+## Superseded in part (2026-09-02): NodeDetail becomes a CSS filter, not a construction gate
+
+Decision 3 above — "Both axes gate construction, not CSS... A CSS gate would
+leave every element built, mounted and re-walked" — was right about **Node
+collapse** and wrong about **NodeDetail**, for a reason ADR 0006 later
+measured directly: NodeDetail's construction-gate cost was never the
+mounted-element re-walk this decision worried about. It was the pan-time
+paint/layout cost of what those elements render, and `display: none` removes
+that cost identically to never building them — measured at 0.98x/1.02x of
+constructed WIDGETS-equivalent (see `.scratch/pan-perf/RESULTS.md` and
+`internals/handoff/node-detail-and-lod-classes.md`, decision A).
+
+**What changed:**
+
+- `NodeDetail` grew from 3 ranks (`COMPACT`/`STANDARD`/`FULL`) to 5
+  (`PINS`/`PINS_ALL`/`WIDGETS`/`LABELS`/`FULL`) — a floor step for "unlinked
+  pins" is now distinct from "linked pins only", where the old COMPACT
+  conflated them.
+- Every element a rank could exclude is now always built. What a skin adds is
+  a `.hw-detail-*` class (`haywire/ui/skin/visibility.py`'s `pins_all`/
+  `widget`/`label`/`diagnostics` properties), matched by
+  `[data-node-props-detail]` rules in `canvas.vue` — the SAME mechanism
+  `locked` already used for its own attribute, and the same TECHNIQUE
+  (attribute-selector + `display:none`) the zoom-driven LOD system uses,
+  though the two remain conceptually separate (ADR 0006).
+- `detail` left `NodeProperties.REDRAW_FIELDS`; `collapsed` did not. **Node
+  collapse is unaffected by this supersession** — it stays a real
+  construction gate, exactly as decision 3 originally specified, because
+  nothing in the pan measurement touched it.
+- A CSS-hidden widget's model→view push traffic is now explicitly suppressed
+  (`BaseWidget._is_detail_hidden`), closing the gap a pure CSS-filter would
+  otherwise open: "hidden but built" must not mean "hidden but still costing
+  server round-trips every frame".
+
+**Breaking change, no migration.** Old saved-graph values `"compact"`/
+`"standard"` are unrecognised strings under the new enum and degrade to
+`FULL` via `NodeDetail.coerce()`'s existing (unchanged) fallback. No shim was
+built — there is no external install base to protect at the time of this
+change.
+
+**Not reopened:** decision 1 (two axes, not one). Collapse and NodeDetail
+remain independently composable exactly as originally decided; the 5-rank
+ladder lives entirely inside the NodeDetail axis.
