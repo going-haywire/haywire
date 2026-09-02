@@ -32,6 +32,13 @@ def _redraw_results(results: List[ValidationResult], node_id: str) -> List[Valid
 #: destroyed the input being typed into.
 STYLE_WRITE_FIELDS = {"node_theme", "color_override"}
 
+#: Non-layout props that deliberately do NOT redraw for a THIRD reason,
+#: distinct from STYLE_WRITE_FIELDS: `detail` (NodeDetail) stopped being a
+#: construction gate in the 2026-09 CSS-filter redesign (ADR 0032's
+#: "Superseded" section). A rank change is a `.hw-detail-*` class flip
+#: (UINode._apply_detail_attr), not a CSS-var restyle and not a card rebuild.
+CLASS_FLIP_FIELDS = {"detail"}
+
 
 class TestRedrawFieldsSchema:
     """Pure schema contract — no graph or library system needed."""
@@ -39,7 +46,7 @@ class TestRedrawFieldsSchema:
     def test_redraw_fields_are_the_non_layout_props_minus_style_writes(self):
         fields = NodeProperties._property_settings()
         non_layout = {name for name, desc in fields.items() if desc._category != "layout"}
-        assert set(NodeProperties.REDRAW_FIELDS) == non_layout - STYLE_WRITE_FIELDS
+        assert set(NodeProperties.REDRAW_FIELDS) == non_layout - STYLE_WRITE_FIELDS - CLASS_FLIP_FIELDS
 
     def test_style_write_fields_exist_and_are_excluded(self):
         """Guards the exclusion against a rename: if one of these props is ever
@@ -48,6 +55,13 @@ class TestRedrawFieldsSchema:
         fields = NodeProperties._property_settings()
         for name in STYLE_WRITE_FIELDS:
             assert name in fields, f"'{name}' is gone — update STYLE_WRITE_FIELDS"
+            assert name not in NodeProperties.REDRAW_FIELDS
+
+    def test_class_flip_fields_exist_and_are_excluded(self):
+        """Same guard as above, for the class-flip exclusion set."""
+        fields = NodeProperties._property_settings()
+        for name in CLASS_FLIP_FIELDS:
+            assert name in fields, f"'{name}' is gone — update CLASS_FLIP_FIELDS"
             assert name not in NodeProperties.REDRAW_FIELDS
 
 
@@ -71,9 +85,6 @@ class TestPropsChangeTriggersRedraw:
         wrapper = _add_node(graph_obj)
         values = {
             "collapsed": True,
-            # Must differ from the resolved value or __set__ short-circuits on
-            # equality and no redraw fires — detail defaults to FULL.
-            "detail": "compact",
             "locked": True,
             "skin": "some:skin:key",
             "layout_direction": "t2b",
@@ -88,6 +99,24 @@ class TestPropsChangeTriggersRedraw:
             setattr(wrapper.node.props, field_name, value)
             graph_obj.unsubscribe_from_validation(results.append)
             assert _redraw_results(results, wrapper.node_id), f"no redraw for '{field_name}'"
+
+    def test_detail_change_does_not_redraw(self, graph_with_library_system):
+        """NodeDetail stopped being a redraw field (2026-09 CSS-filter
+        redesign) — a rank change is a class-attribute flip
+        (UINode._apply_detail_attr), not a card rebuild."""
+        graph_obj = graph_with_library_system
+        wrapper = _add_node(graph_obj)
+
+        results: List[ValidationResult] = []
+        graph_obj.subscribe_to_validation(results.append)
+
+        # Must differ from the resolved value or __set__ short-circuits on
+        # equality and nothing fires either way — detail defaults to FULL.
+        wrapper.node.props.detail = "pins"
+
+        assert not _redraw_results(results, wrapper.node_id), (
+            "detail rides the class-flip path and must not full-redraw"
+        )
 
     def test_style_write_props_do_not_redraw(self, graph_with_library_system):
         """A colour or node-theme change restyles the host slot; it must not
