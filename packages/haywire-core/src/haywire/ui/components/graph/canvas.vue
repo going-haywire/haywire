@@ -69,6 +69,11 @@ import 'graph_events';
  *                       Stamped by UINode in ui_node.py.
  *     …-locked          props.locked — refuses drag pickup, hides the resize
  *                       gadget. On the [data-node-id] CONTAINER.
+ *     …-detail          props.detail — the resolved NodeDetail rank
+ *                       (ADR 0032). On the [data-node-id] CONTAINER. Always
+ *                       present (unlike locked): every node resolves to a
+ *                       rank. Read by the [data-node-props-detail] rules
+ *                       this file defines further down.
  *     …-size-adapt      props.size_adapt — per-axis manual/auto sizing. On the
  *                       .ui-node-slot, and written back by THIS file during a
  *                       resize drag, so it is shared state, not one-way.

@@ -96,11 +96,12 @@ def test_subscribe_slot_fields_wires_size_and_appearance():
     n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_slot_fields()
     watched = {call.args[0] for call in n.wrapper.node.props.subscribe_field.call_args_list}
-    # `locked` is subscribed here too but is NOT a slot field: it stamps
-    # `data-node-props-locked` on the CONTAINER (canvas.vue reads it off `[data-node-id]`
-    # to decide what a drag picks up), so it runs its own handler rather than
-    # _on_slot_field_change. Listed separately to keep that distinction visible
-    # rather than letting it blur into the style-write set.
+    # `locked` and `detail` are subscribed here too but are NOT slot fields:
+    # both stamp a `data-node-props-*` attribute on the CONTAINER (canvas.vue
+    # reads locked off `[data-node-id]` to decide what a drag picks up; detail
+    # the same way for its own CSS rules), so each runs its own handler rather
+    # than _on_slot_field_change. Listed separately to keep that distinction
+    # visible rather than letting it blur into the style-write set.
     assert watched == {
         "width",
         "height",
@@ -108,19 +109,22 @@ def test_subscribe_slot_fields_wires_size_and_appearance():
         "node_theme",
         "color_override",
         "locked",
+        "detail",
     }
 
 
 def test_locked_is_wired_to_the_container_not_the_slot():
-    """The guard on the distinction above: `locked` must not be routed through
-    the slot-style handler, which would stamp the attribute where canvas.vue
-    cannot see it (custom attributes do not inherit down from an ancestor)."""
+    """The guard on the distinction above: `locked` and `detail` must not be
+    routed through the slot-style handler, which would stamp the attribute
+    where canvas.vue cannot see it (custom attributes do not inherit down
+    from an ancestor)."""
     n = _ui_node_with_props("auto", 200.0, 200.0)
     n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_slot_fields()
 
     handlers = {call.args[0]: call.args[1] for call in n.wrapper.node.props.subscribe_field.call_args_list}
     assert handlers["locked"] is not n._on_slot_field_change
+    assert handlers["detail"] is not n._on_slot_field_change
     for slot_field in ("width", "height", "size_adapt", "node_theme", "color_override"):
         assert handlers[slot_field] == n._on_slot_field_change
 

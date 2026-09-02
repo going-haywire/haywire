@@ -70,6 +70,7 @@ class UINode:
 
         self._subscribe_slot_fields()
         self._apply_locked_attr()
+        self._apply_detail_attr()
 
     @property
     def position(self) -> Optional[tuple[float, float]]:
@@ -248,6 +249,12 @@ class UINode:
         # drag picks up — and custom attributes, unlike CSS vars, do not
         # inherit down to it from an ancestor.
         props.subscribe_field("locked", lambda _v, _o: self._apply_locked_attr())
+        # `detail` rides its own handler, same as `locked`: it stamps the
+        # CONTAINER (not the slot), because canvas.vue's [data-node-props-detail]
+        # rules key off it the same way [data-node-props-locked] does — and
+        # custom attributes do not inherit down to descendants the way CSS
+        # vars do.
+        props.subscribe_field("detail", lambda _v, _o: self._apply_detail_attr())
 
     def _apply_locked_attr(self) -> None:
         """Stamp ``data-node-props-locked`` on the container for canvas.vue to read.
@@ -266,6 +273,27 @@ class UINode:
             self.container._props["data-node-props-locked"] = "true"
         else:
             self.container._props.pop("data-node-props-locked", None)
+        self.container.update()
+
+    def _apply_detail_attr(self) -> None:
+        """Stamp ``data-node-props-detail`` on the container for canvas.vue to read.
+
+        Unlike ``locked`` (presence-tested), this is ALWAYS present — every
+        node resolves to some ``NodeDetail`` rank, so the client never has to
+        distinguish "absent" from "at the floor rank". Value is the resolved
+        rank's wire string (``NodeDetail.coerce`` already degrades anything
+        unreadable to ``FULL``), read once here rather than re-deriving the
+        resolution logic client-side.
+
+        The ``data-node-props-`` prefix is the convention for an attribute that
+        mirrors a ``NodeProperties`` field — see the attribute index at the top
+        of canvas.vue's ``<script>``; this entry was added there alongside this
+        method.
+        """
+        from haywire.core.types import NodeDetail
+
+        detail = NodeDetail.coerce(self.wrapper.node.props.detail)
+        self.container._props["data-node-props-detail"] = detail.value
         self.container.update()
 
     def _node_theme_declarations(self) -> list[str]:
