@@ -402,6 +402,7 @@ class HaywireApp:
                 show=open_browser,
                 title="Haywire",
                 reload=False,
+                reconnect_timeout=15.0,
                 **ssl_kwargs,  # type: ignore[arg-type]
             )
         except KeyboardInterrupt:
