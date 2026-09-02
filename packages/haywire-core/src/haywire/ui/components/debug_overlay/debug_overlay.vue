@@ -4,7 +4,23 @@
     v-show="visible"
     class="debug-overlay"
     :style="containerStyle"
-  >{{ text }}</div>
+  ><span>{{ text }}</span><span
+      v-if="lastRow"
+      class="hw-perf-row"
+    >{{ lastRow }}</span><span class="hw-perf-bar"><button
+      class="hw-perf-btn"
+      :disabled="recording"
+      @click="applyZoomTarget"
+    >zoom {{ zoomTarget }}</button><button
+      class="hw-perf-btn"
+      :disabled="recording"
+      @click="startRecording"
+    >{{ recording ? '● ' + phaseLabel : 'record ' + recordSeconds + 's' }}</button><button
+      v-if="lastRow"
+      class="hw-perf-btn"
+      :disabled="recording"
+      @click="copyLastRow"
+    >{{ copyLabel }}</button></span></div>
 </template>
 
 <script>
@@ -24,11 +40,33 @@ export default {
     position:    { type: String,  default: 'bottom-left' },
     visible:     { type: Boolean, default: false },
     censusIntervalMs: { type: Number, default: 1000 },
+    // Length of one `record` run. Long enough to cover a whole gesture, short
+    // enough that a human can hold a steady pan for the duration.
+    recordSeconds: { type: Number, default: 5 },
+    // Lead-in before the window opens, so the gesture is already up to speed
+    // when the first frame is counted. Without it the run measures the reaction
+    // time between clicking and touching the trackpad.
+    countdownSeconds: { type: Number, default: 3 },
+    // How long a finished run stays on screen before the rolling readout resumes.
+    resultHoldMs: { type: Number, default: 15000 },
+    // One-click zoom so every run starts from the same scale. Note the pan
+    // container floors zoom at "canvas fills viewport" when its min-zoom setting
+    // is automatic, so a small target can land higher than asked — the button
+    // reports what it actually got, and that is what a run records.
+    zoomTarget: { type: Number, default: 0.09 },
   },
 
   data() {
     return {
       text: 'debug overlay\nstarting…',
+      // Reactive only because the template reads them — written a few times
+      // per run, never per frame.
+      recording: false,
+      phaseLabel: '',
+      // Last finished run's RESULTS.md row, shown verbatim and selectable so it
+      // can always be taken by hand, whatever the clipboard does.
+      lastRow: '',
+      copyLabel: 'copy row',
     };
   },
 
@@ -82,11 +120,31 @@ export default {
     this._measureRate      = { sent: 0, batches: 0 };
     this._longTaskSupported = false;
     this.STALL_MS      = 50;     // matches the PerformanceLongTaskTiming threshold
+    // Fixed-window recorder (see startRecording). Null when not recording.
+    this._rec          = null;
+    this._recHoldUntil = 0;      // keeps a finished run's readout on screen
+    // Every run of the session, so several can be compared without scrollback.
+    window.__hwPerfRuns = window.__hwPerfRuns || [];
 
-    // Long-task observer (main-thread blocks > 50ms). PerformanceObserver throws
-    // if 'longtask' is unsupported; the supported flag lets the HUD show 'n/a'
-    // instead of a misleading 0. buffered:true picks up tasks fired before mount.
-    try {
+    // Capability check via supportedEntryTypes — NOT a try/catch.
+    //
+    // observe({type}) with an unsupported type does NOT throw: per the
+    // Performance Timeline spec it aborts quietly (a console warning at most).
+    // So a try/catch reports "supported" on a browser that silently registered
+    // nothing, and every counter then reads a clean, entirely fictional zero.
+    //
+    // This mattered: Firefox supports neither 'longtask' nor
+    // 'long-animation-frame', so runs taken there reported `lt-obs: yes` with
+    // 0 long tasks and 0 LoAF, and that was read as "the main thread is idle".
+    // It meant "nothing was ever being counted".
+    const supportsEntry = (name) => {
+      const types = (window.PerformanceObserver && PerformanceObserver.supportedEntryTypes) || [];
+      return Array.prototype.indexOf.call(types, name) !== -1;
+    };
+
+    // Long-task observer (main-thread script blocks > 50ms).
+    this._longTaskSupported = supportsEntry('longtask');
+    if (this._longTaskSupported) {
       this._observer = new PerformanceObserver((list) => {
         for (const entry of list.getEntries()) {
           this._longTasks  += 1;
@@ -94,11 +152,63 @@ export default {
         }
       });
       this._observer.observe({ type: 'longtask', buffered: true });
-      this._longTaskSupported = true;
-    } catch (e) {
-      // 'longtask' unavailable (e.g. Safari/Firefox) — fall back to rAF stalls.
-      this._longTaskSupported = false;
     }
+
+    // Long Animation Frames. This is the one that settles main-thread vs
+    // compositor, and 'longtask' CANNOT: a long task is only the script part of
+    // a task, so style/layout/paint inside the frame update goes largely
+    // unattributed — which is exactly why this API was added afterwards. A run
+    // showing 80ms frames and no long tasks is therefore NOT evidence the main
+    // thread is idle; a run showing 80ms frames and no LoAF entries is.
+    //
+    // LoAF only reports frames >= 50ms, which is below the frames of interest
+    // here, so silence is meaningful rather than a sampling gap.
+    this._loafCount = 0;
+    this._loafMs    = 0;
+    this._loafSlMs  = 0;   // style + layout portion, the part longtask misses
+    this._loafSupported = supportsEntry('long-animation-frame');
+    if (this._loafSupported) {
+      this._loafObserver = new PerformanceObserver((list) => {
+        for (const entry of list.getEntries()) {
+          this._loafCount += 1;
+          this._loafMs    += entry.duration;
+          if (entry.styleAndLayoutStart) {
+            this._loafSlMs += (entry.startTime + entry.duration) - entry.styleAndLayoutStart;
+          }
+        }
+      });
+      this._loafObserver.observe({ type: 'long-animation-frame', buffered: true });
+    }
+
+    // Main-thread occupancy probe — engine-agnostic, and the reason LoAF is not
+    // enough.
+    //
+    // LoAF only reports animation frames of 50ms or more. Chrome's frames here
+    // average ~40ms, just under that, so LoAF stays silent whatever the main
+    // thread is doing; Firefox does not implement it at all. Neither can answer
+    // "is the main thread the bottleneck" for this workload.
+    //
+    // A MessageChannel task posted from inside the rAF callback runs AFTER the
+    // browser has finished that frame's rendering update — style, layout, paint
+    // and the compositor commit, main-thread side. The delay before it fires is
+    // therefore the main thread's per-frame work, measured directly:
+    //
+    //   main ≈ frame  → main-thread bound; JS/CSS branches are worth building
+    //   main << frame → the frame is waiting on raster / GPU / vsync instead
+    //
+    // MessageChannel rather than setTimeout(0) because setTimeout is clamped to
+    // ~4ms once nested, which is the same order as the number being measured.
+    this._mainBusyMs      = 0;
+    this._mainBusySamples = 0;
+    this._pendingT0       = null;
+    this._mc = new MessageChannel();
+    this._mc.port1.onmessage = () => {
+      if (this._pendingT0 === null) return;
+      this._mainBusyMs += performance.now() - this._pendingT0;
+      this._mainBusySamples += 1;
+      this._pendingT0 = null;
+    };
+    this._mc.port1.start();
 
     if (this.visible) this._start();
   },
@@ -106,6 +216,7 @@ export default {
   beforeUnmount() {
     this._stop();
     if (this._observer) { this._observer.disconnect(); this._observer = null; }
+    if (this._loafObserver) { this._loafObserver.disconnect(); this._loafObserver = null; }
   },
 
   watch: {
@@ -132,6 +243,9 @@ export default {
       this._measureRate      = { sent: 0, batches: 0 };
       // Force the readout to paint on the first tick rather than 100ms in.
       this._textLastT = 0;
+      // A hold left over from before the overlay was hidden would otherwise
+      // freeze the readout on a stale run for up to resultHoldMs.
+      this._recHoldUntil = 0;
       // Sets _censusLastT, so the interval gate below starts from now.
       this._runCensus();
       this._rafId = requestAnimationFrame(this._tick);
@@ -142,12 +256,260 @@ export default {
         cancelAnimationFrame(this._rafId);
         this._rafId = null;
       }
+      // Drop an in-flight run rather than reporting a window the loop stopped
+      // measuring halfway through.
+      this._rec = null;
+      this.recording = false;
+      this.phaseLabel = '';
     },
 
     _pct(arr, p) {
       if (!arr.length) return 0;
       const s = [...arr].sort((a, b) => a - b);
       return s[Math.min(s.length - 1, Math.floor(p * s.length))];
+    },
+
+    /** Begin a fixed-length measurement window.
+     *
+     *  The rolling readout is for watching; comparing two branches needs ONE
+     *  number per run, taken over the same interval, under the same gesture.
+     *
+     *  For the duration the HUD writes no text and the census is suspended.
+     *  Both touch the DOM (the census also walks the entire canvas subtree,
+     *  which is exactly the cost being diagnosed), and a run that includes its
+     *  own instrument is not comparable against a run that skipped it. The
+     *  scene counts are therefore snapshotted here, at the start.
+     */
+    startRecording() {
+      if (this.recording || this._rafId == null) return;
+      this._rec = {
+        phase:   'countdown',
+        // Counters and the scene snapshot are filled in at _openWindow, once
+        // the countdown has elapsed — the census may still refresh during it.
+        primed:  false,
+        startT:  performance.now(),
+        frames:  0,
+        times:   [],
+        stalls:  0,
+      };
+      this.recording = true;
+      this.phaseLabel = `${this.countdownSeconds}`;
+      // Nagged at the start, not the end: once the run is over the row is
+      // already stamped '(unset)' and has to be fixed by hand in the table.
+      const tag = window.__hwPerfBranch
+        ? ''
+        : '\n⚠ __hwPerfBranch unset — row will say (unset)';
+      this.text = `starting in ${this.countdownSeconds}…\nbegin panning NOW${tag}`;
+      this._recHoldUntil = 0;
+    },
+
+    /** Countdown elapsed — take the snapshot and open the measurement window. */
+    _openWindow(now) {
+      const r = this._rec;
+      const c = this._census || {};
+      r.phase  = 'recording';
+      r.startT = now;
+      // Cumulative counters — differenced at the end to get this run's share.
+      r.longTasks  = this._longTasks;
+      r.longTaskMs = this._longTaskMs;
+      r.loafCount  = this._loafCount;
+      r.loafMs     = this._loafMs;
+      r.loafSlMs   = this._loafSlMs;
+      r.mainBusyMs = this._mainBusyMs;
+      r.mainBusySamples = this._mainBusySamples;
+      // Pan travel, so a run can prove it actually panned. `_clampPanValues`
+      // CENTERS an axis whose scaled canvas is smaller than the viewport and
+      // refuses to move it — at zoom 0.15 the 8000px canvas is only 1200px
+      // wide, so on a wider window horizontal pan is pinned and a vigorous
+      // trackpad sweep moves nothing. A run that measured a static transform
+      // must not be compared against one that measured a moving one.
+      const el = document.getElementById(this.containerId);
+      r.controls = (el && el._zoomPanControls) || null;
+      r.lastPan  = r.controls ? r.controls.getPan() : null;
+      r.panPx    = 0;
+      r.zoom = c.zoom != null ? c.zoom : 'n/a';
+      r.lod  = c.lod  != null ? c.lod  : 'n/a';
+      r.totalEls = c.totalEls;
+      r.nodes = c.nodes;
+      r.pins = c.pins;
+      r.paths = c.paths;
+      this.phaseLabel = 'recording…';
+      this.text = `● recording ${this.recordSeconds}s — keep panning`;
+    },
+
+    /** Jump the canvas to `zoomTarget` so runs start from the same scale.
+     *
+     *  Reads the achieved zoom back rather than trusting the request: the pan
+     *  container clamps to its own floor, which with an automatic min-zoom is
+     *  "canvas fills viewport" and therefore depends on the window size.
+     */
+    applyZoomTarget() {
+      const el = document.getElementById(this.containerId);
+      const controls = el && el._zoomPanControls;
+      if (!controls) {
+        this.text = 'zoom: no pan controls on this container';
+        this._recHoldUntil = performance.now() + 3000;
+        return;
+      }
+      controls.setZoom(this.zoomTarget);
+      const got = controls.getZoom();
+      const floored = Math.abs(got - this.zoomTarget) > 1e-6;
+      // Force the scene counts to catch up with the new LOD before a run
+      // snapshots them.
+      this._runCensus();
+      this.text = floored
+        ? `zoom ${got.toFixed(3)}  (asked ${this.zoomTarget}, floored at min)\n` +
+          `LOD ${this._census.lod} — record from here`
+        : `zoom ${got.toFixed(3)}   LOD ${this._census.lod}\nready to record`;
+      this._recHoldUntil = performance.now() + 4000;
+    },
+
+    _finishRecording(now) {
+      const r = this._rec;
+      this._rec = null;
+      this.recording = false;
+
+      const elapsed = now - r.startT;
+      const t = r.times;
+      const mean = t.length ? t.reduce((a, b) => a + b, 0) / t.length : 0;
+      const round = (n) => Math.round(n * 100) / 100;
+
+      const run = {
+        // Set from the console (`window.__hwPerfBranch = 'perf/…'`) so a run
+        // carries which branch produced it; the HUD cannot know.
+        branch:      window.__hwPerfBranch || '(unset)',
+        seconds:     round(elapsed / 1000),
+        // Frames over wall clock, NOT 1000/mean: a run that drops frames shows
+        // it here, where a mean over the surviving intervals hides it.
+        fps:         round((r.frames * 1000) / (elapsed || 1)),
+        meanFrameMs: round(mean),
+        p50FrameMs:  round(this._pct(t, 0.50)),
+        p95FrameMs:  round(this._pct(t, 0.95)),
+        p99FrameMs:  round(this._pct(t, 0.99)),
+        maxFrameMs:  round(t.length ? Math.max(...t) : 0),
+        stalls:      r.stalls,
+        longTasks:   this._longTasks  - r.longTasks,
+        // Carried explicitly because a zero count is otherwise ambiguous: it
+        // reads the same whether no task ran long or the browser never
+        // reported any. The distinction decides whether "0 long tasks against
+        // N stalls" is evidence the main thread is idle — the whole
+        // main-thread-vs-compositor question turns on it.
+        longTaskObs: this._longTaskSupported,
+        loafCount:   this._loafCount - r.loafCount,
+        loafMs:      Math.round(this._loafMs   - r.loafMs),
+        loafSlMs:    Math.round(this._loafSlMs - r.loafSlMs),
+        loafObs:     this._loafSupported,
+        // Mean main-thread work per frame. Compare against meanFrameMs:
+        // close means main-thread bound, far below means it is not.
+        mainMs:      round((this._mainBusyMs - r.mainBusyMs)
+                       / Math.max(1, this._mainBusySamples - r.mainBusySamples)),
+        panPx:       Math.round(r.panPx),
+        // Which engine produced the run. longtask/LoAF exist only in
+        // Chromium, so a Firefox row and a Chrome row are not the same
+        // measurement and must never be compared column-for-column.
+        engine:      (navigator.userAgent.indexOf('Firefox') !== -1) ? 'ff'
+                     : (navigator.userAgent.indexOf('Chrome') !== -1) ? 'cr' : 'other',
+        longTaskMs:  Math.round(this._longTaskMs - r.longTaskMs),
+        zoom: r.zoom, lod: r.lod,
+        totalEls: r.totalEls, nodes: r.nodes, pins: r.pins, paths: r.paths,
+      };
+
+      window.__hwPerfRuns.push(run);
+      run.row = this._markdownRow(run);
+
+      // The row is logged BARE and last: a console prefix travels with the text
+      // when it is copied out of devtools, and would have to be deleted by hand
+      // from every pasted table row.
+      console.log('[hw-perf]', JSON.stringify(run));
+      console.log(run.row);
+
+      this.phaseLabel = '';
+      this.lastRow = run.row;
+      this.copyLabel = 'copy row';
+      this.text =
+        `RUN ${window.__hwPerfRuns.length}   ${run.seconds}s\n` +
+        `${run.branch}\n` +
+        `fps ${run.fps}   frame ${run.meanFrameMs}ms\n` +
+        `p95 ${run.p95FrameMs}  p99 ${run.p99FrameMs}  max ${run.maxFrameMs}\n` +
+        `stalls ${run.stalls}  longtasks ${run.longTasks} (${run.longTaskMs}ms)\n` +
+        (run.loafObs
+          ? `LoAF ${run.loafCount} (${run.loafMs}ms)  style+layout ${run.loafSlMs}ms\n`
+          : `LoAF n/a\n`) +
+        `main-thread ${run.mainMs}ms of ${run.meanFrameMs}ms frame\n` +
+        `pan travel ${run.panPx}px${run.panPx < 200 ? '  ⚠ BARELY MOVED' : ''}\n` +
+        `-------------------------\n` +
+        `zoom ${run.zoom}   LOD ${run.lod}\n` +
+        `DOM els ${run.totalEls}  nodes ${run.nodes}  pins ${run.pins}`;
+      // Hold the result on screen. Without this the rolling readout overwrites
+      // it 100ms later — before anyone has read the number they asked for.
+      this._recHoldUntil = now + this.resultHoldMs;
+    },
+
+    /** One RESULTS.md table row. Column order must match the table there. */
+    _markdownRow(run) {
+      return `| ${run.branch} | ${run.fps} | ${run.meanFrameMs} | ${run.p95FrameMs} | ` +
+             `${run.p99FrameMs} | ${run.maxFrameMs} | ${run.stalls} | ` +
+             `${run.engine} | ${run.longTasks} (${run.longTaskMs}ms) | ` +
+             `${run.longTaskObs ? 'yes' : 'NO'} | ` +
+             `${run.loafObs ? run.loafCount + ' (' + run.loafMs + 'ms)' : 'n/a'} | ` +
+             `${run.loafObs ? run.loafSlMs : 'n/a'} | ${run.mainMs} | ${run.panPx} | ` +
+             `${run.zoom} | ${run.lod} |`;
+    },
+
+    /** Copy the last run's row. Bound to a button ON PURPOSE.
+     *
+     *  An earlier version copied automatically when the run finished, which
+     *  cannot work: `navigator.clipboard.writeText` needs transient user
+     *  activation, and by then the click that started the run is 8 seconds old
+     *  (3s countdown + 5s window). Chrome rejects with NotAllowedError — and
+     *  since nothing awaited the promise, it surfaced as an unhandled rejection
+     *  while the HUD still claimed the row had been copied.
+     *
+     *  A button press is its own activation, so the write is permitted. The row
+     *  is also rendered selectable above, so a failure here is never a dead end.
+     */
+    copyLastRow() {
+      if (!this.lastRow) return;
+      this._copyToClipboard(this.lastRow).then((ok) => {
+        this.copyLabel = ok ? 'copied ✓' : 'copy failed';
+        setTimeout(() => { this.copyLabel = 'copy row'; }, 2000);
+      });
+    },
+
+    /** Copy `text`; resolves to whether it worked, and never rejects.
+     *
+     *  Mirrors `clipboard_script` in ui/elements/elements.py — keep them in
+     *  step. The execCommand fallback is not optional: navigator.clipboard is
+     *  undefined outside a secure context, and a studio reached over a LAN
+     *  address on plain http is not one (localhost is, which is why this never
+     *  fails where it gets tested). It also catches the case where the API is
+     *  present but refuses the write.
+     */
+    _copyToClipboard(text) {
+      if (navigator.clipboard && window.isSecureContext) {
+        return navigator.clipboard.writeText(text).then(
+          () => true,
+          () => this._copyFallback(text),
+        );
+      }
+      return Promise.resolve(this._copyFallback(text));
+    },
+
+    _copyFallback(text) {
+      try {
+        const area = document.createElement('textarea');
+        area.value = text;
+        area.setAttribute('readonly', '');
+        area.style.position = 'fixed';
+        area.style.top = '-1000px';
+        document.body.appendChild(area);
+        area.select();
+        const ok = document.execCommand('copy');
+        document.body.removeChild(area);
+        return ok;
+      } catch (error) {
+        return false;
+      }
     },
 
     _runCensus() {
@@ -211,6 +573,55 @@ export default {
       // which is inflated by mount/visibility timing rather than real jank.
       if (this._frameCounter > 1 && dt > this.STALL_MS) this._stalls += 1;
 
+      // Recording window. Everything below writes DOM or walks the canvas
+      // subtree, so it is skipped wholesale until the run closes — see
+      // startRecording for why the instrument must stay out of its own numbers.
+      if (this._rec) {
+        const r = this._rec;
+        if (r.phase === 'countdown') {
+          const left = this.countdownSeconds * 1000 - (now - r.startT);
+          if (left <= 0) {
+            this._openWindow(now);
+          } else {
+            // One write per whole second, not per frame — the countdown is
+            // outside the window, but there is no reason to make it expensive.
+            const secs = Math.ceil(left / 1000);
+            if (String(secs) !== this.phaseLabel) {
+              this.phaseLabel = String(secs);
+              const tag = window.__hwPerfBranch
+                ? ''
+                : '\n⚠ __hwPerfBranch unset — row will say (unset)';
+              this.text = `starting in ${secs}…\nbegin panning NOW${tag}`;
+            }
+          }
+        } else if (!r.primed) {
+          // The first interval spans the phase change. Rebase so neither the
+          // window nor the frame stats carry it.
+          r.primed = true;
+          r.startT = now;
+        } else {
+          r.frames += 1;
+          r.times.push(dt);
+          if (dt > this.STALL_MS) r.stalls += 1;
+          // One probe per frame. A frame whose probe has not fired yet is
+          // skipped rather than queued, so the sample is always paired.
+          if (this._pendingT0 === null) {
+            this._pendingT0 = performance.now();
+            this._mc.port2.postMessage(0);
+          }
+          if (r.controls) {
+            // Manhattan path length, not net displacement: a sweep that returns
+            // to where it started still moved the content the whole way.
+            const p = r.controls.getPan();
+            r.panPx += Math.abs(p.x - r.lastPan.x) + Math.abs(p.y - r.lastPan.y);
+            r.lastPan = p;
+          }
+          if (now - r.startT >= this.recordSeconds * 1000) this._finishRecording(now);
+        }
+        this._rafId = requestAnimationFrame(this._tick);
+        return;
+      }
+
       // Census on a wall-clock interval, and only when the previous frame had
       // room for it. The census walks the entire canvas subtree, so on a large
       // graph it is itself a source of jank — skipping it while frames are
@@ -245,7 +656,7 @@ export default {
       // so each write is a Vue update plus a DOM write, and _pct sorts the frame
       // window to find p99. None of that is worth doing at 60fps for a display
       // no one can read that fast — the sampling above stays per-frame.
-      if (now - this._textLastT < 100) {
+      if (now - this._textLastT < 100 || now < this._recHoldUntil) {
         this._rafId = requestAnimationFrame(this._tick);
         return;
       }
@@ -291,5 +702,49 @@ export default {
 .debug-overlay {
   user-select: none;
   -webkit-user-select: none;
+}
+
+/* The result row, verbatim and selectable. The overlay is user-select:none and
+ * pointer-events:none, so without both overrides the row would be visible and
+ * impossible to take by hand — which is the whole point of showing it. */
+.debug-overlay .hw-perf-row {
+  display: block;
+  margin-top: 8px;
+  padding: 4px 6px;
+  border-radius: 4px;
+  border: 1px dashed var(--hw-border);
+  pointer-events: auto;
+  user-select: text;
+  -webkit-user-select: text;
+  cursor: text;
+  white-space: pre-wrap;
+  word-break: break-all;
+  opacity: 0.85;
+}
+
+.debug-overlay .hw-perf-bar {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+/* The overlay container stays pointer-events:none so it never eats a canvas
+ * gesture underneath it — the buttons re-enable them for themselves alone. */
+.debug-overlay .hw-perf-btn {
+  flex: 1;
+  pointer-events: auto;
+  font: inherit;
+  padding: 2px 8px;
+  border-radius: 4px;
+  border: 1px solid var(--hw-border);
+  background: transparent;
+  color: inherit;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.debug-overlay .hw-perf-btn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 </style>
