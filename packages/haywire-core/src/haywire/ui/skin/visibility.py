@@ -9,13 +9,18 @@ ask questions of:
     show = self.show_of(wrapper)
     for port in show.ports(node):
         ...
-    if show.label:
-        ui.label(port.label).classes("text-xs zoom-pan-lod2")
+    label_classes = "text-xs zoom-pan-lod2" + (" hw-detail-label" if show.label else "")
+    ui.label(port.label).classes(label_classes)
 
 The point of the indirection is that the rank→element mapping lives **here and
 nowhere else**. A skin never compares ranks, so re-tiering later — moving
-labels from FULL to STANDARD, say — is a change to this module rather than an
+labels from LABELS to WIDGETS, say — is a change to this module rather than an
 edit to every skin.
+
+Since 2026-09 (see ADR 0032's "Superseded" section) these properties decide
+**CSS-class membership, not construction**: every element is always built, and
+what a rank excludes is hidden by a ``[data-node-props-detail]`` rule in
+``canvas.vue`` keyed off the ``.hw-detail-*`` class the skin adds.
 
 Lives in core (not in the studio skin package) for the same reason
 ``pin_render`` does: a standalone skin that does not subclass ``NodeSkin``
@@ -60,20 +65,34 @@ class NodeVisibility:
     """Density rank of the card when it is not folded."""
 
     # ------------------------------------------------------------------
-    # What to draw
+    # What to draw — now CSS-class membership, not construction booleans.
+    #
+    # Every element below is ALWAYS BUILT. These properties answer "does the
+    # resolved rank's ladder include this content", which a caller uses to
+    # decide whether to add the matching `.hw-detail-*` class (see
+    # `NodeSkin` callers and canvas.vue's `[data-node-props-detail]` rules).
+    # Folding still means "draw none of it" — collapse is unchanged and
+    # still gates CONSTRUCTION (a folded card really does not build these
+    # elements), so these properties stay False while collapsed even though
+    # nothing here is a construction gate for the unfolded case.
     # ------------------------------------------------------------------
 
     @property
-    def label(self) -> bool:
-        """Port labels. FULL only — pin and config-row tooltips already carry
-        identification, and a label is one element per port."""
-        return not self.collapsed and self.detail.includes(NodeDetail.FULL)
+    def pins_all(self) -> bool:
+        """Unlinked ports, in addition to linked ones. PINS_ALL and above."""
+        return not self.collapsed and self.detail.includes(NodeDetail.PINS_ALL)
 
     @property
     def widget(self) -> bool:
         """Inline port widgets, and the group toggles that are themselves
-        widgets. STANDARD and above."""
-        return not self.collapsed and self.detail.includes(NodeDetail.STANDARD)
+        widgets. WIDGETS and above."""
+        return not self.collapsed and self.detail.includes(NodeDetail.WIDGETS)
+
+    @property
+    def label(self) -> bool:
+        """Port labels. LABELS and above — pin and config-row tooltips
+        already carry identification, and a label is one element per port."""
+        return not self.collapsed and self.detail.includes(NodeDetail.LABELS)
 
     @property
     def diagnostics(self) -> bool:

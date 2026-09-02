@@ -244,10 +244,18 @@ class TestNodeCollapseGraphTier:
 
 @pytest.mark.unit
 class TestBothAxesRedraw:
-    @pytest.mark.parametrize("field", ["collapsed", "detail"])
-    def test_axis_is_a_redraw_field(self, field):
-        """Both are CONSTRUCTION gates, so a change must rebuild the card.
-        Without the entry no tier change ever reaches the canvas."""
+    def test_collapse_is_a_redraw_field(self):
+        """Collapse is still a CONSTRUCTION gate, so a change must rebuild the
+        card. Without the entry no tier change ever reaches the canvas."""
         from haywire.core.node.properties import NodeProperties
 
-        assert field in NodeProperties.REDRAW_FIELDS
+        assert "collapsed" in NodeProperties.REDRAW_FIELDS
+
+    def test_detail_is_not_a_redraw_field(self):
+        """NodeDetail stopped being a construction gate (2026-09 CSS-filter
+        redesign) — a rank change is a class-attribute flip handled by
+        UINode._apply_detail_attr, not a card rebuild. If this ever needs to
+        change back, it is a deliberate reversal, not a bug fix."""
+        from haywire.core.node.properties import NodeProperties
+
+        assert "detail" not in NodeProperties.REDRAW_FIELDS

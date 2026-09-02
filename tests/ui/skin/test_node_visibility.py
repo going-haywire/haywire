@@ -31,38 +31,42 @@ class TestRankMapping:
     """The truth table. Read it as the spec."""
 
     @pytest.mark.parametrize(
-        ("detail", "label", "widget", "diagnostics"),
+        ("detail", "pins_all", "widget", "label", "diagnostics"),
         [
-            (NodeDetail.COMPACT, False, False, False),
-            (NodeDetail.STANDARD, False, True, False),
-            (NodeDetail.FULL, True, True, True),
+            (NodeDetail.PINS, False, False, False, False),
+            (NodeDetail.PINS_ALL, True, False, False, False),
+            (NodeDetail.WIDGETS, True, True, False, False),
+            (NodeDetail.LABELS, True, True, True, False),
+            (NodeDetail.FULL, True, True, True, True),
         ],
     )
-    def test_unfolded_ranks(self, detail, label, widget, diagnostics):
+    def test_unfolded_ranks(self, detail, pins_all, widget, label, diagnostics):
         show = _show(detail)
-        assert show.label is label
+        assert show.pins_all is pins_all
         assert show.widget is widget
+        assert show.label is label
         assert show.diagnostics is diagnostics
 
     @pytest.mark.parametrize("detail", list(NodeDetail))
     def test_folding_beats_every_rank(self, detail):
         """A folded card draws none of it, whatever the detail says."""
         show = _show(detail, collapsed=True)
-        assert not show.label
+        assert not show.pins_all
         assert not show.widget
+        assert not show.label
         assert not show.diagnostics
 
     def test_labels_sit_above_widgets(self):
         """Deliberate ordering (ADR 0032): tooltips already identify a port, and
         a label is one element per port against a widget's whole subtree — so
-        STANDARD buys widgets and FULL adds the cheaper half."""
-        assert _show(NodeDetail.STANDARD).widget
-        assert not _show(NodeDetail.STANDARD).label
+        WIDGETS buys widgets and LABELS adds the cheaper half."""
+        assert _show(NodeDetail.WIDGETS).widget
+        assert not _show(NodeDetail.WIDGETS).label
 
     def test_predicates_are_properties_not_methods(self):
         """`if show.label:` on a method is silently always true — this object
         exists to make that class of bug impossible."""
-        for name in ("label", "widget", "diagnostics"):
+        for name in ("pins_all", "widget", "label", "diagnostics"):
             assert isinstance(getattr(NodeVisibility, name), property)
 
     def test_is_a_frozen_value(self):
@@ -144,7 +148,7 @@ class TestPortFilter:
         real = _FakePort("real", order=3, linked=True)
         node = _fake_node([section, group, real])
 
-        assert _show(NodeDetail.COMPACT, collapsed=True).ports(node) == [real]
+        assert _show(NodeDetail.PINS, collapsed=True).ports(node) == [real]
 
     def test_folded_preserves_display_order(self):
         late = _FakePort("late", order=9, linked=True)
@@ -167,9 +171,9 @@ class _FakeWrapper:
 
 class TestResolver:
     def test_reads_both_axes(self):
-        show = resolve_node_visibility(_fake_wrapper(_FakeProps(True, "compact")))
+        show = resolve_node_visibility(_fake_wrapper(_FakeProps(True, "pins")))
         assert show.collapsed is True
-        assert show.detail is NodeDetail.COMPACT
+        assert show.detail is NodeDetail.PINS
 
     @pytest.mark.parametrize("junk", ["sideways", None, 7])
     def test_corrupt_detail_degrades_to_full(self, junk):
@@ -320,11 +324,11 @@ class TestAgainstRealNodes:
         graph_obj = live_graph
         wrapper = self._add_node(graph_obj)
 
-        graph_obj.props.detail = NodeDetail.COMPACT.value
-        assert resolve_node_visibility(wrapper).detail is NodeDetail.COMPACT
+        graph_obj.props.detail = NodeDetail.PINS.value
+        assert resolve_node_visibility(wrapper).detail is NodeDetail.PINS
 
-        wrapper.node.props.detail = NodeDetail.STANDARD.value
-        assert resolve_node_visibility(wrapper).detail is NodeDetail.STANDARD
+        wrapper.node.props.detail = NodeDetail.WIDGETS.value
+        assert resolve_node_visibility(wrapper).detail is NodeDetail.WIDGETS
 
         graph_obj.props.collapsed = True
         assert resolve_node_visibility(wrapper).collapsed is True

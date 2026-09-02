@@ -31,7 +31,6 @@ class NodeProperties(NodeSettings):
 
     REDRAW_FIELDS: tuple[str, ...] = (
         "collapsed",
-        "detail",
         "locked",
         "skin",
         "layout_direction",
@@ -44,10 +43,19 @@ class NodeProperties(NodeSettings):
     (posX/posY/width/height/…) are deliberately absent — position changes
     ride the cheaper NODE_MOVED path and fire on every drag tick.
 
-    ``collapsed`` and ``detail`` belong here for a reason specific to them:
-    both are CONSTRUCTION gates, so a change must rebuild the card rather than
-    restyle it. Hiding with CSS would leave every element built, mounted and
-    re-walked, which is the cost the axes exist to avoid (ADR 0032, ADR 0006).
+    ``collapsed`` belongs here for a reason specific to it: it is a
+    CONSTRUCTION gate, so a change must rebuild the card rather than restyle
+    it. Hiding with CSS would leave every element built, mounted and
+    re-walked, which is the cost the axis exists to avoid (ADR 0032).
+
+    ``detail`` (NodeDetail) does NOT belong here, deliberately, as of the
+    2026-09 CSS-filter redesign (ADR 0032's "Superseded" section): every
+    element a rank could exclude is now always built, and a rank change is a
+    ``.hw-detail-*`` class flip handled by ``UINode._apply_detail_attr`` and
+    canvas.vue's ``[data-node-props-detail]`` rules — not a card rebuild. It
+    used to be here for the same construction-gate reason ``collapsed`` still
+    is; the measurement that justified moving it lives in
+    ``internals/handoff/node-detail-and-lod-classes.md``.
 
     So are the two appearance fields (``node_theme``, ``color_override``):
     both resolve to CSS custom properties written onto the node's host slot,
