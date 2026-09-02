@@ -588,128 +588,17 @@ export default {
 </style>
 
 <style>
-//* LOD-based visibility rules with hover persistence - Optimized Version */
-
-/* Base transitions for appearing/disappearing elements */
-.zoom-pan-lod1,
-.zoom-pan-lod2,
-.zoom-pan-lod3 {
-  transition: opacity 0.3s ease-out;
-}
-
-/* CSS Custom Properties for LOD management.
+/* LOD-driven display:none rules removed (design session, 2026-09): measured
+ * at 2.15x pan cost for a 0.2%/0.04% framerate gain (see
+ * internals/handoff/node-detail-and-lod-classes.md, decision B, and
+ * .scratch/pan-perf/RESULTS.md for the full matrix). The crossing itself —
+ * not what it hides — was the cost; the collapsed-sweep control measured
+ * flat (68.60 vs 68.57 fps) with nothing to hide, ruling out "not enough was
+ * hidden" as the explanation.
  *
- * These drive opacity/pointer-events. The companion `display: none` rules
- * further down additionally take hidden layers out of the render tree, since an
- * element hidden by opacity alone still gets restyled at every LOD crossing.
- * Port labels dominate that cost because text is expensive to restyle — a
- * crossing measured ~32ms of RecalcStyle for 1200 labels on a 200-node graph.
- *
- * Be aware the display rules did NOT eliminate that cost in practice: crossings
- * still measured ~31ms end-to-end. Removing elements from the tree is directionally
- * right, but the remaining cost scales with how many elements the restyle must
- * walk, so the real fix is fewer mounted nodes (viewport culling), not more CSS. */
-:root {
-  --lod-1-opacity: 1;
-  --lod-1-pointer-events: auto;
-  --lod-2-opacity: 1;
-  --lod-2-pointer-events: auto;
-  --lod-3-opacity: 1;
-  --lod-3-pointer-events: auto;
-}
-
-/* LOD Level Overrides: Set visibility based on zoom level */
-[data-lod-level="raw"] {
-  --lod-1-opacity: 0;
-  --lod-1-pointer-events: none;
-  --lod-2-opacity: 0;
-  --lod-2-pointer-events: none;
-  --lod-3-opacity: 0;
-  --lod-3-pointer-events: none;
-}
-
-[data-lod-level="low"] {
-  --lod-2-opacity: 0;
-  --lod-2-pointer-events: none;
-  --lod-3-opacity: 0;
-  --lod-3-pointer-events: none;
-}
-
-[data-lod-level="medium"] {
-  --lod-3-opacity: 0;
-  --lod-3-pointer-events: none;
-}
-
-/* Apply custom properties to LOD elements */
-.zoom-pan-lod1 {
-  opacity: var(--lod-1-opacity);
-  pointer-events: var(--lod-1-pointer-events);
-}
-
-.zoom-pan-lod2 {
-  opacity: var(--lod-2-opacity);
-  pointer-events: var(--lod-2-pointer-events);
-}
-
-.zoom-pan-lod3 {
-  opacity: var(--lod-3-opacity);
-  pointer-events: var(--lod-3-pointer-events);
-}
-
-/* Take hidden LOD layers OUT OF THE RENDER TREE, not just make them invisible.
- *
- * An element hidden with opacity alone stays in the tree, so every LOD crossing
- * makes Blink restyle all of them: measured at ~32ms of RecalcStyle for the
- * 1200 port labels on a 200-node graph, which is the hitch felt when wheeling
- * across a threshold (text is the expensive thing to restyle, which is why the
- * jumps line up with pin labels appearing). `display: none` drops that to
- * ~0.2ms.
- *
- * These MUST be direct descendant rules, never `display: var(--lod-N-display)`.
- * A custom property invalidates every element referencing it, so routing
- * display through a variable reintroduces exactly the whole-subtree restyle it
- * is meant to avoid — measured at 26.7ms via var() versus 0.2ms here.
- *
- * Hover-persistence is preserved by the `:not(.hw-lod-hover *)` guard, which
- * keeps the hovered card's own subtree out of these rules entirely.
- *
- * The guard is written as an exclusion rather than a companion `display: revert`
- * override, because `revert` rolls back to the USER-AGENT value, not to the
- * author `display` the element would otherwise have. A `<div>` reverts to
- * `block`, which silently destroys any author `display: flex` on the same
- * element — e.g. `.number-drag` (the NumberWidget root carries
- * `widget-container zoom-pan-lod2`) collapsed to a block on node hover, pushing
- * its value text and right arrow out of the fixed-height box, where
- * `.widget-container { overflow: hidden }` clipped them away.
- *
- * `.hw-lod-hover` is a class canvas.vue sets in its existing mouseenter/
- * mouseleave handlers — NOT `:hover`. A descendant-of-:hover selector
- * (`.zoom-pan-lod0:hover .zoom-pan-lod2`) forces Blink to track hover state
- * through every node's subtree, and that alone cost ~37ms of RecalcStyle per LOD
- * crossing on a 200-node graph versus 0.1ms without it. */
-[data-lod-level="raw"] .zoom-pan-lod1:not(.hw-lod-hover *),
-[data-lod-level="raw"] .zoom-pan-lod2:not(.hw-lod-hover *),
-[data-lod-level="low"] .zoom-pan-lod2:not(.hw-lod-hover *),
-[data-lod-level="raw"] .zoom-pan-lod3:not(.hw-lod-hover *),
-[data-lod-level="low"] .zoom-pan-lod3:not(.hw-lod-hover *),
-[data-lod-level="medium"] .zoom-pan-lod3:not(.hw-lod-hover *) {
-  display: none;
-}
-
-/* HOVER PERSISTENCE: Override LOD when hovering - Simplified */
-
-/* Hover persistence. Keyed off the JS-set `.hw-lod-hover` class rather than
- * `:hover` for the reason documented on the display rules above: these set
- * inherited custom properties, so a `:hover`-keyed version makes every LOD
- * crossing re-resolve hover state across the whole canvas subtree. */
-.hw-lod-hover {
-  --lod-1-opacity: 1;
-  --lod-1-pointer-events: auto;
-  --lod-2-opacity: 1;
-  --lod-2-pointer-events: auto;
-  --lod-3-opacity: 1;
-  --lod-3-pointer-events: auto;
-}
+ * data-lod-level is STILL computed and written below (_updateZoomAndLODClass)
+ * as a dormant hook for a future PAINT-ONLY, per-frame change — the zoom
+ * value it needs is already tracked here. Nothing currently reads it. */
 
 /* Card hover affordance + magnifier transition.
  * The hover magnifier (canvas.vue) sets an inline `transform: scale(...)` on
