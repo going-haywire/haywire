@@ -169,33 +169,54 @@ _LAYOUT_DIRECTION_GLYPH_TRANSFORMS: dict[LayoutDirection, str] = {
 
 class NodeDetail(StrEnum):
     """
-    How much of an uncollapsed node card is drawn. See ADR 0032.
+    How much of an uncollapsed node card is drawn. See ADR 0032, superseded
+    in part (2026-09) by the CSS-filter redesign — see the "Superseded"
+    section at the end of that ADR.
 
     Cumulative: each rank draws everything the rank below it draws, plus its
     own. Resolved per node through the framework < graph < node chain
     (``node.props.detail``), so one graph may legitimately mix densities.
 
-    - COMPACT: every pin, nothing else
-    - STANDARD: + inline widgets
-    - FULL: + port labels and diagnostics detail
+    - PINS: linked ports only — the same visual floor Node collapse folds
+      down to, but drawn on a full-chrome (unfolded) card
+    - PINS_ALL: + unlinked ports
+    - WIDGETS: + inline port widgets
+    - LABELS: + port labels
+    - FULL: + inline diagnostics detail
 
     Labels sit *above* widgets deliberately: pin and config-row tooltips
     already carry identification, and a label is one element per port against
-    a widget's whole subtree — so cheap-first makes both steps of the ladder
+    a widget's whole subtree — so cheap-first makes each step of the ladder
     buy something.
 
-    A **construction** gate, not a CSS one: a skin does not build what the rank
-    excludes. This is what separates it from the zoom-driven LOD system, which
-    only decides what is *painted* of what already exists (ADR 0006).
+    A **CSS filter**, not a construction gate: every element at every rank is
+    BUILT. What differs per rank is a ``.hw-detail-*`` class added to each
+    element (see ``haywire.ui.skin.visibility.NodeVisibility``), matched by a
+    ``display: none`` rule keyed off the ``data-node-props-detail`` attribute
+    ``UINode`` stamps on the node's container. This is deliberately the same
+    mechanism the zoom-driven LOD system (ADR 0006) uses for its own classes
+    — the two remain conceptually separate (LOD decides what is painted of
+    what exists at THIS frame; NodeDetail decides what a rank includes) even
+    though they now share a technique. Because nothing is omitted from
+    construction, ``detail`` is NOT in ``NodeProperties.REDRAW_FIELDS`` — a
+    rank change is a class-attribute flip, not a card rebuild.
 
     A ``StrEnum`` with an explicit :attr:`rank`, exactly like ``AccessTier``
     and for the same reason: the wire values stay strings, so adding a rank
     later renumbers nothing in saved graphs. A density scale is precisely the
     kind that grows a member.
+
+    **Breaking change (2026-09):** the old 3-member enum's wire values
+    (``"compact"``, ``"standard"``) are gone. No migration shim — an old
+    saved graph's value is simply unrecognised now and :meth:`coerce`
+    degrades it to ``FULL`` like any other unrecognised string, per this
+    repo's pre-external-install-base state at the time of the change.
     """
 
-    COMPACT = "compact"
-    STANDARD = "standard"
+    PINS = "pins"
+    PINS_ALL = "pins_all"
+    WIDGETS = "widgets"
+    LABELS = "labels"
     FULL = "full"
 
     @property
@@ -220,7 +241,9 @@ class NodeDetail(StrEnum):
         and this runs on the render path — an unrecognised or stale string must
         degrade to the most legible card, never take one down. Degrading
         *upward* is deliberate: a node that draws too much is a performance
-        cost, one that draws too little looks broken.
+        cost, one that draws too little looks broken. Unchanged by the 2026-09
+        rank-count change: old ``"compact"``/``"standard"`` values are simply
+        unrecognised strings now and take this same path.
         """
         if isinstance(value, cls):
             return value
@@ -233,15 +256,19 @@ class NodeDetail(StrEnum):
 
 
 _NODE_DETAIL_LABELS: dict[NodeDetail, str] = {
-    NodeDetail.COMPACT: "Compact — pins only",
-    NodeDetail.STANDARD: "Standard — pins and widgets",
-    NodeDetail.FULL: "Full — pins, widgets and labels",
+    NodeDetail.PINS: "Pins — linked ports only",
+    NodeDetail.PINS_ALL: "All Pins — every port",
+    NodeDetail.WIDGETS: "Widgets — pins and inline widgets",
+    NodeDetail.LABELS: "Labels — widgets and port labels",
+    NodeDetail.FULL: "Full — labels and diagnostics detail",
 }
 
 _NODE_DETAIL_RANKS: dict[NodeDetail, int] = {
-    NodeDetail.COMPACT: 0,
-    NodeDetail.STANDARD: 1,
-    NodeDetail.FULL: 2,
+    NodeDetail.PINS: 0,
+    NodeDetail.PINS_ALL: 1,
+    NodeDetail.WIDGETS: 2,
+    NodeDetail.LABELS: 3,
+    NodeDetail.FULL: 4,
 }
 
 

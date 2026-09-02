@@ -15,8 +15,10 @@ from haywire.core.types import NodeDetail
 
 DETAIL_KEY = "ui.node.default.skin.studio_node_detail"
 
-COMPACT = NodeDetail.COMPACT.value
-STANDARD = NodeDetail.STANDARD.value
+PINS = NodeDetail.PINS.value
+PINS_ALL = NodeDetail.PINS_ALL.value
+WIDGETS = NodeDetail.WIDGETS.value
+LABELS = NodeDetail.LABELS.value
 FULL = NodeDetail.FULL.value
 
 
@@ -43,12 +45,18 @@ def _clean_framework_tier(library_system):
 @pytest.mark.unit
 class TestNodeDetailEnum:
     def test_ranks_are_cumulative_and_ordered(self):
-        assert NodeDetail.COMPACT.rank < NodeDetail.STANDARD.rank < NodeDetail.FULL.rank
+        assert (
+            NodeDetail.PINS.rank
+            < NodeDetail.PINS_ALL.rank
+            < NodeDetail.WIDGETS.rank
+            < NodeDetail.LABELS.rank
+            < NodeDetail.FULL.rank
+        )
 
     def test_includes_is_reflexive_and_directional(self):
-        assert NodeDetail.STANDARD.includes(NodeDetail.STANDARD)
-        assert NodeDetail.FULL.includes(NodeDetail.COMPACT)
-        assert not NodeDetail.COMPACT.includes(NodeDetail.STANDARD)
+        assert NodeDetail.WIDGETS.includes(NodeDetail.WIDGETS)
+        assert NodeDetail.FULL.includes(NodeDetail.PINS)
+        assert not NodeDetail.PINS.includes(NodeDetail.WIDGETS)
 
     def test_wire_value_is_the_string(self):
         """StrEnum, not IntEnum: saved graphs hold names, so adding a rank
@@ -62,9 +70,15 @@ class TestNodeDetailEnum:
         performance, one drawing too little looks broken."""
         assert NodeDetail.coerce(bad) is NodeDetail.FULL
 
+    @pytest.mark.parametrize("old_value", ["compact", "standard"])
+    def test_pre_5rank_saved_values_degrade_to_full(self, old_value):
+        """Breaking change, no migration shim (design session, 2026-09-02):
+        an old 3-rank graph's detail value is simply unrecognised now."""
+        assert NodeDetail.coerce(old_value) is NodeDetail.FULL
+
     def test_coerce_passes_through_members_and_valid_strings(self):
-        assert NodeDetail.coerce(NodeDetail.COMPACT) is NodeDetail.COMPACT
-        assert NodeDetail.coerce("standard") is NodeDetail.STANDARD
+        assert NodeDetail.coerce(NodeDetail.PINS) is NodeDetail.PINS
+        assert NodeDetail.coerce("widgets") is NodeDetail.WIDGETS
 
     def test_every_member_has_a_label(self):
         """The label feeds the CHOICES widget — a missing one is a KeyError in
@@ -82,30 +96,30 @@ class TestNodeDetailGraphTier:
     def test_unset_node_tracks_graph_default(self, graph_with_library_system):
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
-        graph_obj.props.detail = COMPACT
-        assert wrapper.node.props.detail == COMPACT
+        graph_obj.props.detail = PINS
+        assert wrapper.node.props.detail == PINS
 
     def test_node_override_wins_and_resets_fall_one_tier(self, graph_with_library_system):
         graph_obj = graph_with_library_system
         registry = get_settings_registry()
         wrapper = _add_node(graph_obj)
 
-        registry.set_global(DETAIL_KEY, COMPACT)
-        graph_obj.props.detail = STANDARD
+        registry.set_global(DETAIL_KEY, PINS)
+        graph_obj.props.detail = WIDGETS
         wrapper.node.props.detail = FULL
         assert wrapper.node.props.detail == FULL
 
         wrapper.node.props.reset("detail")
-        assert wrapper.node.props.detail == STANDARD  # node → graph
+        assert wrapper.node.props.detail == WIDGETS  # node → graph
         graph_obj.props.reset("detail")
-        assert wrapper.node.props.detail == COMPACT  # graph → framework
+        assert wrapper.node.props.detail == PINS  # graph → framework
 
     def test_round_trip_preserves_all_three_tiers(self, graph_with_library_system, library_system):
         graph_obj = graph_with_library_system
         w1 = _add_node(graph_obj)
         _add_node(graph_obj)  # w2: left tracking, only inspected after round-trip below
-        graph_obj.props.detail = STANDARD
-        w1.node.props.detail = COMPACT  # w1 overridden, w2 tracking
+        graph_obj.props.detail = WIDGETS
+        w1.node.props.detail = PINS  # w1 overridden, w2 tracking
         data = graph_obj.to_dict()
 
         g2 = BaseGraph(filestem="G2")
@@ -114,9 +128,9 @@ class TestNodeDetailGraphTier:
         overridden = [w for w in loaded if w.node.props.is_locally_set("detail")]
         tracking = [w for w in loaded if not w.node.props.is_locally_set("detail")]
         assert len(overridden) == 1
-        assert overridden[0].node.props.detail == COMPACT
+        assert overridden[0].node.props.detail == PINS
         assert len(tracking) == 1
-        assert tracking[0].node.props.detail == STANDARD
+        assert tracking[0].node.props.detail == WIDGETS
 
     def test_pre_feature_graph_without_detail_loads(self, graph_with_library_system):
         """A graph saved before ADR 0032 has no key and must default cleanly."""
@@ -141,10 +155,10 @@ class TestNodeDetailGraphTier:
 
         seen = []
         wrapper.node.props.subscribe_field("detail", lambda v, o: seen.append(v))
-        graph_obj.props.detail = COMPACT
+        graph_obj.props.detail = PINS
 
         assert seen, "graph-tier write did not fire the node's field subscription"
-        assert seen[-1] == COMPACT
+        assert seen[-1] == PINS
 
 
 @pytest.mark.integration
