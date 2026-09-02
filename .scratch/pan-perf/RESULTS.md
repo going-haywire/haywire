@@ -477,3 +477,32 @@ all.
 `⚠ BARELY MOVED` under 200 px. **If it fires, every number above is measuring
 the wrong thing** and the target zoom has to come back up until the content
 actually moves.
+
+### `image-rendering: optimizeSpeed` re-measurement, post-flatten-3d (2026-09-02)
+
+One run each, `graphs/10x200nodes.haywire`, zoom 0.090, LOD off, Firefox — not
+the full 3-run protocol, so treat this as directional rather than decisive.
+
+| scenario | fps | mean ms | p95 ms | p99 ms | max ms | stalls | main ms | pan px |
+|---|---|---|---|---|---|---|---|---|
+| with `image-rendering`, pins linked only | 33 | 30.3 | 41.68 | 42.54 | 50 | 0 | 28.25 | 3637 |
+| with `image-rendering`, full | 15.49 | 64.54 | 75.9 | 150 | 150 | 78 | 249.11 | 3245 |
+| without `image-rendering`, pins linked only | 31.2 | 32.05 | 42.38 | 58.34 | 66.66 | 3 | 24.14 | 2092 |
+| without `image-rendering`, full | 18.51 | 54.03 | 75 | 100 | 100 | 54 | 59.94 | 2264 |
+
+**FULL detail: removing the rule looks better** — 15.49 → 18.51 fps (+19.5%),
+p99 150 → 100 ms, pan px close enough (3245 vs 2264) that the comparison is not
+obviously confounded by a shorter sweep.
+
+**Pins-linked-only: removing the rule looks worse** — 33 → 31.2 fps (−5.5%) —
+but `pan px` differs by 42% (3637 vs 2092), which the protocol's own guidance
+(§5, "pan px is not a controlled input... it only answers did the content
+move") flags as exactly the confound that invalidates a direct fps comparison
+here. This pair is inconclusive, not evidence the rule helps.
+
+**Verdict: no regression from removing it, and a directional gain at FULL** —
+the rank where the card actually has enough raster content (labels, widgets)
+for a downscale filter choice to matter. One run per cell is thin evidence by
+this protocol's own "3 runs, judge on median" standard, but nothing here
+supports keeping the rule, and the FULL-detail result (the less confounded
+pair) points the other way. Removed from `pan.vue`.

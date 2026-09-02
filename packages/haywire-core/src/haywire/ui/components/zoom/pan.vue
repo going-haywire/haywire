@@ -565,14 +565,12 @@ export default {
    * separately, made no difference in Firefox, and trended worse in Chrome. */
   will-change: transform;
 
-  /* Suspected leftover, unmeasured: optimizeSpeed asks for a cheaper downscale
-   * filter, which only matters while downscaling a large raster — i.e. it
-   * looks like a symptom of the problem removed above rather than a fix. It
-   * was left in place because the +19.5% was measured with it present, and
-   * dropping it would have ridden an unmeasured change on a verified one.
-   * Worth its own measurement. */
-  image-rendering: optimizeSpeed;
-  image-rendering: -webkit-optimize-contrast;
+  /* Re-measured post-flatten-3d (2026-09-02, see .scratch/pan-perf/RESULTS.md):
+   * removing this showed no regression and a directional gain at FULL detail
+   * (+19.5% fps, -33% p99 on the less-confounded pair) — the rank where a
+   * card actually carries enough raster content for a downscale filter choice
+   * to matter. One run per cell, not the full 3-run protocol, so treat the
+   * number as directional; nothing in it supports keeping the rule. Removed. */
 }
 
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
