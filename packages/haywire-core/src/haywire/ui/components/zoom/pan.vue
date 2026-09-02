@@ -300,18 +300,14 @@ export default {
       container.setAttribute('data-lod-level', lodLevel);
     },
 
-    // NEW - Optimized transform with Chrome-specific handling:
     _updateTransformDirect(zoomChanged) {
-      // Chrome optimization: use matrix3d for better GPU handling
-      let transform;
-
-      if (this._zoom < 0.5) {
-        // For very low zoom, use matrix3d which Chrome handles better
-        transform = `matrix3d(${this._zoom}, 0, 0, 0, 0, ${this._zoom}, 0, 0, 0, 0, 1, 0, ${this._panX}, ${this._panY}, 0, 1)`;
-      } else {
-        // For normal zoom, use regular transform
-        transform = `translate(${this._panX}px, ${this._panY}px) scale(${this._zoom})`;
-      }
+      // Always the 2D form. There used to be a matrix3d branch below zoom 0.5,
+      // on the claim that Chrome handled it better; nothing had measured that.
+      // It was one of five 3D hints on this layer, and it applied at exactly
+      // the zooms where the framerate collapsed — a 3D matrix on a layer that
+      // is already in a 3D rendering context is the case where a compositor is
+      // least able to derive a raster scale from the transform.
+      const transform = `translate(${this._panX}px, ${this._panY}px) scale(${this._zoom})`;
 
       this.$refs.content.style.transform = transform;
       // LOD only depends on zoom level — skip during pure pan frames
@@ -549,27 +545,43 @@ export default {
   min-width: 100%;
   min-height: 100%;
   
-  /* Chrome optimizations */
+  /* This layer carries no 3D hints, deliberately.
+   *
+   * It used to hold five — translateZ(0), backface-visibility, a -webkit-
+   * perspective, preserve-3d in the Chrome-only block below, and a matrix3d
+   * transform branch (see _updateTransformDirect). All of them put this layer
+   * into a 3D rendering context, which is what makes a compositor give up on
+   * deriving a raster scale from the transform: raster a ~12000x11000 layer
+   * near scale 1.0 while the transform is 0.084 and the resulting 130
+   * megapixel raster accounts for a whole 80ms frame on its own.
+   *
+   * They were labelled "Chrome optimizations" and -webkit- prefixed. Removing
+   * the group is worth +19.5% fps and -38.6% p99 in Firefox on a 200-node
+   * graph at zoom 0.09, and is free in Chrome (-2.8%, spreads overlap). The
+   * five were removed together, so the group's value is measured but the
+   * individual contributions are not.
+   *
+   * will-change: transform is KEPT — removing promotion as well was tested
+   * separately, made no difference in Firefox, and trended worse in Chrome. */
   will-change: transform;
-  transform: translateZ(0);
-  backface-visibility: hidden;
-  
-  /* Prevent subpixel rendering issues */
+
+  /* Suspected leftover, unmeasured: optimizeSpeed asks for a cheaper downscale
+   * filter, which only matters while downscaling a large raster — i.e. it
+   * looks like a symptom of the problem removed above rather than a fix. It
+   * was left in place because the +19.5% was measured with it present, and
+   * dropping it would have ridden an unmeasured change on a verified one.
+   * Worth its own measurement. */
   image-rendering: optimizeSpeed;
   image-rendering: -webkit-optimize-contrast;
-  
-  /* Force GPU compositing */
-  -webkit-transform: translateZ(0);
-  -webkit-backface-visibility: hidden;
-  -webkit-perspective: 1000;
 }
 
-/* Chrome-specific optimizations */
 @media screen and (-webkit-min-device-pixel-ratio: 0) {
   .zoom-pan-content {
-    /* Additional Chrome-only optimizations */
+    /* preserve-3d was here, and was the strongest of the five 3D hints: it
+     * establishes a 3D rendering context for the whole node subtree, which
+     * disables layer squashing and forces the compositor to keep descendants
+     * separately sorted. */
     -webkit-font-smoothing: subpixel-antialiased;
-    -webkit-transform-style: preserve-3d;
   }
 }
 
