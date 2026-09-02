@@ -3543,25 +3543,51 @@ path.connection-warning {
 /* --8<-- [end:node-card-manual-resize] */
 
 /* --8<-- [start:widget-container-sizing] */
-/* A widget that EXISTS is visible. Whether it exists is decided in Python, by
-   the node's NodeDetail rank (ADR 0032) — STANDARD and above build widgets,
-   COMPACT does not.
+/* A widget's EXISTENCE no longer implies its visibility (2026-09): NodeDetail
+ * is a CSS filter now (see node-detail-css-classes below), so a widget can
+ * exist, be built, hold state and receive server pushes while CSS-hidden at
+ * a low rank. This block is SIZE only — the max-height ceiling — and applies
+ * whether or not the widget is currently shown.
  *
- * This used to be a reveal: opacity 0 / max-height 0 by default, restored on
- * `.node-selected`, so a widget was built for every node and shown only for
- * the selected one. Under a construction gate that second authority is worse
- * than redundant — it would hide a widget the rank had just decided to draw,
- * with no error and nothing to inspect. The transition went with it: a rank
- * change rebuilds the card, and a CSS transition does not run on a freshly
- * mounted element, so it could never have fired.
- *
- * What survives verbatim is the SIZE contract: the 200px default ceiling and
- * the `overflow: hidden` that enforces it. */
+ * History: this used to be a reveal (opacity 0 / max-height 0 by default,
+ * restored on .node-selected), then briefly a construction gate (every
+ * widget was built only at WIDGETS+ and displayed unconditionally once
+ * built). What survives verbatim through both changes is the SIZE contract:
+ * the 200px default ceiling and the `overflow: hidden` that enforces it. */
 [data-node-id] .widget-container {
     max-height: 200px !important;
     overflow: hidden !important;
 }
 /* --8<-- [end:widget-container-sizing] */
+
+/* --8<-- [start:node-detail-css-classes] */
+/* NodeDetail (ADR 0032, 5-rank CSS-filter redesign, 2026-09) drives visibility
+ * the same way LOD does (pan.vue): a resolved value is stamped as a DOM
+ * attribute — data-node-props-detail, by UINode._apply_detail_attr — and CSS
+ * hides whatever the rank excludes via descendant combinators. Every element
+ * below is ALWAYS BUILT; nothing here is a construction gate. See
+ * haywire/ui/skin/visibility.py for the rank -> class mapping this mirrors.
+ *
+ * Ranks, low to high: pins < pins_all < widgets < labels < full. Each rule
+ * below hides what a rank does NOT yet include — so `pins` (the floor) hides
+ * all four classes, and `full` hides none of them (no rule matches it).
+ *
+ * `display: none`, matching pan.vue's LOD rules and the perf/detail-via-css
+ * probe: takes the elements out of layout and paint, not just opacity, which
+ * is what the pan-performance measurement (decision A) actually tested. */
+[data-node-props-detail="pins"] .hw-detail-pins_all,
+[data-node-props-detail="pins"] .hw-detail-widget,
+[data-node-props-detail="pins"] .hw-detail-label,
+[data-node-props-detail="pins"] .hw-detail-diagnostic,
+[data-node-props-detail="pins_all"] .hw-detail-widget,
+[data-node-props-detail="pins_all"] .hw-detail-label,
+[data-node-props-detail="pins_all"] .hw-detail-diagnostic,
+[data-node-props-detail="widgets"] .hw-detail-label,
+[data-node-props-detail="widgets"] .hw-detail-diagnostic,
+[data-node-props-detail="labels"] .hw-detail-diagnostic {
+    display: none;
+}
+/* --8<-- [end:node-detail-css-classes] */
 
 /* ---- Declared size box (@widget(min_width=, min_height=, max_height=)) ----
    Stamped by haywire/ui/widget/sizing.py through the one render funnel every
