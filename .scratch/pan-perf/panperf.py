@@ -70,7 +70,7 @@ TRACE_CATEGORIES = ",".join(
 )
 
 
-def wait_for_run(page, before: int, timeout_s: float = 120.0, on_poll=None) -> dict:
+def wait_for_run(page, before: int, timeout_s: float = 120.0, on_poll=None, poll_ms: int = 250) -> dict:
     """Block until the overlay pushes another finished run, then return it."""
     deadline = time.time() + timeout_s
     while time.time() < deadline:
@@ -79,7 +79,7 @@ def wait_for_run(page, before: int, timeout_s: float = 120.0, on_poll=None) -> d
         count = page.evaluate("() => (window.__hwPerfRuns || []).length")
         if count > before:
             return page.evaluate("() => window.__hwPerfRuns[window.__hwPerfRuns.length - 1]")
-        page.wait_for_timeout(250)
+        page.wait_for_timeout(poll_ms)
     raise RuntimeError(f"no run finished within {timeout_s}s")
 
 
@@ -97,6 +97,25 @@ def make_shooter(page, shot_dir: Path, interval: float, run_index: int):
         page.screenshot(path=str(shot_dir / f"run{run_index}-{state['n']:02d}.png"))
 
     return shoot
+
+
+def make_wheel_panner(page, delta: int):
+    """A poll callback that sweeps the canvas with real wheel events.
+
+    NOT an instrument — see the --wheel-pan help. It exists only to produce real
+    hover churn, which `setPan` cannot; judge nothing by the fps it yields.
+    """
+    state = {"n": 0, "dir": 1}
+
+    def sweep() -> None:
+        # Small deltas so handleWheel's gesture latch reads a trackpad and pans
+        # rather than zooms — the same classification a real swipe gets.
+        state["n"] += 1
+        if state["n"] % 20 == 0:
+            state["dir"] *= -1
+        page.mouse.wheel(0, delta * state["dir"])
+
+    return sweep
 
 
 def start_trace(page):
@@ -181,6 +200,45 @@ def main() -> int:
         default=None,
         help="set this zoom directly instead of clicking the overlay's fixed 0.09 button",
     )
+    ap.add_argument(
+        "--wheel-pan",
+        action="store_true",
+        help=(
+            "pan with REAL wheel events from the harness instead of the recorder's "
+            "setPan sweep. Slower and less precisely controlled, but it is the only "
+            "way to reproduce hover churn: setPan fires no pointer events, so the "
+            "browser never re-runs hit-testing and the node under a stationary cursor "
+            "never changes. Switches the overlay to hand-pan for the run."
+        ),
+    )
+    ap.add_argument("--wheel-delta", type=int, default=30, help="px per wheel event")
+    ap.add_argument(
+        "--fake-hover",
+        default=None,
+        metavar="CSS",
+        help=(
+            "Rotate a class carrying CSS through one node card per frame, to model "
+            "hover churn under the CONTROLLED per-frame auto-pan. --wheel-pan can "
+            "produce real hover churn but is not an instrument: its wheel events are "
+            "driven on a wall clock, so a slow frame gets fewer of them and pan travel "
+            "swings 4x between identical runs. This moves exactly one card per frame, "
+            "so every engine and every branch is handed the same work. "
+            "Example: 'z-index: 1001 !important; outline: 1px solid #4f8ef7;'"
+        ),
+    )
+    ap.add_argument(
+        "--hover",
+        choices=["node", "empty"],
+        default=None,
+        help=(
+            "park the cursor over a node card (hover highlight active) or over bare "
+            "canvas, for the reported 'panning is 3-4x slower while a node is "
+            "highlighted'. With `node`, a mousemove is redispatched at the same point "
+            "every frame: the auto-pan moves content via setPan, which fires no "
+            "pointer events, so without this the browser never re-evaluates :hover "
+            "and the effect under test cannot appear."
+        ),
+    )
     args = ap.parse_args()
 
     if args.trace and args.engine == "firefox":
@@ -234,6 +292,18 @@ def main() -> int:
             page.wait_for_timeout(1500)
             print(f"injected {len(css)} css block(s)")
 
+        if args.wheel_pan:
+            # The recorder must not also drive the sweep, or the run measures both.
+            label = page.evaluate(
+                """() => {
+                    const o = window.__hwPerfOverlay();
+                    for (const b of o.querySelectorAll('.hw-perf-btn'))
+                        if (b.textContent.indexOf('auto-pan') !== -1) { b.click(); return 'toggled'; }
+                    return 'already hand-pan';
+                }"""
+            )
+            print(f"wheel-pan: overlay {label}")
+
         scene = S.overlay_scene(page)
         print(
             f"dpr {scene['dpr']}  viewport {scene['viewport']}  "
@@ -254,6 +324,93 @@ def main() -> int:
             if args.trace and i == args.runs - 1:
                 tracing = start_trace(page)
 
+            if args.hover:
+                spot = page.evaluate(
+                    """(mode) => {
+                        const canvas = window.__hwPerfCanvas();
+                        const r = canvas.getBoundingClientRect();
+                        if (mode === 'empty') {
+                            // Bare canvas: bottom-right corner is past the content
+                            // on this graph, and clear of the HUD and minimap.
+                            return { x: r.left + r.width * 0.5, y: r.bottom - 40 };
+                        }
+                        const host = canvas.querySelector('.node-container');
+                        // A card near the middle of the viewport, so the sweep keeps
+                        // cards passing under the cursor rather than running out.
+                        let best = null, bestD = Infinity;
+                        const cx = r.left + r.width / 2, cy = r.top + r.height / 2;
+                        for (const el of host.querySelectorAll(':scope > [data-node-id]')) {
+                            const b = el.getBoundingClientRect();
+                            if (b.width < 2 || b.height < 2) continue;
+                            const d = Math.hypot(b.left + b.width / 2 - cx,
+                                                 b.top + b.height / 2 - cy);
+                            if (d < bestD) { bestD = d; best = b; }
+                        }
+                        return best
+                            ? { x: best.left + best.width / 2, y: best.top + best.height / 2 }
+                            : null;
+                    }""",
+                    args.hover,
+                )
+                if spot is None:
+                    raise SystemExit("--hover node: found no node card to hover")
+                page.mouse.move(spot["x"], spot["y"])
+                page.wait_for_timeout(500)
+                hovered = page.evaluate(
+                    "() => !!window.__hwPerfCanvas().querySelector('[data-node-id]:hover')"
+                )
+                print(f"  hover {args.hover}: node under cursor = {hovered}")
+                if args.hover == "node" and not args.wheel_pan:
+                    # Keep hover live while setPan moves the content beneath it.
+                    # Unnecessary under --wheel-pan: real wheel events make the
+                    # browser re-run hit-testing on its own, which is the point.
+                    page.evaluate(
+                        """([x, y]) => {
+                            window.__hwHoverKick && cancelAnimationFrame(window.__hwHoverKick);
+                            const tick = () => {
+                                document.elementFromPoint(x, y)?.dispatchEvent(
+                                    new MouseEvent('mousemove', {
+                                        clientX: x, clientY: y, bubbles: true,
+                                    }));
+                                window.__hwHoverKick = requestAnimationFrame(tick);
+                            };
+                            tick();
+                        }""",
+                        [spot["x"], spot["y"]],
+                    )
+
+            if args.fake_hover:
+                page.evaluate(
+                    """([css]) => {
+                        if (window.__hwFakeHoverStop) window.__hwFakeHoverStop();
+                        let style = document.getElementById('hw-fake-hover-style');
+                        if (!style) {
+                            style = document.createElement('style');
+                            style.id = 'hw-fake-hover-style';
+                            document.head.appendChild(style);
+                        }
+                        style.textContent = '.hw-fake-hover {' + css + '}';
+                        const host = window.__hwPerfCanvas().querySelector('.node-container');
+                        const cards = Array.from(
+                            host.querySelectorAll(':scope > [data-node-id]'));
+                        let i = 0, prev = null, raf = null;
+                        const tick = () => {
+                            if (prev) prev.classList.remove('hw-fake-hover');
+                            const el = cards[i % cards.length];
+                            el.classList.add('hw-fake-hover');
+                            prev = el; i++;
+                            raf = requestAnimationFrame(tick);
+                        };
+                        tick();
+                        window.__hwFakeHoverStop = () => {
+                            if (raf) cancelAnimationFrame(raf);
+                            if (prev) prev.classList.remove('hw-fake-hover');
+                            window.__hwFakeHoverStop = null;
+                        };
+                    }""",
+                    [args.fake_hover],
+                )
+
             before = page.evaluate("() => (window.__hwPerfRuns || []).length")
             S.click_overlay_button(page, "record")
 
@@ -261,7 +418,16 @@ def main() -> int:
             if args.shots:
                 shooter = make_shooter(page, Path(args.shots), args.shot_interval, i + 1)
 
-            run = wait_for_run(page, before, on_poll=shooter)
+            if args.wheel_pan:
+                shooter = make_wheel_panner(page, args.wheel_delta)
+
+            run = wait_for_run(page, before, on_poll=shooter, poll_ms=8 if args.wheel_pan else 250)
+            if args.hover == "node":
+                page.evaluate(
+                    "() => { if (window.__hwHoverKick) cancelAnimationFrame(window.__hwHoverKick); }"
+                )
+            if args.fake_hover:
+                page.evaluate("() => window.__hwFakeHoverStop && window.__hwFakeHoverStop()")
 
             if tracing:
                 finish_trace(page, tracing[0], tracing[1], Path(args.trace))

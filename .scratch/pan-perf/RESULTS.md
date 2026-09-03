@@ -148,6 +148,61 @@ parts.
 
 ## Observations
 
+### CONFIRMED — hover during a pan costs 2.2x, and the property does not matter (2026-09-03)
+
+Reported from Firefox, visible in both engines: hovering a node puts a slim
+highlight box on it, and panning while that box is up is 3-4x slower. Let go of
+the highlight and the pan is smooth again.
+
+**It reproduces, and `perf/pan-hover-gate` — listed in the Branches table and
+never built — is back on.** It was written off when the main thread looked idle;
+that reading came from the retracted LoAF instrument.
+
+Controlled measurement (`--fake-hover`, which rotates a class through one card
+per frame under the normal per-frame auto-pan, zoom 0.09):
+
+| probe | fps | main ms |
+|---|---|---|
+| control, no churn | **40.4** | 17.9 |
+| class toggled, **empty rule** | 37.7 | 19.6 |
+| inert custom property (`--hw-nothing: 1`) | 22.2 | 45.2 |
+| `z-index: 1001` only | 18.8 | 53.1 |
+| `outline: 1px` only | 17.9 | 55.7 |
+| both (the real hover rule) | **18.2** | 54.9 |
+
+**The finding is the flatness of that table.** Every rule that changes a
+computed style on a card costs the same ~2.2x, including a custom property
+nothing reads. Toggling the class with *no* rule attached is free (37.7 vs
+40.4). So this is not the `z-index`, and not the `outline`:
+
+> **Changing the computed style of one node card, once per frame, halves the
+> framerate during a pan.** `main ms` ≈ `mean frame ms`, so it is entirely
+> main-thread — style recalc and paint invalidation, not compositing.
+
+The real hover does exactly that, twice per crossing (one card in, one out),
+plus the JS handler's `hw-lod-hover` class. Cards swept per frame scales as
+1/zoom, so at low zoom the real cost is likely worse than this 1-card-per-frame
+model.
+
+The indicated fix is the original gate: suppress hover for the duration of a
+pan burst (`pointer-events: none` on cards, or neutralising the hover rule via
+a container class). Expected recovery is the 18 -> 40 fps in the table.
+**Not built — it changes interaction behaviour and is the user's call.**
+
+#### ⚠ `--wheel-pan` is not an instrument
+
+Real hover churn needs real pointer events: `setPan` moves content without
+firing any, so the browser never re-runs hit-testing and the hovered card never
+changes. `--wheel-pan` was added to get real churn, and its numbers must not be
+used for comparison — its wheel events are driven on a wall clock, so a slow
+frame receives fewer of them. Three runs of *identical* config gave
+**16.3 / 56.1 / 66.8 fps** with pan travel spanning 555-2040 px.
+
+An earlier pass through this section drew an A/B conclusion and a whole
+CSS bisect from those numbers before the spread was checked. All of it was
+noise; the table above replaces it. Use `--wheel-pan` to make a symptom
+*appear*, never to size it.
+
 ### REJECTED — gating `will-change` on zoom. Measured, viable, and not worth it (2026-09-03)
 
 The obvious follow-up to removing promotion was to put it back *above a zoom
