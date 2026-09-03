@@ -148,6 +148,76 @@ parts.
 
 ## Observations
 
+### 300 nodes x 20 ports is a DIFFERENT REGIME — and hand-panning cannot measure it (2026-09-02)
+
+New graph: `graphs/10x300nodes.haywire`, 300 nodes, **10 inlets/widgets + 10
+outlets each**, 0 edges. Everything below this section was measured on
+`10x200nodes.haywire`, whose collapsed cards carry **zero** pins. The two are
+not the same workload and the older conclusions do not transfer.
+
+| | fps | main ms | mean frame | reading |
+|---|---|---|---|---|
+| ff baseline | 12.14 | 237.65 | 82.38 | main >> frame |
+| cr baseline | 1.67 | 543.68 | 597.22 | **91% main-thread** |
+
+**The main-thread verdict inverts.** At 200 nodes main-thread was 4-5% of the
+frame and the file concluded "even eliminating main-thread work entirely buys
+4%". At 300x20 it is **91% in Chrome**, with LoAF reporting 11 frames /
+5880 ms inside a 5 s window. Chrome — which was 1.8x *faster* than Firefox at
+200 nodes — is now 7x *slower*. That is a cliff, not a curve.
+
+`els` was 419 on the 1.67 fps Chrome run. The DOM is small; the per-frame work
+over it is not. Whatever this is, it is not element count.
+
+**Two branches tested and reverted, neither on trustworthy evidence:**
+
+1. **`perf/restore-preserve3d`** — restored the strongest of the five flattened
+   3D hints, inside the existing `@media (-webkit-min-device-pixel-ratio: 0)`
+   block, on the theory that Chrome's cliff was the lost compositing promotion.
+   **Firefox 12.14 → 3.12/2.40 fps. Chrome unmoved.** Two findings: the
+   compositing-recovery line is dead (so `translateZ(0)` and `image-rendering`
+   are no longer indicated either), and — importantly — **that media query is
+   NOT a browser gate.** Modern Firefox matches `-webkit-min-device-pixel-ratio`.
+   Anything living in that block reaches both engines.
+2. **`perf/zoomstate-nonreactive`** — `canvas.vue` writes `this.zoomState` (a
+   reactive `data()` field) on every pan frame, while all 5 readers are
+   coordinate maths inside event handlers; no template binding, no computed, no
+   watcher observes it. Making it a plain instance field is a real removal of
+   per-frame reactivity work. **Result: unresolved — see below.** Reverted
+   because it could not be shown to help, not because it was shown not to.
+
+### ⚠ Hand-panned single runs cannot resolve anything at this scale
+
+Five runs of `perf/zoomstate-nonreactive`, identical code:
+
+| fps | main ms | els |
+|---|---|---|
+| 11.31 | 185.16 | 2755 |
+| 9.09 | 269.29 | 2435 |
+| 6.74 | 310.46 | 2315 |
+| 9.15 | 284.93 | 2687 |
+| 5.85 | 311.07 | 2290 |
+
+**5.85–11.31 fps — a 1.9x spread with nothing changing between runs**, against a
+single-run baseline of 12.14. The within-branch variance exceeds any effect
+worth chasing, so no single-run comparison in this regime means anything, in
+either direction. `els` drifting 2290–2755 on a fixed graph says the census is
+sampling different scene states too.
+
+The cause is the one the Protocol section already flagged and never fixed: **pan
+distance is not a controlled input.** A hand gesture cannot repeat itself, and
+`pan px` is the dominant term in how much work a frame does.
+
+**Fix: the recorder now drives the pan itself** (`auto-pan` button, default on).
+A triangle-wave sweep of `autoPanPxPerFrame` (40) px per *frame* — per frame,
+not per ms, so a 2 fps engine and a 60 fps engine are handed identical work per
+frame and `pan px` reduces to frames x speed. Rows now carry a `pan` column
+(`auto40` / `hand`).
+
+**Every row above this section is a `hand` row and is not comparable to an
+`auto` row.** Re-baseline both engines with auto-pan before testing anything
+else.
+
 ### Chrome confirms the main-thread verdict; the Chrome comparison is still open
 
 Chrome @0.090, LOD `high`: median **23.68 fps / 42.23 ms mean / 50.1 ms p99**,
@@ -207,6 +277,12 @@ one.** The five main-thread JS branches are dead:
 - `perf/pan-hover-gate`, `perf/pan-raf-coalesce`, `perf/minimap-color-cache`,
   `perf/edge-node-index`, `perf/hot-path-logs` — all optimise a thread that is
   idle 96% of the frame. Even eliminating main-thread work entirely buys 4%.
+
+> **SCOPE LIMIT (added 2026-09-02).** True for `10x200nodes.haywire` (0 edges,
+> pinless collapsed cards) and nothing else. On `10x300nodes.haywire`
+> (10 inlets + 10 outlets per node) the main thread runs **91% of the frame** in
+> Chrome. These five branches are dead *for that graph*, not in general — see
+> the 300x20 section at the top of Observations before citing this.
 
 **Caveat on `stalls`:** it went *up* (63 → 74) while everything else improved.
 It counts frames over 50 ms, so a run that renders more frames records more of

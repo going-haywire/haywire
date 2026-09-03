@@ -16,6 +16,10 @@
       :disabled="recording"
       @click="startRecording"
     >{{ recording ? '● ' + phaseLabel : 'record ' + recordSeconds + 's' }}</button><button
+      class="hw-perf-btn"
+      :disabled="recording"
+      @click="autoPan = !autoPan"
+    >{{ autoPan ? 'auto-pan' : 'hand-pan' }}</button><button
       v-if="lastRow"
       class="hw-perf-btn"
       :disabled="recording"
@@ -54,6 +58,22 @@ export default {
     // is automatic, so a small target can land higher than asked — the button
     // reports what it actually got, and that is what a run records.
     zoomTarget: { type: Number, default: 0.09 },
+    // Auto-pan sweep. A hand gesture cannot hold pan distance constant, and
+    // `pan px` spanned a 2x range across runs of IDENTICAL code — larger than
+    // any effect worth measuring, which made single-run comparisons worthless
+    // (five runs of one branch came back 5.85–11.31 fps).
+    //
+    // The sweep drives pan from the measuring rAF loop itself: a fixed number
+    // of CSS px per FRAME, reversing at the ends. Per-frame (not per-ms) is the
+    // whole point — every frame then does the same amount of work regardless of
+    // how slow the engine is, so a 2 fps engine and a 60 fps engine are asked
+    // the identical question and `pan px` falls out as frames x speed. Driving
+    // it by wall-clock would silently hand the slow engine longer jumps.
+    autoPanPxPerFrame: { type: Number, default: 40 },
+    // Half-width of the sweep, in CSS px either side of where it started.
+    // _clampPanValues pins an axis whose scaled canvas is narrower than the
+    // viewport, so the sweep runs on Y as well to guarantee real movement.
+    autoPanSpanPx: { type: Number, default: 600 },
   },
 
   data() {
@@ -67,6 +87,10 @@ export default {
       // can always be taken by hand, whatever the clipboard does.
       lastRow: '',
       copyLabel: 'copy row',
+      // Whether `record` drives the pan itself. On by default: a run nobody had
+      // to hand-pan is the reproducible one, and the manual mode only exists to
+      // reproduce the older rows in RESULTS.md that were gathered by trackpad.
+      autoPan: true,
     };
   },
 
@@ -299,7 +323,9 @@ export default {
       const tag = window.__hwPerfBranch
         ? ''
         : '\n⚠ __hwPerfBranch unset — row will say (unset)';
-      this.text = `starting in ${this.countdownSeconds}…\nbegin panning NOW${tag}`;
+      this.text = this.autoPan
+        ? `starting in ${this.countdownSeconds}…\nauto-pan — hands off${tag}`
+        : `starting in ${this.countdownSeconds}…\nbegin panning NOW${tag}`;
       this._recHoldUntil = 0;
     },
 
@@ -327,6 +353,12 @@ export default {
       r.controls = (el && el._zoomPanControls) || null;
       r.lastPan  = r.controls ? r.controls.getPan() : null;
       r.panPx    = 0;
+      // Auto-pan anchor: the sweep is measured from wherever the canvas sits
+      // when the window opens, so it never depends on prior manual panning.
+      r.autoPan  = this.autoPan && !!r.controls;
+      r.panOrigin = r.lastPan ? { x: r.lastPan.x, y: r.lastPan.y } : null;
+      r.panDir   = 1;
+      r.panOff   = 0;
       r.zoom = c.zoom != null ? c.zoom : 'n/a';
       r.lod  = c.lod  != null ? c.lod  : 'n/a';
       r.totalEls = c.totalEls;
@@ -334,7 +366,9 @@ export default {
       r.pins = c.pins;
       r.paths = c.paths;
       this.phaseLabel = 'recording…';
-      this.text = `● recording ${this.recordSeconds}s — keep panning`;
+      this.text = r.autoPan
+        ? `● recording ${this.recordSeconds}s — auto-pan, hands off`
+        : `● recording ${this.recordSeconds}s — keep panning`;
     },
 
     /** Jump the canvas to `zoomTarget` so runs start from the same scale.
@@ -362,6 +396,32 @@ export default {
           `LOD ${this._census.lod} — record from here`
         : `zoom ${got.toFixed(3)}   LOD ${this._census.lod}\nready to record`;
       this._recHoldUntil = performance.now() + 4000;
+    },
+
+    /** Advance the auto-pan sweep by exactly one frame's worth of travel.
+     *
+     *  A triangle wave: `autoPanPxPerFrame` px per frame along a diagonal,
+     *  reversing at +/- `autoPanSpanPx` from where the run started. Diagonal
+     *  because `_clampPanValues` pins whichever axis is narrower than the
+     *  viewport at low zoom — moving both guarantees the content actually
+     *  travels, and `pan px` in the finished row proves whether it did.
+     *
+     *  Deliberately stepped per FRAME rather than per elapsed ms. The sweep is
+     *  the workload under measurement, so every engine must be handed the same
+     *  work per frame; scaling by dt would give a slow engine longer jumps and
+     *  quietly change the thing being compared.
+     */
+    _stepAutoPan(r) {
+      if (!r.controls || !r.panOrigin) return;
+      r.panOff += this.autoPanPxPerFrame * r.panDir;
+      if (r.panOff >= this.autoPanSpanPx) {
+        r.panOff = this.autoPanSpanPx;
+        r.panDir = -1;
+      } else if (r.panOff <= -this.autoPanSpanPx) {
+        r.panOff = -this.autoPanSpanPx;
+        r.panDir = 1;
+      }
+      r.controls.setPan(r.panOrigin.x + r.panOff, r.panOrigin.y + r.panOff);
     },
 
     _finishRecording(now) {
@@ -404,6 +464,10 @@ export default {
         mainMs:      round((this._mainBusyMs - r.mainBusyMs)
                        / Math.max(1, this._mainBusySamples - r.mainBusySamples)),
         panPx:       Math.round(r.panPx),
+        // How the pan was driven. An auto row is reproducible; a hand row is
+        // not, and the two must never be compared — every row in RESULTS.md
+        // predating the sweep is a hand row.
+        pan:         r.autoPan ? `auto${this.autoPanPxPerFrame}` : 'hand',
         // Which engine produced the run. longtask/LoAF exist only in
         // Chromium, so a Firefox row and a Chrome row are not the same
         // measurement and must never be compared column-for-column.
@@ -436,7 +500,15 @@ export default {
           ? `LoAF ${run.loafCount} (${run.loafMs}ms)  style+layout ${run.loafSlMs}ms\n`
           : `LoAF n/a\n`) +
         `main-thread ${run.mainMs}ms of ${run.meanFrameMs}ms frame\n` +
-        `pan travel ${run.panPx}px${run.panPx < 200 ? '  ⚠ BARELY MOVED' : ''}\n` +
+        `pan travel ${run.panPx}px (${run.pan})` +
+        (run.panPx < 200
+          ? (r.autoPan
+              // The sweep asked for movement and the container refused it, so
+              // the run measured a near-static transform. Almost always the
+              // low-zoom clamp pinning both axes.
+              ? '  ⚠ SWEEP PINNED — clamped\n'
+              : '  ⚠ BARELY MOVED\n')
+          : '\n') +
         `-------------------------\n` +
         `zoom ${run.zoom}   LOD ${run.lod}\n` +
         `DOM els ${run.totalEls}  nodes ${run.nodes}  pins ${run.pins}`;
@@ -453,7 +525,7 @@ export default {
              `${run.longTaskObs ? 'yes' : 'NO'} | ` +
              `${run.loafObs ? run.loafCount + ' (' + run.loafMs + 'ms)' : 'n/a'} | ` +
              `${run.loafObs ? run.loafSlMs : 'n/a'} | ${run.mainMs} | ${run.panPx} | ` +
-             `${run.zoom} | ${run.lod} |`;
+             `${run.zoom} | ${run.lod} | ${run.pan} |`;
     },
 
     /** Copy the last run's row. Bound to a button ON PURPOSE.
@@ -609,6 +681,9 @@ export default {
             this._pendingT0 = performance.now();
             this._mc.port2.postMessage(0);
           }
+          // Drive the sweep BEFORE the pan accounting below, so this frame's
+          // movement lands in this frame's `pan px` rather than the next one's.
+          if (r.autoPan) this._stepAutoPan(r);
           if (r.controls) {
             // Manhattan path length, not net displacement: a sweep that returns
             // to where it started still moved the content the whole way.
