@@ -148,6 +148,60 @@ parts.
 
 ## Observations
 
+### REJECTED — gating `will-change` on zoom. Measured, viable, and not worth it (2026-09-03)
+
+The obvious follow-up to removing promotion was to put it back *above a zoom
+threshold*, where it does not break painting, and recover the 87 fps there.
+Built the measurements, then dropped the idea. Recorded so nobody rebuilds it.
+
+**The mechanism is geometric, not a memory budget.** At a fixed viewport the
+painted band is a constant in *layer-local* px — 4143 at zoom 0.05 and 4143 at
+0.069, while covering 207 vs 286 css px. A tile-memory budget would hold
+constant in device px, not layer px. (Close to Blink's 4000px cull-rect
+expansion constant, but the correspondence was never proven — see the caveat
+below.)
+
+**The safe boundary is real and computable at runtime**, measured by sweeping
+zoom at three viewport sizes (`paintcheck.py --sweep`):
+
+| canvas (css) | lowest zoom that paints completely | viewport/zoom at that point |
+|---|---|---|
+| 799x435 | 0.08 | 5438 local px |
+| 1199x735 | 0.12 | 6125 local px |
+| 1327x819 | 0.12 | 6825 local px |
+
+So the gate would be roughly `viewportHeight / zoom <= ~6000`, which the
+component can evaluate for itself.
+
+**And here is why it was dropped.** fps at the zooms where promotion is safe:
+
+| zoom | promoted | unpromoted | gain |
+|---|---|---|---|
+| 0.12 | 80.6 | 41.7 | +93% — but *exactly* on the boundary, zero margin |
+| 0.18 | 84.6 | 72.2 | +17% |
+| 0.25 | 91.6 | 78.9 | +16% |
+
+1. **It buys nothing in the regime that motivated the investigation.** Zoomed
+   out with 300 cards in view, promotion stays off and the framerate is
+   unchanged. The 87 fps at low zoom was never real — it was fast *because* it
+   was not drawing.
+2. **The only large gain sits exactly on the failure boundary.** Taking the
+   +93% at 0.12 means shipping with no safety margin. Backing off to a safe
+   margin leaves ~17%.
+3. **It reintroduces a silent failure** whose mechanism is still not proven,
+   guarded by a threshold fitted to three viewport sizes on one graph. The
+   failure mode is a blank canvas, and fps cannot detect it.
+
+17% is not worth a heuristic that fails silently and invisibly. **Low-zoom
+performance has to come from doing less work (the paint-property node count),
+not from promotion.**
+
+⚠ **Caveat on the mechanism.** "Constant in layer-local px" holds at a fixed
+viewport, but the constant itself is not universal: the band was 8954 local px
+at a 799x435 canvas against 4143 at 1199x735 — a *smaller* viewport gave a
+*larger* band. So the geometric finding rules memory out, but does not amount to
+a working model of Blink's cull rect. Do not build anything that assumes one.
+
 ### `lod_enabled` is off ON PURPOSE — do not propose it as a free win (2026-09-03)
 
 Several sections below note that `editor.pan_zoom.lod_enabled` is `false` and

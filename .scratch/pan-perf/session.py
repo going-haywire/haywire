@@ -133,10 +133,25 @@ def open_studio(
     timeout_ms: int = 240_000,
     engine: str = "chrome",
     window: str = "1600,1000",
+    early_css: str | None = None,
 ):
-    """New context + page, authenticated, parked on the studio's canvas."""
+    """New context + page, authenticated, parked on the studio's canvas.
+
+    `early_css` lands before any page script runs, which matters more than it
+    sounds: a rule injected after load cannot reproduce a bug that depends on
+    what the compositor did during load. Injecting `will-change` late promotes
+    a *fresh* layer, which paints correctly — so the late-injected "control"
+    silently shows no bug at all.
+    """
     context = browser.new_context(**context_kwargs(engine, window))
     context.add_cookies([session_cookie(principal)])
+    if early_css:
+        context.add_init_script(
+            "document.addEventListener('DOMContentLoaded', () => {}); "
+            "(() => { const s = document.createElement('style');"
+            f"  s.textContent = {early_css!r};"
+            "   (document.head || document.documentElement).appendChild(s); })();"
+        )
     page = context.new_page()
     page.set_default_timeout(timeout_ms)
     page.goto(url, wait_until="domcontentloaded", timeout=timeout_ms)

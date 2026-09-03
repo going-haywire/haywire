@@ -114,6 +114,31 @@ def check(shot: Path, data: dict, annotated: Path | None) -> dict:
     return {"painted": painted, "blank": blank, "offscreen": offscreen}
 
 
+def geometry(result: dict, zoom: float) -> dict:
+    """Where the painted region ends, in screen px and in layer-local px.
+
+    The discriminator between the two candidate mechanisms. A *cull rect* is
+    geometric: its extent should be a constant in one space or the other,
+    independent of how much content sits inside it. A *tile-memory budget* is
+    not: its extent should shrink as the content gets more expensive to raster.
+    """
+    out: dict = {}
+    for name in ("painted", "blank"):
+        rows = result[name]
+        if not rows:
+            continue
+        top = min(r["y"] for r in rows)
+        bottom = max(r["y"] + r["h"] for r in rows)
+        out[name] = {
+            "top_css": round(top, 1),
+            "bottom_css": round(bottom, 1),
+            "height_css": round(bottom - top, 1),
+            # Layer-local ("content") px — what Blink's cull rect is expressed in.
+            "height_local": round((bottom - top) / zoom, 1),
+        }
+    return out
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--window", default="1600,1000")
@@ -133,8 +158,29 @@ def main() -> int:
     ap.add_argument("--pan", action="store_true", help="sweep the canvas, then check mid-motion")
     ap.add_argument("--pan-frames", type=int, default=60)
     ap.add_argument("--settle", type=float, default=3.0)
-    ap.add_argument("--css", action="append", default=[], help="inject before checking")
+    ap.add_argument("--css", action="append", default=[], help="inject after the graph settles")
+    ap.add_argument(
+        "--css-early",
+        action="append",
+        default=[],
+        help=(
+            "inject BEFORE any page script runs. Required for anything whose effect "
+            "depends on layer lifecycle rather than on the current frame: injecting "
+            "`will-change` late promotes a fresh layer that paints correctly, and so "
+            "silently fails to reproduce the very bug under test."
+        ),
+    )
     ap.add_argument("--label", default="", help="printed with the result")
+    ap.add_argument(
+        "--sweep",
+        default=None,
+        help=(
+            "comma-separated zooms to check in ONE browser session, reporting the "
+            "lowest that paints completely. Finding that boundary is the whole "
+            "question behind gating promotion on zoom, and a browser per zoom makes "
+            "the sweep too slow to run across several viewport sizes."
+        ),
+    )
     ap.add_argument("--shot", default=".scratch/pan-perf/paintcheck.png")
     ap.add_argument("--annotate", default=".scratch/pan-perf/paintcheck-annotated.png")
     args = ap.parse_args()
@@ -142,7 +188,13 @@ def main() -> int:
     url = S.ensure_studio()
     with sync_playwright() as pw:
         browser = S.launch(pw, engine=args.engine, window=args.window)
-        context, page = S.open_studio(browser, url, engine=args.engine, window=args.window)
+        context, page = S.open_studio(
+            browser,
+            url,
+            engine=args.engine,
+            window=args.window,
+            early_css="\n".join(args.css_early) if args.css_early else None,
+        )
         S.wait_for_canvas(page)
         S.install_helpers(page)
         S.wait_for_nodes_settled(page)
@@ -155,6 +207,37 @@ def main() -> int:
         # Deliberately independent of the debug overlay: this check is about
         # what the compositor painted, and it must keep working when the HUD is
         # switched off (DebugOverlaySettings.enabled) or absent entirely.
+        if args.sweep:
+            zooms = [float(z) for z in args.sweep.split(",")]
+            canvas = page.evaluate(
+                "() => { const r = window.__hwPerfCanvas().getBoundingClientRect();"
+                "        return [Math.round(r.width), Math.round(r.height)]; }"
+            )
+            print(f"{args.label or ''}  window {args.window}  canvas {canvas[0]}x{canvas[1]} css")
+            safe = None
+            for z in zooms:
+                page.evaluate("(z) => window.__hwPerfCanvas()._zoomPanControls.setZoom(z)", z)
+                page.wait_for_timeout(int(args.settle * 1000))
+                shot = Path(args.shot)
+                page.screenshot(path=str(shot))
+                data = node_rects(page)
+                got = page.evaluate("() => window.__hwPerfCanvas()._zoomPanControls.getZoom()")
+                res = check(shot, data, None)
+                on = len(res["painted"]) + len(res["blank"])
+                blank = len(res["blank"])
+                if blank == 0 and safe is None:
+                    safe = got
+                band = geometry(res, got).get("painted", {}).get("height_local")
+                print(
+                    f"  zoom {got:.4f}  on-screen {on:3d}  blank {blank:3d} "
+                    f"({100 * blank / max(1, on):5.1f}%)"
+                    + (f"  painted band {band:.0f} local px" if band else "")
+                )
+            print(f"  → lowest zoom that painted completely: {safe if safe else 'none in range'}")
+            context.close()
+            browser.close()
+            return 0
+
         if args.as_loaded:
             pass  # the whole point: observe the state the graph arrived in
         elif args.wheel_to is not None:
@@ -213,6 +296,12 @@ def main() -> int:
         if result["blank"]:
             pct = 100 * len(result["blank"]) / on
             print(f"  → {pct:.1f}% of on-screen cards were not painted")
+            geo = geometry(result, zoom)
+            for name, g in geo.items():
+                print(
+                    f"  {name:>7} band: y {g['top_css']:.0f}..{g['bottom_css']:.0f} css "
+                    f"({g['height_css']:.0f} css px = {g['height_local']:.0f} layer-local px)"
+                )
             print(f"  annotated: {args.annotate}")
         context.close()
         browser.close()
