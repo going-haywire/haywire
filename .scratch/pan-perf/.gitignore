@@ -1,0 +1,12 @@
+# Nothing binary is committed from this directory. Every image and trace here
+# is regenerable from a one-line command (see README.md), the findings live as
+# numbers in RESULTS.md, and git would keep these blobs forever without ever
+# being able to diff them.
+
+# Devtools traces — 60-160 MB each
+trace-*.json
+
+# Screenshots, annotated paint maps, and --shots bursts
+*.png
+shots-before/
+shots-after/

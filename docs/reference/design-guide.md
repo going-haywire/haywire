@@ -1236,8 +1236,19 @@ focus treatment enforced by shell CSS and the NumberDrag Vue component:
 | Focus | `2px var(--hw-accent)`, center-out animation | `--hw-bg-elevated` |
 
 The focus underline animates from the centre outwards using
-`transform: scale3d(0→1, 1, 1)` with `cubic-bezier(0.4, 0, 0.2, 1)` — the
+`transform: scaleX(0→1)` with `cubic-bezier(0.4, 0, 0.2, 1)` — the
 same easing Quasar uses on filled fields.
+
+**Rule:** Use the 2D `scaleX`, never `scale3d`/`translateZ`/`translate3d`, on
+anything that can appear once per widget, per pin or per node. A 3D transform
+gives the element its own transform node in Blink's paint property tree and
+blocks the paint-chunk merging `PaintArtifactCompositor::Update` ("Layerize")
+depends on. This is not a micro-optimisation: 3300 of these pseudo-elements
+(300 nodes × 11 number widgets) cost ~500 ms per Layerize while panning in
+Chrome — 6 fps, 86% of the main thread, and a compositor too starved to raster
+tiles, so cards drew half-finished and the app shell went unpainted. The 2D
+form animates identically and measured 87 fps. Evidence and the harness that
+produced it: `.scratch/pan-perf/`.
 
 **Rule:** Do not add `outlined` or `filled` props to standard panel input
 fields — the unified focus style is applied to the default (`standard`) Quasar

@@ -268,12 +268,27 @@ export default {
   height: 2px;
   background: var(--hw-accent, #4f8ef7);
   transform-origin: center bottom;
-  transform: scale3d(0, 1, 1);
+  /* scaleX, NOT scale3d — a 3D transform here is a whole-app performance cliff.
+   *
+   * A 3D transform gives the element its own transform node in Blink's paint
+   * property tree and blocks the paint-chunk merging that Layerize
+   * (PaintArtifactCompositor::Update) relies on. One widget costs nothing; a
+   * canvas full of them does not. On graphs/10x300nodes.haywire — 300 nodes x
+   * 11 number widgets = 3300 of these pseudo-elements — panning in Chrome cost
+   * ~500ms per Layerize, 86% of the main thread, 6 fps, with the compositor
+   * unable to raster tiles in time (half-drawn cards, unpainted app shell).
+   * Swapping this one token for the 2D form took that to 82 fps. The
+   * animation is identical: it only ever scales on X.
+   *
+   * Measured with .scratch/pan-perf/ — see the "Chrome cliff" section of
+   * .scratch/pan-perf/RESULTS.md before reintroducing any 3D transform on a
+   * per-widget or per-node element. */
+  transform: scaleX(0);
   transition: transform 0.36s cubic-bezier(0.4, 0, 0.2, 1);
 }
 .number-drag--dragging::after,
 .number-drag--editing::after {
-  transform: scale3d(1, 1, 1);
+  transform: scaleX(1);
 }
 .number-drag--dragging,
 .number-drag--editing {

@@ -148,6 +148,201 @@ parts.
 
 ## Observations
 
+### `lod_enabled` is off ON PURPOSE — do not propose it as a free win (2026-09-03)
+
+Several sections below note that `editor.pan_zoom.lod_enabled` is `false` and
+treat re-enabling it as an untried, no-code lever. **It is not.** It is off by
+an explicit decision: the LOD *transition* freezes for ~500 ms as layers are
+admitted or hidden, so zooming becomes jerky. The stutter is more annoying than
+the steady-state framerate it buys.
+
+That matches the June-2026 finding recorded in the project notes — converting
+LOD from `opacity: 0` to real `display: none` regressed node selection to ~5 s
+and was reverted, because **the cost is transitioning detail in and out across
+many nodes at once, not rendering it**.
+
+So the LOD lever is not "switch it on"; it is "make the crossing cheap", which
+is a different and much larger piece of work. Any measurement taken at
+LOD `high` on this graph is measuring the configuration the app is actually
+used in.
+
+### FIXED — zoom jumped mid-pan: wheel/trackpad misclassification (2026-09-03)
+
+Not a perf bug, but it lives in `pan.vue` and it corrupts every hand-panned
+measurement in this file, so it belongs here.
+
+`handleWheel` decided mouse-wheel-vs-trackpad **per event**, on
+`|deltaY| >= 50 && deltaX === 0`. The middle of a fast vertical trackpad swipe
+satisfies both, so fast pans flipped into zoom mid-gesture:
+
+| gesture | zoom before → after |
+|---|---|
+| fast swipe down (pan to bottom) | 0.30 → **0.02** |
+| fast swipe up (pan to top) | 0.30 → **2.96** |
+
+Slow swipes (`|deltaY| < 50`) and diagonal swipes (`deltaX != 0`) were always
+fine, which is how it survived: only the fast straight-line case broke.
+
+Fixed by classifying the **first event of a gesture** and latching that until
+the stream goes quiet — a trackpad swipe ramps up from small deltas, a wheel
+notch opens at full magnitude. `wheelcheck.py` covers it (6/6), asserting both
+that a swipe does not zoom **and** that it still pans, since a handler that does
+nothing would pass the first half alone.
+
+**Consequence for this file: any `hand` row taken with a fast vertical trackpad
+sweep may have been silently zooming.** `pan px` would not reveal it — a zoom
+also moves the pan values. Another reason the `auto40` rows supersede them.
+
+### SOLVED — cards not rendering was `will-change` promotion, NOT the framerate (2026-09-03)
+
+**Two separate Chrome bugs, and fps could only see one of them.**
+
+Promoted by `will-change: transform`, Chrome stops painting the layer once the
+content in view gets large. Counting cards that actually carry pixels
+(`paintcheck.py`, which walks every card's client rect and asks whether that
+rectangle has any internal contrast):
+
+| zoom | cards in view | never painted, promoted | unpromoted |
+|---|---|---|---|
+| 0.069 (fit) | 300 | **152** | 0 |
+| 0.09 | 208 | **53** | 0 |
+| 0.15 | 62 | 0 | 0 |
+
+It is a hard horizontal cut, not a flicker — everything below a fixed line is
+absent, **at rest, indefinitely**. That is the reported "only sections of the
+nodes render, sometimes only half of them". Removed `will-change: transform`
+from `.zoom-pan-content` in `zoom/pan.vue`.
+
+**Cost: Chrome 87 → 38 fps at zoom 0.09. Deliberate.** A correct 38 fps beats a
+fast half-drawn canvas. Everything paints at rest *and* mid-pan, at every zoom
+tested (0.05 / 0.069 / 0.09 / 0.15).
+
+**Firefox is unaffected, A/B'd in one session:** 19.08 fps unpromoted vs 19.07
+promoted, spreads fully overlapping, and 278/278 cards painted either way.
+Neither Chrome fix costs Firefox anything.
+
+#### ⚠ Why this was missed for so long, including once in this file
+
+The comment in `pan.vue` used to read *"will-change: transform is KEPT —
+removing promotion was tested separately, made no difference in Firefox, and
+trended worse in Chrome."* That was true, and it was decided **on framerate
+alone**. Framerate is blind to this failure: the blank region costs nothing to
+not-draw, so dropping half the canvas makes the number go **up**.
+
+The same mistake was repeated here on 2026-09-03: the `scale3d` fix below was
+reported as having resolved the rendering symptom, on the strength of a
+before/after screenshot pair. It had not. It fixed the *unpainted app shell*
+(genuine raster starvation, caused by 500 ms main-thread stalls); the blank
+**node** regions are this separate bug and survived it untouched — confirmed by
+restoring `scale3d` via CSS and measuring 49.7% blank against 50.7% with the
+fix in place. Eyeballing one screenshot is not a measurement.
+
+**Rule: any change to compositing, promotion or layer structure must be checked
+with `paintcheck.py`, not only `panperf.py`.** An fps run cannot see a
+paint-completeness regression, and will usually reward one.
+
+### SOLVED — the Chrome framerate cliff was `scale3d` on a widget pseudo-element (2026-09-03)
+
+**`6.05 → 87.19 fps` in Chrome. One CSS token.**
+
+`.number-drag::after` — the focus underline on every number widget — animated
+with `transform: scale3d(0, 1, 1)`. Changed to the 2D `scaleX(0)`
+(`number/drag.vue`). The animation is identical; it only ever scaled on X.
+
+| | fps | mean ms | p99 ms | main ms | Layerize |
+|---|---|---|---|---|---|
+| before | 6.05 | 165.31 | 525.0 | 159.40 | ~500 ms × 27 per 5 s |
+| after | **87.19** | **11.47** | **25.6** | **7.28** | ~4 ms × 465 per 5 s |
+
+**Why it costs so much.** A 3D transform gives the element its own transform
+node in Blink's paint property tree and blocks the paint-chunk merging that
+`PaintArtifactCompositor::Update` — `Layerize` in a trace — depends on. One
+widget costs nothing. `10x300nodes.haywire` has 300 nodes × 11 number widgets =
+**3300 of them**, and at that count Layerize went to ~500 ms per call, 86.5% of
+the main thread. The compositor was then too starved to raster tiles in time,
+which is the reported *"not all node cards are rendered, strong flickering"* —
+reproducible on demand — no screenshot is committed, because the harness can
+inject either bug back in one command:
+
+```sh
+# the shell going unpainted (this bug)
+uv run python .scratch/pan-perf/panperf.py --runs 1 --shots /tmp/shots \
+    --css '.number-drag::after { transform: scale3d(0,1,1) !important; }'
+
+# the blank node regions (the will-change bug above)
+uv run python .scratch/pan-perf/paintcheck.py --zoom 0.069 \
+    --css '.zoom-pan-content { will-change: transform !important; }'
+```
+
+**Scope:** the `--shots` pair shows the *app shell* (top bar, tabs, sidebar)
+going unpainted and coming back. It does **not** show the blank node regions
+being fixed — that is the separate `will-change` bug, and it survived this fix
+untouched. Do not read those shots as evidence for anything but the shell.
+
+**Firefox is unaffected, measured both ways:** 18.94 fps with the fix, 18.99
+with `scale3d` injected back. WebRender has no Layerize step, which is exactly
+why this was Chrome-only and why the Firefox work never touched it.
+
+**The main-thread verdict for this graph is now settled and inverted from the
+200-node file below.** `main ms` 159.4 of a 165.3 ms frame — 96%, not 4%. Every
+"the main thread is idle, build a compositor-side branch" conclusion further
+down this file is scoped to `10x200nodes.haywire` and does not transfer.
+
+#### The bisect, in order
+
+Each row is the median of 3 automated runs, Chrome, zoom 0.090, LOD high,
+`auto40`. Baseline 6.05 fps.
+
+| probe | fps | reading |
+|---|---|---|
+| baseline | 6.05 | — |
+| `--silence-console` | 6.06 | console/devtools cost is **not** a factor |
+| `[data-node-id] { z-index: auto }` | 6.01 | 7500 stacking contexts are **not** it |
+| `.hw-detail-label { display: none }` | 6.13 | labels are not it |
+| `.number-drag { overflow: visible }` | 6.11 | 13.8k clip nodes are not it |
+| `.number-drag * { transition: none }` | 6.28 | transitions are not it |
+| `.number-drag__arrow { opacity: 1 }` | 6.72 | 6600 opacity effect nodes: +11%, marginal |
+| `.number-drag__arrow { display: none }` | 6.98 | widget children are not it |
+| `.number-drag__center { display: none }` | 7.06 | widget children are not it |
+| `.connection-pin { display: none }` | 2.16 | **worse** — removing pins reflows the grid |
+| `[data-node-id] > * { display: none }` | 119.60 | the cost is card **contents**, not the box |
+| `.widget-container { display: none }` | 117.78 | …and specifically the number widgets |
+| `.widget-container { visibility: hidden }` | 113.58 | …paid at **paint**, not at layout |
+| **`.number-drag::after { display: none }`** | **89.85** | the pseudo-element alone |
+| **`.number-drag::after { transform: scaleX(0) }`** | **82.20** | **the 3D transform alone** |
+| fix at source | 87.19 | confirmed after `studioctl restart` |
+
+The two `display: none` probes contradicting each other individually
+(`arrows` 6.98, `center` 7.06, both hidden = the whole widget = 117) is the tell
+that led here: the cost was not in any child, it was in the container's own
+paint — and the container's only paint is that pseudo-element.
+
+**Still on the table**, now that the cliff is gone: Layerize is still 61% of a
+(much smaller) main-thread budget at ~4 ms per call, and `canvas.vue:3389` puts
+`translateZ(0)` on `.dragging-node` — harmless at one element, the same
+anti-pattern at scale.
+
+### The protocol is now automated — hand runs are superseded (2026-09-03)
+
+Everything above was gathered by hand, and the section below correctly concluded
+that at this scale a hand run resolves nothing (5.85–11.31 fps on identical
+code). **`.scratch/pan-perf/` now drives the whole protocol** — login, graph
+load, settle, zoom, record, read-back — against real Chrome or Firefox with
+nothing left to the operator. Three runs of identical code land inside ~6%.
+
+```sh
+uv run python .scratch/pan-perf/panperf.py --runs 3
+uv run python .scratch/pan-perf/panperf.py --runs 3 --css '<hypothesis>'   # A/B, no restart
+uv run python .scratch/pan-perf/panperf.py --runs 1 --trace /tmp/t.json    # what it is doing
+```
+
+See `.scratch/pan-perf/README.md`. The one rule it cannot enforce for you:
+**restart the studio after editing a `.vue`** — they compile at import.
+
+`--css` is what made the bisect above possible at all: a hypothesis costs ~70
+seconds and no source edit, so twelve of them fit in the time one hand-measured
+branch used to take.
+
 ### 300 nodes x 20 ports is a DIFFERENT REGIME — and hand-panning cannot measure it (2026-09-02)
 
 New graph: `graphs/10x300nodes.haywire`, 300 nodes, **10 inlets/widgets + 10

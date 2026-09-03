@@ -63,6 +63,17 @@ export default {
     // Cached container rect — populated on first gesture, cleared on mouseup/resize
     this._cachedRect = null;
 
+    // Wheel-gesture latch: 'wheel' | 'trackpad' | null. See handleWheel.
+    //
+    // Quiet period that ends a gesture. Comfortably above a trackpad's event
+    // spacing (~8-16ms, and its momentum tail stays well inside this), and
+    // below the gap between two deliberate wheel notches — and mis-chaining
+    // two wheel notches would be harmless anyway, since they latch the same
+    // mode.
+    this.WHEEL_GESTURE_GAP_MS = 100;
+    this._wheelMode = null;
+    this._wheelLastT = 0;
+
     // Compute initial min zoom and re-compute on resize
     this._updateMinZoom();
 
@@ -196,12 +207,40 @@ export default {
         return;
       }
 
-      // Distinguish mouse wheel from trackpad by delta magnitude.
-      // Mouse wheels produce large discrete steps (≥ 100 on most systems, often 120).
-      // Trackpad produces small continuous pixel deltas (typically < 50 per event).
-      const isMouseWheel = e.deltaMode === 1 || (e.deltaMode === 0 && Math.abs(e.deltaY) >= 50 && e.deltaX === 0);
+      // Mouse wheel (zoom) vs trackpad swipe (pan), decided ONCE PER GESTURE.
+      //
+      // Per-event classification cannot work here, and the bug it caused was
+      // ugly: a vigorous straight-down trackpad swipe reaches 60-80px per
+      // event, and a deliberate vertical swipe has deltaX exactly 0 — so the
+      // middle of every fast pan matched "large and vertical", flipped to
+      // zoom, and the canvas lurched. Panning to the bottom of the viewport
+      // slammed zoom 0.30 -> 0.02; panning to the top took it to 2.96.
+      //
+      // What separates the two is the SHAPE OF THE STREAM, not any one event:
+      //
+      //   trackpad — a dense burst (events ~8-16ms apart) that RAMPS UP from
+      //              small deltas, because it tracks finger velocity
+      //   wheel    — sparse discrete notches, each already at full magnitude
+      //
+      // So classify the first event of a gesture and latch that decision until
+      // the stream goes quiet. A trackpad swipe always opens small, which the
+      // first-event test reads correctly; the latch then holds through the
+      // fast middle that used to misfire.
+      const now = e.timeStamp || performance.now();
+      if (now - this._wheelLastT > this.WHEEL_GESTURE_GAP_MS) this._wheelMode = null;
+      this._wheelLastT = now;
 
-      if (isMouseWheel) {
+      if (this._wheelMode === null) {
+        this._wheelMode = this._looksLikeMouseWheel(e) ? 'wheel' : 'trackpad';
+      } else if (this._wheelMode === 'wheel' && (e.deltaX !== 0 || Math.abs(e.deltaY) < 50)) {
+        // A gesture that opened wheel-shaped but is now producing two-axis or
+        // small deltas is a trackpad after all. Only this direction is allowed:
+        // a trackpad gesture must never be able to flip INTO zoom mid-swipe,
+        // which is the whole failure being fixed.
+        this._wheelMode = 'trackpad';
+      }
+
+      if (this._wheelMode === 'wheel') {
         if (e.shiftKey) {
           // Shift + mouse wheel → pan horizontally
           this._setPanDirect(this._panX + (-e.deltaY) * this.panSensitivity, this._panY);
@@ -218,6 +257,28 @@ export default {
       }
     },
 
+
+    /** Is this the FIRST event of a mouse-wheel gesture rather than a swipe?
+     *
+     *  Only ever consulted for a gesture's opening event — handleWheel latches
+     *  the answer — so it can afford to be strict about what counts as a wheel.
+     */
+    _looksLikeMouseWheel(e) {
+      // Line/page deltas are only ever produced by a real wheel (Firefox
+      // reports deltaMode 1 for one). A trackpad is always pixel-mode.
+      if (e.deltaMode !== 0) return true;
+      // Two axes at once: no wheel does that (bar shift-scroll, handled below).
+      if (e.deltaX !== 0) return false;
+      // A wheel notch arrives at full size; a swipe opens small.
+      if (Math.abs(e.deltaY) < 50) return false;
+      // Chrome and Safari report wheelDeltaY in ±120 multiples for a real
+      // wheel, and -3*deltaY for a trackpad. Not decisive on its own — a
+      // trackpad deltaY of 40 or 80 also lands on a multiple of 120 — but as
+      // a tiebreak on an opening event it removes the common false positives.
+      const legacy = e.wheelDeltaY;
+      if (typeof legacy === 'number' && legacy !== 0 && Math.abs(legacy) % 120 !== 0) return false;
+      return true;
+    },
 
     _setZoomDirect(newZoom, centerX = null, centerY = null) {
       const oldZoom = this._zoom;
@@ -561,9 +622,31 @@ export default {
    * five were removed together, so the group's value is measured but the
    * individual contributions are not.
    *
-   * will-change: transform is KEPT — removing promotion as well was tested
-   * separately, made no difference in Firefox, and trended worse in Chrome. */
-  will-change: transform;
+   * will-change: transform is REMOVED, on correctness grounds (2026-09-03).
+   *
+   * It used to be kept: removing it made no difference in Firefox and trended
+   * worse in Chrome on fps. That judgement was made on framerate alone, and
+   * framerate was the wrong instrument — promotion was costing whole regions
+   * of the canvas.
+   *
+   * Promoted, Chrome will not paint the entire layer once the content in view
+   * gets large. Measured on graphs/10x300nodes.haywire, counting cards that
+   * actually carry pixels (.scratch/pan-perf/paintcheck.py):
+   *
+   *     zoom 0.069 (fit, 300 cards in view)   152 of 300 never painted
+   *     zoom 0.09  (208 in view)               53 of 208 never painted
+   *     zoom 0.15  (62 in view)                 0  — under the threshold
+   *
+   * It is a hard horizontal cut, not a flicker: everything below a fixed line
+   * is simply absent, at rest, indefinitely. That is the reported "only
+   * sections of the nodes render, sometimes only half of them". Unpromoted,
+   * the same scenes paint 300 of 300, at rest and mid-pan.
+   *
+   * The cost is framerate: ~87 -> ~38 fps at zoom 0.09 on that graph. A
+   * correct 38 fps beats a fast half-drawn canvas, so this is deliberate. If
+   * promotion is ever restored, gate it on zoom (it is harmless at >= 0.15,
+   * where the painted area is small) and re-run paintcheck.py at 0.069 —
+   * an fps run cannot see this regression. */
 
   /* Re-measured post-flatten-3d (2026-09-02, see .scratch/pan-perf/RESULTS.md):
    * removing this showed no regression and a directional gain at FULL detail
