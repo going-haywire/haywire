@@ -316,6 +316,16 @@ def main() -> int:
     ap.add_argument("--ticks", type=int, default=72)
     ap.add_argument("--step-ms", type=int, default=16)
     ap.add_argument("--jiggle", type=int, default=6, help="px of cursor movement per step")
+    ap.add_argument(
+        "--skip-wire",
+        action="store_true",
+        help=(
+            "drop the edge-drag rows. They are the only scenarios that PRESS a button, "
+            "and a press on a live studio mutates the graph it is measuring — an "
+            "errant one commits to the nearest suggestion and writes a real edge into "
+            "the fixture file."
+        ),
+    )
     ap.add_argument("--engine", default="chrome")
     args = ap.parse_args()
 
@@ -350,6 +360,8 @@ def main() -> int:
         ]
         results = []
         wire_spot = None
+        if args.skip_wire:
+            scenarios = [s for s in scenarios if not s[6]]
         for label, mode, pan, jiggle, gate, shield, wire in scenarios:
             spot = page.evaluate(SPOT, mode)
             if not spot:

@@ -71,3 +71,36 @@ Two traps met on the way:
 - **Hiding pins made it *worse*** (6.05 → 2.16 fps): they sit in a grid, so
   removing them reflows every card. A `display: none` probe changes layout;
   `visibility: hidden` is the one that isolates paint.
+
+## The same cliff, reached by INSERTING an element (2026-09-04)
+
+`Layerize` is not only triggered by 3D transforms. **Adding a DOM element into
+`.zoom-pan-container` re-layerizes the node subtree below it**, at the same
+scale of cost — Chrome only, as with the rest of this file.
+
+Measured with a full-size transparent overlay inserted on gesture start and
+removed on settle, over `graphs/10x300nodes.haywire`. Worst frame gaps in ms
+during one short pan, run twice against the same page: once as early as the
+canvas allows, once after the graph had settled:
+
+    inserted per gesture   EARLY [599, 530, 530, 516]   SETTLED [540, 253, 109, 92]
+    inserted once, kept    EARLY [653, 512, 496, 493]   SETTLED [ 73,  61,  59,  59]
+    no overlay at all      EARLY [555, 539, 118,  95]   SETTLED [ 78,  66,  65,  62]
+
+So: ~500ms per insertion, and unlike the graph-load blocks it never settles.
+An element that has to appear and disappear over the canvas should be created
+**once** and toggled with a property that changes neither geometry nor paint —
+`pointer-events`, or `opacity` on an already-composited layer. Its mere
+presence is free; its insertion is not.
+
+Two ways this hides:
+
+- **Averages cannot see it.** It is one stall at the START of a gesture. Mid-
+  gesture framerate, mean frame time and fps all look correct.
+- **The EARLY column looks the same in every configuration**, because graph
+  load dominates it. Only the settled column separates a cost you introduced
+  from one that was always there.
+
+`.scratch/pan-perf/earlyfreeze.py` is the instrument: it runs one short pan
+early and one after a settling period and reports the worst frame gap in each.
+A cost that survives settling is yours.
