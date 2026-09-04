@@ -123,7 +123,12 @@ export default {
                 anchorPin: null,         // the pin we're dragging from
                 lastMousePos: { x: 0, y: 0 },  // last known screen mouse position
                 previewPath: null,       // SVG path element for the in-progress connection
-                lockProximityRange: 150,
+                // Screen-px radius that counts as "the cursor is on this pin".
+                // A distance test rather than a DOM hit-test, because
+                // hit-testing is exactly what stops being available once a pan
+                // gate is up — and the positions are indexed anyway. Divided by
+                // zoom at use, so the radius stays constant on screen.
+                pinHitRadiusPx: 14,
                 suggestionProximityRange: 200,
                 suggestionPaths: new Map(),
                 nearestCompatiblePin: null
@@ -287,6 +292,9 @@ export default {
         // callback would emit against a torn-down component.
         if (this._measureFlushHandle) { cancelAnimationFrame(this._measureFlushHandle); this._measureFlushHandle = null; }
         if (this._pendingMeasurements) this._pendingMeasurements.clear();
+        // Same for the detail-relayout flush (_queueDetailRelayout).
+        if (this._detailRelayoutHandle) { cancelAnimationFrame(this._detailRelayoutHandle); this._detailRelayoutHandle = null; }
+        if (this._detailRelayoutIds) this._detailRelayoutIds.clear();
     },
 
     methods: {
@@ -302,26 +310,67 @@ export default {
             document.body.addEventListener('keydown', this.handleKeyDown, true);
         },
 
+        /** Repaint edges when a NodeDetail rank change relays a card out.
+         *
+         *  `data-node-props-detail` (stamped by `UINode._apply_detail_attr`) is
+         *  read by the `[data-node-props-detail]` rules at the bottom of this
+         *  file, which `display: none` whatever the rank excludes. That is the
+         *  entire mechanism — no card rebuild, no sync event — so this observer
+         *  is the only thing that tells the canvas a rank changed.
+         *
+         *  It has to, because hiding elements MOVES the ones that stay: at PINS
+         *  every unlinked pin leaves the layout, so a linked pin below one
+         *  slides up and its edge has to follow.
+         *
+         *  Trap: the slot's ResizeObserver does not cover this. It fires on the
+         *  slot's own box, and a purely internal shift — a hidden pin above a
+         *  visible one on a manual-height card — leaves that box unchanged.
+         *
+         *  Node MOVES are not routed here: `_syncNodePosition` and the drag
+         *  handler call `_updateEdgesForNode` themselves.
+         */
         _setupObservers() {
             this.mutationObserver = new MutationObserver((mutations) => {
                 mutations.forEach(mutation => {
-                    if (mutation.attributeName === 'style') {
-                        const nodeElement = mutation.target;
-                        const nodeId = nodeElement.dataset.nodeId;
-
-                        if (nodeId && nodeElement.hasAttribute('data-node-id')) {
-                            const styleText = nodeElement.style.cssText;
-                            if (styleText.includes('left:') || styleText.includes('top:') || styleText.includes('transform:')) {
-                                console.log(`-->  _setupObservers(): ${nodeId}`);
-                                this._updateEdgesForNode(nodeId);
-                                // Keep the resize gadget glued to the node it tracks.
-                                if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
-                                    this._fitResizeGadget();
-                                }
-                            }
-                        }
-                    }
+                    const nodeElement = mutation.target;
+                    if (!nodeElement.getAttribute) return;
+                    const nodeId = nodeElement.getAttribute('data-node-id');
+                    if (nodeId) this._queueDetailRelayout(nodeId);
                 });
+            });
+
+            const host = this.$refs.nodeContainer;
+            if (!host) return;
+            this.mutationObserver.observe(host, {
+                subtree: true,
+                attributes: true,
+                attributeFilter: ['data-node-props-detail'],
+            });
+        },
+
+        /** Repaint a relaid-out node's edges, once per frame.
+         *
+         *  Deferred to rAF for two reasons. A MutationObserver callback runs
+         *  before the browser has laid the new CSS out, so measuring there
+         *  would force a synchronous layout per node; and a detail change
+         *  usually lands on a whole selection at once, so one flush beats N.
+         *  Inside the frame callback, `getBoundingClientRect` flushes style and
+         *  layout itself, so the positions read are the post-rank ones.
+         */
+        _queueDetailRelayout(nodeId) {
+            if (!this._detailRelayoutIds) this._detailRelayoutIds = new Set();
+            this._detailRelayoutIds.add(nodeId);
+            if (this._detailRelayoutHandle) return;
+            this._detailRelayoutHandle = requestAnimationFrame(() => {
+                this._detailRelayoutHandle = null;
+                const ids = this._detailRelayoutIds;
+                this._detailRelayoutIds = new Set();
+                ids.forEach(id => this._updateEdgesForNode(id));
+                // The card's height almost always changes with the rank, and the
+                // gadget is fitted from layout size — keep it hugging the node.
+                if (this.resizeGadget.visible && ids.has(this.resizeGadget.nodeId)) {
+                    this._fitResizeGadget();
+                }
             });
         },
 
@@ -332,25 +381,30 @@ export default {
             const nodeId = nodeElement.getAttribute('data-node-id');
             if (!nodeId) return;
 
-            const scheduleEdgeUpdates = () => {
-                this._scheduleEdgeUpdates(nodeId, nodeElement);
-            };
-
             // Listen for transform transitions (the magnifier scales `transform`,
             // which shifts pin positions — refresh edges as it animates).
+            //
+            // Trap: `transitionstart` BUBBLES, and this card is full of elements
+            // that transition `transform` — every `.connection-pin` carries one
+            // (its own rule, and it matches `.zoom-pan-lod0` too), and a pin's
+            // hover and its connection-valid/compatible states all animate a
+            // scale. The target check is what keeps a cosmetic pin effect from
+            // reaching `_scheduleEdgeUpdates`, which is 7 whole-edge-map sweeps.
             lodElement.addEventListener('transitionstart', (e) => {
+                if (e.target !== lodElement) return;
                 if (e.propertyName === 'transform') {
                     this._scheduleEdgeUpdates(nodeId, nodeElement);
                     // If an edge drag is in progress, the magnify shifts this
                     // node's pins — recompute the preview/suggestions against the
                     // new positions so aiming stays accurate even if the pointer
                     // is held still while the node scales up.
+                    //
+                    // `_scheduleEdgeUpdates` above has already invalidated the
+                    // pin index, so this re-measures against the new geometry.
+                    // No `target` is needed: the move handler decides "on a pin"
+                    // by distance, not by hit-testing.
                     if (this.edgeDrag.mode === 'active') {
                         this._handleEdgeDragMove({
-                            target: document.elementFromPoint(
-                                this.edgeDrag.lastMousePos.x,
-                                this.edgeDrag.lastMousePos.y
-                            ) || document.body,
                             clientX: this.edgeDrag.lastMousePos.x,
                             clientY: this.edgeDrag.lastMousePos.y,
                         });
@@ -360,14 +414,25 @@ export default {
 
             // Hover magnifier: dwell to magnify, release on leave. Timers are
             // stored on the element so leave can cancel a pending enter, and so
-            // cleanup can clear them. Edge refresh is driven by the transition
-            // above (no extra call needed here beyond the size-change schedule).
+            // cleanup can clear them.
+            //
+            // These listeners deliberately do NOT schedule edge updates. Hover
+            // moves no pin; only the magnify transform does, and it fires
+            // `transitionstart` in both directions (_applyMagnify sets the
+            // transform, _clearMagnify removes it), which is where the edge
+            // refresh belongs. With hoverScaleEnabled off — the default in
+            // practice — no magnify runs at all.
+            //
+            // Trap: `_scheduleEdgeUpdates` is expensive enough that calling it
+            // per hover crossing is not an option. Each call is one full
+            // edgePaths sweep plus six more on setTimeout across 300ms, with
+            // overlapping tails and no cross-node cancellation
+            // (`_animationTimers` is per-element) — so a pan with the cursor
+            // over the cards would schedule thousands of sweeps.
             lodElement.addEventListener('mouseenter', () => {
-                scheduleEdgeUpdates();
                 this._onNodeHoverEnter(lodElement);
             });
             lodElement.addEventListener('mouseleave', () => {
-                scheduleEdgeUpdates();
                 this._onNodeHoverLeave(lodElement);
             });
 
@@ -532,6 +597,20 @@ export default {
          */
         _syncGripPassthrough(e) {
             if (!this.resizeGadget.visible || window.__hwResizeDragging) return;
+            // Not while panning. Everything below forces a synchronous style +
+            // layout flush (elementFromPoint) between two style writes on the
+            // grips, on EVERY mousemove — and only while a node is selected,
+            // since the gadget is hidden otherwise. Trap: that makes a
+            // SELECTION, not the pointer's position, the thing that turns a pan
+            // jerky, so the symptom points nowhere near the cause.
+            //
+            // Safe to skip: this exists so a pin under the cursor can win the
+            // hit area from a grip before a mousedown starts an edge drag, and
+            // no edge drag begins in the middle of a pan gesture. The stamp is
+            // refreshed every frame by handleZoomPanUpdate and lapses 150ms
+            // after the last one, so the passthrough is live again by the time
+            // the pointer settles.
+            if (performance.now() < (this._panBurstUntil || 0)) return;
             const grips = this.$el.querySelectorAll('.hw-resize-grip');
             if (!grips.length) return;
             // Hit-test with the grips already transparent, so the answer is
@@ -735,14 +814,6 @@ export default {
         },
 
         _onNodeHoverEnter(lodElement) {
-            // Mark the hovered card so LOD hover-persistence can re-admit its
-            // hidden descendants (pan.vue). Deliberately a JS-set class rather
-            // than a CSS `.zoom-pan-lod0:hover .zoom-pan-lod2` rule: a
-            // descendant-of-:hover selector makes Blink track hover state
-            // across every node's subtree, which turned each LOD crossing into
-            // a ~37ms restyle on a 200-node graph (0.1ms without it).
-            lodElement.classList.add('hw-lod-hover');
-
             // Clear any pending release so re-entering keeps it magnified.
             if (lodElement._magnifyExitTimer) {
                 clearTimeout(lodElement._magnifyExitTimer);
@@ -772,8 +843,6 @@ export default {
         },
 
         _onNodeHoverLeave(lodElement) {
-            lodElement.classList.remove('hw-lod-hover');
-
             // Cancel a pending magnify that never fired.
             if (lodElement._magnifyEnterTimer) {
                 clearTimeout(lodElement._magnifyEnterTimer);
@@ -821,6 +890,11 @@ export default {
         _setupZoomPanListener() {
             this.handleZoomPanUpdate = (event) => {
                 const { zoom, panX, panY, containerId, isDragging } = event.detail;
+                // Mark a pan burst in flight. pan.vue dispatches this on every
+                // transform write, so the stamp is refreshed each frame and
+                // lapses shortly after the gesture stops. Read by
+                // _syncGripPassthrough, which must not force layout mid-pan.
+                this._panBurstUntil = performance.now() + 150;
                 // Ignore events from sibling canvases' ZoomPanContainers —
                 // otherwise panning another tab's canvas clobbers this
                 // instance's zoomState, and pin coords compute against the
@@ -2326,6 +2400,14 @@ export default {
             this.edgeDrag.anchorPin = pin;
             this.edgeDrag.nearestCompatiblePin = null;
 
+            // Pin geometry + per-pin validity, resolved once for the gesture.
+            // Built lazily on the first move rather than here: entering the
+            // mode should not pay for a graph-wide measure the user may never
+            // need (a click that immediately cancels).
+            this._pinIndex = null;
+            this._pinIndexDirty = true;
+            this._edgeDragStyled = new Set();
+
             // Create preview path
             const startPos = this._getPinPosition(pin);
             const [dirX, dirY] = this._getPinDirectionVector(pin);
@@ -2359,9 +2441,13 @@ export default {
                 this.edgeDrag.anchorPin.style.zIndex = '';
             }
             this._clearSuggestions();
+            // Document-wide sweep, deliberately: this runs once on a terminal
+            // transition, not per mousemove, and it is the safety net for any
+            // pin the tracked set lost (a redraw mid-gesture).
             document.querySelectorAll('.connection-pin').forEach(pin => {
                 pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
             });
+            if (this._edgeDragStyled) this._edgeDragStyled.clear();
         },
 
         /** Transition to idle — clean up all connection drag visuals. */
@@ -2386,6 +2472,9 @@ export default {
             this.edgeDrag.mode = 'idle';
             this.edgeDrag.anchorPin = null;
             this.edgeDrag.nearestCompatiblePin = null;
+            this._pinIndex = null;
+            this._pinIndexDirty = true;
+            if (this._edgeDragStyled) this._edgeDragStyled.clear();
         },
 
         /**
@@ -2420,6 +2509,37 @@ export default {
             this._returnToIdleEdge();
         },
 
+        /** Rebuild the pin index that `_handleEdgeDragMove` reads.
+         *
+         *  Positions are CANVAS space, and that is what makes the cache worth
+         *  having: canvas coords are invariant under pan and zoom (both cancel
+         *  out in `_transformScreenToSVG`), so the common case during wiring —
+         *  panning to reach a distant node — never invalidates it. Only real
+         *  geometry changes do, and those all funnel through
+         *  `_updateEdgesForNode`, which raises the dirty flag.
+         *
+         *  Validity is resolved here too: the anchor is fixed for the whole
+         *  gesture, so `_isValidEdge` is a per-pin constant.
+         */
+        _rebuildPinIndex(anchorPin) {
+            const index = [];
+            document.querySelectorAll('.connection-pin').forEach(pin => {
+                if (pin === anchorPin) return;
+                if (pin.dataset.pinFlowType === 'ghost') return;
+                const pos = this._getPinPosition(pin);
+                index.push({
+                    el: pin,
+                    x: pos.x,
+                    y: pos.y,
+                    valid: this._isValidEdge(anchorPin, pin),
+                    sameType: anchorPin.dataset.pinDataType === pin.dataset.pinDataType,
+                });
+            });
+            this._pinIndex = index;
+            this._pinIndexDirty = false;
+            return index;
+        },
+
         _handleEdgeDragMove(e) {
             if (!this.edgeDrag.previewPath) return;
 
@@ -2434,46 +2554,67 @@ export default {
 
             this._clearSuggestions();
 
-            document.querySelectorAll('.connection-pin').forEach(pin => {
+            // Only the pins styled last move. Trap: a class write that actually
+            // changes a pin starts a 200ms transition, and those bubble to the
+            // card as `transitionstart` — so sweeping every pin in the document
+            // per mousemove costs O(all pins) writes AND a transition storm
+            // against the magnify listener (see _setupHoverObserver).
+            if (!this._edgeDragStyled) this._edgeDragStyled = new Set();
+            this._edgeDragStyled.forEach(pin => {
                 pin.classList.remove('connection-valid', 'connection-invalid', 'connection-compatible');
             });
+            this._edgeDragStyled.clear();
 
-            const hoverPin = e.target.closest('.connection-pin');
-            let nearestPin = null;
-            let nearestDistance = Infinity;
+            const index = (this._pinIndexDirty || !this._pinIndex)
+                ? this._rebuildPinIndex(anchorPin)
+                : this._pinIndex;
 
-            document.querySelectorAll('.connection-pin').forEach(pin => {
-                if (pin === anchorPin) return;
-                if (pin.dataset.pinFlowType === 'ghost') return;
+            // "The cursor is on this pin" is a distance test, not a DOM
+            // hit-test: hit-testing is unavailable while a pan gate is up, and
+            // the positions are already here.
+            const hitRange = this.edgeDrag.pinHitRadiusPx / (this.zoomState.zoom || 1);
+            const suggestRange = this.edgeDrag.suggestionProximityRange;
 
-                const isValid = this._isValidEdge(anchorPin, pin);
+            let hit = null, hitDistance = Infinity;
+            let nearestPin = null, nearestDistance = Infinity;
+            const candidates = [];
 
-                if (isValid) {
-                    const pinPos = this._getPinPosition(pin);
-                    const distance = Math.sqrt(
-                        Math.pow(mousePos.x - pinPos.x, 2) +
-                        Math.pow(mousePos.y - pinPos.y, 2)
-                    );
+            for (const p of index) {
+                // Self-healing staleness check — a property read, no layout.
+                if (!p.el.isConnected) { this._pinIndexDirty = true; continue; }
+                const dx = mousePos.x - p.x;
+                const dy = mousePos.y - p.y;
+                const distance = Math.sqrt(dx * dx + dy * dy);
 
-                    if (pin === hoverPin) {
-                        pin.classList.add('connection-valid');
-                        nearestPin = pin;
-                        nearestDistance = 0;
-                    } else if (distance <= this.edgeDrag.suggestionProximityRange) {
-                        if (anchorPin.dataset.pinDataType === pin.dataset.pinDataType) {
-                            pin.classList.add('connection-compatible');
-                            this._createSuggestionPath(pin, distance);
-
-                            if (distance < nearestDistance) {
-                                nearestPin = pin;
-                                nearestDistance = distance;
-                            }
-                        }
-                    }
-                } else if (pin === hoverPin) {
-                    pin.classList.add('connection-invalid');
+                if (distance <= hitRange && distance < hitDistance) {
+                    hit = p;
+                    hitDistance = distance;
                 }
-            });
+                if (p.valid && p.sameType && distance <= suggestRange) {
+                    candidates.push({ p, distance });
+                }
+            }
+
+            // The pin under the cursor wins outright, valid or not.
+            if (hit) {
+                hit.el.classList.add(hit.valid ? 'connection-valid' : 'connection-invalid');
+                this._edgeDragStyled.add(hit.el);
+                if (hit.valid) {
+                    nearestPin = hit.el;
+                    nearestDistance = 0;
+                }
+            }
+
+            for (const { p, distance } of candidates) {
+                if (hit && p.el === hit.el) continue;   // already claimed above
+                p.el.classList.add('connection-compatible');
+                this._edgeDragStyled.add(p.el);
+                this._createSuggestionPath(p.el, startPos, { x: p.x, y: p.y }, [dirX, dirY]);
+                if (distance < nearestDistance) {
+                    nearestPin = p.el;
+                    nearestDistance = distance;
+                }
+            }
 
             this.edgeDrag.nearestCompatiblePin = nearestPin;
 
@@ -2485,14 +2626,19 @@ export default {
             }
         },
 
-        _createSuggestionPath(targetPin, distance) {
+        /** Draw the dashed "you could land here" path to one compatible pin.
+         *
+         *  Positions and the anchor direction are passed in rather than
+         *  measured: the caller already holds them (from the pin index and its
+         *  own anchor read), and measuring here would be three
+         *  `getBoundingClientRect` calls per suggestion per mousemove.
+         */
+        _createSuggestionPath(targetPin, startPos, endPos, anchorDir) {
             if (this.edgeDrag.suggestionPaths.has(targetPin)) {
                 return;
             }
 
-            const startPos = this._getPinPosition(this.edgeDrag.anchorPin);
-            const endPos = this._getPinPosition(targetPin);
-            const [dirX, dirY] = this._getPinDirectionVector(this.edgeDrag.anchorPin);
+            const [dirX, dirY] = anchorDir;
 
             const pathData = this._createBezierPath(startPos, endPos, [dirX, dirY], [-dirX, -dirY]);
 
@@ -2793,7 +2939,14 @@ export default {
 
         _updateEdgesForNode(nodeId) {
             if (!nodeId) return;
-            
+
+            // Every path that moves a node's pins comes through here — a drag,
+            // a resize, a redraw, the magnifier's transition sweeps — so this is
+            // the one place the edge-drag pin index has to be invalidated from.
+            // Pan and zoom deliberately do NOT reach it: canvas-space pin
+            // coords are invariant under both.
+            this._pinIndexDirty = true;
+
             // ENHANCED: More efficient iteration using edgeInfo
             this.edgePaths.forEach((edgeInfo, edge_id) => {
                 if (edgeInfo.outletNodeId === nodeId || edgeInfo.inletNodeId === nodeId) {
@@ -3437,7 +3590,13 @@ export default {
 <style>
 /* Global styles for connection pins */
 .connection-pin {
-    transition: all 0.2s ease !important;
+    /* Named properties, never `all`: these four are the only ones the rules
+     * below animate. Trap — the move handler rewrites pin classes on every
+     * mousemove during a wire, and `all` turns each rewrite into a bundle of
+     * transitions whose `transitionstart` events bubble to the card, where they
+     * are indistinguishable from the magnifier's (see _setupHoverObserver). */
+    transition: transform 0.2s ease, filter 0.2s ease, box-shadow 0.2s ease,
+        border-color 0.2s ease !important;
     pointer-events: all !important;
     position: relative !important;
     z-index: 10000 !important;
@@ -3493,7 +3652,10 @@ export default {
 .connection-pin.connection-compatible {
     box-shadow: 0 0 6px rgba(76, 175, 80, 0.6) !important;
     border-color: rgba(76, 175, 80, 0.8) !important;
-    transform: scale(1.15) !important;
+    /* Carries --hw-pin-rotate, like every other scale in this block — see the
+     * comment above it. Dropping it un-rotates every compatible pin on a
+     * vertical-layout graph for as long as a wire is open. */
+    transform: var(--hw-pin-rotate, ) scale(1.15) !important;
     z-index: 10001 !important;
 }
 

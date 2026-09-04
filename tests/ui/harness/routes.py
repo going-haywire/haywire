@@ -136,6 +136,32 @@ def _build_dynamic_graph(node_factory):
     return graph, editor, dyn
 
 
+def _build_detail_graph(node_factory):
+    """A node whose LINKED pin sits below several unlinked ones, for NodeDetail.
+
+    ``EdgeLinkTestNode`` declares ``callback_inlet``, ``execute_inlet`` and
+    ``bool_inlet`` ahead of ``int_inlet``, and only ``int_inlet`` is wired. That
+    ordering is the whole fixture: at the PINS rank the three unlinked pins
+    above it are ``display: none``, so the linked pin — which stays visible —
+    MOVES. An edge that does not follow it is the defect under test.
+
+    Returns (graph, editor, sink) so the route can flip the sink's detail rank.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Detail Fixture")
+    editor = Editor(graph, node_factory)
+
+    dyn = graph.create_node_wrapper(_DYNAMIC_KEY, position=(3600.0, 3700.0))
+    sink = graph.create_node_wrapper(_EDGE_LINK_KEY, position=(3980.0, 3700.0))
+    assert dyn is not None and sink is not None, "could not create detail-fixture nodes"  # noqa: PT018
+
+    ok = editor.create_edge(dyn.node_id, _DYNAMIC_OUTLET, sink.node_id, _EDGE_LINK_INLET)
+    assert ok, f"could not connect {_DYNAMIC_OUTLET} -> {_EDGE_LINK_INLET}"
+    return graph, editor, sink
+
+
 def _build_layout_graph(node_factory):
     """Two nodes wired outlet→inlet, for the LayoutDirection canvas tests.
 
@@ -672,6 +698,30 @@ def register_routes(library_service) -> None:
         ui.button("restore-port", on_click=lambda: _set_port_count(2)).props('data-testid="restore-port"')
 
         _mount_graph_canvas(library_service, graph, editor, testid="dynamic")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-detail
+    #
+    # An EdgeLinkTestNode whose only wired inlet sits below three unlinked ones,
+    # plus buttons flipping its NodeDetail rank. Backs test_graph_node_detail.py:
+    # a rank change is a CSS filter that neither rebuilds the card nor emits a
+    # sync, yet it re-lays the card out — so the canvas has to notice the
+    # attribute itself and repaint the edges of a pin that moved.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-detail")
+    async def graph_detail_page():
+        graph, editor, sink = _build_detail_graph(library_service.get_node_factory())
+
+        def _set_detail(value: str) -> None:
+            sink.node.props.detail = value
+
+        # Outside the canvas so they never intercept canvas gestures.
+        ui.button("set-pins", on_click=lambda: _set_detail("pins")).props('data-testid="set-pins"')
+        ui.button("set-full", on_click=lambda: _set_detail("full")).props('data-testid="set-full"')
+
+        _mount_graph_canvas(library_service, graph, editor, testid="detail")
         _stamp_synced()
 
     # -------------------------------------------------------------------------
