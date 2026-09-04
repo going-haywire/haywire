@@ -27,6 +27,7 @@ def main() -> int:
     ap.add_argument("expr", nargs="?", help="a JS arrow function, e.g. '() => document.title'")
     ap.add_argument("--file", default=None)
     ap.add_argument("--css", action="append", default=[], help="inject before evaluating")
+    ap.add_argument("--graph", default=None, help="open this graph from the sidebar first")
     ap.add_argument("--raw", action="store_true", help="print as text, not JSON")
     args = ap.parse_args()
 
@@ -39,6 +40,9 @@ def main() -> int:
         browser = S.launch(pw)
         context, page = S.open_studio(browser, url)
         S.wait_for_canvas(page)
+        if args.graph:
+            S.open_graph(page, args.graph)
+            S.wait_for_canvas(page)
         S.install_helpers(page)
         S.wait_for_nodes_settled(page)
         if args.css:

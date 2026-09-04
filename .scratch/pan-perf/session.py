@@ -158,6 +158,20 @@ def open_studio(
     return context, page
 
 
+def open_graph(page, name: str, timeout_ms: int = 240_000) -> None:
+    """Open a graph by clicking its row in the haystack sidebar.
+
+    Deliberately driven through the UI rather than by repointing
+    `.haywire/workspace_state.json`: that file is the developer's restored
+    session, and a measurement run has no business rewriting it. The graph must
+    be listed in `haystacks/haystack.toml` to appear in the sidebar.
+    """
+    row = page.locator(f"text={name}").first
+    row.wait_for(state="visible", timeout=timeout_ms)
+    row.click()
+    page.wait_for_timeout(1500)
+
+
 def wait_for_canvas(page, timeout_ms: int = 240_000) -> None:
     """Block until a zoom-pan canvas exists and its pan controls are attached."""
     page.wait_for_selector(".zoom-pan-container", state="attached", timeout=timeout_ms)

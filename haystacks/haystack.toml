@@ -18,6 +18,10 @@ execute = false
 path = "graphs/10x300nodes.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/60nodes-edges.haywire"
+execute = false
+
 [haystack]
 name = "haystack"
 active_graph = "graphs/10x300nodes.haywire"

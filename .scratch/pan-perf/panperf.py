@@ -182,6 +182,7 @@ def main() -> int:
         ),
     )
     ap.add_argument("--css-file", default=None, help="same, read from a file")
+    ap.add_argument("--graph", default=None, help="open this graph from the sidebar first")
     ap.add_argument(
         "--shots",
         default=None,
@@ -212,6 +213,18 @@ def main() -> int:
         ),
     )
     ap.add_argument("--wheel-delta", type=int, default=30, help="px per wheel event")
+    ap.add_argument(
+        "--fake-hover-static",
+        default=None,
+        metavar="CSS",
+        help=(
+            "Apply CSS to ONE card and leave it there for the whole run — a node "
+            "that stays hovered, with no churn. Distinct from --fake-hover, which "
+            "rotates the class per frame to model crossings. Static hover was "
+            "measured free once; this is the probe that re-tests that under a "
+            "controlled pan."
+        ),
+    )
     ap.add_argument(
         "--fake-hover",
         default=None,
@@ -273,6 +286,9 @@ def main() -> int:
 
         t0 = time.time()
         S.wait_for_canvas(page)
+        if args.graph:
+            S.open_graph(page, args.graph)
+            S.wait_for_canvas(page)
         S.install_helpers(page)
         S.wait_for_overlay(page)
         nodes = S.wait_for_nodes_settled(page)
@@ -379,6 +395,31 @@ def main() -> int:
                         [spot["x"], spot["y"]],
                     )
 
+            if args.fake_hover_static:
+                page.evaluate(
+                    """([css]) => {
+                        let style = document.getElementById('hw-fake-hover-style');
+                        if (!style) {
+                            style = document.createElement('style');
+                            style.id = 'hw-fake-hover-style';
+                            document.head.appendChild(style);
+                        }
+                        style.textContent = '.hw-fake-hover {' + css + '}';
+                        const c = window.__hwPerfCanvas();
+                        const host = c.querySelector('.node-container');
+                        const r = c.getBoundingClientRect();
+                        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+                        let best = null, bestD = Infinity;
+                        for (const el of host.querySelectorAll(':scope > [data-node-id]')) {
+                            const b = el.getBoundingClientRect();
+                            if (b.width < 2 || b.height < 2) continue;
+                            const d = Math.hypot(b.left+b.width/2-cx, b.top+b.height/2-cy);
+                            if (d < bestD) { bestD = d; best = el; }
+                        }
+                        if (best) best.classList.add('hw-fake-hover');
+                    }""",
+                    [args.fake_hover_static],
+                )
             if args.fake_hover:
                 page.evaluate(
                     """([css]) => {
@@ -425,6 +466,31 @@ def main() -> int:
             if args.hover == "node":
                 page.evaluate(
                     "() => { if (window.__hwHoverKick) cancelAnimationFrame(window.__hwHoverKick); }"
+                )
+            if args.fake_hover_static:
+                page.evaluate(
+                    """([css]) => {
+                        let style = document.getElementById('hw-fake-hover-style');
+                        if (!style) {
+                            style = document.createElement('style');
+                            style.id = 'hw-fake-hover-style';
+                            document.head.appendChild(style);
+                        }
+                        style.textContent = '.hw-fake-hover {' + css + '}';
+                        const c = window.__hwPerfCanvas();
+                        const host = c.querySelector('.node-container');
+                        const r = c.getBoundingClientRect();
+                        const cx = r.left + r.width/2, cy = r.top + r.height/2;
+                        let best = null, bestD = Infinity;
+                        for (const el of host.querySelectorAll(':scope > [data-node-id]')) {
+                            const b = el.getBoundingClientRect();
+                            if (b.width < 2 || b.height < 2) continue;
+                            const d = Math.hypot(b.left+b.width/2-cx, b.top+b.height/2-cy);
+                            if (d < bestD) { bestD = d; best = el; }
+                        }
+                        if (best) best.classList.add('hw-fake-hover');
+                    }""",
+                    [args.fake_hover_static],
                 )
             if args.fake_hover:
                 page.evaluate("() => window.__hwFakeHoverStop && window.__hwFakeHoverStop()")
