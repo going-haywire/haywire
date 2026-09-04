@@ -355,12 +355,15 @@ class NodeSkin(BaseSkin, ABC):
                     f"grid-column: {content_column}; align-self: center; display: flex; "
                     f"flex-direction: column; {content_align} {content_margins} min-width: 0;"
                 )
-            ) as content:
+            ):
                 ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
                 if port.widget_key is not None and port.should_show_widget():
                     self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
 
-            add_pin_tooltip(content, port)
+            # No tooltip on this content column. The port's own PIN carries it
+            # (see _render_pin), and a second one here covers the label and the
+            # widget too — a trigger area many times the pin's, firing a tooltip
+            # wherever the pointer crosses the card body.
 
             if not pin_first:
                 self._render_pin(
@@ -442,15 +445,21 @@ class NodeSkin(BaseSkin, ABC):
             )
         ) as config_row:
             ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")
+            widget_el = None
             if port.widget_key is not None and port.should_show_widget():
-                self.render_widget(port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget")
+                widget_el = self.render_widget(
+                    port, wrapper.node_id, classes=f"{widget_classes} hw-detail-widget"
+                )
 
-        # Config ports render no pin, so they cannot carry a pin tooltip.
-        # Attach the same label/description tooltip to the whole config row.
-        # Unconditional since ADR 0032: below FULL this row has no label, so the
-        # tooltip is the only thing naming it. Lazy, so an unhovered row pays
-        # nothing.
-        add_pin_tooltip(config_row, port)
+        # A config port renders no pin, so the WIDGET is what the user points
+        # at — not the whole row, which spans the label and the full card width
+        # and would fire anywhere the pointer crosses the body. The tooltip is
+        # HOSTED on the row (a widget is a custom Vue component with no
+        # `<slot>`, so a child added to it never renders) and TRIGGERED by the
+        # widget. A config with no widget gets none: nothing to aim at, and the
+        # label already names it wherever it is shown.
+        if widget_el is not None:
+            add_pin_tooltip(config_row, port, trigger_el=widget_el)
 
     def _render_pin(
         self,
