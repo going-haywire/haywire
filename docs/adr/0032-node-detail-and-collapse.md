@@ -292,3 +292,28 @@ change.
 **Not reopened:** decision 1 (two axes, not one). Collapse and NodeDetail
 remain independently composable exactly as originally decided; the 5-rank
 ladder lives entirely inside the NodeDetail axis.
+
+## Superseded in part (2026-09-04): `.hw-lod-hover` is gone, and with it the "peek gesture"
+
+Decision 8 above closes with "now that selection is inert, `.hw-lod-hover` is
+the only peek gesture in the app". That sentence was true when written and
+stopped being true in `6d787d0e`, which removed LOD's `display:none`
+zoom-crossing rules (recorded in ADR 0006's Superseded bullet). The class was
+only ever a hook for the hover-persistence rules that re-admitted a hovered
+card's hidden descendants; once nothing was hidden, nothing read the class.
+
+`canvas.vue` kept writing it anyway — `classList.add` on `mouseenter`,
+`classList.remove` on `mouseleave`, on the single hottest path the canvas has.
+Both calls are removed. There is no peek gesture in the app now, because there
+is nothing left to peek at: every rank's elements are painted at every zoom,
+and `NodeDetail` decides what exists rather than what is revealed.
+
+Found while attributing a pan-performance defect: hovering a card during a pan
+costs ~7x the framerate on a 300-node graph, and the hover path was being
+audited consumer by consumer (`.scratch/pan-perf/eventcensus.py`; the class
+mutation itself measured free — it is removed as dead code, not as a fix).
+
+**Still standing from decision 8:** LOD and `NodeDetail` remain different
+concerns that nothing composes, and `data-lod-level` is still computed by
+`pan.vue` as a deliberate dormant hook with the debug overlay as its only
+reader.
