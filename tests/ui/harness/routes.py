@@ -136,6 +136,39 @@ def _build_dynamic_graph(node_factory):
     return graph, editor, dyn
 
 
+_PERF_KEY = "haybale-testing:node:PerformanceTester"
+
+
+def _build_edge_batch_graph(node_factory, edge_count: int):
+    """Two PerformanceTesters wired outlet_i → inlet_i, ``edge_count`` times.
+
+    ``port_count`` drives how many float pairs the node exposes, so the edge
+    count varies while the NODE count stays at two. That separation is the
+    whole point: the test asserts the number of edge sync messages does not
+    grow with the number of edges, and a fixture that added nodes alongside
+    edges could not tell the two apart.
+    """
+    from haywire.core.graph.base import BaseGraph
+    from haywire.core.graph.editor import Editor
+
+    graph = BaseGraph("Edge Batch Fixture")
+    editor = Editor(graph, node_factory)
+
+    src = graph.create_node_wrapper(_PERF_KEY, position=(3600.0, 3700.0))
+    dst = graph.create_node_wrapper(_PERF_KEY, position=(4300.0, 3700.0))
+    assert src is not None and dst is not None, "could not create edge-batch nodes"  # noqa: PT018
+
+    # Drives hb_reconfigure → rejig, giving float_outlet_0..N-1 / float_inlet_0..N-1.
+    src.node.ports["port_count"].set_value(edge_count)
+    dst.node.ports["port_count"].set_value(edge_count)
+
+    for i in range(edge_count):
+        ok = editor.create_edge(src.node_id, f"float_outlet_{i}", dst.node_id, f"float_inlet_{i}")
+        assert ok, f"could not connect float_outlet_{i} -> float_inlet_{i}"
+
+    return graph, editor
+
+
 def _build_detail_graph(node_factory):
     """A node whose LINKED pin sits below several unlinked ones, for NodeDetail.
 
@@ -673,6 +706,21 @@ def register_routes(library_service) -> None:
     async def graph_connect_page():
         graph, editor = _build_connect_graph(library_service.get_node_factory())
         _mount_graph_canvas(library_service, graph, editor, testid="connect")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
+    # GET /graph-edge-batch?edges=N
+    #
+    # Two nodes wired by N edges, N from the query string. Backs the batching
+    # cost test: a graph's edges must reach the client in a message count that
+    # does not grow with N. See test_edge_batch_cost.py.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-edge-batch")
+    async def graph_edge_batch_page(request: Request):
+        edges = int(request.query_params.get("edges", 8))
+        graph, editor = _build_edge_batch_graph(library_service.get_node_factory(), edges)
+        _mount_graph_canvas(library_service, graph, editor, testid="edge-batch")
         _stamp_synced()
 
     # -------------------------------------------------------------------------
