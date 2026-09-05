@@ -74,6 +74,13 @@ export default {
     this._wheelMode = null;
     this._wheelLastT = 0;
 
+    // Deferred `transform-changed`: see _updateTransformDirect. Kept separate
+    // from _wheelMode on purpose — that latch is resolved lazily, by comparing
+    // timestamps on the NEXT wheel event, so it stays non-null indefinitely
+    // after a gesture stops and would suppress every later emit.
+    this._transformDirty = false;
+    this._gestureEndTimer = null;
+
     // Compute initial min zoom and re-compute on resize
     this._updateMinZoom();
 
@@ -163,6 +170,8 @@ export default {
         this._invalidateRectCache();
         if (e.button === 1) {
           this.isDragging = false;
+          // The drag's explicit end — send the viewport it settled on.
+          if (this._transformDirty) this._flushTransform();
         }
       };
 
@@ -200,6 +209,9 @@ export default {
     },
     
     handleWheel(e) {
+      // Both branches below move the viewport, so the settle timer is armed for
+      // either one — it is what ends the gesture for `transform-changed`.
+      this._noteGestureActivity();
       if (e.ctrlKey) {
         // Trackpad pinch gesture (browser sets ctrlKey synthetically) OR Ctrl+scroll
         const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
@@ -387,11 +399,54 @@ export default {
         }
       }));
       
+      // Python only needs the SETTLED viewport, never the frames on the way to
+      // it. This used to emit on an 8ms throttle, which put ~11 websocket round
+      // trips on the wire per pan gesture and ~13 per zoom — every one of them
+      // superseded by the next, so the server was decoding a value only the
+      // last of which is ever read. On a studio that also runs the node graph
+      // in that same process, that is execution budget spent on nothing.
+      //
+      // Deferring is safe because nothing consumes this live: `on_zoom_change`
+      // and `on_pan_change` have no callers in the repo, and `_on_ready` is a
+      // one-shot that fires on the first settled emit either way (a programmatic
+      // move — resetView / setZoom / fitToContent — is not a gesture, so it
+      // still takes the 8ms path below and fires promptly).
+      //
+      // The live consumers are all client-side and untouched: the
+      // `zoom-pan-state` CustomEvent above still fires every frame, which is
+      // what the minimap and the debug overlay read.
+      this._transformDirty = true;
+      if (this.isDragging || this._gestureEndTimer) return;
+
       if (this.updateTimeout) return;
       this.updateTimeout = setTimeout(() => {
-        this.$emit('transform-changed', { panX: this._panX, panY: this._panY, zoom: this._zoom });
         this.updateTimeout = null;
+        this._flushTransform();
       }, 8);
+    },
+
+    /** Send the current viewport to Python, cancelling any pending debounce. */
+    _flushTransform() {
+      if (this.updateTimeout) {
+        clearTimeout(this.updateTimeout);
+        this.updateTimeout = null;
+      }
+      this._transformDirty = false;
+      this.$emit('transform-changed', { panX: this._panX, panY: this._panY, zoom: this._zoom });
+    },
+
+    /**
+     * Mark a wheel/trackpad gesture in flight and (re)arm its settle timer.
+     *
+     * A drag has an explicit end (mouseup); a wheel gesture does not, so the
+     * same quiet period that ends the wheel-mode latch ends this one.
+     */
+    _noteGestureActivity() {
+      if (this._gestureEndTimer) clearTimeout(this._gestureEndTimer);
+      this._gestureEndTimer = setTimeout(() => {
+        this._gestureEndTimer = null;
+        if (this._transformDirty) this._flushTransform();
+      }, this.WHEEL_GESTURE_GAP_MS);
     },
 
     zoomIn() { this._setZoomDirect(this._zoom + this.zoomSensitivity); },
@@ -471,6 +526,7 @@ export default {
     this._cleanupListeners();
     if (this._wheelTimeout) clearTimeout(this._wheelTimeout);
     if (this.updateTimeout) clearTimeout(this.updateTimeout);
+    if (this._gestureEndTimer) clearTimeout(this._gestureEndTimer);
   },
 
   watch: {
