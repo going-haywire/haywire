@@ -12,6 +12,7 @@ from __future__ import annotations
 
 from typing import Any, Protocol, runtime_checkable
 
+from haywire.ui import elements as hui
 from haywire.ui.surface import Presentation, Surface
 
 
@@ -20,7 +21,7 @@ class AppSettings(Surface):
 
     id = "app"
     order = 10
-    presentation = Presentation(label="Application", icon="home")
+    presentation = Presentation(label="Application", icon=hui.icon.app)
 
 
 class ExecutionInspector(Surface):
@@ -36,7 +37,7 @@ class CanvasSettings(Surface):
 
     id = "canvas"
     order = 30
-    presentation = Presentation(label="Canvas & Nodes", icon="grid_on")
+    presentation = Presentation(label="Canvas & Nodes", icon=hui.icon.canvas)
 
 
 class DebugSurface(Surface):
@@ -50,7 +51,7 @@ class DebugSurface(Surface):
 
     id = "debug"
     order = 40
-    presentation = Presentation(label="Debug", icon="bug_report")
+    presentation = Presentation(label="Debug", icon=hui.icon.debug)
 
 
 @runtime_checkable

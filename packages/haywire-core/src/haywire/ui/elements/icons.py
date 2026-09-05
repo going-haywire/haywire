@@ -29,7 +29,7 @@ class AppIcon:
     """Application-wide settings scope."""
     execution: Final[str] = "rocket_launch"
     """Execution behaviour scope."""
-    canvas: Final[str] = "grid_on"
+    canvas: Final[str] = "view_compact_alt"
     """Canvas & nodes scope."""
 
     # ── Graph ────────────────────────────────────────────────────────────────
@@ -37,7 +37,7 @@ class AppIcon:
     """Multi-graph file browser."""
 
     # ── Library  ───────────────────────────────────────────────────────────
-    library: Final[str] = "extension"
+    library: Final[str] = "storefront"
     """Library icon."""
     registry_key: Final[str] = "key"
     """Registry key or identifier."""
@@ -52,11 +52,13 @@ class AppIcon:
     network: Final[str] = "lan"
     """Studio network binding / MCP server settings."""
 
-    # -- Core Classes ───────────────────────────────────────────────────────────────
+    # ── Properties ─────────────────────────────────────────────────
+    properties: Final[str] = "settings"
 
-    graph: Final[str] = "polyline"
+    # -- Core Classes ───────────────────────────────────────────────────────────────
+    graph: Final[str] = "account_tree"
     """Graph main icon."""
-    node: Final[str] = "account_tree"
+    node: Final[str] = "memory"
     """Node main icon."""
     edge: Final[str] = "cable"
     """Edge main icon."""
@@ -80,7 +82,7 @@ class AppIcon:
     """Farmhand (MCP tool) main icon."""
 
     # ── Canvas sub-panels ────────────────────────────────────────────────────
-    canvas_grid: Final[str] = "grid_4x4"
+    canvas_grid: Final[str] = "grid_on"
     """Grid display settings panel."""
     canvas_node_skins: Final[str] = "format_shapes"
     """Node dimensions and typography panel."""
@@ -89,14 +91,26 @@ class AppIcon:
     canvas_minimap: Final[str] = "map"
     """Minimap visibility and position panel."""
 
+    # ── Graph panel sections ──────────────────────────────────────────────────
+    graph_info: Final[str] = "info"
+    """Graph settings scope (only available when graph has setting bags)."""
+    graph_properties: Final[str] = "tune"
+    """Graph settings scope (only available when graph has setting bags)."""
+    graph_metadata: Final[str] = "fingerprint"
+    """Graph settings scope (only available when graph has setting bags)."""
+
+
+
     # ── Node panel sections ──────────────────────────────────────────────────
     node_info: Final[str] = "info"
     """Node identity and metadata panel."""
-    node_ports: Final[str] = "device_hub"
+    node_ports: Final[str] = "commit"
     """Node port list panel."""
     node_status: Final[str] = "check_circle"
     """Node validation and runtime status panel."""
-    node_settings: Final[str] = "tune"
+    node_settings: Final[str] = "handyman"
+    """Node settings scope (only available when node has setting bags)."""
+    node_properties: Final[str] = "tune"
     """Node settings scope (only available when node has setting bags)."""
 
     # ── Library / editor tabs ────────────────────────────────────────────────
@@ -182,7 +196,7 @@ class AppIcon:
     """Open a document for editing (distinct from `edit`'s bare pencil)."""
     reset: Final[str] = "restart_alt"
     """Reset to default / restart action."""
-    promote: Final[str] = "upgrade"
+    promote: Final[str] = "cloud_upload"
     """Promote setting to port"""
     focus_graph: Final[str] = "center_focus_strong"
     """Fit the viewport to show every node in the graph."""

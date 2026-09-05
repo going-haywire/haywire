@@ -28,7 +28,7 @@ if TYPE_CHECKING:
 @panel(
     surface=GraphInspector,
     label="Graph Settings",
-    icon=hui.icon.graph,
+    icon=hui.icon.graph_properties,
     order=20,
     default_open=True,
     redraw_on=(ActiveGraphMoved, GraphDataMutated),

@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.surface import Presentation, Surface
 
 if TYPE_CHECKING:
@@ -19,7 +20,7 @@ class NodeInspector(Surface):
 
     id = "node"
     order = 60
-    presentation = Presentation(label="Node", icon="account_tree")
+    presentation = Presentation(label="Node", icon=hui.icon.node)
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
@@ -33,7 +34,7 @@ class SettingsInspector(Surface):
 
     id = "settings"
     order = 65
-    presentation = Presentation(label="Settings", icon="tune")
+    presentation = Presentation(label="Settings", icon=hui.icon.node_settings)
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

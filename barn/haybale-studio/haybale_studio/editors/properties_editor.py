@@ -27,7 +27,7 @@ logger = logging.getLogger(__name__)
 
 @editor(
     label="Properties",
-    icon=hui.icon.node_settings,
+    icon=hui.icon.properties,
     default_slot=SlotName.CONTEXT,
     description="Context-sensitive property panels for the active selection.",
     order=10,

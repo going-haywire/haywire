@@ -36,7 +36,7 @@ def _type_name(port: object) -> str:
     surface=PortInspector,
     label="Ports",
     icon=hui.icon.node_ports,
-    default_open=False,
+    default_open=True,
     order=20,
     redraw_on=(SelectionMoved, GraphDataMutated, ActiveGraphMoved),
 )

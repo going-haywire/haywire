@@ -9,13 +9,13 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.barn.builtin.surfaces import ExecutionInspector
 from haywire.core.signals import ActiveGraphMoved, GraphDataMutated
 from haywire.ui import elements as hui
 from haywire.ui.panel import BasePanel, PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from haybale_graph_editor.surfaces import GraphInspector
 from haybale_graph_editor.state.edit_state import EditState
 from haybale_graph_editor.state.graph_app_state import GraphAppState
 
@@ -26,9 +26,9 @@ if TYPE_CHECKING:
 
 
 @panel(
-    surface=GraphInspector,
-    label="Run Settings",
-    icon=hui.icon.execution,
+    surface=ExecutionInspector,
+    label="Graph Settings",
+    icon=hui.icon.graph,
     order=20,
     default_open=True,
     redraw_on=(ActiveGraphMoved, GraphDataMutated),
@@ -57,4 +57,5 @@ class GraphRunSettingsPanel(BasePanel):
             return
 
         with layout:
+            hui.info_row("Graph", entry.display_name)
             render_settings(entry.run_settings)

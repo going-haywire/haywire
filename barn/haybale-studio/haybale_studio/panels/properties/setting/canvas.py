@@ -37,10 +37,10 @@ if TYPE_CHECKING:
 
 @panel(
     surface=CanvasSurface,
-    label="Canvas",
-    icon=hui.icon.canvas,
+    label="Grid",
+    icon=hui.icon.canvas_grid,
     order=10,
-    default_open=True,
+    default_open=False,
 )
 class CanvasSettingsPanel(BasePanel):
     """Grid, zoom, pan and background pattern."""
@@ -56,7 +56,7 @@ class CanvasSettingsPanel(BasePanel):
 
 @panel(
     surface=CanvasSurface,
-    label="Skins",
+    label="Skin",
     description="Skin Configuration:Node dimensions, typography and label visibility.",
     icon=hui.icon.skin,
     order=20,

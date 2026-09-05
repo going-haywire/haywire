@@ -33,7 +33,7 @@ if TYPE_CHECKING:
 @panel(
     surface=GraphInspector,
     label="Graph Metadata",
-    icon=hui.icon.graph,
+    icon=hui.icon.graph_metadata,
     order=15,  # between GraphInfoPanel (10) and GraphSettingsPanel (20)
     default_open=False,
     access=AccessTier.EDIT,

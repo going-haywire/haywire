@@ -39,7 +39,7 @@ def _format_stamp(value: str | None) -> str:
 @panel(
     surface=GraphInspector,
     label="Graph Info",
-    icon=hui.icon.graph,
+    icon=hui.icon.graph_info,
     order=10,
     default_open=False,
     redraw_on=(GraphSaved,),

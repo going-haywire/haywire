@@ -64,7 +64,7 @@ def derive_provenance_label(haybale, mf) -> str | None:
 
 
 @editor(
-    label="Libraries",
+    label="Marketplace",
     icon=hui.icon.library,
     default_slot=SlotName.ACTION,
     description="Searchable list of installed and available libraries.",

@@ -21,7 +21,7 @@ if TYPE_CHECKING:
 
 @panel(
     surface=NodeInspector,
-    label="Node Properties",
+    label="Node Info",
     icon=hui.icon.node_info,
     default_open=False,
     order=10,
@@ -59,7 +59,7 @@ class NodeInfoPanel(BasePanel):
 @panel(
     surface=NodeInspector,
     label="Node Properties",
-    icon=hui.icon.node,
+    icon=hui.icon.node_properties,
     order=20,
     default_open=True,
 )

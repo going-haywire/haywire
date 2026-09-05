@@ -31,7 +31,7 @@ if TYPE_CHECKING:
 @panel(
     surface=SettingsInspector,
     label="Node Settings",
-    icon=hui.icon.node_settings,
+    icon=hui.icon.node_properties,
     order=10,
     default_open=True,
     redraw_on=(SelectionMoved, GraphDataMutated, ActiveGraphMoved),

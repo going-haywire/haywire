@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.surface import Presentation, Surface
 
 if TYPE_CHECKING:
@@ -16,7 +17,7 @@ class PortInspector(Surface):
     id = "ports"
     order = 62
     # Icon matches NodePortsPanel's own (hui.icon.node_ports).
-    presentation = Presentation(label="Ports", icon="device_hub")
+    presentation = Presentation(label="Ports", icon=hui.icon.node_ports)
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

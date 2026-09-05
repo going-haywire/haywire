@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
+from haywire.ui import elements as hui
 from haywire.ui.surface import Presentation, Surface
 
 if TYPE_CHECKING:
@@ -15,7 +16,8 @@ class GraphInspector(Surface):
 
     id = "graph"
     order = 50
-    presentation = Presentation(label="Graph", icon="polyline")
+    presentation = Presentation(label="Graph", icon=hui.icon.graph
+                                )
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
