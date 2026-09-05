@@ -15,6 +15,8 @@ from __future__ import annotations
 from typing import TYPE_CHECKING
 
 from nicegui import ui
+from nicegui.elements.mixins.color_elements import QUASAR_COLORS, TAILWIND_COLORS
+from nicegui.elements.mixins.text_element import TextElement
 
 from haywire.core.types import DataPort, CompoundType, FlowType, LayoutDirection
 
@@ -23,6 +25,51 @@ from ..utils import generate_pin_uuid
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
+
+
+class PinGlyph(TextElement):
+    """A pin's Material glyph as a NATIVE ``<i>`` instead of a Quasar ``q-icon``.
+
+    The markup is deliberately identical to what ``q-icon`` emits for a
+    Material ligature — same ``<i>`` tag, same ``q-icon notranslate
+    material-icons`` classes, same ligature text, same ``aria-hidden``. So
+    Quasar's own ``.q-icon`` rules still supply the box (``width/height: 1em``,
+    ``box-sizing: content-box``) and ``.material-icons`` still supplies the
+    font. Nothing about the rendered pin changes, which matters because the
+    edge layer reads ``getBoundingClientRect()`` off this element and
+    ``shell.py``'s icon-dimming rules match ``.q-icon`` (guarded by
+    ``:not(.connection-pin)``).
+
+    The point is what it is NOT: a Vue component. NiceGUI renders the whole
+    page as ONE component that rebuilds a VNode per element on every update,
+    and a component costs roughly 3x a native tag there. Pins are the largest
+    single population in a graph — one per port, 6,600 on a 300-node graph —
+    so moving them off ``q-icon`` measured **723 -> 619 ms (-14%)** on a whole-page
+    update. See ``.insights/project_nicegui_component_vs_native_tag.md``.
+
+    Two things ``q-icon`` did that a native tag cannot, and are done by
+    ``render_pin`` instead: ``size`` becomes an inline ``font-size``, and
+    ``color`` becomes either a ``text-*`` class (Quasar/Tailwind palette name)
+    or an inline ``color`` — mirroring NiceGUI's own ``TextColorElement``.
+    """
+
+    def __init__(self, icon: str) -> None:
+        super().__init__(tag="i", text=icon)
+        self._props["aria-hidden"] = "true"
+
+
+def _pin_color_css(color: str | None) -> tuple[str, str]:
+    """Split a pin colour into (extra class, inline style), as NiceGUI does.
+
+    ``TextColorElement`` routes a palette name to a ``text-*`` class and
+    anything else (the documented case — ``DataTypeIdentity.color`` is a hex
+    string) to an inline ``color``. ``q-icon`` used to do this for us.
+    """
+    if not color:
+        return "", ""
+    if color in QUASAR_COLORS or color in TAILWIND_COLORS:
+        return f" text-{color}", ""
+    return "", f"color: {color}; "
 
 
 def resolve_layout_direction(wrapper: "NodeWrapper") -> LayoutDirection:
@@ -215,10 +262,13 @@ def render_pin(
     # coincidence). Connection VALIDITY keys off flow-type, not this attribute.
     pin_data_type = pin.stored_type.class_identity.registry_key
 
+    # `q-icon`'s size/color props have no meaning on a native tag — see PinGlyph.
+    color_class, color_style = _pin_color_css(pin.color)
+
     return (
-        ui.icon(icon, color=pin.color, size=pin_size)
-        .classes("port connection-pin zoom-pan-lod0")
-        .style(pin_offset)
+        PinGlyph(icon)
+        .classes(f"q-icon notranslate material-icons port connection-pin zoom-pan-lod0{color_class}")
+        .style(f"font-size: {pin_size}; {color_style}{pin_offset}")
         .props(f'{common_props} data-pin-data-type="{pin_data_type}" data-pin-color="{pin.color}"')
     )
 
