@@ -773,6 +773,55 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /graph-detail-culled
+    #
+    # Same fixture as /graph-detail, plus a button that switches viewport
+    # culling on (pan.vue arms it only on that reactive OFF->ON transition, or
+    # on a completed drag/wheel gesture — never merely because the prop
+    # started true, since the graph may still be mid-load at first render).
+    # A culled node's card is fully unmounted (see cull.vue) — a detail-rank
+    # change made while it is off screen never reaches canvas.vue's
+    # data-node-props-detail MutationObserver, because there is no element
+    # for it to observe. Backs test_graph_node_detail_culling.py: the edge
+    # must still repaint once the node scrolls back into view, without any
+    # incidental hover/drag.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/graph-detail-culled")
+    async def graph_detail_culled_page():
+        from haywire.ui.components.zoom.settings import EditorPanZoomSettings
+
+        pz = EditorPanZoomSettings()
+        # pan.vue only arms culling on the reactive OFF->ON transition of
+        # cull_enabled (see its `watch` block) — never merely because the prop
+        # started true. cull_enabled is a process-global FrameworkSettings
+        # value, so a previous test run in this same harness session can leave
+        # it already True; force it back to False here so every page load
+        # gets a genuine transition when the "enable-culling" button fires.
+        pz.cull_enabled = False
+        pz.cull_min_nodes = 1  # arm/apply regardless of this fixture's tiny node count
+        pz.cull_min_zoom = 0.0  # arm/apply at any zoom level
+
+        graph, editor, sink = _build_detail_graph(library_service.get_node_factory())
+
+        def _set_detail(value: str) -> None:
+            sink.node.props.detail = value
+
+        def _enable_culling() -> None:
+            pz.cull_enabled = True
+
+        ui.button("set-pins", on_click=lambda: _set_detail("pins")).props('data-testid="set-pins"')
+        ui.button("set-full", on_click=lambda: _set_detail("full")).props('data-testid="set-full"')
+        ui.button("enable-culling", on_click=_enable_culling).props('data-testid="enable-culling"')
+
+        manager = _mount_graph_canvas(library_service, graph, editor, testid="detail-culled")
+        # Skip the harness's usual center_on_content: the test drives pan
+        # itself (via _zoomPanControls.setPan) to move the sink node in and
+        # out of the culled band on demand.
+        manager.zoom_container._on_ready = None
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /graph-layout
     #
     # Two connected nodes plus buttons flipping the GRAPH-tier layout_direction.

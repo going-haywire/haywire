@@ -945,6 +945,20 @@ export default {
             };
 
             document.addEventListener('zoom-pan-state', this.handleZoomPanUpdate);
+
+            // A culled node's card is fully unmounted (see cull.vue), so a
+            // settings change made while it was culled — e.g. a graph-level
+            // NodeDetail rank flip — never reaches the `data-node-props-detail`
+            // MutationObserver above: there was no element for it to observe.
+            // pan.vue fires this once a node comes back into the near band,
+            // after its card has remounted with the CURRENT rank already
+            // stamped (no further attribute mutation will happen), so route it
+            // through the same rAF-batched relayout the observer uses.
+            this.handleZoomPanNodesUncull = (event) => {
+                const { nodeIds } = event.detail;
+                nodeIds.forEach(id => this._queueDetailRelayout(id));
+            };
+            document.addEventListener('zoom-pan-nodes-uncull', this.handleZoomPanNodesUncull);
         },
 
         _cleanupEventListeners() {
@@ -958,6 +972,10 @@ export default {
             if (this.handleZoomPanUpdate) {
                 document.removeEventListener('zoom-pan-state', this.handleZoomPanUpdate);
                 this.handleZoomPanUpdate = null;
+            }
+            if (this.handleZoomPanNodesUncull) {
+                document.removeEventListener('zoom-pan-nodes-uncull', this.handleZoomPanNodesUncull);
+                this.handleZoomPanNodesUncull = null;
             }
         },
 
@@ -2954,7 +2972,10 @@ export default {
             // Refresh only the end that is actually present and keep the values
             // already on edgeInfo for the other: a culled node cannot move (it
             // cannot be dragged while off screen), so its half of the geometry
-            // is still correct.
+            // is still correct — for POSITION. A settings change (e.g. NodeDetail
+            // rank) made while culled can still move that end's pins once it
+            // remounts; `zoom-pan-nodes-uncull` (see _setupZoomPanListener) is
+            // what re-syncs that half once the node is back in the DOM.
             //
             // This used to bail whenever EITHER pin was missing, which froze the
             // VISIBLE end too — dragging a node left every edge that reached a

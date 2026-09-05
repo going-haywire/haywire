@@ -910,6 +910,7 @@ def create_haywire_injector(
     settings_path: Optional[str] = None,
     watch_settings: bool = True,
     host_store: Optional[HostStore] = None,
+    workspace_settings_path: Optional[str] = None,
 ) -> Injector:
     """
     Create and configure a Haywire DI injector.
@@ -923,6 +924,14 @@ def create_haywire_injector(
         watch_settings:       Whether to watch settings files for hot reload.
         host_store:           Optional HostStore for engine bootstrap state.
                               ``None`` → in-memory (writes don't persist).
+        workspace_settings_path: Path to the workspace settings JSON file
+                              (default: <workspace_root>/.haywire/settings.json).
+                              Split from workspace_root so a caller can keep the
+                              real workspace for library discovery while sending
+                              settings *writes* somewhere disposable — the
+                              workspace tier is the one the app writes back to.
+                              See HaywireModule and
+                              .insights/project_tests_wrote_workspace_settings.md.
 
     Returns:
         Configured DI injector.
@@ -934,6 +943,7 @@ def create_haywire_injector(
         settings_path=settings_path,
         watch_settings=watch_settings,
         host_store=host_store,
+        workspace_settings_path=workspace_settings_path,
     )
 
     return Injector([module])
@@ -946,6 +956,7 @@ def create_library_system_service(
     settings_path: Optional[str] = None,
     watch_settings: bool = True,
     host_store: Optional[HostStore] = None,
+    workspace_settings_path: Optional[str] = None,
 ) -> LibrarySystemService:
     """
     Create and initialize a complete library system service.
@@ -962,6 +973,13 @@ def create_library_system_service(
         watch_settings:       Whether to watch settings files for hot reload.
         host_store:           Optional HostStore for engine bootstrap state.
                               ``None`` → in-memory (writes don't persist).
+        workspace_settings_path: Path to the workspace settings JSON file
+                              (default: <workspace_root>/.haywire/settings.json).
+                              Pass a disposable path (e.g. under a tempdir) for
+                              any standalone script or harness that needs a
+                              real workspace_root for library discovery but
+                              must not write settings back into it — see
+                              .insights/project_tests_wrote_workspace_settings.md.
 
     Returns:
         Initialized LibrarySystemService.
@@ -973,6 +991,7 @@ def create_library_system_service(
         settings_path=settings_path,
         watch_settings=watch_settings,
         host_store=host_store,
+        workspace_settings_path=workspace_settings_path,
     )
 
     service = LibrarySystemService(injector)

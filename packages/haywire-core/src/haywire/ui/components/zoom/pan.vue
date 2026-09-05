@@ -482,6 +482,7 @@ export default {
         if (!holder) return;
         items.push({
           cull,
+          nodeId: holder.id,
           x: parseFloat(holder.style.left) || 0,
           y: parseFloat(holder.style.top) || 0,
           w: holder.offsetWidth,
@@ -499,9 +500,39 @@ export default {
       const content = this.$refs.content;
       this._cullHidden = false;
       if (!content) return;
+      const revealed = [];
       content.querySelectorAll('.hw-node-cull').forEach((el) => {
-        if (el._hwCull && !el._hwCull.isVisible()) el._hwCull.setVisible(true);
+        if (el._hwCull && !el._hwCull.isVisible()) {
+          el._hwCull.setVisible(true);
+          const holder = el.parentElement;
+          if (holder && holder.id) revealed.push(holder.id);
+        }
       });
+      this._dispatchNodesUncull(revealed);
+    },
+
+    /**
+     * Tell canvas.vue which nodes just came back from being culled, so it can
+     * repaint their edges.
+     *
+     * A culled node's card is fully unmounted (see cull.vue) — a settings
+     * change made while it was culled (e.g. a graph-level NodeDetail rank
+     * flip) never reached the `data-node-props-detail` MutationObserver in
+     * canvas.vue, because there was no element for it to observe. The pin
+     * that moved is invisible until this fires; without it, the edge stays
+     * frozen at its pre-change geometry until some incidental trigger (a
+     * drag, a hover) refreshes it — see `_updateEdge`'s "culled node cannot
+     * move" comment, which is true for position but not for a rank change.
+     *
+     * Dispatched as a DOM CustomEvent (mirrors `zoom-pan-state` above) rather
+     * than a Vue emit: canvas.vue and this component are sibling NiceGUI
+     * mounts, not parent/child in the Vue tree.
+     */
+    _dispatchNodesUncull(nodeIds) {
+      if (!nodeIds.length) return;
+      document.dispatchEvent(new CustomEvent('zoom-pan-nodes-uncull', {
+        detail: { nodeIds },
+      }));
     },
 
     /**
@@ -565,6 +596,7 @@ export default {
       const rIn = this.CULL_REVEAL_MARGIN;
       const rOut = this.CULL_DROP_MARGIN;
 
+      const revealed = [];
       for (const it of items) {
         const el = it.cull;
         if (!el._hwCull || !el.isConnected) continue;
@@ -580,8 +612,12 @@ export default {
         if (near !== visible) {
           el._hwCull.setVisible(near);
           if (!near) this._cullHidden = true;
+          else if (it.nodeId) revealed.push(it.nodeId);
         }
       }
+      // Un-culling can happen every frame of a pan/zoom gesture; batch into
+      // one CustomEvent per _applyCulling pass rather than one per node.
+      this._dispatchNodesUncull(revealed);
     },
 
     /** Send the current viewport to Python, cancelling any pending debounce. */

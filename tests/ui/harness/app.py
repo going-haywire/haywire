@@ -15,6 +15,7 @@ Routes:
 
 import os
 import sys
+import tempfile
 from pathlib import Path
 
 from nicegui import ui, app
@@ -37,11 +38,22 @@ def main():
 
     library_paths = [_BARN] if os.path.isdir(_BARN) else []
 
+    # workspace_settings_path split from workspace_root: the harness needs the
+    # REAL repo root for library discovery, but the workspace settings tier is
+    # the one the app writes back to — a harness route that flips a
+    # FrameworkSettings value (e.g. viewport culling) would otherwise persist
+    # straight into the developer's own <repo>/.haywire/settings.json. See
+    # .insights/project_tests_wrote_workspace_settings.md.
+    workspace_settings_path = os.path.join(
+        tempfile.mkdtemp(prefix="haywire-harness-settings-"), "settings.json"
+    )
+
     library_service = create_library_system_service(
         workspace_root=workspace_root,
         library_paths=library_paths,
         enable_file_watching=False,
         watch_settings=False,
+        workspace_settings_path=workspace_settings_path,
     )
     set_library_system(library_service)
     set_global_injector(library_service.injector)
