@@ -459,6 +459,11 @@ export default {
 
             const emit = () => {
                 if (window.__hwResizeDragging) return;      // a gadget drag owns the axis
+                // A detached slot measures 0x0. Viewport culling unmounts the
+                // card while keeping the node, so without this every culled
+                // node reports width 0 / height 0 and the server writes those
+                // back as its size. Also correct for a node being removed.
+                if (!slot.isConnected) return;
                 // Selection can grow the node (widgets appear) after the gadget
                 // was fitted — keep the gadget hugging the slot's live size.
                 if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
@@ -2908,6 +2913,20 @@ export default {
             return null;
         },
 
+        /**
+         * Is this node's card currently withheld by viewport culling?
+         *
+         * Distinguishes "the pins are missing because the node is off screen",
+         * which is expected and recoverable, from "the pins are missing", which
+         * is a bug worth an error. The wrapper stays mounted either way — only
+         * the card inside it goes — so the answer comes from the cull handle.
+         */
+        _isNodeCulled(nodeId) {
+            const holder = document.getElementById(nodeId);
+            const cull = holder && holder.querySelector(':scope > .hw-node-cull');
+            return !!(cull && cull._hwCull && !cull._hwCull.isVisible());
+        },
+
         _updateEdge(edge_id) {
             const edgeInfo = this.edgePaths.get(edge_id);
             if (!edgeInfo) {
@@ -2931,27 +2950,42 @@ export default {
                 inletPin = this._findPinInHierarchy(edgeInfo.inletNodeId, edgeInfo.inletPinFallback);
             }
 
-            if (!outletPin || !inletPin) {
+            // A CULLED node has no pins in the DOM, and that is not an error.
+            // Refresh only the end that is actually present and keep the values
+            // already on edgeInfo for the other: a culled node cannot move (it
+            // cannot be dragged while off screen), so its half of the geometry
+            // is still correct.
+            //
+            // This used to bail whenever EITHER pin was missing, which froze the
+            // VISIBLE end too — dragging a node left every edge that reached a
+            // culled node behind, still drawn at the node's old position.
+            const outletCulled = !outletPin && this._isNodeCulled(edgeInfo.outletNodeId);
+            const inletCulled = !inletPin && this._isNodeCulled(edgeInfo.inletNodeId);
+
+            if ((!outletPin && !outletCulled) || (!inletPin && !inletCulled)) {
                 console.error(`Failed to find pins for connection: ${edge_id}`);
                 return;
             }
+            if (!outletPin && !inletPin) {
+                return;   // both ends culled — nothing on screen to refresh
+            }
 
-            // Update positions in edgeInfo
-            edgeInfo.outletPos = this._getPinPosition(outletPin);
-            edgeInfo.inletPos = this._getPinPosition(inletPin);
-
-            // Update colors in edgeInfo
-            edgeInfo.outletColor = outletPin.dataset.pinColor;
-            edgeInfo.inletColor = inletPin.dataset.pinColor;
-
-            // Re-read the direction vectors from the live pins. These were
-            // captured once at _createEdge and treated as immutable, which held
-            // only while every node was left-to-right. A LayoutDirection change
-            // re-renders the pin with new data-pin-dir-x/y, so a cached vector
-            // leaves the curve aiming the old way — visibly, an outlet's edge
-            // doubling back into its own node.
-            edgeInfo.outletConnectDir = this._getPinDirectionVector(outletPin);
-            edgeInfo.inletConnectDir = this._getPinDirectionVector(inletPin);
+            // Positions, colours, and the direction vectors. The vectors are
+            // re-read from the live pins rather than trusted from _createEdge:
+            // that only held while every node was left-to-right, and a
+            // LayoutDirection change re-renders the pin with new
+            // data-pin-dir-x/y, leaving a cached vector aiming the old way —
+            // visibly, an outlet's edge doubling back into its own node.
+            if (outletPin) {
+                edgeInfo.outletPos = this._getPinPosition(outletPin);
+                edgeInfo.outletColor = outletPin.dataset.pinColor;
+                edgeInfo.outletConnectDir = this._getPinDirectionVector(outletPin);
+            }
+            if (inletPin) {
+                edgeInfo.inletPos = this._getPinPosition(inletPin);
+                edgeInfo.inletColor = inletPin.dataset.pinColor;
+                edgeInfo.inletConnectDir = this._getPinDirectionVector(inletPin);
+            }
 
             const pathData = this._createBezierPathForEdge(edge_id);
 

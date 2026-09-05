@@ -20,6 +20,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.ui.skin.factory import SkinFactory, NO_SKIN_DEFINED
 from haywire.ui.skin.nodecard import UINodeCard
 
+from haywire.ui.components.cull.cull import NodeCull
 from haywire.ui.components.graph.event_definitions import SyncNodeRedrawEvent
 
 logger = logging.getLogger(__name__)
@@ -148,7 +149,13 @@ class UINode:
             if self.container_slot:
                 self.container_slot.clear()  # NiceGUI handles cleanup reliably
             else:
+                # SPIKE: NodeCull sits between the positioned container (which keeps
+                # data-node-id / left / top / the data-node-props-* attrs) and the
+                # card, so withholding its slot drops this node's ~84 elements from
+                # the page's render walk without moving anything the canvas queries.
                 with self.container:
+                    self._cull = NodeCull()
+                with self._cull:
                     self.container_slot = (
                         ui.column().classes("ui-node-slot").props(f'id="{self.ui_node_id}"')
                     )

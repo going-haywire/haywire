@@ -60,6 +60,19 @@ class EditorPanZoomSettings(FrameworkSettings, namespace=NAMESPACE_EDITOR_PAN_ZO
         category=CATEGORY_EDITOR_PAN_ZOOM,
     )
 
+    cull_enabled = setting[BOOL](
+        False,
+        label="Viewport Culling",
+        description=(
+            "Stop rendering nodes that are off screen. NiceGUI rebuilds the whole page's "
+            "element tree on every update, so a large graph makes every interaction — even "
+            "ones outside the canvas — slower in proportion to how many nodes are mounted. "
+            "Culling trades a brief blank where an off-screen node was for that cost. "
+            "Experimental: an edge to a culled node keeps its last drawn shape."
+        ),
+        category=CATEGORY_EDITOR_PAN_ZOOM,
+    )
+
     # --- Hover magnifier -----------------------------------------------------
     # Readability aid: when zoomed out, dwelling on a node scales it up so its
     # content can be read without zooming in. Scaling fades to 1.0 (off) at/above

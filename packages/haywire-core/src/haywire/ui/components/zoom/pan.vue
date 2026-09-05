@@ -39,6 +39,8 @@ export default {
     canvasHeight: { type: Number, default: 8000 },
     // false pins the canvas at full detail ('high') regardless of zoom.
     lodEnabled: { type: Boolean, default: true },
+    // Unmount off-screen node bodies from the render walk. See _applyCulling.
+    cullEnabled: { type: Boolean, default: false },
   },
   
   data() {
@@ -80,6 +82,29 @@ export default {
     // after a gesture stops and would suppress every later emit.
     this._transformDirty = false;
     this._gestureEndTimer = null;
+
+    // --- Viewport culling ---------------------------------------------------
+    // Cached node boxes in CONTENT space: [{ cull, x, y, w, h }]. Rebuilt only
+    // when the graph could have changed shape, never during a gesture —
+    // offsetWidth forces layout, and 300 of those per frame is the cost this
+    // whole feature exists to avoid.
+    this._cullItems = null;
+    this._cullFrame = null;
+    // Culling stays OFF until the graph has finished loading, because an edge
+    // is created by looking up its two PIN elements, and a culled node has
+    // none. That lookup failing is not recoverable — canvas.vue drops the
+    // connection and never retries — so culling during load silently loses
+    // most of the graph's edges (162 of 204 on 60nodes-edges, with 424
+    // console errors). Armed by the first completed gesture, or immediately
+    // when the setting is switched on by hand, both of which mean the graph is
+    // already up. After that, culling only suppresses edge UPDATES, which is
+    // harmless: a culled node cannot move, so its edges stay correct.
+    this._cullArmed = false;
+    // Hysteresis, in viewports of margin around the visible area. Reveal early
+    // so a node is mounted before it is needed; cull later so a node sitting on
+    // the boundary during a slow pan does not thrash mount/unmount.
+    this.CULL_REVEAL_MARGIN = 0.5;
+    this.CULL_DROP_MARGIN = 1.0;
 
     // Compute initial min zoom and re-compute on resize
     this._updateMinZoom();
@@ -172,6 +197,11 @@ export default {
           this.isDragging = false;
           // The drag's explicit end — send the viewport it settled on.
           if (this._transformDirty) this._flushTransform();
+          if (this.cullEnabled) {
+            this._cullArmed = true;
+            this._refreshCullItems();
+            this._applyCulling();
+          }
         }
       };
 
@@ -415,6 +445,10 @@ export default {
       // The live consumers are all client-side and untouched: the
       // `zoom-pan-state` CustomEvent above still fires every frame, which is
       // what the minimap and the debug overlay read.
+      // Culling follows the viewport, so it is re-evaluated on every frame of a
+      // gesture (coalesced to one rAF). It reads no DOM — see _applyCulling.
+      this._scheduleCulling();
+
       this._transformDirty = true;
       if (this.isDragging || this._gestureEndTimer) return;
 
@@ -423,6 +457,99 @@ export default {
         this.updateTimeout = null;
         this._flushTransform();
       }, 8);
+    },
+
+    /**
+     * Re-measure every node's box, in content space.
+     *
+     * `offsetWidth` forces layout, so this is a settle-time operation only —
+     * never inside a gesture. A culled node measures its placeholder, which is
+     * held at the size the node had when it was culled, so the cache stays
+     * correct while a node is unmounted.
+     */
+    _refreshCullItems() {
+      const content = this.$refs.content;
+      if (!content) { this._cullItems = null; return; }
+      const items = [];
+      content.querySelectorAll('.hw-node-cull').forEach((cull) => {
+        const holder = cull.parentElement;   // the positioned [data-node-id] wrapper
+        if (!holder) return;
+        items.push({
+          cull,
+          x: parseFloat(holder.style.left) || 0,
+          y: parseFloat(holder.style.top) || 0,
+          w: holder.offsetWidth,
+          h: holder.offsetHeight,
+        });
+      });
+      // Empty means "not mounted yet", not "no nodes" — the first fit runs
+      // before the cards exist. Staying null keeps it retrying rather than
+      // caching an empty graph forever.
+      this._cullItems = items.length ? items : null;
+    },
+
+    /** Show everything again, e.g. when the setting is switched off. */
+    _uncullAll() {
+      const content = this.$refs.content;
+      if (!content) return;
+      content.querySelectorAll('.hw-node-cull').forEach((el) => {
+        if (el._hwCull && !el._hwCull.isVisible()) el._hwCull.setVisible(true);
+      });
+    },
+
+    _scheduleCulling() {
+      if (!this.cullEnabled || this._cullFrame) return;
+      this._cullFrame = requestAnimationFrame(() => {
+        this._cullFrame = null;
+        this._applyCulling();
+      });
+    },
+
+    /**
+     * Mount the nodes near the viewport, unmount the ones far from it.
+     *
+     * The saving is NOT about paint. NiceGUI renders the whole page as one Vue
+     * component and rebuilds a VNode for every element on every update, so a
+     * mounted node costs on every interaction anywhere in the studio — even
+     * ones with nothing to do with the canvas. A node whose slot is withheld is
+     * skipped by that walk entirely (see cull.vue).
+     *
+     * Uses only cached geometry plus the current transform: no DOM reads, so it
+     * is safe to run on every frame of a gesture.
+     */
+    _applyCulling() {
+      if (!this.cullEnabled || !this._cullArmed) return;
+      if (!this._cullItems) this._refreshCullItems();
+      const items = this._cullItems;
+      if (!items || !items.length) return;
+
+      const rect = this._getContainerRect();
+      if (!rect) return;
+
+      // Visible region, converted from screen pixels into content space.
+      const z = this._zoom;
+      const vx0 = -this._panX / z;
+      const vy0 = -this._panY / z;
+      const vw = rect.width / z;
+      const vh = rect.height / z;
+
+      const rIn = this.CULL_REVEAL_MARGIN;
+      const rOut = this.CULL_DROP_MARGIN;
+
+      for (const it of items) {
+        const el = it.cull;
+        if (!el._hwCull || !el.isConnected) continue;
+        const visible = el._hwCull.isVisible();
+        // Distance test against the two bands. A node is revealed as soon as it
+        // enters the inner band and only dropped once it leaves the outer one.
+        const m = visible ? rOut : rIn;
+        const near =
+          it.x + it.w >= vx0 - vw * m &&
+          it.x <= vx0 + vw * (1 + m) &&
+          it.y + it.h >= vy0 - vh * m &&
+          it.y <= vy0 + vh * (1 + m);
+        if (near !== visible) el._hwCull.setVisible(near);
+      }
     },
 
     /** Send the current viewport to Python, cancelling any pending debounce. */
@@ -446,6 +573,13 @@ export default {
       this._gestureEndTimer = setTimeout(() => {
         this._gestureEndTimer = null;
         if (this._transformDirty) this._flushTransform();
+        // Settle time is the only safe moment to pay for layout, and nodes
+        // revealed during the gesture have only just been measurable.
+        if (this.cullEnabled) {
+          this._cullArmed = true;
+          this._refreshCullItems();
+          this._applyCulling();
+        }
       }, this.WHEEL_GESTURE_GAP_MS);
     },
 
@@ -527,6 +661,7 @@ export default {
     if (this._wheelTimeout) clearTimeout(this._wheelTimeout);
     if (this.updateTimeout) clearTimeout(this.updateTimeout);
     if (this._gestureEndTimer) clearTimeout(this._gestureEndTimer);
+    if (this._cullFrame) cancelAnimationFrame(this._cullFrame);
   },
 
   watch: {
@@ -536,6 +671,19 @@ export default {
       const container = this.$el;
       const level = this._lodLevelFor(this._zoom);
       container.setAttribute('data-lod-level', level);
+    },
+    // Toggling the setting must take effect now, not at the next gesture —
+    // this is the A/B switch the feature is evaluated with.
+    cullEnabled(on) {
+      if (on) {
+        // Switched on by hand, so the graph is already drawn — safe to arm now.
+        this._cullArmed = true;
+        this._refreshCullItems();
+        this._applyCulling();
+      } else {
+        this._cullItems = null;
+        this._uncullAll();
+      }
     },
     // Watch for prop changes and update internal state
     initialZoom(newVal) {
