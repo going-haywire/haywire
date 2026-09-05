@@ -1,7 +1,6 @@
 from nicegui import ui, events
 from typing import Optional, Callable
 import uuid
-import time
 import logging
 
 from haywire.ui.components.zoom.settings import EditorPanZoomSettings
@@ -21,14 +20,17 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
     - Trackpad pinch to zoom, two-finger swipe to pan
     - Zoom to fit functionality
     - Configurable via EditorPanZoomSettings (live-updates on setting change)
-    - Event callbacks for zoom/pan changes
+
+    The viewport is owned by the Vue side; Python holds only the last SETTLED
+    value (``pan_x`` / ``pan_y`` / ``current_zoom``), refreshed once per
+    gesture. Anything that wants the viewport live is client-side and should
+    read the ``zoom-pan-state`` CustomEvent instead, as the minimap and the
+    debug overlay do.
     """
 
     def __init__(
         self,
         initial_zoom: float = 1.0,
-        on_zoom_change: Optional[Callable[[float], None]] = None,
-        on_pan_change: Optional[Callable[[float, float], None]] = None,
         **kwargs,
     ) -> None:
         """
@@ -36,17 +38,11 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
 
         Args:
             initial_zoom: Initial zoom level (default: 1.0)
-            on_zoom_change: Callback fired when zoom changes
-            on_pan_change: Callback fired when pan position changes
         """
         self._pz_settings = EditorPanZoomSettings()
 
         # Generate unique ID for this container
         self.container_id = f"zoom-pan-{uuid.uuid4().hex[:8]}"
-
-        # Store callbacks
-        self.on_zoom_change = on_zoom_change
-        self.on_pan_change = on_pan_change
 
         # Called once when the Vue component first mounts (first transform-changed event).
         self._on_ready: Optional[Callable] = None
@@ -57,15 +53,13 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         # Debug/performance overlay — created in _setup_container after DOM is ready
         self.debug_overlay: Optional["DebugOverlay"] = None
 
-        # Current state tracking
+        # Last SETTLED viewport, one update per gesture (see pan.vue's
+        # _updateTransformDirect). Held so it can be read synchronously — a
+        # client round-trip is not available on the paths that would want it
+        # most, such as disconnect or shutdown.
         self.current_zoom = initial_zoom
         self.pan_x = 0.0
         self.pan_y = 0.0
-
-        # Performance tracking
-        self.update_times: list[float] = []
-        self.update_count = 0
-        self.last_update_time = time.time()
 
         super().__init__(**kwargs)
 
@@ -138,7 +132,6 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
             self.pan_x = e.args["panX"]
             self.pan_y = e.args["panY"]
             self.current_zoom = e.args["zoom"]
-            self._update_performance_metrics()
             if self._on_ready is not None:
                 cb_name = self._on_ready.__name__ if hasattr(self._on_ready, "__name__") else self._on_ready
                 _log.info(f"[ZoomPan] _on_ready firing, cb={cb_name}")
@@ -146,67 +139,8 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
                 self._on_ready = None
                 cb()
                 _log.info("[ZoomPan] _on_ready cb returned")
-            if self.on_zoom_change:
-                self.on_zoom_change(self.current_zoom)
-            if self.on_pan_change:
-                self.on_pan_change(self.pan_x, self.pan_y)
         except Exception as ex:
             _log.warning(f"ZoomPanContainer._handle_transform_changed: {ex}")
-
-    def _update_performance_metrics(self) -> None:
-        """Update performance tracking metrics."""
-        try:
-            current_time = time.time()
-            self.update_count += 1
-            self.last_update_time = current_time
-
-            # Track update times for FPS calculation
-            self.update_times.append(current_time)
-            # Keep only updates from the last second
-            cutoff_time = current_time - 1.0
-            self.update_times = [t for t in self.update_times if t > cutoff_time]
-        except Exception:
-            pass
-
-    def get_performance_metrics(self) -> dict:
-        """Get current performance metrics."""
-        try:
-            current_time = time.time()
-            # Clean old entries
-            cutoff_time = current_time - 1.0
-            self.update_times = [t for t in self.update_times if t > cutoff_time]
-
-            fps = len(self.update_times)
-            time_since_last_update = current_time - self.last_update_time
-
-            return {
-                "fps": fps,
-                "total_updates": self.update_count,
-                "time_since_last_update": time_since_last_update,
-                "current_zoom": self.current_zoom,
-                "pan_x": self.pan_x,
-                "pan_y": self.pan_y,
-            }
-        except Exception:
-            return {
-                "fps": 0,
-                "total_updates": 0,
-                "time_since_last_update": 0,
-                "current_zoom": self.current_zoom,
-                "pan_x": self.pan_x,
-                "pan_y": self.pan_y,
-            }
-
-    def get_zoom_class_name(self) -> str:
-        """Get the zoom class name for current zoom level."""
-        if self.current_zoom <= 0.5:
-            return "Low"
-        elif self.current_zoom <= 1.0:
-            return "Medium"
-        elif self.current_zoom <= 2.0:
-            return "High"
-        else:
-            return "Very High"
 
     def set_canvas_size(self, width: int, height: int) -> None:
         """Push new canvas dimensions to the Vue zoom/pan container and minimap."""
@@ -215,33 +149,6 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         self.update()
         if self.minimap:
             self.minimap.set_canvas_size(width, height)
-
-    def reset_performance_metrics(self) -> None:
-        """Reset all performance tracking metrics."""
-        try:
-            self.update_times.clear()
-            self.update_count = 0
-            self.last_update_time = time.time()
-        except Exception:
-            pass
-
-    def get_performance_summary(self) -> str:
-        """Get a formatted string summary of performance metrics."""
-        try:
-            metrics = self.get_performance_metrics()
-            zoom_class = self.get_zoom_class_name()
-
-            summary = (
-                f"Performance Summary:\n"
-                f"  Zoom: {metrics['current_zoom']:.2f} ({zoom_class})\n"
-                f"  Pan: ({metrics['pan_x']:.0f}, {metrics['pan_y']:.0f})\n"
-                f"  FPS: {metrics['fps']}\n"
-                f"  Total Updates: {metrics['total_updates']}\n"
-                f"  Time Since Last Update: {metrics['time_since_last_update']:.2f}s"
-            )
-            return summary
-        except Exception as e:
-            return f"Error generating performance summary: {str(e)}"
 
     def zoom_in(self) -> None:
         """Zoom in programmatically."""
@@ -297,99 +204,3 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
             return self.content_container.__exit__(exc_type, exc_value, traceback)
         else:
             return super().__exit__(exc_type, exc_value, traceback)
-
-
-def create_zoom_pan_controls(container: ZoomPanContainer) -> None:
-    """Create standard zoom/pan control buttons."""
-    with ui.element("div").classes("zoom-pan-controls"):
-        ui.button("+", on_click=container.zoom_in).props("round dense").classes("text-xs")
-        ui.button("−", on_click=container.zoom_out).props("round dense").classes("text-xs")
-        ui.button("⌂", on_click=container.reset_view).props("round dense").classes("text-xs")
-        ui.button("⛶", on_click=container.fit_to_content).props("round dense").classes("text-xs")
-
-
-def create_zoom_pan_info(container: ZoomPanContainer) -> ui.label:
-    """Create info display with comprehensive performance metrics
-    for current zoom and pan values."""
-    info_label = ui.label().classes("zoom-pan-info")
-
-    # Additional performance tracking for the info display
-    info_update_times = []
-    info_update_count = [0]
-    start_time = time.time()
-
-    def update_info(zoom=None, pan_x=None, pan_y=None):
-        try:
-            current_time = time.time()
-            info_update_count[0] += 1
-
-            # Get comprehensive metrics from container
-            metrics = container.get_performance_metrics()
-
-            # Use provided values or fall back to container state
-            if zoom is None:
-                zoom = metrics["current_zoom"]
-            if pan_x is None:
-                pan_x = metrics["pan_x"]
-            if pan_y is None:
-                pan_y = metrics["pan_y"]
-
-            zoom_class = container.get_zoom_class_name()
-
-            # Calculate info display FPS (separate from container FPS)
-            info_update_times.append(current_time)
-            cutoff_time = current_time - 1.0
-            info_update_times[:] = [t for t in info_update_times if t > cutoff_time]
-            info_fps = len(info_update_times)
-
-            # Calculate uptime
-            uptime = current_time - start_time
-
-            # Create comprehensive info text
-            info_text = (
-                f"Zoom: {zoom:.2f} ({zoom_class}) | "
-                f"Pan: ({pan_x:.0f}, {pan_y:.0f}) | "
-                f"Container FPS: {metrics['fps']} | "
-                f"Info FPS: {info_fps} | "
-                f"Updates: {metrics['total_updates']} | "
-                f"Uptime: {uptime:.1f}s"
-            )
-
-            # Add performance warnings if needed
-            if metrics["fps"] > 60:
-                info_text += " | ⚡ High Performance"
-            elif metrics["fps"] < 10 and metrics["fps"] > 0:
-                info_text += " | ⚠️ Low Performance"
-            elif metrics["time_since_last_update"] > 1.0:
-                info_text += " | 💤 Idle"
-
-            info_label.set_text(info_text)
-            info_label.update()
-        except Exception as e:
-            # Fallback display on error
-            error_text = f"Error: {str(e)[:50]}..." if len(str(e)) > 50 else f"Error: {str(e)}"
-            info_label.set_text(error_text)
-            info_label.update()
-
-    # Store original callbacks
-    original_zoom_callback = container.on_zoom_change
-    original_pan_callback = container.on_pan_change
-
-    def zoom_callback(zoom):
-        update_info(zoom=zoom)
-        if original_zoom_callback:
-            original_zoom_callback(zoom)
-
-    def pan_callback(x, y):
-        update_info(pan_x=x, pan_y=y)
-        if original_pan_callback:
-            original_pan_callback(x, y)
-
-    # Replace the container's callbacks
-    container.on_zoom_change = zoom_callback
-    container.on_pan_change = pan_callback
-
-    # Initial update with a small delay to ensure container is ready
-    ui.timer(0.1, lambda: update_info(), once=True)
-
-    return info_label
