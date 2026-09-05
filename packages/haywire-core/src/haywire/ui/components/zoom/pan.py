@@ -1,5 +1,6 @@
 from nicegui import ui, events
 from typing import Optional, Callable
+from dataclasses import dataclass
 import uuid
 import logging
 
@@ -8,6 +9,19 @@ from haywire.ui.components.minimap.minimap import MinimapCanvas
 from haywire.ui.components.debug_overlay.debug_overlay import DebugOverlay
 
 _log = logging.getLogger(__name__)
+
+
+@dataclass(frozen=True)
+class Viewport:
+    """Where a canvas is looking: zoom, plus the pan offset in container pixels.
+
+    The pair a caller needs to put a canvas back where it was — ``zoom`` then
+    ``pan_x`` / ``pan_y``, matching ``set_zoom`` and ``set_pan``.
+    """
+
+    zoom: float
+    pan_x: float
+    pan_y: float
 
 
 class ZoomPanContainer(ui.element, component="pan.vue"):
@@ -22,10 +36,10 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
     - Configurable via EditorPanZoomSettings (live-updates on setting change)
 
     The viewport is owned by the Vue side; Python holds only the last SETTLED
-    value (``pan_x`` / ``pan_y`` / ``current_zoom``), refreshed once per
-    gesture. Anything that wants the viewport live is client-side and should
-    read the ``zoom-pan-state`` CustomEvent instead, as the minimap and the
-    debug overlay do.
+    value, refreshed once per gesture and read through ``get_viewport()``.
+    Anything that wants the viewport live is client-side and should read the
+    ``zoom-pan-state`` CustomEvent instead, as the minimap and the debug
+    overlay do.
     """
 
     def __init__(
@@ -56,10 +70,9 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         # Last SETTLED viewport, one update per gesture (see pan.vue's
         # _updateTransformDirect). Held so it can be read synchronously — a
         # client round-trip is not available on the paths that would want it
-        # most, such as disconnect or shutdown.
-        self.current_zoom = initial_zoom
-        self.pan_x = 0.0
-        self.pan_y = 0.0
+        # most, such as disconnect or shutdown. None until the client has
+        # reported once; see get_viewport.
+        self._viewport: Optional[Viewport] = None
 
         super().__init__(**kwargs)
 
@@ -129,9 +142,11 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
     def _handle_transform_changed(self, e: events.GenericEventArguments) -> None:
         """Handle zoom change events from Vue component."""
         try:
-            self.pan_x = e.args["panX"]
-            self.pan_y = e.args["panY"]
-            self.current_zoom = e.args["zoom"]
+            self._viewport = Viewport(
+                zoom=float(e.args["zoom"]),
+                pan_x=float(e.args["panX"]),
+                pan_y=float(e.args["panY"]),
+            )
             if self._on_ready is not None:
                 cb_name = self._on_ready.__name__ if hasattr(self._on_ready, "__name__") else self._on_ready
                 _log.info(f"[ZoomPan] _on_ready firing, cb={cb_name}")
@@ -141,6 +156,27 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
                 _log.info("[ZoomPan] _on_ready cb returned")
         except Exception as ex:
             _log.warning(f"ZoomPanContainer._handle_transform_changed: {ex}")
+
+    def get_viewport(self) -> Optional[Viewport]:
+        """Where the canvas is currently looking, or ``None`` if it has not said yet.
+
+        Reads the last value the client reported — one per settled gesture, so
+        it is at most a gesture behind and never mid-drag. It is deliberately
+        synchronous: the callers this exists for (persisting a viewport on tab
+        close, on disconnect, at shutdown) cannot await a round trip to a
+        browser that may already be gone.
+
+        ``None`` is a real answer, not an error, and callers must handle it.
+        The client reports on its FIRST transform — which for a graph is the
+        centre-on-open fit — so a ``None`` means no canvas ever mounted (a tab
+        built but never shown, a client that dropped during load). Substituting
+        a default here would be worse than saying nothing: persisting a zoom of
+        1.0 at pan (0, 0) for a graph the user never looked at would, on
+        restore, drop them somewhere the content isn't.
+
+        To put a canvas back, feed it to ``set_zoom`` then ``set_pan``.
+        """
+        return self._viewport
 
     def set_canvas_size(self, width: int, height: int) -> None:
         """Push new canvas dimensions to the Vue zoom/pan container and minimap."""
