@@ -52,7 +52,8 @@ def provider():
 @pytest.fixture
 def visual_layer():
     vl = MagicMock()
-    vl.get_edge.return_value = None  # default: edge not found
+    # default: edge not in the graph
+    vl.graph.get_edge_wrapper.return_value = None
     return vl
 
 
@@ -80,19 +81,19 @@ def test_canvas_event_calls_on_canvas_context(handler, provider):
 
 
 def test_edge_event_reads_visual_layer(handler, visual_layer):
-    """ContextMenuHandlers calls visual_layer.get_edge to look up UIEdge data."""
+    """ContextMenuHandlers looks the edge up in the graph, not in a UI registry."""
     handler.process_context_menu(
         ContextMenuEdgeEvent(screenX=0, screenY=0, canvasX=0, canvasY=0, edge_id="e1")
     )
-    visual_layer.get_edge.assert_called_once_with("e1")
+    visual_layer.graph.get_edge_wrapper.assert_called_once_with("e1")
 
 
 def test_edge_event_calls_on_edge_context_when_found(handler, provider, visual_layer):
     """When the edge is found, on_edge_context is called with edge + state."""
-    mock_ui_edge = MagicMock()
-    mock_ui_edge.wrapper.edge = "fake-edge-obj"
-    mock_ui_edge.wrapper.get_state.return_value = "fake-state"
-    visual_layer.get_edge.return_value = mock_ui_edge
+    mock_wrapper = MagicMock()
+    mock_wrapper.edge = "fake-edge-obj"
+    mock_wrapper.get_state.return_value = "fake-state"
+    visual_layer.graph.get_edge_wrapper.return_value = mock_wrapper
 
     handler.process_context_menu(
         ContextMenuEdgeEvent(screenX=1, screenY=2, canvasX=10, canvasY=20, edge_id="e1")
@@ -105,8 +106,8 @@ def test_edge_event_calls_on_edge_context_when_found(handler, provider, visual_l
 
 
 def test_edge_event_does_not_call_provider_when_edge_missing(handler, provider, visual_layer):
-    """When the edge is not in visual_layer, provider is not called (nothing to show)."""
-    visual_layer.get_edge.return_value = None
+    """When the edge is not in the graph, provider is not called (nothing to show)."""
+    visual_layer.graph.get_edge_wrapper.return_value = None
     handler.process_context_menu(
         ContextMenuEdgeEvent(screenX=0, screenY=0, canvasX=0, canvasY=0, edge_id="e_missing")
     )

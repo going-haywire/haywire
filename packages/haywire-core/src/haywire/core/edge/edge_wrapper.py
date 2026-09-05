@@ -107,7 +107,7 @@ class EdgeWrapper:
     - Adapter chain creation and hot reload
     - Data transformation execution
     - State validation and error handling
-    - Change notifications (for UIEdge)
+    - State validation results the visual layer reads to style the edge
     - Serialization/deserialization
     - Resource management
 

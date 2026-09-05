@@ -213,7 +213,7 @@ The `Pipes` class owns all data transport — both eager push (`propagate()`) an
 4. Edge `_formal_validation()` refreshes port references from the new node instance.
 5. Edge `link()` registers at the new port objects.
 
-The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in [architecture/hot-reload](../../hot-reload/hot-reload-arch.md). The original visual diagram (`diagrams.md`) for the EdgeWrapper → UIEdge → GraphCanvasVue cascade is recoverable via git history.
+The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in [architecture/hot-reload](../../hot-reload/hot-reload-arch.md). The original visual diagram (`diagrams.md`) for the EdgeWrapper → visual-layer → GraphCanvasVue cascade is recoverable via git history.
 
 ## 4. Boundary
 
@@ -222,7 +222,7 @@ The edge subsystem is **not**:
 - The **adapter authoring surface** — see [components/adapters](../../../components/adapters/adapter-canon.md).
 - The **graph→flow assembly** — assembly consumes edges to build the executable Flow; that pipeline lives in [architecture/execution/assembly](../assembly/assembly-arch.md).
 - The **VM** — execution context creation, pause/resume, and the two-stack model live in [architecture/execution/virtual-machine](../virtual-machine/virtual-machine-arch.md).
-- The **on-canvas rendering** — visual state propagates through `UIEdge → GraphCanvasVue`; that's in [architecture/studio/canvas](../../studio/canvas/canvas-arch.md).
+- The **on-canvas rendering** — an edge owns no UI object; `edge_visual_state()` turns wrapper state into stroke values that `VisualLayerHandlers` batches into one `SyncAllEdgesEvent` per validation pass for `GraphCanvasVue` to draw. That's in [architecture/studio/canvas](../../studio/canvas/canvas-arch.md).
 
 ## 5. Examples
 

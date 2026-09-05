@@ -55,23 +55,8 @@ def test_initial_node_panels_empty(handler):
     assert handler.node_panels == {}
 
 
-def test_initial_edge_paths_empty(handler):
-    assert handler.edge_paths == {}
-
-
-# ---------------------------------------------------------------------------
-# get_edge accessor
-# ---------------------------------------------------------------------------
-
-
-def test_get_edge_returns_registered_edge(handler):
-    mock_edge = MagicMock()
-    handler.edge_paths["e1"] = mock_edge
-    assert handler.get_edge("e1") is mock_edge
-
-
-def test_get_edge_returns_none_for_unknown_id(handler):
-    assert handler.get_edge("does-not-exist") is None
+def test_initial_edge_states_empty(handler):
+    assert handler.edge_states == {}
 
 
 # ---------------------------------------------------------------------------
@@ -149,11 +134,13 @@ def test_on_validated_skips_node_remove_if_no_panel(handler):
 # ---------------------------------------------------------------------------
 
 
-def test_on_validated_edge_added_calls_add_edge_visual(handler, graph):
+def test_on_validated_edge_added_registers_edge_visual(handler, graph):
     wrapper = MagicMock()
     graph.get_edge_wrapper.return_value = wrapper
 
-    with patch.object(handler, "add_edge_visual") as mock_add:
+    # The pass registers rather than emitting per edge: it collects payloads
+    # and sends one batched SyncAllEdgesEvent at the end.
+    with patch.object(handler, "_register_edge_visual") as mock_register:
         result = ValidationResult(
             nodes={},
             edges={"e1": ChangeReason.EDGE_ADDED},
@@ -161,11 +148,11 @@ def test_on_validated_edge_added_calls_add_edge_visual(handler, graph):
             validation_time_ms=0.0,
         )
         handler.on_validated(result)
-        mock_add.assert_called_once_with(wrapper)
+        mock_register.assert_called_once_with(wrapper)
 
 
 def test_on_validated_edge_removed_calls_remove_edge_visual(handler):
-    handler.edge_paths["e1"] = MagicMock()
+    handler.edge_states["e1"] = MagicMock()
 
     with patch.object(handler, "remove_edge_visual") as mock_remove:
         result = ValidationResult(

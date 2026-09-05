@@ -243,8 +243,8 @@ class GraphCanvasManager:
         return self.visual_layer.node_panels
 
     @property
-    def edge_paths(self) -> Dict:
-        return self.visual_layer.edge_paths
+    def edge_states(self) -> Dict:
+        return self.visual_layer.edge_states
 
     @property
     def selected_nodes(self) -> Set[str]:

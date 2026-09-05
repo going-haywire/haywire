@@ -726,13 +726,13 @@ class ContextMenuHandlers:
 
         elif isinstance(event, ContextMenuEdgeEvent):
             logger.debug(f"Edge context menu for {event.edge_id} at ({event.screenX}, {event.screenY})")
-            ui_edge = self.visual_layer.get_edge(event.edge_id)
-            if ui_edge is not None:
+            edge_wrapper = self.visual_layer.graph.get_edge_wrapper(event.edge_id)
+            if edge_wrapper is not None:
                 self.provider.on_edge_context(
                     (event.screenX, event.screenY),
                     event.edge_id,
-                    ui_edge.wrapper.edge,
-                    ui_edge.wrapper.get_state(),
+                    edge_wrapper.edge,
+                    edge_wrapper.get_state(),
                     at_sink_end=event.atSinkEnd,
                     canvas_pos=(event.canvasX, event.canvasY),
                 )

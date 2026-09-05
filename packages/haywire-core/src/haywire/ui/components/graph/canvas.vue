@@ -165,6 +165,11 @@ export default {
             
             edgePaths: new Map(),
             updateEdgesThrottled: false,
+            // True while _syncAllEdges is feeding a batch through
+            // _syncEdgeAddition. Suppresses that method's per-edge
+            // $nextTick(_updateEdge) so a 1300-edge graph queues one deferred
+            // pass instead of 1300 closures. See _syncAllEdges.
+            _batchingEdges: false,
             resizeObserver: null,
             mutationObserver: null,
             _pendingNodeWatcher: null,
@@ -1013,6 +1018,9 @@ export default {
                 case GraphEvents.SyncCommands.SYNC_EDGE_ADDITION:
                     this._syncEdgeAddition(data);
                     break;
+                case GraphEvents.SyncCommands.SYNC_ALL_EDGES:
+                    this._syncAllEdges(data);
+                    break;
                 case GraphEvents.SyncCommands.SYNC_NODE_REMOVAL:
                     this._syncNodeRemoval(data);
                     break;
@@ -1062,6 +1070,45 @@ export default {
             }
         },
 
+        /** Draw a whole validation pass's worth of edges from ONE message.
+         *
+         *  Python sends every added/changed edge of a pass in a single
+         *  SyncAllEdgesEvent rather than one message per edge. The reason is
+         *  transport, not drawing: each server→client message costs the client
+         *  roughly 0.15 ms per mounted node whatever it carries, so per-edge
+         *  messages made opening a graph O(nodes × edges) — 672 edges on a
+         *  128-node graph took 18.9 s to arrive, against 184 ms for the same
+         *  edges in one message. The drawing itself was never the problem.
+         *
+         *  Entries are the same shape _syncEdgeAddition already takes, so this
+         *  is a loop over the existing path, with the per-edge deferred
+         *  _updateEdge collapsed into a single pass at the end.
+         */
+        _syncAllEdges(data) {
+            const entries = (data && data.edges) || [];
+            if (!entries.length) return;
+
+            const touched = [];
+            this._batchingEdges = true;
+            try {
+                for (const entry of entries) {
+                    this._syncEdgeAddition(entry);
+                    touched.push(entry.edge_id);
+                }
+            } finally {
+                // finally, not a trailing assignment: one malformed entry must
+                // not leave every later edge's redraw permanently suppressed.
+                this._batchingEdges = false;
+            }
+
+            this.$nextTick(() => {
+                for (const edge_id of touched) {
+                    if (this.edgePaths.has(edge_id)) this._updateEdge(edge_id);
+                }
+            });
+            console.log(`🔗 Vue ✅ Batch synced ${touched.length} edges`);
+        },
+
         _syncEdgeAddition(data) {
             const {
                 edge_id,
@@ -1090,12 +1137,15 @@ export default {
                 edgeInfo.strokeWidth = strokeWidth;
                 edgeInfo.strokeDasharray = strokeDasharray;
                 edgeInfo.opacity = opacity;
-                
-                // Trigger visual update
-                this.$nextTick(() => {
-                    this._updateEdge(edge_id);
-                });
-                
+
+                // Trigger visual update (the batch caller runs one pass for all
+                // of its edges instead — see _syncAllEdges).
+                if (!this._batchingEdges) {
+                    this.$nextTick(() => {
+                        this._updateEdge(edge_id);
+                    });
+                }
+
                 console.log(
                     `🔗 Vue updated connection: ${edge_id} -> ` +
                     `valid=${isValid}, warning=${hasWarning}, color=${strokeColor}`
@@ -1121,7 +1171,9 @@ export default {
             );
             
             if (result.success) {
-                console.log('🔗 Vue ✅ Edge added via sync:', edge_id);
+                // Per-edge only outside a batch — _syncAllEdges logs one
+                // summary line rather than 1300.
+                if (!this._batchingEdges) console.log('🔗 Vue ✅ Edge added via sync:', edge_id);
             } else {
                 console.error('🔗 Vue ❌ Failed to add connection via sync:', edge_id);
             }
@@ -2774,9 +2826,13 @@ export default {
             path.addEventListener('click', clickHandler);
             hitArea.addEventListener('click', clickHandler);
 
-            this.$nextTick(() => {
-                this._updateEdge(edge_id);
-            });
+            // The batch caller runs one deferred pass for all of its edges
+            // instead of queueing a closure per edge — see _syncAllEdges.
+            if (!this._batchingEdges) {
+                this.$nextTick(() => {
+                    this._updateEdge(edge_id);
+                });
+            }
 
             return { success: true, pathElement: path };
         },
