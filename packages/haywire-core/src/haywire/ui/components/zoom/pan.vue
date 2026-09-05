@@ -41,6 +41,9 @@ export default {
     lodEnabled: { type: Boolean, default: true },
     // Unmount off-screen node bodies from the render walk. See _applyCulling.
     cullEnabled: { type: Boolean, default: false },
+    // Both thresholds must be met for culling to do anything. See _cullingApplies.
+    cullMinNodes: { type: Number, default: 100 },
+    cullMinZoom: { type: Number, default: 0.5 },
   },
   
   data() {
@@ -100,6 +103,9 @@ export default {
     // already up. After that, culling only suppresses edge UPDATES, which is
     // harmless: a culled node cannot move, so its edges stay correct.
     this._cullArmed = false;
+    // Whether anything is currently hidden, so dropping below a threshold can
+    // restore in one pass without scanning the DOM on every frame.
+    this._cullHidden = false;
     // Hysteresis, in viewports of margin around the visible area. Reveal early
     // so a node is mounted before it is needed; cull later so a node sitting on
     // the boundary during a slow pan does not thrash mount/unmount.
@@ -488,13 +494,28 @@ export default {
       this._cullItems = items.length ? items : null;
     },
 
-    /** Show everything again, e.g. when the setting is switched off. */
+    /** Show everything again — setting switched off, or a threshold no longer met. */
     _uncullAll() {
       const content = this.$refs.content;
+      this._cullHidden = false;
       if (!content) return;
       content.querySelectorAll('.hw-node-cull').forEach((el) => {
         if (el._hwCull && !el._hwCull.isVisible()) el._hwCull.setVisible(true);
       });
+    },
+
+    /**
+     * Is culling worth doing at the current zoom, on a graph this size?
+     *
+     * Culling pays off when few of many nodes are on screen. Zoomed out, the
+     * opposite holds: most of the graph is visible, so there is little to cull,
+     * while a pan sweeps many nodes across the boundary at once and every
+     * crossing costs a mount or an unmount. That is felt as stutter, for no
+     * gain. A small graph is cheap to render whole, so it never needs culling
+     * either.
+     */
+    _cullingApplies(nodeCount) {
+      return this._zoom >= this.cullMinZoom && nodeCount >= this.cullMinNodes;
     },
 
     _scheduleCulling() {
@@ -523,6 +544,14 @@ export default {
       const items = this._cullItems;
       if (!items || !items.length) return;
 
+      // Below either threshold everything must come BACK, not merely stop being
+      // culled — otherwise zooming out past the threshold would leave whatever
+      // was hidden at the time permanently missing.
+      if (!this._cullingApplies(items.length)) {
+        if (this._cullHidden) this._uncullAll();
+        return;
+      }
+
       const rect = this._getContainerRect();
       if (!rect) return;
 
@@ -548,7 +577,10 @@ export default {
           it.x <= vx0 + vw * (1 + m) &&
           it.y + it.h >= vy0 - vh * m &&
           it.y <= vy0 + vh * (1 + m);
-        if (near !== visible) el._hwCull.setVisible(near);
+        if (near !== visible) {
+          el._hwCull.setVisible(near);
+          if (!near) this._cullHidden = true;
+        }
       }
     },
 
@@ -684,6 +716,14 @@ export default {
         this._cullItems = null;
         this._uncullAll();
       }
+    },
+    // Tuning a threshold must apply now — these are knobs the user turns while
+    // watching the canvas, so waiting for the next gesture reads as broken.
+    cullMinNodes() {
+      if (this.cullEnabled && this._cullArmed) this._applyCulling();
+    },
+    cullMinZoom() {
+      if (this.cullEnabled && this._cullArmed) this._applyCulling();
     },
     // Watch for prop changes and update internal state
     initialZoom(newVal) {
