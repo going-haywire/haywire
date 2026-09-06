@@ -402,7 +402,8 @@ class HaywireApp:
                 show=open_browser,
                 title="Haywire",
                 reload=False,
-                reconnect_timeout=15.0,
+                # Sized for opening a LARGE graphs.
+                reconnect_timeout=60.0,
                 **ssl_kwargs,  # type: ignore[arg-type]
             )
         except KeyboardInterrupt:
