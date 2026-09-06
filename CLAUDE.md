@@ -1,3 +1,7 @@
+# General Guidelines
+
+When reporting information to me, be extremely concise and sacrifice grammar for the sake of concision.
+
 ## Architecture
 
 Haywire is a Blueprint-inspired visual programming system with a **dual-flow model**: control pins define execution order, data pins pass values.

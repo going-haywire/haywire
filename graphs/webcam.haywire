@@ -1,11 +1,12 @@
 {
-  "graph_id": "__new_1__",
-  "name": "Untitled 1",
-  "description": "",
-  "version": "1.0.0",
-  "author": "",
-  "created_at": null,
-  "modified_at": "2026-08-13T15:36:28.808391",
+  "format_version": 2,
+  "filestem": "webcam",
+  "created_at": "2026-09-06T15:18:06.135084",
+  "modified_at": "2026-09-06T15:19:47.715201",
+  "meta": {
+    "values": {},
+    "promoted": {}
+  },
   "nodes": {
     "BeginPlayNode_87f32274": {
       "node_id": "BeginPlayNode_87f32274",
@@ -74,7 +75,7 @@
               "posX": 550.0,
               "posY": 1400.0,
               "width": 256,
-              "height": 132
+              "height": 138
             },
             "promoted": {}
           }
@@ -84,7 +85,7 @@
             "posX": 550.0,
             "posY": 1400.0,
             "width": 256,
-            "height": 132
+            "height": 138
           },
           "promoted": {}
         },
@@ -113,7 +114,7 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.1.1",
+          "version": "0.1.3",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
@@ -128,7 +129,7 @@
       "registry_key": "haybale-visiongraph:node:WebCameraNode",
       "position": [
         1000,
-        1400
+        1200
       ],
       "node_data": {
         "node_id": "WebCameraNode_15b5bccb",
@@ -452,9 +453,9 @@
           "props": {
             "values": {
               "posX": 1000.0,
-              "posY": 1400.0,
+              "posY": 1200.0,
               "width": 256,
-              "height": 341
+              "height": 488
             },
             "promoted": {}
           }
@@ -462,9 +463,9 @@
         "props": {
           "values": {
             "posX": 1000.0,
-            "posY": 1400.0,
+            "posY": 1200.0,
             "width": 256,
-            "height": 341
+            "height": 488
           },
           "promoted": {}
         },
@@ -494,7 +495,7 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
+          "version": "0.0.38",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
@@ -573,7 +574,7 @@
               "posX": 550.0,
               "posY": 1600.0,
               "width": 256,
-              "height": 132
+              "height": 138
             },
             "promoted": {}
           }
@@ -583,7 +584,7 @@
             "posX": 550.0,
             "posY": 1600.0,
             "width": 256,
-            "height": 132
+            "height": 138
           },
           "promoted": {}
         },
@@ -612,7 +613,7 @@
         },
         "library": {
           "label": "Core",
-          "version": "0.1.1",
+          "version": "0.1.3",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-core/haybale_core",
           "module_name": "haybale_core",
           "name": "haybale-core",
@@ -883,8 +884,8 @@
             "values": {
               "posX": 2000.0,
               "posY": 1950.0,
-              "width": 297,
-              "height": 320
+              "width": 303,
+              "height": 342
             },
             "promoted": {}
           }
@@ -893,8 +894,8 @@
           "values": {
             "posX": 2000.0,
             "posY": 1950.0,
-            "width": 297,
-            "height": 320
+            "width": 303,
+            "height": 342
           },
           "promoted": {}
         },
@@ -927,7 +928,7 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
+          "version": "0.0.38",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
@@ -1176,7 +1177,7 @@
               "posX": 550.0,
               "posY": 1850.0,
               "width": 256,
-              "height": 276
+              "height": 402
             },
             "promoted": {}
           }
@@ -1186,7 +1187,7 @@
             "posX": 550.0,
             "posY": 1850.0,
             "width": 256,
-            "height": 276
+            "height": 402
           },
           "promoted": {}
         },
@@ -1222,7 +1223,7 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
+          "version": "0.0.38",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
@@ -1238,8 +1239,8 @@
       "node_id": "SegmentationNode_09e0c64d",
       "registry_key": "haybale-visiongraph:node:SegmentationNode",
       "position": [
-        950,
-        1800
+        1000,
+        1750
       ],
       "node_data": {
         "node_id": "SegmentationNode_09e0c64d",
@@ -1467,20 +1468,20 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 950.0,
-              "posY": 1800.0,
+              "posX": 1000.0,
+              "posY": 1750.0,
               "width": 256,
-              "height": 277
+              "height": 350
             },
             "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 950.0,
-            "posY": 1800.0,
+            "posX": 1000.0,
+            "posY": 1750.0,
             "width": 256,
-            "height": 277
+            "height": 350
           },
           "promoted": {}
         },
@@ -1511,7 +1512,7 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
+          "version": "0.0.38",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
@@ -1722,7 +1723,7 @@
               "posX": 1650.0,
               "posY": 1900.0,
               "width": 256,
-              "height": 257
+              "height": 328
             },
             "promoted": {}
           },
@@ -1736,7 +1737,7 @@
             "posX": 1650.0,
             "posY": 1900.0,
             "width": 256,
-            "height": 257
+            "height": 328
           },
           "promoted": {}
         },
@@ -1767,7 +1768,7 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
+          "version": "0.0.38",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
@@ -1784,7 +1785,7 @@
       "registry_key": "haybale-visiongraph:node:ObjectDetectorNode",
       "position": [
         1300,
-        2100
+        2150
       ],
       "node_data": {
         "node_id": "ObjectDetectorNode_16498c61",
@@ -2016,9 +2017,9 @@
           "props": {
             "values": {
               "posX": 1300.0,
-              "posY": 2100.0,
+              "posY": 2150.0,
               "width": 256,
-              "height": 277
+              "height": 350
             },
             "promoted": {}
           }
@@ -2026,9 +2027,9 @@
         "props": {
           "values": {
             "posX": 1300.0,
-            "posY": 2100.0,
+            "posY": 2150.0,
             "width": 256,
-            "height": 277
+            "height": 350
           },
           "promoted": {}
         },
@@ -2061,7 +2062,7 @@
         },
         "library": {
           "label": "Visiongraph",
-          "version": "0.0.36",
+          "version": "0.0.38",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haybale-visiongraph/barn/haybale-visiongraph/haybale_visiongraph",
           "module_name": "haybale_visiongraph",
           "name": "haybale-visiongraph",
@@ -2116,8 +2117,8 @@
             "values": {
               "posX": 1650.0,
               "posY": 1600.0,
-              "width": 263,
-              "height": 104
+              "width": 269,
+              "height": 110
             },
             "promoted": {}
           },
@@ -2130,8 +2131,8 @@
           "values": {
             "posX": 1650.0,
             "posY": 1600.0,
-            "width": 263,
-            "height": 104
+            "width": 269,
+            "height": 110
           },
           "promoted": {}
         },
@@ -2160,7 +2161,7 @@
         },
         "library": {
           "label": "Testing",
-          "version": "0.1.1",
+          "version": "0.1.3",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
           "module_name": "haybale_testing",
           "name": "haybale-testing",

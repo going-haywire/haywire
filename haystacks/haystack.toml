@@ -32,4 +32,4 @@ execute = false
 
 [haystack]
 name = "haystack"
-active_graph = "graphs/10x512n_5x448e.haywire"
+active_graph = "graphs/webcam.haywire"
