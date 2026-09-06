@@ -58,4 +58,4 @@ class GraphRunSettingsPanel(BasePanel):
 
         with layout:
             hui.info_row("Graph", entry.display_name)
-            render_settings(entry.run_settings)
+            render_settings(ctx, entry.run_settings)

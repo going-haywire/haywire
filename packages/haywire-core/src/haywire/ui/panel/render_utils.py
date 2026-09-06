@@ -3,6 +3,16 @@
 Utility collection of renderer functions for
 FrameworkSettings / LibrarySettings / NodeSettings schema classes.
 
+Every entry point takes the caller's ``SessionContext`` as its FIRST argument.
+It is not used for the fields themselves — a row's value, chrome and widget all
+come from the bag or the registry — but a row's context menu offers actions that
+are session-scoped (opening a component's source in this session's editor slot),
+and those need a context no bag can supply. Panels all hold one already; the one
+caller shape that does not is a bare render outside a session (the UI harness),
+which builds a throwaway ``SessionContext`` rather than making the parameter
+optional — an optional context would push a "is there a context?" branch into
+every menu-building site.
+
 The module reads top-to-bottom as a waterfall:
 
     1. Entry points     render_settings / render_schema / render_keys
@@ -53,6 +63,7 @@ from haywire.ui.widget.base import DISABLED_STYLE
 
 if TYPE_CHECKING:
     from haywire.core.node.data import NodeData
+    from haywire.core.session.context import SessionContext
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.settings import Settings, setting
     from haywire.core.types.enums import PortType
@@ -70,7 +81,9 @@ _COLUMN_STYLE = "container-type: inline-size; container-name: settings-panel;"
 # ===========================================================================
 
 
-def render_settings(obj: "Settings", *, categories: Iterable[str] | None = None) -> None:
+def render_settings(
+    ctx: "SessionContext", obj: "Settings", *, categories: Iterable[str] | None = None
+) -> None:
     """Render all ``setting()`` fields of a ``Settings`` instance as labelled form rows.
 
     - Any locally-set field shows a • dirty prefix and a reset button (unless a
@@ -137,7 +150,7 @@ def render_settings(obj: "Settings", *, categories: Iterable[str] | None = None)
         def _on_applied() -> None:
             _refresh_group_visibility(category)
 
-        _render_reactive_field_row(obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied)
+        _render_reactive_field_row(ctx, obj, item[0], item[1], updaters, on_ui_state_applied=_on_applied)
 
     column = _render_grouped(
         sorted_fields,
@@ -181,7 +194,7 @@ def render_settings(obj: "Settings", *, categories: Iterable[str] | None = None)
     anchor_cleanup_to_element(column, _teardown)
 
 
-def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
+def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
     """Render only the fields declared on *schema_cls* as labelled form rows,
     in declaration order.
 
@@ -218,6 +231,7 @@ def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") ->
             return
         attr_name = defn._attr_name or key.split(".")[-1]
         _render_field_row(
+            ctx,
             defn._label or attr_name,
             defn._description,
             defn,
@@ -230,7 +244,7 @@ def render_schema(schema_cls: type["Settings"], registry: "SettingsRegistry") ->
     _render_grouped(ordered_defns, category_of=lambda d: d._category, render_one=_render_one)
 
 
-def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
+def render_keys(ctx: "SessionContext", prefix: str, registry: "SettingsRegistry") -> None:
     """Render all registry keys whose full key starts with *prefix*.
 
     Intended for dynamically registered keys (e.g. per-library log levels)
@@ -245,7 +259,7 @@ def render_keys(prefix: str, registry: "SettingsRegistry") -> None:
         ui.label(f"No fields found under: {prefix}.*").classes("text-xs hw-text-muted px-2 py-1")
         return
 
-    _render_definitions(_sort_definitions(defns.values()), registry)
+    _render_definitions(ctx, _sort_definitions(defns.values()), registry)
 
 
 # ===========================================================================
@@ -306,7 +320,7 @@ def _render_grouped(
     return column
 
 
-def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> None:
+def _render_definitions(ctx: "SessionContext", sorted_defns: list, registry: "SettingsRegistry") -> None:
     """Render a pre-sorted list of registry-backed field descriptors.
 
     Each widget binds the registry-owned cell for its key, so
@@ -323,6 +337,7 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
             return
         attr_name = defn._attr_name or key.split(".")[-1]
         _render_field_row(
+            ctx,
             defn._label or attr_name,
             defn._description,
             defn,
@@ -341,6 +356,7 @@ def _render_definitions(sorted_defns: list, registry: "SettingsRegistry") -> Non
 
 
 def _render_field_row(
+    ctx: "SessionContext",
     label_text: str,
     description: str,
     defn,
@@ -442,6 +458,7 @@ def _render_field_row(
 
 
 def _render_reactive_field_row(
+    ctx: "SessionContext",
     obj: "Settings",
     attr_name: str,
     defn: "setting",

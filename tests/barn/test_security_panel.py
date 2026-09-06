@@ -27,7 +27,7 @@ def test_panel_renders_no_security_schema():
 
     source = inspect.getsource(SecurityPanel)
     assert "FarmhandSettings" not in source
-    assert "render_schema(NetworkSettings" in source
+    assert "render_schema(ctx, NetworkSettings" in source
 
 
 def test_panel_reads_the_in_force_document_not_disk():

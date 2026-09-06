@@ -395,6 +395,33 @@ def _build_theme_css(registry: "SettingsRegistry", theme_registry) -> str:
     return f":root {{ {vars_str} }}"
 
 
+def _harness_session_context(library_service):
+    """A real ``SessionContext`` for routes that render settings outside a studio.
+
+    ``render_settings`` / ``render_schema`` / ``render_keys`` take a context as
+    their first argument — a row's context menu offers session-scoped actions
+    (opening a component's source in this session's editor slot) that no bag can
+    supply. A settings-rendering harness page has no studio session of its own,
+    so it builds one the same way ``_mount_graph_canvas`` does: a real session
+    over ``_HarnessProjectState``, not a mock, so a menu action that touches the
+    context behaves here as it does in the app.
+    """
+    from haywire.core.di.context import get_workspace_root
+    from haywire.core.session.session_manager import SessionManager
+    from haywire.core.session.workspace.manager import WorkspaceManager
+    from haywire.core.signals import SignalDispatcher
+
+    app_state = _HarnessProjectState(library_service)
+    session_manager = SessionManager(
+        dispatcher=SignalDispatcher(), container=app_state.library_state_container
+    )
+    session = session_manager.create_session(
+        app_state=app_state,
+        workspace_manager=WorkspaceManager(project_path=get_workspace_root()),
+    )
+    return session.context
+
+
 def register_routes(library_service) -> None:
     """Register all harness routes with NiceGUI/FastAPI."""
 
@@ -432,7 +459,7 @@ def register_routes(library_service) -> None:
                 node_cls = _resolve_class(class_path)
                 settings_cls = getattr(node_cls, bag_name)
                 settings_instance = settings_cls(registry=registry)
-                render_settings(settings_instance)
+                render_settings(_harness_session_context(library_service), settings_instance)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
         _stamp_synced()
@@ -456,7 +483,7 @@ def register_routes(library_service) -> None:
         fields = ("color_override",)
 
         with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
-            render_settings(props, categories=("appearance",))
+            render_settings(_harness_session_context(library_service), props, categories=("appearance",))
 
             # Echo the model, not the widget: a label per field, refreshed from
             # the bag itself. Emptiness IS the unset signal — a cleared colour
@@ -557,7 +584,7 @@ def register_routes(library_service) -> None:
                 node_cls = _resolve_class(class_path)
                 settings_cls = getattr(node_cls, bag_name)
                 settings_instance = settings_cls(registry=registry)
-                render_settings(settings_instance)
+                render_settings(_harness_session_context(library_service), settings_instance)
 
                 # External-write triggers. Each button mutates the model only.
                 def _ext_set(field: str, value):
@@ -607,7 +634,7 @@ def register_routes(library_service) -> None:
 
             try:
                 schema_cls = _resolve_class(class_path)
-                render_schema(schema_cls, registry)
+                render_schema(_harness_session_context(library_service), schema_cls, registry)
             except Exception as exc:
                 ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
         _stamp_synced()

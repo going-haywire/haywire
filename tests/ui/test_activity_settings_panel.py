@@ -28,7 +28,7 @@ def test_draw_renders_the_activity_settings_schema(monkeypatch):
     from haybale_studio.panels.properties.setting import app as app_mod
 
     calls = []
-    monkeypatch.setattr(app_mod, "render_schema", lambda schema_cls, registry: calls.append(schema_cls))
+    monkeypatch.setattr(app_mod, "render_schema", lambda ctx, schema_cls, registry: calls.append(schema_cls))
 
     panel = app_mod.ActivitySettingsPanel.__new__(app_mod.ActivitySettingsPanel)
     ctx = MagicMock()

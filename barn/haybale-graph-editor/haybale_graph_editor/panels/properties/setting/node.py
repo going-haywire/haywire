@@ -69,4 +69,4 @@ class NodeSettingsPanel(BasePanel):
                 continue  # skip props bag, rendered separately in NodePropertiesPanel
             header = bag_name.replace("_", " ").title()
             with hui.category_group(header):
-                render_settings(bag)
+                render_settings(ctx, bag)

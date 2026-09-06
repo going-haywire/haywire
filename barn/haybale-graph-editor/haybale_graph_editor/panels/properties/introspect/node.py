@@ -84,7 +84,7 @@ class NodePropertiesPanel(BasePanel):
         node_wrapper = ctx.data[EditState].active_node
         if node_wrapper is None:
             return
-        render_settings(node_wrapper.node.props)
+        render_settings(ctx, node_wrapper.node.props)
 
 
 @panel(

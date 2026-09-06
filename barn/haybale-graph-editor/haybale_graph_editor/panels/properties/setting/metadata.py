@@ -56,4 +56,4 @@ class GraphMetadataPanel(BasePanel):
         if graph_obj is None:
             return
         with layout:
-            render_settings(graph_obj.meta)
+            render_settings(ctx, graph_obj.meta)

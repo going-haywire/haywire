@@ -51,6 +51,24 @@ class SessionContext(SignalSource):
     active_workbench_theme_key: Optional[str] = signal_field(None)
     active_node_theme_key: Optional[str] = signal_field(None)
 
+    # Whether this session shows developer affordances — the ones that expose
+    # the studio's own implementation rather than the user's graph, such as a
+    # settings row's "open this bag's source" menu entry. Per SESSION, not per
+    # user or per install: it is a view mode someone turns on to look at how
+    # something is built and off again, the same shape as the active-* fields
+    # above, so a second tab is unaffected and nothing persists.
+    #
+    # A signal field so a panel can redraw when it flips (@redraw_on) — the
+    # affordances it gates are built during draw(), so a plain attribute would
+    # only take effect at the next unrelated redraw.
+    #
+    # NOT an authorization boundary. It gates visibility of an affordance, not
+    # permission to use it: opening a component's source still goes through the
+    # editor's own access checks, and ComponentSourceEditor refuses to write a
+    # non-editable library regardless of this flag. Do not gate anything on it
+    # that a session must not be able to do.
+    developer_mode: bool = signal_field(False)
+
     def __init__(self, session_id: str, app: "IAppState") -> None:
         # Lazy import: state.data_namespace transitively imports state.base,
         # which imports session.signals (for SignalSource). Importing it at

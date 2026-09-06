@@ -40,4 +40,4 @@ class ExecutionSettingsPanel(BasePanel):
         from haywire.core.execution.settings import ExecutionSettings
 
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(ExecutionSettings, registry)
+        render_schema(ctx, ExecutionSettings, registry)

@@ -115,4 +115,4 @@ class NodeAppearancePanel(BasePanel):
             return
         with layout:
             with ui.column().classes("hw-panel gap-0").style("min-width: 240px"):
-                render_settings(bag, categories=(APPEARANCE_CATEGORY,))
+                render_settings(ctx, bag, categories=(APPEARANCE_CATEGORY,))

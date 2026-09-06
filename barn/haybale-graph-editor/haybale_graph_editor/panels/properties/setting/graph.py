@@ -46,4 +46,4 @@ class GraphSettingsPanel(BasePanel):
         if graph_obj is None:
             return
         with layout:
-            render_settings(graph_obj.props)
+            render_settings(ctx, graph_obj.props)

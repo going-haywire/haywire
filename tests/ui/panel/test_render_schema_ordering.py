@@ -20,6 +20,8 @@ from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.barn.builtin.types import STRING
 from haywire.ui.panel.render_utils import render_schema, render_keys
 
+from tests.ui.panel.render_ctx import make_render_ctx
+
 pytestmark = pytest.mark.integration
 
 
@@ -75,7 +77,7 @@ def test_schema_fields_render_in_declaration_order(registry: SettingsRegistry):
     with client:
         anchor = ui.column()
         with anchor:
-            render_schema(_SchemaOrderingBag, registry)
+            render_schema(make_render_ctx(), _SchemaOrderingBag, registry)
 
     sequence = _dom_sequence(anchor)
     assert sequence == [
@@ -109,7 +111,7 @@ def test_render_keys_still_sorts_by_order_not_declaration():
     with client:
         anchor = ui.column()
         with anchor:
-            render_keys("test.keys_unchanged.alpha", reg)
+            render_keys(make_render_ctx(), "test.keys_unchanged.alpha", reg)
 
     sequence = _dom_sequence(anchor)
     field_order = [name for kind, name in sequence if kind == "field"]

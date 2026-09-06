@@ -8,6 +8,8 @@ from nicegui import app as _app  # noqa: F401
 
 from haywire.ui.panel.render_utils import render_settings
 
+from tests.ui.panel.render_ctx import make_render_ctx
+
 pytestmark = pytest.mark.integration
 
 
@@ -40,7 +42,7 @@ def test_promoted_field_row_is_marked(make_node_with_setting):
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(node.filter)
+            render_settings(make_render_ctx(), node.filter)
 
     assert _has_promoted_marker(anchor), "promoted row must carry data-promoted=true"
 
@@ -52,7 +54,7 @@ def test_unpromoted_field_row_is_not_marked(make_node_with_setting):
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(node.filter)
+            render_settings(make_render_ctx(), node.filter)
 
     assert not _has_promoted_marker(anchor), "unpromoted row must not be marked"
 
@@ -202,7 +204,7 @@ def _render(node):
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(node.filter)
+            render_settings(make_render_ctx(), node.filter)
     return _find_field_row(anchor, "threshold")
 
 
@@ -310,7 +312,7 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(node.filter)
+            render_settings(make_render_ctx(), node.filter)
 
         row = _find_field_row(anchor, "threshold")
         assert row is not None

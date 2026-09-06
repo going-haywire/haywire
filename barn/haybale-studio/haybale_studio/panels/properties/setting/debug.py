@@ -44,8 +44,8 @@ class DebugSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(DebugSettings, registry)
-        render_keys(prefix=NAMESPACE_LIBRARY_LOG, registry=registry)
+        render_schema(ctx, DebugSettings, registry)
+        render_keys(ctx, prefix=NAMESPACE_LIBRARY_LOG, registry=registry)
 
 
 @panel(
@@ -64,4 +64,4 @@ class DebugOverlaySettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(DebugOverlaySettings, registry)
+        render_schema(ctx, DebugOverlaySettings, registry)

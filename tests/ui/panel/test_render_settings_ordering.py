@@ -20,6 +20,8 @@ from haywire.core.settings import Settings, setting
 from haywire.barn.builtin.types import BOOL, INT, STRING
 from haywire.ui.panel.render_utils import render_settings
 
+from tests.ui.panel.render_ctx import make_render_ctx
+
 pytestmark = pytest.mark.integration
 
 
@@ -39,7 +41,7 @@ def _render(bag) -> "ui.column":
     with client:
         anchor = ui.column()
         with anchor:
-            render_settings(bag)
+            render_settings(make_render_ctx(), bag)
     return anchor
 
 

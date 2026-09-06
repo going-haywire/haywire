@@ -25,6 +25,8 @@ from haywire.core.settings import SettingsRegistry
 from haywire.ui.panel.render_utils import render_settings
 from haybale_testing.nodes.testbed.settings_node import SettingsNode
 
+from tests.ui.panel.render_ctx import make_render_ctx
+
 pytestmark = pytest.mark.unit
 
 
@@ -49,7 +51,7 @@ def test_render_subscribes_exactly_one_callback(client: Client):
     assert bag._subscriptions == {}
 
     with client:
-        render_settings(bag)
+        render_settings(make_render_ctx(), bag)
 
     assert len(bag._subscriptions) == 1, f"render should add one callback, got {bag._subscriptions}"
 
@@ -67,7 +69,7 @@ def test_redraw_does_not_double_subscribe(client: Client):
     with client:
         first = ui.column()
         with first:
-            render_settings(bag)
+            render_settings(make_render_ctx(), bag)
     assert len(bag._subscriptions) == 1
 
     # Redraw: the old column is deleted (content.clear()) before re-render.
@@ -79,7 +81,7 @@ def test_redraw_does_not_double_subscribe(client: Client):
     with client:
         second = ui.column()
         with second:
-            render_settings(bag)
+            render_settings(make_render_ctx(), bag)
     assert len(bag._subscriptions) == 1, "redraw must not accumulate callbacks"
 
 
@@ -93,7 +95,7 @@ def test_teardown_removes_only_panel_callback(client: Client):
     with client:
         col = ui.column()
         with col:
-            render_settings(bag)
+            render_settings(make_render_ctx(), bag)
     built = col.default_slot.children[0]
     assert len(bag._subscriptions) == 2  # foreign + panel
 
@@ -118,13 +120,13 @@ def test_external_write_after_redraw_updates_only_live_panel(client: Client):
     with client:
         first = ui.column()
         with first:
-            render_settings(bag)
+            render_settings(make_render_ctx(), bag)
     first.default_slot.children[0]._handle_delete()
 
     with client:
         second = ui.column()
         with second:
-            render_settings(bag)
+            render_settings(make_render_ctx(), bag)
 
     assert len(bag._subscriptions) == 1
 

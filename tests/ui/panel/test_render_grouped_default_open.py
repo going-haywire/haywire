@@ -19,6 +19,8 @@ from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.barn.builtin.types import STRING
 from haywire.ui.panel.render_utils import render_schema
 
+from tests.ui.panel.render_ctx import make_render_ctx
+
 pytestmark = pytest.mark.integration
 
 
@@ -68,7 +70,7 @@ def test_advanced_category_renders_collapsed_by_default(registry: SettingsRegist
     with client:
         anchor = ui.column()
         with anchor:
-            render_schema(_DefaultOpenBag, registry)
+            render_schema(make_render_ctx(), _DefaultOpenBag, registry)
 
     open_by_category = _expansion_open_by_category(anchor)
     assert open_by_category["network"] is True
@@ -83,7 +85,7 @@ def test_advanced_category_match_is_case_insensitive(registry: SettingsRegistry)
     with client:
         anchor = ui.column()
         with anchor:
-            render_schema(_DefaultOpenBag, registry)
+            render_schema(make_render_ctx(), _DefaultOpenBag, registry)
 
     open_by_category = _expansion_open_by_category(anchor)
     # Both "advanced" and "Advanced" categories in this bag are collapsed —

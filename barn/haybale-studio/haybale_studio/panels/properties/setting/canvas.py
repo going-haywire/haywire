@@ -51,7 +51,7 @@ class CanvasSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(CanvasSettings, registry)
+        render_schema(ctx, CanvasSettings, registry)
 
 
 @panel(
@@ -71,7 +71,7 @@ class NodeSkinSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(NodeSkinSettings, registry)
+        render_schema(ctx, NodeSkinSettings, registry)
 
 
 @panel(
@@ -90,7 +90,7 @@ class EditorZoomPanSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(EditorPanZoomSettings, registry)
+        render_schema(ctx, EditorPanZoomSettings, registry)
 
 
 @panel(
@@ -109,4 +109,4 @@ class MinimapSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(MinimapSettings, registry)
+        render_schema(ctx, MinimapSettings, registry)

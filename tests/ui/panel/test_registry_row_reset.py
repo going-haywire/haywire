@@ -23,6 +23,8 @@ from haywire.core.settings import SettingsRegistry, setting
 from haywire.core.settings.settings_framework import FrameworkSettings
 from haywire.ui.panel.render_utils import render_schema
 
+from tests.ui.panel.render_ctx import make_render_ctx
+
 pytestmark = pytest.mark.integration
 
 KEY = "test.registry_reset.flavour"
@@ -84,7 +86,7 @@ def _render(registry: SettingsRegistry):
     with client:
         anchor = ui.column()
         with anchor:
-            render_schema(_ResetBag, registry)
+            render_schema(make_render_ctx(), _ResetBag, registry)
     return _find_field_row(anchor, "flavour")
 
 

@@ -53,8 +53,8 @@ class ThemeSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(WorkbenchThemeSettings, registry)
-        render_schema(NodeThemeSettings, registry)
+        render_schema(ctx, WorkbenchThemeSettings, registry)
+        render_schema(ctx, NodeThemeSettings, registry)
 
 
 @panel(
@@ -73,7 +73,7 @@ class NodeSkinDefaultPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(NodeDefaultSkinSettings, registry)
+        render_schema(ctx, NodeDefaultSkinSettings, registry)
 
 
 @panel(
@@ -92,8 +92,8 @@ class EditingSettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(UndoSettings, registry)
-        render_schema(ExternalToolsSettings, registry)
+        render_schema(ctx, UndoSettings, registry)
+        render_schema(ctx, ExternalToolsSettings, registry)
 
 
 @panel(
@@ -116,7 +116,7 @@ class ActivitySettingsPanel(BasePanel):
         layout: PanelLayout,
     ) -> None:
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(ActivitySettings, registry)
+        render_schema(ctx, ActivitySettings, registry)
 
 
 _MARKERS = {
@@ -159,7 +159,7 @@ class SecurityPanel(BasePanel):
         self._draw_findings(posture)
 
         registry = ctx.app.library_service.get_settings_registry()
-        render_schema(NetworkSettings, registry)
+        render_schema(ctx, NetworkSettings, registry)
 
     def _draw_axes(self, posture: "Posture") -> None:
         network = (
