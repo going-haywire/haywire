@@ -3,8 +3,9 @@
 
 Polls true when the right-clicked file has the ``.haywire`` extension.
 On click, resolves a Haystack entry for the path via
-``ctx.app_data[HaystackState].open_graph(path)`` then issues
-``actions.reveal(GraphEditor, entry.binding_id, entry.display_name)``.
+``ctx.app_data[HaystackState].open_graph(path)``. This only adds the graph
+to the haystack list — it does NOT reveal a GraphEditor tab. The user opens
+it in an editor by selecting the new entry from the haystack list.
 
 Kept in its own module (separate from the sibling file-action panels
 OpenInCodeEditorMenuPanel and OpenInFileViewerMenuPanel that live in haybale-studio)
@@ -15,7 +16,6 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from haybale_graph_editor.editors.graph_editor import GraphEditor
 from haybale_haystack.state.haystack_state import HaystackState
 from haybale_studio.surfaces import FileActions, FileMenu
 from haybale_studio.state.file_browser_state import FileBrowserState
@@ -33,12 +33,12 @@ _GRAPH_EXTS = frozenset({".haywire"})
 
 @panel(
     surface=FileMenu,
-    label="Open in Haystack",
+    label="Load into Haystack",
     icon=hui.icon.graph,
     order=10,
 )
 class OpenInHaystackMenuPanel(BasePanel):
-    """Open a .haywire graph file in the GraphEditor via the Haystack."""
+    """Load a .haywire graph file into the Haystack (does not open an editor tab)."""
 
     actions: FileActions
 
@@ -56,16 +56,15 @@ class OpenInHaystackMenuPanel(BasePanel):
         if path is None:
             return
 
-        def _do_open() -> None:
+        def _do_load() -> None:
             hs = ctx.app_data.get(HaystackState)
             if hs is None:
                 return
-            entry = hs.open_graph(path)
-            self.actions.reveal(GraphEditor, binding_id=entry.binding_id, label=entry.display_name)
+            hs.open_graph(path)
 
         with layout:
             hui.menu_row(
-                "Open in Haystack",
+                "Load into Haystack",
                 icon=hui.icon.graph,
-                on_click=_do_open,
+                on_click=_do_load,
             )

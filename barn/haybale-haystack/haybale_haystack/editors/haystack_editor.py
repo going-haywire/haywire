@@ -187,7 +187,7 @@ class HaystackEditor(BaseEditor):
                         on_click=lambda: self._on_new(context),
                     )
                     ui.menu_item(
-                        "Open Graph…",
+                        "Load Graph…",
                         on_click=lambda: self._on_open_graph(context),
                     )
 
@@ -705,7 +705,12 @@ class HaystackEditor(BaseEditor):
     # ------------------------------------------------------------------
 
     def _on_open_graph(self, context: "SessionContext") -> None:
-        """Open a dialog to pick an existing .haywire file to add to the haystack."""
+        """Open a dialog to pick an existing .haywire file to load into the haystack.
+
+        Loading only adds the entry to the haystack list — it does NOT reveal
+        a GraphEditor tab. The user opens it in an editor by selecting the
+        new entry from the list once it appears.
+        """
         app = context.app
         if app is None:
             ui.notify("Graph manager not available", type="warning")
@@ -732,28 +737,17 @@ class HaystackEditor(BaseEditor):
                 rel = str(f)
             options[rel] = f
 
-        def _do_open(selected: str) -> None:
+        def _do_load(selected: str) -> None:
             path = options[selected]
-            session = context.session
-            if session is None:
-                ui.notify("Graph manager not available", type="warning")
-                return
-            entry = hs.open_graph(path)
-            session.publish(
-                Reveal(
-                    editor=GraphEditor,
-                    binding_id=entry.binding_id,
-                    label=entry.display_name,
-                )
-            )
-            ui.notify(f"Opened: {path.name}", type="positive", position="top-right")
+            hs.open_graph(path)
+            ui.notify(f"Loaded: {path.name}", type="positive", position="top-right")
 
         pick_modal(
-            title="Open Graph",
+            title="Load Graph",
             options=list(options.keys()),
-            confirm_label="Open",
+            confirm_label="Load",
             searchable=True,
-            on_confirm=_do_open,
+            on_confirm=_do_load,
         )
 
     # ------------------------------------------------------------------
