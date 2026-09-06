@@ -26,6 +26,10 @@ execute = false
 path = "graphs/10x256n_5x224e.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/10x512n_5x448e.haywire"
+execute = false
+
 [haystack]
 name = "haystack"
-active_graph = "graphs/10x256n_5x224e.haywire"
+active_graph = "graphs/10x512n_5x448e.haywire"
