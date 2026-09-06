@@ -431,7 +431,11 @@ export default {
           panX: this._panX,
           panY: this._panY,
           containerId: this.containerId,
-          isDragging: this.isDragging
+          isDragging: this.isDragging,
+          // Ground truth for "is culling actually hiding anything right now" —
+          // reflects the hysteresis latch in _cullingApplies, which a listener
+          // (the minimap label) cannot re-derive from zoom/nodeCount alone.
+          cullActive: this._cullHidden,
         }
       }));
       
@@ -544,9 +548,22 @@ export default {
      * crossing costs a mount or an unmount. That is felt as stutter, for no
      * gain. A small graph is cheap to render whole, so it never needs culling
      * either.
+     *
+     * The zoom gate itself is hysteretic, using the same reveal/drop asymmetry
+     * as CULL_REVEAL_MARGIN/CULL_DROP_MARGIN below (mount early, unmount late):
+     * culling LATCHES ON at cullMinZoom but only LATCHES OFF once zoom has
+     * fallen to cullMinZoom scaled by that margin ratio (i.e. further out than
+     * where it turned on). Without this, hovering right at cullMinZoom during
+     * a slow zoom gesture would mount/unmount the whole graph every frame —
+     * the exact thrash the spatial margins exist to prevent, just on the zoom
+     * axis instead of the pan axis. `_cullHidden` (sticky until _uncullAll)
+     * is what makes this a real latch rather than a per-frame re-evaluation.
      */
     _cullingApplies(nodeCount) {
-      return this._zoom >= this.cullMinZoom && nodeCount >= this.cullMinNodes;
+      if (nodeCount < this.cullMinNodes) return false;
+      const dropZoom = this.cullMinZoom * (this.CULL_REVEAL_MARGIN / this.CULL_DROP_MARGIN);
+      const threshold = this._cullHidden ? dropZoom : this.cullMinZoom;
+      return this._zoom >= threshold;
     },
 
     _scheduleCulling() {

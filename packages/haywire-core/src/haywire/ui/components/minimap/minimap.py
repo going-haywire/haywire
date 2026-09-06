@@ -103,3 +103,10 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
     def refresh_content(self) -> None:
         """Force a content re-scan and redraw."""
         self.run_method("scanContent")
+
+    def cleanup(self) -> None:
+        """Drop settings subscriptions so this instance isn't kept alive."""
+        try:
+            self._settings.unsubscribe(self._on_setting_changed)
+        except Exception:
+            pass

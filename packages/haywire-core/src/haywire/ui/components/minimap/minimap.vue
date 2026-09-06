@@ -80,6 +80,8 @@ export default {
     this._nodeRects     = [];
     this._scaleFactor   = 1.0;
     this._viewportRect  = { x: 0, y: 0, width: 50, height: 50 };
+    this._zoom          = 1.0;
+    this._cullActiveState = false;
     this._isDragging    = false;
     this._dragMoved     = false;
     this._lastMouseX    = 0;
@@ -93,6 +95,11 @@ export default {
     // This avoids a Python round-trip on every frame.
     this._onZoomPanState = (e) => {
       if (e.detail.containerId === this.containerId) {
+        // cullActive is ground truth from pan.vue's own hysteresis latch
+        // (_cullHidden) — zoom/nodeCount alone can't be re-derived into the
+        // same answer once the zoom-out drop threshold differs from the
+        // zoom-in one. See _cullingApplies.
+        this._cullActiveState = !!e.detail.cullActive;
         this._updateViewport(e.detail.zoom, e.detail.panX, e.detail.panY);
         this.blendIn();
         this.scheduleBlendOut();
@@ -192,6 +199,38 @@ export default {
       ctx.lineWidth   = 2;
       ctx.fillRect(cx, cy, cw, ch);
       ctx.strokeRect(cx, cy, cw, ch);
+
+      this._drawStatusLabel(ctx, w, h, nodeColor);
+    },
+
+    /**
+     * Zoom level + cull state, bottom-left. `_cullActiveState` is reported by
+     * pan.vue itself on every zoom-pan-state frame (see cullActive in that
+     * event's detail) rather than re-derived from zoom/nodeCount here: cull
+     * has its own reveal/drop hysteresis (_cullingApplies), so the zoom at
+     * which it turns off is lower than the zoom at which it turned on, and
+     * only pan.vue's own latch state (_cullHidden) knows which side of that
+     * gap the canvas is currently on.
+     */
+    _cullActive() {
+      return this._cullActiveState;
+    },
+
+    _drawStatusLabel(ctx, w, h, accentColor) {
+      const text = this._cullActive()
+        ? `${this._zoom.toFixed(2)}x · culled`
+        : `${this._zoom.toFixed(2)}x`;
+
+      ctx.font = '10px monospace';
+      const metrics = ctx.measureText(text);
+      const tx = 4;
+      const ty = h - 5;
+
+      ctx.fillStyle = 'rgba(0,0,0,0.55)';
+      ctx.fillRect(tx - 3, ty - 11, metrics.width + 6, 14);
+
+      ctx.fillStyle = this._cullActive() ? accentColor : 'rgba(255,255,255,0.75)';
+      ctx.fillText(text, tx, ty);
     },
 
     // ── State ─────────────────────────────────────────────────────────────────
@@ -232,6 +271,8 @@ export default {
     },
 
     _updateViewport(zoom, panX, panY) {
+      this._zoom = zoom;
+
       const el = this._getMainContainer();
       if (!el) return;
 
