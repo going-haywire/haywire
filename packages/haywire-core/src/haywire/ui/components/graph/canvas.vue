@@ -1594,7 +1594,14 @@ export default {
             if (target.tagName === 'path' && target.getAttribute('data-edge-id')) {
                 edge_id = target.getAttribute('data-edge-id');
                 edgeElement = target;
-            } else {
+            } else if (!nodeElement) {
+                // Only worth scanning when no node was hit: the node branch below
+                // wins over the edge branch regardless, so on a node the whole
+                // stroke walk is discarded work — and it is not cheap. Each miss
+                // costs getTotalLength + up to hundreds of getPointAtLength
+                // samples, so on a graph with ~1300 edges an unguarded scan
+                // blocked the main thread for seconds before the menu opened.
+                //
                 // Always query the SVG ref directly — target may be the canvas div
                 // itself when the click misses all path elements.
                 const svg = this.$refs.svg;
@@ -1691,17 +1698,45 @@ export default {
          */
         _isPointNearStroke(pathElement, point, tolerance = 8) {
             try {
+                const svgEl = pathElement.ownerSVGElement;
+                if (!svgEl) return false;
+                // The screen CTM is a property of the SVG, not of the sample, so
+                // it is hoisted: it used to be re-read on every point, and it is
+                // the layout-forcing read in this loop.
+                const ctm = svgEl.getScreenCTM();
+                if (!ctm) return false;
+
+                // Bounding-box reject before any sampling. getBBox is one read
+                // per path against the sampling loop's many, and on a click that
+                // hits no edge — the common case, canvas background — it rejects
+                // essentially every path in the graph.
+                const bbox = pathElement.getBBox();
+                const pt = svgEl.createSVGPoint();
+                pt.x = bbox.x;
+                pt.y = bbox.y;
+                const topLeft = pt.matrixTransform(ctm);
+                pt.x = bbox.x + bbox.width;
+                pt.y = bbox.y + bbox.height;
+                const bottomRight = pt.matrixTransform(ctm);
+                // The transform may flip either axis, so normalise rather than
+                // assuming topLeft stays top-left.
+                const minX = Math.min(topLeft.x, bottomRight.x) - tolerance;
+                const maxX = Math.max(topLeft.x, bottomRight.x) + tolerance;
+                const minY = Math.min(topLeft.y, bottomRight.y) - tolerance;
+                const maxY = Math.max(topLeft.y, bottomRight.y) + tolerance;
+                if (point.x < minX || point.x > maxX || point.y < minY || point.y > maxY) {
+                    return false;
+                }
+
                 const totalLength = pathElement.getTotalLength();
                 if (totalLength === 0) return false;
                 const steps = Math.max(20, Math.floor(totalLength / 10));
                 for (let i = 0; i <= steps; i++) {
                     const p = pathElement.getPointAtLength((i / steps) * totalLength);
                     // getPointAtLength returns SVG user-space coords; convert to screen
-                    const svgEl = pathElement.ownerSVGElement;
-                    const pt = svgEl.createSVGPoint();
                     pt.x = p.x;
                     pt.y = p.y;
-                    const screen = pt.matrixTransform(svgEl.getScreenCTM());
+                    const screen = pt.matrixTransform(ctm);
                     const dx = screen.x - point.x;
                     const dy = screen.y - point.y;
                     if (dx * dx + dy * dy <= tolerance * tolerance) return true;
