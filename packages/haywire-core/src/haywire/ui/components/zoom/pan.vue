@@ -127,8 +127,8 @@ export default {
       setPan: (x, y) => this._setPanDirect(x, y),
       getZoom: () => this._zoom,
       getPan: () => ({ x: this._panX, y: this._panY }),
-      zoomIn: () => this._setZoomDirect(this._zoom + this.zoomSensitivity),
-      zoomOut: () => this._setZoomDirect(this._zoom - this.zoomSensitivity),
+      zoomIn: () => this._setZoomDirect(this._zoom * (1 + this.zoomSensitivity)),
+      zoomOut: () => this._setZoomDirect(this._zoom / (1 + this.zoomSensitivity)),
       reset: () => {
         this._zoom = this.initialZoom;
         this._panX = 0;
@@ -250,8 +250,7 @@ export default {
       this._noteGestureActivity();
       if (e.ctrlKey) {
         // Trackpad pinch gesture (browser sets ctrlKey synthetically) OR Ctrl+scroll
-        const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
-        this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
+        this._setZoomDirect(this._multiplicativeZoom(e.deltaY), e.clientX, e.clientY);
         return;
       }
 
@@ -294,8 +293,7 @@ export default {
           this._setPanDirect(this._panX + (-e.deltaY) * this.panSensitivity, this._panY);
         } else {
           // Plain mouse wheel → zoom centered on cursor
-          const zoomDelta = -e.deltaY * this.zoomSensitivity * 0.01;
-          this._setZoomDirect(this._zoom + zoomDelta, e.clientX, e.clientY);
+          this._setZoomDirect(this._multiplicativeZoom(e.deltaY), e.clientX, e.clientY);
         }
       } else {
         // Trackpad two-finger swipe → pan both axes
@@ -326,6 +324,11 @@ export default {
       const legacy = e.wheelDeltaY;
       if (typeof legacy === 'number' && legacy !== 0 && Math.abs(legacy) % 120 !== 0) return false;
       return true;
+    },
+
+    /** adaptive zoom factor based on deltaY and zoomSensitivity */
+    _multiplicativeZoom(deltaY) {
+      return this._zoom * Math.exp(-deltaY * this.zoomSensitivity * 0.01);
     },
 
     _setZoomDirect(newZoom, centerX = null, centerY = null) {
@@ -668,8 +671,8 @@ export default {
       }, this.WHEEL_GESTURE_GAP_MS);
     },
 
-    zoomIn() { this._setZoomDirect(this._zoom + this.zoomSensitivity); },
-    zoomOut() { this._setZoomDirect(this._zoom - this.zoomSensitivity); },
+    zoomIn() { this._setZoomDirect(this._zoom * (1 + this.zoomSensitivity)); },
+    zoomOut() { this._setZoomDirect(this._zoom / (1 + this.zoomSensitivity)); },
     resetView() { this._zoom = this.initialZoom; this._panX = 0; this._panY = 0; this._updateTransformDirect(true); },
     setZoom(zoom, centerX, centerY) { this._setZoomDirect(zoom, centerX ?? null, centerY ?? null); },
     setPan(x, y) { this._setPanDirect(x, y); },
