@@ -251,13 +251,13 @@ class HaystackEditor(BaseEditor):
             # Play / stop execution toggle
             if is_executing:
                 hui.icon_action(
-                    "stop",
+                    hui.icon.execution_stop,
                     tooltip="Stop execution",
                     on_click=lambda eid=eid: self._on_stop_execution(eid, context),
                 )
             else:
                 hui.icon_action(
-                    hui.icon.resume,
+                    hui.icon.execution_start,
                     tooltip="Start execution",
                     on_click=lambda eid=eid: self._on_start_execution(eid, context),
                 )

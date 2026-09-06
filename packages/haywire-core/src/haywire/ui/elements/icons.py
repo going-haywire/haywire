@@ -99,8 +99,6 @@ class AppIcon:
     graph_metadata: Final[str] = "fingerprint"
     """Graph settings scope (only available when graph has setting bags)."""
 
-
-
     # ── Node panel sections ──────────────────────────────────────────────────
     node_info: Final[str] = "info"
     """Node identity and metadata panel."""
@@ -144,6 +142,10 @@ class AppIcon:
     """Pause icon."""
     resume: Final[str] = "play_arrow"
     """Resume icon."""
+    execution_start: Final[str] = "play_circle_outline"
+    """Play icon inside a circle"""
+    execution_stop: Final[str] = "stop_circle"
+    """Stop icon inside a circle"""
     download: Final[str] = "download"
     """Download icon."""
     find_replace: Final[str] = "find_replace"
