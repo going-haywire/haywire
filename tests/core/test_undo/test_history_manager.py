@@ -6,6 +6,7 @@ cleanup calls so a test can assert on the sequence the manager produced.
 """
 
 import time
+from typing import Any, cast
 
 import pytest
 
@@ -49,16 +50,26 @@ class RecordingAction(ActionBase):
 
 def _merging_config(**kw) -> UndoConfig:
     """Config with merging on and auto-grouping on (the studio's shape)."""
-    params = dict(max_actions=100, enable_auto_grouping=True, enable_action_merging=True)
+    params: dict[str, Any] = dict(max_actions=100, enable_auto_grouping=True, enable_action_merging=True)
     params.update(kw)
     return UndoConfig(**params)
 
 
 def _plain_config(**kw) -> UndoConfig:
     """Config with grouping and merging off, so one action is one history item."""
-    params = dict(max_actions=100, enable_auto_grouping=False, enable_action_merging=False)
+    params: dict[str, Any] = dict(max_actions=100, enable_auto_grouping=False, enable_action_merging=False)
     params.update(kw)
     return UndoConfig(**params)
+
+
+def _names(items) -> list[str]:
+    """The ``name`` of each history/pending item.
+
+    ``name`` is not on the ``IAction`` protocol — it belongs to the concrete
+    actions these tests build — so cast rather than widen the protocol to
+    suit a test.
+    """
+    return [cast(Any, item).name for item in items]
 
 
 # ---------------------------------------------------------------------------
@@ -80,7 +91,7 @@ def test_merging_happens_on_two_rapid_compatible_actions():
     h.add_action(RecordingAction("b", log, mergeable=True))
 
     h._flush_pending_actions()
-    assert [item.name for item in h.history] == ["(a+b)"]
+    assert _names(h.history) == ["(a+b)"]
 
 
 def test_merged_action_can_be_undone():
@@ -146,7 +157,7 @@ def test_merge_does_not_fire_outside_the_time_window():
     time.sleep(0.05)
     h.add_action(second)
 
-    assert [a.name for a in h._pending_actions] == ["a", "b"]
+    assert _names(h._pending_actions) == ["a", "b"]
     assert first.cleaned is False
     assert second.cleaned is False
 
@@ -158,7 +169,7 @@ def test_incompatible_actions_are_not_merged():
     h.add_action(RecordingAction("a", log, mergeable=False))
     h.add_action(RecordingAction("b", log, mergeable=False))
 
-    assert [a.name for a in h._pending_actions] == ["a", "b"]
+    assert _names(h._pending_actions) == ["a", "b"]
 
 
 # ---------------------------------------------------------------------------
@@ -180,7 +191,7 @@ def test_fences_do_not_count_against_max_actions():
         h.add_action(RecordingAction(f"a{i}", log))
         h.add_fence()
 
-    action_names = [item.name for item in h.history if not isinstance(item, Fence)]
+    action_names = _names(i for i in h.history if not isinstance(i, Fence))
     assert action_names == ["a0", "a1", "a2"]
     assert [entry for entry in log if entry[0] == "cleanup"] == []
 
@@ -193,7 +204,7 @@ def test_actions_beyond_the_limit_are_evicted_and_cleaned_up():
     for action in actions:
         h.add_action(action)
 
-    assert [item.name for item in h.history if not isinstance(item, Fence)] == ["a2", "a3"]
+    assert _names(i for i in h.history if not isinstance(i, Fence)) == ["a2", "a3"]
     assert actions[0].cleaned is True
     assert actions[1].cleaned is True
     assert actions[2].cleaned is False

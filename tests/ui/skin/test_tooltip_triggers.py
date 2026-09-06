@@ -135,6 +135,7 @@ def test_a_built_tooltip_animates_instantly(rendered) -> None:
     listener = next(
         listener for listener in trigger._event_listeners.values() if listener.type == "mouseenter"
     )
+    assert listener.handler is not None
     listener.handler(None)
 
     tooltips = [el for el in trigger.descendants() if el.tag == "q-tooltip"]

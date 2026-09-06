@@ -121,16 +121,15 @@ extend-select = ["E501", "PT", "B", "TID251"]
 "haybale_testing".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
 
 [tool.ruff.lint.per-file-ignores]
-# The banned-api list above governs the two packages the arrow constrains.
-# Everywhere else — barn libraries, tests, scripts — these imports are legal,
-# so the rule is switched off there. Ruff has no "only these paths" form, so
-# this is an explicit off-list rather than a negation: a `!a,!b` pattern
-# silences the rule EVERYWHERE (each file fails to match at least one half),
-# which is how this rule first shipped enforcing nothing.
-"barn/**" = ["TID251"]
-"tests/**" = ["TID251"]
-"scripts/**" = ["TID251"]
-"benchmarks/**" = ["TID251"]
+# The banned-api list above governs only the two packages the arrow
+# constrains; everywhere else (barn libraries, tests, scripts, scratch
+# prototypes) these imports are legal, so the rule is off by default and
+# switched ON for those two roots.
+#
+# ONE negated pattern, not two: `"!a,!b"` silences a rule EVERYWHERE, since
+# every file fails to match at least one half — which is how this rule first
+# shipped enforcing nothing.
+"!packages/**" = ["TID251"]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
 

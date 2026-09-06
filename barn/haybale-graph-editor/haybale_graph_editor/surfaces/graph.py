@@ -16,8 +16,7 @@ class GraphInspector(Surface):
 
     id = "graph"
     order = 50
-    presentation = Presentation(label="Graph", icon=hui.icon.graph
-                                )
+    presentation = Presentation(label="Graph", icon=hui.icon.graph)
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:

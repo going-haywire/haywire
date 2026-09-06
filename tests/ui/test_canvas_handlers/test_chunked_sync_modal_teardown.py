@@ -94,6 +94,7 @@ async def test_modal_closes_when_the_load_is_cancelled():
         mgr = _manager(slow)
         mgr.start_chunked_sync()
         await asyncio.sleep(0)
+        assert mgr._sync_task is not None
         mgr._sync_task.cancel()
         await _drain(mgr)
 
@@ -108,6 +109,7 @@ async def test_modal_closes_when_the_load_raises():
     with patch(_MODAL_PATH) as factory:
         mgr = _manager(boom)
         mgr.start_chunked_sync()
+        assert mgr._sync_task is not None
         with pytest.raises(RuntimeError):
             await mgr._sync_task
 
@@ -126,6 +128,7 @@ async def test_on_complete_does_not_run_when_cancelled():
         mgr = _manager(slow)
         mgr.start_chunked_sync(on_complete=lambda: called.append(1))
         await asyncio.sleep(0)
+        assert mgr._sync_task is not None
         mgr._sync_task.cancel()
         await _drain(mgr)
 
