@@ -121,24 +121,6 @@ class NodeSkin(BaseSkin, ABC):
         """
         ui.label(node.display_label).classes("text-h6 flex-grow")
 
-    @staticmethod
-    def _fold_layout(layout: LayoutDirection) -> LayoutDirection:
-        """The direction a FOLDED card draws pins in — always a horizontal one.
-
-        A folded card is one row, so a vertical layout has no top/bottom edge
-        left to seat pins on; left as-is they offset against a mid-card row and
-        land INSIDE the card.
-
-        Each vertical direction maps to the horizontal one keeping its sense of
-        "start": T2B has inlets on the leading edge → L2R, B2T on the trailing
-        edge → R2L. This re-routes the node's wires, which is intended — the
-        edge layer reads each pin's emitted vector, so curves follow on their
-        own.
-        """
-        if not layout.is_vertical:
-            return layout
-        return LayoutDirection.LEFT_TO_RIGHT if layout.inlet_side == "top" else LayoutDirection.RIGHT_TO_LEFT
-
     def _render_pin_column(
         self,
         ports: List[DataPort],
@@ -192,11 +174,11 @@ class NodeSkin(BaseSkin, ABC):
         layout: LayoutDirection,
         card_style: str,
     ):
-        """A folded card: the header row, and nothing else.
+        """A folded card: the title, and its linked pins on the layout's edges.
 
         Shared by every skin — a folded card has no layout left to differ
-        about. A skin still owns its chrome via ``card_classes`` and
-        :meth:`_render_title`.
+        about beyond its orientation. A skin still owns its chrome via
+        ``card_classes`` and :meth:`_render_title`.
 
         ``get_folded_ports`` returns only LINKED ports, so a 23-port node with
         two edges folds to two pins. That drop, not the missing labels, is the
@@ -209,19 +191,108 @@ class NodeSkin(BaseSkin, ABC):
 
         Width clamps are dropped: they size a label+widget column this card has
         no room for.
-        """
-        main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(card_style)
-        fold_layout = self._fold_layout(layout)
 
+        **The card GROWS to seat its pins, and keeps its LayoutDirection.**
+        Folding never re-sides a pin: a T2B node folds with inlets still on top
+        and outlets still on the bottom, so its wires keep running the way the
+        graph was laid out. That costs nothing at the edge layer — each pin
+        emits its own ``data-pin-dir-x/y`` vector, so curves follow the sides.
+
+        Both pin containers are absolutely positioned and so contribute NOTHING
+        to the card's flow size. Whichever axis stacks the pins must therefore
+        be reserved explicitly, or the stack spills past the border — which is
+        not merely ugly: the edge layer anchors on each pin's rect, so a spilled
+        pin's wires terminate outside the card too. Horizontally that is the
+        header row's ``min-height`` (the taller of the two columns); vertically
+        the strips already sit on the card's own top/bottom edges, and what
+        needs reserving is the ``min-width`` the widest strip requires.
+        """
         with main_card:
             self._render_diagnostics_badge(wrapper)
 
             linked = node.get_folded_ports()
-            with self.header_row():
-                self._render_root_ghost_pins(wrapper, fold_layout)
-                self._render_pin_column([p for p in linked if p.is_inlet()], wrapper, fold_layout)
-                self._render_title(node)
-                self._render_pin_column([p for p in linked if not p.is_inlet()], wrapper, fold_layout)
+            inlets = [p for p in linked if p.is_inlet()]
+            outlets = [p for p in linked if not p.is_inlet()]
+
+            if layout.is_vertical:
+                self._render_collapsed_vertical(
+                    main_card, node, wrapper, layout, card_style, inlets, outlets
+                )
+            else:
+                self._render_collapsed_horizontal(
+                    main_card, node, wrapper, layout, card_style, inlets, outlets
+                )
+
+    def _render_collapsed_horizontal(
+        self,
+        main_card: ui.card,
+        node,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        card_style: str,
+        inlets: List[DataPort],
+        outlets: List[DataPort],
+    ):
+        """A folded L2R/R2L card: one row, a pin column pinned to each side.
+
+        The row's ``min-height`` reserves the taller column, since both columns
+        are out of flow. Counting per LIST rather than per side is safe only
+        because ``max()`` is symmetric — the sides themselves swap under R2L,
+        which :meth:`_render_pin_column` resolves from ``layout``.
+        """
+        main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(card_style)
+        tallest = max(len(inlets), len(outlets))
+        with self.header_row().style(f"min-height: {tallest * self.PIN_GUTTER}px;"):
+            self._render_root_ghost_pins(wrapper, layout)
+            self._render_pin_column(inlets, wrapper, layout)
+            self._render_title(node)
+            self._render_pin_column(outlets, wrapper, layout)
+
+    def _render_collapsed_vertical(
+        self,
+        main_card: ui.card,
+        node,
+        wrapper: NodeWrapper,
+        layout: LayoutDirection,
+        card_style: str,
+        inlets: List[DataPort],
+        outlets: List[DataPort],
+    ):
+        """A folded T2B/B2T card: the title, between two edge pin strips.
+
+        Structurally the unfolded vertical card minus its config band — the
+        strips are placed by the same top-first rule, so folding moves nothing.
+        ``vertical_card_style()`` is required for the same reason it is there:
+        the strips offset against ``CARD_V_PADDING`` and anchor on the card,
+        which must be the containing block.
+
+        A strip lays its pins out in a ROW, so here the card must reserve
+        WIDTH, not height. Each pin occupies ``PIN_GUTTER``; the ghost pin
+        riding in each strip is why the widest strip is counted +1.
+        """
+        widest = max(len(inlets), len(outlets)) + 1
+        main_card.classes(f"w-full node-card zoom-pan-lod0 {self.card_classes(wrapper)}").style(
+            f"{card_style} {self.vertical_card_style()} min-width: {widest * self.PIN_GUTTER}px;"
+        )
+
+        # Whichever direction belongs on the card's TOP edge goes first — the
+        # same rule the unfolded vertical card follows. A strip drawn at the
+        # top while its pins are sided "bottom" offsets them INWARD.
+        top_first = layout.inlet_side == "top"
+        self.render_pin_strip(
+            inlets if top_first else outlets,
+            wrapper,
+            layout,
+            ghost_for=PortType.INLET if top_first else PortType.OUTLET,
+        )
+        with self.header_row():
+            self._render_title(node)
+        self.render_pin_strip(
+            outlets if top_first else inlets,
+            wrapper,
+            layout,
+            ghost_for=PortType.OUTLET if top_first else PortType.INLET,
+        )
 
     def _render_diagnostics_badge(self, wrapper: NodeWrapper) -> List["HaywireException"]:
         """The unified error/warning badge. Drawn at EVERY rank, folded included.
