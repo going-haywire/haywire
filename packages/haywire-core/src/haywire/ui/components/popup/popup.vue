@@ -7,6 +7,7 @@
     :style="overlayStyle"
     @click.self="onOverlayClick"
     @contextmenu.self="onOverlayContextMenu"
+    @wheel.self="onOverlayWheel"
   >
     <!-- Floating card -->
     <div
@@ -277,6 +278,18 @@ export default {
           buttons: 2,
         }));
       });
+    },
+
+    /** Wheel OUTSIDE the card, while this popup is capturing.
+     *
+     * Dismiss, close and let the gesture through
+     */
+    onOverlayWheel() {
+      // Centred modals keep a real backdrop and are not a passthrough surface
+      // — dismissing a confirm dialog on a stray trackpad twitch would be a
+      // bug, not a feature. Only the positioned, transparent overlay closes.
+      if (!this.backdropClickClose || !this.propsPositioned) return;
+      this.close();
     },
 
     onTitleMousedown(e) {
