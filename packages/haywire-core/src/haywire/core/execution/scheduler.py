@@ -28,6 +28,15 @@ logger = logging.getLogger(__name__)
 _SHUTDOWN_SENTINEL = object()
 
 
+def format_us(value_us: float) -> str:
+    """Format a microsecond value with an auto-scaled unit (μs/ms/s)."""
+    if value_us >= 1_000_000:
+        return f"{value_us / 1_000_000:.2f} s"
+    if value_us >= 1_000:
+        return f"{value_us / 1_000:.2f} ms"
+    return f"{value_us:.2f} μs"
+
+
 class QueueMode(Enum):
     """How to handle triggers when flow is already executing"""
 
@@ -323,16 +332,18 @@ class FlowScheduler:
             stats = self.get_execution_stats()
             if stats["min_us"] is not None:
                 logger.warning(
-                    f"\nExecutions: {stats['count']} for {self.flow.flow_id}\n"
-                    f"Nodes/exec: {stats['nodes_avg']:.0f} avg\n"
-                    f"Nodes range: {stats['nodes_min']}-{stats['nodes_max']}\n"
-                    f"Nodes total: {stats['nodes_total']}\n"
-                    f"Avg per node: {stats['avg_us'] / stats['nodes_avg']:.2f} μs\n"
-                    f"Min: {stats['min_us']:.2f} μs "
+                    f"\n--------------------------------------------------------\n"
+                    f"Total Runs            : {stats['count']} iterations for {self.flow.flow_id}\n"
+                    f"Total Executed Nodes  : {stats['nodes_total']}\n"
+                    f"Executed Nodes per run: {stats['nodes_avg']:.0f} avg\n"
+                    f"Executed Nodes range  : {stats['nodes_min']}-{stats['nodes_max']}\n"
+                    f"Min time per run      : {format_us(stats['min_us'])} "
                     f"(iteration {stats['min_iteration']})\n"
-                    f"Max: {stats['max_us']:.2f} μs "
+                    f"Max time per run      : {format_us(stats['max_us'])} "
                     f"(iteration {stats['max_iteration']})\n"
-                    f"Avg: {stats['avg_us']:.2f} μs"
+                    f"Avg time per run      : {format_us(stats['avg_us'])}\n"
+                    f"Avg time per node     : {format_us(stats['avg_us'] / stats['nodes_avg'])}"
+                    f"\n--------------------------------------------------------\n"
                 )
             else:
                 logger.warning(f"\nExecutions: 0 for {self.flow.flow_id}")
