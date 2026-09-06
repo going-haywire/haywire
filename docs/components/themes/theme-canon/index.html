@@ -3434,10 +3434,15 @@
 <td><code>node_text_color</code></td>
 <td>Card body text colour, incl. inline widgets — see the forwarding note below</td>
 </tr>
+<tr>
+<td><code>node_backdrop_blur</code></td>
+<td>Card backdrop filter, e.g. <code>"blur(10px)"</code>. Defaults to <code>none</code> — <strong>expensive</strong>, see the note below</td>
+</tr>
 </tbody>
 </table>
 <p>...plus every other token in the map (<code>text_body</code>, <code>bg_input</code>, <code>accent</code>, <code>border</code>, ...), scoped to whichever DOM subtree the theme's tier writes into.</p>
 <p>Lengths carry their unit <strong>inside the value</strong> (<code>"3px"</code>, not <code>3</code>): <code>var()</code> is textual substitution, so <code>border: 3 solid red</code> is invalid CSS and fails silently.</p>
+<p><strong><code>node_backdrop_blur</code> costs real framerate, and only pays off on a translucent card.</strong> It blurs everything behind the card, recomputed per card per frame. On a 200-node graph panned while zoomed out, <code>blur(10px)</code> measured <strong>1.90x on framerate</strong> (34.68 → 66.00 fps) and doubled p99 frame time from 25ms to 50ms. Behind an opaque <code>node_bg</code> the blurred backdrop is composited underneath the card and cannot be seen at all — so it is pure cost with no visible effect. That is why the default is <code>none</code>, and why of the two shipped themes only the light one (whose <code>node_bg</code> is <code>rgba(255,255,255,0.3)</code>) asks for it; the dark theme sets <code>"none"</code> explicitly. Set it only if your card is genuinely translucent, and expect to pay for it on large graphs.</p>
 <p><strong>Widget content inside a node card follows the node theme too.</strong> A Quasar-backed widget (<code>ui.input</code>, <code>ui.select</code>, ...) does not inherit <code>color</code>/<code>background</code> from an ancestor the way a plain element does — Quasar paints its own field internals from its own defaults. <code>shell.py</code>'s <code>STATIC_CSS</code> carries a <code>.ui-node-slot</code>-scoped forwarding block (mirroring the <code>.hw-panel</code> one panels use) that routes <code>q-field__control</code>, <code>q-field__label</code>, etc. through the same semantic tokens (<code>--hw-text-body</code>, <code>--hw-bg-input</code>, ...) — so a node-flavoured theme overriding those tokens reaches widget text/backgrounds inside its scope, not just the card chrome. The node title's text colour specifically resolves <code>--hw-node-text-color</code> with a fallback to <code>--hw-text-body</code>, so an explicit node-tier <code>node_text_color</code> still wins there.</p>
 <p><strong>Tier 2 tokens are declarable everywhere, but only reachable from global and graph tiers.</strong> <code>node_selected</code>, <code>node_active</code>, and <code>node_shadow</code> are real, mapped tokens — a node-flavoured theme may set them like any other. But <code>canvas.vue</code> consumes them on <code>[data-node-id]</code>, which is an <strong>ancestor</strong> of <code>.ui-node-slot</code> (the element a node-tier theme writes to). Custom properties inherit downward only, so:</p>
 <table>

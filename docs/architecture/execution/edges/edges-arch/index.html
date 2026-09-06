@@ -3971,14 +3971,14 @@
 <li>Edge <code>_formal_validation()</code> refreshes port references from the new node instance.</li>
 <li>Edge <code>link()</code> registers at the new port objects.</li>
 </ol>
-<p>The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in <a href="../../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>. The original visual diagram (<code>diagrams.md</code>) for the EdgeWrapper → UIEdge → GraphCanvasVue cascade is recoverable via git history.</p>
+<p>The full hot-reload pipeline (file watcher → import → registry events → wrapper rebuild → graph revalidation) lives in <a href="../../../hot-reload/hot-reload-arch/">architecture/hot-reload</a>. The original visual diagram (<code>diagrams.md</code>) for the EdgeWrapper → visual-layer → GraphCanvasVue cascade is recoverable via git history.</p>
 <h2 id="4-boundary">4. Boundary<a class="headerlink" href="#4-boundary" title="Permanent link">&para;</a></h2>
 <p>The edge subsystem is <strong>not</strong>:</p>
 <ul>
 <li>The <strong>adapter authoring surface</strong> — see <a href="../../../../components/adapters/adapter-canon/">components/adapters</a>.</li>
 <li>The <strong>graph→flow assembly</strong> — assembly consumes edges to build the executable Flow; that pipeline lives in <a href="../../assembly/assembly-arch/">architecture/execution/assembly</a>.</li>
 <li>The <strong>VM</strong> — execution context creation, pause/resume, and the two-stack model live in <a href="../../virtual-machine/virtual-machine-arch/">architecture/execution/virtual-machine</a>.</li>
-<li>The <strong>on-canvas rendering</strong> — visual state propagates through <code>UIEdge → GraphCanvasVue</code>; that's in <a href="../../../studio/canvas/canvas-arch/">architecture/studio/canvas</a>.</li>
+<li>The <strong>on-canvas rendering</strong> — an edge owns no UI object; <code>edge_visual_state()</code> turns wrapper state into stroke values that <code>VisualLayerHandlers</code> batches into one <code>SyncAllEdgesEvent</code> per validation pass for <code>GraphCanvasVue</code> to draw. That's in <a href="../../../studio/canvas/canvas-arch/">architecture/studio/canvas</a>.</li>
 </ul>
 <h2 id="5-examples">5. Examples<a class="headerlink" href="#5-examples" title="Permanent link">&para;</a></h2>
 <h3 id="51-adapter-chain-examples-with-the-test-types-in-haybale-testing">5.1 Adapter chain examples (with the test types in <code>haybale-testing</code>)<a class="headerlink" href="#51-adapter-chain-examples-with-the-test-types-in-haybale-testing" title="Permanent link">&para;</a></h3>

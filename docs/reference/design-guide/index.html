@@ -2962,10 +2962,32 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-quasar-overlay-tier" class="md-nav__link">
+  <a href="#the-overlay-ladder" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Quasar-overlay tier
+        The overlay ladder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-popupdialog-direction-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Popup/dialog direction rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-canvas-ladder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The canvas ladder
       
     </span>
   </a>
@@ -4431,10 +4453,32 @@
       <ul class="md-nav__list">
         
           <li class="md-nav__item">
-  <a href="#the-quasar-overlay-tier" class="md-nav__link">
+  <a href="#the-overlay-ladder" class="md-nav__link">
     <span class="md-ellipsis">
       
-        The Quasar-overlay tier
+        The overlay ladder
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-popupdialog-direction-rule" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The Popup/dialog direction rule
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
+  <a href="#the-canvas-ladder" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The canvas ladder
       
     </span>
   </a>
@@ -5760,7 +5804,15 @@ row; there is no second place to change.</p>
 </tbody>
 </table>
 <h3 id="29-z-index-scale">2.9 Z-Index Scale<a class="headerlink" href="#29-z-index-scale" title="Permanent link">&para;</a></h3>
-<p>Haywire uses a fixed z-index scale. Do not use arbitrary values.</p>
+<p>Stacking order is <strong>two scales, not one</strong>, and they never compare. Both are
+static CSS in <code>ui/app/shell.py</code> — not theme tokens, because stacking order is
+structural, not a user-swappable colour.</p>
+<h4 id="the-overlay-ladder">The overlay ladder<a class="headerlink" href="#the-overlay-ladder" title="Permanent link">&para;</a></h4>
+<p>Every app-global layer that portals to <code>&lt;body&gt;</code> and so genuinely competes.
+Derived from <strong>one</strong> external constant: Quasar hardcodes <code>QMenu</code> and <code>QDialog</code>
+both at <strong>6000</strong> and arbitrates between them by DOM order. Quasar exposes no
+custom property for this, so the app restates it and every rung is arithmetic
+on it.</p>
 <table>
 <thead>
 <tr>
@@ -5771,58 +5823,55 @@ row; there is no second place to change.</p>
 </thead>
 <tbody>
 <tr>
-<td><code>--hw-z-panel</code></td>
-<td>10</td>
-<td>Floating panels, resizable handles</td>
+<td><code>--hw-z-popup-backdrop</code></td>
+<td>5000</td>
+<td>A <code>Popup</code>'s overlay / backdrop</td>
 </tr>
-<tr>
-<td><code>--hw-z-dropdown</code></td>
-<td>100</td>
-<td>Dropdown menus, autocomplete popups</td>
-</tr>
-<tr>
-<td><code>--hw-z-tooltip</code></td>
-<td>200</td>
-<td>Tooltips</td>
-</tr>
-<tr>
-<td><code>--hw-z-modal</code></td>
-<td>300</td>
-<td>Modal dialogs and their backdrops</td>
-</tr>
-<tr>
-<td><code>--hw-z-notify</code></td>
-<td>400</td>
-<td>Toast notifications (above everything)</td>
-</tr>
-</tbody>
-</table>
-<p><strong>Rule:</strong> Never use a bare <code>z-index: 9999</code> or arbitrary integer. If a new stacking context is needed, add a token here.</p>
-<h4 id="the-quasar-overlay-tier">The Quasar-overlay tier<a class="headerlink" href="#the-quasar-overlay-tier" title="Permanent link">&para;</a></h4>
-<p>The scale above governs haywire's own elements. Quasar brings its own layers that sit far above it — <code>QDialog</code> and <code>QMenu</code> both default to <strong>6000</strong> — so anything that must clear <em>them</em> lives in a separate tier, defined as static CSS in <code>ui/app/shell.py</code> (not theme tokens: stacking order is structural, not a swappable colour).</p>
-<table>
-<thead>
-<tr>
-<th>Layer</th>
-<th>Value</th>
-<th>Use for</th>
-</tr>
-</thead>
-<tbody>
 <tr>
 <td><code>--hw-z-popup</code></td>
-<td>7001</td>
-<td>The <code>Popup</code> card — above Quasar dialogs (6000)</td>
+<td>5001</td>
+<td>The <code>Popup</code> card</td>
 </tr>
 <tr>
-<td><code>--hw-z-popup-menu</code></td>
-<td>7100</td>
-<td>A menu/dropdown opened from inside a <code>Popup</code></td>
+<td><code>--hw-z-quasar-interaction</code></td>
+<td>6000</td>
+<td><em>External.</em> <code>QMenu</code>, <code>QDialog</code> — Quasar's own</td>
+</tr>
+<tr>
+<td><code>--hw-z-menu-over-menu</code></td>
+<td>6001</td>
+<td>A flyout: a <code>QMenu</code> opened from inside a <code>QMenu</code></td>
 </tr>
 </tbody>
 </table>
-<p><strong>Rule:</strong> a <code>ui.select</code> inside a <code>Popup</code> must lift its dropdown, or the option list renders <em>behind</em> the card — invisible and unclickable, so the select looks empty. Use <code>hui.select_field(in_popup=True)</code>.</p>
-<p><strong>Do not lift unconditionally.</strong> The QMenu teleports to <code>&lt;body&gt;</code>, so a lifted dropdown escapes its parent's stacking context entirely. A panel or node widget sitting <em>behind</em> a popup would have its dropdown float above that popup. Panels and widgets keep the default; only in-popup selects opt in.</p>
+<p><strong><code>Popup</code> sits below the interaction tier on purpose.</strong> That is what makes a
+plain <code>ui.context_menu()</code>, <code>ui.select</code> or colour picker inside a <code>Popup</code> work
+with <strong>no lift and no special wrapper</strong> — the QMenu teleports to <code>&lt;body&gt;</code> and
+its 6000 simply wins over the card. Do not "fix" a Popup that a menu covers by
+raising the Popup; that is what created the lift machinery this replaced.</p>
+<p><strong>Ceiling — do not exceed 9000.</strong> Quasar's <em>feedback</em> tier sits above
+everything haywire draws: <code>QTooltip</code> at <strong>9000</strong>, <code>QNotification</code> at <strong>9500</strong>.
+A toast or tooltip must stay visible over any app overlay. That is deliberate,
+not an oversight to correct.</p>
+<p><strong>Rule:</strong> never a bare <code>z-index: 9999</code> or arbitrary integer in this tier. Add a
+rung to the table above, derived from <code>--hw-z-quasar-interaction</code>.</p>
+<h4 id="the-popupdialog-direction-rule">The Popup/dialog direction rule<a class="headerlink" href="#the-popupdialog-direction-rule" title="Permanent link">&para;</a></h4>
+<ul>
+<li><code>ui.dialog()</code> opened <strong>from</strong> a <code>Popup</code> — fine. The dialog's 6000 lands above.</li>
+<li>A <code>Popup</code> opened from an <strong>already-open</strong> <code>ui.dialog()</code> — broken. It renders
+  behind the dialog and is invisible. <strong>Close the dialog first</strong>, as
+  <code>_overview_install_flow.py</code> does before handing off to the install modals.</li>
+</ul>
+<p>Nothing enforces this: the failure is loud and immediate (the modal simply
+does not appear), so it reports itself the first time anyone hits it.</p>
+<h4 id="the-canvas-ladder">The canvas ladder<a class="headerlink" href="#the-canvas-ladder" title="Permanent link">&para;</a></h4>
+<p>Local to the graph canvas and ordered <em>within its own stacking context</em>, so it
+never competes with the overlay ladder despite larger raw numbers. Edge SVG &lt;
+node container &lt; selected node &lt; resize gadget &lt; marquee &lt; canvas overlays.</p>
+<p>Pin-interior values (<code>10000</code>+ on <code>.connection-pin</code>) are <strong>trapped inside a
+node</strong> and rank nothing outside it — a pin's 10000 does not beat the resize
+gadget's 1002. Magnitude here implies no cross-context rank; see the comments
+in <code>canvas.vue</code> for the cases where that tie had to be broken in JS instead.</p>
 <p>See .insights/feedback_nicegui_nested_menu_flyouts.md (#2) for the original diagnosis.</p>
 <p><strong>Note:</strong> NiceGUI's <code>ui.scroll_area()</code> creates a stacking context. Any <code>position: absolute</code> child inside a scroll area is clipped to it — this is expected behaviour.</p>
 <h3 id="210-hover-and-selection">2.10 Hover and Selection<a class="headerlink" href="#210-hover-and-selection" title="Permanent link">&para;</a></h3>
@@ -7018,8 +7067,18 @@ focus treatment enforced by shell CSS and the NumberDrag Vue component:</p>
 </tbody>
 </table>
 <p>The focus underline animates from the centre outwards using
-<code>transform: scale3d(0→1, 1, 1)</code> with <code>cubic-bezier(0.4, 0, 0.2, 1)</code> — the
+<code>transform: scaleX(0→1)</code> with <code>cubic-bezier(0.4, 0, 0.2, 1)</code> — the
 same easing Quasar uses on filled fields.</p>
+<p><strong>Rule:</strong> Use the 2D <code>scaleX</code>, never <code>scale3d</code>/<code>translateZ</code>/<code>translate3d</code>, on
+anything that can appear once per widget, per pin or per node. A 3D transform
+gives the element its own transform node in Blink's paint property tree and
+blocks the paint-chunk merging <code>PaintArtifactCompositor::Update</code> ("Layerize")
+depends on. This is not a micro-optimisation: 3300 of these pseudo-elements
+(300 nodes × 11 number widgets) cost ~500 ms per Layerize while panning in
+Chrome — 6 fps, 86% of the main thread, and a compositor too starved to raster
+tiles, so cards drew half-finished and the app shell went unpainted. The 2D
+form animates identically and measured 87 fps. Evidence and the harness that
+produced it: <code>.scratch/pan-perf/</code>.</p>
 <p><strong>Rule:</strong> Do not add <code>outlined</code> or <code>filled</code> props to standard panel input
 fields — the unified focus style is applied to the default (<code>standard</code>) Quasar
 variant via shell CSS overrides. Using <code>outlined</code> or <code>filled</code> bypasses these
@@ -7113,7 +7172,11 @@ design rules.</p>
 <li>Apply <code>--hw-danger-bg</code>, <code>--hw-ghost-pin</code>, and other canvas-specific tokens</li>
 <li>Use <code>box-shadow</code> via <code>var(--hw-node-shadow)</code> or an additional error-state
   shadow — canvas objects are the only place where multiple shadows are allowed</li>
-<li>Use <code>backdrop-filter</code> for frosted-glass node effects (use sparingly)</li>
+<li>Use <code>backdrop-filter</code> for frosted-glass node effects — via
+  <code>var(--hw-node-backdrop-blur, none)</code>, never hardcoded, and only on a
+  translucent card. It is the single most expensive thing a card can carry
+  (measured 1.90x on zoomed-out pan across 200 nodes) and is invisible behind
+  an opaque <code>node_bg</code>. See theme-canon</li>
 <li>Apply canvas-tier transition durations (<code>0.2s</code>–<code>0.3s</code>)</li>
 </ul>
 <p><strong>Typography inside skins:</strong></p>

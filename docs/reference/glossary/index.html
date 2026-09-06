@@ -5249,6 +5249,26 @@
 <td>top-level surface</td>
 </tr>
 <tr>
+<td><strong>Overlay ladder</strong></td>
+<td>The stacking scale for app-global overlays that portal to <code>&lt;body&gt;</code> and genuinely compete — Popup, dialog, menu, tooltip, notification. Defined once in CSS, derived from the <strong>Quasar interaction tier</strong> constant. Distinct from the <strong>canvas ladder</strong>; the two never compare</td>
+<td>z-index scale (ambiguous — say which ladder)</td>
+</tr>
+<tr>
+<td><strong>Canvas ladder</strong></td>
+<td>The stacking scale local to the graph canvas — edge SVG, node container, selected node, resize gadget, marquee, canvas overlays. Ordered within the canvas's own stacking context, so it never competes with the <strong>overlay ladder</strong> despite larger raw numbers. Pin-interior values (<code>10000</code>+) are trapped inside a node and rank nothing outside it</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Quasar interaction tier</strong></td>
+<td>Quasar's overlay layer for things the user acts <em>on</em> — <code>QMenu</code> and <code>QDialog</code>, both hardcoded at <strong>6000</strong>, arbitrated between themselves by DOM order. The floor the <strong>overlay ladder</strong> derives from. Distinct from the <strong>Quasar feedback tier</strong></td>
+<td>Quasar's z-index (ambiguous — there are two tiers)</td>
+</tr>
+<tr>
+<td><strong>Quasar feedback tier</strong></td>
+<td>Quasar's overlay layer for transient feedback — <code>QTooltip</code> (<strong>9000</strong>) and <code>QNotification</code> (<strong>9500</strong>). Deliberately left <em>above</em> everything haywire draws: a toast or tooltip must stay visible over any app overlay. The ceiling the <strong>overlay ladder</strong> must not exceed</td>
+<td>—</td>
+</tr>
+<tr>
 <td><strong>sibling group</strong></td>
 <td>The set of flyouts at one menu level, sharing the invariant that opening one closes the others and their descendants — exactly one open path from the root. Owned by whatever opens a box (a popup, a flyout), never by a Panel or a Surface: one Panel may render two Surfaces into a single popup, and rows from both are siblings there</td>
 <td>flyout siblings</td>
@@ -5297,6 +5317,11 @@
 <td><strong>SelectionToolbar</strong></td>
 <td>The Surface (<code>id="toolbar"</code>) authors register <strong>floating-toolbar</strong> panels against — the curated face (Copy · Delete · ⋯). Distinct from <strong>SelectionMenu</strong> (the right-click menu). <code>provides = SelectionActions</code>, shared with SelectionMenu. Its ⋯ is a <strong>hosting panel</strong> rendering an overflow Surface, passing that Protocol down. Polled by <code>SelectionToolbarProvider</code>, not by the right-click provider.</td>
 <td>toolbar scope, ToolbarFocus</td>
+</tr>
+<tr>
+<td><strong>Locked node</strong></td>
+<td>A node whose <code>props.locked</code> is set, protecting it from accidental <strong>canvas gestures</strong>. Protection works through the <strong>Selection axis</strong> (the Miro rule): a locked node is skipped by marquee-select and never joins a multi-selection in either direction, so no batch command can reach it. It can still be selected <strong>alone</strong> — its properties panel is the only way to unlock it — and is then inert to drag and shows no resize gadget. Scope is geometry and existence only; settings, widgets and edges stay fully editable. Enforced client-side in <code>canvas.vue</code> off the <code>data-node-props-locked</code> attribute, so a gesture is refused rather than reverted; <strong>Farmhand tools bypass it entirely</strong>, which makes it a guardrail, not access control.</td>
+<td>pinned (the pre-2026-08-31 field name), protected (collides with <code>origin.is_protected</code>, which is about <strong>Library Origin</strong>), read-only (implies settings are frozen — they are not), locked out (auth)</td>
 </tr>
 <tr>
 <td><strong>Replace-then-act</strong></td>
@@ -5440,7 +5465,7 @@
 </tr>
 <tr>
 <td><strong>Host slot</strong></td>
-<td>The <code>.ui-node-slot</code> (<code>ui.column</code>, one per node, stable <code>id</code>) that the graph-editor wraps around a node's card. It <strong>owns the applied size</strong>: <code>UINode._apply_size</code> writes a manual axis as a <strong>minimum</strong> (<code>min-width</code>/<code>min-height</code>, never a hard size and never <code>overflow</code> — content that needs more room expands the node, so pins/widgets/edges never clip) here (never on the card), stamps <code>data-size-adapt</code>, and it is what the <code>ResizeObserver</code> measures and the resize gadget targets. Skins are size-agnostic; size and measurement live here.</td>
+<td>The <code>.ui-node-slot</code> (<code>ui.column</code>, one per node, stable <code>id</code>) that the graph-editor wraps around a node's card. It <strong>owns the applied size</strong>: <code>UINode._apply_size</code> writes a manual axis as a <strong>minimum</strong> (<code>min-width</code>/<code>min-height</code>, never a hard size and never <code>overflow</code> — content that needs more room expands the node, so pins/widgets/edges never clip) here (never on the card), stamps <code>data-node-props-size-adapt</code>, and it is what the <code>ResizeObserver</code> measures and the resize gadget targets. Skins are size-agnostic; size and measurement live here.</td>
 <td>node slot, card wrapper</td>
 </tr>
 <tr>
@@ -5475,17 +5500,17 @@
 </tr>
 <tr>
 <td><strong>NodeDetail</strong></td>
-<td>The density rank of an uncollapsed node card — <code>COMPACT</code> (pins) &lt; <code>STANDARD</code> (+ inline widgets) &lt; <code>FULL</code> (+ port labels, diagnostics detail). A <strong>StrEnum</strong> with a <code>rank</code> property and an <code>includes()</code> predicate, twinning <code>AccessTier</code>: wire values stay strings so adding a rank later renumbers nothing, and <code>coerce</code> degrades to the default rather than raising on the render path. Carried by <code>NodeProperties.detail</code> through the framework &lt; graph &lt; node chain. A <strong>construction</strong> gate, not a CSS one — omitted elements are never built.</td>
+<td>The density rank of an uncollapsed node card — <code>PINS</code> (linked ports) &lt; <code>PINS_ALL</code> (+ unlinked ports) &lt; <code>WIDGETS</code> (+ inline widgets) &lt; <code>LABELS</code> (+ port labels) &lt; <code>FULL</code> (+ diagnostics detail). A <strong>StrEnum</strong> with a <code>rank</code> property and an <code>includes()</code> predicate, twinning <code>AccessTier</code>: wire values stay strings so adding a rank later renumbers nothing, and <code>coerce</code> degrades to <code>FULL</code> rather than raising on the render path. Carried by <code>NodeProperties.detail</code> through the framework &lt; graph &lt; node chain. A <strong>CSS filter</strong> (2026-09, superseding the original construction-gate design — see ADR 0032's "Superseded" section): every element is built; a <code>.hw-detail-*</code> class and a <code>[data-node-props-detail]</code> rule decide what's shown.</td>
 <td>detail level, LOD (LOD is the separate zoom axis — see <strong>LOD</strong>)</td>
 </tr>
 <tr>
 <td><strong>Node visibility</strong></td>
-<td>The resolved answer to "what does this card draw", returned by <code>NodeSkin.show_of(wrapper)</code>. Composes <strong>Node collapse</strong>, <strong>NodeDetail</strong>, <strong>Group collapse</strong> and link state into one value object exposing intent-named properties (<code>show.label</code>, <code>show.widget</code>, <code>show.diagnostics</code>), a port filter (<code>show.ports(node)</code>), and the raw axes (<code>show.detail</code>, <code>show.collapsed</code>) as an escape hatch. Skins ask it what to draw and never compare ranks themselves, so the rank→element mapping has exactly one owner. Properties, never methods: <code>if show.label:</code> on a method is silently always true.</td>
-<td>show object, detail resolver</td>
+<td>The resolved answer to "which ports does this card draw", returned by <code>NodeSkin.show_of(wrapper)</code>. Composes <strong>Node collapse</strong> and <strong>Group collapse</strong> into one value object exposing <code>show.collapsed</code> and a port filter (<code>show.ports(node)</code>). Does NOT carry <strong>NodeDetail</strong> (cut 2026-09, same day as NodeDetail's own CSS-filter redesign — see ADR 0032's "Superseded" section): it used to hold a <code>detail</code> field and four rank-derived properties a skin consulted to pick a <code>.hw-detail-*</code> class, but once every skin call site started writing that class unconditionally, nothing read them any more — <code>UINode._apply_detail_attr</code> already reads <code>props.detail</code> directly to stamp the DOM attribute canvas.vue's CSS keys off.</td>
+<td>show object, port filter</td>
 </tr>
 <tr>
 <td><strong>LOD</strong></td>
-<td>Level of detail on the <strong>zoom</strong> axis only: <code>pan.vue</code> stamps <code>data-lod-level</code> (<code>raw</code> / <code>low</code> / <code>medium</code> / <code>high</code>) on the pan container from the current zoom, and CSS hides <code>.zoom-pan-lod1..3</code> accordingly. Decides what is <strong>painted</strong> of what already exists; <strong>NodeDetail</strong> decides what exists. The two do not compose — no rank arithmetic between them.</td>
+<td>Level of detail on the <strong>zoom</strong> axis only: <code>pan.vue</code> stamps <code>data-lod-level</code> (<code>raw</code> / <code>low</code> / <code>medium</code> / <code>high</code>) on the pan container from the current zoom. As of 2026-09 this is a <strong>dormant hook</strong> — the <code>display:none</code> crossing rules that used to key off it were removed (measured 2.15x pan cost for a 0.2%/0.04% gain), so nothing currently reads the attribute, but it stays computed for a future paint-only, per-frame feature. Decides what is <strong>painted</strong> of what already exists; <strong>NodeDetail</strong> decides what a rank includes. The two share a CSS technique (attribute selector + <code>display:none</code>) but do not compose — no rank arithmetic between them.</td>
 <td>detail (reserve for NodeDetail)</td>
 </tr>
 <tr>
@@ -5506,7 +5531,7 @@
 </tbody>
 </table>
 <h3 id="modals-new">Modals <em>(new)</em><a class="headerlink" href="#modals-new" title="Permanent link">&para;</a></h3>
-<p><code>haywire.ui.modals</code> — the canonical set of reusable Popup-based modal dialogs. Use these instead of inline <code>ui.dialog()</code> for any new modal UI; the per-modal helpers carry the design-guide chrome (<code>--hw-popup-shadow</code>, <code>--hw-bg-elevated</code>, <code>--hw-border-strong</code>) and stack above legacy Quasar dialogs at z-index 7000/7001.</p>
+<p><code>haywire.ui.modals</code> — the canonical set of reusable Popup-based modal dialogs. Use these instead of inline <code>ui.dialog()</code> for any new modal UI; the per-modal helpers carry the design-guide chrome (<code>--hw-popup-shadow</code>, <code>--hw-bg-elevated</code>, <code>--hw-border-strong</code>). A <code>Popup</code> sits <strong>below</strong> the <strong>Quasar interaction tier</strong>, so Quasar overlays opened inside one (context menus, selects, colour pickers) work with no lift — see <strong>Popup/dialog direction rule</strong>.</p>
 <table>
 <thead>
 <tr>
@@ -5519,6 +5544,11 @@
 <tr>
 <td><strong>Popup</strong></td>
 <td>The shared Vue component all haywire modals are built on. Centered or position-fixed, with optional backdrop, escape-close, and backdrop-click-close. Internal — modal authors use the helper functions below.</td>
+<td>—</td>
+</tr>
+<tr>
+<td><strong>Popup/dialog direction rule</strong></td>
+<td><code>ui.dialog()</code> opened <strong>from</strong> a <code>Popup</code> is supported (the dialog's 6000 lands above the Popup). A <code>Popup</code> opened <strong>from an already-open <code>ui.dialog()</code></strong> is not — it renders behind the dialog and is invisible. Close the dialog first. Documentation-only rule: the failure is loud and self-reporting, so nothing enforces it.</td>
 <td>—</td>
 </tr>
 <tr>
@@ -5667,7 +5697,7 @@
 </tr>
 <tr>
 <td><strong>Flyout menu</strong></td>
-<td>A nested context-menu submenu that opens <strong>on hover</strong> of its anchor item and cascades to the right (<code>anchor="top end" self="top start"</code>), raised above the context-menu popup (<code>z-index 7100 &gt; 7001</code>). Only one open path from the root exists at a time: opening one flyout closes its <strong>siblings</strong> (same-level group) and their open descendants, via an explicit <code>_close_flyout</code> cascade — closing on click-away is left to Quasar's <code>auto-close</code>. The fragile hover-open / sibling-close mechanics are used by the <strong>add-node menu</strong> through a common flyout primitive. See [.insights/feedback_nicegui_nested_menu_flyouts.md]</td>
+<td>A nested context-menu submenu that opens <strong>on hover</strong> of its anchor item and cascades to the right (<code>anchor="top end" self="top start"</code>), raised one rung above the <strong>Quasar interaction tier</strong> (<code>--hw-z-menu-over-menu</code>) because a menu and its parent menu both default to 6000 and would otherwise tie on DOM order. Only one open path from the root exists at a time: opening one flyout closes its <strong>siblings</strong> (same-level group) and their open descendants, via an explicit <code>_close_flyout</code> cascade — closing on click-away is left to Quasar's <code>auto-close</code>. The fragile hover-open / sibling-close mechanics are used by the <strong>add-node menu</strong> through a common flyout primitive. See [.insights/feedback_nicegui_nested_menu_flyouts.md]</td>
 <td>submenu, cascade menu, nested QMenu</td>
 </tr>
 <tr>

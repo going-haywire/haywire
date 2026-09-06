@@ -3333,6 +3333,14 @@ how <code>node_menu_builder</code> drives flyouts explicitly on hover.</p>
   <code>VisualLayerHandlers.add_node_visual</code> (<code>ui.element</code> div → <code>UINode</code> → skin
   card), tracked in <code>self.node_panels[node_id]</code>; <code>remove_node_visual(node_id)</code>
   fully unmounts+deletes. These are the levers if Axis-B culling is ever revisited.</li>
+<li><strong>LOD's <code>display:none</code> zoom-crossing rules were removed (2026-09).</strong> Measured
+  at 2.15x pan cost for a 0.2%/0.04% framerate gain — the crossing itself, not
+  what it hid, was the cost (see <code>internals/handoff/node-detail-and-lod-classes.md</code>,
+  decision B, and <code>.scratch/pan-perf/RESULTS.md</code> for the full matrix).
+  <code>data-lod-level</code> stays computed (<code>pan.vue</code>'s <code>_updateZoomAndLODClass</code>) as a
+  dormant hook for a future paint-only, per-frame feature; nothing reads it
+  today. The "existing zoom-LOD system... already covers pan" line under
+  Considered and declined below describes the pre-2026-09 state.</li>
 </ul>
 <h2 id="considered-and-declined">Considered and declined<a class="headerlink" href="#considered-and-declined" title="Permanent link">&para;</a></h2>
 <p>Recorded so they are not re-litigated as the "obvious next step":</p>

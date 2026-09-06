@@ -3129,6 +3129,39 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#superseded-in-part-2026-08-31-muted-removed-pinned-renamed-locked" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Superseded in part (2026-08-31): muted removed, pinned renamed locked
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#superseded-in-part-2026-09-02-nodedetail-becomes-a-css-filter-not-a-construction-gate" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Superseded in part (2026-09-02): NodeDetail becomes a CSS filter, not a construction gate
+      
+    </span>
+  </a>
+  
+</li>
+      
+        <li class="md-nav__item">
+  <a href="#superseded-in-part-2026-09-04-hw-lod-hover-is-gone-and-with-it-the-peek-gesture" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Superseded in part (2026-09-04): .hw-lod-hover is gone, and with it the "peek gesture"
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3317,6 +3350,121 @@ collapsed group renders an ordinary pin. Corrected, along with new entries for
 <strong>Node collapse</strong>, <strong>Group collapse</strong>, <strong>NodeDetail</strong>, <strong>Node visibility</strong> and
 <strong>LOD</strong> — the last three of which exist to stop "detail" and "LOD" being used
 for each other.</p>
+<h2 id="superseded-in-part-2026-08-31-muted-removed-pinned-renamed-locked">Superseded in part (2026-08-31): <code>muted</code> removed, <code>pinned</code> renamed <code>locked</code><a class="headerlink" href="#superseded-in-part-2026-08-31-muted-removed-pinned-renamed-locked" title="Permanent link">&para;</a></h2>
+<p>Decision 10 above kept two flags — "<code>muted</code> and <code>pinned</code> stay: they are state,
+not density." That reasoning was right about the <em>category</em> and wrong about the
+<em>fields</em>: being state is what spared them from this ADR's density cleanup, but
+neither ever grew a reader, so both sat in the panel promising behaviour the
+engine has not got.</p>
+<ul>
+<li><strong><code>muted</code> is deleted.</strong> It advertised execution skipping, which is a VM-level
+  feature nobody has scoped. A checkbox that does nothing is worse than an
+  absent one, so it goes rather than waits.</li>
+<li><strong><code>pinned</code> becomes <code>locked</code>.</strong> The old name and description scoped it to
+  "prevent auto-layout from moving this node" — a layout pass that does not
+  exist. <code>locked</code> is the promise actually wanted: protection from accidental
+  drag, resize and delete.</li>
+</ul>
+<p><code>locked</code> is enforced <strong>client-side</strong>, in <code>canvas.vue</code>, off a <code>data-node-props-locked</code>
+attribute. A server-side check was designed first and abandoned: the canvas
+moves nodes in the browser during a drag and reports positions only at the end,
+so the core could refuse to <em>persist</em> a move but not to <em>perform</em> one — the node
+would slide under the cursor and snap back, which reads as a glitch rather than
+a rule. With Farmhand tools deliberately exempt (an agent's call is always
+deliberate), no caller was left for a core filter to catch.</p>
+<p>Consequently <code>locked</code> is a <strong>guardrail, not access control</strong>: agents bypass it
+and any user can untick it. It covers geometry and existence only — settings,
+widgets and edges stay editable.</p>
+<p><strong>Protection runs through the Selection axis</strong> (the rule Miro uses): a locked
+node is skipped by marquee-select and never joins a multi-selection in either
+direction — neither shift-clicking one into a selection, nor adding anything to
+a lone selected locked node. A node that cannot enter a selection cannot be
+reached by a batch command, so drag, delete and fold are all protected by one
+rule instead of a filter re-stated per verb. Selecting a locked node <strong>alone</strong>
+stays possible and is the point: its properties panel is the only way to unlock
+it, so a lock that could not be clicked would be a trap.</p>
+<p>Two consequences worth naming. Locking applies to one node at a time, so a
+selection is never <em>partly</em> locked and no mixed-state toggle has to be
+designed — at the cost of no bulk unlock. And the per-verb filters that remain
+(drag pickup, delete) are backstops for the lone-locked-node case rather than
+the primary guard.</p>
+<p>No migration either way: <code>Settings.from_dict</code> skips unknown value keys, so a
+saved graph carrying <code>props.muted</code> or <code>props.pinned</code> drops the key silently and
+<code>locked</code> starts at its default — the same mechanism decision 10's five retired
+flags relied on.</p>
+<h2 id="superseded-in-part-2026-09-02-nodedetail-becomes-a-css-filter-not-a-construction-gate">Superseded in part (2026-09-02): NodeDetail becomes a CSS filter, not a construction gate<a class="headerlink" href="#superseded-in-part-2026-09-02-nodedetail-becomes-a-css-filter-not-a-construction-gate" title="Permanent link">&para;</a></h2>
+<p>Decision 3 above — "Both axes gate construction, not CSS... A CSS gate would
+leave every element built, mounted and re-walked" — was right about <strong>Node
+collapse</strong> and wrong about <strong>NodeDetail</strong>, for a reason ADR 0006 later
+measured directly: NodeDetail's construction-gate cost was never the
+mounted-element re-walk this decision worried about. It was the pan-time
+paint/layout cost of what those elements render, and <code>display: none</code> removes
+that cost identically to never building them — measured at 0.98x/1.02x of
+constructed WIDGETS-equivalent (see <code>.scratch/pan-perf/RESULTS.md</code> and
+<code>internals/handoff/node-detail-and-lod-classes.md</code>, decision A).</p>
+<p><strong>What changed:</strong></p>
+<ul>
+<li><code>NodeDetail</code> grew from 3 ranks (<code>COMPACT</code>/<code>STANDARD</code>/<code>FULL</code>) to 5
+  (<code>PINS</code>/<code>PINS_ALL</code>/<code>WIDGETS</code>/<code>LABELS</code>/<code>FULL</code>) — a floor step for "unlinked
+  pins" is now distinct from "linked pins only", where the old COMPACT
+  conflated them.</li>
+<li>Every element a rank could exclude is now always built, and unconditionally
+  carries its <code>.hw-detail-*</code> class — a plain string literal at each skin
+  <code>_render_*</code> call site, matched by <code>[data-node-props-detail]</code> rules in
+  <code>canvas.vue</code> — the SAME mechanism <code>locked</code> already used for its own
+  attribute, and the same TECHNIQUE (attribute-selector + <code>display:none</code>) the
+  zoom-driven LOD system uses, though the two remain conceptually separate
+  (ADR 0006).</li>
+<li><code>detail</code> left <code>NodeProperties.REDRAW_FIELDS</code>; <code>collapsed</code> did not. <strong>Node
+  collapse is unaffected by this supersession</strong> — it stays a real
+  construction gate, exactly as decision 3 originally specified, because
+  nothing in the pan measurement touched it.</li>
+</ul>
+<p><strong>Correction (2026-09-02, same day): <code>NodeVisibility</code> does not carry the
+rank.</strong> The first cut of this redesign gave <code>NodeVisibility</code> a <code>detail</code>
+field and four rank-derived properties (<code>pins_all</code>/<code>widget</code>/<code>label</code>/
+<code>diagnostics</code>) that a skin was meant to consult to decide which
+<code>.hw-detail-*</code> class to add. In practice every skin call site ended up
+writing the class <strong>unconditionally</strong> — there was no per-rank branching left
+to do once "hide it" moved entirely into CSS — which left those four
+properties, and the <code>detail</code> field itself, with no reader anywhere but their
+own tests. <code>NodeVisibility</code> was cut back to just <code>collapsed: bool</code> and
+<code>ports()</code>, the two things still genuinely construction-time decisions.
+<code>UINode._apply_detail_attr</code> already read <code>props.detail</code> directly (not
+through <code>NodeVisibility</code>) to stamp the DOM attribute, so nothing downstream
+of the CSS rule needed the deleted properties either. A <code>BaseWidget.
+_is_detail_hidden</code> model→view dispatch suppression was tried in the same
+pass and dropped for the same reason plus its own: the settings-chain
+resolution it required cost more per dispatched value change than the
+traffic it saved, on the hot path rather than the render path.</p>
+<p><strong>Breaking change, no migration.</strong> Old saved-graph values <code>"compact"</code>/
+<code>"standard"</code> are unrecognised strings under the new enum and degrade to
+<code>FULL</code> via <code>NodeDetail.coerce()</code>'s existing (unchanged) fallback. No shim was
+built — there is no external install base to protect at the time of this
+change.</p>
+<p><strong>Not reopened:</strong> decision 1 (two axes, not one). Collapse and NodeDetail
+remain independently composable exactly as originally decided; the 5-rank
+ladder lives entirely inside the NodeDetail axis.</p>
+<h2 id="superseded-in-part-2026-09-04-hw-lod-hover-is-gone-and-with-it-the-peek-gesture">Superseded in part (2026-09-04): <code>.hw-lod-hover</code> is gone, and with it the "peek gesture"<a class="headerlink" href="#superseded-in-part-2026-09-04-hw-lod-hover-is-gone-and-with-it-the-peek-gesture" title="Permanent link">&para;</a></h2>
+<p>Decision 8 above closes with "now that selection is inert, <code>.hw-lod-hover</code> is
+the only peek gesture in the app". That sentence was true when written and
+stopped being true in <code>6d787d0e</code>, which removed LOD's <code>display:none</code>
+zoom-crossing rules (recorded in ADR 0006's Superseded bullet). The class was
+only ever a hook for the hover-persistence rules that re-admitted a hovered
+card's hidden descendants; once nothing was hidden, nothing read the class.</p>
+<p><code>canvas.vue</code> kept writing it anyway — <code>classList.add</code> on <code>mouseenter</code>,
+<code>classList.remove</code> on <code>mouseleave</code>, on the single hottest path the canvas has.
+Both calls are removed. There is no peek gesture in the app now, because there
+is nothing left to peek at: every rank's elements are painted at every zoom,
+and <code>NodeDetail</code> decides what exists rather than what is revealed.</p>
+<p>Found while attributing a pan-performance defect: hovering a card during a pan
+costs ~7x the framerate on a 300-node graph, and the hover path was being
+audited consumer by consumer (<code>.scratch/pan-perf/eventcensus.py</code>; the class
+mutation itself measured free — it is removed as dead code, not as a fix).</p>
+<p><strong>Still standing from decision 8:</strong> LOD and <code>NodeDetail</code> remain different
+concerns that nothing composes, and <code>data-lod-level</code> is still computed by
+<code>pan.vue</code> as a deliberate dormant hook with the debug overlay as its only
+reader.</p>
 
 
 
