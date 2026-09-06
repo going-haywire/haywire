@@ -29,8 +29,8 @@ from nicegui import ui
 from haywire.ui import elements as hui
 from haywire.core.library.utils import get_registry_id_from_key
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on
-from haywire.core.signals import Signal
+from haywire.core.session.handlers import react_on, redraw_on
+from haywire.core.signals import RevealComponentSource, Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
@@ -92,6 +92,25 @@ class ComponentSourceEditor(BaseEditor):
     @redraw_on(SessionContext.active_workbench_theme_key)
     def _redraw_on_theme(self, context: "SessionContext", event: Signal) -> None:
         pass
+
+    @react_on(RevealComponentSource)
+    def _on_reveal_component_source(self, context: "SessionContext", event: "RevealComponentSource") -> None:
+        """Answer core's "show me this component's code".
+
+        Core can name a registry key but not an editor class — naming this one
+        would mean core importing a barn library, the dependency arrow
+        backwards. So it publishes a key and the library owning the viewer
+        (this one) decides what that means. Same inversion as
+        ``RevealGraphInstance``, which GraphEditor answers.
+
+        Deliberately routed through ``open_component_source`` rather than
+        setting ``active_component`` here: that helper also publishes the
+        ``Reveal`` that pops a collapsed CONTEXT slot open, so a click on a
+        collapsed shell updates content the user can actually see.
+        """
+        from haybale_studio.editors.error_navigation import open_component_source
+
+        open_component_source(event.registry_key, context)
 
     # ------------------------------------------------------------------
     # BaseEditor interface

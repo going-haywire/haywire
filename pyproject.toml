@@ -98,9 +98,39 @@ exclude = ["playground/"]
 # default rules see: blind `pytest.raises(Exception)`, composite asserts that
 # hide which half failed, mutable argument defaults, unchained re-raises.
 # B applies repo-wide; PT is scoped to tests/ below.
-extend-select = ["E501", "PT", "B"]
+# TID251 only (banned-api, see below) — NOT all of TID: TID252 bans relative
+# parent imports, which this codebase uses deliberately and in volume.
+extend-select = ["E501", "PT", "B", "TID251"]
+
+[tool.ruff.lint.flake8-tidy-imports.banned-api]
+# Dependency direction: haybale-* -> haywire-studio -> haywire-core, one way.
+# The reverse edge is a package cycle (see
+# .insights/project_app_library_dependency_direction.md). Nothing structural
+# stopped core from importing a barn library, so this states it as a rule —
+# a `try: import haybale_studio / except ImportError` reads as defensive and
+# is still the arrow backwards, just silently.
+#
+# Enforced only where the arrow is illegal (the two package roots below);
+# barn libraries import each other and the app freely.
+"haybale_studio".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers (e.g. RevealComponentSource)."
+"haybale_graph_editor".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
+"haybale_haystack".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
+"haybale_marketplace".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
+"haybale_share".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
+"haybale_core".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
+"haybale_testing".msg = "haywire-core/-studio must not import a barn library — publish a signal a library answers."
 
 [tool.ruff.lint.per-file-ignores]
+# The banned-api list above governs the two packages the arrow constrains.
+# Everywhere else — barn libraries, tests, scripts — these imports are legal,
+# so the rule is switched off there. Ruff has no "only these paths" form, so
+# this is an explicit off-list rather than a negation: a `!a,!b` pattern
+# silences the rule EVERYWHERE (each file fails to match at least one half),
+# which is how this rule first shipped enforcing nothing.
+"barn/**" = ["TID251"]
+"tests/**" = ["TID251"]
+"scripts/**" = ["TID251"]
+"benchmarks/**" = ["TID251"]
 # PT is a pytest-only style; production code has no test functions to lint.
 "!tests/**" = ["PT"]
 

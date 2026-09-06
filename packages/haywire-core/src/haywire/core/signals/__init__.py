@@ -29,6 +29,7 @@ from .vocabulary import (
     AgentConnected,
     AgentDisconnected,
     Reveal,
+    RevealComponentSource,
     Close,
     BroadcastClose,
 )
@@ -62,6 +63,7 @@ __all__ = [
     "AgentDisconnected",
     # Imperative commands
     "Reveal",
+    "RevealComponentSource",
     "Close",
     "BroadcastClose",
 ]

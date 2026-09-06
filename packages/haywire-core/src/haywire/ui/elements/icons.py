@@ -130,6 +130,11 @@ class AppIcon:
     # ── General actions and states ─────────────────────────────────────────────────
     debug: Final[str] = "bug_report"
     """Debug / dev tools scope."""
+    checked: Final[str] = "check_box"
+    """A togglable menu entry that is currently ON. Paired with ``unchecked``:
+    a menu row has no checked state of its own, so the icon carries it."""
+    unchecked: Final[str] = "check_box_outline_blank"
+    """A togglable menu entry that is currently OFF. See ``checked``."""
 
     # ── File system ───────────────────────────────────────────────────────────
     folder: Final[str] = "folder"

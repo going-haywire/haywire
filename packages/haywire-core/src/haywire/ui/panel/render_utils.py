@@ -58,6 +58,7 @@ from nicegui import ui
 
 from haywire.core.settings import UiState
 from haywire.ui import elements as hui
+from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.utils import anchor_cleanup_to_element
 from haywire.ui.widget.base import DISABLED_STYLE
 
@@ -351,6 +352,128 @@ def _render_definitions(ctx: "SessionContext", sorted_defns: list, registry: "Se
 
 
 # ===========================================================================
+# 2b. Developer submenu
+#
+# Every row's menu can offer "open the code behind this row" — the settings
+# class it renders, and the panel that drew it — gated on ctx.developer_mode.
+# Both are ordinary registry components, so this is the same navigation the
+# error ledger and library overview already do: point active_component at a key
+# and Reveal the source editor.
+#
+# Registry keys are RESOLVED, never assumed. A registered LibrarySettings /
+# FrameworkSettings carries its own class_identity; a NodeSettings bag carries
+# none (it is deliberately never registered — see settings_node.py), so the
+# useful target is the owning NODE, whose source file is where the inner
+# `class Settings` is written anyway. Anything unresolvable simply yields no
+# entry rather than a dead one.
+# ===========================================================================
+
+
+def _component_key(obj: Any) -> str | None:
+    """The registry key for a class or instance, or None if it has no identity.
+
+    ``class_identity`` is stamped at registration, so an unregistered class
+    (a bare NodeSettings bag, a test double) answers None here rather than
+    raising — the caller's job is then to offer no menu entry. ``None`` in is
+    ``None`` out: callers pass the result of a lookup that legitimately finds
+    nothing (no owning panel, no owning class), and every one of them would
+    otherwise need the same guard.
+    """
+    if obj is None:
+        return None
+    cls = obj if isinstance(obj, type) else type(obj)
+    identity = getattr(cls, "class_identity", None)
+    return getattr(identity, "registry_key", None) if identity is not None else None
+
+
+def _bag_source_key(obj: "Settings") -> str | None:
+    """Where the code for this settings bag lives, as a registry key.
+
+    A registered bag answers its own key. A NodeSettings bag has no identity of
+    its own, so this answers the owning node's key: the inner ``class Settings``
+    is declared in the node's source file, so the node key opens the very same
+    file the bag is written in — a better target than the nothing a bagless
+    lookup would return.
+    """
+    own = _component_key(obj)
+    if own is not None:
+        return own
+    node = getattr(obj, "_node", None)
+    return _component_key(node) if node is not None else None
+
+
+def _open_component_source(ctx: "SessionContext", registry_key: str) -> None:
+    """Ask whoever hosts a source viewer to show ``registry_key``.
+
+    Core publishes a key and names no editor. ``Reveal`` would need the editor
+    *class*, which only the library owning it can name — and core importing a
+    barn library, however lazily or defensively, is the dependency arrow
+    backwards (``haybale-* -> haywire-studio -> haywire-core``, never the
+    reverse; see ``.insights/project_app_library_dependency_direction.md``).
+
+    ``haybale-studio`` answers this by revealing its ``ComponentSourceEditor``.
+    With no source-viewer library installed nothing answers, which is a working
+    configuration rather than an error — the same fire-and-forget shape as
+    ``RevealGraphInstance``.
+    """
+    from haywire.core.signals import RevealComponentSource
+
+    ctx.session.publish(RevealComponentSource(registry_key=registry_key))
+
+
+def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None]) -> None:
+    """Draw the Developer submenu for a settings row, if it has anything to say.
+
+    *entries* are ``(label, registry_key)`` pairs; a pair whose key is None is
+    dropped, and a submenu left with no entries is not drawn at all — an empty
+    "Developer" row that expands into nothing is worse than its absence.
+
+    Nested inside the caller's ``ui.context_menu()``. ``ContextMenu`` is a
+    ``q-menu`` exactly as ``ui.menu`` is (it only adds ``context-menu`` /
+    ``touch-position`` props), so a flyout nests inside one the same way it does
+    in any other menu.
+
+    Uses ``flyout_category``, NOT ``hui.submenu_row``, and the choice is visible
+    to the user. A row menu IS a ``QMenu``, so its leaves are ``ui.menu_item``
+    (``q-item``) — and ``flyout_category``'s anchor is a ``ui.menu_item`` too,
+    so the Developer row lines up with Reset and Promote above it. A
+    ``SubmenuRow`` is a ``hui.menu_row``, built for a ``Popup`` content column
+    that has no ``QMenu`` ancestor to inherit a look from (see
+    ``_anchor_row``'s docstring); dropped in here it renders with different
+    padding and hangs out of alignment beside its siblings.
+
+    The second difference is invisible until it bites: ``SubmenuRow`` greys its
+    own anchor retroactively when nothing bumps ``flyout._leaves_drawn``, and
+    only ``render_panel`` bumps that — so a submenu of plain ``menu_item``s
+    greys itself out with its entries sitting right there inside it.
+    ``flyout_category`` takes an explicit sibling list and has no such rule.
+    """
+    # getattr, not ctx.developer_mode: this is an optional extra hanging off the
+    # end of a row's menu, and a context without the field (an untyped
+    # stand-in, an older embedding) must render the row exactly as before. A
+    # bare attribute read raises INSIDE the panel error boundary, which
+    # swallows it and silently drops the rest of the panel's fields — a
+    # developer affordance taking out the settings it decorates.
+    if not getattr(ctx, "developer_mode", False):
+        return
+    resolved = [(label, key) for label, key in entries if key]
+    if not resolved:
+        return
+    # dense=False: the anchor must match the density of the Reset/Promote items
+    # it sits beside, which are plain menu_items. The default (True) suits
+    # NodeMenuBuilder, whose own leaves are dense, and left the Developer row
+    # visibly shorter than the rest of this menu.
+    siblings: list = []
+    with hui.flyout_category("Developer", siblings, dense=False):
+        for label, key in resolved:
+            ui.menu_item(
+                label,
+                on_click=lambda k=key: _open_component_source(ctx, k),
+                auto_close=True,
+            )
+
+
+# ===========================================================================
 # 3. Row rendering
 # ===========================================================================
 
@@ -438,6 +561,14 @@ def _render_field_row(
                 reset_item = ui.menu_item(on_click=_on_reset_click, auto_close=True)
                 with reset_item:
                     reset_caption = ui.label(_reset_label())
+                # No bag instance on this path — the schema class that DECLARED
+                # the field is the settings source, and the descriptor records
+                # it as _owner_cls at __set_name__.
+                _build_developer_menu(
+                    ctx,
+                    ("Open settings source", _component_key(getattr(defn, "_owner_cls", None))),
+                    ("Open panel source", _component_key(drawing_panel())),
+                )
         callback, _set_enabled = _resolve_widget_instance(defn, on_edit, cell=cell)
 
     # The registry stores subscriptions as weakrefs, so this closure must be kept
@@ -637,6 +768,11 @@ def _render_reactive_field_row(
                 ui.menu_item(text, on_click=handler, auto_close=True)
             if offers_reset:
                 reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
+            _build_developer_menu(
+                ctx,
+                ("Open settings source", _bag_source_key(obj)),
+                ("Open panel source", _component_key(drawing_panel())),
+            )
         _refresh_reset_item()
 
     def _render_label():

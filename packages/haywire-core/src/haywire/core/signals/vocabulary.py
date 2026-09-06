@@ -286,6 +286,33 @@ class Reveal(CommandSignal):
 
 
 @dataclass(frozen=True, kw_only=True)
+class RevealComponentSource(CommandSignal):
+    """Ask whoever hosts a source viewer to show this component's code.
+
+    ``Reveal`` names an editor *class*, which only the library owning that
+    editor can name — so core cannot publish one. This carries just a registry
+    key and lets the library that owns a source viewer decide what to open,
+    keeping the dependency arrow pointing the one legal way
+    (``haybale-* -> haywire-studio -> haywire-core``, never the reverse; see
+    ``.insights/project_app_library_dependency_direction.md``).
+
+    Published by core UI that knows a key but not an editor — a settings row's
+    developer menu. Answered by ``haybale-studio``, which sets
+    ``active_component`` and reveals its ``ComponentSourceEditor``.
+
+    Session-local, like ``RevealGraphInstance``: this is a personal navigation
+    click and must not move a peer session's editors. Fire-and-forget — with no
+    source-viewer library installed nothing answers, and that is a working
+    configuration, not an error.
+
+    Attributes:
+        registry_key: The component to show, e.g. ``lib:node:MyNode``.
+    """
+
+    registry_key: str
+
+
+@dataclass(frozen=True, kw_only=True)
 class Close(CommandSignal):
     """Close every tab bound to ``binding_id`` across all slots.
 
@@ -339,6 +366,7 @@ __all__ = [
     "AgentDisconnected",
     # Imperative commands
     "Reveal",
+    "RevealComponentSource",
     "Close",
     "BroadcastClose",
 ]

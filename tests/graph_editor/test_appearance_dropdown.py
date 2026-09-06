@@ -57,7 +57,13 @@ def _ctx(with_node):  # untyped stand-in for SessionContext, like the sibling te
     edit = SimpleNamespace(active_node=node, selected_nodes=set(), selected_edges=set())
     data = MagicMock()
     data.__getitem__.return_value = edit
-    return SimpleNamespace(data=data, app=MagicMock(), session_id="t", can_access=lambda required: True)
+    return SimpleNamespace(
+        data=data,
+        app=MagicMock(),
+        session_id="t",
+        can_access=lambda required: True,
+        developer_mode=False,
+    )
 
 
 def _registry() -> PanelRegistry:

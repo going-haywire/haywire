@@ -322,7 +322,9 @@ def open_on_hover(anchor: ui.element, submenu: FlyoutMenu, siblings: FlyoutSibli
 
 
 @contextmanager
-def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> Generator[FlyoutSiblings]:
+def flyout_category(
+    label: str, siblings: FlyoutSiblings, tooltip: str = "", *, dense: bool = True
+) -> Generator[FlyoutSiblings]:
     """Render one hover-opening category flyout and yield its child sibling group.
 
     Creates a ``ui.menu_item`` anchor (with a right-arrow affordance) whose nested
@@ -335,6 +337,14 @@ def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> 
     ``tooltip``, when non-empty, is attached to the *anchor row* (not the flyout
     body) so hovering the category shows its help text — the caller can't reach the
     internal anchor, so the primitive wires it.
+
+    ``dense`` sets the anchor's Quasar density, and must match the density of the
+    *sibling* items it lines up with — a ``dense`` q-item has smaller padding, so
+    an anchor that disagrees with the plain ``menu_item``s above it sits visibly
+    shorter than the rest of the menu. It defaults True for ``NodeMenuBuilder``,
+    whose own leaves are dense; a settings row's menu, whose Reset/Promote items
+    are not, passes ``dense=False``. The caller cannot fix this after the fact:
+    the anchor is internal and only the child sibling group is yielded.
     """
     # `white-space: nowrap` here, not on the QMenu: when Quasar flips this
     # flyout to open leftward (no room to the right), it shrink-to-fits
@@ -344,7 +354,8 @@ def flyout_category(label: str, siblings: FlyoutSiblings, tooltip: str = "") -> 
     # item's minimum content size to its full width, which — inherited down
     # to the label — keeps the menu at its natural width even when flipped,
     # instead of wrapping the longest row to fit the smaller side.
-    with ui.menu_item(label, auto_close=False).props("dense").style("white-space: nowrap") as item:
+    anchor_props = "dense" if dense else ""
+    with ui.menu_item(label, auto_close=False).props(anchor_props).style("white-space: nowrap") as item:
         if tooltip:
             menu_item_tooltip(item, tooltip)
         with ui.item_section().props("side"):

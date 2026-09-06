@@ -7,6 +7,8 @@ when a principal has nothing in it.
 
 from __future__ import annotations
 
+from nicegui import ui
+
 from haywire.barn.builtin.surfaces import AccountActions, AccountMenu
 from haywire.core.access import AccessTier
 from haywire.ui import elements as hui
@@ -135,3 +137,70 @@ class OpenActivityPanel(BasePanel):
                     ActivityEditor, None, ActivityEditor.class_identity.label
                 ),
             )
+
+
+@panel(
+    surface=AccountMenu,
+    label="Developer mode",
+    order=50,
+    access=AccessTier.VIEW,
+)
+class DeveloperModePanel(BasePanel):
+    """Toggles ``ctx.developer_mode`` for THIS session.
+
+    Developer mode reveals affordances that expose the studio's own
+    implementation rather than the user's graph — a settings row's "open this
+    bag's source" entry, for one. It belongs on the account menu rather than
+    the Debug settings tab because it is session state, not a stored setting:
+    every panel on ``DebugSurface`` renders a persisted registry value through
+    ``render_schema``, so a switch that vanishes on restart would be the one
+    control there a user reasonably expects to stick.
+
+    VIEW rather than EDIT: the flag only decides whether an affordance is
+    drawn, never whether it may be used. Opening a component's source still
+    goes through the editor's own access check, and ComponentSourceEditor
+    refuses to write a non-editable library regardless — so gating the toggle
+    higher would hide a read-only view from the principals most likely to want
+    it, and buy no safety.
+
+    The row does not close the menu, so the checkmark is the only feedback a
+    click gives and it has to move under the pointer. The menu is rebuilt on
+    every open (see BaseContextMenuProvider._open_menu), but that only fixes
+    the state on the NEXT open — the row already on screen is a drawn element
+    nothing redraws, so the icon is swapped in place here. Same pattern, and
+    the same defensive child lookup, as SelectionCollapsePanel's expand/
+    collapse row in haybale-graph-editor.
+    """
+
+    actions: AccountActions
+
+    @classmethod
+    def poll(cls, ctx) -> bool:
+        return True
+
+    @staticmethod
+    def _row_icon(enabled: bool) -> str:
+        return hui.icon.checked if enabled else hui.icon.unchecked
+
+    def draw(self, ctx, layout) -> None:
+        with layout:
+            row = hui.menu_row(
+                "Developer mode",
+                icon=self._row_icon(ctx.developer_mode),
+                tooltip="Show affordances that open the studio's own source",
+            )
+
+        # Reach into the row just built to re-icon it after a click. menu_row's
+        # shape is (icon?, label) and it always makes both here, since an icon
+        # was passed — but read it defensively rather than by index, so a change
+        # to that shape degrades to "the row stops updating" instead of raising
+        # out of a click handler.
+        icon_el = next((c for c in row.default_slot.children if isinstance(c, ui.icon)), None)
+
+        def _toggle() -> None:
+            now_enabled = not ctx.developer_mode
+            ctx.developer_mode = now_enabled
+            if icon_el is not None:
+                icon_el.set_name(self._row_icon(now_enabled))
+
+        row.on("click", lambda _e=None: _toggle())

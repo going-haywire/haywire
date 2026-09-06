@@ -62,6 +62,30 @@ logger = logging.getLogger(__name__)
 # inside itself. This is the cycle *enforcement* — registration only logs.
 _render_path: ContextVar[tuple[str, ...]] = ContextVar("_render_path", default=())
 
+# The panel class whose draw() is currently on the stack, or None outside one.
+#
+# Set by render_panel around the draw call, the same shape as the leaf counter
+# beside it. It exists so content a panel renders can name the panel that drew
+# it WITHOUT that panel having to pass itself down: a settings row's developer
+# menu offers "open the panel's source", and render_settings is called by a
+# dozen panels that would each otherwise have to hand themselves to it.
+#
+# Read it through `drawing_panel()`, never directly. Nested panels (a hosting
+# panel rendering a surface whose panels draw their own content) correctly
+# report the INNERMOST panel — the one that actually made the element.
+_drawing_panel: ContextVar[type["BasePanel"] | None] = ContextVar("_drawing_panel", default=None)
+
+
+def drawing_panel() -> "type[BasePanel] | None":
+    """The panel class currently drawing, or None outside any panel's draw().
+
+    None is an ordinary answer, not an error: settings are also rendered
+    outside a panel (the UI harness renders a bag straight onto a page), and a
+    caller that wants the panel's identity must degrade to offering nothing
+    rather than assuming one is there.
+    """
+    return _drawing_panel.get()
+
 
 @contextmanager
 def render_path_extended(surface_id: str) -> Generator[None]:
@@ -275,7 +299,15 @@ def render_panel(
         instance.actions = actions_host
         instance._hw_registry = registry
         instance._hw_state_bag = layout.state_bag
-        getattr(instance, method_name)(context, layout)
+        # Publish which panel is drawing, so content rendered inside can name
+        # it (see _drawing_panel). Reset in a finally: a panel that raises is
+        # caught by _guarded just outside, and leaving a dead panel published
+        # would misattribute whatever the error boundary renders next.
+        token = _drawing_panel.set(panel_cls)
+        try:
+            getattr(instance, method_name)(context, layout)
+        finally:
+            _drawing_panel.reset(token)
 
     _, err = _guarded(_draw, panel_name=_panel_name(panel_cls), method_name=method_name)
     if err is not None:

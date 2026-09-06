@@ -277,3 +277,68 @@ def test_partition_panels_interleaves_in_order_not_applies_then_disabled():
         "DisabledMid",
         "AppliesHigh",
     ]
+
+
+# ---------------------------------------------------------------------------
+# drawing_panel() — which panel is currently drawing
+#
+# Published by render_panel so content a panel renders can name the panel that
+# drew it without that panel passing itself down (a settings row's developer
+# menu offers "open the panel's source", and render_settings is called by a
+# dozen panels that would each otherwise have to hand themselves to it).
+# ---------------------------------------------------------------------------
+
+
+def test_drawing_panel_is_none_outside_any_draw():
+    assert host_rendering.drawing_panel() is None
+
+
+def test_drawing_panel_reports_the_panel_being_drawn():
+    seen = []
+    p = _panel("Reporter", on_draw=lambda _self: seen.append(host_rendering.drawing_panel()))
+
+    render_panel(p, _ctx_view(), _layout())
+
+    assert seen == [p]
+
+
+def test_drawing_panel_is_reset_after_the_draw():
+    p = _panel("Reporter")
+    render_panel(p, _ctx_view(), _layout())
+
+    assert host_rendering.drawing_panel() is None
+
+
+def test_drawing_panel_is_reset_even_when_draw_raises():
+    """A panel that raises is caught by the error boundary just outside; a dead
+    panel left published would misattribute whatever renders next."""
+
+    def _boom(_self):
+        raise RuntimeError("boom")
+
+    p = _panel("Exploder", on_draw=_boom)
+    # The boundary renders an error_label into the layout, which needs a live
+    # NiceGUI slot; patch it out as test_render_panel_catches_draw_error does,
+    # so this asserts the reset rather than depending on a slot being present.
+    with patch.object(host_rendering.hui, "error_label"):
+        render_panel(p, _ctx_view(), _layout())
+
+    assert host_rendering.drawing_panel() is None
+
+
+def test_nested_draws_report_the_innermost_panel():
+    """A hosting panel rendering another panel's content: the inner panel is
+    the one that actually made the elements, so it is the one reported."""
+    inner = _panel("Inner")
+    seen = []
+
+    def _outer_draw(_self):
+        seen.append(("outer", host_rendering.drawing_panel()))
+        render_panel(inner, _ctx_view(), _layout())
+        seen.append(("after-inner", host_rendering.drawing_panel()))
+
+    outer = _panel("Outer", on_draw=_outer_draw)
+    render_panel(outer, _ctx_view(), _layout())
+
+    assert seen == [("outer", outer), ("after-inner", outer)]
+    assert host_rendering.drawing_panel() is None

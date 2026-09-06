@@ -128,3 +128,40 @@ def test_reveal_instance_publishes_reveal_graph_instance_for_edge():
     assert published.graph_id == "webcam"
     assert published.edge_id == "a[o]->b[i]"
     assert published.node_id is None
+
+
+# ---------------------------------------------------------------------------
+# RevealComponentSource — the seam that keeps core off the barn libraries
+#
+# Core UI can know a registry key but not an editor class: naming one would
+# mean haywire-core importing a barn library, the dependency arrow backwards
+# (.insights/project_app_library_dependency_direction.md). So core publishes a
+# key and the library owning the source viewer answers — the same inversion
+# RevealGraphInstance uses for the canvas.
+# ---------------------------------------------------------------------------
+
+
+def test_component_source_editor_answers_reveal_component_source():
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+    from haywire.core.signals import RevealComponentSource
+
+    editor = ComponentSourceEditor.__new__(ComponentSourceEditor)
+    ctx = MagicMock()
+
+    editor._on_reveal_component_source(ctx, RevealComponentSource(registry_key="lib:setting:Foo"))
+
+    # It points the viewer at the key AND reveals it — a click on a collapsed
+    # CONTEXT slot must open the slot, not just change content behind it.
+    assert ctx.active_component == "lib:setting:Foo"
+    ctx.session.publish.assert_called_once()
+    assert ctx.session.publish.call_args[0][0].editor is ComponentSourceEditor
+
+
+def test_the_handler_is_subscribed_to_the_signal():
+    """The @react_on wiring, not just the method body — an unsubscribed
+    handler is a menu entry that silently does nothing."""
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+    from haywire.core.signals import RevealComponentSource
+
+    handler = ComponentSourceEditor._on_reveal_component_source
+    assert RevealComponentSource in getattr(handler, "_haywire_react_on", ())
