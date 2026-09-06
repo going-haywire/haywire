@@ -466,11 +466,12 @@ def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None
     siblings: list = []
     with hui.flyout_category("Developer", siblings, dense=False):
         for label, key in resolved:
+            # nowrap for the same reason flyout_category pins its own anchor.
             ui.menu_item(
                 label,
                 on_click=lambda k=key: _open_component_source(ctx, k),
                 auto_close=True,
-            )
+            ).style("white-space: nowrap")
 
 
 # ===========================================================================

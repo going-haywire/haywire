@@ -215,6 +215,23 @@ def test_the_developer_anchor_is_a_menu_item_like_its_siblings(make_node_with_se
     assert _developer_anchor(anchor) in _top_level_items(anchor)
 
 
+def test_the_submenu_entries_do_not_wrap(make_node_with_setting):
+    """Quasar flips the flyout leftward near a panel edge and shrink-to-fits,
+    wrapping the longest label; a pinned leaf keeps the menu at its width."""
+    from haywire.ui.elements.flyout import FlyoutMenu
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    item = _developer_anchor(_render(node.filter, developer_mode=True))
+    body = next(c for c in item.default_slot.children if isinstance(c, FlyoutMenu))
+
+    leaves = [e for e in _walk(body) if isinstance(e, ui.menu_item)]
+    assert leaves, "the flyout drew no entries"
+    for leaf in leaves:
+        assert leaf._style.get("white-space") == "nowrap", (
+            f"{_item_text(leaf)!r} may wrap when the flyout opens leftward"
+        )
+
+
 def test_the_developer_anchor_matches_its_siblings_density(make_node_with_setting):
     """flyout_category defaults to dense (right for NodeMenuBuilder, whose own
     leaves are dense). A settings row's items are not dense, and a dense q-item
