@@ -14,10 +14,11 @@ opening a graph O(nodes x edges): 672 edges on a 128-node graph took 18.9 s to
 reach the screen, against 184 ms for the same edges delivered in one message.
 """
 
+import asyncio
 import logging
 import time
 import traceback
-from typing import Dict, Optional, Tuple, TYPE_CHECKING
+from typing import Callable, Dict, Optional, Tuple, TYPE_CHECKING
 
 from nicegui import ui
 
@@ -181,38 +182,180 @@ class VisualLayerHandlers:
         self.canvas_vue.update()
 
     def sync_with_graph(self):
-        """Synthesise a full-add ValidationResult and process it via on_validated."""
+        """Synthesise a full-add ValidationResult and process it via on_validated.
+
+        Synchronous: the whole graph is mounted inside one call, blocking the
+        event loop for its duration. for a large graphs
+        (>=``CHUNKED_LOAD_THRESHOLD`` nodes) — see :meth:`sync_with_graph_chunked`
+        """
         node_count = len(self.graph.node_wrappers)
         edge_count = len(self.graph.edge_wrappers)
         logger.info(f"🔄 Initial sync: {node_count} nodes, {edge_count} edges")
         try:
-            synthetic_result = ValidationResult(
-                nodes={node_id: ChangeReason.NODE_ADDED for node_id in self.graph.node_wrappers.keys()},
-                edges={edge_uuid: ChangeReason.EDGE_ADDED for edge_uuid in self.graph.edge_wrappers.keys()},
-                canvas_size=(self.graph.canvas_width, self.graph.canvas_height),
-                validation_time_ms=0.0,
-            )
             # Measure the full node/edge render (on_validated → per-node
             # UINode.render via add_node_visual). This is the Python-side cost of
             # selecting/opening a graph; browser-side Vue mount is not included.
             render_t0 = time.perf_counter()
-            self.on_validated(synthetic_result)
-            render_ms = (time.perf_counter() - render_t0) * 1000.0
-            per_node = render_ms / node_count if node_count else 0.0
-            logger.info(
-                f"⏱️ Graph render: {render_ms:.1f} ms for {node_count} nodes "
-                f"({per_node:.2f} ms/node), {edge_count} edges"
-            )
-            logger.info("✅ Initial sync completed via validation pipeline")
-            # One-time compatibility summary for this load.
-            node_warning_count = sum(1 for w in self.graph.node_wrappers.values() if w.state.has_warning())
-            library_messages = list(getattr(self.graph, "library_compatibility_findings", []))
-            summary = summarize_compatibility(node_warning_count, library_messages)
-            if summary:
-                ui.notify(summary, type="warning", multi_line=True, timeout=0, close_button=True)
+            self.on_validated(self._full_add_result())
+            self._log_render_cost(render_t0, node_count, edge_count)
+            self._notify_compatibility()
         except Exception as e:
             logger.error(f"❌ Error during initial sync: {e}")
             traceback.print_exc()
+
+    async def sync_with_graph_chunked(
+        self,
+        on_progress: Optional[Callable[[int, int], None]] = None,
+        on_phase: Optional[Callable[[str], None]] = None,
+    ) -> None:
+        """Mount the graph a node at a time, yielding to the event loop between.
+
+        Same end state as :meth:`sync_with_graph` — identical element tree — but
+        the node mounts are interleaved with ``await asyncio.sleep(0)`` so the
+        server keeps serving everyone else while a large graph opens.
+
+        Edges are NOT chunked: they already go out as a single batched
+        ``SyncAllEdgesEvent``, so there is nothing to interleave. To the contrary,
+        a chuncked edge batch would be a performance regression: after every
+        chunck the vue component tree walk would be er-run.
+
+        Cancellation: the caller's task is cancelled by
+        :meth:`GraphCanvasManager.cleanup` when the editor closes mid-load.
+        ``CancelledError` propagates untouched — a half-built canvas is being
+        torn down anyway, and ``cleanup`` clears ``node_panels`` after.
+
+        Args:
+            on_progress: Called after each node as ``(mounted, total)``, for the
+                load overlay's readout. Runs inside the loop, so it must stay
+                cheap — anything slow here is paid once per node.
+            on_phase: Called once with a status line when the load moves off
+                per-node mounting and onto the edge batch.
+        """
+        node_count = len(self.graph.node_wrappers)
+        edge_count = len(self.graph.edge_wrappers)
+        logger.info(f"🔄 Initial sync (chunked): {node_count} nodes, {edge_count} edges")
+        try:
+            render_t0 = time.perf_counter()
+
+            # Snapshot the wrappers: the loop awaits, so the graph's own dict
+            # could be mutated under us by an event that lands mid-load.
+            for index, wrapper in enumerate(list(self.graph.node_wrappers.values()), start=1):
+                node = wrapper.node
+                if node.node_id not in self.node_panels:
+                    self.add_node_visual(node, (node.props.posX, node.props.posY))
+                if on_progress is not None:
+                    on_progress(index, node_count)
+                await asyncio.sleep(0)
+
+            # Edges + canvas resize + the batched sync event, in one pass. Node
+            # entries are omitted: they are mounted above, and on_validated
+            # skips any node already in node_panels anyway.
+            if on_phase is not None and edge_count:
+                # Nodes are done; what remains is the edge batch reaching the
+                # browser. Say so rather than sitting on "200 / 200".
+                on_phase(f"Drawing {edge_count} edges…")
+
+            self.on_validated(self._full_add_result(include_nodes=False))
+
+            await self._await_client_drawn(edge_count)
+
+            self._log_render_cost(render_t0, node_count, edge_count, chunked=True)
+            self._notify_compatibility()
+        except asyncio.CancelledError:
+            logger.info("🔄 Chunked sync cancelled (editor closed mid-load)")
+            raise
+        except Exception as e:
+            logger.error(f"❌ Error during chunked initial sync: {e}")
+            traceback.print_exc()
+
+    async def _await_client_drawn(self, edge_count: int) -> None:
+        """Block until the browser has actually drawn the edges just emitted.
+
+        ``emit_sync_event`` is fire-and-forget: ``run_method`` queues a message
+        in the client outbox and returns, so the Python loop finishes with the
+        edge batch still in flight. Releasing the load overlay there hands back
+        a canvas with every node drawn and NOT ONE EDGE — measured on a
+        100-node/198-edge graph: 0 edge paths at the moment of unlock, all 198
+        about a second later.
+
+        An awaited ``run_javascript`` fixes the ordering rather than guessing at
+        a delay: it is queued behind the edge message and the outbox is FIFO, so
+        its reply cannot come back until the client has processed the batch.
+
+        Drawing then continues across several frames — ``_syncAllEdges`` hands
+        its geometry pass to ``_updateEdgesChunked``, which slices the work so a
+        big batch cannot block the main thread past socket.io's ping timeout. So
+        the script waits for the edge paths to actually be in the DOM rather
+        than for a fixed number of frames, and gives up on its own deadline well
+        inside the ``timeout`` below.
+
+        Best-effort by design. A timeout, a disconnected browser, or a test
+        without a real client must not strand the user behind an overlay that
+        has no dismiss button, so every failure just returns and lets the load
+        finish.
+        """
+        if not edge_count:
+            return
+        client = getattr(self.canvas_vue, "client", None)
+        if client is None:
+            try:
+                client = ui.context.client
+            except Exception as exc:
+                logger.debug(f"VisualLayer: no client to confirm edge draw ({exc})")
+                return
+        script = f"""
+            const want = {edge_count};
+            const svg = document.getElementById('connection-svg');
+            const drawn = () => svg
+                ? svg.querySelectorAll('path[data-edge-id]').length / 2
+                : 0;
+            const deadline = performance.now() + 20000;
+            while (drawn() < want && performance.now() < deadline) {{
+                await new Promise(r => requestAnimationFrame(r));
+            }}
+            // One more frame so the last slice's paths are laid out, not just present.
+            await new Promise(r => requestAnimationFrame(r));
+            return drawn();
+        """
+        try:
+            await client.run_javascript(script, timeout=25.0)
+        except Exception as exc:
+            logger.debug(f"VisualLayer: edge-draw confirmation skipped ({exc})")
+
+    # -- shared scaffolding for the two sync paths ----------------------------
+
+    def _full_add_result(self, *, include_nodes: bool = True) -> ValidationResult:
+        """Synthesise the "everything was just added" result the sync paths process."""
+        return ValidationResult(
+            nodes=(
+                {node_id: ChangeReason.NODE_ADDED for node_id in self.graph.node_wrappers.keys()}
+                if include_nodes
+                else {}
+            ),
+            edges={edge_uuid: ChangeReason.EDGE_ADDED for edge_uuid in self.graph.edge_wrappers.keys()},
+            canvas_size=(self.graph.canvas_width, self.graph.canvas_height),
+            validation_time_ms=0.0,
+        )
+
+    def _log_render_cost(
+        self, render_t0: float, node_count: int, edge_count: int, *, chunked: bool = False
+    ) -> None:
+        render_ms = (time.perf_counter() - render_t0) * 1000.0
+        per_node = render_ms / node_count if node_count else 0.0
+        how = " (chunked)" if chunked else ""
+        logger.info(
+            f"⏱️ Graph render{how}: {render_ms:.1f} ms for {node_count} nodes "
+            f"({per_node:.2f} ms/node), {edge_count} edges"
+        )
+        logger.info("✅ Initial sync completed via validation pipeline")
+
+    def _notify_compatibility(self) -> None:
+        """One-time compatibility summary for this load."""
+        node_warning_count = sum(1 for w in self.graph.node_wrappers.values() if w.state.has_warning())
+        library_messages = list(getattr(self.graph, "library_compatibility_findings", []))
+        summary = summarize_compatibility(node_warning_count, library_messages)
+        if summary:
+            ui.notify(summary, type="warning", multi_line=True, timeout=0, close_button=True)
 
     # -------------------------------------------------------------------------
     # Canvas resize

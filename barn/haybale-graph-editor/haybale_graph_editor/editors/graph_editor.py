@@ -47,6 +47,10 @@ if TYPE_CHECKING:
 
 logger = logging.getLogger(__name__)
 
+# Node count at or above which the canvas mounts in the background
+# instead of blocking the event loop.
+CHUNKED_LOAD_THRESHOLD = 30
+
 
 @editor(
     label="Graph Editor",
@@ -283,17 +287,25 @@ class GraphEditor(BaseEditor):
             panel_registry=app.panel_registry,
             session=context.session,
         )
-        self._canvas_manager.sync_with_graph()
-
         # Center the viewport once the Vue component signals it is mounted
         # (first transform-changed event). fit_to_content for graphs with nodes;
         # center on canvas midpoint (3750, 3750) for empty graphs.
         zoom_container = self._canvas_manager.zoom_container
-        has_nodes = len(entry.editor.graph.node_wrappers) > 0
-        if has_nodes:
+        node_count = len(entry.editor.graph.node_wrappers)
+        if node_count:
             zoom_container._on_ready = zoom_container.center_on_content
         else:
             zoom_container._on_ready = lambda: zoom_container.center_on(3750, 3750)
+
+        if node_count >= CHUNKED_LOAD_THRESHOLD:
+            # Large graph: mount in the background so the server keeps serving
+            # every other session while this one fills in.
+            self._canvas_manager.start_chunked_sync(
+                on_complete=zoom_container.center_on_content,
+                graph_name=entry.editor.graph.filestem,
+            )
+        else:
+            self._canvas_manager.sync_with_graph()
 
         logger.info(f"GraphEditor: canvas built for session {context.session_id[:8]}")
 

@@ -5,10 +5,11 @@ Public API is unchanged; all event-handling and visual-management logic has
 been moved into focused handler classes under handlers/.
 """
 
+import asyncio
 import logging
 import traceback
-from typing import Callable, Dict, Set
-from nicegui import ui
+from typing import Callable, Dict, Optional, Set
+from nicegui import background_tasks, ui
 
 from haywire.core.graph.editor import Editor
 
@@ -19,6 +20,7 @@ from haywire.core.session.session import Session
 
 from ...state.edit_state import EditState
 from .event_handlers import build_event_handler_map
+from .graph_load_modal import graph_load_modal
 from .handlers.interaction import InteractionHandlers
 from .handlers.selection import SelectionHandlers
 from .handlers.visual_layer import VisualLayerHandlers
@@ -54,6 +56,10 @@ class GraphCanvasManager:
         self.session_id = session.session_id[:8]
 
         self.graph = editor.graph
+
+        # In-flight chunked load, if any — cancelled by cleanup(). See
+        # start_chunked_sync.
+        self._sync_task: Optional[asyncio.Task] = None
 
         # Vue component references built in _setup_canvas
         self.zoom_container, self.canvas_vue = self._setup_canvas()
@@ -221,8 +227,56 @@ class GraphCanvasManager:
     # =========================================================================
 
     def sync_with_graph(self):
-        """Synchronise visual representation with the current graph state."""
+        """Synchronise visual representation with the current graph state.
+
+        Blocks the event loop for the whole mount. Larger graphs (>=
+        ``CHUNKED_LOAD_THRESHOLD`` nodes) should call
+        :meth:`start_chunked_sync` instead.
+        """
         self.visual_layer.sync_with_graph()
+
+    def start_chunked_sync(
+        self,
+        *,
+        on_complete: Optional[Callable[[], None]] = None,
+        graph_name: str = "graph",
+    ) -> None:
+        """Mount the graph in the background behind a blocking load overlay.
+
+        Returns immediately; the canvas fills in over the following seconds
+        while the server stays responsive. ``on_complete`` runs after the last
+        node is mounted (the editor uses it to centre the viewport, which needs
+        nodes to exist). It does NOT run if the load is cancelled.
+
+        The overlay blocks canvas interaction for the whole load — see
+        :mod:`.graph_load_modal` for why a partially-mounted canvas must not be
+        touched — and is closed in a ``finally`` so it can never outlive the
+        load and strand the user behind an undismissable backdrop.
+
+        The task is retained so :meth:`cleanup` can cancel a load still running
+        when the editor closes — otherwise it would keep mounting nodes into a
+        torn-down canvas.
+        """
+        modal = graph_load_modal(
+            graph_name=graph_name,
+            total_nodes=len(self.graph.node_wrappers),
+        )
+
+        async def _run() -> None:
+            try:
+                await self.visual_layer.sync_with_graph_chunked(
+                    on_progress=modal.advance,
+                    on_phase=modal.set_phase,
+                )
+                if on_complete is not None:
+                    on_complete()
+            finally:
+                # Unconditional: success, cancellation and failure all hand the
+                # canvas back rather than leaving the overlay up forever.
+                modal.close()
+                self._sync_task = None
+
+        self._sync_task = background_tasks.create(_run(), name=f"graph-sync-{self.session_id}")
 
     def sync_selections(self):
         """Emit consolidated selection sync event to Vue."""
@@ -261,6 +315,13 @@ class GraphCanvasManager:
     def cleanup(self):
         """Unsubscribe from graph validation and release resources."""
         logger.info(f"🔧 Shutting down GraphCanvasManager for {self.session_id} ...")
+
+        # Cancel FIRST: a chunked load still running would otherwise keep
+        # mounting nodes into a canvas the teardown below is dismantling, and
+        # repopulate the node_panels that visual_layer.cleanup() just cleared.
+        if self._sync_task is not None and not self._sync_task.done():
+            self._sync_task.cancel()
+        self._sync_task = None
 
         try:
             self.graph.unsubscribe_from_validation(self.visual_layer.on_validated)
