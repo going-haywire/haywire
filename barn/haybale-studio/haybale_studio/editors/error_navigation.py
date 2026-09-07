@@ -1,22 +1,33 @@
 """Navigation helpers: component / file / graph instance → the studio surface showing it.
 
-open_component/open_file_in_studio translate a HaywireException's string
-locators into direct studio navigation (active_component + Reveal(
-ComponentSourceEditor) for the CONTEXT-slot source viewer; Reveal(CodeEditor)
-for a file in the MAIN slot). Both publish Reveal so a collapsed slot pops
-open rather than only updating content the user isn't looking at.
+Every helper here publishes an editor-agnostic signal and stops. It names no
+editor class and writes no session state: the editor that answers claims the
+signal with ``@reveal_on`` and sets its own context in the hook, which runs
+before the reveal. That is deliberate — these helpers predate ``@reveal_on``
+and used to set ``active_component``/``active_file`` themselves and then
+``Reveal`` a named editor, which meant the claim rule existed twice (here and
+in the editor) and could disagree. Notably it did: this module opened any path
+in the CodeEditor, while ``CodeEditor._on_reveal_source`` vetoes extensions it
+cannot edit.
 
-open_component_source/open_component_docs are the same navigation keyed by a
-plain registry key rather than an error, for callers that already know which
-component they mean (e.g. a component row in the library overview).
-open_component delegates to the former.
-reveal_instance
-publishes a session-local RevealGraphInstance signal instead — the actual
-resolve-and-select logic lives in GraphEditor (each open tab in this session
-self-matches against its own live BaseGraph.graph_id). Session-local, not
-cross-session: this is a personal navigation click, so it must only affect
-the session that clicked it, never a peer session that happens to have the
-same graph open."""
+- open_component / open_component_source → ``RevealComponentSource``, answered
+  by ComponentSourceEditor (CONTEXT slot).
+- open_component_docs → ``RevealComponentDocs``, answered by ComponentDocsEditor.
+- open_file_in_studio → ``RevealSource``, answered by CodeEditor (MAIN slot),
+  which vetoes a file it cannot edit.
+- reveal_instance → ``RevealGraphInstance``; the resolve-and-select logic lives
+  in GraphEditor (each open tab in this session self-matches against its own
+  live BaseGraph.graph_id).
+
+A reveal — rather than only a context write — is what makes a collapsed slot
+pop open (``IconSlot._expands_on_reveal``) instead of silently updating content
+the user is not looking at.
+
+All of these are session-local: a personal navigation click must only affect
+the session that clicked it, never a peer session that happens to have the same
+graph or component open. All are fire-and-forget — nothing reports back whether
+an editor claimed the signal, and with no editor installed to answer, nothing
+happening is a working configuration rather than an error."""
 
 from __future__ import annotations
 
@@ -32,13 +43,8 @@ def open_component(error: "HaywireException", context: "SessionContext") -> bool
     """Point the CONTEXT-slot component source viewer at this error's component
     and force it into view.
 
-    Sets ``active_component = registry_key`` (the ComponentSourceEditor follows
-    it) and publishes ``Reveal(editor=ComponentSourceEditor)`` so a collapsed
-    CONTEXT slot pops open (``IconSlot._expands_on_reveal``) instead of only
-    updating content the user may not be looking at. ComponentSourceEditor is
-    ``OpenBehavior.REQUIRED`` (one uncloseable instance, no binding_id), so the
-    reveal always resolves to the existing singleton tab. Returns False if the
-    error has no registry_key."""
+    The HaywireException-keyed form of :func:`open_component_source`; see it for
+    the routing. Returns False if the error has no registry_key."""
     if not error.can_open_component():
         return False
 
@@ -48,44 +54,39 @@ def open_component(error: "HaywireException", context: "SessionContext") -> bool
 
 
 def open_component_docs(registry_key: str, context: "SessionContext") -> None:
-    """Point the CONTEXT-slot docs editor at ``registry_key`` and force it into view.
+    """Bring the CONTEXT-slot docs editor to ``registry_key`` and into view.
 
     The docs counterpart to :func:`open_component_source`. Both take a registry
     key rather than a HaywireException because they serve plain navigation (a
     component row in the library overview), not error triage.
     """
-    from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
-    from haywire.core.signals import Reveal
+    from haywire.core.signals import RevealComponentDocs
 
-    context.active_component = registry_key
-    context.session.publish(Reveal(editor=ComponentDocsEditor))
+    context.session.publish(RevealComponentDocs(registry_key=registry_key))
 
 
 def open_component_source(registry_key: str, context: "SessionContext") -> None:
-    """Point the CONTEXT-slot source viewer at ``registry_key`` and force it into view.
+    """Bring the CONTEXT-slot source viewer to ``registry_key`` and into view.
 
     The key-taking form of :func:`open_component`, which does the same for a
     HaywireException's ``registry_key``.
     """
-    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
-    from haywire.core.signals import Reveal
+    from haywire.core.signals import RevealComponentSource
 
-    context.active_component = registry_key
-    context.session.publish(Reveal(editor=ComponentSourceEditor))
+    context.session.publish(RevealComponentSource(registry_key=registry_key))
 
 
 def open_file_in_studio(filepath: str, line_number: "int | None", context: "SessionContext") -> None:
     """Open a file in the studio's MAIN-slot CodeEditor.
 
-    Mirrors ComponentSourceEditor._open_in_code_editor: set active_file, then
-    Reveal the CodeEditor bound to the path. line_number is accepted for a
-    future goto; the CodeEditor binds by path today."""
-    from haybale_studio.editors.code_editor import CodeEditor
-    from haywire.core.signals import Reveal
+    Publishes ``RevealSource``, so CodeEditor's hook decides whether the path is
+    one it can edit — a file it vetoes opens nothing rather than landing in
+    CodeMirror. ``line_number`` is accepted for a future goto; the CodeEditor
+    binds by path today."""
+    from haywire.core.signals import RevealSource
 
     path = Path(filepath)
-    context.active_file = path
-    context.session.publish(Reveal(editor=CodeEditor, binding_id=str(path), label=path.name))
+    context.session.publish(RevealSource(binding_id=str(path), label=path.name))
 
 
 def reveal_instance(error: "HaywireException", context: "SessionContext") -> None:

@@ -182,7 +182,7 @@ An imperative names its target. `Reveal` takes the **editor class**, not a strin
 --8<-- "packages/haywire-core/src/haywire/core/signals/vocabulary.py:reveal"
 ```
 
-Naming the class means importing it, which a publisher cannot always do: `haywire-core` may never import a barn library. So `Reveal` is one member of a family rooted at `RevealSignal`, which carries `binding_id` and `label` and *nothing* about which editor. Subclasses that name no editor (`RevealComponentSource`, `RevealSource`) are claimed by whichever editor class declares `@reveal_on` for them — the publisher describes *what* to show, the editor decides that it is the one to show it. See [components/editors](../components/editors/editor-canon.md#3-important-concepts) for the decorator and its hook contract.
+Naming the class means importing it, which a publisher cannot always do: `haywire-core` may never import a barn library. So `Reveal` is one member of a family rooted at `RevealSignal`, which carries `binding_id` and `label` and *nothing* about which editor. Subclasses that name no editor (`RevealComponentSource`, `RevealComponentDocs`, `RevealSource`) are claimed by whichever editor class declares `@reveal_on` for them — the publisher describes *what* to show, the editor decides that it is the one to show it. See [components/editors](../components/editors/editor-canon.md#3-important-concepts) for the decorator and its hook contract.
 
 `Signal` and `CommandSignal` both carry the `cross_session: ClassVar[bool] = False` flag from `Signal`. Override on a subclass to opt into cross-session broadcast:
 
@@ -230,6 +230,7 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 | --- | --- | --- |
 | `Reveal` | Bring a **named** editor to the front in its default slot | — |
 | `RevealComponentSource` | "Show this component's code" — a registry key, no editor named | — |
+| `RevealComponentDocs` | "Show this component's docs" — same shape, different claimant | — |
 | `RevealSource` | "Open this file" — `binding_id` *is* the path, no editor named | — |
 | `Close` | Close every tab bound to `binding_id`, this session | — |
 | `BroadcastClose` | Same, but every session — for facts, not clicks | ✅ |

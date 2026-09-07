@@ -10,26 +10,18 @@ from haywire.core.errors.haywire_exception import HaywireException
 pytestmark = pytest.mark.unit
 
 
-def test_open_component_sets_active_component():
+def test_open_component_publishes_reveal_component_source():
     from haybale_studio.editors.error_navigation import open_component
+    from haywire.core.signals import RevealComponentSource
 
     ctx = MagicMock()
     err = HaywireException.create("x", registry_key="lib:node:Foo")
     assert open_component(err, ctx) is True
-    assert ctx.active_component == "lib:node:Foo"
-
-
-def test_open_component_reveals_component_source_editor():
-    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
-    from haybale_studio.editors.error_navigation import open_component
-
-    ctx = MagicMock()
-    err = HaywireException.create("x", registry_key="lib:node:Foo")
-    open_component(err, ctx)
 
     ctx.session.publish.assert_called_once()
     published = ctx.session.publish.call_args[0][0]
-    assert published.editor is ComponentSourceEditor
+    assert isinstance(published, RevealComponentSource)
+    assert published.registry_key == "lib:node:Foo"
 
 
 def test_open_component_noop_without_registry_key():
@@ -38,56 +30,105 @@ def test_open_component_noop_without_registry_key():
     ctx = MagicMock()
     err = HaywireException.create("x")
     assert open_component(err, ctx) is False
+    ctx.session.publish.assert_not_called()
 
 
-def test_open_component_source_sets_active_component_and_reveals():
-    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+def test_open_component_source_publishes_reveal_component_source():
     from haybale_studio.editors.error_navigation import open_component_source
+    from haywire.core.signals import RevealComponentSource
 
     ctx = MagicMock()
     open_component_source("lib:node:Foo", ctx)
 
-    assert ctx.active_component == "lib:node:Foo"
     ctx.session.publish.assert_called_once()
-    assert ctx.session.publish.call_args[0][0].editor is ComponentSourceEditor
+    published = ctx.session.publish.call_args[0][0]
+    assert isinstance(published, RevealComponentSource)
+    assert published.registry_key == "lib:node:Foo"
 
 
-def test_open_component_docs_sets_active_component_and_reveals():
-    from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
+def test_open_component_docs_publishes_reveal_component_docs():
     from haybale_studio.editors.error_navigation import open_component_docs
+    from haywire.core.signals import RevealComponentDocs
 
     ctx = MagicMock()
     open_component_docs("lib:widget:Bar", ctx)
 
-    assert ctx.active_component == "lib:widget:Bar"
     ctx.session.publish.assert_called_once()
-    assert ctx.session.publish.call_args[0][0].editor is ComponentDocsEditor
+    published = ctx.session.publish.call_args[0][0]
+    assert isinstance(published, RevealComponentDocs)
+    assert published.registry_key == "lib:widget:Bar"
 
 
-def test_open_component_docs_and_source_reveal_different_editors():
-    """The two shortcuts must not collapse onto the same editor — that is the
-    whole point of offering both on a component row."""
+def test_navigation_helpers_write_no_session_state():
+    """The claim rule lives in the answering editor's @reveal_on hook, which
+    runs before the reveal. A helper that ALSO wrote context would be a second
+    copy of that rule, free to disagree — which is exactly how open_file_in_studio
+    used to bypass CodeEditor's extension veto."""
+    from haybale_studio.editors.error_navigation import (
+        open_component_docs,
+        open_component_source,
+        open_file_in_studio,
+    )
+
+    for call in (
+        lambda c: open_component_source("lib:node:Foo", c),
+        lambda c: open_component_docs("lib:node:Foo", c),
+        lambda c: open_file_in_studio("/tmp/thing.py", 12, c),
+    ):
+        ctx = MagicMock()
+        ctx.active_component = None
+        ctx.active_file = None
+        call(ctx)
+        assert ctx.active_component is None
+        assert ctx.active_file is None
+
+
+def test_open_component_docs_and_source_are_distinct_signals():
+    """The two shortcuts must not collapse onto one signal — @reveal_on
+    dispatches on the type, and that is what routes docs and source to two
+    different editors."""
     from haybale_studio.editors.error_navigation import open_component_docs, open_component_source
 
     docs_ctx, source_ctx = MagicMock(), MagicMock()
     open_component_docs("lib:node:Foo", docs_ctx)
     open_component_source("lib:node:Foo", source_ctx)
 
-    docs_editor = docs_ctx.session.publish.call_args[0][0].editor
-    source_editor = source_ctx.session.publish.call_args[0][0].editor
-    assert docs_editor is not source_editor
+    docs_signal = docs_ctx.session.publish.call_args[0][0]
+    source_signal = source_ctx.session.publish.call_args[0][0]
+    assert type(docs_signal) is not type(source_signal)
 
 
-def test_open_file_in_studio_reveals_code_editor():
+def test_open_file_in_studio_publishes_reveal_source():
+    """Names no editor, so CodeEditor's hook — not this helper — decides whether
+    the path is editable."""
     from haybale_studio.editors.error_navigation import open_file_in_studio
+    from haywire.core.signals import RevealSource
 
     ctx = MagicMock()
     open_file_in_studio("/tmp/thing.py", 12, ctx)
-    assert ctx.active_file == Path("/tmp/thing.py")
-    # A Reveal was published on the session.
-    assert ctx.session.publish.call_count == 1
+
+    ctx.session.publish.assert_called_once()
     published = ctx.session.publish.call_args[0][0]
+    assert isinstance(published, RevealSource)
     assert published.binding_id == "/tmp/thing.py"
+    assert published.label == "thing.py"
+
+
+def test_open_file_in_studio_routes_a_vetoed_extension_to_the_hook():
+    """The bug this conversion fixed: a non-editable path used to be revealed
+    into the CodeEditor directly, bypassing the veto. Now it travels as a
+    RevealSource that CodeEditor declines."""
+    from haybale_studio.editors.code_editor import CodeEditor
+    from haybale_studio.editors.error_navigation import open_file_in_studio
+
+    ctx = MagicMock()
+    open_file_in_studio("/tmp/thing.bin", None, ctx)
+    published = ctx.session.publish.call_args[0][0]
+
+    hook_ctx = MagicMock()
+    hook_ctx.active_file = None
+    assert CodeEditor._on_reveal_source(hook_ctx, published) is False
+    assert hook_ctx.active_file is None
 
 
 def test_reveal_instance_noop_when_cannot_reveal():
@@ -150,6 +191,30 @@ def test_component_source_editor_declares_reveal_on():
     assert discover_reveal_handlers(ComponentSourceEditor) == {
         RevealComponentSource: "_on_reveal_component_source"
     }
+
+
+def test_component_docs_editor_declares_reveal_on():
+    from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
+    from haywire.core.session.handlers import discover_reveal_handlers
+    from haywire.core.signals import RevealComponentDocs
+
+    assert discover_reveal_handlers(ComponentDocsEditor) == {
+        RevealComponentDocs: "_on_reveal_component_docs"
+    }
+
+
+def test_component_docs_hook_points_the_viewer_and_proceeds():
+    from haybale_studio.editors.component_docs_editor import ComponentDocsEditor
+    from haywire.core.signals import RevealComponentDocs
+
+    ctx = MagicMock()
+    proceed = ComponentDocsEditor._on_reveal_component_docs(
+        ctx, RevealComponentDocs(registry_key="lib:widget:Bar")
+    )
+
+    assert proceed is True
+    assert ctx.active_component == "lib:widget:Bar"
+    ctx.session.publish.assert_not_called()
 
 
 def test_code_editor_declares_reveal_on():

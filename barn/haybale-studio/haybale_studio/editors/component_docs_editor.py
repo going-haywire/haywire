@@ -17,8 +17,8 @@ from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import SlotName
 from haywire.ui.editor.base import BaseEditor
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on
-from haywire.core.signals import SelectionMoved
+from haywire.core.session.handlers import redraw_on, reveal_on
+from haywire.core.signals import RevealComponentDocs, SelectionMoved
 
 if TYPE_CHECKING:
     from nicegui.element import Element
@@ -55,6 +55,23 @@ class ComponentDocsEditor(BaseEditor):
     def _refresh_on_relevant_event(self, context: "SessionContext", event) -> None:
         # Empty body — the decorator triggers wrapper.redraw() after return.
         pass
+
+    @reveal_on(RevealComponentDocs)
+    @classmethod
+    def _on_reveal_component_docs(cls, context: "SessionContext", event: "RevealComponentDocs") -> bool:
+        """Answer "show me this component's docs".
+
+        The docs counterpart of ``ComponentSourceEditor._on_reveal_component_source``,
+        and class-level for the same reason: the publisher knows a registry key
+        but not an editor class, so it names none and this class claims the
+        signal.
+
+        Points ``active_component`` at the key BEFORE the reveal — this editor
+        renders from ``active_component``, so a reveal that ran first would show
+        the previous component until the redraw caught up.
+        """
+        context.active_component = event.registry_key
+        return True
 
     def draw(self, context: "SessionContext", container: "Element") -> None:
         self._container = container

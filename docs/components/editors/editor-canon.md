@@ -192,11 +192,13 @@ context.session.publish(BroadcastClose(binding_id=entry_id))
 
 **Error navigation — using `Reveal` with error locators.** An error surface (such as an error list or detail viewer) can offer users direct navigation back to what the error was about. The `HaywireException` carries an **error locator** — stable string ids (`registry_key`, `graph_id`, `node_id`, `edge_id`) that survive the exception's lifecycle (hot-reload, graph close, off-thread logging). `haybale_studio.editors.error_navigation` re-resolves these live at click time:
 
-- **"Open component"** → `context.active_component = registry_key`, which the CONTEXT-slot `ComponentSourceEditor` follows to show the component's source (a caller that has only the key and cannot name that editor publishes `RevealComponentSource(registry_key=...)` instead, and the editor claims it via `@reveal_on`)
-- **"Open in Studio"** → `context.active_file = Path(file)` then `Reveal(editor=CodeEditor, binding_id=str(path), label=path.name)` to jump to the source file in the MAIN-slot code editor
-- **"Show in graph"** → resolve `graph_id` via `HaystackState.get_by_id`, then set `context.data[EditState].active_node`/`active_edge` to the **resolved wrapper** (not the raw id), then `Reveal(editor=GraphEditor, binding_id=graph_id, label=entry.display_name)` to open the graph on the now-selected instance
+- **"Open component"** → publish `RevealComponentSource(registry_key=...)`, claimed by the CONTEXT-slot `ComponentSourceEditor` (`RevealComponentDocs` is the same shape for its documentation)
+- **"Open in Studio"** → publish `RevealSource(binding_id=str(path), label=path.name)`, claimed by the MAIN-slot `CodeEditor`
+- **"Show in graph"** → publish the session-local `RevealGraphInstance(graph_id=..., node_id=...)`; each open `GraphEditor` in this session self-matches against its own live `BaseGraph.graph_id`, sets `context.data[EditState].active_node`/`active_edge` to the **resolved wrapper** (not the raw id), and reveals itself
 
-All three actions are optional, disabled when the target is gone (library uninstalled, graph closed, node deleted), and degrade to no-op — the framework never crashes on a stale locator.
+Note what the navigation helpers do *not* do: they name no editor and write no session state. Setting `active_component`/`active_file` is the claiming editor's job, inside its `@reveal_on` hook, which runs before the reveal. A helper that wrote context *and* revealed a named editor would be a second copy of the editor's claim rule, free to disagree with it — which is exactly what happened before `@reveal_on` existed: "Open in Studio" opened any path in the `CodeEditor`, bypassing the extension veto that the `RevealSource` route enforces.
+
+All three actions are optional, disabled when the target is gone (library uninstalled, graph closed, node deleted), and degrade to no-op — nothing reports back whether an editor claimed the signal, and the framework never crashes on a stale locator.
 
 **Imports.**
 
@@ -210,7 +212,7 @@ from haywire.core.signals import (
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
     Reveal, Close, BroadcastClose,                        # lifecycle commands
     RevealSignal,                                         # base: reveals naming no editor
-    RevealComponentSource, RevealSource,                  # …claimed via @reveal_on
+    RevealComponentSource, RevealComponentDocs, RevealSource,   # …claimed via @reveal_on
 )
 ```
 
@@ -283,7 +285,7 @@ from haywire.core.signals import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
     Reveal, Close, BroadcastClose,
-    RevealSignal, RevealComponentSource, RevealSource,   # editor-agnostic reveals
+    RevealSignal, RevealComponentSource, RevealComponentDocs, RevealSource,   # editor-agnostic reveals
 )
 ```
 

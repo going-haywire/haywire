@@ -318,16 +318,16 @@ class LibraryBrowserEditor(BaseEditor):
     def _on_edit_file_click(self, context: "SessionContext") -> None:
         """Open the global marketplace.toml in haybale-studio's CodeEditor.
 
-        Mirrors the OpenInCodeEditorPanel pattern in
-        ``haybale_studio.panels.context_menu.file_actions``: set
-        ``ctx.active_file`` (the synthetic emit drives editors that follow it)
-        then publish a ``Reveal`` so the CodeEditor opens, bound to this path.
+        Publishes ``RevealSource`` and names no editor: whichever editor claims
+        the signal points its own session state at the path and opens it. That
+        also keeps this out of ``haybale-studio``'s internals — the marketplace
+        needs a file opened, not that particular editor class.
 
-        the marketplace.toml is malformed — its whole purpose here is to let
-        the user repair such files. Click Refresh after saving to re-apply.
+        Works even when the marketplace.toml is malformed — its whole purpose
+        here is to let the user repair such files. Click Refresh after saving to
+        re-apply.
         """
-        from haybale_studio.editors.code_editor import CodeEditor
-        from haywire.core.signals import Reveal
+        from haywire.core.signals import RevealSource
         from haybale_marketplace.config import GLOBAL_MARKETPLACE_DIR
 
         mp = GLOBAL_MARKETPLACE_DIR / "marketplace.toml"
@@ -337,9 +337,7 @@ class LibraryBrowserEditor(BaseEditor):
             ui.notify("No active session — cannot open marketplace.toml", type="negative")
             return
 
-        # Synthetic emit on SessionContext.active_file drives editors that follow it.
-        context.active_file = mp
-        session.publish(Reveal(editor=CodeEditor, binding_id=str(mp), label=mp.name))
+        session.publish(RevealSource(binding_id=str(mp), label=mp.name))
         ui.notify("Save your changes, then click Refresh to apply.", type="info")
 
     def _get_unavailable_urls(self, context: "SessionContext") -> list[str]:

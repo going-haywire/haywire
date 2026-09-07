@@ -325,7 +325,8 @@ class RevealComponentSource(RevealSignal):
     Asks for a *component*, so only a subscriber that can resolve a registry
     key answers. To ask for a plain file instead, publish :class:`RevealSource`
     — resolve the key to a path first (``LibraryService.lookup_component_class``
-    plus ``inspect.getfile``, both core-side).
+    plus ``inspect.getfile``, both core-side). For the same component's
+    documentation rather than its code, publish :class:`RevealComponentDocs`.
 
     Session-local, like ``RevealGraphInstance``: this is a personal navigation
     click and must not move a peer session's editors. Fire-and-forget — with no
@@ -334,6 +335,28 @@ class RevealComponentSource(RevealSignal):
 
     Attributes:
         registry_key: The component to show, e.g. ``lib:node:MyNode``.
+    """
+
+    registry_key: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class RevealComponentDocs(RevealSignal):
+    """Ask whoever hosts a docs viewer to show this component's documentation.
+
+    The docs-shaped sibling of :class:`RevealComponentSource`, identical in
+    shape and rationale — same registry key, same editor-agnostic routing, same
+    reason (core can name a key but never a barn editor class). Two signals
+    rather than one with a ``mode`` field because they are answered by two
+    different editors, and which editor answers is exactly what ``@reveal_on``
+    dispatches on.
+
+    Answered by ``haybale-studio``'s ``ComponentDocsEditor``.
+
+    Session-local and fire-and-forget, like :class:`RevealComponentSource`.
+
+    Attributes:
+        registry_key: The component to document, e.g. ``lib:node:MyNode``.
     """
 
     registry_key: str
@@ -430,6 +453,7 @@ __all__ = [
     "RevealSignal",
     "Reveal",
     "RevealComponentSource",
+    "RevealComponentDocs",
     "RevealSource",
     "Close",
     "BroadcastClose",

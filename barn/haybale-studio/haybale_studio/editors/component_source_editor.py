@@ -359,23 +359,22 @@ class ComponentSourceEditor(BaseEditor):
         self._discard()
 
     def _open_in_code_editor(self) -> None:
+        """Hand this component's file to whoever edits files.
+
+        Publishes ``RevealSource`` rather than naming ``CodeEditor``: the claim
+        rule (which extensions are editable, and pointing ``active_file`` at the
+        path) belongs to that editor's ``@reveal_on`` hook, so a path it vetoes
+        opens nothing instead of landing in CodeMirror.
+        """
         if self._path is None:
             return
         wrapper = self.wrapper
         session = getattr(wrapper, "_session", None) if wrapper is not None else None
         if session is None:
             return
-        from haybale_studio.editors.code_editor import CodeEditor
-        from haywire.core.signals import Reveal
+        from haywire.core.signals import RevealSource
 
-        session.context.active_file = self._path
-        session.publish(
-            Reveal(
-                editor=CodeEditor,
-                binding_id=str(self._path),
-                label=self._path.name,
-            )
-        )
+        session.publish(RevealSource(binding_id=str(self._path), label=self._path.name))
 
     # ------------------------------------------------------------------
     # Lifecycle subscription (external-change detection)
