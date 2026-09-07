@@ -49,9 +49,11 @@ right-click Reset item on the row's label — over different notions of
 
 from __future__ import annotations
 
+import inspect
 import logging
 from collections.abc import Iterable
 from itertools import groupby
+from pathlib import Path
 from typing import TYPE_CHECKING, Any, Callable
 
 from nicegui import ui
@@ -421,57 +423,79 @@ def _open_component_source(ctx: "SessionContext", registry_key: str) -> None:
     ctx.session.publish(RevealComponentSource(registry_key=registry_key))
 
 
+def component_source_path(ctx: "SessionContext", registry_key: str) -> "Path | None":
+    """The file ``registry_key``'s class is declared in, or None.
+
+    Every step is core-side (``LibraryService.lookup_component_class`` plus
+    ``inspect.getfile``), which is what lets core turn a key into the path
+    ``RevealSource`` carries without naming an editor. None covers every way
+    this legitimately finds nothing — no app on the context, an unresolvable
+    key, a dynamically generated class with no file.
+    """
+    app = ctx.app
+    if app is None:
+        return None
+    cls = app.library_service.lookup_component_class(registry_key)
+    if cls is None:
+        return None
+    try:
+        return Path(inspect.getfile(cls))
+    except (TypeError, OSError):
+        return None
+
+
+def _open_source_file(ctx: "SessionContext", registry_key: str) -> None:
+    """Ask whoever edits files to open ``registry_key``'s source file.
+
+    The key is resolved to a path HERE rather than travelling as a key,
+    because ``RevealSource`` is deliberately file-shaped: its subscriber
+    edits files and knows nothing about registries. A key that resolves to
+    no file simply opens nothing.
+    """
+    from haywire.core.signals import RevealSource
+
+    path = component_source_path(ctx, registry_key)
+    if path is None:
+        return
+    ctx.session.publish(RevealSource(binding_id=str(path), label=path.name))
+
+
 def _build_developer_menu(ctx: "SessionContext", *entries: tuple[str, str | None]) -> None:
     """Draw the Developer submenu for a settings row, if it has anything to say.
 
     *entries* are ``(label, registry_key)`` pairs; a pair whose key is None is
-    dropped, and a submenu left with no entries is not drawn at all — an empty
-    "Developer" row that expands into nothing is worse than its absence.
-
-    Nested inside the caller's ``ui.context_menu()``. ``ContextMenu`` is a
-    ``q-menu`` exactly as ``ui.menu`` is (it only adds ``context-menu`` /
-    ``touch-position`` props), so a flyout nests inside one the same way it does
-    in any other menu.
-
-    Uses ``flyout_category``, NOT ``hui.submenu_row``, and the choice is visible
-    to the user. A row menu IS a ``QMenu``, so its leaves are ``ui.menu_item``
-    (``q-item``) — and ``flyout_category``'s anchor is a ``ui.menu_item`` too,
-    so the Developer row lines up with Reset and Promote above it. A
-    ``SubmenuRow`` is a ``hui.menu_row``, built for a ``Popup`` content column
-    that has no ``QMenu`` ancestor to inherit a look from (see
-    ``_anchor_row``'s docstring); dropped in here it renders with different
-    padding and hangs out of alignment beside its siblings.
-
-    The second difference is invisible until it bites: ``SubmenuRow`` greys its
-    own anchor retroactively when nothing bumps ``flyout._leaves_drawn``, and
-    only ``render_panel`` bumps that — so a submenu of plain ``menu_item``s
-    greys itself out with its entries sitting right there inside it.
-    ``flyout_category`` takes an explicit sibling list and has no such rule.
+    dropped.
     """
-    # getattr, not ctx.developer_mode: this is an optional extra hanging off the
-    # end of a row's menu, and a context without the field (an untyped
-    # stand-in, an older embedding) must render the row exactly as before. A
-    # bare attribute read raises INSIDE the panel error boundary, which
-    # swallows it and silently drops the rest of the panel's fields — a
-    # developer affordance taking out the settings it decorates.
-    if not getattr(ctx, "developer_mode", False):
-        return
     resolved = [(label, key) for label, key in entries if key]
     if not resolved:
         return
     # dense=False: the anchor must match the density of the Reset/Promote items
     # it sits beside, which are plain menu_items. The default (True) suits
     # NodeMenuBuilder, whose own leaves are dense, and left the Developer row
-    # visibly shorter than the rest of this menu.
+    # visibly shorter than the rest of this menu. Same reasoning applies one
+    # level down, to each entry's own sub-flyout anchor.
     siblings: list = []
-    with hui.flyout_category("Developer", siblings, dense=False):
+    with hui.flyout_category("Developer", siblings, dense=False) as entry_siblings:
+        # entry_siblings (yielded, not a fresh list per entry) is what makes the
+        # per-entry sub-flyouts (below) siblings of EACH OTHER. A fresh list per
+        # iteration would register each sub-flyout into its own private group of
+        # one — open_on_hover would then have nothing else to close, and opening
+        # "Open panel source" would leave "Open settings source"'s body visibly
+        # still open beside it (regression caught in review: both stayed open
+        # onscreen at once).
         for label, key in resolved:
-            # nowrap for the same reason flyout_category pins its own anchor.
-            ui.menu_item(
-                label,
-                on_click=lambda k=key: _open_component_source(ctx, k),
-                auto_close=True,
-            ).style("white-space: nowrap")
+            with hui.flyout_category(label, entry_siblings, dense=False):
+                # nowrap for the same reason flyout_category pins its own anchor.
+                ui.menu_item(
+                    "Open in Context",
+                    on_click=lambda k=key: _open_component_source(ctx, k),
+                    auto_close=True,
+                ).style("white-space: nowrap")
+                ui.menu_item(
+                    "Open in Code Editor",
+                    on_click=lambda k=key: _open_source_file(ctx, k),
+                    auto_close=True,
+                ).style("white-space: nowrap")
 
 
 # ===========================================================================
@@ -565,11 +589,12 @@ def _render_field_row(
                 # No bag instance on this path — the schema class that DECLARED
                 # the field is the settings source, and the descriptor records
                 # it as _owner_cls at __set_name__.
-                _build_developer_menu(
-                    ctx,
-                    ("Open settings source", _component_key(getattr(defn, "_owner_cls", None))),
-                    ("Open panel source", _component_key(drawing_panel())),
-                )
+                if ctx.developer_mode:
+                    _build_developer_menu(
+                        ctx,
+                        ("Settings source", _component_key(getattr(defn, "_owner_cls", None))),
+                        ("Panel source", _component_key(drawing_panel())),
+                    )
         callback, _set_enabled = _resolve_widget_instance(defn, on_edit, cell=cell)
 
     # The registry stores subscriptions as weakrefs, so this closure must be kept
@@ -769,11 +794,12 @@ def _render_reactive_field_row(
                 ui.menu_item(text, on_click=handler, auto_close=True)
             if offers_reset:
                 reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
-            _build_developer_menu(
-                ctx,
-                ("Open settings source", _bag_source_key(obj)),
-                ("Open panel source", _component_key(drawing_panel())),
-            )
+            if ctx.developer_mode:
+                _build_developer_menu(
+                    ctx,
+                    ("Settings source", _bag_source_key(obj)),
+                    ("Panel source", _component_key(drawing_panel())),
+                )
         _refresh_reset_item()
 
     def _render_label():

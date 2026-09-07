@@ -30,7 +30,7 @@ return ``False`` when the subscriber holds a stale class reference.
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import ClassVar, Optional, TYPE_CHECKING
 
 from .signal import Signal, CommandSignal
@@ -256,10 +256,39 @@ class AgentDisconnected(Signal):
 # ---------------------------------------------------------------------------
 
 
+@dataclass(frozen=True, kw_only=True)
+class RevealSignal(CommandSignal):
+    """Base for "bring an editor to the front" commands.
+
+    Carries what any reveal needs to land on a tab, and nothing about *which*
+    editor. Two ways to say who:
+
+    - :class:`Reveal` names the editor class outright — for callers that own
+      the class and want exactly it.
+    - A subclass declaring no editor is answered by whichever editor class
+      declares ``@reveal_on`` for that subclass. The publisher then needs no
+      import of the editor, which is what lets ``haywire-core`` ask for a
+      reveal at all (see
+      ``.insights/project_app_library_dependency_direction.md``).
+
+    Attributes:
+        binding_id: Optional disambiguator for multi-instance editors
+            (e.g. a graph entry id, a file path). The orchestrator switches to
+            the specific ``(editor_key, binding_id)`` tab rather than the first
+            binding matching ``editor_key``. ``None`` means the singleton tab.
+        label: Optional display label for the revealed tab. Used only
+            when the reveal creates a new tab; falls back to the editor's
+            ``class_identity.label`` if omitted.
+    """
+
+    binding_id: Optional[str] = None
+    label: Optional[str] = None
+
+
 # --8<-- [start:reveal]
 @dataclass(frozen=True, kw_only=True)
-class Reveal(CommandSignal):
-    """Bring an editor to the front in its default slot.
+class Reveal(RevealSignal):
+    """Bring a named editor to the front in its default slot.
 
     Routed point-to-point: the AppShell resolves
     ``editor.class_identity.default_slot`` and dispatches to that slot.
@@ -268,37 +297,35 @@ class Reveal(CommandSignal):
 
     Attributes:
         editor: The editor class to reveal.
-        binding_id: Optional disambiguator for multi-instance editors
-            (e.g. a graph entry id). The orchestrator switches to the
-            specific ``(editor_key, binding_id)`` tab rather than the first
-            binding matching ``editor_key``.
-        label: Optional display label for the revealed tab. Used only
-            when the reveal creates a new tab; falls back to
-            ``editor.class_identity.label`` if omitted.
+        binding_id: See :class:`RevealSignal`.
+        label: See :class:`RevealSignal`.
     """
 
     editor: "type[BaseEditor]"
-    binding_id: Optional[str] = None
-    label: Optional[str] = None
 
 
 # --8<-- [end:reveal]
 
 
 @dataclass(frozen=True, kw_only=True)
-class RevealComponentSource(CommandSignal):
+class RevealComponentSource(RevealSignal):
     """Ask whoever hosts a source viewer to show this component's code.
 
-    ``Reveal`` names an editor *class*, which only the library owning that
-    editor can name — so core cannot publish one. This carries just a registry
-    key and lets the library that owns a source viewer decide what to open,
-    keeping the dependency arrow pointing the one legal way
-    (``haybale-* -> haywire-studio -> haywire-core``, never the reverse; see
-    ``.insights/project_app_library_dependency_direction.md``).
+    Names no editor: the publisher carries a registry key and whichever editor
+    declares ``@reveal_on(RevealComponentSource)`` answers. That keeps the
+    dependency arrow pointing the one legal way (``haybale-* ->
+    haywire-studio -> haywire-core``, never the reverse; see
+    ``.insights/project_app_library_dependency_direction.md``) — core can
+    publish this, but could never name ``ComponentSourceEditor``.
 
     Published by core UI that knows a key but not an editor — a settings row's
-    developer menu. Answered by ``haybale-studio``, which sets
-    ``active_component`` and reveals its ``ComponentSourceEditor``.
+    developer menu. Answered by ``haybale-studio``'s ``ComponentSourceEditor``,
+    whose hook points ``active_component`` at the key before the reveal.
+
+    Asks for a *component*, so only a subscriber that can resolve a registry
+    key answers. To ask for a plain file instead, publish :class:`RevealSource`
+    — resolve the key to a path first (``LibraryService.lookup_component_class``
+    plus ``inspect.getfile``, both core-side).
 
     Session-local, like ``RevealGraphInstance``: this is a personal navigation
     click and must not move a peer session's editors. Fire-and-forget — with no
@@ -310,6 +337,41 @@ class RevealComponentSource(CommandSignal):
     """
 
     registry_key: str
+
+
+@dataclass(frozen=True, kw_only=True)
+class RevealSource(RevealSignal):
+    """Ask whoever edits files to open the file at ``binding_id``.
+
+    Adds no fields of its own: a file editor binds its tabs BY path, so
+    :attr:`RevealSignal.binding_id` already *is* the path — carrying a separate
+    ``path`` would be the same string twice, free to disagree. It only narrows
+    ``binding_id`` to required, since a reveal with no file to open is
+    meaningless.
+
+    The file-shaped counterpart of :class:`RevealComponentSource`, and the
+    editor-agnostic counterpart of :class:`Reveal`. Answered by
+    ``haybale-studio``'s ``CodeEditor``.
+
+    Anything the code editor opens is fair game, not only source — Markdown,
+    JSON, TOML, logs. A path it does not handle is simply not opened (its hook
+    vetoes).
+
+    ``Reveal(editor=CodeEditor, binding_id=...)`` stays the way to open a file
+    when the caller already knows the editor class and wants exactly it; this
+    is for callers that only have a path.
+
+    Session-local and fire-and-forget, like ``RevealComponentSource``.
+
+    Attributes:
+        binding_id: Absolute path of the file to open, as a string. Required.
+        label: See :class:`RevealSignal`; falls back to the file's name.
+    """
+
+    # ``field()`` with no default, not a bare re-annotation: re-annotating
+    # inherits the base's ``= None``, which types as ``str`` but still
+    # constructs as None at runtime. This makes the requirement real.
+    binding_id: str = field()
 
 
 @dataclass(frozen=True, kw_only=True)
@@ -365,8 +427,10 @@ __all__ = [
     "AgentConnected",
     "AgentDisconnected",
     # Imperative commands
+    "RevealSignal",
     "Reveal",
     "RevealComponentSource",
+    "RevealSource",
     "Close",
     "BroadcastClose",
 ]

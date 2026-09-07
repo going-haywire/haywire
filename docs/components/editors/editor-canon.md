@@ -1,7 +1,7 @@
 ---
 status: draft
 doc_template: canonical-example
-scope: Authoring editors — BaseEditor subclass, @editor decorator, draw lifecycle, @redraw_on/@react_on handler decorators, Signal vocabulary, Reveal/Close/BroadcastClose lifecycle commands, OpenBehavior tab modes
+scope: Authoring editors — BaseEditor subclass, @editor decorator, draw lifecycle, @redraw_on/@react_on handler decorators, @reveal_on class-level reveal claims, Signal vocabulary, Reveal/RevealSignal/Close/BroadcastClose lifecycle commands, OpenBehavior tab modes
 see-also:
   - ../panels/panel-canon.md
   - ../states/state-canon.md
@@ -14,7 +14,7 @@ see-also:
 
 ## 1. What it solves
 
-An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally decorate handler methods with `@redraw_on(...)` (framework redraws the editor after the handler returns) or `@react_on(...)` (pure side-effect, no auto-redraw) to react to signals on the session bus.
+An **editor** is a self-contained UI module that fills one slot of the studio's workspace layout. As an author, you write a class that inherits from `BaseEditor`, decorate it with `@editor(...)`, implement `draw(context, container)` to build its NiceGUI subtree into a provided container, and optionally decorate handler methods with `@redraw_on(...)` (framework redraws the editor after the handler returns) or `@react_on(...)` (pure side-effect, no auto-redraw) to react to signals on the session bus. A third decorator, `@reveal_on(...)`, is class-level rather than per-instance: it claims a reveal aimed at no particular editor, and works even when the editor has no instance yet.
 
 Editors are the primary extension point for adding workspace UI. Once your library's `register_components()` calls `add_folder_to_registry(..., EditorTypeRegistry)`, the editor is auto-discovered and available in any workspace where its `default_slot` is hostable. The studio binds editor instances to slots lazily, one per session.
 
@@ -98,6 +98,29 @@ Use `@react_on` when something must happen on every signal reaching this editor 
 
 Handlers run synchronously on every matching publish; keep them cheap. The heavy lifting belongs in `draw()`, gated by the redraw decision.
 
+**`@reveal_on(*reveal_signal_types)`** is the class-level one, and the difference is not stylistic. `@redraw_on` / `@react_on` subscribe an **instance**, at instantiation. An `on_payload` editor has no instance until one of its tabs exists — so with no tab open there is no subscriber, and a signal asking it to open a file reaches nobody and silently does nothing. `@reveal_on` is read off the **class** by the AppShell, which is always alive, so it fires whether or not an instance exists and the reveal creates the tab.
+
+Decorate a **classmethod** taking `(cls, context, event)` and returning `bool`:
+
+```python
+@reveal_on(RevealSource)
+@classmethod
+def _on_reveal_source(cls, context: SessionContext, event: RevealSource) -> bool:
+    if Path(event.binding_id).suffix.lower() not in EDITABLE_EXTS:
+        return False                       # not mine — veto
+    context.active_file = Path(event.binding_id)
+    return True                            # framework reveals this editor
+```
+
+The contract:
+
+- **Return `True` to proceed, `False` to veto.** A veto means "not mine". Decide *first* and write second — a hook that writes to `context` and then vetoes leaves half-applied navigation behind.
+- **Write only to `context`.** `cls` is shared by every session in the process, so anything stored there leaks across sessions. Writing session state is enough: the revealed tab's `draw()` runs *after* the hook and reads it, and an already-open tab picks it up through its own `@redraw_on` — the same path any other context change takes.
+- **`binding_id` / `label` come off the signal**, so the hook never computes them. The slot uses `binding_id` to find-or-add the tab.
+- **The hook cannot target one particular open tab** — there is no instance, and `cls` is shared. Use `binding_id` for that, or add an instance-level `@react_on` alongside for work a specific tab must do.
+
+Only `RevealSignal` subclasses are accepted; anything else raises `TypeError` at decoration time (i.e. at import), because a signal with no `binding_id`/`label` cannot describe a reveal. Several editor classes may declare the same signal — each is offered it and decides for itself, so a signal can be routed by content rather than by a discriminator field.
+
 **`on_focus(self, context)`** is called when the editor's wrapper becomes the active tab in its slot — on initial render, on programmatic `Slot.switch_to`, on user tab-click, or via `Slot.add_binding(activate=True)`. **Not** called when the user re-clicks the already-active tab. Runs **before** `draw()` on the newly-activated wrapper, so any context mutations this hook performs are visible to that draw and to any signals the hook broadcasts. Default is a no-op. Editors that own a slice of session state (e.g. a graph editor that updates `active_graph` when its tab becomes active) override this. Read `self.wrapper.binding_id` to disambiguate this instance from siblings.
 
 **`on_blur(self, context)`** is the symmetric counterpart to `on_focus`. Called when *another* wrapper becomes active in the same slot — i.e. this editor is about to move to the background. Default is a no-op. Override to tear down transient UI that should not outlive the editor being visible (e.g. floating toolbars, popups). The call happens before the incoming wrapper's `on_focus` and `draw()`, so any cleanup here is invisible to the new active editor.
@@ -138,6 +161,23 @@ context.session.publish(Reveal(
 
 `Reveal`, `Close`, and `BroadcastClose` are `CommandSignal` payloads — the imperative half of the signal vocabulary. They travel on the same per-session typed bus as observation signals and are emitted with the same `session.publish(...)` call. The AppShell subscribes to each command type and routes it: `Reveal` resolves `editor.class_identity.default_slot` and dispatches to that slot; `Close(binding_id=...)` closes every tab bound to a `binding_id` across all slots in the issuing session.
 
+**Revealing without naming an editor.** `Reveal` requires importing the editor class — fine when you own it, impossible from `haywire-core`, which may never import a barn library (see [the dependency direction rule](../../architecture/studio/studio-arch.md)). `Reveal` is therefore one of a family: `RevealSignal` is the base, carrying `binding_id` and `label` and *nothing* about which editor. `Reveal` adds `editor`; the other subclasses name none, and are claimed by whichever editor class declares `@reveal_on` for them:
+
+```python
+from haywire.core.signals import RevealComponentSource, RevealSource
+
+# "show me this component's code" — a registry key, no editor named.
+context.session.publish(RevealComponentSource(registry_key="lib:node:MyNode"))
+
+# "open this file" — binding_id IS the path (a file editor binds tabs by path,
+# so a separate `path` field would be the same string twice).
+context.session.publish(RevealSource(binding_id=str(path), label=path.name))
+```
+
+This is the inversion that lets a core-owned surface — a settings row's Developer menu, say — open an editor that lives in a barn library. Core publishes a key or a path; the library that owns the viewer claims it. With no such library installed nothing answers, which is a working configuration rather than an error (the same fire-and-forget shape as `RevealGraphInstance`).
+
+Prefer a **second signal type** over a discriminator field on one signal. `RevealComponentSource` (a component) and `RevealSource` (a file) are separate types because each is *fully* handled by whichever editor claims it; folding them into one signal with a `target=` field would force one subscriber to branch and act on another editor's behalf.
+
 Lifecycle commands are **local by default** — session-scoped UI actions like `Reveal`-on-click belong to the issuing session. Subclasses can opt into cross-peer fan-out by setting `cross_session: ClassVar[bool] = True` (same class-level flag used by `Signal`); `Session.publish(...)` then delegates to `SignalDispatcher.broadcast(...)` so every session's AppShell receives the command. Use this for fact-driven imperatives where the underlying entity is gone for everyone — `BroadcastClose(binding_id=...)` is the built-in: close matching tabs in **every** session.
 
 ```python
@@ -152,7 +192,7 @@ context.session.publish(BroadcastClose(binding_id=entry_id))
 
 **Error navigation — using `Reveal` with error locators.** An error surface (such as an error list or detail viewer) can offer users direct navigation back to what the error was about. The `HaywireException` carries an **error locator** — stable string ids (`registry_key`, `graph_id`, `node_id`, `edge_id`) that survive the exception's lifecycle (hot-reload, graph close, off-thread logging). `haybale_studio.editors.error_navigation` re-resolves these live at click time:
 
-- **"Open component"** → `context.active_component = registry_key`, which the CONTEXT-slot `ComponentSourceEditor` follows to show the component's source
+- **"Open component"** → `context.active_component = registry_key`, which the CONTEXT-slot `ComponentSourceEditor` follows to show the component's source (a caller that has only the key and cannot name that editor publishes `RevealComponentSource(registry_key=...)` instead, and the editor claims it via `@reveal_on`)
 - **"Open in Studio"** → `context.active_file = Path(file)` then `Reveal(editor=CodeEditor, binding_id=str(path), label=path.name)` to jump to the source file in the MAIN-slot code editor
 - **"Show in graph"** → resolve `graph_id` via `HaystackState.get_by_id`, then set `context.data[EditState].active_node`/`active_edge` to the **resolved wrapper** (not the raw id), then `Reveal(editor=GraphEditor, binding_id=graph_id, label=entry.display_name)` to open the graph on the now-selected instance
 
@@ -164,11 +204,13 @@ All three actions are optional, disabled when the target is gone (library uninst
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName   # for code that inspects the enum
-from haywire.core.session.handlers import redraw_on, react_on
+from haywire.core.session.handlers import redraw_on, react_on, reveal_on
 from haywire.core.signals import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,   # observations
     Reveal, Close, BroadcastClose,                        # lifecycle commands
+    RevealSignal,                                         # base: reveals naming no editor
+    RevealComponentSource, RevealSource,                  # …claimed via @reveal_on
 )
 ```
 
@@ -220,6 +262,7 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 - [ ] Inherit from `BaseEditor`; implement `draw(self, context, container)` — required
 - [ ] Decorate handler methods with `@redraw_on(*SignalTypes)` for signals that warrant a full editor redraw — empty body is fine; the framework redraws once per dispatch pass
 - [ ] Decorate handler methods with `@react_on(*SignalTypes)` for pure side effects — no auto-redraw; the body owns any explicit `wrapper.redraw()` / `session.publish(Reveal/Close/...)` calls
+- [ ] Decorate a **classmethod** with `@reveal_on(*RevealSignalTypes)` to claim a reveal aimed at no particular editor — required rather than optional for an `opens='on_payload'` editor, which has no instance (and so no `@react_on` subscriber) until one of its tabs exists
 - [ ] Initialise instance state in `__init__`; container/UI refs re-fetched in `draw()`
 - [ ] Optional: `on_focus(self, context)` — runs *before* `draw()` on the newly-activated wrapper
 - [ ] Optional: `on_blur(self, context)` — runs when another wrapper becomes active in this slot; tear down transient UI (toolbars, popups) here
@@ -235,11 +278,12 @@ For the `Surface` and `Panel` extension points the editor hosts, see [components
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
-from haywire.core.session.handlers import redraw_on, react_on
+from haywire.core.session.handlers import redraw_on, react_on, reveal_on
 from haywire.core.signals import (
     Signal,
     SelectionMoved, ActiveGraphMoved, GraphDataMutated,
     Reveal, Close, BroadcastClose,
+    RevealSignal, RevealComponentSource, RevealSource,   # editor-agnostic reveals
 )
 ```
 

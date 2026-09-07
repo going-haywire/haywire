@@ -18,6 +18,7 @@ Session and calling AppShell.render().
 """
 
 import logging
+from functools import partial
 from pathlib import Path
 from typing import Callable, Literal, TYPE_CHECKING
 from nicegui import ui
@@ -31,6 +32,7 @@ from haywire.core.signals import (
     FarmhandActivity,
     PresenceChanged,
     Reveal,
+    RevealSignal,
 )
 from haywire.ui.app.slot import Slot
 from haywire.ui.editor.identity import SlotName
@@ -55,6 +57,7 @@ def _pygments_doc_css() -> str:
 
 if TYPE_CHECKING:
     from haywire.ui.editor.registry import EditorTypeRegistry
+    from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
     from haywire.core.access import AccessTier
 
@@ -687,6 +690,8 @@ class AppShell:
 
         # Subscription to Workspace-mutation handlers.
         self._lifecycle_unsubs.append(self.session.subscribe(Reveal, self._reveal_editor))
+        # Bare RevealSignal subclasses, routed by @reveal_on on editor classes.
+        self._subscribe_reveal_on_editors()
         self._lifecycle_unsubs.append(self.session.subscribe(Close, self._close_payload))
         self._lifecycle_unsubs.append(self.session.subscribe(BroadcastClose, self._close_payload))
         self._lifecycle_unsubs.append(
@@ -1076,7 +1081,62 @@ class AppShell:
     # Workspace-mutation handlers (bus subscribers)
     # ------------------------------------------------------------------
 
-    def _reveal_editor(self, command: Reveal) -> None:
+    def _subscribe_reveal_on_editors(self) -> None:
+        """Subscribe one shell handler per signal type any editor CLASS declares.
+
+        The class-level half of the reveal machinery (see
+        :func:`haywire.core.session.handlers.reveal_on`). Walking registered
+        *classes* rather than live instances is the whole point: an
+        ``ON_PAYLOAD`` editor has no instance until a tab exists, so an
+        instance-level subscription could never open the first one.
+
+        Several editor classes may declare the same signal; all of them are
+        offered it, and each decides via its own hook. Subscriptions join
+        ``_lifecycle_unsubs`` so they are torn down with the rest.
+        """
+        from haywire.core.session.handlers import discover_reveal_handlers
+
+        by_signal: dict[type, list[type["BaseEditor"]]] = {}
+        for key in self._editor_registry.list_names():
+            editor_cls = self._editor_registry.get(key)
+            if editor_cls is None:
+                continue
+            for signal_type in discover_reveal_handlers(editor_cls):
+                by_signal.setdefault(signal_type, []).append(editor_cls)
+
+        for signal_type, editor_classes in by_signal.items():
+            handler = partial(self._dispatch_reveal_signal, editor_classes)
+            self._lifecycle_unsubs.append(self.session.subscribe(signal_type, handler))
+
+    def _dispatch_reveal_signal(
+        self, editor_classes: "list[type[BaseEditor]]", command: "RevealSignal"
+    ) -> None:
+        """Offer one ``RevealSignal`` to each class that declared ``@reveal_on``.
+
+        Each class's hook runs first — it may seed session state the revealed
+        editor's ``draw()`` then reads, and returns False to veto. Only
+        non-vetoing classes are revealed. A raising hook is logged and skipped
+        rather than taking the other candidates down with it.
+        """
+        from haywire.core.session.handlers import discover_reveal_handlers
+
+        for editor_cls in editor_classes:
+            method_name = discover_reveal_handlers(editor_cls).get(type(command))
+            if method_name is None:
+                continue
+            try:
+                proceed = getattr(editor_cls, method_name)(self.session.context, command)
+            except Exception:
+                logger.exception(
+                    "AppShell: @reveal_on hook %s.%s raised; skipping reveal",
+                    editor_cls.__name__,
+                    method_name,
+                )
+                continue
+            if proceed:
+                self._reveal_editor(command, editor_cls)
+
+    def _reveal_editor(self, command: "RevealSignal", editor_cls: "type[BaseEditor] | None" = None) -> None:
         """Ensure the editor described by ``command`` is active in its default slot.
 
         Resolves the target slot from the editor's ``class_identity.default_slot``
@@ -1084,10 +1144,21 @@ class AppShell:
         uniformly across IconSlot and TabSlot. Does NOT broadcast
         WORKSPACE_CHANGED (the reveal is in response to another event already
         propagating).
+
+        ``editor_cls`` is supplied by the ``@reveal_on`` dispatcher for a bare
+        :class:`RevealSignal`, which names no editor; a :class:`Reveal` carries
+        its own.
         """
         from haywire.ui.editor.identity import OpenBehavior
 
-        editor_cls = command.editor
+        if editor_cls is None:
+            if not isinstance(command, Reveal):
+                logger.warning(
+                    f"AppShell: reveal of {type(command).__name__} names no editor "
+                    "and none was resolved, skipping"
+                )
+                return
+            editor_cls = command.editor
         editor_key = editor_cls.class_identity.registry_key
 
         slot_name = editor_cls.class_identity.default_slot
@@ -1108,7 +1179,7 @@ class AppShell:
             )
             return
 
-        slot.reveal(command)
+        slot.reveal(command, editor_cls)
 
     def _close_payload(self, command: Close) -> None:
         """Close every wrapper bound to ``command.binding_id`` across all slots.

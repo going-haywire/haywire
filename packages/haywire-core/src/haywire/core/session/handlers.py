@@ -34,6 +34,11 @@ Both kinds fire regardless of whether the editor's wrapper is the active
 tab. Backgrounded editors (kept alive by Quasar ``ui.tab_panels`` keep-alive)
 stay current; on focus they are already drawn correctly.
 
+A third decorator, ``@reveal_on(*RevealSignal_subclasses)``, is class-level
+rather than instance-level: the AppShell reads it off registered editor
+*classes*, so it fires even when the editor has no instance yet (and the
+reveal creates the tab). See :func:`reveal_on`.
+
 The decorators store metadata on the function object — the framework
 introspects decorated methods at editor-class registration time by walking
 the class MRO. Authors choose any method name; the decorator is the only
@@ -58,6 +63,7 @@ HandlerKind = Literal["redraw_on", "react_on"]
 # these at editor-class registration time. Names are deliberately namespaced
 # to avoid collision with other decorator metadata.
 _REDRAW_ON_ATTR = "_haywire_redraw_on"
+_REVEAL_ON_ATTR = "_haywire_reveal_on"
 _REACT_ON_ATTR = "_haywire_react_on"
 
 
@@ -182,6 +188,101 @@ def get_react_on_types(func: Callable[..., Any]) -> Tuple[type[Signal], ...]:
     this to discover handlers at editor-class registration time.
     """
     return getattr(func, _REACT_ON_ATTR, ())
+
+
+def reveal_on(*signal_types: Any) -> Callable[[Any], Any]:
+    """Declare that this editor CLASS answers a :class:`RevealSignal` subclass.
+
+    The class-level counterpart of :func:`react_on`, and the difference is the
+    whole point: ``@react_on`` subscribes an *instance*, so an
+    ``OpenBehavior.ON_PAYLOAD`` editor with no tab open has no subscriber and
+    the signal reaches nobody. ``@reveal_on`` is read off the class by the
+    AppShell, which is always alive — so it fires whether or not an instance
+    exists, and the reveal's find-or-add creates the tab.
+
+    That inverts who names whom. ``session.publish(Reveal(editor=Foo))``
+    requires importing ``Foo``; publishing a bare ``RevealSignal`` subclass
+    does not, so ``haywire-core`` can ask for a reveal that a barn library
+    answers, with the dependency arrow still pointing the one legal way
+    (``.insights/project_app_library_dependency_direction.md``).
+
+    Decorate a **classmethod** taking ``(cls, context, event)`` and returning
+    ``bool`` — the pre-reveal hook:
+
+        @reveal_on(RevealComponentSource)
+        @classmethod
+        def _on_reveal(cls, context, event) -> bool:
+            context.active_component = event.registry_key
+            return True
+
+    Contract:
+
+    - Return ``True`` to proceed with the reveal, ``False`` to veto it. A
+      veto means "not mine" — decide FIRST and write second, so a vetoing
+      hook leaves no half-applied navigation behind.
+    - Write only to ``context`` (and read the event). ``cls`` is shared by
+      every session in the process, so anything stored there leaks across
+      sessions. Session state written here is visible to the tab's ``draw()``,
+      which runs after — that, not ``cls``, is how the revealed editor gets
+      its content, exactly as it does for an ordinary context change.
+    - The hook runs before the reveal, for the class, with no instance
+      available — it cannot address one particular open tab. Use
+      ``binding_id`` on the signal for that (the slot matches it), or an
+      instance-level ``@react_on`` if a specific tab must react.
+
+    ``binding_id`` / ``label`` come off the signal itself, so the hook never
+    computes them.
+
+    Args:
+        *signal_types: :class:`RevealSignal` subclasses. Anything else — a
+            plain ``Signal``, an instance, a non-type — raises ``TypeError``
+            at decoration time (i.e. at import), because a signal with no
+            ``binding_id``/``label`` cannot describe a reveal.
+
+    Returns:
+        A decorator returning the original object unchanged, with metadata
+        attached as ``func._haywire_reveal_on = (signal_types, ...)``.
+    """
+    from haywire.core.signals import RevealSignal
+
+    validated = validate_signal_types("@reveal_on(...)", signal_types)
+    bad = [s.__name__ for s in validated if not issubclass(s, RevealSignal)]
+    if bad:
+        raise TypeError(
+            f"@reveal_on(...) arguments must be RevealSignal subclasses "
+            f"(a reveal needs binding_id/label); got: {', '.join(bad)}"
+        )
+
+    def decorator(func: Any) -> Any:
+        # Set on the underlying function for a classmethod, so the metadata
+        # survives however the two decorators are ordered.
+        target = func.__func__ if isinstance(func, classmethod) else func
+        existing = getattr(target, _REVEAL_ON_ATTR, ())
+        setattr(target, _REVEAL_ON_ATTR, existing + validated)
+        return func
+
+    return decorator
+
+
+def discover_reveal_handlers(cls: type) -> Dict[type[Signal], str]:
+    """Map ``signal_type -> method name`` for every ``@reveal_on`` on ``cls``.
+
+    Class-level and instance-free, like :func:`discover_handlers`: the shell
+    calls this on registered editor *classes* at setup, which is what lets a
+    zero-instance editor still answer a reveal.
+
+    First declaration wins per signal type, walking subclass-first, so an
+    override shadows the base the same way ``discover_handlers`` resolves it.
+    """
+    found: Dict[type[Signal], str] = {}
+    for klass in cls.__mro__:
+        for name, value in klass.__dict__.items():
+            target = value.__func__ if isinstance(value, classmethod) else value
+            if not callable(target):
+                continue
+            for signal_type in getattr(target, _REVEAL_ON_ATTR, ()):
+                found.setdefault(signal_type, name)
+    return found
 
 
 # ----------------------------------------------------------------------

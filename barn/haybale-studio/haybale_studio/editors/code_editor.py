@@ -12,8 +12,8 @@ from nicegui import ui
 
 from haywire.ui import elements as hui
 from haywire.core.session.context import SessionContext
-from haywire.core.session.handlers import redraw_on
-from haywire.core.signals import Signal
+from haywire.core.session.handlers import redraw_on, reveal_on
+from haywire.core.signals import RevealSource, Signal
 from haywire.ui.editor.base import BaseEditor
 from haywire.ui.editor.decorator import editor
 from haywire.ui.editor.identity import OpenBehavior, SlotName
@@ -115,6 +115,27 @@ class CodeEditor(BaseEditor):
         Empty body — the decorator triggers wrapper.redraw() after return.
         """
         pass
+
+    @reveal_on(RevealSource)
+    @classmethod
+    def _on_reveal_source(cls, context: "SessionContext", event: "RevealSource") -> bool:
+        """Claim a file this editor can actually edit.
+
+        Class-level rather than ``@react_on`` because this editor is
+        ``ON_PAYLOAD``: with no tab open there is no instance, so an
+        instance-level handler could never open the first one. The framework
+        reveals the class and ``binding_id`` (the path) picks the tab.
+
+        Vetoes an extension it does not handle, leaving the signal to any
+        other claimant (today, FileViewerEditor's read-only fallback is
+        reached by other routes, so an unhandled path simply opens nothing).
+        ``active_file`` is set here, before the reveal, so anything following
+        the session's current file agrees with the tab about to appear.
+        """
+        if Path(event.binding_id).suffix.lower() not in EDITABLE_EXTS:
+            return False
+        context.active_file = Path(event.binding_id)
+        return True
 
     @staticmethod
     def _codemirror_theme(context: "SessionContext") -> Literal["vscodeLight", "vscodeDark"]:

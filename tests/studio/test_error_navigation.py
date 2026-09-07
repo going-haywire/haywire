@@ -131,37 +131,100 @@ def test_reveal_instance_publishes_reveal_graph_instance_for_edge():
 
 
 # ---------------------------------------------------------------------------
-# RevealComponentSource — the seam that keeps core off the barn libraries
+# @reveal_on — the seam that keeps core off the barn libraries
 #
-# Core UI can know a registry key but not an editor class: naming one would
-# mean haywire-core importing a barn library, the dependency arrow backwards
-# (.insights/project_app_library_dependency_direction.md). So core publishes a
-# key and the library owning the source viewer answers — the same inversion
-# RevealGraphInstance uses for the canvas.
+# Core UI can know a registry key or a path, but not an editor class: naming
+# one would mean haywire-core importing a barn library, the dependency arrow
+# backwards (.insights/project_app_library_dependency_direction.md). So core
+# publishes a bare RevealSignal and the editor CLASS that declared @reveal_on
+# claims it. Class-level, so it works with no instance alive — which is the
+# whole reason CodeEditor (opens=ON_PAYLOAD) can answer at all.
 # ---------------------------------------------------------------------------
 
 
-def test_component_source_editor_answers_reveal_component_source():
+def test_component_source_editor_declares_reveal_on():
+    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
+    from haywire.core.session.handlers import discover_reveal_handlers
+    from haywire.core.signals import RevealComponentSource
+
+    assert discover_reveal_handlers(ComponentSourceEditor) == {
+        RevealComponentSource: "_on_reveal_component_source"
+    }
+
+
+def test_code_editor_declares_reveal_on():
+    from haybale_studio.editors.code_editor import CodeEditor
+    from haywire.core.session.handlers import discover_reveal_handlers
+    from haywire.core.signals import RevealSource
+
+    assert discover_reveal_handlers(CodeEditor) == {RevealSource: "_on_reveal_source"}
+
+
+def test_component_source_hook_points_the_viewer_and_proceeds():
+    """The hook writes session state BEFORE the framework reveals, so the
+    revealed editor draws the component asked for rather than the previous one."""
     from haybale_studio.editors.component_source_editor import ComponentSourceEditor
     from haywire.core.signals import RevealComponentSource
 
-    editor = ComponentSourceEditor.__new__(ComponentSourceEditor)
     ctx = MagicMock()
+    proceed = ComponentSourceEditor._on_reveal_component_source(
+        ctx, RevealComponentSource(registry_key="lib:setting:Foo")
+    )
 
-    editor._on_reveal_component_source(ctx, RevealComponentSource(registry_key="lib:setting:Foo"))
-
-    # It points the viewer at the key AND reveals it — a click on a collapsed
-    # CONTEXT slot must open the slot, not just change content behind it.
+    assert proceed is True
     assert ctx.active_component == "lib:setting:Foo"
-    ctx.session.publish.assert_called_once()
-    assert ctx.session.publish.call_args[0][0].editor is ComponentSourceEditor
+    # The hook does NOT publish — the shell performs the reveal. This is the
+    # roundtrip that @reveal_on removed.
+    ctx.session.publish.assert_not_called()
 
 
-def test_the_handler_is_subscribed_to_the_signal():
-    """The @react_on wiring, not just the method body — an unsubscribed
-    handler is a menu entry that silently does nothing."""
-    from haybale_studio.editors.component_source_editor import ComponentSourceEditor
-    from haywire.core.signals import RevealComponentSource
+def test_code_editor_hook_claims_an_editable_file():
+    from haybale_studio.editors.code_editor import CodeEditor
+    from haywire.core.signals import RevealSource
 
-    handler = ComponentSourceEditor._on_reveal_component_source
-    assert RevealComponentSource in getattr(handler, "_haywire_react_on", ())
+    ctx = MagicMock()
+    proceed = CodeEditor._on_reveal_source(ctx, RevealSource(binding_id="/tmp/thing.py"))
+
+    assert proceed is True
+    assert ctx.active_file == Path("/tmp/thing.py")
+    ctx.session.publish.assert_not_called()
+
+
+def test_code_editor_hook_vetoes_an_extension_it_cannot_edit():
+    """A veto means "not mine" — and it must leave no half-applied navigation
+    behind, so active_file stays untouched."""
+    from haybale_studio.editors.code_editor import CodeEditor
+    from haywire.core.signals import RevealSource
+
+    ctx = MagicMock()
+    ctx.active_file = None
+    proceed = CodeEditor._on_reveal_source(ctx, RevealSource(binding_id="/tmp/thing.bin"))
+
+    assert proceed is False
+    assert ctx.active_file is None
+
+
+def test_reveal_source_binding_id_is_the_path_and_is_required():
+    """RevealSource adds no path field: a file editor binds tabs BY path, so
+    binding_id already is the path. Carrying both would let them disagree."""
+    import dataclasses
+
+    from haywire.core.signals import RevealSource
+
+    assert {f.name for f in dataclasses.fields(RevealSource)} == {"binding_id", "label"}
+    with pytest.raises(TypeError):
+        RevealSource()  # type: ignore[call-arg]
+
+
+def test_reveal_on_rejects_a_signal_that_is_not_a_reveal():
+    """Decoration-time guard: a signal with no binding_id/label cannot
+    describe a reveal, and saying so at import beats a silent no-op later."""
+    from haywire.core.session.handlers import reveal_on
+    from haywire.core.signals import SelectionMoved
+
+    with pytest.raises(TypeError, match="RevealSignal"):
+
+        @reveal_on(SelectionMoved)  # type: ignore[misc]
+        @classmethod
+        def _hook(cls, ctx, event):  # pragma: no cover
+            return True

@@ -93,8 +93,8 @@ class _FakeSlot:
                 return b
         return None
 
-    def reveal(self, command):
-        editor_key = command.editor.class_identity.registry_key
+    def reveal(self, command, editor_cls=None):
+        editor_key = (editor_cls or command.editor).class_identity.registry_key
         self.reveal_calls.append((editor_key, command.binding_id, command.label or ""))
         existing = self.find_binding(editor_key, command.binding_id)
         if existing is None:

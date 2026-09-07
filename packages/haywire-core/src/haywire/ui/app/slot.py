@@ -14,7 +14,7 @@ from haywire.ui.editor.registry import EditorTypeRegistry
 from haywire.ui.editor.wrapper import EditorWrapper
 
 if TYPE_CHECKING:
-    from haywire.core.signals import Reveal
+    from haywire.core.signals import RevealSignal
     from haywire.ui.editor.base import BaseEditor
     from haywire.core.session.session import Session
 
@@ -528,13 +528,16 @@ class Slot(ABC):
         self._activate(target)
         return True
 
-    def reveal(self, command: "Reveal") -> bool:
+    def reveal(self, command: "RevealSignal", editor_cls: "type[BaseEditor] | None" = None) -> bool:
         """Find-or-add the wrapper for ``command`` and activate it.
 
         Single entry point used by the shell's reveal dispatcher — works the
         same in every slot type (icon or tab). If the wrapper exists, switches
         to it; otherwise constructs one via :meth:`add_binding` and activates
         it. Refreshes the bar so the new/active tab is reflected.
+
+        ``editor_cls`` names the editor for a bare :class:`RevealSignal`, which
+        carries none; omit it for a :class:`Reveal`, which does.
 
         When :attr:`_expands_on_reveal` is set (icon slots), a reveal into a
         currently-collapsed slot also re-opens it via :meth:`set_visible` so
@@ -544,7 +547,18 @@ class Slot(ABC):
         Returns ``True`` iff the active wrapper actually changed *or* the slot
         was expanded as a result of the reveal.
         """
-        editor_cls = command.editor
+        # A bare RevealSignal names no editor — the shell resolved it from
+        # @reveal_on and passes the class in. Reveal carries its own.
+        if editor_cls is None:
+            from haywire.core.signals import Reveal
+
+            if not isinstance(command, Reveal):
+                logger.warning(
+                    f"Slot '{self.name}': reveal of {type(command).__name__} names no editor "
+                    "and none was supplied, skipping"
+                )
+                return False
+            editor_cls = command.editor
         editor_key = editor_cls.class_identity.registry_key
         binding_id = command.binding_id
 

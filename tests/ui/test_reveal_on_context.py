@@ -91,9 +91,10 @@ class _FakeTabbedSlot(TabSlot):
                 return b
         return None
 
-    def reveal(self, command) -> bool:
+    def reveal(self, command, editor_cls=None) -> bool:
         """Find-or-add the binding and make it active. Returns True iff active changed."""
-        editor_cls = command.editor
+        if editor_cls is None:
+            editor_cls = command.editor
         editor_key = editor_cls.class_identity.registry_key
         binding_id = command.binding_id
         existing = self.find_binding(editor_key, binding_id)

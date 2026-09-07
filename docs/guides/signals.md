@@ -182,6 +182,8 @@ An imperative names its target. `Reveal` takes the **editor class**, not a strin
 --8<-- "packages/haywire-core/src/haywire/core/signals/vocabulary.py:reveal"
 ```
 
+Naming the class means importing it, which a publisher cannot always do: `haywire-core` may never import a barn library. So `Reveal` is one member of a family rooted at `RevealSignal`, which carries `binding_id` and `label` and *nothing* about which editor. Subclasses that name no editor (`RevealComponentSource`, `RevealSource`) are claimed by whichever editor class declares `@reveal_on` for them — the publisher describes *what* to show, the editor decides that it is the one to show it. See [components/editors](../components/editors/editor-canon.md#3-important-concepts) for the decorator and its hook contract.
+
 `Signal` and `CommandSignal` both carry the `cross_session: ClassVar[bool] = False` flag from `Signal`. Override on a subclass to opt into cross-session broadcast:
 
 ```python
@@ -226,7 +228,9 @@ Check this list first. It is **not** a catalogue of every signal in a running ap
 
 | Signal | Means | Cross-session |
 | --- | --- | --- |
-| `Reveal` | Bring an editor to the front in its default slot | — |
+| `Reveal` | Bring a **named** editor to the front in its default slot | — |
+| `RevealComponentSource` | "Show this component's code" — a registry key, no editor named | — |
+| `RevealSource` | "Open this file" — `binding_id` *is* the path, no editor named | — |
 | `Close` | Close every tab bound to `binding_id`, this session | — |
 | `BroadcastClose` | Same, but every session — for facts, not clicks | ✅ |
 
@@ -245,10 +249,12 @@ The most common `Reveal` use is not "open an editor" on its own — it is **poin
 `open_component_source` — function in `studio:editor:error_navigation`
 
 ```python
---8<-- "barn/haybale-studio/haybale_studio/editors/error_navigation.py:65:77"
+--8<-- "barn/haybale-studio/haybale_studio/editors/error_navigation.py:64:74"
 ```
 
 Set the context field the editor follows, then publish `Reveal` so a collapsed slot pops open. `haybale_studio.editors.error_navigation` collects these helpers — prefer calling one over re-implementing the pair at each call site.
+
+When the publisher cannot name the editor, the pairing moves into the editor instead: publish a `RevealSignal` subclass and let the editor's `@reveal_on` hook set the context field, with the framework doing the reveal. Same two steps, same order, declared once on the editor rather than repeated at every call site.
 
 ### Hot-reload dependency rule
 

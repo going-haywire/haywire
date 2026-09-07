@@ -9,6 +9,8 @@ none by design (settings_node.py) and must fall back to the owning node —
 whose source file is where the inner ``class Settings`` is written anyway.
 """
 
+import inspect
+from pathlib import Path
 from typing import Any, cast
 
 import pytest
@@ -18,6 +20,7 @@ from nicegui.page import page as page_deco
 from haywire.ui.panel.host_rendering import drawing_panel
 from haywire.ui.panel.render_utils import (
     _bag_source_key,
+    _build_developer_menu,
     _component_key,
     render_settings,
 )
@@ -90,6 +93,29 @@ def test_no_developer_entry_when_developer_mode_is_off(make_node_with_setting):
 def test_developer_entry_appears_when_developer_mode_is_on(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     assert _has_developer_row(_render(node.filter, developer_mode=True))
+
+
+def test_source_key_resolution_is_skipped_when_developer_mode_is_off(make_node_with_setting, monkeypatch):
+    """The gate must sit at the CALL SITE, before ``_bag_source_key`` /
+    ``_component_key`` run — not just inside ``_build_developer_menu`` around
+    the menu it draws. Those resolvers do registry lookups on every row's
+    render; gating only the drawing still pays that cost on every session,
+    developer mode or not."""
+    import haywire.ui.panel.render_utils as render_utils_module
+
+    calls: list[Any] = []
+    original = render_utils_module._bag_source_key
+
+    def _spy(obj):
+        calls.append(obj)
+        return original(obj)
+
+    monkeypatch.setattr(render_utils_module, "_bag_source_key", _spy)
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    _render(node.filter, developer_mode=False)
+
+    assert calls == []
 
 
 def test_the_ordinary_row_is_unchanged_by_the_flag(make_node_with_setting):
@@ -243,30 +269,6 @@ def test_the_developer_anchor_matches_its_siblings_density(make_node_with_settin
     assert len(densities) == 1, f"the Developer row must match its siblings, got {densities}"
 
 
-def test_a_context_without_the_flag_renders_the_row_normally(make_node_with_setting):
-    """The developer menu is an optional extra on the end of a row's menu, so a
-    context lacking the field (an untyped stand-in, an older embedding) must
-    render exactly as before.
-
-    Regression: a bare ``ctx.developer_mode`` read raises INSIDE the panel
-    error boundary, which swallows it and drops every remaining field — the
-    developer affordance taking out the settings it decorates.
-    """
-    from types import SimpleNamespace
-
-    node = make_node_with_setting(accessor="filter", field="threshold")
-    bare = SimpleNamespace()  # no developer_mode at all
-
-    client = Client(cast(Any, _noop_page), request=None)
-    with client:
-        anchor = ui.column()
-        with anchor:
-            render_settings(cast(Any, bare), node.filter)
-
-    assert "threshold" in _labels(anchor)
-    assert not _has_developer_row(anchor)
-
-
 def test_a_bag_with_no_resolvable_keys_draws_no_developer_row():
     """An unregistered bag rendered outside a panel resolves neither entry, so
     the submenu is dropped rather than drawn empty."""
@@ -292,7 +294,75 @@ def test_a_bag_with_no_resolvable_keys_draws_no_developer_row():
 # ---------------------------------------------------------------------------
 
 
-def test_clicking_an_entry_publishes_reveal_component_source(make_node_with_setting):
+def _click(item: ui.menu_item) -> None:
+    listener_id = next(iter(item._event_listeners))
+    item._handle_event({"listener_id": listener_id, "args": {}})
+
+
+def test_the_two_entries_are_siblings_of_each_other():
+    """Regression: each entry's own sub-flyout ("A", "B" below) must land in
+    the SAME sibling group as its neighbour, not a fresh private one-item
+    group per entry.
+
+    A fresh group per entry silently breaks hover sibling-close: opening one
+    entry's body then has nothing else registered to close, so a second entry
+    opened right after leaves the first one's body still visible onscreen
+    (caught in manual review, not by an earlier version of this test). Uses
+    _build_developer_menu directly with two always-resolving synthetic
+    entries — going through render_settings's real settings-row fixture only
+    ever resolves ONE of its two built-in entries (drawing_panel() is None
+    outside a real panel), which is why this needs its own two-entry case.
+    """
+    from haywire.ui.elements.flyout import FlyoutMenu
+
+    ctx = _ctx(developer_mode=True)
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        column = ui.column()
+        with column, ui.context_menu():
+            _build_developer_menu(ctx, ("A", "lib:setting:A"), ("B", "lib:setting:B"))
+
+    top_items = [c for c in _context_menu(column).default_slot.children if isinstance(c, ui.menu_item)]
+    dev_anchor = next(item for item in top_items if _item_text(item) == "Developer")
+    dev_body = next(c for c in dev_anchor.default_slot.children if isinstance(c, FlyoutMenu))
+
+    entry_anchors = [c for c in dev_body.default_slot.children if isinstance(c, ui.menu_item)]
+    assert {_item_text(a) for a in entry_anchors} == {"A", "B"}
+
+    entry_submenus = [
+        next(c for c in a.default_slot.children if isinstance(c, FlyoutMenu)) for a in entry_anchors
+    ]
+    # Both entries' own sub-flyouts must be registered as children of the SAME
+    # Developer-level FlyoutMenu — that shared list is the sibling group
+    # open_on_hover closes against.
+    assert set(dev_body._child_flyouts) == set(entry_submenus)
+
+
+def test_settings_source_entry_nests_view_and_edit_leaves(make_node_with_setting):
+    """ "Settings source" is not itself clickable — it is a sub-flyout anchor
+    offering the two targets, "Open in Context" (CONTEXT) and "Open in Code
+    Editor" (EDIT)."""
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    ctx = _ctx(developer_mode=True)
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        column = ui.column()
+        with column:
+            render_settings(ctx, node.filter)
+
+    anchor = next(
+        leaf
+        for leaf in _walk(_developer_anchor(column))
+        if isinstance(leaf, ui.menu_item) and _item_text(leaf) == "Settings source"
+    )
+    leaf_labels = {
+        _item_text(leaf) for leaf in _walk(anchor) if isinstance(leaf, ui.menu_item) and leaf is not anchor
+    }
+    assert leaf_labels == {"Open in Context", "Open in Code Editor"}
+
+
+def test_clicking_view_source_publishes_reveal_with_context_target(make_node_with_setting):
     from haywire.core.signals import RevealComponentSource
 
     node = make_node_with_setting(accessor="filter", field="threshold")
@@ -304,18 +374,58 @@ def test_clicking_an_entry_publishes_reveal_component_source(make_node_with_sett
         with column:
             render_settings(ctx, node.filter)
 
-    item = next(
+    anchor = next(
         leaf
         for leaf in _walk(_developer_anchor(column))
-        if isinstance(leaf, ui.menu_item) and _item_text(leaf) == "Open settings source"
+        if isinstance(leaf, ui.menu_item) and _item_text(leaf) == "Settings source"
     )
-    listener_id = next(iter(item._event_listeners))
-    item._handle_event({"listener_id": listener_id, "args": {}})
+    item = next(
+        leaf
+        for leaf in _walk(anchor)
+        if isinstance(leaf, ui.menu_item) and _item_text(leaf) == "Open in Context"
+    )
+    _click(item)
 
     published = [c.args[0] for c in ctx.session.publish.call_args_list]
     reveals = [s for s in published if isinstance(s, RevealComponentSource)]
     assert len(reveals) == 1
     assert reveals[0].registry_key == _bag_source_key(node.filter)
+
+
+def test_clicking_open_in_code_editor_publishes_reveal_source(make_node_with_setting):
+    """The two entries publish two DIFFERENT signals, not one signal with a
+    discriminator: each is fully handled by whichever editor claims it."""
+    from haywire.core.signals import RevealSource
+
+    node = make_node_with_setting(accessor="filter", field="threshold")
+    ctx = _ctx(developer_mode=True)
+    # Core resolves the key to a path ITSELF (that is what lets the signal be
+    # file-shaped); the stub app must therefore answer the class lookup.
+    ctx.app.library_service.lookup_component_class.return_value = type(node)
+
+    client = Client(cast(Any, _noop_page), request=None)
+    with client:
+        column = ui.column()
+        with column:
+            render_settings(ctx, node.filter)
+
+    anchor = next(
+        leaf
+        for leaf in _walk(_developer_anchor(column))
+        if isinstance(leaf, ui.menu_item) and _item_text(leaf) == "Settings source"
+    )
+    item = next(
+        leaf
+        for leaf in _walk(anchor)
+        if isinstance(leaf, ui.menu_item) and _item_text(leaf) == "Open in Code Editor"
+    )
+    _click(item)
+
+    published = [c.args[0] for c in ctx.session.publish.call_args_list]
+    reveals = [s for s in published if isinstance(s, RevealSource)]
+    assert len(reveals) == 1
+    assert reveals[0].binding_id == inspect.getfile(type(node))
+    assert reveals[0].label == Path(reveals[0].binding_id).name
 
 
 def test_render_utils_does_not_import_any_barn_library():
