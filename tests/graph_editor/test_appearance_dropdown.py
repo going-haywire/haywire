@@ -53,7 +53,12 @@ async def user() -> AsyncGenerator[User, None]:
 
 
 def _ctx(with_node):  # untyped stand-in for SessionContext, like the sibling tests
-    node = SimpleNamespace(node=SimpleNamespace(props=NodeProperties())) if with_node else None
+    behavior = SimpleNamespace(is_reroute_node=False)
+    node = (
+        SimpleNamespace(node=SimpleNamespace(props=NodeProperties(), behavior=behavior))
+        if with_node
+        else None
+    )
     edit = SimpleNamespace(active_node=node, selected_nodes=set(), selected_edges=set())
     data = MagicMock()
     data.__getitem__.return_value = edit

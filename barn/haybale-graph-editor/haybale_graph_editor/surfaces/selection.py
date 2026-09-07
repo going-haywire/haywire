@@ -74,9 +74,12 @@ class SelectionRebuildMenu(Surface):
 class SelectionDetailMenu(Surface):
     """The "Detail" submenu of ``SelectionMenu`` — the ADR-0032 density ranks.
 
-    One row per ``NodeDetail`` rank plus a row that clears the per-node
-    override so the node tracks its graph again. Collapse is NOT here: it is a
-    toggle, not a choice among ranks, so it earns its own top-level row.
+    One row per ``NodeDetail`` rank plus a "Reset Detail" row that clears the
+    per-node override so the node follows its graph's rank again — reached
+    beside the ranks it resets rather than on the top-level menu. Collapse is
+    NOT here, and has no reset counterpart: it is a toggle, not a choice among
+    ranks, so it earns its own top-level row, and it is no longer inherited
+    from the graph, so there is nothing to reset it back to.
 
     Declares no ``poll`` for the same reason ``SelectionRebuildMenu`` does not
     — the hosting panel already gates on the selection, and a second copy of

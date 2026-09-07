@@ -2,9 +2,10 @@
 
 Modelled on test_node_layout_direction_graph_tier.py — `detail` rides the exact
 same shadow()/graph() machinery, so its tier behaviour must match field for
-field. `collapsed` deliberately does NOT: it is a two-tier field (graph < node)
-with no framework counterpart, and the asymmetry is the thing most likely to be
-"fixed" by someone who notices it, so it is asserted here explicitly.
+field. `collapsed` deliberately does NOT: it is a single-tier, node-only field
+with no graph or framework counterpart, and the asymmetry is the thing most
+likely to be "fixed" by someone who notices it, so it is asserted here
+explicitly.
 """
 
 import pytest
@@ -162,84 +163,39 @@ class TestNodeDetailGraphTier:
 
 
 @pytest.mark.integration
-class TestNodeCollapseGraphTier:
-    def test_defaults_to_expanded(self, graph_with_library_system):
-        wrapper = _add_node(graph_with_library_system)
-        assert wrapper.node.props.collapsed is False
+class TestNodeCollapse:
+    """Collapse is a single-tier, node-only field — no graph or framework
+    mirror. It was a two-tier (graph < node) shadow field; the graph tier was
+    removed (see ``GraphProperties``). What is worth pinning is not that it
+    behaves like an ordinary attribute (it does, trivially) but that it does
+    NOT regain either tier it used to have.
+    """
 
-    def test_unset_node_tracks_graph_default(self, graph_with_library_system):
-        """This is the whole point of the graph tier: one write folds a large
-        graph without touching any node."""
+    def test_defaults_to_expanded_and_stays_per_node(self, graph_with_library_system):
         graph_obj = graph_with_library_system
-        wrapper = _add_node(graph_obj)
-        graph_obj.props.collapsed = True
-        assert wrapper.node.props.collapsed is True
+        w1 = _add_node(graph_obj)
+        w2 = _add_node(graph_obj)
+        assert w1.node.props.collapsed is False
 
-    def test_hand_folded_node_ignores_the_graph_tier(self, graph_with_library_system):
-        """ "unset tracks, set ignores" — a node the user has touched keeps its
-        own answer, and `reset` is what hands authority back to the graph.
+        w1.node.props.collapsed = True
+        assert w2.node.props.collapsed is False  # untouched, no graph mirror to inherit
 
-        The fold-then-unfold round trip is how a user actually produces a local
-        "no": see :meth:`test_writing_the_resolved_value_does_not_pin`.
-        """
+    def test_has_no_graph_tier(self, graph_with_library_system):
+        """The tier this class used to test — deleted, not a bug. Guards
+        against `collapsed` silently regaining a graph-level shadow."""
         graph_obj = graph_with_library_system
-        wrapper = _add_node(graph_obj)
-
-        wrapper.node.props.collapsed = True
-        wrapper.node.props.collapsed = False
-        assert wrapper.node.props.is_locally_set("collapsed")
-
-        graph_obj.props.collapsed = True
-        assert wrapper.node.props.collapsed is False
-
-        wrapper.node.props.reset("collapsed")
-        assert wrapper.node.props.collapsed is True
-
-    def test_writing_the_resolved_value_does_not_pin(self, graph_with_library_system):
-        """`__set__` short-circuits on equality, so writing the value a field
-        already resolves to leaves it TRACKING.
-
-        Consequence for the toolbar: a toggle that re-asserts the current state
-        (on redraw, say) does not silently pin every node it touches and
-        neuter the graph tier. Clicking "unfold" on an already-unfolded node is
-        likewise a no-op, not an opinion.
-        """
-        graph_obj = graph_with_library_system
-        wrapper = _add_node(graph_obj)
-
-        wrapper.node.props.collapsed = False  # already False from the graph
-        assert not wrapper.node.props.is_locally_set("collapsed")
-
-        graph_obj.props.collapsed = True
-        assert wrapper.node.props.collapsed is True
+        assert not any("collaps" in name for name in type(graph_obj.props)._property_settings()), (
+            "collapse regained a graph tier; it is now node-only"
+        )
 
     def test_has_no_framework_tier(self):
-        """Two tiers by design (ADR 0032): a studio-wide fold would open every
-        graph showing nothing. Delete this test only by amending that ADR."""
+        """Single tier by design: a studio-wide fold would open every graph
+        showing nothing."""
         from haywire.core.skin.settings import NodeDefaultSkinSettings
 
         assert not any("collaps" in name for name in NodeDefaultSkinSettings._property_settings()), (
-            "collapse gained a framework tier; ADR 0032 says graph < node only"
+            "collapse gained a framework tier; it is node-only"
         )
-
-    def test_round_trip_preserves_both_tiers(self, graph_with_library_system, library_system):
-        graph_obj = graph_with_library_system
-        w1 = _add_node(graph_obj)
-        _add_node(graph_obj)  # w2: left tracking
-        graph_obj.props.collapsed = True
-        w1.node.props.collapsed = False  # w1 overridden, w2 tracking
-        data = graph_obj.to_dict()
-
-        g2 = BaseGraph(filestem="G2")
-        assert g2.load_from_dict(data) is True
-        assert g2.props.collapsed is True
-        loaded = list(g2.node_wrappers.values())
-        overridden = [w for w in loaded if w.node.props.is_locally_set("collapsed")]
-        tracking = [w for w in loaded if not w.node.props.is_locally_set("collapsed")]
-        assert len(overridden) == 1
-        assert overridden[0].node.props.collapsed is False
-        assert len(tracking) == 1
-        assert tracking[0].node.props.collapsed is True
 
 
 @pytest.mark.unit

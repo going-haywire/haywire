@@ -24,6 +24,7 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING, Any
 
+from haybale_graph_editor.panels._gating import is_reroute_node
 from nicegui import ui
 
 from haywire.ui import elements as hui
@@ -32,8 +33,8 @@ from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 from haywire.ui.panel.render_utils import render_settings
 
-from ....surfaces import NodeAppearance, SelectionActions, SelectionToolbar
-from ....state.edit_state import EditState
+from haybale_graph_editor.surfaces import NodeAppearance, SelectionActions, SelectionToolbar
+from haybale_graph_editor.state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
@@ -76,6 +77,8 @@ class AppearanceToolbarPanel(BasePanel):
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
+        if is_reroute_node(ctx):
+            return False
         bag = _appearance_bag(ctx)
         return bag is not None and bag.locked is not True  # None or False
 

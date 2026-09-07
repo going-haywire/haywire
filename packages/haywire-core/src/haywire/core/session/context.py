@@ -47,6 +47,7 @@ class SessionContext(SignalSource):
     active_file: Optional[Any] = signal_field(None)
     active_library: Optional["LibraryInfo"] = signal_field(None)
     active_component: Optional[str] = signal_field(None)
+    """The registry-key string of the component whose node is currently selected"""
 
     active_workbench_theme_key: Optional[str] = signal_field(None)
     active_node_theme_key: Optional[str] = signal_field(None)

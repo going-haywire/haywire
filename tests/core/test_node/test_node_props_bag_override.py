@@ -89,13 +89,6 @@ class TestRerouteSkinIsPinned:
         graph_obj.props.default_skin = "skin-graph"
         assert other.node.props.skin == "skin-graph"
 
-    def test_inherited_graph_mirrors_still_track(self, graph_with_library_system):
-        """Only ``skin`` is detached; ``collapsed`` still mirrors the graph."""
-        graph_obj = graph_with_library_system
-        wrapper = _reroute(graph_obj)
-        graph_obj.props.collapsed = True
-        assert wrapper.node.props.collapsed is True
-
     def test_pinned_skin_does_not_serialize(self, graph_with_library_system):
         """A declared default is not a local override, so it stays out of the file."""
         wrapper = _reroute(graph_with_library_system)

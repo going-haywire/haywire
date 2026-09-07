@@ -178,11 +178,13 @@ class TestAgainstRealNodes:
 
         assert skin_instance.is_collapsed(wrapper) is False
 
-    def test_tier_writes_reach_it(self, graph):
+    def test_node_writes_reach_it(self, graph):
+        """Collapse is node-only now (no graph tier to mirror through), so
+        the write that must reach the skin is the node's own."""
         from haybale_studio.skins.stacked_skin import StackedNodeSkin
 
         wrapper = self._add_node(graph)
         skin_instance = StackedNodeSkin.__new__(StackedNodeSkin)
 
-        graph.props.collapsed = True
+        wrapper.node.props.collapsed = True
         assert skin_instance.is_collapsed(wrapper) is True

@@ -6,7 +6,7 @@
 
 - **surface**: `selection`
 - **hosts**: `['selection-detail']`
-- **order**: `46`
+- **order**: `40`
 
 ## Notes
 

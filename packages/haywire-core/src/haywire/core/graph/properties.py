@@ -66,20 +66,6 @@ class GraphProperties(GraphSettings):
         widget_config={"options": _node_detail_choices},
     )
 
-    # Two tiers only (graph < node), so no shadow(): a framework-tier fold would
-    # open every graph showing nothing, while THIS field persists in the
-    # .haywire file, which is where "this graph is large" belongs. ADR 0032.
-    collapsed = setting[BOOL](
-        False,
-        label="Nodes Collapsed",
-        description=(
-            "Fold nodes in THIS graph to card, title, badges and linked pins. "
-            "A node that has been folded or unfolded by hand keeps its own state."
-        ),
-        category="appearance",
-        order=27,
-    )
-
     node_theme = shadow(
         src=NodeDefaultSkinSettings.studio_node_theme,
         label="Node Theme",

@@ -1,4 +1,4 @@
-# Node Properties
+# Node Info
 
 `haybale-graph-editor:panel:NodeInfoPanel` · kind: panel
 

@@ -1,12 +1,18 @@
-"""Tests for toolbar wiring: SelectionToolbarHandlers in GraphCanvasManager
-and toolbar panel registration via register_components().
+"""Tests for the toolbar's two real mechanisms, not their wiring call sites.
 
-Two test groups:
-1. Unit tests — import SelectionToolbarHandlers and check the event keys it
-   registers via build_event_handler_map. No app bootstrap required.
-2. Unit tests — directly call register_components() on a Library stub and
-   confirm CopyToolbarPanel / DeleteToolbarPanel / SelectionOverflowPanel land
-   in a fresh PanelRegistry.
+1. `build_event_handler_map` actually resolves `@handles_event` methods on a
+   real handler class into a dispatchable map.
+2. `get_redraw_signals` actually returns empty across the real panel tree
+   reachable from `SelectionToolbar` — the tripwire for a `redraw_on` added
+   anywhere under it, since that surface is event-driven (ADR-0029) and must
+   subscribe to nothing.
+
+Deliberately NOT here: a test that registers panel classes into a throwaway
+registry and asserts they come back out (proves dict insertion, not the
+architecture), or one that greps `graph_canvas_manager`'s source text for
+identifier names (passes on a broken wiring, only catches a fully absent
+one). Either would need a real GraphCanvasManager/UI integration test to say
+anything an implementation-detail unit test can't already fake.
 """
 
 from __future__ import annotations
@@ -14,11 +20,6 @@ from __future__ import annotations
 import pytest
 
 pytestmark = pytest.mark.unit
-
-
-# ---------------------------------------------------------------------------
-# 1. Handler-map coverage
-# ---------------------------------------------------------------------------
 
 
 def test_toolbar_handler_keys_present():
@@ -43,75 +44,6 @@ def test_toolbar_handler_keys_present():
     assert "selectionBoundsHide" in handler_map, "selectionBoundsHide event not wired"
 
 
-def test_toolbar_handlers_wired_into_gcm_source():
-    """GraphCanvasManager imports SelectionToolbarHandlers and wires it into
-    build_event_handler_map. We verify this by inspecting the module source —
-    if the class is not imported/referenced, the wiring is absent.
-    """
-    import inspect
-    from haybale_graph_editor.editors.graph_canvas import graph_canvas_manager
-
-    source = inspect.getsource(graph_canvas_manager)
-
-    assert "SelectionToolbarHandlers" in source, (
-        "SelectionToolbarHandlers not referenced in graph_canvas_manager — "
-        "toolbar handlers are not wired into GraphCanvasManager"
-    )
-    assert "SelectionToolbarProvider" in source, (
-        "SelectionToolbarProvider not referenced in graph_canvas_manager — "
-        "toolbar provider is not created in GraphCanvasManager"
-    )
-    assert "toolbar_handlers" in source, (
-        "toolbar_handlers attribute not present in graph_canvas_manager — "
-        "handler object is not added to build_event_handler_map"
-    )
-
-
-# ---------------------------------------------------------------------------
-# 2. Panel registration
-# ---------------------------------------------------------------------------
-
-
-def test_toolbar_panels_registered_in_panel_registry(tmp_path):
-    """After calling register_components() on the graph-editor Library,
-    CopyToolbarPanel, DeleteToolbarPanel, and SelectionOverflowPanel are
-    present in the PanelRegistry, all on the one SelectionToolbar surface.
-    """
-
-    from haywire.ui.panel.registry import PanelRegistry
-    from haywire.core.library.identity import LibraryIdentity
-    from haybale_graph_editor.panels.graph.toolbar.selection import (
-        CopyToolbarPanel,
-        DeleteToolbarPanel,
-        SelectionOverflowPanel,
-    )
-
-    # Build a minimal LibraryIdentity so the registry can tag classes
-    identity = LibraryIdentity(
-        label="Graph Editor Test",
-        version="0.0.1",
-        folder_path=str(tmp_path),
-        module_name="haybale_graph_editor",
-        name="graph_editor",
-    )
-
-    registry = PanelRegistry()
-
-    # Register the three panel classes directly (mimicking what folder scan does)
-    for cls in (CopyToolbarPanel, DeleteToolbarPanel, SelectionOverflowPanel):
-        registry._register_class(cls, identity)
-
-    from haybale_graph_editor.surfaces import SelectionToolbar
-
-    # One query now — the two-protocol loop and its dedup existed only because
-    # SelectionContextActions and ToolbarActions both routed against ToolbarFocus.
-    panels = registry.get_panels(SelectionToolbar)
-
-    assert CopyToolbarPanel in panels, "CopyToolbarPanel not registered"
-    assert DeleteToolbarPanel in panels, "DeleteToolbarPanel not registered"
-    assert SelectionOverflowPanel in panels, "SelectionOverflowPanel not registered"
-
-
 def test_get_redraw_signals_on_selection_toolbar_is_empty(tmp_path):
     """SelectionToolbar is event-driven (ADR-0029, Redraw) and subscribes to
     nothing — this walks into SelectionMenu via the overflow panel's own
@@ -124,8 +56,8 @@ def test_get_redraw_signals_on_selection_toolbar_is_empty(tmp_path):
     from haywire.ui.panel.registry import PanelRegistry
     from haywire.core.library.identity import LibraryIdentity
     from haybale_graph_editor.panels.graph.toolbar.selection import (
-        CopyToolbarPanel,
-        DeleteToolbarPanel,
+        CollapseToolbarPanel,
+        LockToolbarPanel,
         SelectionOverflowPanel,
     )
     from haybale_graph_editor.panels.graph.menu.selection import selection as selection_menu_module
@@ -140,7 +72,7 @@ def test_get_redraw_signals_on_selection_toolbar_is_empty(tmp_path):
     )
 
     registry = PanelRegistry()
-    for cls in (CopyToolbarPanel, DeleteToolbarPanel, SelectionOverflowPanel):
+    for cls in (CollapseToolbarPanel, LockToolbarPanel, SelectionOverflowPanel):
         registry._register_class(cls, identity)
 
     # SelectionMenu's own panels, reached one hop below the overflow panel —

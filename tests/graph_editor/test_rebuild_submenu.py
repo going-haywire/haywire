@@ -14,6 +14,11 @@ from collections.abc import AsyncGenerator
 from types import SimpleNamespace
 from unittest.mock import MagicMock
 
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
+    RebuildSelectionMenuPanel,
+    RedrawSelectionMenuPanel,
+    RevalidateSelectionMenuPanel,
+)
 import pytest
 from nicegui import ui
 from nicegui.testing import User
@@ -28,11 +33,8 @@ from haywire.ui.panel.layout import PanelLayout
 from tests.protocol_stubs import stub_for
 
 from haybale_graph_editor.surfaces import SelectionActions
-from haybale_graph_editor.panels.graph.menu.selection.selection import (
-    RebuildSelectionMenuPanel,
-    RedrawSelectionMenuPanel,
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
     ResetSelectionMenuPanel,
-    RevalidateSelectionMenuPanel,
 )
 
 _FAKE_LIBRARY_IDENTITY = LibraryIdentity(
@@ -56,7 +58,7 @@ async def user() -> AsyncGenerator[User, None]:
 
 
 def _ctx(nodes):  # untyped, like test_render_surface's own stub: a SessionContext stand-in
-    edit = SimpleNamespace(selected_nodes=set(nodes), selected_edges=set())
+    edit = SimpleNamespace(selected_nodes=set(nodes), selected_edges=set(), active_node=None)
     data = MagicMock()
     data.__getitem__.return_value = edit
     return SimpleNamespace(data=data, app=MagicMock(), session_id="t", can_access=lambda required: True)

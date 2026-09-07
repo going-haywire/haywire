@@ -6,7 +6,7 @@
 
 - **surface**: `selection`
 - **hosts**: `['selection-rebuild']`
-- **order**: `40`
+- **order**: `80`
 
 ## Notes
 

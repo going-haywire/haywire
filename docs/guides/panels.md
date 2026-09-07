@@ -124,15 +124,15 @@ Toolbar panels register against `SelectionToolbar` and contribute a single icon 
 
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py`
 
-`CopyToolbarPanel` renders a single copy icon:
+`LockToolbarPanel` renders a single lock/unlock icon:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:29:49"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/toolbar/selection.py:97:146"
 ```
 
-from: `CopyToolbarPanel` — registry_key: `haybale-graph-editor:panel:CopyToolbarPanel`
+from: `LockToolbarPanel` — registry_key: `haybale-graph-editor:panel:LockToolbarPanel`
 
-**Type-specific:** `draw()` renders exactly one `hui.icon_action(...)`. The toolbar host owns the `ui.row` container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip.
+**Type-specific:** `draw()` renders exactly one `hui.icon_action(...)`. The toolbar host owns the `ui.row` container; each panel just drops a single icon button into it. The panel has no label — only the icon and a tooltip, built by hand (rather than `icon_action`'s `tooltip=`) so the click handler has a handle to retext it — `.tooltip()` stacks a second one rather than replacing the first. The handler re-reads state on every click rather than closing over the draw-time value, since the toolbar does not necessarily re-render between clicks.
 
 ## Graph toolbar / dropdown panel (content below the toolbar)
 

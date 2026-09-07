@@ -30,7 +30,9 @@ from __future__ import annotations
 
 from typing import TYPE_CHECKING
 
-from ....state.edit_state import EditState
+from haywire.core.session.context import SessionContext
+
+from ..state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.node.properties import NodeProperties
@@ -88,3 +90,16 @@ def selection_has_locked(ctx: "SessionContext") -> bool:
         if wrapper.node.props.locked:
             return True
     return False
+
+
+def is_reroute_node(ctx: "SessionContext") -> bool:
+    """True when the selection's primary node is a reroute node.
+
+    The primary node is the one whose card is on show, and the one that
+    receives the context menu. It is not necessarily the only node in the
+    selection, but it is the one that matters for this command.
+    """
+    wrapper = ctx.data[EditState].active_node
+    if wrapper is None:
+        return False
+    return wrapper.node.behavior.is_reroute_node

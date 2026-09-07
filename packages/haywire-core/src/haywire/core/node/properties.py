@@ -88,8 +88,8 @@ class NodeProperties(NodeSettings):
     # Visual state
     # -----------------------------------------------------------------
 
-    collapsed = graph(
-        src=GraphProperties.collapsed,
+    collapsed = setting[BOOL](
+        False,
         label="Collapsed",
         order=20,
         category="state",

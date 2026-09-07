@@ -590,10 +590,11 @@ class TestCollapseToggle:
 class TestGraphWideCardReset:
     """`clear_node_card_overrides` is what keeps the graph tier usable.
 
-    Mirrors are "unset tracks, set ignores" per hop, so every node folded by
+    Mirrors are "unset tracks, set ignores" per hop, so every node re-ranked by
     hand permanently stops listening to the graph. Without a way back, a
-    graph-wide collapse covers fewer and fewer nodes over time, with nothing
-    saying why.
+    graph-wide detail change covers fewer and fewer nodes over time, with
+    nothing saying why. Collapse is out of scope: it is no longer inherited
+    from the graph.
     """
 
     def _graph_of(self, provider, *locally_set: bool):
@@ -606,14 +607,14 @@ class TestGraphWideCardReset:
         cast(Any, provider)._test_edit_stub.active_graph = graph
         return wrappers
 
-    def test_it_resets_both_axes_on_every_node_that_has_an_opinion(self):
+    def test_it_resets_detail_on_every_node_that_has_an_opinion(self):
         provider = _make_provider()
         wrappers = self._graph_of(provider, True, True)
 
         assert provider.clear_node_card_overrides() == 2
         for wrapper in wrappers.values():
             reset_fields = {c.args[0] for c in wrapper.node.props.reset.call_args_list}
-            assert reset_fields == {"detail", "collapsed"}
+            assert reset_fields == {"detail"}
 
     def test_it_leaves_tracking_nodes_alone(self):
         """Resetting a field that is not locally set would be a no-op anyway,
@@ -653,4 +654,4 @@ class TestGraphWideCardReset:
         )
 
         provider.clear_node_card_overrides()  # must not raise
-        assert good.reset.call_count == 2
+        assert good.reset.call_count == 1

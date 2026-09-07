@@ -5,14 +5,16 @@ from unittest.mock import MagicMock
 
 from typing import Any, cast
 
+from haybale_graph_editor.panels.graph.menu.selection.rebuild import (
+    RebuildSelectionMenuPanel as RebuildSelectionPanel,
+    RedrawSelectionMenuPanel as RedrawSelectionPanel,
+    ResetSelectionMenuPanel as ResetSelectionPanel,
+    RevalidateSelectionMenuPanel as RevalidateSelectionPanel,
+)
 import pytest
 
 from haybale_graph_editor.panels.graph.menu.selection.selection import (
     DeleteSelectionMenuPanel as DeleteSelectionPanel,
-    RebuildSelectionMenuPanel as RebuildSelectionPanel,
-    RedrawSelectionMenuPanel as RedrawSelectionPanel,
-    RevalidateSelectionMenuPanel as RevalidateSelectionPanel,
-    ResetSelectionMenuPanel as ResetSelectionPanel,
     selection_label,
 )
 from haybale_graph_editor.surfaces import SelectionActions, SelectionMenu, SelectionRebuildMenu
@@ -69,7 +71,7 @@ def _ctx_with_selection(nodes, edges):
     """Minimal SessionContext stub exposing data[EditState] -> selection sets."""
     from types import SimpleNamespace
 
-    edit = SimpleNamespace(selected_nodes=set(nodes), selected_edges=set(edges))
+    edit = SimpleNamespace(selected_nodes=set(nodes), selected_edges=set(edges), active_node=None)
     data = MagicMock()
     data.__getitem__.return_value = edit
     return SimpleNamespace(data=data)

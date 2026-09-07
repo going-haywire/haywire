@@ -585,16 +585,18 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             props.detail = detail
 
     def clear_node_card_overrides(self) -> int:
-        """Make EVERY node in the graph follow the graph's card settings again.
+        """Make EVERY node in the graph follow the graph's detail rank again.
 
         Returns how many nodes had an opinion to drop, so the caller can say so
         — a command that silently does nothing on an already-clean graph reads
         as broken.
 
         This is what keeps the graph tier usable over time. Mirrors are "unset
-        tracks, set ignores" per hop, so each node the user folds or re-ranks by
-        hand permanently stops listening; without a way back, the graph-wide
-        collapse gradually covers fewer and fewer nodes with no indication why.
+        tracks, set ignores" per hop, so each node the user re-ranks by hand
+        permanently stops listening; without a way back, a graph-wide detail
+        change gradually covers fewer and fewer nodes with no indication why.
+        Collapse is NOT reset here: it is no longer inherited from the graph,
+        so there is nothing for a node's own collapse state to fall back to.
         """
         edit = self._context.data[EditState]
         graph = edit.active_graph
@@ -606,31 +608,29 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
             props = getattr(getattr(wrapper, "node", None), "props", None)
             if props is None:
                 continue
-            touched = False
-            for field in ("detail", "collapsed"):
-                try:
-                    if props.is_locally_set(field):
-                        props.reset(field)
-                        touched = True
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.debug(f"resetting {field} failed: {exc}")
-            cleared += 1 if touched else 0
-        logger.info(f"cleared card overrides on {cleared} node(s)")
+            try:
+                if props.is_locally_set("detail"):
+                    props.reset("detail")
+                    cleared += 1
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.debug(f"resetting detail failed: {exc}")
+        logger.info(f"cleared detail overrides on {cleared} node(s)")
         return cleared
 
     def clear_selection_detail_overrides(self) -> None:
-        """Drop each selected node's own answer so it follows its graph again.
+        """Drop each selected node's own detail rank so it follows its graph again.
 
-        The counterpart to the two setters: without it a node that has ever
-        been given a rank or folded by hand is pinned forever, and the graph
-        tier can never reassert over it ("unset tracks, set ignores").
+        The counterpart to ``set_selection_detail``: without it a node that has
+        ever been given a rank by hand is pinned forever, and the graph tier
+        can never reassert over it ("unset tracks, set ignores"). Collapse is
+        NOT reset here: it is no longer inherited from the graph, so there is
+        nothing for a node's own collapse state to fall back to.
         """
         for props in self._selected_props():
-            for field in ("detail", "collapsed"):
-                try:
-                    props.reset(field)
-                except Exception as exc:  # pragma: no cover - defensive
-                    logger.debug(f"resetting {field} failed: {exc}")
+            try:
+                props.reset("detail")
+            except Exception as exc:  # pragma: no cover - defensive
+                logger.debug(f"resetting detail failed: {exc}")
 
     def dissolve_reroute(self, node_id: str) -> None:
         """Emit DissolveRerouteEvent for the given reroute node.

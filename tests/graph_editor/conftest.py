@@ -13,7 +13,7 @@ def make_ctx_with_selection():
     """
 
     def _make(nodes, edges):
-        edit = SimpleNamespace(selected_nodes=set(nodes), selected_edges=set(edges))
+        edit = SimpleNamespace(selected_nodes=set(nodes), selected_edges=set(edges), active_node=None)
         data = MagicMock()
         data.__getitem__.return_value = edit
         return SimpleNamespace(data=data)

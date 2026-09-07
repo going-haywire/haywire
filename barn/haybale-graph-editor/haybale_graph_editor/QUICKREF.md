@@ -19,15 +19,13 @@
 
 ## panel
 - `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — 
-- `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail & Collapse — 
+- `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — 
 - `haybale-graph-editor:panel:CollapseSelectionMenuPanel` — Collapse — 
 - `haybale-graph-editor:panel:CollapseToolbarPanel` — Collapse — 
 - `haybale-graph-editor:panel:CopySelectionMenuPanel` — Copy Selection — 
-- `haybale-graph-editor:panel:CopyToolbarPanel` — Copy — 
 - `haybale-graph-editor:panel:CreateNodeMenuPanel` — Create Node — 
 - `haybale-graph-editor:panel:DeleteEdgeMenuPanel` — Delete Connection — 
 - `haybale-graph-editor:panel:DeleteSelectionMenuPanel` — Delete Selection — 
-- `haybale-graph-editor:panel:DeleteToolbarPanel` — Delete — 
 - `haybale-graph-editor:panel:DetachSettingMenuPanel` — Detach from setting — 
 - `haybale-graph-editor:panel:DetailRankMenuPanel` — Detail Ranks — 
 - `haybale-graph-editor:panel:DetailSelectionMenuPanel` — Detail — 
@@ -49,7 +47,7 @@
 - `haybale-graph-editor:panel:NodeAppearancePanel` — Node Appearance — 
 - `haybale-graph-editor:panel:NodeErrorsPanel` — Node Errors — 
 - `haybale-graph-editor:panel:NodeErrorsSelectionMenuPanel` — Node Errors — 
-- `haybale-graph-editor:panel:NodeInfoPanel` — Node Properties — 
+- `haybale-graph-editor:panel:NodeInfoPanel` — Node Info — 
 - `haybale-graph-editor:panel:NodePortsPanel` — Ports — 
 - `haybale-graph-editor:panel:NodePropertiesPanel` — Node Properties — 
 - `haybale-graph-editor:panel:NodeSettingsPanel` — Node Settings — 
@@ -59,7 +57,7 @@
 - `haybale-graph-editor:panel:RebuildSelectionMenuPanel` — Rebuild — 
 - `haybale-graph-editor:panel:ReconnectEdgeMenuPanel` — Reconnect Edge — 
 - `haybale-graph-editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — 
-- `haybale-graph-editor:panel:ResetNodeCardsMenuPanel` — Reset Node Cards — 
+- `haybale-graph-editor:panel:ResetNodeCardsMenuPanel` — Reset Node Detail — 
 - `haybale-graph-editor:panel:ResetSelectionMenuPanel` — Reset Selection — 
 - `haybale-graph-editor:panel:RevalidateSelectionMenuPanel` — Revalidate Selection — 
 - `haybale-graph-editor:panel:SelectionOverflowPanel` — More — 

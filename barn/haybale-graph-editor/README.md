@@ -36,10 +36,8 @@ Visual graph editor library — host-agnostic
 - **Connection Path** — 
 - **Connection Warnings** — 
 - **Connection Warnings** — 
-- **Copy** — 
 - **Copy Selection** — 
 - **Create Node** — 
-- **Delete** — 
 - **Delete Connection** — 
 - **Delete Selection** — 
 - **Detach from setting** — 
@@ -59,7 +57,7 @@ Visual graph editor library — host-agnostic
 - **Node Appearance** — 
 - **Node Errors** — 
 - **Node Errors** — 
-- **Node Properties** — 
+- **Node Info** — 
 - **Node Properties** — 
 - **Node Settings** — 
 - **Paste** — 
@@ -68,8 +66,8 @@ Visual graph editor library — host-agnostic
 - **Rebuild** — 
 - **Reconnect Edge** — 
 - **Redraw Selection** — 
-- **Reset Detail & Collapse** — 
-- **Reset Node Cards** — 
+- **Reset Detail** — 
+- **Reset Node Detail** — 
 - **Reset Selection** — 
 - **Revalidate Selection** — 
 - **Status** — 

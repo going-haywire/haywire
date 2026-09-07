@@ -1,6 +1,7 @@
 """The toolbar's lock button — protection against accidental manipulation.
 
-Two things are pinned here, and they are the two the design turns on.
+Three things are pinned here, each guarding a design rule or a real
+regression rather than restating a decorator argument.
 
 **It polls for a SINGLE node.** Every other toolbar panel declares no ``poll``
 because ``SelectionToolbar.poll`` ("something is selected") already covers it.
@@ -12,6 +13,11 @@ to render rather than three.
 **It re-reads on click.** Same regression the collapse button carries tests for:
 a handler closing over the draw-time value sends the same thing forever and
 stops toggling after the first press.
+
+**Collapse gates on locked, not on selection size.** A real regression: both
+Collapse and its since-removed Delete-toolbar neighbour were first gated on
+``locked_bag``, whose "exactly one node" rule belongs to the Lock button —
+that hid them from EVERY multi-selection, locked or not.
 """
 
 from __future__ import annotations
@@ -26,11 +32,8 @@ from haywire.ui import elements as hui
 from haywire.ui.panel.layout import PanelLayout
 from haybale_graph_editor.panels.graph.toolbar.selection import (
     CollapseToolbarPanel,
-    CopyToolbarPanel,
-    DeleteToolbarPanel,
     LockToolbarPanel,
 )
-from haybale_graph_editor.surfaces import SelectionToolbar
 
 pytestmark = pytest.mark.unit
 
@@ -115,32 +118,19 @@ def _click(button) -> None:
     raise AssertionError("button has no click handler")
 
 
-def test_it_sits_on_the_selection_toolbar():
-    assert LockToolbarPanel.class_identity.surface is SelectionToolbar
+def test_it_applies_to_one_node_only():
+    """The single-selection gate — why no mixed state can exist.
 
-
-def test_it_is_a_leaf():
-    """A leaf is what the popup-emptiness rule counts as content."""
-    assert LockToolbarPanel.class_identity.hosts == ()
-
-
-class TestItAppliesToOneNodeOnly:
-    """The single-selection gate — why no mixed state can exist."""
-
-    def test_it_polls_true_for_exactly_one_selected_node(self):
-        assert LockToolbarPanel.poll(_ctx(_Props(), n_selected=1)) is True
-
-    def test_it_polls_false_for_a_multi_selection(self):
-        """The whole reason there is no three-state toggle to design."""
-        assert LockToolbarPanel.poll(_ctx(_Props(), n_selected=3)) is False
-
-    def test_it_polls_false_with_nothing_selected(self):
-        assert LockToolbarPanel.poll(_ctx(None, n_selected=0)) is False
-
-    def test_it_polls_false_when_there_is_no_active_node(self):
-        """A selection whose Active axis was cleared (bulk select) offers no
-        single subject to lock, even at size one."""
-        assert LockToolbarPanel.poll(_ctx(None, n_selected=1)) is False
+    With no way to lock a set, a set is never *partly* locked, so the button
+    has two states to render rather than three. One test, four branches: this
+    is one design rule, not four independent behaviours.
+    """
+    assert LockToolbarPanel.poll(_ctx(_Props(), n_selected=1)) is True
+    assert LockToolbarPanel.poll(_ctx(_Props(), n_selected=3)) is False
+    assert LockToolbarPanel.poll(_ctx(None, n_selected=0)) is False
+    # A selection whose Active axis was cleared (bulk select) offers no single
+    # subject to lock, even at size one.
+    assert LockToolbarPanel.poll(_ctx(None, n_selected=1)) is False
 
 
 class TestItReadsStateRatherThanCapturingIt:
@@ -203,24 +193,17 @@ class TestItReadsStateRatherThanCapturingIt:
         assert button._props["icon"] == hui.icon.locked
 
 
-class TestTheBatchVerbsGateOnLockedNotOnSelectionSize:
-    """Delete and Collapse hide on a locked node — and ONLY on a locked node.
+class TestCollapseGatesOnLockedNotOnSelectionSize:
+    """Collapse hides on a locked node — and ONLY on a locked node.
 
-    The regression this guards: both were first gated on ``locked_bag``,
-    whose "exactly one node" rule belongs to the Lock button. That hid Delete
-    and Collapse from EVERY multi-selection, locked or not, quietly removing
-    the delete button from ordinary batch work.
+    The regression this guards: it was first gated on ``locked_bag``, whose
+    "exactly one node" rule belongs to the Lock button. That hid Collapse from
+    EVERY multi-selection, locked or not, quietly removing it from ordinary
+    batch work.
     """
-
-    def test_delete_shows_for_a_multi_selection(self):
-        assert DeleteToolbarPanel.poll(_ctx(None, n_selected=3)) is True
 
     def test_collapse_shows_for_a_multi_selection(self):
         assert CollapseToolbarPanel.poll(_ctx(None, n_selected=3)) is True
-
-    def test_delete_hides_when_a_selected_node_is_locked(self):
-        ctx = _ctx(_Props(locked=True), n_selected=1, locked_ids={"n0"})
-        assert DeleteToolbarPanel.poll(ctx) is False
 
     def test_collapse_hides_when_a_selected_node_is_locked(self):
         ctx = _ctx(_Props(locked=True), n_selected=1, locked_ids={"n0"})
@@ -231,8 +214,4 @@ class TestTheBatchVerbsGateOnLockedNotOnSelectionSize:
         multi-selection), but the predicate is written as "any" so it stays
         correct on its own terms rather than on that invariant."""
         ctx = _ctx(None, n_selected=3, locked_ids={"n1"})
-        assert DeleteToolbarPanel.poll(ctx) is False
-
-    def test_copy_stays_unconditional(self):
-        """Copying a locked node harms nothing, so Copy declares no poll."""
-        assert "poll" not in vars(CopyToolbarPanel)
+        assert CollapseToolbarPanel.poll(ctx) is False
