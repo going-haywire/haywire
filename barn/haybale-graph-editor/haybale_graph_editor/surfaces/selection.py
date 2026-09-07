@@ -71,6 +71,27 @@ class SelectionRebuildMenu(Surface):
     provides = SelectionActions
 
 
+class SelectionEditMenu(Surface):
+    """The "Edit…" submenu of ``SelectionMenu`` — the components behind this node.
+
+    One row per component that produced the card the user is looking at: the
+    node class itself, the skin that drew it, and the node theme colouring
+    it. Each opens that component's source. The pin menu carries the same
+    submenu over its own subjects (type, widget), so the gesture reads
+    identically wherever the user right-clicks.
+
+    Single-node only: skin and theme resolve per node, and a mixed selection
+    has no one answer. The hosting panel enforces that.
+
+    Declares no ``poll`` for the same reason ``SelectionDetailMenu`` does not
+    — the hosting panel already gates on the selection, and a second copy of
+    that predicate would swallow the greyed rows.
+    """
+
+    id = "selection-edit"
+    provides = SelectionActions
+
+
 class SelectionDetailMenu(Surface):
     """The "Detail" submenu of ``SelectionMenu`` — the ADR-0032 density ranks.
 

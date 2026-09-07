@@ -36,6 +36,7 @@
 - `haybale-graph-editor:panel:EdgeStatsPanel` — Execution Statistics — 
 - `haybale-graph-editor:panel:EdgeWarningsMenuPanel` — Connection Warnings — 
 - `haybale-graph-editor:panel:EdgeWarningsPanel` — Connection Warnings — 
+- `haybale-graph-editor:panel:EditSelectionMenuPanel` — Edit — 
 - `haybale-graph-editor:panel:FocusGraphPanel` — Focus on Graph — 
 - `haybale-graph-editor:panel:GraphContextPanel` — Graph Context — 
 - `haybale-graph-editor:panel:GraphInfoPanel` — Graph Info — 
@@ -51,9 +52,14 @@
 - `haybale-graph-editor:panel:NodePortsPanel` — Ports — 
 - `haybale-graph-editor:panel:NodePropertiesPanel` — Node Properties — 
 - `haybale-graph-editor:panel:NodeSettingsPanel` — Node Settings — 
+- `haybale-graph-editor:panel:NodeSkinMenuPanel` — Skin — 
+- `haybale-graph-editor:panel:NodeSourceMenuPanel` — Node — 
 - `haybale-graph-editor:panel:NodeStatusPanel` — Status — 
+- `haybale-graph-editor:panel:NodeThemeMenuPanel` — Theme — 
 - `haybale-graph-editor:panel:PastePanel` — Paste — 
-- `haybale-graph-editor:panel:PortInfoMenuPanel` — Port Info — 
+- `haybale-graph-editor:panel:PinEditMenuPanel` — Edit — 
+- `haybale-graph-editor:panel:PortTypeMenuPanel` — Type — 
+- `haybale-graph-editor:panel:PortWidgetMenuPanel` — Widget — 
 - `haybale-graph-editor:panel:RebuildSelectionMenuPanel` — Rebuild — 
 - `haybale-graph-editor:panel:ReconnectEdgeMenuPanel` — Reconnect Edge — 
 - `haybale-graph-editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — 

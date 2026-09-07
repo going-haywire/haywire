@@ -29,9 +29,11 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
+from ..component_rows import component_row, identity_of, key_and_label
 from .....surfaces import (
     SelectionActions,
     SelectionDetailMenu,
+    SelectionEditMenu,
     SelectionMenu,
 )
 from .....state.edit_state import EditState
@@ -271,6 +273,186 @@ class DissolveRerouteMenuPanel(BasePanel):
                 icon=hui.icon.edge,
                 on_click=lambda: self.actions.dissolve_reroute(node_id),
             )
+
+
+def _single_node(ctx: "SessionContext"):
+    """The one selected node's wrapper, or None.
+
+    Skin and theme resolve per node, so a multi-node selection has no single
+    answer and this returns None rather than picking one arbitrarily. Reads
+    ``active_node`` — canvas.vue's "replace-then-act" makes it the node under
+    the cursor — but only once the selection agrees it is alone.
+    """
+    edit = ctx.data[EditState]
+    if len(edit.selected_nodes) != 1 or edit.selected_edges:
+        return None
+    return edit.active_node
+
+
+@panel(
+    surface=SelectionMenu,
+    hosts=(SelectionEditMenu,),
+    label="Edit",
+    icon=hui.icon.node_source,
+    order=35,
+)
+class EditSelectionMenuPanel(BasePanel):
+    """The "Edit…" row — a submenu over the components behind this node.
+
+    A hosting panel: it draws only the row and the flyout, piping the
+    ``SelectionActions`` host one hop further, exactly as
+    ``DetailSelectionMenuPanel`` does. The pin menu carries the same row over
+    its own subjects, so the gesture reads identically on either target.
+
+    Single-node only: skin and theme resolve per node, and a mixed or
+    multi-node selection has no one answer to give.
+
+    The node row always draws for a single node (a wrapper carries its
+    registry key by construction), so unlike the pin menu's Edit row this one
+    cannot end up hosting an empty body — and a hosting panel that polls true
+    over nothing would cost this menu its popup, since a hosting panel is
+    excluded from the leaf count (ADR-0029). Copy/Delete draw beside it
+    regardless, so the risk is theirs to absorb; the single-node rule is
+    still what keeps the row honest.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return _single_node(ctx) is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            with hui.submenu_row("Edit", icon=hui.icon.node_source):
+                self.render_surface(SelectionEditMenu, ctx)
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        if _selection_nonempty(ctx):
+            with layout:
+                hui.menu_row("Edit", icon=hui.icon.node_source, enabled=False)
+
+
+@panel(
+    surface=SelectionEditMenu,
+    label="Node",
+    icon=hui.icon.node,
+    order=10,
+)
+class NodeSourceMenuPanel(BasePanel):
+    """The node class itself, as a row that opens its source."""
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return _single_node(ctx) is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        wrapper = _single_node(ctx)
+        if wrapper is None:
+            return
+        # A node wrapper carries its registry key directly — it is what the
+        # wrapper was built from, so there is no class to re-resolve.
+        key = getattr(wrapper, "registry_key", "") or ""
+        label = getattr(getattr(wrapper.node, "identity", None), "label", "") or key
+        with layout:
+            component_row(ctx, label, key, hui.icon.node)
+
+
+@panel(
+    surface=SelectionEditMenu,
+    label="Skin",
+    icon=hui.icon.skin,
+    order=20,
+)
+class NodeSkinMenuPanel(BasePanel):
+    """The skin that drew this node's card, as a row opening its source.
+
+    ``props.skin`` already resolves the graph < node chain, so it holds the
+    key actually in effect. It is None when the node defers entirely to the
+    registry's default, which ``ui_node`` substitutes at render time — so the
+    same fallback is applied here, or the row would vanish on every node that
+    never overrode its skin (which is most of them).
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return bool(cls._skin_key(ctx))
+
+    @staticmethod
+    def _skin_key(ctx: "SessionContext") -> str:
+        wrapper = _single_node(ctx)
+        if wrapper is None:
+            return ""
+        try:
+            key = wrapper.node.props.skin
+        except Exception:
+            return ""
+        if key:
+            return str(key)
+        # Same fallback, reached the same way, as ``UINode._render``: the
+        # registry default is what actually draws a node whose prop is unset.
+        app = ctx.app
+        factory = getattr(app, "skin_factory", None) if app is not None else None
+        registry = getattr(factory, "_skin_registry", None) if factory is not None else None
+        if registry is None:
+            return ""
+        return registry.get_default_skin_registry_key() or ""
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        key = self._skin_key(ctx)
+        if not key:
+            return
+        app = ctx.app
+        cls_ = app.library_service.lookup_component_class(key) if app is not None else None
+        _resolved, label = key_and_label(identity_of(cls_), key)
+        with layout:
+            component_row(ctx, label or key, key, hui.icon.skin)
+
+
+@panel(
+    surface=SelectionEditMenu,
+    label="Theme",
+    icon=hui.icon.theme,
+    order=30,
+)
+class NodeThemeMenuPanel(BasePanel):
+    """The node theme colouring this card, as a row opening its source.
+
+    ``props.node_theme`` resolves the graph < node chain like ``skin`` does,
+    but has no registry-default substitute: an empty value means the card
+    takes its colours from the workbench theme, and there is no node theme to
+    open. The row polls false rather than pointing at something arbitrary.
+    """
+
+    actions: SelectionActions
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return bool(cls._theme_key(ctx))
+
+    @staticmethod
+    def _theme_key(ctx: "SessionContext") -> str:
+        wrapper = _single_node(ctx)
+        if wrapper is None:
+            return ""
+        try:
+            return str(wrapper.node.props.node_theme or "")
+        except Exception:
+            return ""
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        key = self._theme_key(ctx)
+        if not key:
+            return
+        app = ctx.app
+        cls_ = app.library_service.lookup_component_class(key) if app is not None else None
+        _resolved, label = key_and_label(identity_of(cls_), key)
+        with layout:
+            component_row(ctx, label or key, key, hui.icon.theme)
 
 
 @panel(

@@ -166,15 +166,20 @@ Pin (port) context-menu panels register against `PinMenu` and surface when the u
 
 Source: `barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py`
 
-`PortInfoMenuPanel` shows port metadata (id, description, flow type, data type) in the pin context menu:
+`PortTypeMenuPanel` names the pin's data type and opens its source when clicked:
 
 ```python
---8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:26:57"
+--8<-- "barn/haybale-graph-editor/haybale_graph_editor/panels/graph/menu/port/port.py:95:115"
 ```
 
-from: `PortInfoMenuPanel` — registry_key: `haybale-graph-editor:panel:PortInfoMenuPanel`
+from: `PortTypeMenuPanel` — registry_key: `haybale-graph-editor:panel:PortTypeMenuPanel`
 
-**Type-specific:** `provides = PortActions` on `PinMenu` is a small Protocol (one verb: `demote_setting`) — the sibling panel `DetachSettingMenuPanel` is the only one that calls it, shown only on a promoted inlet. `PortInfoMenuPanel` itself declares no `actions:` annotation; it only reads `ctx.data[EditState].active_port`. `layout.container` (not `with layout:`) is used here to render directly into the bare container without an extra wrapper.
+**Type-specific:** `provides = PortActions` on `PinMenu` is a small Protocol (one verb: `demote_setting`) — the sibling panel `DetachSettingMenuPanel` is the only one that calls it, enabled only on a promoted inlet. It sits behind an "Edit" submenu row (`PinEditMenuPanel`, hosting `PinEditMenu`) alongside `PortWidgetMenuPanel`, mirroring the "Edit" row the selection menu carries over its own subjects (node, skin, theme). These identity panels call no action: they resolve a registry key and publish `RevealComponentSource`, the same ungated navigation the create-node menu performs on right-click. They are deliberately **not** gated on `ctx.developer_mode` — that gate covers the studio's own internals (which panel class drew a row), whereas a pin's type and widget are the user's own graph vocabulary. Each polls false when its key does not resolve, so a row is never dead: a port with no widget, or a dynamically generated type carrying no `class_identity`, simply draws nothing.
+
+**Two traps this menu had to solve**, both silent, both worth knowing before adding a submenu anywhere (see [the emptiness contract](../../.insights/project_surface_popup_emptiness_contract.md)):
+
+- **The rows inside a submenu must be their own panels.** The leaf counter that decides whether a `hui.submenu_row` greys itself is bumped by `render_panel`, once per panel, and by nothing else — `hui.menu_row` never touches it. Drawing the rows inline leaves the body's count at 0 and `SubmenuRow.__exit__` greys the anchor after the fact: a fully populated flyout that cannot be opened, with nothing in the DOM to explain why.
+- **A menu needs at least one leaf, and a submenu host is not one.** A hosting panel is excluded from the popup's leaf count on purpose, and the counter is reset per flyout level, so what a submenu body draws never reaches the popup's own count. `DetachSettingMenuPanel` therefore overrides `draw_disabled` — without that greyed row, an unpromoted pin's menu would count zero leaves, the popup would be deleted, and **no pin menu would open at all**, taking the edge-drag resume with it.
 
 ## Skin menu panel (a library's own Surface)
 

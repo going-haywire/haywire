@@ -36,6 +36,8 @@ Visual graph editor library — host-agnostic
 - **Detail** — 
 - **Detail Ranks** — 
 - **Dissolve Reroute** — 
+- **Edit** — 
+- **Edit** — 
 - **Execution Statistics** — 
 - **Focus on Graph** — 
 - **Graph Context** — 
@@ -46,6 +48,7 @@ Visual graph editor library — host-agnostic
 - **Lock** — 
 - **More** — 
 - **More Actions** — 
+- **Node** — 
 - **Node Appearance** — 
 - **Node Errors** — 
 - **Node Errors** — 
@@ -53,7 +56,6 @@ Visual graph editor library — host-agnostic
 - **Node Properties** — 
 - **Node Settings** — 
 - **Paste** — 
-- **Port Info** — 
 - **Ports** — 
 - **Rebuild** — 
 - **Reconnect Edge** — 
@@ -62,7 +64,11 @@ Visual graph editor library — host-agnostic
 - **Reset Node Detail** — 
 - **Reset Selection** — 
 - **Revalidate Selection** — 
+- **Skin** — 
 - **Status** — 
+- **Theme** — 
+- **Type** — 
+- **Widget** — 
 
 ## Editors
 - **Graph Editor** — Visual node graph editor for wiring data processing pipelines.

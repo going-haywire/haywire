@@ -16,11 +16,12 @@ from .graph_context import (
     GraphToolBar,
 )
 from .node import NodeInspector, SettingsInspector
-from .pin import PinMenu, PortActions
+from .pin import PinEditMenu, PinMenu, PortActions
 from .ports import PortInspector
 from .selection import (
     SelectionActions,
     SelectionDetailMenu,
+    SelectionEditMenu,
     SelectionMenu,
     SelectionRebuildMenu,
 )
@@ -38,6 +39,7 @@ __all__ = [
     "GraphToolBar",
     "NodeAppearance",
     "NodeInspector",
+    "PinEditMenu",
     "PinMenu",
     "PortActions",
     "PortInspector",
@@ -45,6 +47,7 @@ __all__ = [
     "SelectionMenu",
     "SelectionRebuildMenu",
     "SelectionDetailMenu",
+    "SelectionEditMenu",
     "SelectionToolbar",
     "SettingsInspector",
 ]

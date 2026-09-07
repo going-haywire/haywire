@@ -58,18 +58,20 @@ def _open(page: Page) -> None:
 
 def test_right_click_on_a_pin_opens_the_pin_menu(page: Page, harness):
     """A right-click on an element carrying data-pin-id (and no
-    data-hw-menu-surface-id) opens PinMenu — proven by PortInfoMenuPanel's
-    section_label(port.id), which is only ever drawn on that surface."""
+    data-hw-menu-surface-id) opens PinMenu — proven by ``PinEditMenuPanel``'s
+    "Edit" row, which is only ever drawn on that surface."""
     _open(page)
     pos = _pin_center(page, "exec@TestBeginPlay")
 
     page.mouse.click(pos["x"], pos["y"], button="right")
     page.wait_for_timeout(400)
 
-    # PortInfoMenuPanel draws hui.section_label(port.id) directly into the
-    # popup — visible as soon as PinMenu opens, no submenu navigation needed.
-    assert page.get_by_text("exec", exact=False).count() > 0, (
-        "right-clicking a pin should open PinMenu (Port Info panel shows the port id)"
+    # The "Edit" submenu anchor is drawn directly into the popup, so it is
+    # present as soon as PinMenu opens — no hover navigation needed. Its body
+    # (Type / Widget) is built eagerly inside a closed flyout, so assert on
+    # the anchor rather than on what it contains.
+    assert page.get_by_text("Edit", exact=True).count() > 0, (
+        "right-clicking a pin should open PinMenu (the Edit submenu row)"
     )
     # The selection menu's distinguishing content must NOT be present —
     # proves the pin branch, not the node/selection branch, was taken.
