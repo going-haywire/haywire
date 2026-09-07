@@ -12,8 +12,6 @@ Serialized under the ``'props'`` key in graph JSON; restored before nodes
 on load.
 """
 
-from haywire.barn.builtin.types import BOOL
-from haywire.core.settings import setting
 from haywire.core.settings.descriptor import shadow
 from haywire.core.settings.settings_graph import GraphSettings
 from haywire.core.skin.settings import (

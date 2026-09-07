@@ -101,8 +101,7 @@ class CollapseToolbarPanel(BasePanel):
     order=27,
 )
 class LockToolbarPanel(BasePanel):
-    """Lock or unlock ONE node — protection against accidental manipulation.
-    """
+    """Lock or unlock ONE node — protection against accidental manipulation."""
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
