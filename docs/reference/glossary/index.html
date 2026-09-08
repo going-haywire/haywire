@@ -5072,6 +5072,16 @@
 <td>—</td>
 </tr>
 <tr>
+<td><strong>seeded promotion</strong></td>
+<td>An author-declared <em>default</em> promotion: a <code>self.&lt;bag&gt;.promote(field, direction)</code> call in a node's <strong><code>init()</code></strong>, giving a freshly-dropped node a sensible face while leaving the user free to demote. Belongs in <code>init()</code> because that hook runs only on a first drop — a node restored from a graph goes through <code>_initialize_from_dict</code>, which never calls it, so the serialized <code>_promoted_keys</code> stays the sole authority thereafter. The same call in <code>post_init()</code> is a defect: <code>post_init</code> runs on both paths and <em>after</em> load has restored and regenerated promotions, and <code>promote()</code> cannot distinguish "the user demoted this" from "nobody has decided yet" — so it silently re-promotes on every load and the demotion is unrecoverable</td>
+<td>default promotion, auto-promotion</td>
+</tr>
+<tr>
+<td><strong>live / rebuild-category setting</strong></td>
+<td>The two kinds of field on a node wrapping an external library, distinguished by where the wrapped attribute is <em>read</em>. A <strong>live</strong> setting is read every frame off the running object (a per-frame <code>process()</code>/<code>read()</code>) and declares <code>Promotable.ALL</code> — an edge genuinely drives it. A <strong>rebuild-category</strong> setting is consumed once when the object is constructed (a constructor or <code>setup()</code>) and declares <code>Promotable.CONFIG</code> — an edge would silently do nothing until the next restart, but a pinless face widget is harmless. A fact about the wrapped library, found at the read site, not a judgement. Distinct from <code>Promotable.NONE</code>, which is for display-only fields where <em>no</em> direction is meaningful</td>
+<td>restart-required (describes the symptom, not the category), construction param</td>
+</tr>
+<tr>
 <td><strong>is_linked_lazy</strong></td>
 <td>A <code>DataPort</code> flag set on every promoted outlet: it forces any linked edge to lazy (pull-on-demand) propagation so an out-of-frame setting write doesn't propagate eagerly. Paired with an <code>on_changed → propagate</code> subscription that triggers the deferred pull; the flag alone is inert</td>
 <td>—</td>
