@@ -76,6 +76,25 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 **The accessor name.** A node's `class filter(NodeSettings):` becomes `self.filter` on every instance. The class name is the accessor name — pick descriptive ones (`filter`, `output`, `api`). Multiple accessors per node are allowed; each gets its own `_setting_key` namespace.
 
+**Sharing one bag across several nodes.** `@node` collects bags by walking the node's **full MRO, base-first**, so a bag declared on an undecorated shared base is picked up by every decorated subclass. A plain class-body alias works too, and is the lighter option when only some nodes want the bag:
+
+```python
+# shared_bags.py
+class NmsSettings(NodeSettings):
+    enabled = setting[BOOL](True, label="Apply NMS")
+
+# two unrelated nodes, each opting in
+@node(...)
+class ObjectDetectorNode(BaseEstimatorNode):
+    nms = NmsSettings          # accessor name MUST match everywhere
+
+@node(...)
+class PoseEstimatorNode(BaseEstimatorNode):
+    nms = NmsSettings          # ...the same name here
+```
+
+**Alias a shared bag under one accessor name, always.** The descriptors inside `NmsSettings` are *shared objects*, and `@node` re-stamps `_setting_key = f"{accessor}.{field}"` on them for every node that declares the bag. Re-stamping is idempotent only while the accessor name is identical. Alias the same class as `nms` on one node and `suppression` on another and the key flips depending on which node was decorated last — a silent, import-order-dependent corruption of both nodes' storage keys. Nothing raises; the conflict check only catches an accessor *shadowing* an inherited bag without subclassing it.
+
 **`@node` derives the namespace automatically.** From a node's `registry_key`:
 
 ```text
@@ -243,19 +262,51 @@ Eligibility is `eligible_promotion_directions(descriptor)` — purely the field'
 
 ```python
 from haywire.core.settings import NodeSettings, Promotable, setting
-from haywire.barn.builtin.types import CHOICES
+from haywire.barn.builtin.types import BOOL, CHOICES
 
 class depth(NodeSettings):
-    # Restart-required pipeline parameter: a port would imply live control
-    # the hardware can't deliver — remove it from the Setting-row menu entirely.
+    # Restart-required pipeline parameter: an EDGE would imply live control
+    # the hardware can't deliver, but a face widget is harmless — so CONFIG,
+    # not NONE. See "Live vs rebuild-category settings" below.
     preset_mode = setting[CHOICES](
         "HIGH_DENSITY",
         label="Preset Mode",
-        promotable=Promotable.NONE,
+        promotable=Promotable.CONFIG,
     )
+
+class stream_flags(NodeSettings):
+    # Display-only: written by node code from a callback edge, never by the
+    # user and never by the graph. No direction is meaningful — this is what
+    # NONE is for.
+    want_depth = setting[BOOL](False, label="Depth Requested", promotable=Promotable.NONE)
 ```
 
-`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `ALL` (default). Effective eligibility is purely the declared flag — `watch()` seeds `Promotable.OUTLET` itself, so there's no separate structural rule to intersect with. The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
+`Promotable` is a Flag: `NONE` / `INLET` / `OUTLET` / `CONFIG` / `INPUT` (= `INLET | CONFIG`) / `ALL` (default). Effective eligibility is purely the declared flag — `watch()` seeds `Promotable.OUTLET` itself, so there's no separate structural rule to intersect with. The single source of truth is `eligible_promotion_directions()` in `haywire.core.node.promotion` — the Setting-row menu hides ineligible entries and `promote_setting()` raises `ValueError` for them, whether the call is interactive or from the load-time regeneration pass.
+
+**Live vs rebuild-category settings.** A node wrapping an external library (a camera, a model, a tracker) has two kinds of field, and they want different `promotable=`:
+
+| | Read | Declare | Why |
+|---|---|---|---|
+| **live** | every frame, off the running object | `Promotable.ALL` | an edge genuinely drives it |
+| **rebuild-category** | once, when the object is constructed | `Promotable.CONFIG` | an edge would silently do nothing until the next restart |
+
+The distinction is a fact about the wrapped library, not a judgement — find the attribute's read site. A value consumed in a constructor or a `setup()` is rebuild-category; one read inside a per-frame `process()`/`read()` is live.
+
+Reach for `Promotable.NONE` only when *no* direction is meaningful — a display-only field whose sole writer is node code. Restart-required is **not** a reason for `NONE`: a promoted CONFIG port is pinless and takes no edge, so it is a face widget and nothing more. `NONE` would forbid that harmlessly-useful widget along with the misleading inlet.
+
+**Seeded promotion — an author-chosen default face.** A node author can promote a field at construction so the node arrives with a sensible face, while leaving the user free to demote it. Do this in **`init()`**, never `post_init()`:
+
+```python
+def init(self):
+    self.add(EXEC.as_inlet("start", label="Start"))
+    # This node's face carries the device picker by default. The user may
+    # demote it from the Setting-row menu; that choice must survive a save.
+    self.device.promote("mxid", PortType.CONFIG)
+```
+
+`init()` runs **only for a freshly-dropped node** — a node restored from a graph goes through `_initialize_from_dict` instead, which never calls it. `post_init()` runs in *both* cases, and *after* the load has already restored `_promoted_keys` and regenerated the ports it records. So an unconditional `promote()` in `post_init()` re-promotes on every load: the user demotes the field, saves, reopens, and it is back. `promote()` is a no-op only when the field is *currently* promoted — it cannot distinguish "the user demoted this" from "nobody has decided yet". Seeding in `init()` puts the author's choice in the same place every other first-drop default lives, and lets the serialized bag be the sole authority thereafter.
+
+Settings bags are constructed and node-bound in the node's `__init__`, so `self.<bag>` is live by the time `init()` runs.
 
 **Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted.
 
