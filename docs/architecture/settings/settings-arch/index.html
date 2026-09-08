@@ -4256,10 +4256,16 @@ direction it was promoted to, because promotion changes who owns the value:</p>
 <li><strong>Promoted to an OUTLET</strong> ⇒ the row keeps its normal <strong>editable</strong> widget,
   hinted <code>"↳ promoted to outlet"</code> — the setting is still the source of
   truth; the port only exposes its value downstream.</li>
+<li><strong>Promoted to a CONFIG</strong> ⇒ the row keeps its normal <strong>editable</strong> widget,
+  hinted <code>"↳ promoted to config"</code>. A CONFIG port has no pin and no edge, so
+  nothing external can ever own the value — the setting stays the source of
+  truth, exactly as for an outlet. Promoting to config <em>adds</em> the port's own
+  live widget wherever a CONFIG port renders (Ports Panel / node card); it
+  does not move the Properties-panel one.</li>
 </ul>
-<p>The row carries <code>data-promoted-direction="inlet"|"outlet"</code> (in addition to
-the existing <code>data-promoted="true"</code>) so tests and tooling can assert on
-direction, not just promoted-ness.</p>
+<p>The row carries <code>data-promoted-direction="inlet"|"outlet"|"config"</code> (in
+addition to the existing <code>data-promoted="true"</code>) so tests and tooling can
+assert on direction, not just promoted-ness.</p>
 <h3 id="66-the-stamped-widget-contract-adr-0017">6.6 The stamped widget contract (ADR 0017)<a class="headerlink" href="#66-the-stamped-widget-contract-adr-0017" title="Permanent link">&para;</a></h3>
 <p>Widget selection is computed <strong>once</strong> per descriptor and never re-resolved at
 render time. <code>SettingDescriptor._stamp_widget()</code> sets two plain attributes —

@@ -5068,7 +5068,7 @@
 </tr>
 <tr>
 <td><strong>promoted inlet / promoted outlet</strong></td>
-<td>The two promotion directions. A promoted <strong>inlet</strong> lets an edge drive the setting (the panel widget is gone as soon as the promotion exists, linked or not); a promoted <strong>outlet</strong> lets the setting drive downstream consumers. A <code>watch()</code> field is outlet-only by declaration (<code>promotable=Promotable.OUTLET</code>, seeded by the <code>watch()</code> factory itself — no separate structural override). A promoted <strong>config</strong> field behaves like a promoted inlet in the Properties panel (widget replaced by a static "promoted" label, hinted "promoted to config") but has no pin at all — never linked, never driven by an edge; its live widget renders instead wherever a CONFIG port's widget already renders (Ports Panel / node card)</td>
+<td>The two promotion directions. A promoted <strong>inlet</strong> lets an edge drive the setting (the panel widget is gone as soon as the promotion exists, linked or not); a promoted <strong>outlet</strong> lets the setting drive downstream consumers. A <code>watch()</code> field is outlet-only by declaration (<code>promotable=Promotable.OUTLET</code>, seeded by the <code>watch()</code> factory itself — no separate structural override). A promoted <strong>config</strong> field behaves like a promoted outlet in the Properties panel (its editable widget stays, hinted "promoted to config") but has no pin at all — never linked, never driven by an edge, so the setting stays the source of truth; promoting to config additionally renders the port's own live widget wherever a CONFIG port's widget renders (Ports Panel / node card). Whichever the direction, the generated port's <strong>ShowWidgetStrategy</strong> is the user's to change from the pin menu — it starts at the direction default, which no author chose for it</td>
 <td>—</td>
 </tr>
 <tr>
@@ -5450,7 +5450,7 @@
 </tr>
 <tr>
 <td><strong>ShowWidgetStrategy</strong></td>
-<td>Per-port enum (<code>NEVER</code>, <code>NOT_LINKED</code>, <code>WHEN_LINKED</code>, <code>ALWAYS</code>) declaring whether a port's Widget is rendered for each link state. Resolved by <code>DataPort.should_show_widget()</code> against <code>is_linked()</code>. Direction defaults: inlet <code>NOT_LINKED</code>, outlet <code>NEVER</code>, config <code>ALWAYS</code>. See <a href="../../adr/0003-show-widget-strategy/">adr/0003</a></td>
+<td>Per-port enum (<code>NEVER</code>, <code>NOT_LINKED</code>, <code>WHEN_LINKED</code>, <code>ALWAYS</code>) declaring whether a port's Widget is rendered for each link state. Resolved by <code>DataPort.should_show_widget()</code> against <code>is_linked()</code> — the one predicate governing both the node card and the <strong>Ports Panel</strong>, so the two never disagree. Direction defaults come from <code>default_show_widget()</code>: inlet <code>NOT_LINKED</code>, outlet <code>NEVER</code>, config <code>ALWAYS</code>. An author-declared port's strategy is the author's decision, fixed at <code>as_*</code> time; a <strong>promoted port</strong>'s is the user's, changed live from the pin menu's "Show widget" submenu. See <a href="../../adr/0003-show-widget-strategy/">adr/0003</a></td>
 <td>Widget visibility flag</td>
 </tr>
 <tr>

@@ -3173,6 +3173,17 @@
   
 </li>
       
+        <li class="md-nav__item">
+  <a href="#amendment-2026-09-08-a-promoted-ports-strategy-is-the-users-not-the-authors" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Amendment (2026-09-08) — a promoted port's strategy is the user's, not the author's
+      
+    </span>
+  </a>
+  
+</li>
+      
     </ul>
   
 </nav>
@@ -3311,6 +3322,17 @@
 <li>Connecting/disconnecting a pin re-renders both endpoint nodes, so widget visibility toggles live.</li>
 <li>On upgrade, widgets on currently-connected inlets become hidden (the new <code>NOT_LINKED</code> default). This is intended.</li>
 </ul>
+<h2 id="amendment-2026-09-08-a-promoted-ports-strategy-is-the-users-not-the-authors">Amendment (2026-09-08) — a promoted port's strategy is the <em>user's</em>, not the author's<a class="headerlink" href="#amendment-2026-09-08-a-promoted-ports-strategy-is-the-users-not-the-authors" title="Permanent link">&para;</a></h2>
+<p>This ADR says twice that visibility is an authoring decision: "anything other than the per-direction default is overridden per-port <strong>when the port is added</strong>", and "It is the <strong>developer's</strong> decision." That still holds for every author-declared port. It does <strong>not</strong> hold for a <strong>promoted</strong> port, and the distinction is the point.</p>
+<p>An author-declared port has a human behind its strategy — someone wrote <code>as_outlet(...)</code> and either accepted the default or overrode it. A port promoted from a setting has no such author: <code>promote_setting</code> applies a blanket per-direction rule to a port the <em>user</em> conjured at runtime, so <code>NEVER</code> on a promoted outlet is not a decision anyone made about that value. The motivating gap: a user promotes a setting to an outlet to feed it downstream, and the value they are feeding becomes uneditable and invisible on the card, with no way to ask for it back.</p>
+<p>So <code>DataPort.set_show_widget()</code> is added as the one runtime write path, reachable only from the pin context menu ("Show widget ▸", a <code>PinWidgetMenu</code> submenu offering all four strategies, radio-marked), and offered only where <code>port.promoted</code> is true. Nothing calls it on an author-declared port.</p>
+<p>Three consequences worth stating, because each is a place this could have been done more cheaply and worse:</p>
+<ul>
+<li><strong>The full enum is exposed, not a boolean.</strong> A promoted inlet's default is <code>NOT_LINKED</code>, and a two-state toggle would have to map "on" to <code>ALWAYS</code>, silently destroying the hide-on-connect behavior this ADR exists to deliver. A menu that cannot represent a state the field holds also shows no selection on a port already in that state.</li>
+<li><strong>The choice persists in the settings bag, not the port.</strong> A promoted port is regenerated from the bag's <code>promoted</code> record on load rather than serialized, so the record is the only thing that survives. It widened from <code>key -&gt; "outlet"</code> to <code>key -&gt; {"direction": ..., "show_widget": ...}</code> — graph format <strong>v3</strong>, migrated by <code>UpgradeVersionThree</code>. <code>show_widget</code> is written only when it differs from the direction default, so a graph names visibility exactly where a human set it, and <code>default_show_widget()</code> now holds those defaults in one place (previously restated at each <code>as_*</code> factory plus this document's table).</li>
+<li><strong>Both render surfaces stay coupled.</strong> <code>should_show_widget()</code> remains the single predicate, so the node card and the Ports Panel (ADR 0008) continue to agree. The Properties-panel <em>settings row</em> is ungated by it, so a user who sets <code>NEVER</code> can still edit the value there — there is no way to make a promoted value uneditable.</li>
+</ul>
+<p>Demoting discards the choice: the promotion record is its only storage. Freeze-on-disconnect (ADR 0014) protects <em>values</em>, which can represent real work; a view preference is one right-click to restore.</p>
 
 
 
