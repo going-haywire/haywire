@@ -642,10 +642,10 @@ def _render_reactive_field_row(
 
     # Direction- and link-aware promoted row: an INLET means the graph now owns
     # the value (an incoming edge, or simply having been promoted), so the row
-    # goes read-only; an OUTLET keeps the setting as source of truth, so the
-    # editable widget stays. Recomputed per render — link-state staleness until
-    # the next redraw is accepted, no reactive tracking beyond this per-render
-    # check.
+    # goes read-only. An OUTLET or a CONFIG keeps the setting as source of truth,
+    # so the editable widget stays. Recomputed per render — link-state staleness
+    # until the next redraw is accepted, no reactive tracking beyond this
+    # per-render check.
     port = obj._node.ports.get(defn.storage_key) if (is_promoted and obj._node is not None) else None
     is_promoted_input = False
     promoted_hint = ""
@@ -654,11 +654,10 @@ def _render_reactive_field_row(
             is_promoted_input = True
             promoted_hint = "driven by inlet" if port.is_linked() else "promoted to inlet"
         elif port.is_config():
-            # A CONFIG port has no edge, ever — its widget is the only write
-            # path. It still renders read-only here: the interactive widget
-            # moves to wherever a CONFIG port's live widget already renders
-            # today (Ports Panel / node card), not the Properties panel row.
-            is_promoted_input = True
+            # A CONFIG port has no edge, ever — the setting stays the source of
+            # truth and its widget is the only write path. Like an OUTLET, the
+            # row keeps its editable widget: promoting to config ADDS a live
+            # widget on the node/Ports Panel, it does not move the panel one.
             promoted_hint = "promoted to config"
         else:
             promoted_hint = "promoted to outlet"
@@ -694,10 +693,11 @@ def _render_reactive_field_row(
 
     # Override chrome (reset button) is offered whenever the field carries a local
     # opinion (_set_keys membership) AND the graph doesn't own its value through a
-    # promoted INLET. A promoted OUTLET keeps the setting as source of truth (its
-    # widget stays editable), so its chrome stays; an inlet-driven or inlet-promoted
-    # row is read-only, so resetting there is meaningless. Plain fields get the
-    # same affordance as mirrors, only the tooltip/meaning differs by field kind.
+    # promoted INLET. A promoted OUTLET or CONFIG keeps the setting as source of
+    # truth (its widget stays editable), so its chrome stays; an inlet-driven or
+    # inlet-promoted row is read-only, so resetting there is meaningless. Plain
+    # fields get the same affordance as mirrors, only the tooltip/meaning differs
+    # by field kind.
     def _has_local_opinion() -> bool:
         return obj.is_locally_set(attr_name) and not is_promoted_input
 

@@ -464,7 +464,10 @@ def test_label_glyph_grammar(make_node_with_setting):
     assert _label_of(_render(node3)) == "→ threshold"  # still promoted -> no •
 
 
-def test_promoted_config_row_is_read_only(make_node_with_setting):
+def test_promoted_config_row_stays_editable(make_node_with_setting):
+    """A CONFIG port has no edge — the setting stays the source of truth, so the
+    panel row keeps its editable widget (same as an OUTLET). Promoting to config
+    ADDS the port's own live widget on the node; it does not move the panel's."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
@@ -475,15 +478,14 @@ def test_promoted_config_row_is_read_only(make_node_with_setting):
     assert row is not None
     assert row._props.get("data-promoted-direction") == "config"
     assert _row_hint(row) == "promoted to config"
-    assert not _has_editable_widget(row), "promoted config must render read-only, no editable widget"
-    lbl = _find_promoted_label(row)
-    assert lbl is not None
-    assert lbl.text == "promoted"
+    assert _has_editable_widget(row), "promoted config must keep its editable widget"
+    assert _find_promoted_label(row) is None
 
 
-def test_promoted_config_row_reset_is_meaningless(make_node_with_setting):
-    """Same as a promoted inlet: the row is read-only, so Reset is meaningless
-    even if the field carries a local opinion."""
+def test_promoted_config_keeps_reset_when_locally_set(make_node_with_setting):
+    """Same as a promoted outlet: the row stays editable, so Reset stays
+    actionable when the field carries a local opinion (the • dirty glyph is
+    still suppressed for any promotion direction)."""
     node = make_node_with_setting(accessor="filter", field="threshold")
     from haywire.core.node.promotion import promote_setting
     from haywire.core.types.enums import PortType
@@ -493,7 +495,8 @@ def test_promoted_config_row_reset_is_meaningless(make_node_with_setting):
 
     row = _render(node)
     assert row is not None
-    assert not _reset_enabled(row), "promoted config row's Reset must stay disabled, same as inlet"
+    assert _reset_enabled(row), "promoted config must keep reset actionable, same as outlet"
+    assert not _dirty_label(row)
 
 
 def test_config_eligible_field_offers_promote_to_config_menu_entry(make_node_with_setting):

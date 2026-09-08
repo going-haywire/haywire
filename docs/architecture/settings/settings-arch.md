@@ -344,10 +344,16 @@ direction it was promoted to, because promotion changes who owns the value:
 - **Promoted to an OUTLET** ⇒ the row keeps its normal **editable** widget,
   hinted `"↳ promoted to outlet"` — the setting is still the source of
   truth; the port only exposes its value downstream.
+- **Promoted to a CONFIG** ⇒ the row keeps its normal **editable** widget,
+  hinted `"↳ promoted to config"`. A CONFIG port has no pin and no edge, so
+  nothing external can ever own the value — the setting stays the source of
+  truth, exactly as for an outlet. Promoting to config *adds* the port's own
+  live widget wherever a CONFIG port renders (Ports Panel / node card); it
+  does not move the Properties-panel one.
 
-The row carries `data-promoted-direction="inlet"|"outlet"` (in addition to
-the existing `data-promoted="true"`) so tests and tooling can assert on
-direction, not just promoted-ness.
+The row carries `data-promoted-direction="inlet"|"outlet"|"config"` (in
+addition to the existing `data-promoted="true"`) so tests and tooling can
+assert on direction, not just promoted-ness.
 
 ### 6.6 The stamped widget contract (ADR 0017)
 

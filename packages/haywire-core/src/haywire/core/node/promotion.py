@@ -202,10 +202,11 @@ def promote_setting(
 
     Direction selects the factory (``as_inlet``/``as_outlet``/``as_config``) and
     thus the per-direction ``ShowWidgetStrategy`` default (inlet NOT_LINKED →
-    widget shows while unlinked; outlet NEVER; config ALWAYS — though the
-    Properties-panel row hides a promoted CONFIG's widget the same way it hides
-    a promoted INLET's; the port's own live widget still renders
-    wherever a CONFIG port's widget renders today, e.g. the Ports Panel).
+    widget shows while unlinked; outlet NEVER; config ALWAYS). A promoted CONFIG
+    keeps its editable widget on the Properties-panel row too (like an OUTLET,
+    the setting stays the source of truth) — promoting to config ADDS the port's
+    own live widget wherever a CONFIG port renders (node card / Ports Panel), it
+    does not move the panel's.
     Do NOT pass ``show_widget`` explicitly.
     """
     if direction not in (PortType.INLET, PortType.OUTLET, PortType.CONFIG):
