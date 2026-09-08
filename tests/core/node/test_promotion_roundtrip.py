@@ -19,7 +19,7 @@ def test_promoted_inlet_survives_full_roundtrip(graph_with_library_system, libra
 
     dumped = node._to_dict()
     assert pid not in dumped["ports"]  # promoted port is NOT in the ports block
-    assert dumped["settings"]["example"]["promoted"] == {pid: "inlet"}
+    assert dumped["settings"]["example"]["promoted"] == {pid: {"direction": "inlet"}}
 
     fresh = graph.create_node_wrapper("haybale-testing:node:SettingsNode", position=(50, 0)).node
     fresh._initialize_from_dict(dumped)

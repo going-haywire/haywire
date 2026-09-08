@@ -32,11 +32,11 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, ClassVar, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, NamedTuple, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
-from haywire.core.types.enums import PortType
+from haywire.core.types.enums import PortType, ShowWidgetStrategy, default_show_widget
 from haywire.core.types.interface import IType
 
 from .descriptor import UiState, persistent_setting, setting
@@ -59,6 +59,22 @@ class PromotedFormatError(Exception):
     loader. Raised by ``Settings.from_dict``; the node loader catches it,
     resets the bag to defaults, and attaches a WARNING to the node (see
     ``BaseNode._initialize_from_dict``). Hard breaking change — no migration."""
+
+
+class Promotion(NamedTuple):
+    """One field's promotion record: the direction, and the user's widget-
+    visibility choice for the generated port.
+
+    ``show_widget`` is ``None`` whenever the port uses its direction's default
+    (``default_show_widget``), which is the overwhelmingly common case — only
+    a user who changed it through the pin menu stores anything here. Keeping
+    the unset case as ``None`` rather than the resolved value is what lets
+    ``to_dict`` omit it, so a graph mentions ``show_widget`` only where a human
+    actually made a choice.
+    """
+
+    direction: PortType
+    show_widget: ShowWidgetStrategy | None = None
 
 
 @dataclass_transform(field_specifiers=(setting,))
@@ -127,7 +143,7 @@ class Settings:
         # persisted in the ports block. A field has at most one promoted port
         # (its id IS the storage_key), so this is a single direction per key,
         # never a set. See haywire.core.node.promotion.
-        self._promoted_keys: dict[str, PortType] = {}
+        self._promoted_keys: dict[str, Promotion] = {}
         # Graph-mirror wiring: storage_key -> (src cell, adapter) for fields
         # synced cell-to-cell against the owning graph's bag.
         self._graph_mirror_adapters: dict[str, tuple["DataField", Callable]] = {}
@@ -149,19 +165,53 @@ class Settings:
         self._set_keys.add(descriptor.storage_key)
         self._cell_for(descriptor).set_value(value)
 
-    def set_promoted(self, name: str, direction: PortType) -> None:
+    def set_promoted(
+        self,
+        name: str,
+        direction: PortType,
+        show_widget: ShowWidgetStrategy | None = None,
+    ) -> None:
         """Record that field *name* is promoted to a port in *direction*.
 
         The single source of truth for promotion. Called by
         ``promote_setting`` (interactive AND load-time regen). Unknown *name*:
         logs a warning and ignores (catches typos / stale field names).
         Purely a promotion record — does not touch the field's value cell.
+
+        *show_widget* records the user's widget-visibility choice for the
+        generated port; ``None`` (the default) means "use the direction's
+        default" and is what every promotion starts as.
         """
         fields = type(self)._property_settings()
         if name not in fields:
             logger.warning("set_promoted: unknown field %r on %s — ignored", name, type(self).__name__)
             return
-        self._promoted_keys[fields[name].storage_key] = direction
+        self._promoted_keys[fields[name].storage_key] = Promotion(direction, show_widget)
+
+    def set_promoted_show_widget(self, name: str, strategy: ShowWidgetStrategy | None) -> None:
+        """Record *name*'s widget-visibility choice, keeping its direction.
+
+        No-op for an unknown or unpromoted field — the record only exists
+        while the field is promoted, so there is nothing to attach a choice
+        to otherwise. Pass ``None`` to fall back to the direction default.
+        """
+        fields = type(self)._property_settings()
+        if name not in fields:
+            return
+        storage_key = fields[name].storage_key
+        existing = self._promoted_keys.get(storage_key)
+        if existing is None:
+            return
+        self._promoted_keys[storage_key] = existing._replace(show_widget=strategy)
+
+    def get_promoted_show_widget(self, name: str) -> ShowWidgetStrategy | None:
+        """*name*'s recorded widget-visibility choice, or None when it uses the
+        direction default (or is not promoted at all)."""
+        fields = type(self)._property_settings()
+        if name not in fields:
+            return None
+        record = self._promoted_keys.get(fields[name].storage_key)
+        return record.show_widget if record is not None else None
 
     def clear_promoted(self, name: str) -> None:
         """Clear field *name*'s promotion record (no-op if absent/unknown).
@@ -184,7 +234,8 @@ class Settings:
         fields = type(self)._property_settings()
         if name not in fields:
             return None
-        return self._promoted_keys.get(fields[name].storage_key)
+        record = self._promoted_keys.get(fields[name].storage_key)
+        return record.direction if record is not None else None
 
     def promote(self, field: str, direction: PortType = PortType.INLET) -> None:
         """Promote *field* to a DATA port in *direction*. Sugar over
@@ -495,9 +546,15 @@ class Settings:
         ``values``: only fields whose value differs from the descriptor default
         and are locally set — same value-selection rule as before, now nested
         under a key.
-        ``promoted``: this bag's promotion records, ``storage_key → direction``
-        (``"inlet"``/``"outlet"``). A promoted port is regenerated from this on
-        load — it is NOT persisted in the node's ports block.
+        ``promoted``: this bag's promotion records, ``storage_key → {...}``.
+        Each record always carries ``"direction"`` (``"inlet"``/``"outlet"``/
+        ``"config"``) and carries ``"show_widget"`` only when the user chose a
+        strategy other than the direction's default — so a graph mentions
+        visibility exactly where a human set it. A promoted port is regenerated
+        from this on load; it is NOT persisted in the node's ports block.
+
+        Format v3 shape. v2 wrote a bare direction string per key; the
+        ``UpgradeVersionThree`` prehydrator rewrites those.
         """
         fields = type(self)._property_settings()
         values: dict = {}
@@ -507,7 +564,17 @@ class Settings:
             val = self._local_value(descriptor)
             if val != descriptor._default:
                 values[name] = val
-        promoted = {key: direction.value for key, direction in self._promoted_keys.items()}
+        promoted: dict[str, dict] = {}
+        for key, record in self._promoted_keys.items():
+            entry: dict[str, str] = {"direction": record.direction.value}
+            # Omit a strategy that merely restates the direction default —
+            # the reader re-derives it, and the file stays free of choices
+            # nobody made. Mirrors how `values` skips descriptor defaults.
+            if record.show_widget is not None and record.show_widget is not default_show_widget(
+                record.direction
+            ):
+                entry["show_widget"] = record.show_widget.value
+            promoted[key] = entry
         return {"values": values, "promoted": promoted}
 
     def from_dict(self, data: dict) -> None:
@@ -522,6 +589,12 @@ class Settings:
         Raises ``PromotedFormatError`` if *data* is non-empty but lacks the
         ``"values"`` key — the pre-refactor flat shape. An empty ``{}`` (a bag
         that serialized nothing) is valid and restores nothing.
+
+        Promotion records are read in the **v3 shape only** (a dict per key).
+        A bare direction string is v2 and is rewritten by
+        ``UpgradeVersionThree`` before any bag sees it, so accepting both here
+        would leave the format with two permanent spellings and let an
+        unmigrated path pass silently.
         """
         if data and "values" not in data:
             raise PromotedFormatError(
@@ -536,8 +609,19 @@ class Settings:
                 continue
             descriptor = fields[attr_name]
             self._write_local(descriptor, value)
-        for key, direction_str in data.get("promoted", {}).items():
-            self._promoted_keys[key] = PortType(direction_str)
+        for key, record in data.get("promoted", {}).items():
+            if not isinstance(record, dict):
+                raise PromotedFormatError(
+                    f"{type(self).__name__}: promotion record for {key!r} is "
+                    f"{record!r}, not a dict — this is the pre-v3 shape and should "
+                    f"have been migrated by the prehydrator before reaching here."
+                )
+            direction = PortType(record["direction"])
+            raw_strategy = record.get("show_widget")
+            self._promoted_keys[key] = Promotion(
+                direction,
+                ShowWidgetStrategy(raw_strategy) if raw_strategy is not None else None,
+            )
 
     # -------------------------------------------------------------------------
     # Reset

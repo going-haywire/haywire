@@ -96,6 +96,72 @@ def test_user_version_is_not_a_schema_version():
 
 
 # ---------------------------------------------------------------------------
+# v3 — promotion records widen from a bare direction string to a dict
+# ---------------------------------------------------------------------------
+
+
+def _v2_node(promoted):
+    """A v2-shaped graph carrying one node whose bag holds *promoted*."""
+    return _base(
+        format_version=2,
+        filestem="g",
+        meta={"values": {}, "promoted": {}},
+        nodes={"n1": {"settings": {"example": {"values": {}, "promoted": promoted}}}},
+    )
+
+
+def _promoted_of(out, node="n1", bag="example"):
+    return out["nodes"][node]["settings"][bag]["promoted"]
+
+
+def test_v2_promotion_string_becomes_a_dict():
+    out = prehydrate(_v2_node({"example.threshold": "outlet"}))
+    assert out["format_version"] == CURRENT_FORMAT_VERSION
+    assert _promoted_of(out) == {"example.threshold": {"direction": "outlet"}}
+
+
+def test_migrated_promotion_carries_no_show_widget():
+    """Nobody could have set one before v3, so a migrated port must resolve to
+    its direction default — i.e. render exactly as it did in v2."""
+    out = prehydrate(_v2_node({"a": "inlet", "b": "outlet", "c": "config"}))
+    assert all("show_widget" not in rec for rec in _promoted_of(out).values())
+
+
+def test_v3_promotion_dict_is_left_alone():
+    """An already-v3 record reaching the migration is not re-wrapped."""
+    record = {"direction": "outlet", "show_widget": "always"}
+    out = prehydrate(_v2_node({"x": dict(record)}))
+    assert _promoted_of(out) == {"x": record}
+
+
+def test_v3_migration_walks_every_node_and_bag():
+    data = _base(
+        format_version=2,
+        filestem="g",
+        meta={"values": {}, "promoted": {}},
+        nodes={
+            "n1": {
+                "settings": {
+                    "one": {"values": {}, "promoted": {"a": "inlet"}},
+                    "two": {"values": {}, "promoted": {"b": "outlet"}},
+                }
+            },
+            "n2": {"settings": {"one": {"values": {}, "promoted": {"c": "config"}}}},
+        },
+    )
+    out = prehydrate(data)
+    assert _promoted_of(out, "n1", "one") == {"a": {"direction": "inlet"}}
+    assert _promoted_of(out, "n1", "two") == {"b": {"direction": "outlet"}}
+    assert _promoted_of(out, "n2", "one") == {"c": {"direction": "config"}}
+
+
+def test_v3_migration_survives_a_node_without_settings():
+    """A node dict with no settings block must not break the walk."""
+    data = _base(format_version=2, filestem="g", nodes={"n1": {}, "n2": {"settings": {}}})
+    assert prehydrate(data)["format_version"] == CURRENT_FORMAT_VERSION
+
+
+# ---------------------------------------------------------------------------
 # Failure modes
 # ---------------------------------------------------------------------------
 

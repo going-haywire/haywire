@@ -404,7 +404,22 @@ MENU_ROW_CLASS = "hw-menu-row"
 MENU_ROW_ICON_CLASS = "hw-menu-row-icon"
 """Marker class for a menu row's icons — coloured by ``--hw-menu-row-icon``."""
 
-_MENU_ROW_DISABLED_STYLE = "opacity: 0.4; pointer-events: none"
+#: A disabled row keeps its pointer events so a ``tooltip=`` still opens on
+#: hover — a greyed command is the case where "why can't I use this?" most
+#: needs an answer. ``pointer-events: none`` used to be how the hover
+#: background was suppressed; that is now the hover rule's own
+#: ``:not(.hw-disabled)`` (``app/shell.py``), which does not blind the row.
+#: Nothing else depended on it here: ``on_click`` is never wired when
+#: disabled, and a click lands on the popup card either way (the overlay's
+#: dismissal is ``@click.self``, so only a click on the overlay ITSELF
+#: closes a menu). ``cursor`` must be reset explicitly — ``.hw-menu-row``
+#: sets ``pointer``, and with pointer events restored it would now apply.
+#:
+#: NOT the same constant as ``flyout._DISABLED_STYLE``, which keeps
+#: ``pointer-events: none`` deliberately: there it is what stops an empty
+#: submenu opening on hover, and it is applied inline, so it wins over the
+#: class rule regardless of what this one says.
+_MENU_ROW_DISABLED_STYLE = "opacity: 0.4; cursor: default"
 
 
 def menu_row(
@@ -438,13 +453,19 @@ def menu_row(
       ``--hw-menu-row-font-weight``, ``--hw-menu-row-text-transform``
     - Icon: ``--hw-menu-row-icon``
     - Hover: ``--hw-menu-row-hover-bg``
-    - Disabled: ``opacity: 0.4; pointer-events: none`` (the menu convention —
-      an inapplicable command greys rather than disappearing)
+    - Disabled: ``opacity: 0.4; cursor: default`` (the menu convention — an
+      inapplicable command greys rather than disappearing). The row keeps its
+      pointer events, so ``tooltip=`` still opens on a disabled row — say
+      *why* the command does not apply.
 
     Usage::
 
         hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
         hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)
+        hui.menu_row(
+            "Detach", icon=hui.icon.delete, enabled=False,
+            tooltip="Only a promoted pin can be detached",
+        )
     """
     row = ui.row().classes(f"{MENU_ROW_CLASS} items-center gap-2 w-full")
     with row:

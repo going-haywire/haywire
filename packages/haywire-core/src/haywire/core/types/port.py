@@ -453,6 +453,23 @@ class DataPort(DataTypeIdentity):
         # NOT_LINKED
         return not self.is_linked()
 
+    def set_show_widget(self, strategy: ShowWidgetStrategy) -> None:
+        """Set this port's widget-visibility strategy at runtime.
+
+        ADR 0003 makes ``show_widget`` an *authoring* decision, injected per
+        direction and overridable through the ``as_*`` factories. This is the
+        one runtime write path, and it exists for **promoted** ports only:
+        a promoted port has no author behind its strategy (``promote_setting``
+        applies a blanket per-direction default), so the user who created it
+        owns that choice. The pin menu is its only caller; nothing calls this
+        on an author-declared port.
+
+        Callers are responsible for redrawing — the strategy is read at render
+        time by ``should_show_widget()``, so a card already on screen keeps its
+        old rendering until the node is redrawn.
+        """
+        self.show_widget = strategy
+
     def adopt_state_from(self, existing: "DataPort") -> None:
         """Transplant edge state (and value, when types match) from a port being
         replaced during reconfiguration. Called by ``BaseNode.add`` when a port id

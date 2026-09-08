@@ -1,8 +1,8 @@
 {
-  "format_version": 2,
+  "format_version": 3,
   "filestem": "webcam",
   "created_at": "2026-09-06T15:18:06.135084",
-  "modified_at": "2026-09-06T15:19:47.715201",
+  "modified_at": "2026-09-08T16:56:20.915885",
   "meta": {
     "values": {},
     "promoted": {}
@@ -2118,13 +2118,18 @@
               "posX": 1650.0,
               "posY": 1600.0,
               "width": 269,
-              "height": 110
+              "height": 182
             },
             "promoted": {}
           },
           "example": {
             "values": {},
-            "promoted": {}
+            "promoted": {
+              "example.example_vec2i": {
+                "direction": "outlet",
+                "show_widget": "always"
+              }
+            }
           }
         },
         "props": {
@@ -2132,7 +2137,111 @@
             "posX": 1650.0,
             "posY": 1600.0,
             "width": 269,
-            "height": 110
+            "height": 182
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "SettingsNode",
+          "registry_key": "haybale-testing:node:SettingsNode",
+          "label": "Settings Test Node",
+          "description": "Test the Settings for debugging",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "SettingsNode",
+          "module": "haybale_testing.nodes.testbed.settings_node",
+          "search_tags": [
+            "settings",
+            "debug",
+            "test",
+            "example"
+          ],
+          "menu": "testing/testbed",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false
+        },
+        "library": {
+          "label": "Testing",
+          "version": "0.1.3",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
+          "module_name": "haybale_testing",
+          "name": "haybale-testing",
+          "linked_libraries": [
+            "haybale_core",
+            "haybale_graph_editor"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "SettingsNode_e01ae9": {
+      "node_id": "SettingsNode_e01ae9",
+      "registry_key": "haybale-testing:node:SettingsNode",
+      "position": [
+        2006.2674440635647,
+        1597.6529385005674
+      ],
+      "node_data": {
+        "node_id": "SettingsNode_e01ae9",
+        "ports": {
+          "settings": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "Settings",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": "default value"
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "settings",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": "default value"
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 2006.2674440635647,
+              "posY": 1597.6529385005674,
+              "width": 269,
+              "height": 138
+            },
+            "promoted": {}
+          },
+          "example": {
+            "values": {},
+            "promoted": {
+              "example.example_vec2i": {
+                "direction": "inlet"
+              }
+            }
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 2006.2674440635647,
+            "posY": 1597.6529385005674,
+            "width": 269,
+            "height": 138
           },
           "promoted": {}
         },
@@ -2292,6 +2401,15 @@
       "edge_type": "data",
       "chain_adapter_keys": [],
       "is_lazy": false
+    },
+    "SettingsNode_9cfc9532[example.example_vec2i]->SettingsNode_e01ae9[example.example_vec2i]": {
+      "source_node_id": "SettingsNode_9cfc9532",
+      "outlet_port_id": "example.example_vec2i",
+      "sink_node_id": "SettingsNode_e01ae9",
+      "inlet_port_id": "example.example_vec2i",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": true
     }
   },
   "variables": {},

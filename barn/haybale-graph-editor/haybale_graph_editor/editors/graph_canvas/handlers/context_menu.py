@@ -642,7 +642,7 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
 
         self._emit(DissolveRerouteEvent(node_id=node_id))
 
-    # PortContextActions — setting demotion
+    # PortContextActions — setting demotion, promoted-port widget visibility
 
     def demote_setting(self, port_id: str) -> None:
         """Remove the promoted port for ``port_id`` on the right-clicked node."""
@@ -652,6 +652,31 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         if wrapper is None:
             return
         demote_setting(wrapper.node, port_id)
+        self._redraw_node(wrapper.node_id)
+
+    def set_port_show_widget(self, port_id: str, strategy: str) -> None:
+        """Set a promoted port's widget-visibility strategy from the pin menu.
+
+        Takes the strategy by its enum *value* so the surface Protocol stays
+        free of a core enum import. An unrecognised value is ignored rather
+        than raised: the only caller builds its rows from the enum itself, so
+        a bad value means a coding error, not user input worth a dialog.
+
+        Not undoable — matching ``demote_setting`` beside it, the other
+        promoted-port verb on this menu.
+        """
+        from haywire.core.node.promotion import set_promoted_show_widget
+        from haywire.core.types.enums import ShowWidgetStrategy
+
+        wrapper = self._context.data[EditState].active_node
+        if wrapper is None:
+            return
+        try:
+            resolved = ShowWidgetStrategy(strategy)
+        except ValueError:
+            logger.warning("set_port_show_widget: unknown strategy %r — ignored", strategy)
+            return
+        set_promoted_show_widget(wrapper.node, port_id, resolved)
         self._redraw_node(wrapper.node_id)
 
     def _redraw_node(self, node_id: str) -> None:

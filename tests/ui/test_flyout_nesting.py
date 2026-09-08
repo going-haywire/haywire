@@ -110,7 +110,13 @@ async def test_submenu_row_disabled_standing_alone_draws_no_flyout(user: User) -
     assert row._menu is None, "a disabled row must not create a flyout menu"
     assert "hw-disabled" in row._row._classes
     assert row._row._style.get("opacity") == "0.4"
-    assert row._row._style.get("pointer-events") == "none"
+    # Keeps pointer events, unlike the RETROACTIVELY greyed anchor
+    # (`test_empty_body_greys_the_anchor_retroactively`). The two disabled
+    # states are not the same: there a flyout menu exists and blinding the row
+    # is what stops it opening on hover, whereas here no menu was created at
+    # all, so there is nothing to suppress — and keeping pointer events is
+    # what lets a `tooltip=` explain why the row is greyed.
+    assert row._row._style.get("pointer-events") is None
 
     # It really can't be entered — the disabled draw path never tries to.
     with pytest.raises(RuntimeError):

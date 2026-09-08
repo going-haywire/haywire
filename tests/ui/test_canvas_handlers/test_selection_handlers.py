@@ -6,6 +6,7 @@ import json
 import pytest
 from unittest.mock import MagicMock, patch
 
+from haywire.core.graph.clipboard import CLIPBOARD_FORMAT_VERSION
 from haywire.core.state import LibraryStateContainer, LibraryStateRegistry
 from haywire.core.session.context import SessionContext
 from haybale_graph_editor.editors.graph_canvas.handlers import selection as selection_module
@@ -342,7 +343,7 @@ def test_paste_uses_event_text_when_valid(graph, session, edit_state_cls):
     h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
     payload = {
         "haywire_clipboard": True,
-        "format_version": 1,
+        "format_version": CLIPBOARD_FORMAT_VERSION,
         "source": {"session_id": "x", "timestamp": 99.0},
         "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
         "nodes": {},
@@ -365,7 +366,7 @@ def test_paste_falls_back_to_mirror_when_text_empty(graph, session, edit_state_c
     h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
     mirror_payload = {
         "haywire_clipboard": True,
-        "format_version": 1,
+        "format_version": CLIPBOARD_FORMAT_VERSION,
         "source": {"session_id": "x", "timestamp": 1.0},
         "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
         "nodes": {},
@@ -400,7 +401,7 @@ def test_paste_auto_selects_pasted_elements(graph, session, edit_state_cls):
     )
     payload = {
         "haywire_clipboard": True,
-        "format_version": 1,
+        "format_version": CLIPBOARD_FORMAT_VERSION,
         "source": {"session_id": "x", "timestamp": 99.0},
         "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
         "nodes": {},
@@ -436,7 +437,7 @@ def test_paste_clears_active(graph, session, edit_state_cls):
 
     payload = {
         "haywire_clipboard": True,
-        "format_version": 1,
+        "format_version": CLIPBOARD_FORMAT_VERSION,
         "source": {"session_id": "x", "timestamp": 99.0},
         "bounding_box": {"min_x": 0, "min_y": 0, "max_x": 0, "max_y": 0},
         "nodes": {},
@@ -457,7 +458,14 @@ def test_paste_ignores_text_without_source_timestamp(graph, session, edit_state_
     editor = MagicMock()
     h = SelectionHandlers(graph=graph, editor=editor, session_id="sess", session=session)
     # passes flag+version but is_haywire_payload now rejects it (no source.timestamp)
-    bad = json.dumps({"haywire_clipboard": True, "format_version": 1, "nodes": {}, "edges": {}})
+    bad = json.dumps(
+        {
+            "haywire_clipboard": True,
+            "format_version": CLIPBOARD_FORMAT_VERSION,
+            "nodes": {},
+            "edges": {},
+        }
+    )
     # no mirror set -> nothing valid to paste
     with patch.object(selection_module.ui, "notify") as notify:
         h.process_paste_clipboard(UserPasteClipboardEvent(canvasX=0.0, canvasY=0.0, clipboardText=bad))

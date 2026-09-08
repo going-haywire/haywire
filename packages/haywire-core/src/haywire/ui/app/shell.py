@@ -303,7 +303,10 @@ STATIC_CSS = (
     "   text-transform: var(--hw-menu-row-text-transform, none);"
     "   color: var(--hw-menu-row-text, var(--hw-text-body));"
     " }"
-    " .hw-menu-row:hover {"
+    # Excludes the disabled state rather than relying on `pointer-events: none`
+    # to suppress it: a blinded row cannot open its own tooltip, and a greyed
+    # command is exactly where the user asks why it is greyed.
+    " .hw-menu-row:not(.hw-disabled):hover {"
     "   background: var(--hw-menu-row-hover-bg, var(--hw-bg-hover));"
     " }"
     # Same specificity as the `.hw-panel .q-icon:not()…` dim rule above and
@@ -313,7 +316,12 @@ STATIC_CSS = (
     "   color: var(--hw-menu-row-icon, var(--hw-text-dim)) !important;"
     "   font-size: var(--hw-menu-row-icon-size, 1.125rem);"
     " }"
-    " .hw-menu-row.hw-disabled { opacity: 0.4; pointer-events: none; }"
+    # Keeps pointer events (so `tooltip=` works) — the hover rule above opts
+    # out by itself, and `cursor` must be reset because `.hw-menu-row` sets
+    # `pointer`. A submenu anchor greyed by `flyout._DISABLED_STYLE` still gets
+    # `pointer-events: none` from that INLINE style, which wins over this rule:
+    # there it is load-bearing, stopping an empty flyout opening on hover.
+    " .hw-menu-row.hw-disabled { opacity: 0.4; cursor: default; }"
     # ── compact-fields utility class ──
     # Apply to any container (panel, node widget area) that needs tight
     # Quasar field rendering.  CSS custom properties allow themes to

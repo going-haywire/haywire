@@ -18,7 +18,12 @@ from typing import Any, Dict, List, TYPE_CHECKING
 if TYPE_CHECKING:
     from .base import BaseGraph
 
-CLIPBOARD_FORMAT_VERSION = 1
+#: Bumped to 2 when promotion records widened to dicts (graph format v3). A
+#: payload carries whole serialized nodes, promotion records included, and is
+#: validated by exact-match — so an older payload still sitting on the system
+#: clipboard is rejected rather than pasted into a loader that now expects the
+#: v3 shape. Clipboard payloads are transient, so they are never migrated.
+CLIPBOARD_FORMAT_VERSION = 2
 
 
 def build_clipboard_payload(

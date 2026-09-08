@@ -135,6 +135,15 @@ class AppIcon:
     a menu row has no checked state of its own, so the icon carries it."""
     unchecked: Final[str] = "check_box_outline_blank"
     """A togglable menu entry that is currently OFF. See ``checked``."""
+    radio_checked: Final[str] = "radio_button_checked"
+    """The SELECTED entry of a mutually-exclusive menu group. Paired with
+    ``radio_unchecked``. Distinct from ``checked``/``unchecked``, which are
+    checkboxes: use those where entries toggle independently, these where
+    picking one entry deselects the others (the icon is the only thing saying
+    which it is, so the wrong pair misstates how the menu behaves)."""
+    radio_unchecked: Final[str] = "radio_button_unchecked"
+    """A non-selected entry of a mutually-exclusive menu group. See
+    ``radio_checked``."""
 
     # ── File system ───────────────────────────────────────────────────────────
     folder: Final[str] = "folder"

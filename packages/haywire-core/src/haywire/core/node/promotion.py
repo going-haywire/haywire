@@ -11,7 +11,7 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
-from haywire.core.types.enums import PortType
+from haywire.core.types.enums import PortType, ShowWidgetStrategy
 
 if TYPE_CHECKING:
     from haywire.core.node.data import NodeData
@@ -157,7 +157,7 @@ def regenerate_promoted_ports(node: "NodeData") -> None:
         # (accessor, field) arguments.
         fields = type(bag)._property_settings()
         key_to_field = {desc.storage_key: name for name, desc in fields.items()}
-        for storage_key, direction in list(bag._promoted_keys.items()):
+        for storage_key, record in list(bag._promoted_keys.items()):
             field = key_to_field.get(storage_key)
             if field is None:
                 logger.warning(
@@ -168,7 +168,7 @@ def regenerate_promoted_ports(node: "NodeData") -> None:
                     accessor,
                 )
                 continue
-            promote_setting(node, accessor, field, direction)
+            promote_setting(node, accessor, field, record.direction, record.show_widget)
 
 
 def promote_setting(
@@ -176,6 +176,7 @@ def promote_setting(
     accessor: str,
     field: str,
     direction: PortType = PortType.INLET,
+    show_widget: "ShowWidgetStrategy | None" = None,
 ) -> None:
     """Promote a setting field to a DATA port in *direction*. No-op if already promoted.
 
@@ -207,7 +208,15 @@ def promote_setting(
     the setting stays the source of truth) — promoting to config ADDS the port's
     own live widget wherever a CONFIG port renders (node card / Ports Panel), it
     does not move the panel's.
-    Do NOT pass ``show_widget`` explicitly.
+
+    ``show_widget`` overrides that per-direction default for this port.
+    ``None`` (the default) means "use the direction's" and is what an
+    interactive promotion always passes; a value arrives only from
+    ``regenerate_promoted_ports`` restoring a choice the user made through the
+    pin menu, which is the one runtime write path (see
+    ``DataPort.set_show_widget``). ADR 0003's rule that visibility is the
+    *author's* decision is untouched: it governs author-declared ports, and a
+    promoted port has no author behind its strategy.
     """
     if direction not in (PortType.INLET, PortType.OUTLET, PortType.CONFIG):
         raise ValueError(f"promote direction must be INLET, OUTLET, or CONFIG, got {direction!r}")
@@ -231,6 +240,11 @@ def promote_setting(
 
     kw = _metadata_to_port_kwargs(desc)
     type_cls = kw.pop("type_cls")
+    # Only forwarded when set: absent lets each factory's own setdefault inject
+    # the per-direction default, so there is still exactly one place that
+    # decides what a plain promotion looks like.
+    if show_widget is not None:
+        kw["show_widget"] = show_widget
     if direction is PortType.OUTLET:
         # Every promoted outlet is is_linked_lazy.
         spec = type_cls.as_outlet(pid, promoted=True, is_linked_lazy=True, **kw)
@@ -254,7 +268,7 @@ def promote_setting(
     # serializes (the port itself never does) and what regenerate_promoted_ports
     # reads on load. Idempotent-safe: an early return above (pid already in
     # node.ports) means we never reach here for an already-promoted field.
-    bag.set_promoted(field, direction)
+    bag.set_promoted(field, direction, show_widget)
 
 
 def demote_setting(node: "NodeData", port_id: str) -> None:
@@ -274,3 +288,32 @@ def demote_setting(node: "NodeData", port_id: str) -> None:
     node.ports[port_id].unbind_field()
     with node.rejig(include=[port_id]):
         pass
+
+
+def set_promoted_show_widget(
+    node: "NodeData",
+    port_id: str,
+    strategy: ShowWidgetStrategy,
+) -> None:
+    """Set a promoted port's widget-visibility strategy, and persist the choice.
+
+    Two writes, both required: the live port (what ``should_show_widget()``
+    reads at render time) and the bag's promotion record (what survives a save,
+    since a promoted port is regenerated rather than serialized). Writing only
+    the port would work until reload and then silently revert.
+
+    No-op for an unknown port, a port that is not promoted, or one matching no
+    setting — the pin menu only offers this on a promoted pin, so those are
+    defensive rather than expected.
+
+    Callers redraw; this does not.
+    """
+    port = node.ports.get(port_id)
+    if port is None or not port.promoted:
+        return
+    try:
+        bag, desc = _resolve_promoted(node, port_id)
+    except KeyError:
+        return
+    port.set_show_widget(strategy)
+    bag.set_promoted_show_widget(desc._attr_name, strategy)

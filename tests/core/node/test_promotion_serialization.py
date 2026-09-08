@@ -36,7 +36,7 @@ class TestPromotedPortNotSerialized:
         promote_setting(node, "example", "example_float", PortType.OUTLET)
         d = node._to_dict()
         pid = type(node.example).__dict__["example_float"].storage_key
-        assert d["settings"]["example"]["promoted"] == {pid: "outlet"}
+        assert d["settings"]["example"]["promoted"] == {pid: {"direction": "outlet"}}
 
 
 class TestRoundTripRegeneratesPort:

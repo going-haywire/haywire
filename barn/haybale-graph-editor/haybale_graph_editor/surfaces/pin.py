@@ -21,11 +21,14 @@ if TYPE_CHECKING:
 class PortActions(Protocol):
     """Verbs available when the user right-clicks a pin.
 
-    Carries one real verb: the demote backing "Detach from setting", shown
-    only on a promoted inlet.
+    Two verbs, both meaningful only on a promoted pin: the demote backing
+    "Detach from setting", and the widget-visibility choice backing
+    "Show widget".
     """
 
     def demote_setting(self, port_id: str) -> None: ...
+
+    def set_port_show_widget(self, port_id: str, strategy: str) -> None: ...
 
 
 class PinMenu(Surface):
@@ -59,4 +62,24 @@ class PinEditMenu(Surface):
     """
 
     id = "pin-edit"
+    provides = PortActions
+
+
+class PinWidgetMenu(Surface):
+    """The "Show widget" submenu of ``PinMenu`` — one row per
+    ``ShowWidgetStrategy``, marked with the port's current choice.
+
+    A **verb** surface, unlike its sibling ``PinEditMenu``: these rows change
+    the port rather than navigating to a component's source. That is why it
+    hangs off ``PinMenu`` (which carries ``PortActions``) instead of joining
+    the read-only rows under "Edit…".
+
+    Applies to promoted ports only — an author-declared port's visibility
+    stays the author's decision (ADR 0003); a promoted port's strategy was
+    picked by a blanket per-direction rule, so the user who promoted it owns
+    that choice. The hosting panel gates on that, so like
+    ``SelectionDetailMenu`` this declares no ``poll`` of its own.
+    """
+
+    id = "pin-widget"
     provides = PortActions

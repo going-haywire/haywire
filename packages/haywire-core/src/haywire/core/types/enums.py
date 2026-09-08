@@ -348,3 +348,23 @@ class ShowWidgetStrategy(Enum):
     NOT_LINKED = "not_linked"
     WHEN_LINKED = "when_linked"
     ALWAYS = "always"
+
+
+def default_show_widget(port_type: "PortType") -> ShowWidgetStrategy:
+    """The per-direction default ``show_widget`` for *port_type* (ADR 0003).
+
+    The single source of truth for the direction defaults that ``as_inlet`` /
+    ``as_outlet`` / ``as_config`` inject via ``kwargs.setdefault``. Named here
+    rather than restated at each factory because two other callers need to
+    *recognise* a default rather than apply one: a promoted port's saved
+    strategy is omitted when it equals the direction default, so both the
+    writer and the reader must agree on what that default is.
+
+    Any port type without an explicit default (UNDEFINED) falls back to the
+    dataclass default, ``NOT_LINKED``.
+    """
+    if port_type is PortType.OUTLET:
+        return ShowWidgetStrategy.NEVER
+    if port_type is PortType.CONFIG:
+        return ShowWidgetStrategy.ALWAYS
+    return ShowWidgetStrategy.NOT_LINKED

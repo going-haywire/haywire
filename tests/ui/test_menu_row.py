@@ -85,8 +85,63 @@ async def test_disabled_menu_row_greys_and_does_not_fire(user: User) -> None:
     row: ui.row = captured["row"]  # type: ignore[assignment]
     assert "hw-disabled" in row._classes
     assert row._style.get("opacity") == "0.4"
-    assert row._style.get("pointer-events") == "none"
+    # `.hw-menu-row` sets cursor: pointer; a disabled row must read as inert.
+    assert row._style.get("cursor") == "default"
     assert clicks == []
+
+
+@pytest.mark.unit
+@pytest.mark.anyio
+async def test_disabled_menu_row_keeps_pointer_events_so_a_tooltip_works(user: User) -> None:
+    """A greyed command is where "why can't I use this?" most needs answering,
+    so the row must stay hoverable.
+
+    ``pointer-events: none`` would blind it — the QTooltip would sit in the DOM
+    and never open, silently discarding the ``tooltip=`` argument. The hover
+    background opts out through ``.hw-menu-row:not(.hw-disabled):hover``
+    instead. Nothing else needed the blinding: ``on_click`` is never wired when
+    disabled (asserted above), and menu dismissal keys on a click reaching the
+    overlay ITSELF (``@click.self``), which a row never is.
+    """
+    captured: dict[str, object] = {}
+
+    @ui.page("/")
+    def page() -> None:
+        captured["row"] = hui.menu_row(
+            "Detach", icon="delete", enabled=False, tooltip="Only a promoted pin can be detached"
+        )
+
+    await user.open("/")
+
+    row: ui.row = captured["row"]  # type: ignore[assignment]
+    assert row._style.get("pointer-events") is None, (
+        "a disabled row must keep pointer events or its tooltip can never fire"
+    )
+    # `.tooltip()` does not nest: it drops a Tooltip in the enclosing slot and
+    # aims it at the row by html id, so the row is found by target, not by
+    # walking its children.
+    targeted = [
+        el
+        for el in user._client.elements.values()
+        if isinstance(el, ui.tooltip) and el.props.get("target") == f"#{row.html_id}"
+    ]
+    assert [t.text for t in targeted] == ["Only a promoted pin can be detached"]
+
+
+@pytest.mark.unit
+def test_the_hover_rule_excludes_the_disabled_state() -> None:
+    """The hover background must opt out by selector, not by blinding the row —
+    reintroducing ``pointer-events: none`` here is what silently kills tooltips
+    on every greyed command in the app."""
+    assert ".hw-menu-row:not(.hw-disabled):hover" in STATIC_CSS
+    assert "pointer-events: none" not in _menu_row_disabled_block()
+
+
+def _menu_row_disabled_block() -> str:
+    """The ``.hw-menu-row.hw-disabled`` declaration block from the shell CSS."""
+    match = re.search(r"\.hw-menu-row\.hw-disabled\s*\{([^}]*)\}", STATIC_CSS)
+    assert match is not None, "the disabled menu-row rule must exist"
+    return match.group(1)
 
 
 # ---------------------------------------------------------------------------

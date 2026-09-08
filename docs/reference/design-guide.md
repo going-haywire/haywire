@@ -858,13 +858,27 @@ The block is keyed on the row's own marker class, never on an ancestor. A flyout
 one) styles a row inside a popup and misses the identical row inside a flyout —
 which is how one menu ends up with three different colours.
 
-- Disabled: `enabled=False` → `opacity: 0.4; pointer-events: none`, the menu
+- Disabled: `enabled=False` → `opacity: 0.4; cursor: default`, the menu
   convention (an inapplicable command greys rather than disappearing). This is
   what `draw_disabled()` renders.
+- A disabled row **keeps its pointer events**, so `tooltip=` still works on
+  one — a greyed command is where the user most wants to know *why*. The
+  hover background opts out via `.hw-menu-row:not(.hw-disabled):hover` rather
+  than by blinding the row. Don't reintroduce `pointer-events: none` here: it
+  silently swallows the tooltip, and nothing else needs it (`on_click` is
+  never wired when disabled).
+- The submenu anchor greyed by an empty flyout is the **exception** — it keeps
+  `pointer-events: none` (inline, from `flyout._DISABLED_STYLE`, so it wins
+  over the class rule) because there it is what stops an empty flyout opening
+  on hover.
 
 ```python
 hui.menu_row("Delete Node", icon=hui.icon.delete, on_click=self._delete)
 hui.menu_row("Delete", icon=hui.icon.delete, enabled=False)   # draw_disabled()
+hui.menu_row(                                                 # say why it's greyed
+    "Detach", icon=hui.icon.delete, enabled=False,
+    tooltip="Only a promoted pin can be detached",
+)
 ```
 
 ### 8.8c `hui.flyout(icon, tooltip=…)` vs `hui.dropdown(icon, tooltip=…, align="left", direction="down")`

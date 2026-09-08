@@ -17,6 +17,8 @@ from haywire.core.signals import RevealComponentSource
 from haybale_graph_editor.panels.graph.menu.port.port import (
     DetachSettingMenuPanel,
     PinEditMenuPanel,
+    PinShowWidgetMenuPanel,
+    PortShowWidgetStrategyPanel,
     PortTypeMenuPanel,
     PortWidgetMenuPanel,
 )
@@ -175,3 +177,64 @@ def test_edit_row_hosts_the_pin_edit_surface():
 
     hosted = {s.id for s in PinEditMenuPanel.class_identity.hosts}
     assert PinEditMenu.id in hosted
+
+
+# ---------------------------------------------------------------------------
+# Show widget (promoted-port widget visibility)
+# ---------------------------------------------------------------------------
+
+
+def _promoted_port(strategy: Any) -> Any:
+    port = _port(promoted=True)
+    port.show_widget = strategy
+    return port
+
+
+def test_show_widget_row_polls_only_on_a_promoted_port():
+    """An author-declared port's visibility stays the author's decision
+    (ADR 0003); only a promoted port's strategy is the user's to set."""
+    from haywire.core.types.enums import ShowWidgetStrategy
+
+    assert PinShowWidgetMenuPanel.poll(_ctx(_promoted_port(ShowWidgetStrategy.NEVER))) is True
+    assert PinShowWidgetMenuPanel.poll(_ctx(_port(promoted=False))) is False
+    assert PinShowWidgetMenuPanel.poll(_ctx(None)) is False
+
+
+def test_show_widget_row_still_draws_greyed_when_it_does_not_apply():
+    """Same convention as Detach beside it — an inapplicable command greys
+    rather than disappearing."""
+    assert "draw_disabled" in vars(PinShowWidgetMenuPanel)
+
+
+def test_show_widget_row_hosts_the_pin_widget_surface():
+    from haybale_graph_editor.surfaces import PinWidgetMenu
+
+    hosted = {s.id for s in PinShowWidgetMenuPanel.class_identity.hosts}
+    assert PinWidgetMenu.id in hosted
+
+
+def test_show_widget_row_sits_after_detach():
+    """Identity, then verbs, in the order the menu reads."""
+    assert DetachSettingMenuPanel.class_identity.order < PinShowWidgetMenuPanel.class_identity.order
+
+
+def test_strategy_panel_offers_every_strategy_exactly_once():
+    """A menu that cannot represent a state the field holds would show no
+    selection on a port already in that state."""
+    from haywire.core.types.enums import ShowWidgetStrategy
+
+    offered = [strategy for strategy, _label in PortShowWidgetStrategyPanel._CHOICES]
+    assert set(offered) == set(ShowWidgetStrategy)
+    assert len(offered) == len(ShowWidgetStrategy)
+
+
+def test_strategy_rows_are_drawn_by_one_panel():
+    """All four rows come from ONE panel on purpose: the leaf counter is
+    bumped once per panel and not at all by hui.menu_row, so the count is 1
+    and the hosting submenu_row opens. Zero panels is what greys a populated
+    flyout with nothing in the DOM to explain it."""
+    from haybale_graph_editor.surfaces import PinWidgetMenu
+
+    surface = PortShowWidgetStrategyPanel.class_identity.surface
+    assert surface is not None
+    assert surface.id == PinWidgetMenu.id

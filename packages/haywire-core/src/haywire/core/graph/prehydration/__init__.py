@@ -15,9 +15,10 @@ from haywire.core.errors.haywire_exception import HaywireException
 from .upgrader import GraphDict, UnknownGraphFormat, Upgrader, UpgradeAncient
 from .v1 import UpgradeVersionOne
 from .v2 import UpgradeVersionTwo
+from .v3 import UpgradeVersionThree
 
 #: Head of the chain — the newest version. Adding a version repoints this.
-_HEAD: Upgrader = UpgradeVersionTwo()
+_HEAD: Upgrader = UpgradeVersionThree()
 
 #: Derived from the chain head, never written by hand, so the two cannot drift.
 CURRENT_FORMAT_VERSION: int = _HEAD.to_version
@@ -28,6 +29,7 @@ __all__ = [
     "UnknownGraphFormat",
     "UpgradeAncient",
     "UpgradeVersionOne",
+    "UpgradeVersionThree",
     "UpgradeVersionTwo",
     "Upgrader",
     "prehydrate",

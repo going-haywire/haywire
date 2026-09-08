@@ -109,3 +109,19 @@ Why `EdgeWrapper`, not the visual layer or the graph mutation API:
 - Node skins decide widget visibility via `port.should_show_widget()`; the `allow_multiple_links` guard is removed, so multi-link ports may now render widgets.
 - Connecting/disconnecting a pin re-renders both endpoint nodes, so widget visibility toggles live.
 - On upgrade, widgets on currently-connected inlets become hidden (the new `NOT_LINKED` default). This is intended.
+
+## Amendment (2026-09-08) — a promoted port's strategy is the *user's*, not the author's
+
+This ADR says twice that visibility is an authoring decision: "anything other than the per-direction default is overridden per-port **when the port is added**", and "It is the **developer's** decision." That still holds for every author-declared port. It does **not** hold for a **promoted** port, and the distinction is the point.
+
+An author-declared port has a human behind its strategy — someone wrote `as_outlet(...)` and either accepted the default or overrode it. A port promoted from a setting has no such author: `promote_setting` applies a blanket per-direction rule to a port the *user* conjured at runtime, so `NEVER` on a promoted outlet is not a decision anyone made about that value. The motivating gap: a user promotes a setting to an outlet to feed it downstream, and the value they are feeding becomes uneditable and invisible on the card, with no way to ask for it back.
+
+So `DataPort.set_show_widget()` is added as the one runtime write path, reachable only from the pin context menu ("Show widget ▸", a `PinWidgetMenu` submenu offering all four strategies, radio-marked), and offered only where `port.promoted` is true. Nothing calls it on an author-declared port.
+
+Three consequences worth stating, because each is a place this could have been done more cheaply and worse:
+
+- **The full enum is exposed, not a boolean.** A promoted inlet's default is `NOT_LINKED`, and a two-state toggle would have to map "on" to `ALWAYS`, silently destroying the hide-on-connect behavior this ADR exists to deliver. A menu that cannot represent a state the field holds also shows no selection on a port already in that state.
+- **The choice persists in the settings bag, not the port.** A promoted port is regenerated from the bag's `promoted` record on load rather than serialized, so the record is the only thing that survives. It widened from `key -> "outlet"` to `key -> {"direction": ..., "show_widget": ...}` — graph format **v3**, migrated by `UpgradeVersionThree`. `show_widget` is written only when it differs from the direction default, so a graph names visibility exactly where a human set it, and `default_show_widget()` now holds those defaults in one place (previously restated at each `as_*` factory plus this document's table).
+- **Both render surfaces stay coupled.** `should_show_widget()` remains the single predicate, so the node card and the Ports Panel (ADR 0008) continue to agree. The Properties-panel *settings row* is ungated by it, so a user who sets `NEVER` can still edit the value there — there is no way to make a promoted value uneditable.
+
+Demoting discards the choice: the promotion record is its only storage. Freeze-on-disconnect (ADR 0014) protects *values*, which can represent real work; a view preference is one right-click to restore.

@@ -40,11 +40,14 @@ def test_selection_actions_is_runtime_checkable():
 
 
 def test_port_actions_declares_the_demote_verb():
-    """PortActions carries a real verb, which is why it survived the rename
-    while the empty NodeContextActions marker did not."""
+    """PortActions carries real verbs, which is why it survived the rename
+    while the empty NodeContextActions marker did not. Both are
+    promoted-port verbs: demote, and the widget-visibility choice."""
 
     class _PortImpl:
         def demote_setting(self, port_id: str) -> None: ...
+
+        def set_port_show_widget(self, port_id: str, strategy: str) -> None: ...
 
     assert isinstance(_PortImpl(), PortActions)
 
@@ -52,6 +55,14 @@ def test_port_actions_declares_the_demote_verb():
         pass
 
     assert not isinstance(_Missing(), PortActions)
+
+    class _Partial:
+        """Half an implementation must not satisfy the Protocol — the menu
+        would then draw a row whose handler does not exist."""
+
+        def demote_setting(self, port_id: str) -> None: ...
+
+    assert not isinstance(_Partial(), PortActions)
 
 
 def test_no_empty_marker_protocol_survives():

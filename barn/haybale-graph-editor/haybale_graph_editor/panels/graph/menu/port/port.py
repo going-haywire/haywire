@@ -23,8 +23,10 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
+from haywire.core.types.enums import ShowWidgetStrategy
+
 from ..component_rows import component_row, identity_of, key_and_label
-from .....surfaces import PinEditMenu, PinMenu, PortActions
+from .....surfaces import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
 from .....state.edit_state import EditState
 
 
@@ -189,4 +191,108 @@ class DetachSettingMenuPanel(BasePanel):
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         """The greyed form, on a pin that was never promoted."""
         with layout:
-            hui.menu_row(self._LABEL, icon=hui.icon.delete, enabled=False)
+            hui.menu_row(
+                self._LABEL,
+                icon=hui.icon.delete,
+                enabled=False,
+                tooltip="Only a pin promoted from a setting can be detached",
+            )
+
+
+@panel(
+    surface=PinMenu,
+    hosts=(PinWidgetMenu,),
+    label="Show widget",
+    icon=hui.icon.widget,
+    order=40,
+)
+class PinShowWidgetMenuPanel(BasePanel):
+    """The "Show widget ▸" row — picks when this pin's Widget is rendered.
+
+    A hosting panel over ``PinWidgetMenu``, mirroring ``PinEditMenuPanel``.
+    Offered on **promoted** pins only: an author-declared port's visibility is
+    the author's decision (ADR 0003), while a promoted port's strategy came
+    from a blanket per-direction default nobody chose, so the user who
+    promoted it owns it.
+
+    Greys rather than vanishing on an unpromoted pin — the same convention
+    ``DetachSettingMenuPanel`` follows, and for the same structural reason
+    described there.
+    """
+
+    actions: PortActions
+
+    _LABEL = "Show widget"
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        port = ctx.data[EditState].active_port
+        return port is not None and port.promoted
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            with hui.submenu_row(self._LABEL, icon=hui.icon.widget):
+                self.render_surface(PinWidgetMenu, ctx)
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        """The greyed form, on a pin that was never promoted."""
+        with layout:
+            hui.menu_row(
+                self._LABEL,
+                icon=hui.icon.widget,
+                enabled=False,
+                tooltip="Only a promoted pin's widget visibility is the user's to set",
+            )
+
+
+@panel(
+    surface=PinWidgetMenu,
+    label="Strategy",
+    icon=hui.icon.widget,
+    order=10,
+)
+class PortShowWidgetStrategyPanel(BasePanel):
+    """One row per ``ShowWidgetStrategy``, radio-marked with the port's current
+    choice.
+
+    **All four rows are drawn by this ONE panel, deliberately.** The leaf
+    counter that decides whether the hosting ``hui.submenu_row`` greys itself
+    is bumped once per *panel* by ``render_panel`` and not at all by
+    ``hui.menu_row`` — so one panel drawing four rows counts 1 (the flyout
+    opens), whereas four panels would count 4 and read identically. What must
+    never happen is *zero* panels on the surface, which is what greys a fully
+    populated flyout with nothing in the DOM to say why (see
+    ``PinEditMenuPanel``).
+
+    The rows are mutually exclusive, hence ``radio_checked``/``radio_unchecked``
+    rather than the checkbox pair: the icon is the only thing carrying the
+    selection, so a checkbox glyph would misstate how the group behaves.
+    """
+
+    actions: PortActions
+
+    #: Rendered top-to-bottom. Labels are user-facing prose, not enum names —
+    #: the enum's own spelling ("not_linked") is an implementation detail.
+    _CHOICES: tuple[tuple[ShowWidgetStrategy, str], ...] = (
+        (ShowWidgetStrategy.ALWAYS, "Always"),
+        (ShowWidgetStrategy.NOT_LINKED, "When not connected"),
+        (ShowWidgetStrategy.WHEN_LINKED, "When connected"),
+        (ShowWidgetStrategy.NEVER, "Never"),
+    )
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        port = ctx.data[EditState].active_port
+        if port is None:
+            return
+        current = port.show_widget
+        with layout:
+            for strategy, label in self._CHOICES:
+                hui.menu_row(
+                    label,
+                    icon=(hui.icon.radio_checked if strategy is current else hui.icon.radio_unchecked),
+                    on_click=(
+                        lambda pid=port.id, value=strategy.value: self.actions.set_port_show_widget(
+                            pid, value
+                        )
+                    ),
+                )

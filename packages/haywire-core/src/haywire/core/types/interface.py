@@ -2,7 +2,7 @@ from __future__ import annotations
 from abc import ABC, abstractmethod
 from typing import TYPE_CHECKING, Any, ClassVar, Dict, Optional
 
-from haywire.core.types.enums import PortType, ShowWidgetStrategy, StoreStrategy
+from haywire.core.types.enums import PortType, StoreStrategy, default_show_widget
 
 if TYPE_CHECKING:
     from ..library.identity import LibraryIdentity
@@ -303,7 +303,7 @@ class IType(ABC):
         cls._validate_port_type(PortType.INLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.HAS_WIDGET))
-        kwargs.setdefault("show_widget", ShowWidgetStrategy.NOT_LINKED)
+        kwargs.setdefault("show_widget", default_show_widget(PortType.INLET))
         return create_port_spec(cls, id=id, port_type=PortType.INLET, **kwargs)
 
     @classmethod
@@ -381,7 +381,7 @@ class IType(ABC):
         cls._validate_port_type(PortType.OUTLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
-        kwargs.setdefault("show_widget", ShowWidgetStrategy.NEVER)
+        kwargs.setdefault("show_widget", default_show_widget(PortType.OUTLET))
         return create_port_spec(cls, id=id, port_type=PortType.OUTLET, **kwargs)
 
     @classmethod
@@ -448,7 +448,7 @@ class IType(ABC):
 
         kwargs["flow_type"] = FlowType.NONE
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
-        kwargs.setdefault("show_widget", ShowWidgetStrategy.ALWAYS)
+        kwargs.setdefault("show_widget", default_show_widget(PortType.CONFIG))
 
         return create_port_spec(cls, id=id, port_type=PortType.CONFIG, **kwargs)
 
