@@ -63,34 +63,34 @@ class TestSimpleMode:
     def test_reset_restores_default(self):
         bag = SimpleSettings()
         bag.strength = 0.9
-        bag.reset("strength")
+        bag._reset("strength")
         assert bag.strength == 0.5
 
     def test_reset_all(self):
         bag = SimpleSettings()
         bag.strength = 0.9
         bag.mode = "precise"
-        bag.reset_all()
+        bag._reset_all()
         assert bag.strength == 0.5
         assert bag.mode == "fast"
 
     def test_is_locally_set(self):
         bag = SimpleSettings()
-        assert not bag.is_locally_set("strength")
+        assert not bag._is_locally_set("strength")
         bag.strength = 0.9
-        assert bag.is_locally_set("strength")
+        assert bag._is_locally_set("strength")
 
     def test_subscribe_fires_on_change(self):
         bag = SimpleSettings()
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val, old)))
         bag.strength = 0.8
         assert calls == [("strength", 0.8, 0.5)]
 
     def test_subscribe_no_fire_if_same_value(self):
         bag = SimpleSettings()
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val, old)))
         bag.strength = 0.5  # same as default
         assert calls == []
 
@@ -103,12 +103,12 @@ class TestSimpleMode:
 class TestSerialization:
     def test_to_dict_excludes_defaults(self):
         bag = SimpleSettings()
-        assert bag.to_dict() == {"values": {}, "promoted": {}}
+        assert bag._to_dict() == {"values": {}, "promoted": {}}
 
     def test_to_dict_includes_non_defaults(self):
         bag = SimpleSettings()
         bag.strength = 0.9
-        d = bag.to_dict()
+        d = bag._to_dict()
         assert d == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_from_dict_notifies_attached_subscribers(self):
@@ -118,15 +118,15 @@ class TestSerialization:
         # stay unobserved in practice.
         bag = SimpleSettings()
         calls = []
-        bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
+        bag._subscribe(lambda *a: calls.append(a))
+        bag._from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert bag.strength == 0.9
         assert calls == [("strength", 0.9, 0.5)]
 
     def test_live_write_fires(self):
         bag = SimpleSettings()
         calls = []
-        bag.subscribe(lambda *a: calls.append(a))
+        bag._subscribe(lambda *a: calls.append(a))
         bag.strength = 0.9
         assert bag.strength == 0.9
         assert len(calls) == 1
@@ -135,16 +135,16 @@ class TestSerialization:
         bag = SimpleSettings()
         bag.strength = 0.8
         bag.mode = "precise"
-        data = bag.to_dict()
+        data = bag._to_dict()
 
         bag2 = SimpleSettings()
-        bag2.from_dict(data)
+        bag2._from_dict(data)
         assert bag2.strength == 0.8
         assert bag2.mode == "precise"
 
     def test_from_dict_unknown_keys_ignored(self):
         bag = SimpleSettings()
-        bag.from_dict({"values": {"unknown_key": 42, "strength": 0.7}, "promoted": {}})
+        bag._from_dict({"values": {"unknown_key": 42, "strength": 0.7}, "promoted": {}})
         assert bag.strength == 0.7
 
 
@@ -161,7 +161,7 @@ class TestSubscribeNotification:
     def _bag_with_log(self):
         bag = SettingsWithCallback()
         log: list[tuple] = []
-        bag.subscribe(lambda name, value, old: log.append((name, value, old)))
+        bag._subscribe(lambda name, value, old: log.append((name, value, old)))
         return bag, log
 
     def test_subscriber_fires_on_set(self):
@@ -180,7 +180,7 @@ class TestSubscribeNotification:
         # Graph load restores bags before anything subscribes, so load-time
         # restores stay unobserved in practice.
         bag, log = self._bag_with_log()
-        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
+        bag._from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert log == [("strength", 0.9, 0.5)]
 
 
@@ -197,7 +197,7 @@ class TestExtendedMode:
 
     def test_reset_falls_back_to_default(self):
         registry, bag = create_test_bag(predefined_local={"bg_color": "#ff0000"})
-        bag.reset("bg_color")
+        bag._reset("bg_color")
         assert bag.bg_color == "#ffffff"
 
     def test_global_set_beats_default(
@@ -211,7 +211,7 @@ class TestExtendedMode:
     def test_to_dict_only_locally_set(self):
         registry, bag = create_test_bag()
         bag.font_size = 18
-        d = bag.to_dict()
+        d = bag._to_dict()
         assert "font_size" in d["values"]
         assert d["values"]["font_size"] == 18
         assert "bg_color" not in d["values"]  # not locally set
@@ -259,7 +259,7 @@ class TestMirrorCallbackSuppression:
         """When no local override exists, a global SET fires the on_change callback."""
         registry, bag, key = _make_mirror_bag()
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val)))
 
         registry.set_global(key, "#aabbcc")
 
@@ -269,7 +269,7 @@ class TestMirrorCallbackSuppression:
         """When a local override exists, a global SET must not fire the callback."""
         registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val)))
 
         registry.set_global(key, "#aabbcc")
 
@@ -280,7 +280,7 @@ class TestMirrorCallbackSuppression:
         no OVERRIDE strength that can force a re-fire."""
         registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val)))
 
         registry.set_global(key, "#aabbcc", tier="workspace")
 
@@ -290,26 +290,26 @@ class TestMirrorCallbackSuppression:
         """Writing a mirror field the value it already resolves to is a no-op:
         no phantom local override, so reset still works."""
         registry, bag, key = _make_mirror_bag()
-        assert not bag.is_locally_set("color")
+        assert not bag._is_locally_set("color")
         resolved = bag.color  # the mirrored global, "#ffffff"
 
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val)))
 
         bag.color = resolved  # echo: write the value it already holds
 
-        assert not bag.is_locally_set("color"), "redundant write must not create an override"
+        assert not bag._is_locally_set("color"), "redundant write must not create an override"
         assert calls == [], "redundant write must not fire a change callback"
 
     def test_real_override_then_reset_still_works(self):
         """A genuine local write still overrides; reset clears it back to global."""
         registry, bag, key = _make_mirror_bag()
         bag.color = "#123456"
-        assert bag.is_locally_set("color")
+        assert bag._is_locally_set("color")
         assert bag.color == "#123456"
 
-        bag.reset("color")
-        assert not bag.is_locally_set("color")
+        bag._reset("color")
+        assert not bag._is_locally_set("color")
         assert bag.color == "#ffffff"  # back to the resolved global
 
 
@@ -445,7 +445,7 @@ class TestStoredSetting:
     def test_stored_field_appears_in_to_dict(self):
         bag = StoredSettings()
         bag.stored_field = 0.9
-        d = bag.to_dict()
+        d = bag._to_dict()
         assert "stored_field" in d["values"]
 
 
@@ -487,7 +487,7 @@ class TestValidatorSetting:
         bag = ValidatedSettings()
         bag.positive = 5.0
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val, old)))
         bag.positive = -1.0  # invalid — no callback
         assert calls == []
 
@@ -561,11 +561,11 @@ class TestVecTypes:
     def test_serialization_round_trip(self):
         bag = VecSettings()
         bag.pos = [1.0, 2.0, 3.0]
-        data = bag.to_dict()
+        data = bag._to_dict()
         assert data["values"]["pos"] == [1.0, 2.0, 3.0]
 
         bag2 = VecSettings()
-        bag2.from_dict(data)
+        bag2._from_dict(data)
         assert bag2.pos == [1.0, 2.0, 3.0]
 
     def test_explicit_type_also_works(self):

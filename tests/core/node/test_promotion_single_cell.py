@@ -280,14 +280,14 @@ def test_promoted_outlet_keeps_tracking_global_until_actually_written(library_sy
     shadowed_desc = type(node.cfg).__dict__["shadowed"]
 
     promote_setting(node, "cfg", "shadowed", direction=PortType.OUTLET)
-    assert not node.cfg.is_locally_set("shadowed")
+    assert not node.cfg._is_locally_set("shadowed")
 
     registry.set_global(shadowed_desc._mirror_key, 0.9)
     assert node.cfg.shadowed == 0.9
 
     # A real local write still marks it, same as any unpromoted mirror field.
     node.cfg.shadowed = 0.3
-    assert node.cfg.is_locally_set("shadowed")
+    assert node.cfg._is_locally_set("shadowed")
     registry.set_global(shadowed_desc._mirror_key, 0.1)
     assert node.cfg.shadowed == 0.3  # tracking stopped once locally set
 

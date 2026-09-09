@@ -111,7 +111,7 @@ class LogEditor(BaseEditor):
                     .style("background: var(--hw-console-bg); color: var(--hw-console-text);")
                 )
         self._resize_buffer(lines)
-        self._settings.subscribe_field(LOG_SCROLLBACK_LINES_KEY, self._on_scrollback_changed)
+        self._settings._subscribe_field(LOG_SCROLLBACK_LINES_KEY, self._on_scrollback_changed)
 
         for line in get_stdout_tee().get_history_text().splitlines():
             self._append(self._prefix_stdout(line))
@@ -215,5 +215,5 @@ class LogEditor(BaseEditor):
         if self._detach_stdout is not None:
             self._detach_stdout()
             self._detach_stdout = None
-        self._settings.unsubscribe(self._on_scrollback_changed)
+        self._settings._unsubscribe(self._on_scrollback_changed)
         self._log_element = None

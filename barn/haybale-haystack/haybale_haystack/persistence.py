@@ -118,7 +118,7 @@ def dump_haystack(
             rel = str(entry.path.relative_to(workspace_root))
         except ValueError:
             rel = str(entry.path)
-        run_dict = entry.run_settings.to_dict()
+        run_dict = entry.run_settings._to_dict()
         entry_dict: dict = {
             "path": rel,
             "execute": entry.is_executing,
@@ -189,7 +189,7 @@ def load_haystack(
             continue
         try:
             entry = state.open_graph(abs_path)
-            entry.run_settings.from_dict(gd.get("run", {}))
+            entry.run_settings._from_dict(gd.get("run", {}))
             if gd.get("execute", False):
                 compile_result = entry.start_execution()
                 if not compile_result.ok:

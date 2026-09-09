@@ -16,7 +16,7 @@ Framework / library internals:
     @settings           — decorator for LibrarySettings auto-discovery
 """
 
-from .settings import Settings
+from .settings import Settings, bag, settings_fields
 from .settings_node import NodeSettings
 from .settings_graph import GraphSettings
 from .descriptor import setting, shadow, watch, graph, Promotable, UiState
@@ -40,6 +40,8 @@ __all__ = [
     "Promotable",
     "UiState",
     "SettingDescriptor",
+    "bag",
+    "settings_fields",
     "Color",
     "Icon",
     "Vec2i",

@@ -110,9 +110,9 @@ class TestNodeDetailGraphTier:
         wrapper.node.props.detail = FULL
         assert wrapper.node.props.detail == FULL
 
-        wrapper.node.props.reset("detail")
+        wrapper.node.props._reset("detail")
         assert wrapper.node.props.detail == WIDGETS  # node → graph
-        graph_obj.props.reset("detail")
+        graph_obj.props._reset("detail")
         assert wrapper.node.props.detail == PINS  # graph → framework
 
     def test_round_trip_preserves_all_three_tiers(self, graph_with_library_system, library_system):
@@ -126,8 +126,8 @@ class TestNodeDetailGraphTier:
         g2 = BaseGraph(filestem="G2")
         assert g2.load_from_dict(data) is True
         loaded = list(g2.node_wrappers.values())
-        overridden = [w for w in loaded if w.node.props.is_locally_set("detail")]
-        tracking = [w for w in loaded if not w.node.props.is_locally_set("detail")]
+        overridden = [w for w in loaded if w.node.props._is_locally_set("detail")]
+        tracking = [w for w in loaded if not w.node.props._is_locally_set("detail")]
         assert len(overridden) == 1
         assert overridden[0].node.props.detail == PINS
         assert len(tracking) == 1
@@ -145,7 +145,7 @@ class TestNodeDetailGraphTier:
 
         g2 = BaseGraph(filestem="G2")
         assert g2.load_from_dict(data) is True
-        assert not g2.props.is_locally_set("detail")
+        assert not g2.props._is_locally_set("detail")
         wrapper = next(iter(g2.node_wrappers.values()))
         assert wrapper.node.props.detail == FULL
 
@@ -155,7 +155,7 @@ class TestNodeDetailGraphTier:
         wrapper = _add_node(graph_obj)
 
         seen = []
-        wrapper.node.props.subscribe_field("detail", lambda v, o: seen.append(v))
+        wrapper.node.props._subscribe_field("detail", lambda v, o: seen.append(v))
         graph_obj.props.detail = PINS
 
         assert seen, "graph-tier write did not fire the node's field subscription"

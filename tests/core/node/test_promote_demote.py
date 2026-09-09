@@ -117,7 +117,7 @@ def test_promoted_config_marks_field_locally_set(make_node_with_setting):
     from haywire.core.types.enums import PortType
 
     promote_setting(node, "filter", "threshold", PortType.CONFIG)
-    assert node.filter.is_locally_set("threshold") is True
+    assert node.filter._is_locally_set("threshold") is True
 
 
 @pytest.mark.integration
@@ -130,4 +130,4 @@ def test_demote_removes_config_port(make_node_with_setting):
     pid = type(node.filter).__dict__["threshold"].storage_key
     demote_setting(node, pid)
     assert pid not in node.ports
-    assert node.filter.is_promoted("threshold") is False
+    assert node.filter._is_promoted("threshold") is False

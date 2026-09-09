@@ -20,8 +20,8 @@ Cell-authoritative value model:
 
 Supports:
 - Direct attribute access (``obj.setting = value``)
-- Change notification (``obj.subscribe(callback)`` for the whole bag,
-  ``obj.subscribe_field(field, callback)`` for one field — both ride the cell
+- Change notification (``obj._subscribe(callback)`` for the whole bag,
+  ``obj._subscribe_field(field, callback)`` for one field — both ride the cell
   event, so every writer notifies: descriptor sets, registry write-through,
   edge drives)
 - Serialization (``to_dict()`` / ``from_dict()``)
@@ -32,7 +32,7 @@ Supports:
 from __future__ import annotations
 
 import logging
-from typing import Any, Callable, ClassVar, NamedTuple, TYPE_CHECKING
+from typing import Any, Callable, ClassVar, NamedTuple, TypeVar, TYPE_CHECKING
 
 from typing_extensions import dataclass_transform
 
@@ -99,6 +99,48 @@ class Settings:
     class_identity: ClassVar["SettingsClassIdentity"]
     class_library: ClassVar["LibraryIdentity"]
 
+    def __init_subclass__(cls, **kwargs: Any) -> None:
+        """Reject field names that would collide with the framework's own members.
+
+        A bag's attribute namespace belongs to the author's **fields**: they
+        become graph-JSON keys, TOML keys and panel labels, so they are public
+        identifiers by construction. Every framework operation is therefore
+        ``_``-prefixed, and a field may not be.
+
+        That one rule is the whole contract, and it is self-maintaining — new
+        internal state can be added forever without stealing a name a library
+        might already use. The public-name check below is a backstop for the
+        case where something public is later added to ``Settings`` anyway.
+
+        Without this the failure is silent at declaration and arrives much
+        later: a field named ``to_dict`` shadows the serializer, so
+        ``BaseNode.to_dict()`` — which calls ``bag._to_dict()`` for every bag —
+        raises ``TypeError`` when the graph is **saved**.
+
+        Only fields declared on *this* class are checked. Redeclaring an
+        inherited field is legal and is how a family node narrows a shared bag
+        (see ``selection_bag()`` in haybale-visiongraph).
+        """
+        super().__init_subclass__(**kwargs)
+
+        reserved = {name for name in dir(Settings) if not name.startswith("_")}
+        for name, value in vars(cls).items():
+            if not isinstance(value, setting):
+                continue
+            if name.startswith("_"):
+                raise TypeError(
+                    f"{cls.__name__}.{name}: a setting field name may not start with '_'. "
+                    f"Field names are public identifiers — they become graph/TOML keys and "
+                    f"panel labels — while every framework member on a settings bag is "
+                    f"'_'-prefixed. Rename the field (e.g. '{name.lstrip('_')}'); to hide a "
+                    f"field from the panel use ui_state=UiState.HIDDEN instead."
+                )
+            if name in reserved:
+                raise TypeError(
+                    f"{cls.__name__}.{name}: '{name}' is a public member of Settings, so a "
+                    f"field of that name would shadow it. Choose a different field name."
+                )
+
     def __init__(self, registry: "SettingsRegistry | None" = None, node: "NodeData | None" = None) -> None:
         # subscribe() bookkeeping: callback -> [(cell, adapter), ...] so
         # unsubscribe/cleanup can detach the per-field cell adapters.
@@ -120,10 +162,10 @@ class Settings:
         # announces transitions on the dedicated UI-state channel below.
         # Declarative same-bag gating (enabled_when/visible_when) composes
         # with this via severity max — see effective_ui_state().
-        self._ui_state: dict[str, UiState] = {}
+        self._ui_states: dict[str, UiState] = {}
         for _name, _descriptor in type(self)._property_settings().items():
             if _descriptor._ui_state is not UiState.NORMAL:
-                self._ui_state[_descriptor.storage_key] = _descriptor._ui_state
+                self._ui_states[_descriptor.storage_key] = _descriptor._ui_state
         # Dedicated UI-state channel: callback(name, state) on each state
         # transition. Separate from the cell/value channel by design (one
         # channel per concern — the NiceGUI BindableProperty model): a
@@ -144,11 +186,22 @@ class Settings:
         # (its id IS the storage_key), so this is a single direction per key,
         # never a set. See haywire.core.node.promotion.
         self._promoted_keys: dict[str, Promotion] = {}
+        # Author-declared default face: setting(promote_default=...) seeds the
+        # promotion record here, at construction. A DEFAULT, not a policy —
+        # _from_dict() clears this block before restoring, so a graph's saved
+        # promotion state always wins and a user's demotion (an absence in the
+        # saved block) sticks. A bag that a saved graph never mentions keeps
+        # its seeds, which is what lets a library add a bag later and still
+        # give it the face its author intended.
+        for _descriptor in type(self)._property_settings().values():
+            _seed = getattr(_descriptor, "_promote_default", None)
+            if _seed is not None:
+                self._promoted_keys[_descriptor.storage_key] = Promotion(_seed)
         # Graph-mirror wiring: storage_key -> (src cell, adapter) for fields
         # synced cell-to-cell against the owning graph's bag.
         self._graph_mirror_adapters: dict[str, tuple["DataField", Callable]] = {}
 
-    def _is_locally_set(self, descriptor: setting) -> bool:
+    def _is_set(self, descriptor: setting) -> bool:
         """Return True if this field has a local instance override."""
         return descriptor.storage_key in self._set_keys
 
@@ -165,7 +218,7 @@ class Settings:
         self._set_keys.add(descriptor.storage_key)
         self._cell_for(descriptor).set_value(value)
 
-    def set_promoted(
+    def _set_promoted(
         self,
         name: str,
         direction: PortType,
@@ -188,7 +241,7 @@ class Settings:
             return
         self._promoted_keys[fields[name].storage_key] = Promotion(direction, show_widget)
 
-    def set_promoted_show_widget(self, name: str, strategy: ShowWidgetStrategy | None) -> None:
+    def _set_promoted_show_widget(self, name: str, strategy: ShowWidgetStrategy | None) -> None:
         """Record *name*'s widget-visibility choice, keeping its direction.
 
         No-op for an unknown or unpromoted field — the record only exists
@@ -204,7 +257,7 @@ class Settings:
             return
         self._promoted_keys[storage_key] = existing._replace(show_widget=strategy)
 
-    def get_promoted_show_widget(self, name: str) -> ShowWidgetStrategy | None:
+    def _get_promoted_show_widget(self, name: str) -> ShowWidgetStrategy | None:
         """*name*'s recorded widget-visibility choice, or None when it uses the
         direction default (or is not promoted at all)."""
         fields = type(self)._property_settings()
@@ -213,7 +266,7 @@ class Settings:
         record = self._promoted_keys.get(fields[name].storage_key)
         return record.show_widget if record is not None else None
 
-    def clear_promoted(self, name: str) -> None:
+    def _clear_promoted(self, name: str) -> None:
         """Clear field *name*'s promotion record (no-op if absent/unknown).
 
         Called by ``demote_setting``. Mirror of :meth:`set_promoted`."""
@@ -222,14 +275,14 @@ class Settings:
             return
         self._promoted_keys.pop(fields[name].storage_key, None)
 
-    def is_promoted(self, name: str) -> bool:
+    def _is_promoted(self, name: str) -> bool:
         """True if field *name* is currently promoted. False for unknown names."""
         fields = type(self)._property_settings()
         if name not in fields:
             return False
         return fields[name].storage_key in self._promoted_keys
 
-    def get_promoted_direction(self, name: str) -> PortType | None:
+    def _get_promoted_direction(self, name: str) -> PortType | None:
         """The direction field *name* is promoted to, or None if not promoted."""
         fields = type(self)._property_settings()
         if name not in fields:
@@ -237,7 +290,7 @@ class Settings:
         record = self._promoted_keys.get(fields[name].storage_key)
         return record.direction if record is not None else None
 
-    def promote(self, field: str, direction: PortType = PortType.INLET) -> None:
+    def _promote(self, field: str, direction: PortType = PortType.INLET) -> None:
         """Promote *field* to a DATA port in *direction*. Sugar over
         ``haywire.core.node.promotion.promote_setting`` for ``post_init()`` call
         sites — e.g. ``self.my_bag.promote("choice_field", PortType.CONFIG)``.
@@ -262,7 +315,7 @@ class Settings:
             )
         promote_setting(self._node, accessor, field, direction)
 
-    def demote(self, field: str) -> None:
+    def _demote(self, field: str) -> None:
         """Remove *field*'s promoted port, if any. Sugar over
         ``haywire.core.node.promotion.demote_setting``. No-op if *field* is not
         currently promoted or the bag is not node-bound."""
@@ -445,7 +498,7 @@ class Settings:
         self._cell_for(descriptor)  # ensure own cell exists + is seeded first
 
         def _adapter(change: Any, _descriptor: setting = descriptor) -> None:
-            if self._cleaned_up or self._is_locally_set(_descriptor):
+            if self._cleaned_up or self._is_set(_descriptor):
                 return
             self._cell_for(_descriptor).set_value(change.value)
 
@@ -467,7 +520,7 @@ class Settings:
         for _attr_name, descriptor in type(self)._property_settings().items():
             if descriptor._mirror_key != full_key or not descriptor.is_mirror:
                 continue
-            if self._is_locally_set(descriptor):
+            if self._is_set(descriptor):
                 continue
             new_val = self._resolve(descriptor.storage_key, descriptor._mirror_key, descriptor._default)
             self._cell_for(descriptor).set_value(new_val)
@@ -476,7 +529,7 @@ class Settings:
     # Subscription — rides the cell event
     # -------------------------------------------------------------------------
 
-    def subscribe(self, callback: Callable) -> None:
+    def _subscribe(self, callback: Callable) -> None:
         """Register ``callback(name, value, old)`` called on any setting change.
 
         One adapter per field cell, so EVERY writer notifies uniformly:
@@ -500,7 +553,7 @@ class Settings:
         self._subscriptions[callback] = adapters
         self._subscribe_settings()
 
-    def subscribe_field(self, field: str, callback: Callable) -> None:
+    def _subscribe_field(self, field: str, callback: Callable) -> None:
         """Register ``callback(value, old)`` for changes to ONE field.
 
         A single adapter on the field's cell, so it hears every writer —
@@ -528,7 +581,7 @@ class Settings:
         existing.append((cell, adapter))
         self._subscribe_setting(descriptor)
 
-    def unsubscribe(self, callback: Callable) -> None:
+    def _unsubscribe(self, callback: Callable) -> None:
         """Remove a previously registered callback (detaches its cell adapters)."""
         for cell, adapter in self._subscriptions.pop(callback, []):
             try:
@@ -540,7 +593,7 @@ class Settings:
     # Serialization
     # -------------------------------------------------------------------------
 
-    def to_dict(self) -> dict:
+    def _to_dict(self) -> dict:
         """Serialize to ``{"values": {...}, "promoted": {...}}``.
 
         ``values``: only fields whose value differs from the descriptor default
@@ -559,7 +612,7 @@ class Settings:
         fields = type(self)._property_settings()
         values: dict = {}
         for name, descriptor in fields.items():
-            if not self._is_locally_set(descriptor):
+            if not self._is_set(descriptor):
                 continue
             val = self._local_value(descriptor)
             if val != descriptor._default:
@@ -577,7 +630,7 @@ class Settings:
             promoted[key] = entry
         return {"values": values, "promoted": promoted}
 
-    def from_dict(self, data: dict) -> None:
+    def _from_dict(self, data: dict) -> None:
         """Restore from the ``{"values", "promoted"}`` shape (trusted graph load).
 
         Values restore exactly as before (direct cell write via ``_write_local``,
@@ -609,6 +662,13 @@ class Settings:
                 continue
             descriptor = fields[attr_name]
             self._write_local(descriptor, value)
+        # The saved block is authoritative, so drop any author-declared
+        # promote_default seeds first. Without this a seed would survive a load
+        # and silently re-promote a field the user demoted — a demotion is an
+        # ABSENCE in the saved block, and an absence can only beat a seed if the
+        # seed is cleared. (Today this also clears nothing for bags that declare
+        # no default, which is why it is safe to add unconditionally.)
+        self._promoted_keys.clear()
         for key, record in data.get("promoted", {}).items():
             if not isinstance(record, dict):
                 raise PromotedFormatError(
@@ -627,7 +687,7 @@ class Settings:
     # Reset
     # -------------------------------------------------------------------------
 
-    def reset(self, name: str) -> None:
+    def _reset(self, name: str) -> None:
         """Reset a single field to its descriptor default (removes local override)."""
         fields = type(self)._property_settings()
         if name not in fields:
@@ -654,23 +714,23 @@ class Settings:
             if old != new:
                 self._cell_for(descriptor).set_value(new)
 
-    def reset_all(self) -> None:
+    def _reset_all(self) -> None:
         """Reset all fields to their defaults (clear all local overrides)."""
         for name in type(self)._property_settings():
-            self.reset(name)
+            self._reset(name)
 
     # -------------------------------------------------------------------------
     # Cleanup
     # -------------------------------------------------------------------------
 
-    def cleanup(self) -> None:
+    def _cleanup(self) -> None:
         """Release subscriptions.  Call on node removal.
 
         Detaching the cell adapters is MANDATORY for wired persistent fields:
         their cells are registry-owned and outlive this bag."""
         self._cleaned_up = True
         for callback in list(self._subscriptions):
-            self.unsubscribe(callback)
+            self._unsubscribe(callback)
         # Symmetric with _subscribe_setting: drop each mirror field's registry
         # subscription so the registry doesn't hold a stale handler.
         if self._registry is not None:
@@ -691,14 +751,27 @@ class Settings:
     # Introspection
     # -------------------------------------------------------------------------
 
-    def is_locally_set(self, name: str) -> bool:
-        """Return True if *name* has a local instance override."""
+    def _is_locally_set(self, name: str) -> bool:
+        """Return True if *name* has a local instance override.
+
+        Takes a field NAME. Its descriptor-taking sibling is :meth:`_is_set` —
+        the two were ``is_locally_set`` / ``_is_locally_set`` before the
+        namespace separation, and handing this one a descriptor used to be a
+        type error the reader could see. Now it would silently miss the
+        ``name not in fields`` lookup and answer False, so the wrong type is
+        rejected loudly instead.
+        """
+        if not isinstance(name, str):
+            raise TypeError(
+                f"_is_locally_set() takes a field name, got {type(name).__name__}. "
+                f"For a descriptor use _is_set()."
+            )
         fields = type(self)._property_settings()
         if name not in fields:
             return False
-        return self._is_locally_set(fields[name])
+        return self._is_set(fields[name])
 
-    def set_ui_state(self, name: str, state: UiState) -> None:
+    def _set_ui_state(self, name: str, state: UiState) -> None:
         """Set the presentation state for *name* (``UiState.NORMAL`` clears it).
 
         Purely a display/interaction concern for the properties panel — the
@@ -714,19 +787,19 @@ class Settings:
             logger.warning("set_ui_state: unknown field %r on %s — ignored", name, type(self).__name__)
             return
         key = fields[name].storage_key
-        if self._ui_state.get(key, UiState.NORMAL) is state:
+        if self._ui_states.get(key, UiState.NORMAL) is state:
             return  # no transition — stay silent
         if state is UiState.NORMAL:
-            self._ui_state.pop(key, None)
+            self._ui_states.pop(key, None)
         else:
-            self._ui_state[key] = state
+            self._ui_states[key] = state
         for listener in list(self._ui_state_listeners):
             try:
                 listener(name, state)
             except Exception as e:
                 logger.error(f"ui-state listener error for '{name}': {e}")
 
-    def set_ui_state_all(self, state: UiState, category: str | None = None) -> None:
+    def _set_ui_state_all(self, state: UiState, category: str | None = None) -> None:
         """Set the presentation state for every field on this bag, or for
         every field in *category* when given.
 
@@ -748,9 +821,9 @@ class Settings:
             return
         for name, descriptor in fields.items():
             if category is None or descriptor._category == category:
-                self.set_ui_state(name, state)
+                self._set_ui_state(name, state)
 
-    def ui_state(self, name: str) -> UiState:
+    def _ui_state(self, name: str) -> UiState:
         """Return *name*'s IMPERATIVE presentation state (seed + set_ui_state).
 
         This deliberately ignores the declarative ``enabled_when`` /
@@ -761,9 +834,9 @@ class Settings:
         fields = type(self)._property_settings()
         if name not in fields:
             return UiState.NORMAL
-        return self._ui_state.get(fields[name].storage_key, UiState.NORMAL)
+        return self._ui_states.get(fields[name].storage_key, UiState.NORMAL)
 
-    def effective_ui_state(self, name: str) -> UiState:
+    def _effective_ui_state(self, name: str) -> UiState:
         """Return *name*'s composed presentation state — the single oracle.
 
         Severity max (``NORMAL < DISABLED < HIDDEN``, the ``UiState`` int
@@ -785,7 +858,7 @@ class Settings:
         if name not in fields:
             return UiState.NORMAL
         descriptor = fields[name]
-        state = self._ui_state.get(descriptor.storage_key, UiState.NORMAL)
+        state = self._ui_states.get(descriptor.storage_key, UiState.NORMAL)
         metadata = descriptor._metadata or {}
         gate = metadata.get("enabled_when")
         if gate is not None:
@@ -799,7 +872,7 @@ class Settings:
                 state = max(state, UiState.HIDDEN)
         return state
 
-    def subscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
+    def _subscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
         """Register ``callback(name, state)`` for UI-state transitions.
 
         The UI-state analogue of :meth:`subscribe` — but a separate channel:
@@ -809,7 +882,7 @@ class Settings:
         if callback not in self._ui_state_listeners:
             self._ui_state_listeners.append(callback)
 
-    def unsubscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
+    def _unsubscribe_ui_state(self, callback: Callable[[str, UiState], None]) -> None:
         """Remove a previously registered UI-state callback (no-op if absent)."""
         try:
             self._ui_state_listeners.remove(callback)
@@ -818,10 +891,78 @@ class Settings:
 
     @classmethod
     def _property_settings(cls) -> dict[str, setting]:
-        """Return all setting descriptors defined on this class (walks MRO, base-first)."""
+        """Return all setting descriptors defined on this class (walks MRO, base-first).
+
+        Internal. Outside the settings package use :func:`settings_fields`,
+        which takes a bag *or* a class and is the supported spelling.
+        """
         result: dict[str, setting] = {}
         for klass in reversed(cls.__mro__):
             for name, val in klass.__dict__.items():
                 if isinstance(val, setting):
                     result[name] = val
         return result
+
+
+_BagT = TypeVar("_BagT", bound="Settings")
+
+
+def bag(settings_cls: "type[_BagT]") -> _BagT:
+    """Declare a settings bag on a node with a correctly-typed accessor.
+
+    ::
+
+        class MyStyle(NodeSettings):
+            marker_size = setting[INT](3)
+
+        @node(...)
+        class MyNode(BaseNode):
+            style = bag(MyStyle)          # self.style.marker_size types as int
+
+    **This returns the class, and says it returns an instance.** That is a
+    deliberate, narrow fiction: ``@node`` collects bags by looking for
+    ``NodeSettings`` subclasses in the class body, and ``NodeData.__init__``
+    then replaces each one with a bound instance on the node. So the class
+    object is only a construction-time placeholder — the *attribute* really
+    does resolve to an instance, which is what the annotation describes. Only
+    the assignment expression is misdescribed, and only for the type checker.
+
+    Without this, a bag touched from an *annotated* method types as the class
+    (so every field read looks like a ``setting[T]`` descriptor rather than a
+    ``T``), and each node needs the four-line dance the framework itself uses
+    for ``BaseNode.props``::
+
+        if TYPE_CHECKING:
+            style: MyStyle
+        else:
+            style = MyStyle
+
+    Declaring the bag at module level and aliasing it here also lets several
+    nodes share one bag — **but alias a shared bag under the same accessor name
+    on every node**: the descriptors are shared objects and ``@node`` re-stamps
+    ``_setting_key`` as ``f"{accessor}.{field}"`` per node, so two different
+    names would make the storage key depend on decoration order.
+    """
+    return settings_cls  # type: ignore[return-value]
+
+
+def settings_fields(bag_or_cls: "Settings | type[Settings]") -> dict[str, setting]:
+    """Every ``setting`` descriptor on a bag, by field name, declaration order.
+
+    The supported way to iterate a bag's fields — accepts an instance or the
+    class. Walks the MRO base-first, so inherited fields come before the ones
+    a subclass declares and a redeclared field keeps its base position.
+
+    A module-level function rather than a method on purpose: a bag's attribute
+    namespace belongs to the author's *fields*, so the framework keeps its
+    operations off it (the same reason ``promote_setting`` / ``demote_setting``
+    / ``eligible_promotion_directions`` live at module level in
+    ``haywire.core.node.promotion``).
+
+    Typical use — mirroring a bag onto a wrapped library's object::
+
+        for name in settings_fields(bag):
+            setattr(target, name, getattr(bag, name))
+    """
+    cls = bag_or_cls if isinstance(bag_or_cls, type) else type(bag_or_cls)
+    return cls._property_settings()

@@ -911,8 +911,8 @@ class BaseGraph:
         subscriptions). Call when the graph object is discarded for good.
         ``clear()`` deliberately does NOT call this — a cleared graph is
         still usable (``load_from_dict`` clears and reloads in place)."""
-        self.props.cleanup()
-        self.meta.cleanup()
+        self.props._cleanup()
+        self.meta._cleanup()
 
     # =========================================================================
     # SERIALIZATION
@@ -935,14 +935,14 @@ class BaseGraph:
             "filestem": self.filestem,
             "created_at": self.created_at,
             "modified_at": self.modified_at,
-            "meta": self.meta.to_dict(),
+            "meta": self.meta._to_dict(),
             "nodes": {
                 node_id: wrapper.serialize(include_data=include_data)
                 for node_id, wrapper in self.node_wrappers.items()
             },
             "edges": {edge_id: wrapper.edge.to_dict() for edge_id, wrapper in self.edge_wrappers.items()},
             "variables": {name: var.to_dict() for name, var in self.variables.items()},
-            "props": self.props.to_dict(),
+            "props": self.props._to_dict(),
         }
 
     def load_from_dict(self, data: Dict[str, Any]) -> bool:
@@ -978,13 +978,13 @@ class BaseGraph:
             # mirrors seed from the graph bag's cells at node construction.
             # reset_all first — load_from_dict may reuse a live
             # graph whose bag still carries the previous graph's opinions.
-            self.props.reset_all()
-            self.props.from_dict(data.get("props", {}))
+            self.props._reset_all()
+            self.props._from_dict(data.get("props", {}))
 
             # Document metadata. Ordering vs nodes is unconstrained (no
             # node-side mirrors), but keeping the restores adjacent is clearer.
-            self.meta.reset_all()
-            self.meta.from_dict(data.get("meta", {}))
+            self.meta._reset_all()
+            self.meta._from_dict(data.get("meta", {}))
 
             # Load variables first
             if "variables" in data:

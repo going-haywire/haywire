@@ -40,6 +40,10 @@ def _families():
 def _build(cls):
     node = cls(node_id="test-node", wrapper=_StubWrapper())
     node.init()
+    # Mirrors NodeWrapper._initialize: promoted ports (including the ones a
+    # setting(promote_default=...) seeded at bag construction) are realised
+    # here, by the same call the load path makes.
+    node._regenerate_promoted_ports()
     node.post_init()
     return node
 
@@ -47,7 +51,7 @@ def _build(cls):
 def _bag_state(node, accessor):
     """NORMAL / HIDDEN for a whole bag, or the mixed set if it disagrees."""
     bag = getattr(node, accessor)
-    states = {bag.effective_ui_state(f) for f in type(bag)._property_settings()}
+    states = {bag._effective_ui_state(f) for f in type(bag)._property_settings()}
     return states.pop() if len(states) == 1 else states
 
 
@@ -62,8 +66,8 @@ def test_model_and_min_score_are_seeded_to_config_ports(library_system, cls):
     # side rather than one silently shadowing the other.
     assert "selection.model" in node.ports
     assert "inference.min_score" in node.ports
-    assert node.selection.get_promoted_direction("model").value == "config"
-    assert node.inference.get_promoted_direction("min_score").value == "config"
+    assert node.selection._get_promoted_direction("model").value == "config"
+    assert node.inference._get_promoted_direction("min_score").value == "config"
 
 
 @pytest.mark.parametrize("cls", _families(), ids=lambda c: c.__name__)
@@ -198,7 +202,7 @@ def test_frame_event_seeds_the_three_stream_toggles(library_system):
 
     for name in ("enable_rgb", "enable_depth", "enable_ir"):
         assert f"streams.{name}" in node.ports
-        assert node.streams.get_promoted_direction(name).value == "config"
+        assert node.streams._get_promoted_direction(name).value == "config"
 
 
 def test_frame_event_toggle_rebuilds_stream_outlets(library_system):
@@ -277,3 +281,44 @@ def test_webcam_image_settings_reach_the_input(library_system):
     assert cam.rotate == cv2.ROTATE_90_CLOCKWISE
     assert cam.flip == 1
     assert cam.crop is not None
+
+
+# --- the two nodes nothing else instantiates ---------------------------------
+#
+# AnnotateNode and OakDCameraNode had no test that built them, which is how a
+# batch of broken `bag.promote(...)` / `bag.subscribe(...)` calls survived the
+# namespace-separation refactor: mypy could not see them (untyped bodies) and
+# no test executed them. These two tests close that hole.
+
+
+def test_annotate_node_builds_and_seeds_its_face(library_system):
+    from haybale_visiongraph.nodes.annotate_node import AnnotateNode
+
+    node = _build(AnnotateNode)
+
+    assert "style.min_score" in node.ports
+    assert "style.show_info" in node.ports
+    assert node.style._get_promoted_direction("min_score").value == "config"
+
+
+def test_oak_node_builds_and_seeds_its_device_picker(library_system):
+    from haybale_visiongraph.nodes.oak_d_camera_node import OakDCameraNode
+
+    node = _build(OakDCameraNode)
+
+    assert "device.mxid" in node.ports
+    assert node.device._get_promoted_direction("mxid").value == "config"
+
+
+def test_oak_stream_gating_still_runs(library_system):
+    """Exercises the set_ui_state_all calls that were left un-renamed."""
+    from haywire.core.settings import UiState
+    from haybale_visiongraph.nodes.oak_d_camera_node import OakDCameraNode
+
+    node = _build(OakDCameraNode)
+    node.hb_refresh_stream_status_indication()
+
+    # No subscriber wants anything, so every stream bag is hidden.
+    assert _bag_state(node, "depth") is UiState.HIDDEN
+    assert _bag_state(node, "ir") is UiState.HIDDEN
+    assert _bag_state(node, "color") is UiState.HIDDEN

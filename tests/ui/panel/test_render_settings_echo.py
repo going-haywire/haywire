@@ -31,7 +31,7 @@ def test_setting_write_of_equal_value_does_not_refire(settings_registry):
     """Writing the current value back fires NO change callback (loop terminator)."""
     bag = SettingsNode.example(registry=settings_registry)
     calls = []
-    bag.subscribe(lambda name, value, old: calls.append((name, value)))
+    bag._subscribe(lambda name, value, old: calls.append((name, value)))
 
     bag.example_string = "alpha"
     assert calls == [("example_string", "alpha")]
@@ -44,7 +44,7 @@ def test_distinct_then_equal_write_fires_exactly_once(settings_registry):
     """A change then a redundant write yields exactly one callback per real change."""
     bag = SettingsNode.example(registry=settings_registry)
     calls = []
-    bag.subscribe(lambda name, value, old: calls.append(value))
+    bag._subscribe(lambda name, value, old: calls.append(value))
 
     bag.persistent_value = 5.0
     bag.persistent_value = 5.0

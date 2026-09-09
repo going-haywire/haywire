@@ -40,7 +40,7 @@ class DebugOverlay(ui.element, component="debug_overlay.vue"):
         self._props["visible"] = do.enabled
         self._props["census-interval-ms"] = do.census_interval_ms
 
-        self._settings.subscribe(self._on_setting_changed)
+        self._settings._subscribe(self._on_setting_changed)
 
     def _on_setting_changed(self, name: str, value, _old) -> None:
         """Apply a DebugOverlaySettings change to this overlay instance."""

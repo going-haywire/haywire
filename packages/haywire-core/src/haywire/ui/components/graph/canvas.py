@@ -72,12 +72,12 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # Canvas appearance settings: push initial values and live-update on change.
         self._canvas_settings = CanvasSettings()
         self._apply_canvas_setting_props()
-        self._canvas_settings.subscribe(self._on_canvas_setting_changed)
+        self._canvas_settings._subscribe(self._on_canvas_setting_changed)
 
         # Hover-magnifier settings: push initial values and live-update on change.
         self._pz_settings = EditorPanZoomSettings()
         self._apply_hover_setting_props()
-        self._pz_settings.subscribe(self._on_setting_changed)
+        self._pz_settings._subscribe(self._on_setting_changed)
 
         # Register single unified event handler
         self.on("canvasEvent", self._handle_canvas_event)
@@ -155,11 +155,11 @@ class GraphCanvasVue(ui.element, component="canvas.vue", dependencies=[_GRAPH_EV
         # Drop the settings subscriptions so this instance isn't kept alive (and
         # doesn't fire into a torn-down component) across hot-reload / tab close.
         try:
-            self._canvas_settings.unsubscribe(self._on_canvas_setting_changed)
+            self._canvas_settings._unsubscribe(self._on_canvas_setting_changed)
         except Exception:
             pass
         try:
-            self._pz_settings.unsubscribe(self._on_setting_changed)
+            self._pz_settings._unsubscribe(self._on_setting_changed)
         except Exception:
             pass
         self._on_canvas_event = None

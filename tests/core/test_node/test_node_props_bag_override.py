@@ -76,7 +76,7 @@ class TestRerouteSkinIsPinned:
         wrapper.node.props.skin = "user-picked"
         assert wrapper.node.props.skin == "user-picked"
 
-        wrapper.node.props.reset("skin")
+        wrapper.node.props._reset("skin")
         assert wrapper.node.props.skin == REROUTE_SKIN
 
     def test_other_nodes_still_track_the_graph_tier(self, graph_with_library_system):
@@ -92,4 +92,4 @@ class TestRerouteSkinIsPinned:
     def test_pinned_skin_does_not_serialize(self, graph_with_library_system):
         """A declared default is not a local override, so it stays out of the file."""
         wrapper = _reroute(graph_with_library_system)
-        assert wrapper.node.props.to_dict()["values"] == {}
+        assert wrapper.node.props._to_dict()["values"] == {}

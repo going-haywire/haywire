@@ -139,16 +139,16 @@ class TestImperativeUiState:
         anchor = _render(bag)
         row = _find_field_row(anchor, "plain")
 
-        bag.set_ui_state("plain", UiState.DISABLED)
+        bag._set_ui_state("plain", UiState.DISABLED)
         assert row._props.get("data-ui-state") == "disabled"
         assert row.visible is True
         assert _widget_is_disabled(row)
 
-        bag.set_ui_state("plain", UiState.HIDDEN)
+        bag._set_ui_state("plain", UiState.HIDDEN)
         assert row._props.get("data-ui-state") == "hidden"
         assert row.visible is False
 
-        bag.set_ui_state("plain", UiState.NORMAL)
+        bag._set_ui_state("plain", UiState.NORMAL)
         assert row._props.get("data-ui-state") == "normal"
         assert row.visible is True
         assert not _widget_is_disabled(row)
@@ -159,9 +159,9 @@ class TestImperativeUiState:
         bag = ImperativeSettings()
         _render(bag)
         events: list[str] = []
-        bag.subscribe(lambda name, value, old: events.append(name))
-        bag.set_ui_state("plain", UiState.HIDDEN)
-        bag.set_ui_state("plain", UiState.NORMAL)
+        bag._subscribe(lambda name, value, old: events.append(name))
+        bag._set_ui_state("plain", UiState.HIDDEN)
+        bag._set_ui_state("plain", UiState.NORMAL)
         assert events == []
 
 
@@ -221,7 +221,7 @@ class TestComposition:
     def test_manual_disabled_composes_when_gates_satisfied(self):
         bag = GatedSettings()
         assert bag.enable_color is True  # gates say NORMAL
-        bag.set_ui_state("exposure", UiState.DISABLED)  # imperative says DISABLED
+        bag._set_ui_state("exposure", UiState.DISABLED)  # imperative says DISABLED
         anchor = _render(bag)
         row = _find_field_row(anchor, "exposure")
         assert row._props.get("data-ui-state") == "disabled", "severity max: imperative must win"
@@ -229,7 +229,7 @@ class TestComposition:
     def test_declarative_hidden_beats_manual_disabled(self):
         bag = GatedSettings()
         bag.enable_color = False  # visible_when → HIDDEN
-        bag.set_ui_state("manual_focus", UiState.DISABLED)
+        bag._set_ui_state("manual_focus", UiState.DISABLED)
         anchor = _render(bag)
         row = _find_field_row(anchor, "manual_focus")
         assert row._props.get("data-ui-state") == "hidden"
@@ -277,9 +277,9 @@ class TestCategoryGroupHiding:
         bag = CategorySettings()
         anchor = _render(bag)
         group = _find_category_group(anchor, "advanced")
-        bag.set_ui_state("adv_a", UiState.HIDDEN)  # only one of the two rows
+        bag._set_ui_state("adv_a", UiState.HIDDEN)  # only one of the two rows
         assert group.visible is True
-        bag.set_ui_state("adv_b", UiState.HIDDEN)  # now both
+        bag._set_ui_state("adv_b", UiState.HIDDEN)  # now both
         assert group.visible is False
 
     def test_initially_all_hidden_group_starts_hidden(self):

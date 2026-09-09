@@ -64,7 +64,7 @@ def test_local_opinion_round_trips():
     g2 = _graph()
     assert g2.load_from_dict(data) is True
     assert g2.props.default_skin == "skin-mine"
-    assert g2.props.is_locally_set("default_skin")
+    assert g2.props._is_locally_set("default_skin")
 
 
 def test_missing_props_block_loads_with_defaults():
@@ -76,7 +76,7 @@ def test_missing_props_block_loads_with_defaults():
     g2 = _graph()
     g2.props.default_skin = "stale-opinion"  # reused instance with stale state
     assert g2.load_from_dict(data) is True
-    assert not g2.props.is_locally_set("default_skin")  # reset_all ran
+    assert not g2.props._is_locally_set("default_skin")  # reset_all ran
 
 
 def test_load_restores_props_into_live_bag():

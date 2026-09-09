@@ -145,7 +145,7 @@ def render_settings(
         if wrapper is None:
             return
         names = fields_by_category.get(category, [])
-        wrapper.set_visibility(any(obj.effective_ui_state(n) is not UiState.HIDDEN for n in names))
+        wrapper.set_visibility(any(obj._effective_ui_state(n) is not UiState.HIDDEN for n in names))
 
     def _render_one(item: tuple[str, "setting"]) -> None:
         category = item[1]._category
@@ -179,8 +179,8 @@ def render_settings(
         if updater is not None:
             updater()
 
-    obj.subscribe(_on_model_change)
-    obj.subscribe_ui_state(_on_ui_state_change)
+    obj._subscribe(_on_model_change)
+    obj._subscribe_ui_state(_on_ui_state_change)
 
     # Explicit initial sync — exercise every row's apply() path once at render,
     # so "the widget shows the model" is a property of the apply path. Mirrors
@@ -191,8 +191,8 @@ def render_settings(
     # Tear down both subscriptions when the column leaves the DOM (redraw via
     # content.clear() or page close).
     def _teardown() -> None:
-        obj.unsubscribe(_on_model_change)
-        obj.unsubscribe_ui_state(_on_ui_state_change)
+        obj._unsubscribe(_on_model_change)
+        obj._unsubscribe_ui_state(_on_ui_state_change)
 
     anchor_cleanup_to_element(column, _teardown)
 
@@ -699,7 +699,7 @@ def _render_reactive_field_row(
     # fields get the same affordance as mirrors, only the tooltip/meaning differs
     # by field kind.
     def _has_local_opinion() -> bool:
-        return obj.is_locally_set(attr_name) and not is_promoted_input
+        return obj._is_locally_set(attr_name) and not is_promoted_input
 
     # The • dirty prefix is narrower than "has a reset button": it's suppressed for
     # ANY promotion direction (not just inlet) and while the row is DISABLED — a
@@ -707,7 +707,7 @@ def _render_reactive_field_row(
     # marker would just be noise.
     def _should_show_dirty() -> bool:
         return (
-            _has_local_opinion() and not is_promoted and obj.effective_ui_state(attr_name) is UiState.NORMAL
+            _has_local_opinion() and not is_promoted and obj._effective_ui_state(attr_name) is UiState.NORMAL
         )
 
     # "Reset to global default" re-seeds a mirror field from the current global and
@@ -724,7 +724,7 @@ def _render_reactive_field_row(
     value_apply: Callable[[Any], None] | None = None
 
     def _on_reset_click():
-        obj.reset(attr_name)
+        obj._reset(attr_name)
         # reset() discards the local opinion but only writes the cell when the
         # value actually changes (old != new). A field that was locally-set yet
         # already equalled its default — e.g. promoted-then-demoted unchanged —
@@ -763,7 +763,7 @@ def _render_reactive_field_row(
         # per-render constants: promotion changes rebuild the whole panel.
         if reset_item is not None:
             reset_item.set_enabled(
-                _has_local_opinion() and obj.effective_ui_state(attr_name) is UiState.NORMAL
+                _has_local_opinion() and obj._effective_ui_state(attr_name) is UiState.NORMAL
             )
 
     def _build_row_menu() -> None:
@@ -836,7 +836,7 @@ def _render_reactive_field_row(
             row_props += f' data-promoted-direction="{direction_attr}"'
         if promoted_hint:
             row_props += f' data-hint="{promoted_hint}"'
-    row_props += f' data-ui-state="{obj.effective_ui_state(attr_name).name.lower()}"'
+    row_props += f' data-ui-state="{obj._effective_ui_state(attr_name).name.lower()}"'
 
     widget_set_enabled: Callable[[bool], None] | None = None
     with ui.row().classes(row_classes).props(row_props) as row_element:
@@ -854,7 +854,7 @@ def _render_reactive_field_row(
             value_apply, widget_set_enabled = _resolve_widget_instance(defn, on_edit, bag=obj)
 
     def _refresh_row_ui_state() -> None:
-        state = obj.effective_ui_state(attr_name)
+        state = obj._effective_ui_state(attr_name)
         row_element.set_visibility(state is not UiState.HIDDEN)
         row_element.props(f'data-ui-state="{state.name.lower()}"')
         if widget_set_enabled is not None:
@@ -868,10 +868,10 @@ def _render_reactive_field_row(
         def _on_controller_changed(_value: Any, _old: Any) -> None:
             _refresh_row_ui_state()
 
-        obj.subscribe_field(_controller, _on_controller_changed)
+        obj._subscribe_field(_controller, _on_controller_changed)
 
         def _unsubscribe(cb: Callable[[Any, Any], None] = _on_controller_changed) -> None:
-            obj.unsubscribe(cb)
+            obj._unsubscribe(cb)
 
         anchor_cleanup_to_element(row_element, _unsubscribe)
 

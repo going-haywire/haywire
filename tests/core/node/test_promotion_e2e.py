@@ -45,7 +45,7 @@ def test_full_promote_drive_demote_cycle(graph_with_library_system, library_syst
     assert node.example.example_float == 0.875
 
     # reset restores the resolved default (the recovery path).
-    node.example.reset("example_float")
+    node.example._reset("example_float")
     assert node.example.example_float == default_value
 
 

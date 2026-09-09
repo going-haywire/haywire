@@ -76,6 +76,21 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 **The accessor name.** A node's `class filter(NodeSettings):` becomes `self.filter` on every instance. The class name is the accessor name — pick descriptive ones (`filter`, `output`, `api`). Multiple accessors per node are allowed; each gets its own `_setting_key` namespace.
 
+**Naming a field: the whole rule is "no leading underscore".** A bag's attribute namespace belongs to your fields — they become graph-JSON keys, TOML keys and panel labels, so they are public identifiers by construction. Every framework operation on a bag is therefore `_`-prefixed (`bag._to_dict()`, `bag._subscribe_field()`, `bag._set_ui_state_all()`, …), and `Settings` carries **no** public names at all. The two namespaces cannot collide, so there is no reserved-word list to memorise or keep up to date.
+
+`Settings.__init_subclass__` enforces it at class-definition time. Before it existed, a field named `to_dict` shadowed the serializer and made saving the graph raise `TypeError` — silent at declaration, fatal much later. To hide a field from the panel use `ui_state=UiState.HIDDEN`, never an underscore.
+
+Only `setting` descriptors are policed; helper methods and constants on a bag may be named however you like.
+
+**Iterating a bag's fields — `settings_fields(bag_or_cls)`.** A module-level function (like `promote_setting` / `demote_setting`), returning `{field_name: descriptor}` in MRO order. It is the supported spelling; `_property_settings()` is the internal one.
+
+```python
+from haywire.core.settings import settings_fields
+
+for name in settings_fields(bag):          # mirror a bag onto a wrapped object
+    setattr(target, name, getattr(bag, name))
+```
+
 **Sharing one bag across several nodes.** `@node` collects bags by walking the node's **full MRO, base-first**, so a bag declared on an undecorated shared base is picked up by every decorated subclass. A plain class-body alias works too, and is the lighter option when only some nodes want the bag:
 
 ```python
@@ -86,12 +101,14 @@ class NmsSettings(NodeSettings):
 # two unrelated nodes, each opting in
 @node(...)
 class ObjectDetectorNode(BaseEstimatorNode):
-    nms = NmsSettings          # accessor name MUST match everywhere
+    nms = bag(NmsSettings)     # accessor name MUST match everywhere
 
 @node(...)
 class PoseEstimatorNode(BaseEstimatorNode):
-    nms = NmsSettings          # ...the same name here
+    nms = bag(NmsSettings)     # ...the same name here
 ```
+
+**Attach bags with `bag()`.** It returns the class at runtime (so `@node`'s collection walk and its subclass check are unchanged) while *typing* as a bound instance — which is what the attribute genuinely resolves to, since `NodeData.__init__` replaces the class placeholder. Without it, a bag touched from an **annotated** method types as the class, so every field read looks like a `setting[T]` descriptor instead of a `T`; a bare `nms = NmsSettings` only type-checks in *unannotated* method bodies, which mypy skips by default. `bag()` replaces the four-line `if TYPE_CHECKING: ... else: ...` alias the framework itself still uses for `BaseNode.props`.
 
 **Alias a shared bag under one accessor name, always.** The descriptors inside `NmsSettings` are *shared objects*, and `@node` re-stamps `_setting_key = f"{accessor}.{field}"` on them for every node that declares the bag. Re-stamping is idempotent only while the accessor name is identical. Alias the same class as `nms` on one node and `suppression` on another and the key flips depending on which node was decorated last — a silent, import-order-dependent corruption of both nodes' storage keys. Nothing raises; the conflict check only catches an accessor *shadowing* an inherited bag without subclassing it.
 
@@ -188,7 +205,7 @@ a `CHOICES`-typed setting with no special-case handling.
 
 ```python
 def post_init(self):
-    self.filter.subscribe_field('scale', self._on_scale)
+    self.filter._subscribe_field('scale', self._on_scale)
 
 def _on_scale(self, value: float, old: float):
     self.cache.scaled = value * 2
@@ -200,7 +217,7 @@ def _on_scale(self, value: float, old: float):
 
 - Every field renders a row, sorted by `(category, order, attr_name)` and grouped under collapsible category headers.
 - A field's `effective_ui_state()` controls chrome: `DISABLED` renders the widget non-interactive (greyed), `HIDDEN` removes the row entirely. `watch()` seeds `DISABLED`.
-- Mirror fields (`shadow()` / `watch()`) that are locally overridden show a `•` prefix and a reset button (`restart_alt` icon) that calls `obj.reset(attr_name)`.
+- Mirror fields (`shadow()` / `watch()`) that are locally overridden show a `•` prefix and a reset button (`restart_alt` icon) that calls `obj._reset(attr_name)`.
 - Each row produces this DOM structure (useful for tests):
 
 ```text
@@ -294,19 +311,23 @@ The distinction is a fact about the wrapped library, not a judgement — find th
 
 Reach for `Promotable.NONE` only when *no* direction is meaningful — a display-only field whose sole writer is node code. Restart-required is **not** a reason for `NONE`: a promoted CONFIG port is pinless and takes no edge, so it is a face widget and nothing more. `NONE` would forbid that harmlessly-useful widget along with the misleading inlet.
 
-**Seeded promotion — an author-chosen default face.** A node author can promote a field at construction so the node arrives with a sensible face, while leaving the user free to demote it. Do this in **`init()`**, never `post_init()`:
+**Seeded promotion — an author-chosen default face (`promote_default=`).** A node arrives with the face its author intended, while the user stays free to demote. Declare it on the field:
 
 ```python
-def init(self):
-    self.add(EXEC.as_inlet("start", label="Start"))
-    # This node's face carries the device picker by default. The user may
-    # demote it from the Setting-row menu; that choice must survive a save.
-    self.device.promote("mxid", PortType.CONFIG)
+class device(NodeSettings):
+    mxid = setting[STRING](
+        "",
+        label="Device MXID",
+        widget=SelectWidget.config(properties={"options": _list_available_mxids}),
+        promote_default=PortType.CONFIG,   # on the node face by default
+    )
 ```
 
-`init()` runs **only for a freshly-dropped node** — a node restored from a graph goes through `_initialize_from_dict` instead, which never calls it. `post_init()` runs in *both* cases, and *after* the load has already restored `_promoted_keys` and regenerated the ports it records. So an unconditional `promote()` in `post_init()` re-promotes on every load: the user demotes the field, saves, reopens, and it is back. `promote()` is a no-op only when the field is *currently* promoted — it cannot distinguish "the user demoted this" from "nobody has decided yet". Seeding in `init()` puts the author's choice in the same place every other first-drop default lives, and lets the serialized bag be the sole authority thereafter.
+The seed is a **default, not a policy**. It is written into `_promoted_keys` when the bag is constructed, and `_from_dict` clears that block before restoring — so a saved graph always wins, *including when what it saved is the absence of a promotion*. That is what makes a demotion stick: the user demotes, saves, and the saved block simply has no record for that field. A bag a saved graph never mentions keeps its seeds, so a library adding a bag later still gets its intended face.
 
-Settings bags are constructed and node-bound in the node's `__init__`, so `self.<bag>` is live by the time `init()` runs.
+`promote_default` must be a direction `promotable=` allows; a contradiction raises at class-definition time rather than when one node fails to build.
+
+**Do not hand-write `bag._promote(...)` in node code.** In `post_init()` it is an outright bug: that hook runs on graph load too, *after* promotions are restored, so an unconditional promote silently re-promotes a field the user demoted and the demotion can never stick — `_promote()` is a no-op only when the field is *currently* promoted, and cannot tell "the user demoted this" from "nobody has decided yet". `init()` avoids that (it runs only on a fresh drop) but still spreads a declaration across two places. The imperative call remains available for genuinely dynamic cases.
 
 **Presentation state (`UiState`: `ui_state=` / `enabled_when` / `visible_when`).** A setting has a three-valued presentation state in the panel — `UiState.NORMAL` (rendered, interactive), `UiState.DISABLED` (rendered but non-interactive: Quasar `:disable` where the widget root supports it, the §2.11 opacity treatment otherwise), and `UiState.HIDDEN` (the row is not rendered at all; a category whose rows are ALL hidden hides its header too). DISABLED means *exists but locked*; HIDDEN means *does not apply right now* (e.g. a manual-focus value while focus mode is AUTO). This is purely a panel-display concern: node code and any direct `setattr` keep working regardless of state; there is no write guard in the settings layer, values keep serializing normally, and the state itself is never persisted.
 
@@ -345,16 +366,16 @@ class color(NodeSettings):
 ```python
 # Runtime API on any Settings instance — for gating driven by something
 # OTHER than a sibling setting (e.g. a different node's wiring state):
-bag.set_ui_state("manual_gain", UiState.NORMAL)          # re-enable
-bag.ui_state("manual_gain")                              # imperative state only
-bag.effective_ui_state("manual_gain")                    # composed (use this)
-bag.set_ui_state_all(UiState.DISABLED)                   # bulk: every field on the bag
-bag.set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category only
+bag._set_ui_state("manual_gain", UiState.NORMAL)          # re-enable
+bag._ui_state("manual_gain")                              # imperative state only
+bag._effective_ui_state("manual_gain")                    # composed (use this)
+bag._set_ui_state_all(UiState.DISABLED)                   # bulk: every field on the bag
+bag._set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category only
 ```
 
 `effective_ui_state(name)` is the **single composition oracle** — severity max of the imperative state, `enabled_when` (contributes at most DISABLED), and `visible_when` (contributes HIDDEN). Both the panel's row rendering and the Setting-row menu consume it, so they can never disagree. `category=` on the bulk setter is purely a *selector* over the fields' declared `category=` — a category carries no state of its own; header visibility is derived from its rows.
 
-**One channel per concern.** `set_ui_state` announces transitions on a dedicated UI-state channel (`bag.subscribe_ui_state(cb)` with `cb(name, state)`, removed via `unsubscribe_ui_state` / `cleanup()`), which the panel subscribes to. It never fires the field's cell event — the cell event keeps meaning exactly "the value changed", so value subscribers (widgets, node live-control handlers, promoted ports) are structurally incapable of hearing chrome changes. This mirrors NiceGUI's own design, where `enabled` and `value` are independent bindable properties. `set_ui_state` is transition-only: redundant calls fire nothing, so recomputing state in a hot path is free in steady state. Declarative (`enabled_when`/`visible_when`) re-evaluation does NOT ride this channel — a controller-value change is a genuine cell event, and the panel's per-row controller subscription handles it.
+**One channel per concern.** `set_ui_state` announces transitions on a dedicated UI-state channel (`bag._subscribe_ui_state(cb)` with `cb(name, state)`, removed via `unsubscribe_ui_state` / `cleanup()`), which the panel subscribes to. It never fires the field's cell event — the cell event keeps meaning exactly "the value changed", so value subscribers (widgets, node live-control handlers, promoted ports) are structurally incapable of hearing chrome changes. This mirrors NiceGUI's own design, where `enabled` and `value` are independent bindable properties. `set_ui_state` is transition-only: redundant calls fire nothing, so recomputing state in a hot path is free in steady state. Declarative (`enabled_when`/`visible_when`) re-evaluation does NOT ride this channel — a controller-value change is a genuine cell event, and the panel's per-row controller subscription handles it.
 
 `enabled_when` and `visible_when` are `(field_name, expected_value)` tuples stored in `metadata` — string field references, not validated at class-definition time. If the referenced field doesn't exist on the same bag, the panel logs a warning at row build and the field renders normally (never auto-gated) rather than raising; `effective_ui_state` skips the broken gate silently. Both only ever express a same-bag relationship; cross-bag or cross-node gating (e.g. one node's callback-edge wiring determining another's field state) uses `set_ui_state` from whatever code owns that external state.
 
@@ -474,7 +495,7 @@ If you want to react to a setting being changed (by the user, by another panel, 
 ```python
 def on_enable(self):
     self.settings = MyLibSettings()
-    self.settings.subscribe(self._on_setting_changed)
+    self.settings._subscribe(self._on_setting_changed)
 
 def _on_setting_changed(self, name, value, old):
     if name == 'port':
@@ -549,10 +570,10 @@ class MyNode(BaseNode):
 ### Reset / introspect
 
 ```python
-self.filter.reset('threshold')          # remove local override
-self.filter.reset_all()
-self.filter.is_locally_set('threshold')
-self.filter.subscribe(lambda n, v, o: print(n, o, '→', v))
+self.filter._reset('threshold')          # remove local override
+self.filter._reset_all()
+self.filter._is_locally_set('threshold')
+self.filter._subscribe(lambda n, v, o: print(n, o, '→', v))
 ```
 
 ### Three containers per node

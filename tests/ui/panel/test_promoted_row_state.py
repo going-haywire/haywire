@@ -237,7 +237,7 @@ def test_locally_set_plain_field_enables_reset(make_node_with_setting):
 def test_reset_restores_default_and_clears_dirty(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     node.filter.threshold = 0.9
-    node.filter.reset("threshold")
+    node.filter._reset("threshold")
     assert node.filter.threshold == 0.5
 
     row = _render(node)
@@ -252,7 +252,7 @@ def test_promoted_inlet_disables_reset_even_when_locally_set(make_node_with_sett
     from haywire.core.node.promotion import promote_setting
 
     promote_setting(node, "filter", "threshold")
-    assert node.filter.is_locally_set("threshold")
+    assert node.filter._is_locally_set("threshold")
 
     row = _render(node)
     assert row is not None
@@ -275,7 +275,7 @@ def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_se
     demote_setting(node, pid)
 
     # Locally-set, but value still equals the default: the "inert reset" case.
-    assert node.filter.is_locally_set("threshold")
+    assert node.filter._is_locally_set("threshold")
     assert node.filter.threshold == default
 
     row = _render(node)
@@ -284,8 +284,8 @@ def test_demoted_unchanged_field_is_dirty_then_reset_clears_it(make_node_with_se
     assert _dirty_label(row)
 
     # reset() discards the opinion despite old == new (no cell write / event).
-    node.filter.reset("threshold")
-    assert not node.filter.is_locally_set("threshold")
+    node.filter._reset("threshold")
+    assert not node.filter._is_locally_set("threshold")
     assert node.filter.threshold == default
 
     row = _render(node)
@@ -306,7 +306,7 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
     promote_setting(node, "filter", "threshold")
     pid = type(node.filter).__dict__["threshold"].storage_key
     demote_setting(node, pid)
-    assert node.filter.is_locally_set("threshold")
+    assert node.filter._is_locally_set("threshold")
 
     client = Client(cast(Any, _noop_page), request=None)
     with client:
@@ -322,7 +322,7 @@ def test_reset_click_clears_chrome_in_place_without_cell_event(make_node_with_se
         _click(_menu_items(row)["Reset to default"])
 
         # Same DOM, refreshed in place — no _render() rebuild.
-        assert not node.filter.is_locally_set("threshold")
+        assert not node.filter._is_locally_set("threshold")
         assert not _reset_enabled(row), "reset click must grey the item in place"
         assert not _dirty_label(row), "reset click must drop the • prefix in place"
 
@@ -415,7 +415,7 @@ def test_disabled_row_greys_reset_but_keeps_promote_active(make_node_with_settin
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     node.filter.threshold = 0.9  # dirty — reset would be enabled if NORMAL
-    node.filter.set_ui_state("threshold", UiState.DISABLED)
+    node.filter._set_ui_state("threshold", UiState.DISABLED)
 
     row = _render(node)
     items = _menu_items(row)

@@ -83,10 +83,10 @@ def test_local_set_wins_and_reset_resumes_tracking():
     registry.set_global(SKIN_KEY, "skin-A")
     bag.default_skin = "skin-local"
     assert bag.default_skin == "skin-local"
-    assert bag.is_locally_set("default_skin")
+    assert bag._is_locally_set("default_skin")
     registry.set_global(SKIN_KEY, "skin-C")
     assert bag.default_skin == "skin-local"  # set ignores
-    bag.reset("default_skin")
+    bag._reset("default_skin")
     assert bag.default_skin == "skin-C"  # back on the chain
     registry.set_global(SKIN_KEY, "skin-D")
     assert bag.default_skin == "skin-D"  # tracking resumed
@@ -95,7 +95,7 @@ def test_local_set_wins_and_reset_resumes_tracking():
 def test_subscribe_fires_on_framework_change():
     registry, bag = _make_bag()
     seen: list[tuple] = []
-    bag.subscribe(lambda name, value, old: seen.append((name, value)))
+    bag._subscribe(lambda name, value, old: seen.append((name, value)))
     registry.set_global(SKIN_KEY, "skin-E")
     assert ("default_skin", "skin-E") in seen
 
@@ -105,13 +105,13 @@ def test_promotion_unavailable():
     from haywire.core.types.enums import PortType
 
     with pytest.raises(ValueError, match="bag has no bound node"):
-        bag.promote("default_skin", PortType.INLET)
+        bag._promote("default_skin", PortType.INLET)
 
 
 def test_cleanup_detaches_registry_subscription():
     registry, bag = _make_bag()
     registry.set_global(SKIN_KEY, "skin-A")
-    bag.cleanup()
+    bag._cleanup()
     registry.set_global(SKIN_KEY, "skin-Z")
     # The dead bag must not have been re-synced (cell untouched after cleanup).
     desc = type(bag)._property_settings()["default_skin"]

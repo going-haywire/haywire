@@ -301,7 +301,7 @@ Three properties follow:
 
 **Cell-mutation spine.** No *structural* action ever resets a cell. Once created, a field's cell persists for the life of the bag; its **value** returns to the default only on an explicit `reset()` (or moves by edit, or — in P5 — by edge-drive). `reset` clears `_set_keys` and writes the no-override value back via `cell.set_value(...)` (so the cell event notifies subscribers/widgets); it never removes the cell. This is what makes the cell a stable identity a future port can bind to.
 
-**Serialization stays bare.** The graph settings block keeps its existing wire shape — `bag.to_dict()` emits `{attr_name: bare_value}` per locally-set field (via `cell.get_value()`, not the IType `to_dict` dict), and `from_dict` writes each value back into the cell. Complex ITypes still round-trip losslessly because the *cell* guarantees the IType round-trip; the settings-block shape is unchanged, so existing saved graphs load. See [§7.4](#74-serialisation).
+**Serialization stays bare.** The graph settings block keeps its existing wire shape — `bag._to_dict()` emits `{attr_name: bare_value}` per locally-set field (via `cell.get_value()`, not the IType `to_dict` dict), and `from_dict` writes each value back into the cell. Complex ITypes still round-trip losslessly because the *cell* guarantees the IType round-trip; the settings-block shape is unchanged, so existing saved graphs load. See [§7.4](#74-serialisation).
 
 **Settings are IType-only.** `SettingDescriptor.__set_name__` rejects any non-IType field at class-definition time, so every field has a cell — `_cell_for` always returns one and raises `TypeError` for a descriptor that somehow bypassed enforcement. There is no cell-less fallback store. (An earlier defensive `_plain: dict` for `object`-typed fields was removed once this invariant was committed to; a value that genuinely isn't an IType belongs in `self.store`/`self.cache`, not in settings.)
 
@@ -518,7 +518,7 @@ from my_lib.settings import MyLibSettings
 class MyRenderer:
     def __init__(self):
         self.settings = MyLibSettings()        # auto-wired to registry
-        self.settings.subscribe(self._on_change)
+        self.settings._subscribe(self._on_change)
 
     def render(self):
         url = self.settings.api_url            # resolves through chain on every read
@@ -587,9 +587,9 @@ registry, bag = create_test_bag(
     predefined_local={'font_size': 20},
 )
 assert bag.font_size == 20         # local wins (step 1 of resolution chain)
-assert bag.is_locally_set('font_size')
+assert bag._is_locally_set('font_size')
 
-bag.reset('font_size')
+bag._reset('font_size')
 assert bag.font_size == 16         # falls back to global (step 3)
 ```
 

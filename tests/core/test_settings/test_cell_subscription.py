@@ -38,7 +38,7 @@ def registry() -> SettingsRegistry:
 def test_subscribe_hears_descriptor_writes():
     bag = _PlainBag()
     seen: list[tuple] = []
-    bag.subscribe(lambda name, value, old: seen.append((name, value, old)))
+    bag._subscribe(lambda name, value, old: seen.append((name, value, old)))
 
     bag.threshold = 0.75
 
@@ -50,7 +50,7 @@ def test_subscribe_hears_raw_cell_writes():
     bag = _PlainBag()
     desc = _PlainBag.__dict__["threshold"]
     seen: list[tuple] = []
-    bag.subscribe(lambda name, value, old: seen.append((name, value, old)))
+    bag._subscribe(lambda name, value, old: seen.append((name, value, old)))
 
     bag._cell_for(desc).set_value(0.9)  # simulate edge drive into shared cell
 
@@ -60,7 +60,7 @@ def test_subscribe_hears_raw_cell_writes():
 def test_subscribe_hears_registry_write_through(registry):
     bag = _SubSchema()
     seen: list[tuple] = []
-    bag.subscribe(lambda name, value, old: seen.append((name, value, old)))
+    bag._subscribe(lambda name, value, old: seen.append((name, value, old)))
 
     registry.set_global(KEY, 4.0, tier="workspace")
 
@@ -71,8 +71,8 @@ def test_unsubscribe_stops_delivery():
     bag = _PlainBag()
     seen: list[tuple] = []
     cb = lambda name, value, old: seen.append((name, value, old))  # noqa: E731
-    bag.subscribe(cb)
-    bag.unsubscribe(cb)
+    bag._subscribe(cb)
+    bag._unsubscribe(cb)
 
     bag.threshold = 0.75
 
@@ -84,10 +84,10 @@ def test_cleanup_detaches_adapters_from_borrowed_registry_cell(registry):
     bag = _SubSchema()
     cell = registry.cell_for(KEY)
     before = cell.on_changed.handler_size
-    bag.subscribe(lambda name, value, old: None)
+    bag._subscribe(lambda name, value, old: None)
     assert cell.on_changed.handler_size == before + 1
 
-    bag.cleanup()
+    bag._cleanup()
 
     assert cell.on_changed.handler_size == before
 
@@ -96,9 +96,9 @@ def test_reset_notifies_subscribers():
     bag = _PlainBag()
     bag.threshold = 0.75
     seen: list[tuple] = []
-    bag.subscribe(lambda name, value, old: seen.append((name, value, old)))
+    bag._subscribe(lambda name, value, old: seen.append((name, value, old)))
 
-    bag.reset("threshold")
+    bag._reset("threshold")
 
     assert seen == [("threshold", 0.5, 0.75)]
 
@@ -123,7 +123,7 @@ class _TwoFieldBag(Settings):
 def test_subscribe_field_hears_only_its_field():
     bag = _TwoFieldBag()
     seen: list[tuple] = []
-    bag.subscribe_field("threshold", lambda value, old: seen.append((value, old)))
+    bag._subscribe_field("threshold", lambda value, old: seen.append((value, old)))
 
     bag.gain = 2.0  # other field — silent
     bag.threshold = 0.75
@@ -134,15 +134,15 @@ def test_subscribe_field_hears_only_its_field():
 def test_subscribe_field_unknown_field_raises():
     bag = _TwoFieldBag()
     with pytest.raises(KeyError):
-        bag.subscribe_field("no_such_field", lambda value, old: None)
+        bag._subscribe_field("no_such_field", lambda value, old: None)
 
 
 def test_subscribe_field_is_idempotent_per_field():
     bag = _TwoFieldBag()
     seen: list[tuple] = []
     cb = lambda value, old: seen.append((value, old))  # noqa: E731
-    bag.subscribe_field("threshold", cb)
-    bag.subscribe_field("threshold", cb)  # duplicate — must not double-fire
+    bag._subscribe_field("threshold", cb)
+    bag._subscribe_field("threshold", cb)  # duplicate — must not double-fire
 
     bag.threshold = 0.75
 
@@ -153,8 +153,8 @@ def test_subscribe_field_same_callback_on_two_fields():
     bag = _TwoFieldBag()
     seen: list[tuple] = []
     cb = lambda value, old: seen.append((value, old))  # noqa: E731
-    bag.subscribe_field("threshold", cb)
-    bag.subscribe_field("gain", cb)
+    bag._subscribe_field("threshold", cb)
+    bag._subscribe_field("gain", cb)
 
     bag.threshold = 0.75
     bag.gain = 2.0
@@ -166,8 +166,8 @@ def test_unsubscribe_detaches_field_subscription():
     bag = _TwoFieldBag()
     seen: list[tuple] = []
     cb = lambda value, old: seen.append((value, old))  # noqa: E731
-    bag.subscribe_field("threshold", cb)
-    bag.unsubscribe(cb)
+    bag._subscribe_field("threshold", cb)
+    bag._unsubscribe(cb)
 
     bag.threshold = 0.75
 
@@ -178,9 +178,9 @@ def test_cleanup_detaches_field_adapters_from_registry_cell(registry):
     bag = _SubSchema()
     cell = registry.cell_for(KEY)
     before = cell.on_changed.handler_size
-    bag.subscribe_field("threshold", lambda value, old: None)
+    bag._subscribe_field("threshold", lambda value, old: None)
     assert cell.on_changed.handler_size == before + 1
 
-    bag.cleanup()
+    bag._cleanup()
 
     assert cell.on_changed.handler_size == before

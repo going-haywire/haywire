@@ -499,7 +499,7 @@ def register_routes(library_service) -> None:
 
             _refresh()
             for name in fields:
-                props.subscribe_field(name, lambda *_: _refresh())
+                props._subscribe_field(name, lambda *_: _refresh())
 
             ui.button("refresh", on_click=_refresh).props('data-testid="refresh"')
         _stamp_synced()

@@ -18,7 +18,7 @@ NodeSettings are:
 
 Nodes access their settings via self.<inner_class_name>:
     self.settings.strength = 0.8
-    self.settings.reset('strength')
+    self.settings._reset('strength')
 """
 
 from typing_extensions import dataclass_transform

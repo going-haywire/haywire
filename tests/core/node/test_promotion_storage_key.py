@@ -19,9 +19,9 @@ def test_promote_marks_field_locally_set(make_node_with_setting):
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     desc = type(node.filter).__dict__["threshold"]
-    assert node.filter._is_locally_set(desc) is False
+    assert node.filter._is_set(desc) is False
     promote_setting(node, "filter", "threshold")
-    assert node.filter._is_locally_set(desc) is True
+    assert node.filter._is_set(desc) is True
 
 
 def test_promote_binds_shared_cell(make_node_with_setting):

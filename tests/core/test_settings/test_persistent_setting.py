@@ -104,7 +104,7 @@ def test_write_does_not_double_fire_on_property_change(wired_library_schema):
 
     inst = make_instance()
     fired: list[tuple] = []
-    inst.subscribe(lambda name, value, old: fired.append((name, value, old)))
+    inst._subscribe(lambda name, value, old: fired.append((name, value, old)))
 
     inst.name = "new"
 

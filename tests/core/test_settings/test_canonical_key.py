@@ -53,17 +53,17 @@ def test_container_methods_key_consistently_simple_mode():
     bag.strength = 0.9
 
     # to_dict surfaces the override under the attr name, nested under "values"
-    assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
+    assert bag._to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
     # is_locally_set reads the same key the setter wrote
-    assert bag.is_locally_set("strength") is True
+    assert bag._is_locally_set("strength") is True
     # reset removes it
-    bag.reset("strength")
-    assert bag.is_locally_set("strength") is False
+    bag._reset("strength")
+    assert bag._is_locally_set("strength") is False
     assert bag.strength == 0.5
     # from_dict restores it
-    bag.from_dict({"values": {"strength": 0.7}, "promoted": {}})
+    bag._from_dict({"values": {"strength": 0.7}, "promoted": {}})
     assert bag.strength == 0.7
-    assert bag.is_locally_set("strength") is True
+    assert bag._is_locally_set("strength") is True
 
 
 def test_node_bag_key_is_accessor_dot_field():

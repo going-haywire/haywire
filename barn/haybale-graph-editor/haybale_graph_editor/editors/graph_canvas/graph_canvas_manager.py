@@ -128,7 +128,7 @@ class GraphCanvasManager:
         # Graph-tier node theme: written once onto the canvas element, which is
         # an ancestor of every node card, so no per-node work is involved.
         self._apply_graph_node_theme()
-        self.graph.props.subscribe_field("node_theme", lambda *_: self._apply_graph_node_theme())
+        self.graph.props._subscribe_field("node_theme", lambda *_: self._apply_graph_node_theme())
 
         logger.info(f"🔧 GraphCanvasManager for {self.session_id} is setup")
 

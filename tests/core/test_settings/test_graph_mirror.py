@@ -86,7 +86,7 @@ def test_unset_tracks_graph_value_live():
 def test_subscribe_field_fires_on_graph_change():
     registry, graph_obj, bag = _make_chain()
     seen: list = []
-    bag.subscribe_field("skin", lambda value, old: seen.append(value))
+    bag._subscribe_field("skin", lambda value, old: seen.append(value))
     graph_obj.props.default_skin = "skin-x"
     assert seen == ["skin-x"]
 
@@ -98,7 +98,7 @@ def test_local_set_wins_and_reset_returns_to_graph_current():
     assert bag.skin == "skin-node"
     graph_obj.props.default_skin = "skin-graph-2"
     assert bag.skin == "skin-node"  # set ignores
-    bag.reset("skin")
+    bag._reset("skin")
     assert bag.skin == "skin-graph-2"  # falls to graph CURRENT, not framework
     graph_obj.props.default_skin = "skin-graph-3"
     assert bag.skin == "skin-graph-3"  # tracking resumed
@@ -112,7 +112,7 @@ def test_transitive_chain_framework_to_node():
     graph_obj.props.default_skin = "skin-graph"  # graph opinion interposes
     registry.set_global(SKIN_KEY, "skin-fw-2")
     assert bag.skin == "skin-graph"  # blocked at the graph tier
-    graph_obj.props.reset("default_skin")
+    graph_obj.props._reset("default_skin")
     assert bag.skin == "skin-fw-2"  # chain reopens end to end
 
 
@@ -145,7 +145,7 @@ def test_plain_shadow_of_graph_field_fails_loudly():
 def test_cleanup_detaches_graph_cell_adapter():
     registry, graph_obj, bag = _make_chain()
     graph_obj.props.default_skin = "skin-a"
-    bag.cleanup()
+    bag._cleanup()
     graph_obj.props.default_skin = "skin-b"
     desc = type(bag)._property_settings()["skin"]
     assert bag._cell_for(desc).get_value() == "skin-a"  # no sync after cleanup
@@ -154,7 +154,7 @@ def test_cleanup_detaches_graph_cell_adapter():
 def test_node_removal_does_not_leak_callbacks():
     registry, graph_obj, bag = _make_chain()
     seen: list = []
-    bag.subscribe_field("skin", lambda value, old: seen.append(value))
-    bag.cleanup()
+    bag._subscribe_field("skin", lambda value, old: seen.append(value))
+    bag._cleanup()
     graph_obj.props.default_skin = "skin-after"
     assert seen == []

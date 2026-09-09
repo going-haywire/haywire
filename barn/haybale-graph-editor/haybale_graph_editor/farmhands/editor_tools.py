@@ -258,7 +258,7 @@ def _inspect_setting_row(
     # inaccessible to the human sharing this graph. Report existence — the
     # gate can flip and the field become live — but not schema the agent
     # cannot act on. Naming it in by_name expands it in full.
-    if not expand and bag.effective_ui_state(name).name == "HIDDEN":
+    if not expand and bag._effective_ui_state(name).name == "HIDDEN":
         row["ui_state"] = "hidden"
         if data == "info":
             row["category"] = info.category
@@ -275,7 +275,7 @@ def _inspect_setting_row(
         # is_set is the write-relevant opinion: a field that merely INHERITS a
         # value is not overridden here, and writing its current value is a
         # no-op (setting.__set__ returns early on equality).
-        row["is_set"] = bag._is_locally_set(descriptor)
+        row["is_set"] = bag._is_set(descriptor)
         default = descriptor._default
         row["default"] = default() if callable(default) else default
     except Exception as exc:
@@ -292,14 +292,14 @@ def _inspect_setting_row(
             row["mirrors"] = descriptor._mirror_key or None
         if descriptor.is_graph_mirror:
             row["graph_mirror"] = True
-        if bag.is_promoted(name):
+        if bag._is_promoted(name):
             direction = bag.get_promoted_direction(name)
             row["promoted_as"] = direction.value if direction is not None else None
         # Composed presentation state (imperative seed + enabled_when /
         # visible_when gates), severity-max. watch() seeds DISABLED — read-only is
         # convention, not enforcement (a direct write still lands), so report the
         # state and let the agent decide rather than promising a guarantee.
-        ui_state = bag.effective_ui_state(name)
+        ui_state = bag._effective_ui_state(name)
         if ui_state.name != "NORMAL":
             row["ui_state"] = ui_state.name.lower()
         row.update(_constraints(descriptor.widget_config))

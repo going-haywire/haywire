@@ -98,7 +98,7 @@ def test_shadow_reset_reseeds_from_global_and_resumes_tracking():
     bag.color = "#ff0000"  # override
     assert bag.color == "#ff0000"
 
-    bag.reset("color")  # drop override → re-seed from global, resume tracking
+    bag._reset("color")  # drop override → re-seed from global, resume tracking
     assert bag.color == "#111111"
     assert _cell(bag).get_value() == "#111111"
 
@@ -109,7 +109,7 @@ def test_shadow_reset_reseeds_from_global_and_resumes_tracking():
 
 def test_cleanup_unsubscribes_from_registry():
     registry, bag = _make_watch_bag()
-    bag.cleanup()
+    bag._cleanup()
     # After cleanup the setting no longer reacts to the registry.
     registry.set_global(GLOBAL_KEY, "#999999")
     # The bag is cleaned up; nothing should have been written into its cell.
@@ -163,10 +163,10 @@ def test_watch_field_serializes_once_locally_set():
     registry, bag = _make_watch_bag()
     bag.color = "#ff0000"
 
-    data = bag.to_dict()
+    data = bag._to_dict()
     assert data["values"] == {"color": "#ff0000"}
 
     registry2, bag2 = _make_watch_bag()
-    bag2.from_dict(data)
+    bag2._from_dict(data)
     assert bag2.color == "#ff0000"
-    assert bag2.is_locally_set("color")
+    assert bag2._is_locally_set("color")

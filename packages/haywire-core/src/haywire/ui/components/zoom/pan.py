@@ -88,7 +88,7 @@ class ZoomPanContainer(ui.element, component="pan.vue"):
         self.on("transform-changed", self._handle_transform_changed)
 
         # Subscribe to settings changes — fires via _on_global_change in Settings base
-        self._pz_settings.subscribe(self._on_setting_changed)
+        self._pz_settings._subscribe(self._on_setting_changed)
 
     def _apply_settings_props(self) -> None:
         """Push current settings values to Vue props."""

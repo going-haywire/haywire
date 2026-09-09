@@ -90,7 +90,7 @@ def test_teardown_removes_only_panel_callback(client: Client):
     bag = _make_bag()
     foreign_calls: list = []
     foreign = lambda name, value, old: foreign_calls.append(name)  # noqa: E731
-    bag.subscribe(foreign)
+    bag._subscribe(foreign)
 
     with client:
         col = ui.column()

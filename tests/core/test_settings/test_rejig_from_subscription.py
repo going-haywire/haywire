@@ -9,14 +9,21 @@ inside the callback would leave the ports stale with no traceback anywhere the
 caller can see. Every assertion here is therefore on the resulting port set.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from haywire.core.di.context import get_settings_registry
 from haywire.core.node import BaseNode, NodeType, node
-from haywire.core.settings import NodeSettings, setting
+from haywire.core.settings import NodeSettings, bag, setting
 from haywire.barn.builtin.types import BOOL, INT
 
 pytestmark = [pytest.mark.unit, pytest.mark.core]
+
+
+class _Shape(NodeSettings):
+    count = setting[INT](2, label="Count")
+    enable_extra = setting[BOOL](False, label="Enable Extra")
 
 
 @node(
@@ -27,9 +34,7 @@ pytestmark = [pytest.mark.unit, pytest.mark.core]
 class _RejigFromSettingNode(BaseNode):
     """Port shape driven by two settings fields, both via subscribe_field."""
 
-    class shape(NodeSettings):
-        count = setting[INT](2, label="Count")
-        enable_extra = setting[BOOL](False, label="Enable Extra")
+    shape = bag(_Shape)
 
     def init(self):
         self.add(BOOL.as_inlet("static_inlet", label="Static"))
@@ -37,8 +42,8 @@ class _RejigFromSettingNode(BaseNode):
 
     def post_init(self):
         self.rebuild_calls = 0
-        self.shape.subscribe_field("count", self._on_shape_changed)
-        self.shape.subscribe_field("enable_extra", self._on_shape_changed)
+        self.shape._subscribe_field("count", self._on_shape_changed)
+        self.shape._subscribe_field("enable_extra", self._on_shape_changed)
 
     def _on_shape_changed(self, value, old):
         self.rebuild_calls += 1
@@ -73,8 +78,10 @@ def _needs_registries(library_system):
     get_settings_registry()
 
 
-def _make_node():
-    instance = _RejigFromSettingNode(node_id="rejig-test", wrapper=_StubWrapper())
+def _make_node() -> _RejigFromSettingNode:
+    # The node is abstract (no worker) and the wrapper is a stub — both are
+    # deliberate: rejig is port machinery and needs neither.
+    instance = cast(Any, _RejigFromSettingNode)(node_id="rejig-test", wrapper=_StubWrapper())
     instance.init()
     instance.post_init()
     return instance

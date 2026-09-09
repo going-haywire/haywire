@@ -29,71 +29,71 @@ class PromoSettings(Settings):
 class TestPromotedAccessors:
     def test_field_starts_unpromoted(self):
         bag = PromoSettings()
-        assert bag.is_promoted("alpha") is False
-        assert bag.get_promoted_direction("alpha") is None
+        assert bag._is_promoted("alpha") is False
+        assert bag._get_promoted_direction("alpha") is None
 
     def test_set_promoted_inlet(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.INLET)
-        assert bag.is_promoted("alpha") is True
-        assert bag.get_promoted_direction("alpha") is PortType.INLET
+        bag._set_promoted("alpha", PortType.INLET)
+        assert bag._is_promoted("alpha") is True
+        assert bag._get_promoted_direction("alpha") is PortType.INLET
 
     def test_set_promoted_outlet(self):
         bag = PromoSettings()
-        bag.set_promoted("beta", PortType.OUTLET)
-        assert bag.get_promoted_direction("beta") is PortType.OUTLET
+        bag._set_promoted("beta", PortType.OUTLET)
+        assert bag._get_promoted_direction("beta") is PortType.OUTLET
 
     def test_clear_promoted(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.INLET)
-        bag.clear_promoted("alpha")
-        assert bag.is_promoted("alpha") is False
-        assert bag.get_promoted_direction("alpha") is None
+        bag._set_promoted("alpha", PortType.INLET)
+        bag._clear_promoted("alpha")
+        assert bag._is_promoted("alpha") is False
+        assert bag._get_promoted_direction("alpha") is None
 
     def test_reset_direction_by_re_setting(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.INLET)
-        bag.set_promoted("alpha", PortType.OUTLET)  # a field has at most one port
-        assert bag.get_promoted_direction("alpha") is PortType.OUTLET
+        bag._set_promoted("alpha", PortType.INLET)
+        bag._set_promoted("alpha", PortType.OUTLET)  # a field has at most one port
+        assert bag._get_promoted_direction("alpha") is PortType.OUTLET
 
     def test_is_promoted_unknown_field_false(self):
         bag = PromoSettings()
-        assert bag.is_promoted("nonexistent") is False
-        assert bag.get_promoted_direction("nonexistent") is None
+        assert bag._is_promoted("nonexistent") is False
+        assert bag._get_promoted_direction("nonexistent") is None
 
     def test_set_promoted_unknown_field_warns_and_ignores(self, caplog):
         bag = PromoSettings()
         with caplog.at_level(logging.WARNING):
-            bag.set_promoted("nonexistent", PortType.INLET)
+            bag._set_promoted("nonexistent", PortType.INLET)
         assert any("nonexistent" in rec.message for rec in caplog.records)
-        assert bag.is_promoted("nonexistent") is False
+        assert bag._is_promoted("nonexistent") is False
 
     def test_clear_promoted_unknown_or_unpromoted_is_silent(self):
         bag = PromoSettings()
-        bag.clear_promoted("nonexistent")  # must not raise
-        bag.clear_promoted("alpha")  # not promoted — must not raise
-        assert bag.is_promoted("alpha") is False
+        bag._clear_promoted("nonexistent")  # must not raise
+        bag._clear_promoted("alpha")  # not promoted — must not raise
+        assert bag._is_promoted("alpha") is False
 
     def test_promotion_does_not_affect_value(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.INLET)
+        bag._set_promoted("alpha", PortType.INLET)
         assert bag.alpha == 1.0
         bag.alpha = 9.0
         assert bag.alpha == 9.0
-        assert bag.is_promoted("alpha") is True
+        assert bag._is_promoted("alpha") is True
 
 
 class TestSerializationShape:
     def test_to_dict_new_shape_empty(self):
         bag = PromoSettings()
-        d = bag.to_dict()
+        d = bag._to_dict()
         assert d == {"values": {}, "promoted": {}}
 
     def test_to_dict_includes_values_and_promotions(self):
         bag = PromoSettings()
         bag.alpha = 5.0  # locally set, differs from default
-        bag.set_promoted("beta", PortType.OUTLET)
-        d = bag.to_dict()
+        bag._set_promoted("beta", PortType.OUTLET)
+        d = bag._to_dict()
         assert d["values"] == {"alpha": 5.0}
         # promoted is keyed by storage_key; for a plain field storage_key == attr name.
         # No show_widget: an untouched promotion uses its direction default (v3).
@@ -101,34 +101,34 @@ class TestSerializationShape:
 
     def test_from_dict_restores_values_and_promotions(self):
         bag = PromoSettings()
-        bag.from_dict({"values": {"alpha": 7.0}, "promoted": {"beta": {"direction": "inlet"}}})
+        bag._from_dict({"values": {"alpha": 7.0}, "promoted": {"beta": {"direction": "inlet"}}})
         assert bag.alpha == 7.0
-        assert bag.is_promoted("beta") is True
-        assert bag.get_promoted_direction("beta") is PortType.INLET
-        assert bag.get_promoted_show_widget("beta") is None
+        assert bag._is_promoted("beta") is True
+        assert bag._get_promoted_direction("beta") is PortType.INLET
+        assert bag._get_promoted_show_widget("beta") is None
 
     def test_round_trip(self):
         bag = PromoSettings()
         bag.beta = 42.0
-        bag.set_promoted("alpha", PortType.INLET)
+        bag._set_promoted("alpha", PortType.INLET)
         restored = PromoSettings()
-        restored.from_dict(bag.to_dict())
+        restored._from_dict(bag._to_dict())
         assert restored.beta == 42.0
-        assert restored.get_promoted_direction("alpha") is PortType.INLET
+        assert restored._get_promoted_direction("alpha") is PortType.INLET
 
     def test_from_dict_old_flat_shape_raises(self):
         bag = PromoSettings()
         with pytest.raises(PromotedFormatError):
-            bag.from_dict({"alpha": 5.0})  # pre-refactor flat shape
+            bag._from_dict({"alpha": 5.0})  # pre-refactor flat shape
 
     def test_from_dict_empty_is_not_an_error(self):
         bag = PromoSettings()
-        bag.from_dict({})  # a bag that serialized nothing — must not raise
+        bag._from_dict({})  # a bag that serialized nothing — must not raise
         assert bag.alpha == 1.0
 
     def test_from_dict_missing_promoted_section_defaults_empty(self):
         bag = PromoSettings()
-        bag.from_dict({"values": {"alpha": 3.0}})  # no "promoted" key
+        bag._from_dict({"values": {"alpha": 3.0}})  # no "promoted" key
         assert bag.alpha == 3.0
         assert bag._promoted_keys == {}
 
@@ -137,7 +137,7 @@ class TestSerializationShape:
         migrates it, and tolerating both would leave two live spellings."""
         bag = PromoSettings()
         with pytest.raises(PromotedFormatError):
-            bag.from_dict({"values": {}, "promoted": {"beta": "outlet"}})
+            bag._from_dict({"values": {}, "promoted": {"beta": "outlet"}})
 
 
 class TestPromotedShowWidget:
@@ -145,46 +145,46 @@ class TestPromotedShowWidget:
 
     def test_defaults_to_none(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.OUTLET)
-        assert bag.get_promoted_show_widget("alpha") is None
+        bag._set_promoted("alpha", PortType.OUTLET)
+        assert bag._get_promoted_show_widget("alpha") is None
 
     def test_set_keeps_the_direction(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.OUTLET)
-        bag.set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
-        assert bag.get_promoted_direction("alpha") is PortType.OUTLET
-        assert bag.get_promoted_show_widget("alpha") is ShowWidgetStrategy.ALWAYS
+        bag._set_promoted("alpha", PortType.OUTLET)
+        bag._set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
+        assert bag._get_promoted_direction("alpha") is PortType.OUTLET
+        assert bag._get_promoted_show_widget("alpha") is ShowWidgetStrategy.ALWAYS
 
     def test_set_on_an_unpromoted_field_is_a_noop(self):
         bag = PromoSettings()
-        bag.set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
-        assert bag.get_promoted_show_widget("alpha") is None
-        assert bag.is_promoted("alpha") is False
+        bag._set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
+        assert bag._get_promoted_show_widget("alpha") is None
+        assert bag._is_promoted("alpha") is False
 
     def test_non_default_strategy_serializes(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.OUTLET)
-        bag.set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
-        assert bag.to_dict()["promoted"] == {"alpha": {"direction": "outlet", "show_widget": "always"}}
+        bag._set_promoted("alpha", PortType.OUTLET)
+        bag._set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
+        assert bag._to_dict()["promoted"] == {"alpha": {"direction": "outlet", "show_widget": "always"}}
 
     def test_strategy_equal_to_the_direction_default_is_omitted(self):
         """NEVER *is* the outlet default, so it is not a choice worth writing."""
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.OUTLET)
-        bag.set_promoted_show_widget("alpha", ShowWidgetStrategy.NEVER)
-        assert bag.to_dict()["promoted"] == {"alpha": {"direction": "outlet"}}
+        bag._set_promoted("alpha", PortType.OUTLET)
+        bag._set_promoted_show_widget("alpha", ShowWidgetStrategy.NEVER)
+        assert bag._to_dict()["promoted"] == {"alpha": {"direction": "outlet"}}
 
     def test_same_strategy_is_a_choice_on_one_direction_and_a_default_on_another(self):
         """ALWAYS is the config default but an explicit choice on an outlet."""
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.CONFIG)
-        bag.set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
-        assert bag.to_dict()["promoted"] == {"alpha": {"direction": "config"}}
+        bag._set_promoted("alpha", PortType.CONFIG)
+        bag._set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
+        assert bag._to_dict()["promoted"] == {"alpha": {"direction": "config"}}
 
     def test_round_trip_preserves_a_non_default_strategy(self):
         bag = PromoSettings()
-        bag.set_promoted("alpha", PortType.INLET)
-        bag.set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
+        bag._set_promoted("alpha", PortType.INLET)
+        bag._set_promoted_show_widget("alpha", ShowWidgetStrategy.ALWAYS)
         restored = PromoSettings()
-        restored.from_dict(bag.to_dict())
-        assert restored.get_promoted_show_widget("alpha") is ShowWidgetStrategy.ALWAYS
+        restored._from_dict(bag._to_dict())
+        assert restored._get_promoted_show_widget("alpha") is ShowWidgetStrategy.ALWAYS

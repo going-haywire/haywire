@@ -53,7 +53,7 @@ class LoggingConfigurator:
         self._inherited_namespaces: set[str] = set()
 
         self._apply_all()
-        self._settings.subscribe(self._on_setting_change)
+        self._settings._subscribe(self._on_setting_change)
         self._attach_registry(registry)
 
     # ------------------------------------------------------------------

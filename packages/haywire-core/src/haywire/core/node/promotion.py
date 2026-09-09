@@ -26,7 +26,7 @@ def is_field_promoted(bag: "Settings", field: str) -> bool:
 
     Consults the bag's ``_promoted_keys`` — the single source of truth.
     False for a field that is not promoted or does not exist."""
-    return bag.is_promoted(field)
+    return bag._is_promoted(field)
 
 
 def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "setting"]:
@@ -268,7 +268,7 @@ def promote_setting(
     # serializes (the port itself never does) and what regenerate_promoted_ports
     # reads on load. Idempotent-safe: an early return above (pid already in
     # node.ports) means we never reach here for an already-promoted field.
-    bag.set_promoted(field, direction, show_widget)
+    bag._set_promoted(field, direction, show_widget)
 
 
 def demote_setting(node: "NodeData", port_id: str) -> None:
@@ -282,7 +282,7 @@ def demote_setting(node: "NodeData", port_id: str) -> None:
         return
     try:
         bag, desc = _resolve_promoted(node, port_id)
-        bag.clear_promoted(desc._attr_name)
+        bag._clear_promoted(desc._attr_name)
     except KeyError:
         pass  # port matches no setting (library changed) — just remove the port
     node.ports[port_id].unbind_field()
@@ -316,4 +316,4 @@ def set_promoted_show_widget(
     except KeyError:
         return
     port.set_show_widget(strategy)
-    bag.set_promoted_show_widget(desc._attr_name, strategy)
+    bag._set_promoted_show_widget(desc._attr_name, strategy)

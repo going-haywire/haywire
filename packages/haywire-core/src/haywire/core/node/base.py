@@ -306,7 +306,7 @@ class BaseNode(NodeData):
         for bag_name in type(self)._settings_bags:
             bag = getattr(self, bag_name, None)
             if isinstance(bag, Settings):
-                bag.cleanup()
+                bag._cleanup()
 
     # =========================================================================
     # SERIALIZATION (updated)
@@ -326,8 +326,8 @@ class BaseNode(NodeData):
         return {
             "node_id": self.node_id,
             "ports": self._serialize_ports(include_data=include_data),
-            "settings": {name: getattr(self, name).to_dict() for name in type(self)._settings_bags},
-            "props": self.props.to_dict(),
+            "settings": {name: getattr(self, name)._to_dict() for name in type(self)._settings_bags},
+            "props": self.props._to_dict(),
             "store": self._store.to_dict(),
             "identity": asdict(self.identity),
             "library": asdict(self.library),
@@ -382,7 +382,7 @@ class BaseNode(NodeData):
             if not isinstance(bag, Settings):
                 continue
             try:
-                bag.from_dict(bag_data)
+                bag._from_dict(bag_data)
             except PromotedFormatError:
                 # Reset-and-continue: the bag stays at descriptor
                 # defaults (nothing restored), the node loads and stays fully
@@ -412,7 +412,7 @@ class BaseNode(NodeData):
 
         # Restore reactive props
         if "props" in data:
-            self.props.from_dict(data["props"])
+            self.props._from_dict(data["props"])
 
         if "store" in data:
             self._store.from_dict(data["store"])

@@ -63,9 +63,9 @@ class TestNodeLayoutDirectionGraphTier:
         wrapper.node.props.layout_direction = B2T
         assert wrapper.node.props.layout_direction == B2T
 
-        wrapper.node.props.reset("layout_direction")
+        wrapper.node.props._reset("layout_direction")
         assert wrapper.node.props.layout_direction == T2B  # node → graph
-        graph_obj.props.reset("layout_direction")
+        graph_obj.props._reset("layout_direction")
         assert wrapper.node.props.layout_direction == R2L  # graph → framework
 
     def test_round_trip_preserves_all_three_tiers(self, graph_with_library_system, library_system):
@@ -79,8 +79,8 @@ class TestNodeLayoutDirectionGraphTier:
         g2 = BaseGraph(filestem="G2")
         assert g2.load_from_dict(data) is True
         loaded = list(g2.node_wrappers.values())
-        overridden = [w for w in loaded if w.node.props.is_locally_set("layout_direction")]
-        tracking = [w for w in loaded if not w.node.props.is_locally_set("layout_direction")]
+        overridden = [w for w in loaded if w.node.props._is_locally_set("layout_direction")]
+        tracking = [w for w in loaded if not w.node.props._is_locally_set("layout_direction")]
         assert len(overridden) == 1
         assert overridden[0].node.props.layout_direction == B2T
         assert len(tracking) == 1
@@ -98,7 +98,7 @@ class TestNodeLayoutDirectionGraphTier:
 
         g2 = BaseGraph(filestem="G2")
         assert g2.load_from_dict(data) is True
-        assert not g2.props.is_locally_set("layout_direction")
+        assert not g2.props._is_locally_set("layout_direction")
         assert len(g2.node_wrappers) == 1
         wrapper = next(iter(g2.node_wrappers.values()))
         assert wrapper.node.props.layout_direction == L2R
@@ -115,7 +115,7 @@ class TestNodeLayoutDirectionGraphTier:
         wrapper = _add_node(graph_obj)
 
         seen = []
-        wrapper.node.props.subscribe_field("layout_direction", lambda v, o: seen.append(v))
+        wrapper.node.props._subscribe_field("layout_direction", lambda v, o: seen.append(v))
         graph_obj.props.layout_direction = T2B
 
         assert seen, "graph-tier write did not fire the node's field subscription"

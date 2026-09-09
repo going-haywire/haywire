@@ -248,7 +248,7 @@ class HaywireApp:
             get_stdout_tee().max_history = value
 
         self._scrollback_listener = _on_change
-        self._debug_settings.subscribe_field(LOG_SCROLLBACK_LINES_KEY, _on_change)
+        self._debug_settings._subscribe_field(LOG_SCROLLBACK_LINES_KEY, _on_change)
 
     def setup_farmhand(self, port: int, document: SecurityDocument, *, tls: bool = False) -> None:
         """Mount the Farmhand MCP server if enabled (read once; restart to apply)."""

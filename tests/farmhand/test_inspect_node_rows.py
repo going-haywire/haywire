@@ -93,7 +93,7 @@ def test_hidden_field_collapses_to_existence_only():
     """A field the user cannot see collapses — but is still reported as present."""
     t = _tools()
     node = _node(tuning=Tuning)
-    assert node.tuning.effective_ui_state("threshold").name == "HIDDEN"
+    assert node.tuning._effective_ui_state("threshold").name == "HIDDEN"
 
     rows = _flat(t._settings_payload(node, ["tuning"], "all", t._Filters([], [], [], [])))
     assert rows["threshold"] == {

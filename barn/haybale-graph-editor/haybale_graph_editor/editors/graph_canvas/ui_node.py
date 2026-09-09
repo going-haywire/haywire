@@ -250,18 +250,18 @@ class UINode:
         """Watch every prop that restyles the slot rather than redrawing it."""
         props = self.wrapper.node.props
         for field_name in ("width", "height", "size_adapt", "node_theme", "color_override"):
-            props.subscribe_field(field_name, self._on_slot_field_change)
+            props._subscribe_field(field_name, self._on_slot_field_change)
         # `locked` rides its own handler: it stamps the CONTAINER, not the slot,
         # because canvas.vue reads it off `[data-node-id]` when deciding what a
         # drag picks up — and custom attributes, unlike CSS vars, do not
         # inherit down to it from an ancestor.
-        props.subscribe_field("locked", lambda _v, _o: self._apply_locked_attr())
+        props._subscribe_field("locked", lambda _v, _o: self._apply_locked_attr())
         # `detail` rides its own handler, same as `locked`: it stamps the
         # CONTAINER (not the slot), because canvas.vue's [data-node-props-detail]
         # rules key off it the same way [data-node-props-locked] does — and
         # custom attributes do not inherit down to descendants the way CSS
         # vars do.
-        props.subscribe_field("detail", lambda _v, _o: self._apply_detail_attr())
+        props._subscribe_field("detail", lambda _v, _o: self._apply_detail_attr())
 
     def _apply_locked_attr(self) -> None:
         """Stamp ``data-node-props-locked`` on the container for canvas.vue to read.

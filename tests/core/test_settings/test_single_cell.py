@@ -82,9 +82,9 @@ class TestSimpleModeCharacterization:
 
     def test_to_dict_returns_only_changed_from_default(self):
         bag = SimpleBag()
-        assert bag.to_dict() == {"values": {}, "promoted": {}}
+        assert bag._to_dict() == {"values": {}, "promoted": {}}
         bag.strength = 0.9
-        assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
+        assert bag._to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_to_dict_omits_field_written_back_to_its_default(self):
         """A field set away from its default and then back is NOT serialized.
@@ -98,8 +98,8 @@ class TestSimpleModeCharacterization:
         bag.strength = 0.9
         bag.strength = 0.5  # back to the default, without reset()
 
-        assert bag.is_locally_set("strength")  # still an override on the cell
-        assert bag.to_dict() == {"values": {}, "promoted": {}}
+        assert bag._is_locally_set("strength")  # still an override on the cell
+        assert bag._to_dict() == {"values": {}, "promoted": {}}
 
     def test_from_dict_notifies_attached_subscribers(self):
         # Subscription rides the cell event: the restore writes the cell, so
@@ -107,8 +107,8 @@ class TestSimpleModeCharacterization:
         # before anything subscribes, so they stay unobserved.
         bag = SimpleBag()
         calls = []
-        bag.subscribe(lambda *a: calls.append(a))
-        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
+        bag._subscribe(lambda *a: calls.append(a))
+        bag._from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert bag.strength == 0.9
         assert calls == [("strength", 0.9, 0.5)]
 
@@ -116,8 +116,8 @@ class TestSimpleModeCharacterization:
         bag = SimpleBag()
         bag.strength = 0.9
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val, old)))
-        bag.reset("strength")
+        bag._subscribe(lambda name, val, old: calls.append((name, val, old)))
+        bag._reset("strength")
         assert bag.strength == 0.5
         assert calls == [("strength", 0.5, 0.9)]
 
@@ -125,17 +125,17 @@ class TestSimpleModeCharacterization:
         bag = SimpleBag()
         bag.strength = 0.9
         bag.mode = "precise"
-        bag.reset_all()
+        bag._reset_all()
         assert bag.strength == 0.5
         assert bag.mode == "fast"
 
     def test_is_locally_set_true_after_set_false_after_reset(self):
         bag = SimpleBag()
-        assert not bag.is_locally_set("strength")
+        assert not bag._is_locally_set("strength")
         bag.strength = 0.9
-        assert bag.is_locally_set("strength")
-        bag.reset("strength")
-        assert not bag.is_locally_set("strength")
+        assert bag._is_locally_set("strength")
+        bag._reset("strength")
+        assert not bag._is_locally_set("strength")
 
     def test_set_to_default_value_still_marks_locally_set(self):
         """Setting a field to a value EQUAL to its default is a no-op (echo guard):
@@ -143,13 +143,13 @@ class TestSimpleModeCharacterization:
         holds *a* value, so set-ness can't be inferred from value != default."""
         bag = SimpleBag()
         bag.strength = 0.5  # equal to default → echo-guarded no-op
-        assert not bag.is_locally_set("strength")
-        assert bag.to_dict() == {"values": {}, "promoted": {}}
+        assert not bag._is_locally_set("strength")
+        assert bag._to_dict() == {"values": {}, "promoted": {}}
 
     def test_subscribe_callback_shape(self):
         bag = SimpleBag()
         calls = []
-        bag.subscribe(lambda name, value, old: calls.append((name, value, old)))
+        bag._subscribe(lambda name, value, old: calls.append((name, value, old)))
         bag.strength = 0.8
         assert calls == [("strength", 0.8, 0.5)]
 
@@ -169,26 +169,26 @@ class TestExtendedModeCharacterization:
         registry, bag = create_test_bag()
         bag.bg_color = "#ff0000"
         assert bag.bg_color == "#ff0000"
-        assert bag.is_locally_set("bg_color")
+        assert bag._is_locally_set("bg_color")
 
     def test_reset_drops_override_and_reresolves(self):
         registry, bag = create_test_bag(predefined_local={"bg_color": "#ff0000"})
-        assert bag.is_locally_set("bg_color")
-        bag.reset("bg_color")
-        assert not bag.is_locally_set("bg_color")
+        assert bag._is_locally_set("bg_color")
+        bag._reset("bg_color")
+        assert not bag._is_locally_set("bg_color")
         assert bag.bg_color == "#ffffff"
 
     def test_to_dict_writes_only_locally_set(self):
         registry, bag = create_test_bag()
         bag.font_size = 18
-        d = bag.to_dict()
+        d = bag._to_dict()
         assert d == {"values": {"font_size": 18}, "promoted": {}}
         assert "bg_color" not in d["values"]
 
     def test_shadow_unset_tracks_global_change(self):
         registry, bag, key = _make_mirror_bag()
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val)))
         registry.set_global(key, "#aabbcc")
         assert calls == [("color", "#aabbcc")]
         assert bag.color == "#aabbcc"
@@ -196,17 +196,17 @@ class TestExtendedModeCharacterization:
     def test_shadow_set_ignores_global_change(self):
         registry, bag, key = _make_mirror_bag(predefined_local={"color": "#ff0000"})
         calls = []
-        bag.subscribe(lambda name, val, old: calls.append((name, val)))
+        bag._subscribe(lambda name, val, old: calls.append((name, val)))
         registry.set_global(key, "#aabbcc")
         assert calls == []
         assert bag.color == "#ff0000"
 
     def test_redundant_write_of_resolved_value_creates_no_override(self):
         registry, bag, key = _make_mirror_bag()
-        assert not bag.is_locally_set("color")
+        assert not bag._is_locally_set("color")
         resolved = bag.color
         bag.color = resolved  # echo
-        assert not bag.is_locally_set("color")
+        assert not bag._is_locally_set("color")
 
 
 # ---------------------------------------------------------------------------
@@ -218,19 +218,19 @@ class TestComplexITypeRoundTrip:
     def test_vec2i_round_trips_through_to_dict_from_dict(self):
         bag = ComplexBag()
         bag.offset = [3, 7]
-        data = bag.to_dict()
+        data = bag._to_dict()
         assert data == {"values": {"offset": [3, 7]}, "promoted": {}}
 
         bag2 = ComplexBag()
-        bag2.from_dict(data)
+        bag2._from_dict(data)
         assert list(bag2.offset) == [3, 7]
 
     def test_color_round_trips(self):
         bag = ComplexBag()
         bag.tint = "#123456"
-        data = bag.to_dict()
+        data = bag._to_dict()
         bag2 = ComplexBag()
-        bag2.from_dict(data)
+        bag2._from_dict(data)
         assert bag2.tint == "#123456"
 
 
@@ -281,7 +281,7 @@ class TestCellBackedSerialization:
     def test_to_dict_omits_inherited_unset_extended_field(self):
         registry, bag = create_test_bag()
         bag.font_size = 18
-        d = bag.to_dict()
+        d = bag._to_dict()
         assert d == {"values": {"font_size": 18}, "promoted": {}}  # bg_color inherited/unset → omitted
 
     def test_to_dict_wire_shape_is_bare_value(self):
@@ -289,37 +289,37 @@ class TestCellBackedSerialization:
         {"value": ...} dict — this matches NodeBase._to_dict → bag.to_dict()."""
         bag = SimpleBag()
         bag.strength = 0.9
-        assert bag.to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
+        assert bag._to_dict() == {"values": {"strength": 0.9}, "promoted": {}}
 
     def test_complex_type_wire_shape_is_bare_value(self):
         bag = ComplexBag()
         bag.offset = [3, 7]
-        d = bag.to_dict()
+        d = bag._to_dict()
         # Bare list, not {"value": [3, 7]}
         assert d == {"values": {"offset": [3, 7]}, "promoted": {}}
 
     def test_from_dict_populates_cell_and_marks_set_keys(self):
         bag = SimpleBag()
         descriptor = type(bag)._property_settings()["strength"]
-        bag.from_dict({"values": {"strength": 0.9}, "promoted": {}})
-        assert bag._is_locally_set(descriptor)
+        bag._from_dict({"values": {"strength": 0.9}, "promoted": {}})
+        assert bag._is_set(descriptor)
         assert bag._cells["strength"].get_value() == 0.9
 
     def test_reset_clears_set_keys_and_returns_cell_to_default(self):
         bag = SimpleBag()
         bag.strength = 0.9
         descriptor = type(bag)._property_settings()["strength"]
-        bag.reset("strength")
-        assert not bag._is_locally_set(descriptor)
+        bag._reset("strength")
+        assert not bag._is_set(descriptor)
         # Cell returned to default (never structurally removed).
         assert bag._cells["strength"].get_value() == 0.5
 
     def test_vec2i_bag_round_trips_through_dict(self):
         bag = ComplexBag()
         bag.offset = [5, 9]
-        data = bag.to_dict()
+        data = bag._to_dict()
         bag2 = ComplexBag()
-        bag2.from_dict(data)
+        bag2._from_dict(data)
         assert list(bag2.offset) == [5, 9]
 
     def test_dict_value_stores_are_gone(self):

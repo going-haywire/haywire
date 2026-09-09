@@ -32,9 +32,9 @@ class TestNodeSkinGraphTier:
         wrapper.node.props.skin = "skin-node"
         assert wrapper.node.props.skin == "skin-node"
 
-        wrapper.node.props.reset("skin")
+        wrapper.node.props._reset("skin")
         assert wrapper.node.props.skin == "skin-graph"  # node → graph
-        graph_obj.props.reset("default_skin")
+        graph_obj.props._reset("default_skin")
         assert wrapper.node.props.skin == "skin-fw"  # graph → framework
 
     def test_round_trip_preserves_all_three_tiers(self, graph_with_library_system, library_system):
@@ -48,8 +48,8 @@ class TestNodeSkinGraphTier:
         g2 = BaseGraph(filestem="G2")
         assert g2.load_from_dict(data) is True
         loaded = list(g2.node_wrappers.values())
-        overridden = [w for w in loaded if w.node.props.is_locally_set("skin")]
-        tracking = [w for w in loaded if not w.node.props.is_locally_set("skin")]
+        overridden = [w for w in loaded if w.node.props._is_locally_set("skin")]
+        tracking = [w for w in loaded if not w.node.props._is_locally_set("skin")]
         assert len(overridden) == 1
         assert overridden[0].node.props.skin == "skin-node"
         assert len(tracking) == 1
@@ -62,7 +62,7 @@ class TestNodeSkinGraphTier:
         del data["props"]  # simulate old file
         g2 = BaseGraph(filestem="G2")
         assert g2.load_from_dict(data) is True
-        assert not g2.props.is_locally_set("default_skin")
+        assert not g2.props._is_locally_set("default_skin")
         assert len(g2.node_wrappers) == 1
 
     def test_skin_promotion_still_works(self, graph_with_library_system):
@@ -70,7 +70,7 @@ class TestNodeSkinGraphTier:
 
         graph_obj = graph_with_library_system
         wrapper = _add_node(graph_obj)
-        wrapper.node.props.promote("skin", PortType.INLET)
-        assert wrapper.node.props.is_promoted("skin")
-        wrapper.node.props.demote("skin")
-        assert not wrapper.node.props.is_promoted("skin")
+        wrapper.node.props._promote("skin", PortType.INLET)
+        assert wrapper.node.props._is_promoted("skin")
+        wrapper.node.props._demote("skin")
+        assert not wrapper.node.props._is_promoted("skin")

@@ -46,7 +46,7 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
         self._props["ghost-opacity"] = mm.ghost_opacity
         self._props["visible"] = mm.enabled
 
-        self._settings.subscribe(self._on_setting_changed)
+        self._settings._subscribe(self._on_setting_changed)
 
     def _on_setting_changed(self, name: str, value, _old) -> None:
         """Apply a MinimapSettings change to this canvas instance."""
@@ -107,6 +107,6 @@ class MinimapCanvas(ui.element, component="minimap.vue"):
     def cleanup(self) -> None:
         """Drop settings subscriptions so this instance isn't kept alive."""
         try:
-            self._settings.unsubscribe(self._on_setting_changed)
+            self._settings._unsubscribe(self._on_setting_changed)
         except Exception:
             pass

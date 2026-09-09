@@ -51,7 +51,7 @@ class FrameworkSettings(Settings):
 
         self.settings.max_threads = 8   # writes to registry, fires notifications
 
-        self.settings.subscribe(self.on_max_threads_change)  # subscribe to changes
+        self.settings._subscribe(self.on_max_threads_change)  # subscribe to changes
 
     ```
     """

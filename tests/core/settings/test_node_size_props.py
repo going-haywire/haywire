@@ -35,7 +35,7 @@ def test_size_adapt_accepts_all_four_modes():
 def test_default_props_serialize_sparse():
     # A default node emits nothing for size fields (sparse to_dict).
     p = _fresh_props()
-    vals = _values(p.to_dict())
+    vals = _values(p._to_dict())
     assert "width" not in vals
     assert "height" not in vals
     assert "size_adapt" not in vals
@@ -45,13 +45,13 @@ def test_manual_size_round_trips():
     p = _fresh_props()
     p.size_adapt = "manual"
     p.width = 321.0
-    out = p.to_dict()
+    out = p._to_dict()
     vals = _values(out)
     assert vals["size_adapt"] == "manual"
     assert vals["width"] == 321.0
 
     p2 = _fresh_props()
-    p2.from_dict(out)
+    p2._from_dict(out)
     assert p2.size_adapt == "manual"
     assert p2.width == 321.0
 

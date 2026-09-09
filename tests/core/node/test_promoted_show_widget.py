@@ -75,7 +75,7 @@ class TestSetStrategy:
         promote_setting(node, "example", "example_float", PortType.OUTLET)
         set_promoted_show_widget(node, _pid(node), ShowWidgetStrategy.ALWAYS)
 
-        assert node.example.get_promoted_show_widget("example_float") is ShowWidgetStrategy.ALWAYS
+        assert node.example._get_promoted_show_widget("example_float") is ShowWidgetStrategy.ALWAYS
 
     def test_set_on_an_unpromoted_port_is_a_noop(self, graph_with_library_system, library_system):
         """An author-declared port keeps ADR 0003's contract — this never
@@ -140,4 +140,4 @@ class TestRoundTrip:
         promote_setting(node, "example", "example_float", PortType.OUTLET)
 
         assert node.ports[pid].show_widget is ShowWidgetStrategy.NEVER
-        assert node.example.get_promoted_show_widget("example_float") is None
+        assert node.example._get_promoted_show_widget("example_float") is None

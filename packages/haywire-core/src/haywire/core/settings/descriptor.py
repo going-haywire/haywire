@@ -34,6 +34,7 @@ from .base import SettingDescriptor
 
 if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
+    from haywire.core.types.enums import PortType
 
 # ``setting`` is generic over its IType (e.g. ``setting[FLOAT]``). The descriptor
 # stores raw Python values, so the value side (default / __get__ / __set__) is
@@ -218,6 +219,27 @@ class setting(SettingDescriptor, Generic[T]):
         field whose value comes from elsewhere has no legitimate write path
         in, so inlet promotion would be misleading even though nothing
         structurally forbids it.
+
+    promote_default : PortType or None
+        Applies only to NodeSettings fields. Seeds this field as promoted in
+        *direction* when the bag is first constructed, giving a freshly-dropped
+        node a sensible default face while leaving the user free to demote it.
+
+        The seed is a **default, not a policy**: it is written into the bag's
+        ``_promoted_keys`` at construction, and ``_from_dict`` clears that
+        record before restoring, so a graph's saved promotion state always
+        wins. A user's demotion is an *absence* in the saved block, and an
+        absence beats a seed precisely because the seed is gone by then.
+
+        Must be one of the directions ``promotable=`` allows, checked at
+        class-definition time — a default that ``promote_setting()`` would
+        refuse is a declaration bug, not a runtime surprise.
+
+        Prefer this over calling ``bag.promote(...)`` from node code. Doing it
+        by hand in ``post_init()`` is a live bug: that hook runs on graph load
+        too, *after* promotions are restored, so an unconditional promote there
+        silently re-promotes on every load and the user's demotion can never
+        stick.
     """
 
     def __init__(
@@ -238,6 +260,7 @@ class setting(SettingDescriptor, Generic[T]):
         metadata: "dict | None" = None,
         ui_state: UiState = UiState.NORMAL,
         promotable: Promotable = Promotable.ALL,
+        promote_default: "PortType | None" = None,
     ) -> None:
         self._default = default
         # IType cutover: an explicit type_= must be an IType (Python-type inference
@@ -263,6 +286,7 @@ class setting(SettingDescriptor, Generic[T]):
         self._metadata: dict = metadata or {}
         self._ui_state: UiState = ui_state
         self._promotable: Promotable = promotable
+        self._promote_default: "PortType | None" = promote_default
         self._attr_name: str = ""  # set by __set_name__
         self._setting_key: str = ""  # namespaced registry key, set at registration
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
@@ -309,6 +333,20 @@ class setting(SettingDescriptor, Generic[T]):
                 f"global, or any other class's field). Same-bag mirroring is not "
                 f"supported."
             )
+        if self._promote_default is not None:
+            # A default promotion that promote_setting() would refuse is a
+            # declaration bug — surface it here rather than at construction,
+            # where it would be one node failing to build.
+            from haywire.core.node.promotion import eligible_promotion_directions
+
+            eligible = eligible_promotion_directions(self)
+            if self._promote_default not in eligible:
+                allowed = ", ".join(d.value for d in eligible) or "none"
+                raise ValueError(
+                    f"setting field '{name}' on {owner.__name__} declares "
+                    f"promote_default={self._promote_default.value!r}, which promotable="
+                    f"{self._promotable!r} does not allow (allowed: {allowed})."
+                )
         super().__set_name__(owner, name)
 
     @property

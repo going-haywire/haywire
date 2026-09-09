@@ -116,14 +116,14 @@ class TestCallbacks:
     def test_callback_fired_on_change(self):
         s = _Simple()
         received = []
-        s.subscribe(lambda name, value, old: received.append((name, value, old)))
+        s._subscribe(lambda name, value, old: received.append((name, value, old)))
         s.threshold = 0.9
         assert received == [("threshold", 0.9, 0.5)]
 
     def test_callback_not_fired_when_value_unchanged(self):
         s = _Simple()
         received = []
-        s.subscribe(lambda name, value, old: received.append((name, value, old)))
+        s._subscribe(lambda name, value, old: received.append((name, value, old)))
         s.threshold = 0.5  # same as default
         assert received == []
 
@@ -131,8 +131,8 @@ class TestCallbacks:
         s = _Simple()
         log1 = []
         log2 = []
-        s.subscribe(lambda n, v, o: log1.append(v))
-        s.subscribe(lambda n, v, o: log2.append(v))
+        s._subscribe(lambda n, v, o: log1.append(v))
+        s._subscribe(lambda n, v, o: log2.append(v))
         s.threshold = 0.3
         assert log1 == [0.3]
         assert log2 == [0.3]
@@ -144,15 +144,15 @@ class TestCallbacks:
         def cb(name, value, old):
             received.append(value)
 
-        s.subscribe(cb)
+        s._subscribe(cb)
         s.threshold = 0.1
-        s.unsubscribe(cb)
+        s._unsubscribe(cb)
         s.threshold = 0.2
         assert received == [0.1]
 
     def test_unsubscribe_unknown_is_silent(self):
         s = _Simple()
-        s.unsubscribe(lambda: None)  # no error
+        s._unsubscribe(lambda: None)  # no error
 
     def test_duplicate_subscribe_ignored(self):
         s = _Simple()
@@ -161,8 +161,8 @@ class TestCallbacks:
         def cb(name, value, old):
             received.append(value)
 
-        s.subscribe(cb)
-        s.subscribe(cb)  # second subscribe should be ignored
+        s._subscribe(cb)
+        s._subscribe(cb)  # second subscribe should be ignored
         s.threshold = 0.7
         assert received == [0.7]
 
@@ -172,7 +172,7 @@ class TestCallbacks:
         def bad_cb(name, value, old):
             raise RuntimeError("boom")
 
-        s.subscribe(bad_cb)
+        s._subscribe(bad_cb)
         s.threshold = 0.3  # should not raise
 
 
@@ -184,25 +184,25 @@ class TestCallbacks:
 class TestToDict:
     def test_empty_when_all_defaults(self):
         s = _Simple()
-        assert s.to_dict() == {"values": {}, "promoted": {}}
+        assert s._to_dict() == {"values": {}, "promoted": {}}
 
     def test_includes_non_default_values(self):
         s = _Simple()
         s.threshold = 0.8
-        assert s.to_dict() == {"values": {"threshold": 0.8}, "promoted": {}}
+        assert s._to_dict() == {"values": {"threshold": 0.8}, "promoted": {}}
 
     def test_multiple_non_default_values(self):
         s = _Simple()
         s.threshold = 0.8
         s.verbose = True
-        data = s.to_dict()
+        data = s._to_dict()
         assert data == {"values": {"threshold": 0.8, "verbose": True}, "promoted": {}}
 
     def test_revert_to_default_not_included(self):
         s = _Simple()
         s.threshold = 0.8
         s.threshold = 0.5  # back to default
-        assert s.to_dict() == {"values": {}, "promoted": {}}
+        assert s._to_dict() == {"values": {}, "promoted": {}}
 
 
 # ---------------------------------------------------------------------------
@@ -213,7 +213,7 @@ class TestToDict:
 class TestFromDict:
     def test_from_dict_restores_value(self):
         s = _Simple()
-        s.from_dict({"values": {"threshold": 0.3}, "promoted": {}})
+        s._from_dict({"values": {"threshold": 0.3}, "promoted": {}})
         assert s.threshold == 0.3
 
     def test_from_dict_notifies_attached_subscribers(self):
@@ -222,28 +222,28 @@ class TestFromDict:
         # anything subscribes, so they stay unobserved.
         s = _Simple()
         received = []
-        s.subscribe(lambda n, v, o: received.append(v))
-        s.from_dict({"values": {"threshold": 0.3}, "promoted": {}})
+        s._subscribe(lambda n, v, o: received.append(v))
+        s._from_dict({"values": {"threshold": 0.3}, "promoted": {}})
         assert received == [0.3]
 
     def test_unknown_keys_ignored(self):
         s = _Simple()
-        s.from_dict({"values": {"threshold": 0.3, "unknown_key": "ignored"}, "promoted": {}})
+        s._from_dict({"values": {"threshold": 0.3, "unknown_key": "ignored"}, "promoted": {}})
         assert s.threshold == 0.3  # no exception
 
     def test_empty_dict(self):
         s = _Simple()
-        s.from_dict({})
+        s._from_dict({})
         assert s.threshold == 0.5  # default unchanged
 
     def test_round_trip(self):
         s1 = _Simple()
         s1.threshold = 0.77
         s1.verbose = True
-        data = s1.to_dict()
+        data = s1._to_dict()
 
         s2 = _Simple()
-        s2.from_dict(data)
+        s2._from_dict(data)
         assert s2.threshold == 0.77
         assert s2.verbose is True
 
@@ -257,15 +257,15 @@ class TestReset:
     def test_reset_single_setting(self):
         s = _Simple()
         s.threshold = 0.9
-        s.reset("threshold")
+        s._reset("threshold")
         assert s.threshold == 0.5
 
     def test_reset_fires_callback(self):
         s = _Simple()
         s.threshold = 0.9
         received = []
-        s.subscribe(lambda n, v, o: received.append(v))
-        s.reset("threshold")
+        s._subscribe(lambda n, v, o: received.append(v))
+        s._reset("threshold")
         assert received == [0.5]
 
     def test_reset_all(self):
@@ -273,7 +273,7 @@ class TestReset:
         s.threshold = 0.9
         s.verbose = True
         s.name = "changed"
-        s.reset_all()
+        s._reset_all()
         assert s.threshold == 0.5
         assert s.verbose is False
         assert s.name == "default"
@@ -281,7 +281,7 @@ class TestReset:
     def test_reset_unknown_key_raises(self):
         s = _Simple()
         with pytest.raises(KeyError):
-            s.reset("nonexistent")
+            s._reset("nonexistent")
 
 
 # ---------------------------------------------------------------------------
@@ -335,18 +335,18 @@ class TestInheritance:
     def test_child_to_dict_includes_parent_fields(self):
         c = _Child()
         c.x = 5
-        data = c.to_dict()
+        data = c._to_dict()
         assert data == {"values": {"x": 5}, "promoted": {}}
 
     def test_child_from_dict_restores_parent_setting(self):
         c = _Child()
-        c.from_dict({"values": {"x": 7}, "promoted": {}})
+        c._from_dict({"values": {"x": 7}, "promoted": {}})
         assert c.x == 7
 
     def test_child_callback_fires_for_parent_setting(self):
         c = _Child()
         received = []
-        c.subscribe(lambda n, v, o: received.append((n, v)))
+        c._subscribe(lambda n, v, o: received.append((n, v)))
         c.x = 42
         assert received == [("x", 42)]
 

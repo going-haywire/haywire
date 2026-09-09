@@ -355,9 +355,16 @@ class NodeWrapper:
         node_cls = self._node_cls
         try:
             if node_info:
+                # _initialize_from_dict regenerates promoted ports itself, from
+                # the restored _promoted_keys.
                 node_instance._initialize_from_dict(node_info)
             else:
                 node_instance.init()
+                # Fresh drop: realise any setting(promote_default=...) seeds the
+                # bags recorded at construction. Same call the load path makes,
+                # so promoted ports have ONE creation path either way and land
+                # after the author-declared ports on both.
+                node_instance._regenerate_promoted_ports()
             node_instance.post_init()
             self._state.is_initialized = True
             self._state.error_initialize = None
@@ -650,7 +657,7 @@ class NodeWrapper:
             return
 
         for field_name in type(self._node_instance.props).REDRAW_FIELDS:
-            self._node_instance.props.subscribe_field(field_name, self._on_props_redraw_change)
+            self._node_instance.props._subscribe_field(field_name, self._on_props_redraw_change)
 
     def _on_props_redraw_change(self, _value: Any, _old: Any) -> None:
         """Cell-event adapter to request a debounced redraw."""

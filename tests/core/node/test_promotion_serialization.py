@@ -89,5 +89,5 @@ class TestDemoteClearsRecord:
         pid = type(node.example).__dict__["example_float"].storage_key
         demote_setting(node, pid)
         assert pid not in node.ports
-        assert node.example.is_promoted("example_float") is False
+        assert node.example._is_promoted("example_float") is False
         assert node.example._promoted_keys == {}

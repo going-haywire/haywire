@@ -93,9 +93,9 @@ def test_size_change_restyles_slot_without_redraw():
 
 def test_subscribe_slot_fields_wires_size_and_appearance():
     n = _ui_node_with_props("auto", 200.0, 200.0)
-    n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
+    n.wrapper.node.props._subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_slot_fields()
-    watched = {call.args[0] for call in n.wrapper.node.props.subscribe_field.call_args_list}
+    watched = {call.args[0] for call in n.wrapper.node.props._subscribe_field.call_args_list}
     # `locked` and `detail` are subscribed here too but are NOT slot fields:
     # both stamp a `data-node-props-*` attribute on the CONTAINER (canvas.vue
     # reads locked off `[data-node-id]` to decide what a drag picks up; detail
@@ -119,10 +119,10 @@ def test_locked_is_wired_to_the_container_not_the_slot():
     where canvas.vue cannot see it (custom attributes do not inherit down
     from an ancestor)."""
     n = _ui_node_with_props("auto", 200.0, 200.0)
-    n.wrapper.node.props.subscribe_field = MagicMock()  # type: ignore[method-assign]
+    n.wrapper.node.props._subscribe_field = MagicMock()  # type: ignore[method-assign]
     n._subscribe_slot_fields()
 
-    handlers = {call.args[0]: call.args[1] for call in n.wrapper.node.props.subscribe_field.call_args_list}
+    handlers = {call.args[0]: call.args[1] for call in n.wrapper.node.props._subscribe_field.call_args_list}
     assert handlers["locked"] is not n._on_slot_field_change
     assert handlers["detail"] is not n._on_slot_field_change
     for slot_field in ("width", "height", "size_adapt", "node_theme", "color_override"):

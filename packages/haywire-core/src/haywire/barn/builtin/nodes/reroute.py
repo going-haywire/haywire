@@ -84,7 +84,7 @@ class RerouteNode(BaseNode):
         # Whole-category chrome gating; the skin binding itself is declared on
         # the props bag above. Runs on both fresh creation and load.
         for cat in ("state", "appearance", "annotation", "layout"):
-            self.props.set_ui_state_all(UiState.HIDDEN, category=cat)
+            self.props._set_ui_state_all(UiState.HIDDEN, category=cat)
 
     def on_startup(self, context: ExecutionContext) -> None:
         # The split action stamps exactly one inlet + one outlet. Resolve the
