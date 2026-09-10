@@ -654,6 +654,39 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         demote_setting(wrapper.node, port_id)
         self._redraw_node(wrapper.node_id)
 
+    def reset_setting(self, port_id: str) -> None:
+        """Reset the setting behind ``port_id`` to its declared default.
+
+        The same act as the Properties row's Reset, reached from the pin — so a
+        value typed into a pin's own widget can be undone where it was typed.
+        Routed through the bag rather than the port: the port would write only
+        the cell, leaving the bag believing nobody had an opinion.
+        """
+        self._with_promoted_setting(port_id, lambda bag, desc: bag._reset(desc._attr_name))
+
+    def clear_setting(self, port_id: str) -> None:
+        """Set the setting behind ``port_id`` to absence (``OPTIONAL[T]`` only)."""
+        self._with_promoted_setting(port_id, lambda bag, desc: setattr(bag, desc._attr_name, None))
+
+    def _with_promoted_setting(self, port_id: str, act) -> None:
+        """Resolve ``port_id`` to its (bag, descriptor) and apply *act*, then redraw.
+
+        A port matching no setting is ignored rather than raising — the same
+        tolerance ``demote_setting`` shows for a library changed under a saved
+        graph.
+        """
+        from haywire.core.node.promotion import _resolve_promoted
+
+        wrapper = self._context.data[EditState].active_node
+        if wrapper is None:
+            return
+        try:
+            bag, descriptor = _resolve_promoted(wrapper.node, port_id)
+        except KeyError:
+            return
+        act(bag, descriptor)
+        self._redraw_node(wrapper.node_id)
+
     def set_port_show_widget(self, port_id: str, strategy: str) -> None:
         """Set a promoted port's widget-visibility strategy from the pin menu.
 

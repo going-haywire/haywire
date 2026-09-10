@@ -114,7 +114,7 @@ def test_cleanup_detaches_registry_subscription():
     bag._cleanup()
     registry.set_global(SKIN_KEY, "skin-Z")
     # The dead bag must not have been re-synced (cell untouched after cleanup).
-    desc = type(bag)._property_settings()["default_skin"]
+    desc = type(bag)._settings_descriptors()["default_skin"]
     assert bag._cell_for(desc).get_value() == "skin-A"
 
 
@@ -172,7 +172,7 @@ def test_graph_cleanup_releases_bag():
     registry.set_global(SKIN_KEY, "skin-A")
     graph_obj.cleanup()
     registry.set_global(SKIN_KEY, "skin-Z")
-    desc = type(graph_obj.props)._property_settings()["default_skin"]
+    desc = type(graph_obj.props)._settings_descriptors()["default_skin"]
     assert graph_obj.props._cell_for(desc).get_value() == "skin-A"
 
 

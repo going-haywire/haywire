@@ -184,7 +184,7 @@ class TestNodeCollapse:
         """The tier this class used to test — deleted, not a bug. Guards
         against `collapsed` silently regaining a graph-level shadow."""
         graph_obj = graph_with_library_system
-        assert not any("collaps" in name for name in type(graph_obj.props)._property_settings()), (
+        assert not any("collaps" in name for name in type(graph_obj.props)._settings_descriptors()), (
             "collapse regained a graph tier; it is now node-only"
         )
 
@@ -193,7 +193,7 @@ class TestNodeCollapse:
         showing nothing."""
         from haywire.core.skin.settings import NodeDefaultSkinSettings
 
-        assert not any("collaps" in name for name in NodeDefaultSkinSettings._property_settings()), (
+        assert not any("collaps" in name for name in NodeDefaultSkinSettings._settings_descriptors()), (
             "collapse gained a framework tier; it is node-only"
         )
 

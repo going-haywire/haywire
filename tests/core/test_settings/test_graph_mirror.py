@@ -147,7 +147,7 @@ def test_cleanup_detaches_graph_cell_adapter():
     graph_obj.props.default_skin = "skin-a"
     bag._cleanup()
     graph_obj.props.default_skin = "skin-b"
-    desc = type(bag)._property_settings()["skin"]
+    desc = type(bag)._settings_descriptors()["skin"]
     assert bag._cell_for(desc).get_value() == "skin-a"  # no sync after cleanup
 
 

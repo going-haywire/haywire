@@ -21,14 +21,24 @@ if TYPE_CHECKING:
 class PortActions(Protocol):
     """Verbs available when the user right-clicks a pin.
 
-    Two verbs, both meaningful only on a promoted pin: the demote backing
-    "Detach from setting", and the widget-visibility choice backing
-    "Show widget".
+    All meaningful only on a promoted pin: the demote backing "Detach from
+    setting", the widget-visibility choice backing "Show widget", and the two
+    value verbs — ``reset_setting`` and ``clear_setting`` — that put the backing
+    field back to a resting state.
+
+    The value verbs live here as well as on the Properties row because a
+    promoted pin is where the field actually is once its widget is on the card:
+    a user who edits there should not have to find the panel to undo it. They
+    are the same two acts the row menu offers, against the same descriptor.
     """
 
     def demote_setting(self, port_id: str) -> None: ...
 
     def set_port_show_widget(self, port_id: str, strategy: str) -> None: ...
+
+    def reset_setting(self, port_id: str) -> None: ...
+
+    def clear_setting(self, port_id: str) -> None: ...
 
 
 class PinMenu(Surface):

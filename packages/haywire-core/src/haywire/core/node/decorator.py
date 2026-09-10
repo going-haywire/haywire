@@ -45,7 +45,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
     """
     from haywire.core.settings import NodeSettings, setting
 
-    bags: dict[str, type] = {}
+    bags: dict[str, type[NodeSettings]] = {}
 
     # Walk MRO base-first so subclass declarations win over inherited ones
     for klass in reversed(node_cls.__mro__):
@@ -55,7 +55,7 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
             # Stamp '<accessor>.<field>' on every setting descriptor. Unconditional
             # (not "only if unset"): the key depends solely on the accessor, so
             # re-stamping a shared inherited descriptor writes the same string.
-            for field_name, descriptor in val._property_settings().items():
+            for field_name, descriptor in val._settings_descriptors().items():
                 if isinstance(descriptor, setting):
                     descriptor._setting_key = f"{name}.{field_name}"
             bags[name] = val

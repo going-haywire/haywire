@@ -3,7 +3,7 @@ Declaration-order regression for render_settings (settings panel field ordering
 spec, internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
 
 render_settings must lay out fields in class-body declaration order (base-first
-MRO walk, same order Settings._property_settings() yields) — NOT sorted by
+MRO walk, same order Settings._settings_descriptors() yields) — NOT sorted by
 category name or by the order= kwarg. Categories are not pre-grouped: the first
 time a category name is seen a new section opens; a later, non-consecutive
 occurrence of that same category name opens a SECOND, separate section (the
@@ -138,7 +138,7 @@ class _BaseBag(Settings):
 
 class _SubBag(_BaseBag):
     """Subclass field must render AFTER the inherited base field (base-first
-    MRO walk, matching _property_settings())."""
+    MRO walk, matching _settings_descriptors())."""
 
     sub_field = setting[INT](2, label="Sub Field", category="shared")
 

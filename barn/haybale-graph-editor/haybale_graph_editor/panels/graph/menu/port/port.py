@@ -142,6 +142,133 @@ class PortWidgetMenuPanel(BasePanel):
             component_row(ctx, label, key, hui.icon.widget)
 
 
+def _promoted_setting(ctx: "SessionContext"):
+    """The (bag, descriptor) behind the active pin, or ``None``.
+
+    ``None`` for an unpromoted pin, a pin with no node, or one matching no
+    setting — a library changed under a saved graph. Every value verb below
+    polls through this, so none of them can act on a pin that has no field.
+    """
+    state = ctx.data[EditState]
+    port, wrapper = state.active_port, state.active_node
+    if port is None or wrapper is None or not port.promoted:
+        return None
+    try:
+        from haywire.core.node.promotion import _resolve_promoted
+
+        return _resolve_promoted(wrapper.node, port.id)
+    except KeyError:
+        return None
+
+
+@panel(
+    surface=PinMenu,
+    label="Reset to default",
+    icon=hui.icon.undo,
+    order=15,
+)
+class ResetSettingMenuPanel(BasePanel):
+    """Put the backing setting back to its declared default, from the pin.
+
+    The Properties row has offered this all along; the pin had not, which was
+    a real gap once a promoted pin can carry its own editable widget: a value
+    typed into the widget on the card could only be undone somewhere else.
+
+    Greyed rather than hidden on a clean or unpromoted pin — the convention
+    every panel on this surface follows, and load-bearing here for the same
+    reason ``DetachSettingMenuPanel`` documents: this surface needs at least
+    one leaf or the popup is deleted entirely.
+    """
+
+    actions: PortActions
+
+    _LABEL = "Reset to default"
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        resolved = _promoted_setting(ctx)
+        if resolved is None:
+            return False
+        bag, descriptor = resolved
+        # Enabled only where it would DO something — the same "transient facts
+        # disable" rule the settings row applies to its own Reset.
+        return bag._is_locally_set(descriptor._attr_name)
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        port = ctx.data[EditState].active_port
+        if port is None:
+            return
+        with layout:
+            hui.menu_row(
+                self._LABEL,
+                icon=hui.icon.undo,
+                on_click=lambda pid=port.id: self.actions.reset_setting(pid),
+            )
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.menu_row(
+                self._LABEL,
+                icon=hui.icon.undo,
+                enabled=False,
+                tooltip="Only a promoted setting holding its own value can be reset",
+            )
+
+
+@panel(
+    surface=PinMenu,
+    label="Set to none",
+    icon=hui.icon.close,
+    order=16,
+)
+class ClearSettingMenuPanel(BasePanel):
+    """Clear the backing setting to ABSENCE — ``OPTIONAL[T]`` fields only.
+
+    Distinct from Reset wherever the declared default is itself a value: Reset
+    goes back to that value, this goes to "pass nothing". On a field whose
+    default is already absence the two land in the same place, and both are
+    still listed, because Reset greys when the field is clean and this one
+    does not — which is exactly the state a user reaches by editing the pin's
+    own widget.
+    """
+
+    actions: PortActions
+
+    _LABEL = "Set to none"
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        resolved = _promoted_setting(ctx)
+        if resolved is None:
+            return False
+        bag, descriptor = resolved
+        if not descriptor._is_wrapper_type():
+            return False
+        # Nothing left to do once the value already IS absent.
+        return getattr(bag, descriptor._attr_name) is not None
+
+    def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        port = ctx.data[EditState].active_port
+        if port is None:
+            return
+        with layout:
+            hui.menu_row(
+                self._LABEL,
+                icon=hui.icon.close,
+                tooltip="Clear the value — pass nothing",
+                on_click=lambda pid=port.id: self.actions.clear_setting(pid),
+            )
+
+    def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
+        with layout:
+            hui.menu_row(
+                self._LABEL,
+                icon=hui.icon.close,
+                enabled=False,
+                tooltip="Only an optional setting holding a value can be cleared",
+            )
+
+
 @panel(
     surface=PinMenu,
     label="Detach from setting",

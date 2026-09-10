@@ -29,7 +29,7 @@ class TestFrameworkSettingsExtendsSettings:
             alpha = setting[INT](7, label="Alpha")
             beta = setting[STRING]("hello", label="Beta")
 
-        fields = BarGS._property_settings()
+        fields = BarGS._settings_descriptors()
         assert "alpha" in fields
         assert "beta" in fields
         assert isinstance(fields["alpha"], setting)
@@ -39,7 +39,7 @@ class TestFrameworkSettingsExtendsSettings:
         class NsGS(FrameworkSettings, namespace="ns.test"):
             val = setting[FLOAT](3.14)
 
-        fields = NsGS._property_settings()
+        fields = NsGS._settings_descriptors()
         assert fields["val"]._setting_key == "ns.test.val"
 
     def test_class_level_access_returns_descriptor(self):
@@ -56,7 +56,7 @@ class TestFrameworkSettingsExtendsSettings:
         class NoNsGS(FrameworkSettings):
             val = setting[INT](5)
 
-        fields = NoNsGS._property_settings()
+        fields = NoNsGS._settings_descriptors()
         # _setting_key should NOT be set since no namespace
         assert fields["val"]._setting_key == ""
 
@@ -71,7 +71,7 @@ class TestLibrarySettingsExtendsSettings:
         class FooLS(LibrarySettings):
             rate = setting[INT](4, min=1, max=20)
 
-        fields = FooLS._property_settings()
+        fields = FooLS._settings_descriptors()
         assert "rate" in fields
         assert isinstance(fields["rate"], setting)
 
@@ -107,7 +107,7 @@ class TestDeepInheritanceBlocked:
         class DirectLS(LibrarySettings):
             x = setting[INT](0)
 
-        assert "x" in DirectLS._property_settings()
+        assert "x" in DirectLS._settings_descriptors()
 
     def test_librarySettings_deep_subclass_raises(self):
         """Subclassing a LibrarySettings subclass must raise TypeError."""
@@ -197,7 +197,7 @@ class TestRegistryReadsPropFields:
             speed = setting[FLOAT](1.0)
             mode = setting[STRING]("fast")
 
-        fields = DecLS._property_settings()
+        fields = DecLS._settings_descriptors()
         assert fields["speed"]._setting_key == "dec.ls.speed"
         assert fields["mode"]._setting_key == "dec.ls.mode"
 

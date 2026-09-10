@@ -53,7 +53,7 @@ def _make_shadow_bag():
 
 
 def _cell(bag):
-    desc = type(bag)._property_settings()["color"]
+    desc = type(bag)._settings_descriptors()["color"]
     return bag._cell_for(desc)
 
 
@@ -122,7 +122,7 @@ def test_watch_is_writable_and_promotable_outlet_and_disabled():
     from haywire.core.settings.descriptor import Promotable, UiState
 
     registry, bag = _make_watch_bag()
-    desc = type(bag)._property_settings()["color"]
+    desc = type(bag)._settings_descriptors()["color"]
 
     assert not hasattr(desc, "_read_only")
     assert desc._ui_state is UiState.DISABLED
@@ -137,7 +137,7 @@ def test_shadow_has_no_forced_ui_state_or_promotable():
     from haywire.core.settings.descriptor import Promotable, UiState
 
     registry, bag = _make_shadow_bag()
-    desc = type(bag)._property_settings()["color"]
+    desc = type(bag)._settings_descriptors()["color"]
 
     assert not hasattr(desc, "_read_only")
     assert desc._ui_state is UiState.NORMAL

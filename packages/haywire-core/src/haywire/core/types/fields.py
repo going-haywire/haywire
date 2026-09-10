@@ -100,7 +100,7 @@ class DataField(ABC, Generic[T]):
 
     def get_stored_type(self) -> type[IType]:
         """
-        Return the type stored in this field.
+        Return the type stored in this field — the WIRE type.
 
         This method allows fields to declare what type they store
         because in some cases this differs from the type the field is
@@ -108,10 +108,35 @@ class DataField(ABC, Generic[T]):
         EdgeWrapper uses this to evaluate compatibility and
         which types to pass to AdapterFactory for chain creation.
 
+        The split matters for a ``WrapperType`` field: ``type_cls`` stays
+        ``OPTIONAL[INT]`` — what the field IS, which is what the widget and
+        the identity read — while this returns ``INT``, what actually flows
+        along an edge. That is why a promoted optional setting connects to
+        ordinary INT ports with no ``OPTIONAL[T] -> T`` adapter, and why
+        ``pin_render`` draws it with the element's own icon and colour.
+
         Returns:
             type[IType]: The IType class of the instance(s) that is(are) actually stored.
         """
         return self.type_cls
+
+    def accepts_absence(self) -> bool:
+        """Whether this field can hold "no value" as a deliberate state.
+
+        Storage capability, NOT type compatibility — the two were only ever
+        the same question by accident. ``get_stored_type()`` answers "what
+        values flow here" (and so decides whether an edge can exist at all);
+        this answers "can this slot be empty", which is what ``Pipe.pull()``
+        needs before forwarding absence into a sink.
+
+        Keeping them separate is what lets a promoted ``OPTIONAL[INT]`` port
+        be honestly an ``INT`` pin whose sink happens to have somewhere to put
+        nothing: OPTIONAL -> OPTIONAL passes absence, OPTIONAL -> INT connects
+        natively and skips it.
+
+        Read ONCE per edge, when the pipe is built — never per frame.
+        """
+        return False
 
     @abstractmethod
     def reset(self) -> None:

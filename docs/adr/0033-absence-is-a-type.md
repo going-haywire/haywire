@@ -133,18 +133,68 @@ same stamped contract every other surface reads.
   corruption and the invisible panel affordance unfixed.
 - **`OPTIONAL` as a `CompoundType`.** See above — silently wrong at two
   dispatch sites.
+- **Fencing inlet/outlet promotion for wrapper fields.** The first version of
+  this decision refused any promotion but `CONFIG`, on the grounds that no
+  adapter maps `OPTIONAL[T]` to `T` and so a pin would refuse every edge. That
+  is true of a *wrapper-typed* pin, and the fence was the wrong response to it:
+  promoting to the **element** type removes the premise. Two things settled it.
+
+  A value-keyed gate ("only a non-absent field may be promoted") was considered
+  and rejected: eligibility is re-checked at load (`promote_setting` raises
+  "interactive or load-time") and `_from_dict` restores values *before*
+  promotions, so a graph saved with a cleared, promoted field would refuse to
+  load. Making clearing silently demote instead would let a value edit rewrite
+  graph topology, which ADR-0019/0020 rule out. Promotion is a structural fact
+  and must not depend on data.
+
+  And the gate could not have carried the weight anyway: it is a menu-level
+  convention, so absence remains reachable at a promoted outlet through load,
+  code, or reset. That is what forced absence to get a defined wire behaviour
+  rather than a forbidden state — which, once defined, left the fence guarding
+  a door that no longer opened onto anything.
 
 ## Consequences
 
-- **Promotion is fenced at pins, not at ports.** No adapter maps `OPTIONAL[T]`
-  to `T`, so an inlet or outlet pin would refuse every edge; those raise at
-  class-definition time. `Promotable.CONFIG` is the **seed**, because a config
-  port is pinless by construction — never linked, never edge-driven — so the
-  missing adapter cannot reach it. Drawing the fence at `NONE` would have been
-  one step wider than its own justification, and would have cost
-  `MotpySettings.min_steps_alive` the config face every other field in its bag
-  has. Lifting the rest ("what does a `FLOAT` edge emit for absence?") is a
-  separate design.
+- **A wrapper field promotes to a port of its ELEMENT type**, and is otherwise
+  an ordinary field: `promotable` defaults to `ALL`, no direction is fenced,
+  and eligibility never depends on the field's current value. An
+  `OPTIONAL[INT]` setting becomes an `INT` pin, which connects to whatever
+  `INT` connects to, adapters included.
+
+  This is what removed the need for an `OPTIONAL[T] ↔ T` adapter: we stopped
+  asking for one. Writing it would have meant a registration **per element
+  type**, since a wrapper stamps a per-parameterization identity — the adapter
+  matrix ADR-0017 rejected, arrived at from the other direction.
+
+- **`get_stored_type()` is the WIRE type; `type_cls` is what the field IS.**
+  A wrapper field's cell reports the element (`INT`) to everything that asks
+  what travels along a link — `EdgeWrapper`'s adapter resolution,
+  `pin_render`'s icon and colour, reroute creation — while `type_cls` stays
+  `OPTIONAL[INT]` for the widget and the identity. The seam already existed and
+  was documented for exactly this; `PooledField` uses it the same way.
+
+  Both ends of an edge now read the wire type. They previously disagreed — the
+  sink asked `get_stored_type()`, the source read `type_cls` — which is a no-op
+  for every field whose wire type *is* its declared type, and which only
+  escaped notice because `PooledType`, the sole other divergent field, forbids
+  outlets outright.
+
+- **Absence crosses an edge on the sink FIELD's capability, not on type.**
+  `DataField.accepts_absence()` is `False` by default and `True` on the
+  absence-tolerant field, resolved once per edge when the pipe is built. So
+  `OPTIONAL → OPTIONAL` carries absence as real information, while
+  `OPTIONAL → INT` connects natively and simply says nothing that frame,
+  leaving the sink at its last value.
+
+  Connectivity and absence-capability were only ever the same question by
+  accident. Keeping them apart is what lets a promoted optional be honestly an
+  `INT` pin *whose sink may have somewhere to put nothing*. It also matters
+  concretely: `INTField` coerces with `int(value)`, so forwarding `None` into a
+  plain `INT` sink would raise from **inside propagation**, nowhere near the
+  user action that caused it.
+
+  The decision lives in `Pipe.pull()`'s existing `value is not None` branch, so
+  the value path — the one that runs every frame for every edge — is unchanged.
 - **A validator constrains the *present* domain only.** It is lifted once at
   declaration to `v is None or user(v)`, so all three callers of `validate()` —
   including `SettingsRegistry.set_global` on a mirrored field — agree. Without

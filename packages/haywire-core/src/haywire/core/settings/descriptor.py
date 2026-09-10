@@ -210,15 +210,13 @@ class setting(SettingDescriptor, Generic[T]):
         for declarative, same-bag reactive gating (setting-canon.md) and
         ``effective_ui_state`` for how all sources compose.
 
-    promotable : Promotable or None
+    promotable : Promotable
         Applies only to NodeSettings fields.
-        Defines which port directions this field may be promoted to. ``None``
-        (the default) means the author expressed no opinion and the field gets
-        ``Promotable.ALL`` — except for a wrapper-typed (``OPTIONAL[T]``) field,
-        which is seeded ``Promotable.CONFIG`` instead, since a pinless config
-        port is the one direction the missing element adapter cannot break.
-        Naming ``INLET`` or ``OUTLET`` explicitly on such a field raises, rather
-        than being silently discarded. ``Promotable.NONE`` removes the field from the
+        Defines which port directions this field may be promoted to (default
+        ``Promotable.ALL``). A wrapper-typed (``OPTIONAL[T]``) field is ordinary
+        here: it promotes to a port of its ELEMENT type, so the pin connects to
+        whatever that element connects to.
+        ``Promotable.NONE`` removes the field from the
         Setting-row menu entirely and makes ``promote_setting()`` raise — use it
         for fields where a port would be misleading (e.g. restart-required
         pipeline parameters). ``watch()`` seeds ``Promotable.OUTLET`` — a
@@ -265,7 +263,7 @@ class setting(SettingDescriptor, Generic[T]):
         validator: "Callable | None" = None,
         metadata: "dict | None" = None,
         ui_state: UiState = UiState.NORMAL,
-        promotable: "Promotable | None" = None,
+        promotable: Promotable = Promotable.ALL,
         promote_default: "PortType | None" = None,
     ) -> None:
         self._default = default
@@ -291,17 +289,13 @@ class setting(SettingDescriptor, Generic[T]):
         self._validator = validator
         self._metadata: dict = metadata or {}
         self._ui_state: UiState = ui_state
-        # Two attributes, not one: ``_promotable`` is the effective flag every
-        # reader consults, while ``_promotable_declared`` remembers whether the
-        # AUTHOR said anything. Only the second can distinguish "declared ALL"
-        # from "declared nothing" — which is what lets a wrapper-typed field be
-        # seeded NONE silently while an explicit promotable= on one raises.
-        self._promotable_declared: "Promotable | None" = promotable
-        self._promotable: Promotable = promotable if promotable is not None else Promotable.ALL
+        self._promotable: Promotable = promotable
         self._promote_default: "PortType | None" = promote_default
         self._validator_lifted: bool = False
         self._attr_name: str = ""  # set by __set_name__
+        """the literal attribute name you'd write as ``self.<bag>.<attr_name>``"""
         self._setting_key: str = ""  # namespaced registry key, set at registration
+        """the registry key  ``self.<namespace>.<attr_name>``"""
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
         self._graph_mirror: bool = False  # set True by the graph() factory
 
@@ -349,58 +343,33 @@ class setting(SettingDescriptor, Generic[T]):
         class-body ``setting[T]``, or at the end of ``__init__`` for an explicit
         ``type_=``. Never on the read or write path.
 
-        Two rules, both from the "absence is a value" model:
+        One rule, from the "absence is a value" model: **the validator
+        constrains the PRESENT domain only.** A validator written for the
+        wrapped type (``lambda v: 0.0 <= v <= 1.0``) would raise ``TypeError``
+        on a clear, from inside a plain attribute assignment. Lifting it here —
+        rather than guarding ``__set__`` — covers all three callers of
+        ``validate()``, including ``SettingsRegistry.set_global`` on a mirrored
+        field, and costs nothing per write.
 
-        * **The validator constrains the PRESENT domain only.** A validator
-          written for the wrapped type (``lambda v: 0.0 <= v <= 1.0``) would raise
-          ``TypeError`` on a clear, from inside a plain attribute assignment.
-          Lifting it here — rather than guarding ``__set__`` — covers all three
-          callers of ``validate()``, including ``SettingsRegistry.set_global``
-          on a mirrored field, and costs nothing per write.
-
-        * **A wrapper-typed field is CONFIG-promotable only.** No adapter maps
-          ``OPTIONAL[T]`` to ``T``, so an inlet or outlet PIN would refuse every
-          edge. ``CONFIG`` is exempt because it is *pinless by construction* —
-          never linked, never edge-driven, the setting stays the source of truth
-          — so the missing adapter cannot bite it, and its widget is the
-          ``OptionalWidget`` that already works. The fence is drawn where its
-          justification actually reaches, not one step wider.
-
-          The flag is SEEDED, not overridden — ``eligible_promotion_directions()``
-          keeps its invariant that the declared flag IS the eligibility, exactly
-          as ``watch()`` seeds ``OUTLET``. An explicit ``promotable=`` naming
-          ``INLET`` or ``OUTLET`` raises instead of being silently discarded: the
-          author asked for a pin and must be told they can't have one.
+        Promotion is NOT restricted. A wrapper-typed field promotes to a port of
+        its ELEMENT type (``_metadata_to_port_kwargs``), so the pin is an
+        ordinary ``INT`` and connects to whatever ``INT`` connects to; absence
+        travels on the sink field's ``accepts_absence()`` capability rather than
+        on the declared type. There is nothing left for a fence to protect.
 
         No-op for a field whose IType is not a wrapper. The guard lives HERE
         rather than at the call sites: there are two of them (``__set_name__``
         for a class-body ``setting[T]``, ``__init__`` for an explicit
-        ``type_=``), and guarding only one leaves the other applying the pin
-        fence to every field — which is what ``watch()``'s
-        ``promotable=OUTLET`` then trips over on an ordinary COLOR field.
+        ``type_=``), and guarding only one leaves the other applying wrapper
+        rules to every field.
         """
         if not self._is_wrapper_type():
             return
-        itype = self._type
 
         if self._validator is not None and not self._validator_lifted:
             user_validator = self._validator
             self._validator = lambda value: value is None or bool(user_validator(value))
             self._validator_lifted = True
-
-        declared = self._promotable_declared
-        if declared is not None and (Promotable.INLET in declared or Promotable.OUTLET in declared):
-            where = f"'{owner.__name__}.{name}'" if owner is not None else f"'{name or self._label or '?'}'"
-            raise ValueError(
-                f"setting field {where} is typed {itype.__name__} and declares "
-                f"promotable={declared!r}, but a wrapper type cannot be promoted to a PIN: "
-                f"no adapter maps it to its element type, so the pin would refuse every "
-                f"edge. Use promotable=Promotable.CONFIG for a pinless port, drop "
-                f"promotable= entirely (CONFIG is the seed), or use a plain element type "
-                f"if the field must be edge-drivable."
-            )
-        if declared is None:
-            self._promotable = Promotable.CONFIG
 
     def __set_name__(self, owner: type, name: str) -> None:
         if self._mirror_descriptor is not None and self._mirror_descriptor in owner.__dict__.values():
@@ -412,10 +381,7 @@ class setting(SettingDescriptor, Generic[T]):
                 f"supported."
             )
         # super() resolves _type from the setting[T] subscript, so the wrapper
-        # rules can only run after it — and they must run BEFORE the
-        # promote_default check below, which reads the _promotable they seed.
-        # Otherwise a promote_default on an OPTIONAL field would pass validation
-        # here and then be unpromotable at runtime.
+        # rules can only run after it.
         super().__set_name__(owner, name)
         self._apply_wrapper_rules(owner, name)
 

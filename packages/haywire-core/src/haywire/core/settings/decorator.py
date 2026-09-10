@@ -109,8 +109,8 @@ def settings(
         # the registry's workspace tier — matches the symmetric path in
         # FrameworkSettings/LibrarySettings.__init_subclass__ for class-signature
         # namespaces.
-        for name, descriptor in inner_cls._property_settings().items():
-            descriptor._setting_key = f"{namespace}.{name}"
+        for attr_name, descriptor in inner_cls._settings_descriptors().items():
+            descriptor._setting_key = f"{namespace}.{attr_name}"
             descriptor.__class__ = persistent_setting
 
         return inner_cls

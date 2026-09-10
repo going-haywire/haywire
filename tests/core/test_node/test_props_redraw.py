@@ -44,7 +44,7 @@ class TestRedrawFieldsSchema:
     """Pure schema contract — no graph or library system needed."""
 
     def test_redraw_fields_are_the_non_layout_props_minus_style_writes(self):
-        fields = NodeProperties._property_settings()
+        fields = NodeProperties._settings_descriptors()
         non_layout = {name for name, desc in fields.items() if desc._category != "layout"}
         assert set(NodeProperties.REDRAW_FIELDS) == non_layout - STYLE_WRITE_FIELDS - CLASS_FLIP_FIELDS
 
@@ -52,14 +52,14 @@ class TestRedrawFieldsSchema:
         """Guards the exclusion against a rename: if one of these props is ever
         renamed, this fails rather than silently letting it rejoin the redraw
         path via the set-difference above."""
-        fields = NodeProperties._property_settings()
+        fields = NodeProperties._settings_descriptors()
         for name in STYLE_WRITE_FIELDS:
             assert name in fields, f"'{name}' is gone — update STYLE_WRITE_FIELDS"
             assert name not in NodeProperties.REDRAW_FIELDS
 
     def test_class_flip_fields_exist_and_are_excluded(self):
         """Same guard as above, for the class-flip exclusion set."""
-        fields = NodeProperties._property_settings()
+        fields = NodeProperties._settings_descriptors()
         for name in CLASS_FLIP_FIELDS:
             assert name in fields, f"'{name}' is gone — update CLASS_FLIP_FIELDS"
             assert name not in NodeProperties.REDRAW_FIELDS

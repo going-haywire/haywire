@@ -238,3 +238,35 @@ def test_strategy_rows_are_drawn_by_one_panel():
     surface = PortShowWidgetStrategyPanel.class_identity.surface
     assert surface is not None
     assert surface.id == PinWidgetMenu.id
+
+
+# ---------------------------------------------------------------------------
+# Value verbs — Reset / Set to none
+# ---------------------------------------------------------------------------
+#
+# Both live on the pin because a promoted pin is where the field IS once its
+# widget is on the card: a value typed there should not need the Properties
+# panel to undo. The graph-backed half of these (a real bag behind a real
+# promoted port) lives in tests/core/node/test_pin_menu_value_verbs.py, where
+# the library-system graph fixture is in scope.
+
+
+def test_value_verbs_poll_false_on_an_unpromoted_pin():
+    from haybale_graph_editor.panels.graph.menu.port.port import (
+        ClearSettingMenuPanel,
+        ResetSettingMenuPanel,
+    )
+
+    ctx = _ctx(_port())
+    assert ResetSettingMenuPanel.poll(ctx) is False
+    assert ClearSettingMenuPanel.poll(ctx) is False
+
+
+def test_value_verbs_poll_false_without_a_port():
+    from haybale_graph_editor.panels.graph.menu.port.port import (
+        ClearSettingMenuPanel,
+        ResetSettingMenuPanel,
+    )
+
+    assert ResetSettingMenuPanel.poll(_ctx(None)) is False
+    assert ClearSettingMenuPanel.poll(_ctx(None)) is False

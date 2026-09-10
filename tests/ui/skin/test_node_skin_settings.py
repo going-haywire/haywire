@@ -29,7 +29,7 @@ _SKIN_DIR = Path(__file__).resolve().parents[3] / "barn/haybale-studio/haybale_s
 
 
 def _declared_fields() -> set[str]:
-    return set(NodeSkinSettings._property_settings())
+    return set(NodeSkinSettings._settings_descriptors())
 
 
 def _fields_read_by_skins() -> set[str]:

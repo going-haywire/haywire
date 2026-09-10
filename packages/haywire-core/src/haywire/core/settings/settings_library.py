@@ -59,7 +59,7 @@ class LibrarySettings(Settings):
         if namespace:
             cls._namespace = namespace
 
-            for name, val in cls._property_settings().items():
+            for name, val in cls._settings_descriptors().items():
                 if val._mirror_key:
                     raise TypeError(
                         f"mirrors= is not allowed in LibrarySettings: '{cls.__name__}.{name}'. "

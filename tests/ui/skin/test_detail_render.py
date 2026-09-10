@@ -288,12 +288,12 @@ class TestRetiredFlags:
     def test_node_props_no_longer_declares(self, gone):
         from haywire.core.node.properties import NodeProperties
 
-        assert gone not in NodeProperties._property_settings()
+        assert gone not in NodeProperties._settings_descriptors()
         assert gone not in NodeProperties.REDRAW_FIELDS
 
     def test_comment_itself_survives(self):
         """The text stays — only its visibility flag went."""
         from haywire.core.node.properties import NodeProperties
 
-        assert "comment" in NodeProperties._property_settings()
+        assert "comment" in NodeProperties._settings_descriptors()
         assert "comment" in NodeProperties.REDRAW_FIELDS

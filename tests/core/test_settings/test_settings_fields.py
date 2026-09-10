@@ -1,6 +1,6 @@
 """`settings_fields()` — the supported way to iterate a bag's fields.
 
-Replaces reaching for the private `_property_settings()`, which the panel
+Replaces reaching for the private `_settings_descriptors()`, which the panel
 renderer, the graph-editor farmhands and barn libraries were all already
 calling. Module-level rather than a method so the framework keeps its
 operations off the bag's attribute namespace, which belongs to the author's
@@ -38,7 +38,7 @@ def test_accepts_an_instance():
 
 
 def test_matches_the_private_spelling_it_replaces():
-    assert settings_fields(Base) == Base._property_settings()
+    assert settings_fields(Base) == Base._settings_descriptors()
 
 
 def test_walks_the_mro_base_first():

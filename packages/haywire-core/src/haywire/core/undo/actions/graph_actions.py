@@ -815,7 +815,7 @@ class SetPropertyAction(ActionBase):
         def _find_bag() -> Optional[str]:
             for accessor in type(node)._settings_bags:
                 bag = getattr(node, accessor)
-                if self.name in type(bag)._property_settings():
+                if self.name in type(bag)._settings_descriptors():
                     return accessor
             return None
 

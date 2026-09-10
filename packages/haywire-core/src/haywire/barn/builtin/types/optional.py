@@ -40,10 +40,21 @@ class OPTIONAL(WrapperType[T]):
     outside the value domain, so it never has to be smuggled in as a sentinel
     (the ``-1`` convention that widening a range to admit it would require).
 
-    **Promotable to CONFIG only.** ``setting.__set_name__`` seeds
-    ``Promotable.CONFIG`` and raises if ``INLET`` or ``OUTLET`` is named. No
-    adapter maps ``OPTIONAL[T]`` to ``T``, so a *pin* would refuse every edge —
-    but a CONFIG port is pinless by construction, so the missing adapter cannot
-    reach it. Lifting the rest of the fence is a separate design (what does a
-    ``FLOAT`` edge emit for absence?), deliberately deferred.
+    **Promotion is ordinary.** ``promotable`` defaults to ``ALL`` and
+    eligibility never depends on the field's current value — promotion is a
+    structural fact. The generated port carries the ELEMENT type, so an
+    ``OPTIONAL[INT]`` field becomes an ``INT`` pin and connects to whatever
+    ``INT`` connects to. That is what removes the need for an
+    ``OPTIONAL[T] -> T`` adapter: nothing asks for one.
+
+    **What crosses an edge** is decided by the SINK, via
+    ``DataField.accepts_absence()`` — resolved once when the pipe is built:
+
+    - ``OPTIONAL -> OPTIONAL``: absence arrives as ``None``. The sink can
+      represent "nothing", so discarding that would lose real information.
+    - ``OPTIONAL -> INT`` (directly or through an adapter): absence is skipped
+      and the sink keeps its last value. ``INTField`` coerces with
+      ``int(value)``, so forwarding ``None`` would raise from inside
+      propagation — and "nothing to say this frame" is the honest downstream
+      reading of *don't pass this parameter*.
     """

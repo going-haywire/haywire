@@ -3,7 +3,18 @@ from haywire.core.execution.execution_context import ExecutionContext
 
 from haywire.core.settings import NodeSettings, setting, shadow, watch, Vec2i, Vec3f, Vec4f
 from haybale_testing.settings.testing import TestingSettings
-from haywire.barn.builtin.types import BOOL, CHOICES, COLOR, FLOAT, INT, STRING, VEC2I, VEC3F, VEC4F
+from haywire.barn.builtin.types import (
+    BOOL,
+    CHOICES,
+    COLOR,
+    FLOAT,
+    INT,
+    OPTIONAL,
+    STRING,
+    VEC2I,
+    VEC3F,
+    VEC4F,
+)
 
 
 @node(
@@ -144,6 +155,49 @@ class SettingsNode(BaseNode):
             description="Must be an even integer",
             category="validator",
             validator=lambda v: isinstance(v, int) and v % 2 == 0,
+        )
+
+        # --- optional ---
+        # A wrapper type: the field can hold a value of the wrapped IType, or
+        # ABSENCE ("don't pass this parameter at all"). Absence is a value, not
+        # an opinion about whether the tier is set — see ADR 0033.
+        optional_int = setting[OPTIONAL[INT]](
+            None,
+            min=1,
+            max=1000,
+            label="Optional Int",
+            description="Rests absent. The declared range is the REAL range — no sentinel to admit.",
+            category="optional",
+        )
+        optional_float = setting[OPTIONAL[FLOAT]](
+            None,
+            min=0.0,
+            max=1.0,
+            label="Optional Float",
+            description="A validator constrains the PRESENT domain only; absence is always allowed.",
+            category="optional",
+            validator=lambda v: 0.0 <= v <= 1.0,
+        )
+        optional_bool = setting[OPTIONAL[BOOL]](
+            None,
+            label="Optional Bool",
+            description="Tri-state without a tri-state: True, False, or nothing.",
+            category="optional",
+        )
+        optional_with_default = setting[OPTIONAL[INT]](
+            -1,
+            min=-1,
+            max=100,
+            label="Optional With Default",
+            description="Rests at a VALUE and can still be cleared — so Reset and 'Set to none' differ.",
+            category="optional",
+        )
+        optional_restore = setting[OPTIONAL[INT]](
+            None,
+            label="Optional Restore",
+            description="Absent by default, but clicking 'none' enters 42 (per-use restore=).",
+            category="optional",
+            widget_config={"restore": 42},
         )
 
     # --8<-- [end:settings_node_class]

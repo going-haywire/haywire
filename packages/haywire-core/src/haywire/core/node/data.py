@@ -12,7 +12,7 @@ from ..library.identity import LibraryIdentity
 from ..types import DataPort, PortSpec
 from .behavior import NodeBehaviorFlags
 from .user_data import NodeCache, NodeStore
-from haywire.core.settings import Settings
+from haywire.core.settings import NodeSettings, Settings
 
 if TYPE_CHECKING:
     from haywire.core.node import NodeWrapper
@@ -32,7 +32,7 @@ class NodeData:
     """
 
     # Class-level attributes (set by @node decorator)
-    _settings_bags: ClassVar[dict[str, type]] = {}
+    _settings_bags: ClassVar[dict[str, type[NodeSettings]]] = {}
     class_identity: ClassVar[NodeIdentity]
     class_behavior: ClassVar[NodeBehaviorFlags]
     class_library: ClassVar[LibraryIdentity]

@@ -2,7 +2,7 @@
 Declaration-order regression for render_schema (settings panel field ordering
 spec, internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
 
-render_schema must walk schema_cls._property_settings() directly (declaration
+render_schema must walk schema_cls._settings_descriptors() directly (declaration
 order), filtering to only registry-known keys, WITHOUT re-sorting by
 (category, order, setting_key). render_keys is explicitly unchanged — it keeps
 sorting by (category, order, setting_key) because it aggregates keys across

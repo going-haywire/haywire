@@ -13,6 +13,52 @@ from haywire.ui.widget.factory_interface import IWidgetFactory
 NodeIDsBatchCallback = Callable[[set[str]], None]
 
 
+def _widget_model_for(port: DataPort) -> Any:
+    """The model a port's widget binds to — the port itself, or, for a PROMOTED
+    port, one that writes back through the owning setting.
+
+    A promoted port and its setting are one cell, two views. Reads are identical
+    either way, so this only redirects the WRITE: straight to the cell (``port``)
+    would change the value while leaving the bag believing nobody had an opinion,
+    so the edit would not serialize (``_to_dict`` gates on ``_set_keys``) and
+    Reset would stay greyed. Routing through the descriptor is exactly what the
+    Properties panel already does — the same ``SettingWidgetModel``, so the card
+    and the panel share ONE write policy rather than two that resemble each other.
+
+    Resolved once here, at widget-build time. Deliberately NOT a check inside
+    ``DataPort.set_value``, which every edge-driven write crosses every frame:
+    this is the one construction point for every port widget (node card via
+    ``Skin``, Ports Panel via ``node_ports``), so one branch here covers both
+    surfaces at zero per-write cost.
+
+    Falls back to the bare port when the port matches no setting — a library
+    changed under a saved graph — which is the same tolerance
+    ``demote_setting`` already shows.
+    """
+    if not port.promoted or port._node is None:
+        return port
+
+    try:
+        from haywire.core.node.promotion import _resolve_promoted
+        bag, descriptor = _resolve_promoted(port._node, port.id)
+    except KeyError:
+        return port
+
+    attr_name = descriptor._attr_name
+
+    def _on_edit(value: Any) -> None:
+        setattr(bag, attr_name, value)
+
+    from haywire.ui.panel.setting_widget_model import SettingWidgetModel
+
+    return SettingWidgetModel(
+        field_id=port.id,
+        widget_config=port.widget_config,
+        cell=port.data,
+        on_edit=_on_edit,
+    )
+
+
 class WidgetFactory(IWidgetFactory):
     """
     Factory class for creating widget instances using the WidgetRegistry.
@@ -131,7 +177,7 @@ class WidgetFactory(IWidgetFactory):
 
         if widget_cls is not None:
             try:
-                widget_instance = widget_cls(port)
+                widget_instance = widget_cls(_widget_model_for(port))
 
             except Exception as e:
                 # Create detailed error with context about the node instantiation

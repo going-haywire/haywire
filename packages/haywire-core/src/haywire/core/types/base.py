@@ -466,6 +466,24 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
                 return
             super().set_value(value, source_id)
 
+        def get_stored_type(self) -> "type[IType]":
+            """The ELEMENT type — what flows on an edge.
+
+            ``type_cls`` remains the wrapper (``OPTIONAL[INT]``), which is what
+            ``OptionalWidget`` and the identity read. Everything that asks what
+            travels along a link — ``EdgeWrapper``'s adapter resolution,
+            ``pin_render``'s icon and colour, reroute creation from an outlet —
+            gets ``INT``, so a promoted optional behaves as an ordinary INT pin
+            and needs no ``OPTIONAL[T] -> T`` adapter.
+            """
+            element = self.type_cls.element_type_cls
+            assert element is not None  # __class_getitem__ always sets it
+            return element
+
+        def accepts_absence(self) -> bool:
+            """True — this is the field class that exists to hold ``None``."""
+            return True
+
     _AbsenceTolerantField.__name__ = f"AbsenceTolerant{base_field_cls.__name__}"
     _AbsenceTolerantField.__qualname__ = _AbsenceTolerantField.__name__
     _ABSENCE_TOLERANT_FIELDS[base_field_cls] = _AbsenceTolerantField

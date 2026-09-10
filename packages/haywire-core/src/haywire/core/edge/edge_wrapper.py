@@ -559,11 +559,15 @@ class EdgeWrapper:
         outlet_port = self._outlet_port
         adapter_factory = self._adapter_factory
         try:
-            # Inlet determines what type it needs from outlet
+            # BOTH ends answer with what actually travels on the wire. The two
+            # used to disagree — the sink asked get_stored_type(), the source
+            # read the field's declared type_cls — which is a no-op for every
+            # field whose wire type IS its declared type, and wrong for the two
+            # where it isn't: PooledField (stores its element) and a WrapperType
+            # field (OPTIONAL[INT] declares the wrapper, sends an INT). Only
+            # PooledType hid the asymmetry, by forbidding outlets outright.
             sink_type = inlet_port.stored_type
-
-            outlet_field = outlet_port.data
-            source_type = outlet_field.type_cls
+            source_type = outlet_port.stored_type
 
             # Create new chain
             first_adapter, error = adapter_factory.create_chain(source_type, sink_type, self._edge_id)

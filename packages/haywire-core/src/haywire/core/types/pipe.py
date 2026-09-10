@@ -14,7 +14,7 @@ class Pipe:
     Owns the pull operation (read outlet → transform → store in inlet).
     """
 
-    __slots__ = ("sink", "chain", "is_lazy", "_outlet_port", "_edge_id")
+    __slots__ = ("sink", "chain", "is_lazy", "_outlet_port", "_edge_id", "_sink_holds_absence")
 
     def __init__(
         self, outlet_port: "DataPort", sink: "DataPort", chain: IAdapter, is_lazy: bool, edge_id: str
@@ -24,6 +24,13 @@ class Pipe:
         self.chain = chain
         self.is_lazy = is_lazy
         self._edge_id = edge_id
+        # Resolved ONCE, here, because a pipe is rebuilt on every structural
+        # change: _refresh_pipes() clears and re-adds every pipe whenever the
+        # outlet is structurally dirty, which _add_link/_clear_link set on any
+        # link change. A port's field is swapped only by bind_field/unbind_field
+        # (promote/demote), and demote removes the port outright — so a live
+        # sink's capability cannot change under an existing pipe.
+        self._sink_holds_absence: bool = sink.data.accepts_absence()
 
     def propagate(self):
         """Propagate outlet value through all pipe connections.
@@ -51,8 +58,15 @@ class Pipe:
         if value is not None:
             converted_value = self.chain.execute(value)
             self.sink.set_value(converted_value, edge_id=self._edge_id)
-        else:
+        elif self._sink_holds_absence:
+            # The source has nothing, and this sink has somewhere to put it:
+            # an OPTIONAL -> OPTIONAL link carries absence as real information.
+            # No adapter runs — absence has no representation to convert.
             self.sink.set_value(None, edge_id=self._edge_id)
+        # Otherwise the sink cannot hold absence (INTField would raise on
+        # int(None)), so the source simply says nothing this frame and the sink
+        # keeps its last value — which is what "don't pass this parameter"
+        # means one node downstream.
 
 
 class Pipes:

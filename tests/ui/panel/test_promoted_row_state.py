@@ -336,10 +336,13 @@ def test_unpromoted_row_menu_offers_both_directions(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     row = _render(node)
     items = _menu_items(row)
+    # Promotion nests under ONE anchor; _menu_items walks descendants, so the
+    # flyout's leaves appear beside it as bare direction names.
     assert set(items) == {
-        "Promote to inlet",
-        "Promote to outlet",
-        "Promote to config",
+        "Promote to",
+        "inlet",
+        "outlet",
+        "config",
         "Reset to default",
     }
 
@@ -359,7 +362,7 @@ def test_menu_promote_click_promotes_inlet(make_node_with_setting):
 
     node = make_node_with_setting(accessor="filter", field="threshold")
     row = _render(node)
-    _click(_menu_items(row)["Promote to inlet"])
+    _click(_menu_items(row)["inlet"])
 
     assert is_field_promoted(node.filter, "threshold")
     pid = type(node.filter).__dict__["threshold"].storage_key
@@ -370,7 +373,7 @@ def test_menu_promote_click_promotes_inlet(make_node_with_setting):
 def test_menu_promote_click_promotes_outlet(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold")
     row = _render(node)
-    _click(_menu_items(row)["Promote to outlet"])
+    _click(_menu_items(row)["outlet"])
 
     pid = type(node.filter).__dict__["threshold"].storage_key
     assert pid in node.ports
@@ -419,8 +422,8 @@ def test_disabled_row_greys_reset_but_keeps_promote_active(make_node_with_settin
 
     row = _render(node)
     items = _menu_items(row)
-    assert items["Promote to inlet"].enabled
-    assert items["Promote to outlet"].enabled
+    assert items["inlet"].enabled
+    assert items["outlet"].enabled
     assert not _reset_enabled(row)
 
 
@@ -505,4 +508,4 @@ def test_config_eligible_field_offers_promote_to_config_menu_entry(make_node_wit
     row = _render(node)
     assert row is not None
     items = _menu_items(row)
-    assert "Promote to config" in items, "an unpromoted, CONFIG-eligible field must offer Promote to config"
+    assert "config" in items, "an unpromoted, CONFIG-eligible field must offer Promote to > config"

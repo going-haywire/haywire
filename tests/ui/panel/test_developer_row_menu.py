@@ -165,7 +165,7 @@ def test_a_declared_field_records_its_owning_class(library_system):
     from the descriptor's _owner_cls, stamped at __set_name__."""
     from haywire.core.debug.debug_settings import DebugSettings
 
-    defn = next(iter(DebugSettings._property_settings().values()))
+    defn = next(iter(DebugSettings._settings_descriptors().values()))
     assert _component_key(getattr(defn, "_owner_cls", None)) == "__system__:setting:debug"
 
 
@@ -209,12 +209,19 @@ def _top_level_items(anchor) -> list:
 
 
 def _developer_anchor(anchor):
+    """The "Developer" flyout anchor, matched by TEXT.
+
+    Not "the item that owns a FlyoutMenu" — the row menu grew a second flyout
+    ("Promote to"), and that older test rendered the first one it found, which
+    is now the promotion anchor.
+    """
     from haywire.ui.elements.flyout import FlyoutMenu
 
     return next(
         item
         for item in _top_level_items(anchor)
-        if any(isinstance(c, FlyoutMenu) for c in item.default_slot.children)
+        if _item_text(item) == "Developer"
+        and any(isinstance(c, FlyoutMenu) for c in item.default_slot.children)
     )
 
 

@@ -275,7 +275,7 @@ Field descriptors get their `__class__` rewritten to `persistent_setting` in thr
 2. `LibrarySettings.__init_subclass__` — same, for library-side schemas using the class-signature form.
 3. `@settings(namespace=...)` decorator — the canonical pattern for `LibrarySettings`.
 
-All three paths iterate `cls._property_settings()` and set `descriptor._setting_key` + `descriptor.__class__ = persistent_setting` in one pass. (`_mirror_key` is NOT stamped — the self-mirror hack is gone, ADR 0013; `_mirror_key` means only "mirrors another setting".) Keeping the three paths in sync matters: missing the swap in one path silently restores the instance-local-only (cell) semantics for any schema registered through that path.
+All three paths iterate `cls._settings_descriptors()` and set `descriptor._setting_key` + `descriptor.__class__ = persistent_setting` in one pass. (`_mirror_key` is NOT stamped — the self-mirror hack is gone, ADR 0013; `_mirror_key` means only "mirrors another setting".) Keeping the three paths in sync matters: missing the swap in one path silently restores the instance-local-only (cell) semantics for any schema registered through that path.
 
 #### Why the descriptor writes NO cell itself
 

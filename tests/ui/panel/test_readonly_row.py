@@ -76,7 +76,9 @@ def test_watch_row_menu_offers_outlet_only(make_node_with_setting):
     node = make_node_with_setting(accessor="filter", field="threshold", with_watch=True)
     anchor = _render(node)
     row = _find_field_row(anchor, "threshold_watched")
-    assert set(_menu_items(row)) == {"Promote to outlet", "Reset to global default"}
+    # One eligible direction still nests, so the entry keeps a fixed position
+    # and the menu's shape does not shift from field to field.
+    assert set(_menu_items(row)) == {"Promote to", "outlet", "Reset to global default"}
     assert not _reset_enabled(row), "clean row must grey reset"
 
 

@@ -41,15 +41,29 @@ def test_selection_actions_is_runtime_checkable():
 
 def test_port_actions_declares_the_demote_verb():
     """PortActions carries real verbs, which is why it survived the rename
-    while the empty NodeContextActions marker did not. Both are
-    promoted-port verbs: demote, and the widget-visibility choice."""
+    while the empty NodeContextActions marker did not. All are promoted-port
+    verbs: demote, the widget-visibility choice, and the two value verbs that
+    put the backing setting back to a resting state."""
 
     class _PortImpl:
         def demote_setting(self, port_id: str) -> None: ...
 
         def set_port_show_widget(self, port_id: str, strategy: str) -> None: ...
 
+        def reset_setting(self, port_id: str) -> None: ...
+
+        def clear_setting(self, port_id: str) -> None: ...
+
     assert isinstance(_PortImpl(), PortActions)
+
+    class _MissingValueVerbs:
+        """The pre-value-verb shape: no longer a PortActions."""
+
+        def demote_setting(self, port_id: str) -> None: ...
+
+        def set_port_show_widget(self, port_id: str, strategy: str) -> None: ...
+
+    assert not isinstance(_MissingValueVerbs(), PortActions)
 
     class _Missing:
         pass

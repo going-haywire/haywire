@@ -35,7 +35,7 @@ def test_overriding_bag_is_a_distinct_class_that_inherits_the_rest():
     assert reroute_bag is not base_bag
     assert issubclass(reroute_bag, base_bag)
     # Overriding one field must not drop the other 13.
-    assert set(reroute_bag._property_settings()) == set(base_bag._property_settings())
+    assert set(reroute_bag._settings_descriptors()) == set(base_bag._settings_descriptors())
 
 
 def test_a_non_subclass_bag_is_still_rejected():

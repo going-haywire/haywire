@@ -626,6 +626,48 @@ def register_routes(library_service) -> None:
         _stamp_synced()
 
     # -------------------------------------------------------------------------
+    # GET /node-attached?class=...&bag=...
+    #
+    # A settings bag belonging to a REAL graph node, unlike /node and /node-live
+    # which build a standalone instance. Promotion entries are structural: they
+    # render only when the bag has an owning node, so the "Promote to" flyout —
+    # and everything reachable through it — is invisible on every other settings
+    # route. Backs test_promote_flyout.py.
+    #
+    # The flyout in particular CANNOT be covered in-process: a nested ui.menu
+    # that never opens, or an anchor that greys itself, renders identically in
+    # the NiceGUI element tree and only a browser shows the breakage. See
+    # .insights/project_submenu_leaf_counting_traps.md.
+    # -------------------------------------------------------------------------
+
+    @ui.page("/node-attached")
+    async def node_attached_page(request: Request):
+        from haywire.core.graph.base import BaseGraph
+
+        params = dict(request.query_params)
+        class_path = params.get("class", "")
+        bag_name = params.get("bag", "")
+
+        if theme_css:
+            ui.add_css(theme_css)
+
+        with ui.card().classes("w-full max-w-md mx-auto mt-8 p-4"):
+            if not class_path or not bag_name:
+                ui.label("Missing ?class= or ?bag= parameter").classes("text-red-400")
+                return
+            try:
+                node_cls = _resolve_class(class_path)
+                graph = BaseGraph("Attached Fixture")
+                wrapper = graph.create_node_wrapper(
+                    node_cls.class_identity.registry_key, position=(0.0, 0.0)
+                )
+                assert wrapper is not None, "could not create the attached-fixture node"
+                render_settings(_harness_session_context(library_service), getattr(wrapper.node, bag_name))
+            except Exception as exc:
+                ui.label(f"Error: {exc}").classes("text-red-400 text-xs")
+        _stamp_synced()
+
+    # -------------------------------------------------------------------------
     # GET /schema?class=<dotted.ClassName>
     # -------------------------------------------------------------------------
 

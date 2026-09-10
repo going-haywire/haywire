@@ -203,7 +203,7 @@ class TestCellIsNeverTouched:
 
     def test_set_ui_state_does_not_mark_cell_dirty(self):
         bag = UiStateSettings()
-        descriptor = type(bag)._property_settings()["normal"]
+        descriptor = type(bag)._settings_descriptors()["normal"]
         cell = bag._cell_for(descriptor)
         cell.is_dirty = False
         bag._set_ui_state("normal", UiState.HIDDEN)

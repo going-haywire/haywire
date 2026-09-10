@@ -406,7 +406,7 @@ def _settings_payload(node, accessors: list[str], data: str, filters: _Filters):
         if bag is None:
             continue
         rows: list[dict] = []
-        for name, descriptor in type(bag)._property_settings().items():
+        for name, descriptor in type(bag)._settings_descriptors().items():
             info = schema[(accessor, name)]
             category = info.category
             filters.note_existing(name, accessor, category)
@@ -753,7 +753,7 @@ class GraphEditorInspectNodeTool(Farmhand):
         # whole payload when it was the only section named. Per-bag counts turn
         # the survey call into an informed choice about what to fetch next —
         # without them, requesting 'settings' is all-or-nothing.
-        bag_counts = {b: len(type(getattr(node, b))._property_settings()) for b in author_bags}
+        bag_counts = {b: len(type(getattr(node, b))._settings_descriptors()) for b in author_bags}
         n_settings = sum(bag_counts.values())
         result["setting_counts"] = bag_counts
         state = wrapper.state
@@ -946,7 +946,7 @@ def _read_property(node, name: str):
         return True, node.ports[name].get_value()
     for accessor in type(node)._settings_bags:
         bag = getattr(node, accessor)
-        if name in type(bag)._property_settings():
+        if name in type(bag)._settings_descriptors():
             return True, getattr(bag, name)
     return False, None
 

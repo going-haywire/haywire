@@ -21,15 +21,15 @@ You author a widget when:
 - You want a richer control than the framework's defaults for an existing type (a Blender-style number drag instead of a plain spinbox).
 - You need a whole-value display (a streaming image preview, a formatted label, a swatch) driven from the port value.
 
-A widget is *not* an editor or a panel — those are workspace-level UI components. A widget lives **inside a port row** on a node card.
+A widget is *not* an editor or a panel — those are workspace-level UI components. A widget renders a single **value**, and does so on two surfaces: a port row on a node card, and a settings row in the Properties panel (the panel supplies a `SettingWidgetModel` so the same widget classes serve both).
 
 ## 2. How it fits
 
 ```text
-@widget(compatible_types=[FLOAT])  ──► WidgetRegistry  ──►  port renders the widget
-class KnobWidget(BaseWidget):                                 when the canvas
-    def build(self):                                          draws the node card
-        knob = ui.knob(value=0)
+@widget(description="A knob")     ──► WidgetRegistry  ──►  a port or settings row
+class KnobWidget(BaseWidget):                                 renders it when its
+    def build(self):                                          stamped widget_key
+        knob = ui.knob(value=0)         names this class
         return self.bind(knob)          model → view : on_model_changed() / bind()-ings
                                         view → model : each bind()-ed element
 ```
@@ -39,7 +39,7 @@ Every widget subclasses **`BaseWidget`** and implements **`build()`**, which con
 - call **`bind()`** (the *sugar*) to wire each value-bound element to a model field, or
 - override **`on_model_changed()`** (the *floor*) and drive the view yourself for whole-value or non-field widgets.
 
-`BaseWidget` implements the minimal `IWidget` contract. The `@widget` decorator attaches `class_identity` (used by `WidgetRegistry` for hot-reload) and registers `compatible_types` (which datatypes the widget accepts).
+`BaseWidget` implements the minimal `IWidget` contract. The `@widget` decorator attaches `class_identity`, which `WidgetRegistry` uses as the lookup key and for hot-reload. A widget declares no datatypes — see §3.
 
 **Boundaries.** What datatypes *are* lives in [components/datatypes](../datatypes/datatype-canon.md). How a port binds a widget at creation time (`as_inlet(widget=...)`) lives in [guides/ports](../../guides/ports.md). The runtime layer that converts values between incompatible *types* on an edge lives in [components/adapters](../adapters/adapter-canon.md) and [architecture/execution/edges](../../architecture/execution/edges/edges-arch.md).
 
@@ -50,12 +50,12 @@ Every widget subclasses **`BaseWidget`** and implements **`build()`**, which con
 `@widget(...)` registers the class with `WidgetRegistry` and attaches its identity. It is always invoked with parentheses.
 
 ```python
-@widget(description="Fast number input", compatible_types=[FLOAT, INT])
+@widget(description="Fast number input")
 class NumberWidget(BaseWidget):
     ...
 ```
 
-- **`compatible_types`** (required) — the list (or set) of `IType` classes this widget can edit. A widget is offered for a port when the port's type is in — or inherits from — one of the compatible types. Pass an explicit empty list to register a widget with no type constraint.
+- **A widget declares no types.** `compatible_types` was removed and now raises `TypeError` — nothing matches widgets to types, and nothing "offers" a widget for a port. Selection is the stamped `widget_key`: a port or field names one class outright, resolved by direct registry lookup (`get_widget_class(registry_key)`), never by inspecting the value or searching for a compatible widget. See [ADR 0017](../../adr/0017-widget-selection-port-contract.md).
 - **`class_identity`** — derived from the class and its owning library, exposed as `class_identity.registry_key` (`<library_id>:widget:<registry_id>`). This is the key `WidgetRegistry` uses, and the value `config()` embeds for the call site.
 
 ### `build()`
@@ -240,7 +240,7 @@ What this example exercises:
 
 | Concept | Where |
 |---|---|
-| `@widget(compatible_types=[FLOAT, INT])` decorator | class decoration |
+| `@widget(description="...")` decorator | class decoration |
 | `BaseWidget` subclass | `class KnobWidget(BaseWidget)` |
 | `build()` returning a NiceGUI element | constructs `ui.knob(...)`, returns it |
 | `self.bind(...)` with the default `to="value"` | `self.bind(knob, converter=...)` |
@@ -255,7 +255,7 @@ For datatype authoring (including the derived primitive types used here), see [c
 
 ### Authoring checklist
 
-- [ ] `@widget(description="...", compatible_types=[Type1, Type2])` on the class
+- [ ] `@widget(description="...")` on the class
 - [ ] Subclass `BaseWidget`
 - [ ] Implement `build()` returning the NiceGUI root element
 - [ ] Call `self.bind(element, ...)` for each value-bound element

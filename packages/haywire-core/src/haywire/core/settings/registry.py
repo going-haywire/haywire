@@ -169,7 +169,9 @@ class SettingsRegistry(BaseRegistry[Settings]):
         cls._registry = self
         # Collect this schema's setting keys and re-read both settings files
         # so on-disk values survive disable→re-enable / hot-reload cycles.
-        schema_keys: set[str] = {d._setting_key for d in cls._property_settings().values() if d._setting_key}
+        schema_keys: set[str] = {
+            d._setting_key for d in cls._settings_descriptors().values() if d._setting_key
+        }
         if schema_keys:
             if self._global_path is not None and self._global_path.exists():
                 self._repopulate_from_file_for_keys(schema_keys, self._global_path, tier="global")
@@ -190,7 +192,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
     def _register_schema_fields(self, schema_cls: type["Settings"]) -> None:
         """Register all descriptor fields from a schema class into the definitions."""
-        for _name, descriptor in schema_cls._property_settings().items():
+        for _name, descriptor in schema_cls._settings_descriptors().items():
             if not descriptor._setting_key:
                 continue
             self._store_definition(
@@ -286,7 +288,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         """Remove all descriptor fields of a schema class from definitions."""
         changed_keys: set[str] = set()
         with self._lock:
-            for descriptor in schema_cls._property_settings().values():
+            for descriptor in schema_cls._settings_descriptors().values():
                 if not descriptor._setting_key:
                     continue
                 key = descriptor._setting_key

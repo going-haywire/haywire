@@ -204,6 +204,9 @@ class AppIcon:
     """Paste action."""
     refresh: Final[str] = "refresh"
     """Reload / revalidate action."""
+    undo: Final[str] = "undo"
+    """Return a value to a previous state (distinct from `refresh`, which
+    re-reads rather than reverting) — e.g. resetting a setting to its default."""
     save: Final[str] = "save"
     """Persist to disk action."""
     edit: Final[str] = "edit"

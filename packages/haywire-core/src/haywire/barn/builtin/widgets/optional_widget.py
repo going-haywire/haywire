@@ -137,9 +137,18 @@ class OptionalWidget(BaseWidget):
     # ---- element resolution ---------------------------------------------
 
     def _element_type(self) -> "type[IType] | None":
-        """The wrapped IType, read off the cell rather than declared here."""
-        stored = self.port.data.get_stored_type()
-        element = getattr(stored, "element_type_cls", None)
+        """The wrapped IType, read off the cell rather than declared here.
+
+        ``type_cls``, NOT ``get_stored_type()``: the two deliberately disagree
+        for a wrapper field. ``type_cls`` is what the field IS
+        (``OPTIONAL[INT]``), which is the only place the element can be read
+        from; ``get_stored_type()`` is what FLOWS on an edge (``INT``), and
+        ``INT.element_type_cls`` is the Python ``int`` — not an IType — so
+        reading the wire type here would fail the guard below and silently
+        degrade every optional row to the read-only label fallback.
+        """
+        wrapper = self.port.data.type_cls
+        element = getattr(wrapper, "element_type_cls", None)
         if isinstance(element, type) and issubclass(element, IType):
             return element
         return None

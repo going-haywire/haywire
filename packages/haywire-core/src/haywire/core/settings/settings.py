@@ -163,7 +163,7 @@ class Settings:
         # Declarative same-bag gating (enabled_when/visible_when) composes
         # with this via severity max — see effective_ui_state().
         self._ui_states: dict[str, UiState] = {}
-        for _name, _descriptor in type(self)._property_settings().items():
+        for _name, _descriptor in type(self)._settings_descriptors().items():
             if _descriptor._ui_state is not UiState.NORMAL:
                 self._ui_states[_descriptor.storage_key] = _descriptor._ui_state
         # Dedicated UI-state channel: callback(name, state) on each state
@@ -193,7 +193,7 @@ class Settings:
         # saved block) sticks. A bag that a saved graph never mentions keeps
         # its seeds, which is what lets a library add a bag later and still
         # give it the face its author intended.
-        for _descriptor in type(self)._property_settings().values():
+        for _descriptor in type(self)._settings_descriptors().values():
             _seed = getattr(_descriptor, "_promote_default", None)
             if _seed is not None:
                 self._promoted_keys[_descriptor.storage_key] = Promotion(_seed)
@@ -235,7 +235,7 @@ class Settings:
         generated port; ``None`` (the default) means "use the direction's
         default" and is what every promotion starts as.
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             logger.warning("set_promoted: unknown field %r on %s — ignored", name, type(self).__name__)
             return
@@ -248,7 +248,7 @@ class Settings:
         while the field is promoted, so there is nothing to attach a choice
         to otherwise. Pass ``None`` to fall back to the direction default.
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return
         storage_key = fields[name].storage_key
@@ -260,7 +260,7 @@ class Settings:
     def _get_promoted_show_widget(self, name: str) -> ShowWidgetStrategy | None:
         """*name*'s recorded widget-visibility choice, or None when it uses the
         direction default (or is not promoted at all)."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return None
         record = self._promoted_keys.get(fields[name].storage_key)
@@ -270,21 +270,21 @@ class Settings:
         """Clear field *name*'s promotion record (no-op if absent/unknown).
 
         Called by ``demote_setting``. Mirror of :meth:`set_promoted`."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return
         self._promoted_keys.pop(fields[name].storage_key, None)
 
     def _is_promoted(self, name: str) -> bool:
         """True if field *name* is currently promoted. False for unknown names."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return False
         return fields[name].storage_key in self._promoted_keys
 
     def _get_promoted_direction(self, name: str) -> PortType | None:
         """The direction field *name* is promoted to, or None if not promoted."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return None
         record = self._promoted_keys.get(fields[name].storage_key)
@@ -319,7 +319,7 @@ class Settings:
         """Remove *field*'s promoted port, if any. Sugar over
         ``haywire.core.node.promotion.demote_setting``. No-op if *field* is not
         currently promoted or the bag is not node-bound."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if field not in fields or self._node is None:
             return
         storage_key = fields[field].storage_key
@@ -457,7 +457,7 @@ class Settings:
 
     def _subscribe_settings(self) -> None:
         """Subscribe all fields that have a _mirror_key. Delegates to _subscribe_setting."""
-        for descriptor in type(self)._property_settings().values():
+        for descriptor in type(self)._settings_descriptors().values():
             self._subscribe_setting(descriptor)
 
     def _subscribe_setting(self, descriptor: setting) -> None:
@@ -517,7 +517,7 @@ class Settings:
         """
         if self._cleaned_up:
             return
-        for _attr_name, descriptor in type(self)._property_settings().items():
+        for _attr_name, descriptor in type(self)._settings_descriptors().items():
             if descriptor._mirror_key != full_key or not descriptor.is_mirror:
                 continue
             if self._is_set(descriptor):
@@ -539,7 +539,7 @@ class Settings:
         if callback in self._subscriptions:
             return
         adapters: list[tuple["DataField", Callable]] = []
-        for attr_name, descriptor in type(self)._property_settings().items():
+        for attr_name, descriptor in type(self)._settings_descriptors().items():
             cell = self._cell_for(descriptor)
 
             def adapter(change: Any, _name: str = attr_name, _cb: Callable = callback) -> None:
@@ -562,7 +562,7 @@ class Settings:
         ``unsubscribe(callback)`` and ``cleanup()`` detach it. Idempotent per
         (field, callback); the same callback may watch several fields. Raises
         ``KeyError`` for an unknown field name."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if field not in fields:
             raise KeyError(f"No setting '{field}' on {type(self).__name__}")
         descriptor = fields[field]
@@ -609,7 +609,7 @@ class Settings:
         Format v3 shape. v2 wrote a bare direction string per key; the
         ``UpgradeVersionThree`` prehydrator rewrites those.
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         values: dict = {}
         for name, descriptor in fields.items():
             if not self._is_set(descriptor):
@@ -656,7 +656,7 @@ class Settings:
                 f"This graph's settings for this bag cannot be restored; the node will "
                 f"load with default settings."
             )
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         for attr_name, value in data.get("values", {}).items():
             if attr_name not in fields:
                 continue
@@ -689,7 +689,7 @@ class Settings:
 
     def _reset(self, name: str) -> None:
         """Reset a single field to its descriptor default (removes local override)."""
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             raise KeyError(f"No setting '{name}' on {type(self).__name__}")
         descriptor = fields[name]
@@ -716,7 +716,7 @@ class Settings:
 
     def _reset_all(self) -> None:
         """Reset all fields to their defaults (clear all local overrides)."""
-        for name in type(self)._property_settings():
+        for name in type(self)._settings_descriptors():
             self._reset(name)
 
     # -------------------------------------------------------------------------
@@ -734,7 +734,7 @@ class Settings:
         # Symmetric with _subscribe_setting: drop each mirror field's registry
         # subscription so the registry doesn't hold a stale handler.
         if self._registry is not None:
-            for descriptor in type(self)._property_settings().values():
+            for descriptor in type(self)._settings_descriptors().values():
                 if descriptor._mirror_key:
                     self._registry.unsubscribe(descriptor._mirror_key, self._on_field_change)
         # Detach graph-mirror adapters — MANDATORY: the src cells are
@@ -766,7 +766,7 @@ class Settings:
                 f"_is_locally_set() takes a field name, got {type(name).__name__}. "
                 f"For a descriptor use _is_set()."
             )
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return False
         return self._is_set(fields[name])
@@ -782,7 +782,7 @@ class Settings:
         Unknown *name*: logs a warning and ignores (catches typos in
         hand-maintained field-name lists).
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             logger.warning("set_ui_state: unknown field %r on %s — ignored", name, type(self).__name__)
             return
@@ -813,7 +813,7 @@ class Settings:
         target state stay silent), never touches cells. Unknown *category*:
         logs a warning and ignores.
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if category is not None and not any(d._category == category for d in fields.values()):
             logger.warning(
                 "set_ui_state_all: unknown category %r on %s — ignored", category, type(self).__name__
@@ -831,7 +831,7 @@ class Settings:
         composed answer consumers should almost always use. Unknown *name*
         returns ``UiState.NORMAL``.
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return UiState.NORMAL
         return self._ui_states.get(fields[name].storage_key, UiState.NORMAL)
@@ -854,7 +854,7 @@ class Settings:
         values via plain ``getattr`` — never writes, never touches cells.
         Unknown *name* returns ``UiState.NORMAL``.
         """
-        fields = type(self)._property_settings()
+        fields = type(self)._settings_descriptors()
         if name not in fields:
             return UiState.NORMAL
         descriptor = fields[name]
@@ -890,8 +890,9 @@ class Settings:
             pass
 
     @classmethod
-    def _property_settings(cls) -> dict[str, setting]:
+    def _settings_descriptors(cls) -> dict[str, setting]:
         """Return all setting descriptors defined on this class (walks MRO, base-first).
+        Keyed by the attr_name
 
         Internal. Outside the settings package use :func:`settings_fields`,
         which takes a bag *or* a class and is the supported spelling.
@@ -965,4 +966,4 @@ def settings_fields(bag_or_cls: "Settings | type[Settings]") -> dict[str, settin
             setattr(target, name, getattr(bag, name))
     """
     cls = bag_or_cls if isinstance(bag_or_cls, type) else type(bag_or_cls)
-    return cls._property_settings()
+    return cls._settings_descriptors()

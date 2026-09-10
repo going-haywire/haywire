@@ -98,7 +98,7 @@ class NodeInstanceInspector:
     def settings(self) -> list[SettingInfo]:
         rows: list[SettingInfo] = []
         for accessor, bag in self._node.list_setting_bags().items():
-            for name, descriptor in type(bag)._property_settings().items():
+            for name, descriptor in type(bag)._settings_descriptors().items():
                 default = descriptor._default
                 resolved = default() if callable(default) else default
                 itype = getattr(descriptor, "_type", None)

@@ -133,7 +133,7 @@ async def test_the_dropdown_renders_the_appearance_slice_and_stays_live(user: Us
     assert fields, "the appearance fields should have rendered inside the dropdown"
     appearance_fields = {
         name
-        for name, defn in NodeProperties._property_settings().items()
+        for name, defn in NodeProperties._settings_descriptors().items()
         if defn._category == APPEARANCE_CATEGORY
     }
     assert set(fields) == appearance_fields, "exactly the appearance slice, nothing else"

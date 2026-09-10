@@ -242,7 +242,7 @@ class TestComplexITypeRoundTrip:
 class TestCellFor:
     def test_typed_field_gets_cell_seeded_with_default(self):
         bag = SimpleBag()
-        descriptor = type(bag)._property_settings()["strength"]
+        descriptor = type(bag)._settings_descriptors()["strength"]
         cell = bag._cell_for(descriptor)
         from haywire.core.types.fields import DataField
 
@@ -251,7 +251,7 @@ class TestCellFor:
 
     def test_cell_is_cached_same_object_second_call(self):
         bag = SimpleBag()
-        descriptor = type(bag)._property_settings()["strength"]
+        descriptor = type(bag)._settings_descriptors()["strength"]
         first = bag._cell_for(descriptor)
         second = bag._cell_for(descriptor)
         assert first is second
@@ -300,7 +300,7 @@ class TestCellBackedSerialization:
 
     def test_from_dict_populates_cell_and_marks_set_keys(self):
         bag = SimpleBag()
-        descriptor = type(bag)._property_settings()["strength"]
+        descriptor = type(bag)._settings_descriptors()["strength"]
         bag._from_dict({"values": {"strength": 0.9}, "promoted": {}})
         assert bag._is_set(descriptor)
         assert bag._cells["strength"].get_value() == 0.9
@@ -308,7 +308,7 @@ class TestCellBackedSerialization:
     def test_reset_clears_set_keys_and_returns_cell_to_default(self):
         bag = SimpleBag()
         bag.strength = 0.9
-        descriptor = type(bag)._property_settings()["strength"]
+        descriptor = type(bag)._settings_descriptors()["strength"]
         bag._reset("strength")
         assert not bag._is_set(descriptor)
         # Cell returned to default (never structurally removed).

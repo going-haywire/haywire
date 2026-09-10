@@ -291,22 +291,22 @@ class TestReset:
 
 class TestPropFields:
     def test_returns_all_settings(self):
-        fields = _Simple._property_settings()
+        fields = _Simple._settings_descriptors()
         assert "threshold" in fields
         assert "verbose" in fields
         assert "name" in fields
 
     def test_non_settings_excluded(self):
-        fields = _Simple._property_settings()
+        fields = _Simple._settings_descriptors()
         assert "_callbacks" not in fields
 
     def test_child_includes_parent_fields(self):
-        fields = _Child._property_settings()
+        fields = _Child._settings_descriptors()
         assert "x" in fields
         assert "y" in fields
 
     def test_parent_fields_not_polluted_by_child(self):
-        parent_fields = _Parent._property_settings()
+        parent_fields = _Parent._settings_descriptors()
         assert "y" not in parent_fields
 
     def test_child_inherits_parent_defaults(self):

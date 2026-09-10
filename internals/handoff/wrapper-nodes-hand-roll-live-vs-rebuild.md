@@ -55,13 +55,13 @@ All in `barn/haybale-visiongraph/haybale_visiongraph/nodes/`:
 The common core, written three times:
 
 ```python
-for name in type(bag)._property_settings():        # private API; see note below
+for name in type(bag)._settings_descriptors():        # private API; see note below
     if (name in rebuild_fields) is build_time:
         setattr(target, name, getattr(bag, name))
 ```
 
 (Use the module-level `settings_fields(bag)` — it landed in the companion
-session and is the supported spelling. `_property_settings()` is internal.)
+session and is the supported spelling. `_settings_descriptors()` is internal.)
 
 Plus, in every case, a hand-written **name/shape translation** layer, because a
 settings field rarely maps 1:1 onto the library's attribute:

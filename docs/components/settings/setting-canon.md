@@ -82,7 +82,7 @@ Use `cache` for "lost on restart, fine"; `store` for "must survive saves, hidden
 
 Only `setting` descriptors are policed; helper methods and constants on a bag may be named however you like.
 
-**Iterating a bag's fields — `settings_fields(bag_or_cls)`.** A module-level function (like `promote_setting` / `demote_setting`), returning `{field_name: descriptor}` in MRO order. It is the supported spelling; `_property_settings()` is the internal one.
+**Iterating a bag's fields — `settings_fields(bag_or_cls)`.** A module-level function (like `promote_setting` / `demote_setting`), returning `{field_name: descriptor}` in MRO order. It is the supported spelling; `_settings_descriptors()` is the internal one.
 
 ```python
 from haywire.core.settings import settings_fields
@@ -447,11 +447,25 @@ tooltip saying where it lands.
 - **A `validator=` constrains the *present* domain only.** Write it for the
   wrapped type (`lambda v: 0.0 <= v <= 1.0`); the framework lifts it once at
   declaration so absence is always admissible.
-- **Promotable to `CONFIG` only.** No adapter maps `OPTIONAL[T]` to `T`, so an
-  inlet or outlet *pin* would refuse every edge — those raise at
-  class-definition time. A `CONFIG` port is pinless, so it is the seed and works
-  normally.
+- **It promotes like any other field.** `promotable` defaults to `ALL`, and
+  eligibility never depends on the current value. The pin carries the
+  **element** type — an `OPTIONAL[INT]` field becomes an `INT` pin — so it
+  connects to whatever `INT` connects to, adapters included.
 - **`OPTIONAL[OPTIONAL[T]]` raises.** Absence has no degrees.
+
+**What crosses an edge.** Absence travels on the *sink's* ability to hold it,
+not on the declared type:
+
+| link | present | absent |
+|---|---|---|
+| `OPTIONAL → OPTIONAL` | flows | **arrives as `None`** |
+| `OPTIONAL → INT` (or via an adapter) | flows / converts | **skipped** — the sink keeps its last value |
+
+The second row is not a nicety. `INTField` coerces with `int(value)`, so
+forwarding `None` there would raise from inside propagation, far from whatever
+caused it. "Nothing to say this frame" is also the honest downstream reading of
+*don't pass this parameter* — a downstream node has its own optional field and
+its own decision.
 
 See [ADR 0033](../../adr/0033-absence-is-a-type.md) for why absence is a type
 rather than a flag on `setting()`, and the glossary's **absence** entry for how

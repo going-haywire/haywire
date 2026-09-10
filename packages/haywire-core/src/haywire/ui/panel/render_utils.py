@@ -110,7 +110,7 @@ def render_settings(
     it simply selects nothing, and the empty state renders.
     """
 
-    fields = type(obj)._property_settings()
+    fields = type(obj)._settings_descriptors()
     if categories is None:
         visible_fields = dict(fields)
     else:
@@ -120,7 +120,7 @@ def render_settings(
         ui.label("No fields defined.").classes("text-xs hw-text-muted px-2 py-1")
         return
 
-    # _property_settings() already yields fields in declaration order (base-first
+    # _settings_descriptors() already yields fields in declaration order (base-first
     # MRO walk over class __dict__, which Python preserves in insertion order) —
     # render in that order directly, no re-sort. Categories are NOT pre-grouped:
     # _render_grouped's groupby only merges CONSECUTIVE same-category entries, so
@@ -201,7 +201,7 @@ def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry:
     """Render only the fields declared on *schema_cls* as labelled form rows,
     in declaration order.
 
-    Walks the schema's own _property_settings() directly (already in
+    Walks the schema's own _settings_descriptors() directly (already in
     declaration order — base-first MRO walk preserving dict insertion order)
     and filters to registry-known keys, so keys registered under the same
     namespace prefix by other code (e.g. dynamic library keys) are not
@@ -210,13 +210,13 @@ def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry:
     happens here (see internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
 
     MRO caveat: if a subclass re-declares a field name also present on a base
-    class, _property_settings()'s dict-assignment overwrites the VALUE at that
+    class, _settings_descriptors()'s dict-assignment overwrites the VALUE at that
     key but does not move the key's position, so the field renders at the base
     class's declaration position, not the subclass's. LibrarySettings /
     FrameworkSettings block deep subclassing, so this is unreachable for
     either — documented, not fixed.
     """
-    prop_fields: dict[str, setting] = schema_cls._property_settings()
+    prop_fields: dict[str, setting] = schema_cls._settings_descriptors()
     ordered_defns = [
         defn
         for defn in prop_fields.values()
@@ -674,7 +674,7 @@ def _render_reactive_field_row(
         if gate is None:
             return None
         controller_name, _expected = gate
-        if controller_name in type(obj)._property_settings():
+        if controller_name in type(obj)._settings_descriptors():
             return controller_name
         logger.warning(
             "%s=%r on field %r references unknown field %r on %s "
@@ -760,13 +760,17 @@ def _render_reactive_field_row(
     def _set_to_none() -> None:
         setattr(obj, attr_name, None)
 
-    # "Set to none" is offered only where it means something Reset doesn't. Both
-    # verbs put the field back to a resting state; when the declared default IS
-    # absence they are the same act, and listing two entries that do one thing is
-    # worse than listing one. Whether the default is absent is a DECLARATION fact,
-    # fixed at class-definition time — so the menu's rule applies: structural
-    # facts hide, transient facts disable.
-    offers_none = defn._is_wrapper_type() and defn._default is not None
+    # Every wrapper field lists "Set to none", including one whose declared
+    # default is already absence.
+    #
+    # It was once hidden in that case, on the reasoning that Reset lands on
+    # absence anyway so two entries would do one thing. That premise was about
+    # the VALUE and ignored the AVAILABILITY: Reset greys whenever the field
+    # carries no local opinion, so on a field defaulting to absence there was
+    # then no enabled route back to absence at all. Reachable in two clicks —
+    # promote to outlet, show the pin widget, enter a value — and the user is
+    # stuck holding a value they cannot clear.
+    offers_none = defn._is_wrapper_type()
 
     def _refresh_reset_item() -> None:
         # The menu's transient entries — listed permanently, greyed while the row
@@ -791,29 +795,42 @@ def _render_reactive_field_row(
         from haywire.core.node.promotion import eligible_promotion_directions
 
         node = obj._node
-        structural: list[tuple[str, Callable[..., None]]] = []
-        if node is not None:
-            if is_promoted:
-                structural.append(("Demote", _demote))
-            else:
-                for direction in eligible_promotion_directions(defn):
-                    structural.append(
-                        (f"Promote to {direction.name.lower()}", lambda d=direction: _promote(d))
-                    )
-        offers_reset = True
-        if not structural and not offers_reset:
-            return  # nothing this row can ever do — no menu at all
+        # Promotion collapses to ONE top-level entry: "Demote" once promoted,
+        # else a "Promote to" flyout holding the eligible directions. Always a
+        # flyout, even at one eligible direction, so the entry keeps a fixed
+        # position and the row menu's own shape does not shift per field.
+        directions: list["PortType"] = []
+        if node is not None and not is_promoted:
+            directions = list(eligible_promotion_directions(defn))
+        offers_demote = node is not None and is_promoted
         with ui.context_menu().props('data-row-menu="true"'):
-            for text, handler in structural:
-                ui.menu_item(text, on_click=handler, auto_close=True)
-            if offers_reset:
-                reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
+            if offers_demote:
+                ui.menu_item("Demote", on_click=_demote, auto_close=True)
+            elif directions:
+                # dense=False: the anchor's Quasar density must match the plain
+                # menu_items beside it (Reset et al are not dense), or it renders
+                # visibly shorter than the rest of the menu. See flyout_category.
+                # The sibling group is this menu's own — one flyout, nothing to
+                # close beside it, but the primitive owns that bookkeeping.
+                promote_siblings: hui.FlyoutSiblings = []
+                with hui.flyout_category("Promote to", promote_siblings, dense=False):
+                    for direction in directions:
+                        # nowrap for the same reason flyout_category pins its own
+                        # anchor: when Quasar flips the flyout leftward it
+                        # shrink-to-fits, and an unpinned label wraps.
+                        ui.menu_item(
+                            direction.name.lower(),
+                            on_click=lambda d=direction: _promote(d),
+                            auto_close=True,
+                        ).style("white-space: nowrap")
+            # Reset is listed permanently for a writable row — it greys when the
+            # row is clean rather than disappearing, so the menu never renders
+            # empty and its shape does not depend on the current value.
+            reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
             if offers_none:
                 # Adjacent to Reset on purpose: both are "put this field back to
-                # not-my-problem", and they differ only in where back is. They
-                # only ever appear TOGETHER when they genuinely differ (a field
-                # defaulting to absence lists Reset alone), so each says where it
-                # lands — the distinction is the only reason both are here.
+                # not-my-problem", and they differ only in where back is. Each
+                # says where it lands, because where they land can coincide.
                 none_item = ui.menu_item("Set to none", on_click=_set_to_none, auto_close=True)
                 none_item.tooltip("Clear the value — pass nothing")
                 reset_item.tooltip(f"Back to {defn._default!r}")
@@ -1065,7 +1082,7 @@ def _bag_on_edit(obj: "Settings", attr_name: str, error_container) -> Callable[[
     """Write policy for the instance path: validate → setattr → error chrome."""
 
     def on_edit(value: Any) -> None:
-        descriptor = type(obj)._property_settings().get(attr_name)
+        descriptor = type(obj)._settings_descriptors().get(attr_name)
         if descriptor is not None and not descriptor.validate(value):
             error_container.clear()
             with error_container:

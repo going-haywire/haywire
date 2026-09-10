@@ -11,12 +11,14 @@ from __future__ import annotations
 import logging
 from typing import TYPE_CHECKING
 
+from haywire.core.types.base import WrapperType
 from haywire.core.types.enums import PortType, ShowWidgetStrategy
 
 if TYPE_CHECKING:
     from haywire.core.node.data import NodeData
     from haywire.core.settings.descriptor import setting
     from haywire.core.settings.settings import Settings
+    from haywire.core.settings.settings_node import NodeSettings
 
 logger = logging.getLogger(__name__)
 
@@ -30,11 +32,11 @@ def is_field_promoted(bag: "Settings", field: str) -> bool:
 
 
 def _resolve_promoted(node: "NodeData", port_id: str) -> tuple["Settings", "setting"]:
-    """Resolve the (bag, descriptor) a promoted ``port_id`` binds, by matching the id
-    against each field's storage_key. The sole port→settings crossing."""
+    """Resolve the (settings-bag, settings-descriptor) a promoted ``port_id`` binds, by matching the id
+    against each descriptor's storage_key. The sole port→settings crossing."""
     for accessor in type(node)._settings_bags:
-        bag = getattr(node, accessor)
-        for _field, desc in type(bag)._property_settings().items():
+        bag: NodeSettings = getattr(node, accessor)
+        for _field, desc in type(bag)._settings_descriptors().items():
             if desc.storage_key == port_id:
                 return bag, desc
     raise KeyError(port_id)
@@ -57,8 +59,8 @@ def _descriptor(node: "NodeData", accessor: str, field: str) -> "setting":
     """The setting descriptor for ``<accessor>.<field>`` on *node*. MRO-aware
     (matches ``is_field_promoted``/``_resolve_promoted``) so a field inherited from a
     settings-bag base class resolves correctly, not just one declared directly."""
-    bag = getattr(node, accessor)
-    return type(bag)._property_settings()[field]
+    bag: NodeSettings = getattr(node, accessor)
+    return type(bag)._settings_descriptors()[field]
 
 
 def eligible_promotion_directions(descriptor: "setting") -> tuple[PortType, ...]:
@@ -102,11 +104,23 @@ def _metadata_to_port_kwargs(descriptor: "setting") -> dict:
     widget_config. Only forwarded when non-empty: an empty override would
     otherwise stomp ``create_port_spec``'s IType-identity default with `{}`.
     """
+    # A wrapper-typed field promotes to a port of its ELEMENT type: an
+    # OPTIONAL[INT] setting becomes an INT pin. The port then connects to
+    # everything INT connects to, adapters included, instead of needing an
+    # OPTIONAL[T] -> T adapter per element type (the matrix ADR 0017 rejected).
+    # Absence is not lost by this — it travels on the field's capability, not
+    # the declared type (DataField.accepts_absence), so an OPTIONAL -> OPTIONAL
+    # link still carries it. The port borrows the setting's absence-tolerant
+    # cell, whose get_stored_type() reports the same element type.
+    type_cls = descriptor._type
+    element = getattr(type_cls, "element_type_cls", None)
+    if isinstance(type_cls, type) and issubclass(type_cls, WrapperType) and element is not None:
+        type_cls = element
     kwargs: dict = {
         "label": getattr(descriptor, "_label", "") or getattr(descriptor, "_attr_name", ""),
         "description": getattr(descriptor, "_description", "") or "",
         "order": getattr(descriptor, "_order", 0),
-        "type_cls": descriptor._type,
+        "type_cls": type_cls,
     }
     widget_key = getattr(descriptor, "widget_key", "")
     if widget_key:
@@ -152,10 +166,10 @@ def regenerate_promoted_ports(node: "NodeData") -> None:
     promoted inlet exists in ``node.ports`` before any edge resolves against it.
     """
     for accessor in type(node)._settings_bags:
-        bag = getattr(node, accessor)
+        bag: NodeSettings = getattr(node, accessor)
         # storage_key -> attr name, to translate the key back to promote_setting's
         # (accessor, field) arguments.
-        fields = type(bag)._property_settings()
+        fields = type(bag)._settings_descriptors()
         key_to_field = {desc.storage_key: name for name, desc in fields.items()}
         for storage_key, record in list(bag._promoted_keys.items()):
             field = key_to_field.get(storage_key)
@@ -253,7 +267,7 @@ def promote_setting(
     else:
         spec = type_cls.as_inlet(pid, promoted=True, **kw)
 
-    bag = getattr(node, accessor)
+    bag: NodeSettings = getattr(node, accessor)
     # rejig(include=[pid]) flags only pid (which doesn't exist yet → flags nothing),
     # so add() introduces the port without disturbing the node's other ports. add()
     # keeps group/section/order/rejig bookkeeping.

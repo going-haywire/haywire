@@ -139,21 +139,23 @@ class TestValidator:
         assert Nms.eta.validate(5.0) is False
 
 
-class TestPromotionFence:
-    """The fence is drawn where its justification reaches: PINS, not ports.
+class TestPromotion:
+    """A wrapper field is ORDINARY here — it promotes like any other.
 
-    No adapter maps ``OPTIONAL[T]`` to ``T``, so an inlet or outlet pin would
-    refuse every edge. A CONFIG port is pinless by construction — never linked,
-    never edge-driven — so the missing adapter cannot bite it.
+    The pin carries the ELEMENT type, so it connects to whatever that element
+    connects to; absence travels on the sink field's capability rather than on
+    the declared type. There is nothing left for a fence to protect.
     """
 
-    def test_config_is_the_seed(self):
-        # A seed, not a structural override: eligible_promotion_directions keeps
-        # its invariant that the declared flag IS the eligibility.
+    def test_a_wrapper_field_is_promotable_in_every_direction(self):
         from haywire.core.node.promotion import eligible_promotion_directions
 
-        assert Nms.eta._promotable is Promotable.CONFIG
-        assert eligible_promotion_directions(Nms.eta) == (PortType.CONFIG,)
+        assert Nms.eta._promotable is Promotable.ALL
+        assert eligible_promotion_directions(Nms.eta) == (
+            PortType.INLET,
+            PortType.OUTLET,
+            PortType.CONFIG,
+        )
 
     def test_a_plain_field_is_unaffected(self):
         class Plain(NodeSettings):
@@ -161,41 +163,30 @@ class TestPromotionFence:
 
         assert Plain.n._promotable is Promotable.ALL
 
-    @pytest.mark.parametrize("direction", [Promotable.INLET, Promotable.OUTLET, Promotable.ALL])
-    def test_asking_for_a_pin_raises_rather_than_being_discarded(self, direction):
-        # The author asked for a pin; silently ignoring that would leave them
-        # with no pin and no explanation.
-        with pytest.raises(ValueError, match="cannot be promoted to a PIN"):
+    @pytest.mark.parametrize(
+        "direction", [Promotable.INLET, Promotable.OUTLET, Promotable.CONFIG, Promotable.NONE]
+    )
+    def test_an_explicit_promotable_is_honoured_verbatim(self, direction):
+        class Bag(NodeSettings):
+            f = setting[OPTIONAL[INT]](None, promotable=direction)
 
-            class Bad(NodeSettings):
-                f = setting[OPTIONAL[INT]](None, promotable=direction)
+        assert Bag.f._promotable is direction
 
-    def test_an_explicit_config_is_accepted(self):
-        class Fine(NodeSettings):
-            f = setting[OPTIONAL[INT]](None, promotable=Promotable.CONFIG)
+    @pytest.mark.parametrize("direction", [PortType.INLET, PortType.OUTLET, PortType.CONFIG])
+    def test_a_promote_default_is_allowed_in_every_direction(self, direction):
+        class Bag(NodeSettings):
+            f = setting[OPTIONAL[INT]](None, promote_default=direction)
 
-        assert Fine.f._promotable is Promotable.CONFIG
+        assert Bag.f._promote_default is direction
 
-    def test_an_explicit_none_is_honoured(self):
-        # NONE is narrower than the seed, not wider — nothing to refuse.
-        class Fine(NodeSettings):
-            f = setting[OPTIONAL[INT]](None, promotable=Promotable.NONE)
-
-        assert Fine.f._promotable is Promotable.NONE
-
-    def test_a_config_promote_default_is_allowed(self):
-        class Fine(NodeSettings):
-            f = setting[OPTIONAL[INT]](None, promote_default=PortType.CONFIG)
-
-        assert Fine.f._promote_default is PortType.CONFIG
-
-    def test_an_inlet_promote_default_is_refused(self):
-        # The fence is applied before the promote_default check reads it, so
-        # this fails at class-definition time rather than at node construction.
+    def test_promote_default_still_checked_against_promotable(self):
+        # The ordinary rule survives; it was never wrapper-specific.
         with pytest.raises(ValueError, match="promote_default"):
 
             class Bad(NodeSettings):
-                f = setting[OPTIONAL[INT]](None, promote_default=PortType.INLET)
+                f = setting[OPTIONAL[INT]](
+                    None, promotable=Promotable.OUTLET, promote_default=PortType.INLET
+                )
 
 
 class TestRestoreStamp:

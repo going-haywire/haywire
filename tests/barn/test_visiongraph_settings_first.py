@@ -51,7 +51,7 @@ def _build(cls):
 def _bag_state(node, accessor):
     """NORMAL / HIDDEN for a whole bag, or the mixed set if it disagrees."""
     bag = getattr(node, accessor)
-    states = {bag._effective_ui_state(f) for f in type(bag)._property_settings()}
+    states = {bag._effective_ui_state(f) for f in type(bag)._settings_descriptors()}
     return states.pop() if len(states) == 1 else states
 
 
@@ -162,7 +162,7 @@ def test_tracker_seeds_backend_and_result_type_as_config_only(library_system):
     from haywire.core.node.promotion import eligible_promotion_directions
 
     node = _tracker()
-    fields = type(node.choice)._property_settings()
+    fields = type(node.choice)._settings_descriptors()
 
     assert "choice.backend" in node.ports
     assert "choice.result_type" in node.ports
