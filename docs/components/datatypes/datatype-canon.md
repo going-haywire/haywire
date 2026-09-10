@@ -61,6 +61,25 @@ Adapters live in [components/adapters](../adapters/adapter-canon.md); how the ch
 
 **`@adapter`-paired types.** If two types should interop, write an adapter in [components/adapters](../adapters/adapter-canon.md). The adapter system chains automatically: `INT → FLOAT` and `FLOAT → STRING` together yield `INT → STRING` for free, no explicit chain adapter needed.
 
+### The four families
+
+Every IType belongs to exactly one, and the choice is not cosmetic — other subsystems dispatch on it.
+
+| Family | Holds | Storage | Parameterised |
+|---|---|---|---|
+| `PrimitiveType` | one unwrapped primitive | `PrimitiveField` | no |
+| `BaseType` | a structured instance (the instance IS the data) | `BaseField` | no |
+| `CompoundType` | **N** elements of one IType | `CompoundField` subclasses | `ArrayType[FLOAT]` |
+| `WrapperType` | **exactly one** value of another IType, **or absence** | the element's field class, made absence-tolerant | `OPTIONAL[INT]` |
+
+Two rules worth knowing before you add a type:
+
+**A `PrimitiveType` cannot hold absence.** `PrimitiveType.__init__` treats `None` as "not supplied" at every step and raises if one survives the fallbacks, so `@type(default={'value': None})` on a primitive is a latent `TypeError` — `create_field()` never instantiates the type, but `create_default()` and `PrimitiveField.to_dict()` do. A type whose domain includes absence belongs in `WrapperType`.
+
+**`CompoundType` means "container", and code acts on that.** `AdapterFactory` builds element-wise adapter chains for compounds, and `pin_render` gives them collection iconography. A type holding zero-or-one that inherited `CompoundType` for the parameterisation machinery would get both behaviours silently and wrongly. That is why `WrapperType` exists as a separate family rather than as a `CompoundType` subclass — see [ADR 0033](../../adr/0033-absence-is-a-type.md).
+
+**Parameterised identity differs between the two.** A `CompoundType[T]` **shares** its parent's `class_identity`, so every `ArrayType[*]` reports one colour and one widget key and differs only in its element. A `WrapperType[T]` stamps a **per-parameterisation** identity instead: it keeps the wrapper's `registry_key` and `widget_key` (a graph must resolve back to the wrapper, and the wrapper's own widget renders the row) but takes the element's colour and declared widget properties — without which `OPTIONAL[VEC3F]` would reach `VecWidget` with no `vec_meta` and be unrenderable.
+
 ## 4. Live examples from the codebase
 
 Source: [`barn/haybale-example/haybale_example/types/`](../../../barn/haybale-example/haybale_example/types/)
@@ -89,6 +108,14 @@ from: `MathOPSelector` — registry_key: `haybale-example:type:MathOPSelector`
 
 from: `MapsStringType` — registry_key: `haybale-example:type:MapsStringType`
 
+**Wrapper type** — `OPTIONAL` is the framework's only `WrapperType`. The whole type is a decorator plus a docstring: `__class_getitem__` on the family base derives the absence-tolerant `field_class`, stamps the merged identity, and refuses to wrap another wrapper:
+
+```python
+--8<-- "packages/haywire-core/src/haywire/barn/builtin/types/optional.py:8:18"
+```
+
+from: `OPTIONAL` — registry_key: `haywire-core:type:OPTIONAL`
+
 What these examples exercise:
 
 | Concept | Where it shows up |
@@ -100,7 +127,9 @@ What these examples exercise:
 | `default` as bare value (auto-wrapped to `{'value': ...}`) | `MathOPSelector` |
 | `CompoundType[T]` for parameterisable collection types | `MapsStringType` |
 | `field_class` assigned post-definition | `MapsStringType.field_class = MapsStringField` |
-| `flow_type=FlowType.DATA` explicit | all three |
+| `WrapperType[T]` for a value-or-absence type | `OPTIONAL` |
+| `default={'value': None}` (legal only outside `PrimitiveType`) | `OPTIONAL` |
+| `flow_type=FlowType.DATA` explicit | all four |
 
 For everything ports-related (`as_config`, `on_change`, `on_connect`, port reconfiguration), see [guides/ports](../../guides/ports.md). For the worker function and node lifecycle, see [components/nodes](../nodes/node-canon.md).
 

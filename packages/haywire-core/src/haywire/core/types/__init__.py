@@ -7,7 +7,7 @@ nodes through inlet/outlet connections.
 """
 
 from .interface import IType
-from .base import PrimitiveType, BaseType, CompoundType
+from .base import PrimitiveType, BaseType, CompoundType, WrapperType
 from .decorator import type
 from .identity import DataTypeIdentity
 from .enums import FlowType, LayoutDirection, NodeDetail, PortType, StoreStrategy
@@ -33,6 +33,7 @@ __all__ = [
     "PrimitiveType",
     "BaseType",
     "CompoundType",
+    "WrapperType",
     # Decorator
     "type",
     # Identity

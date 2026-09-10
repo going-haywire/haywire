@@ -28,7 +28,16 @@ class INT(PrimitiveType[int]):
 
 # define INTField for INT type to guarantee integer storage
 class INTField(PrimitiveField):
-    """DataField for INT type storing integer values"""
+    """DataField for INT type storing integer values.
+
+    Coerces on EVERY write, so an INT-typed setting or port silently truncates
+    a float: ``bag.count = 3.7`` stores ``3``. That is a real behavioural
+    difference from ``setting[FLOAT]``, and the reason ``OPTIONAL[INT]`` derives
+    its field class from this one rather than using a plain ``PrimitiveField``
+    — an optional int must behave exactly like a plain int while a value is
+    present. ``int(None)`` raises, so the wrapper's absence branch bypasses this
+    override (see ``_absence_tolerant_field``).
+    """
 
     def set_value(self, value, source_id=None):
         value = int(value)

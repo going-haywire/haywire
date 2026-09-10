@@ -29,21 +29,35 @@ class IType(ABC):
         - Uses unwrapped values for primitives
         - Uses instances for complex types
 
-    TWO PATTERNS:
+    FOUR FAMILIES:
 
-    1. PRIMITIVES (FLOAT, INT, STRING)
+    1. PRIMITIVES (FLOAT, INT, STRING) — PrimitiveType
        - Type: FLOAT class (descriptor)
        - Instance: FLOAT(value=42.0) (template for adapters/defaults)
        - Storage: 42.0 (unwrapped in PrimitiveField)
+       - Cannot hold absence: PrimitiveType.__init__ raises on a None value.
 
-    2. BASE (MeshData, Vector3)
+    2. BASE (MeshData, Vector3) — BaseType
        - Type: MeshData class (descriptor AND data container)
        - Instance: MeshData(...) (descriptor instance IS the data)
        - Storage: MeshData(...) instance (in BaseField)
 
+    3. COMPOUND (ArrayType[FLOAT], PooledType[MeshData]) — CompoundType
+       - N elements of one IType. Parameterized via __class_getitem__.
+       - Other subsystems DISPATCH on this family: AdapterFactory builds
+         element-wise adapter chains for it, pin_render gives it collection
+         iconography. So "is a CompoundType" means "is a container", and a type
+         that is not a container must not join it.
+
+    4. WRAPPER (OPTIONAL[INT]) — WrapperType
+       - Exactly ONE value of another IType, or absence. Parameterized the same
+         way, but deliberately NOT a CompoundType — see family 3.
+       - Storage: the element's own field class, made absence-tolerant.
+
     The .value property provides uniform interface:
     - PrimitiveType.value → unwrapped primitive
     - BaseType.value → self (instance is the value)
+    - WrapperType.value → the wrapped value, or None
 
     HIERARCHICAL TYPE SYSTEM:
 
@@ -51,6 +65,7 @@ class IType(ABC):
     - PrimitiveType: Points to Python primitive (float, str, int, bool)
     - BaseType: Points to itself (the class IS the element type)
     - CompoundType: Points to IType of elements (FLOAT, MeshData)
+    - WrapperType: Points to the IType it wraps (INT, VEC3F)
 
     This enables drilling down through type layers:
         ArrayType[FLOAT].element_type_cls → FLOAT

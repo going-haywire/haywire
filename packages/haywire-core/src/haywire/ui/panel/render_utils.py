@@ -755,16 +755,30 @@ def _render_reactive_field_row(
         _request_canvas_redraw(node)
 
     reset_item: Any = None
+    none_item: Any = None
+
+    def _set_to_none() -> None:
+        setattr(obj, attr_name, None)
+
+    # "Set to none" is offered only where it means something Reset doesn't. Both
+    # verbs put the field back to a resting state; when the declared default IS
+    # absence they are the same act, and listing two entries that do one thing is
+    # worse than listing one. Whether the default is absent is a DECLARATION fact,
+    # fixed at class-definition time — so the menu's rule applies: structural
+    # facts hide, transient facts disable.
+    offers_none = defn._is_wrapper_type() and defn._default is not None
 
     def _refresh_reset_item() -> None:
-        # Reset is the menu's one transient entry — listed permanently, greyed
-        # while the row is clean OR while UiState locks the row's
-        # value-editing chrome (DISABLED). Promote/Demote are structural and
-        # per-render constants: promotion changes rebuild the whole panel.
+        # The menu's transient entries — listed permanently, greyed while the row
+        # is clean OR while UiState locks the row's value-editing chrome
+        # (DISABLED). Promote/Demote are structural and per-render constants:
+        # promotion changes rebuild the whole panel.
+        editable = obj._effective_ui_state(attr_name) is UiState.NORMAL
         if reset_item is not None:
-            reset_item.set_enabled(
-                _has_local_opinion() and obj._effective_ui_state(attr_name) is UiState.NORMAL
-            )
+            reset_item.set_enabled(_has_local_opinion() and editable)
+        if none_item is not None:
+            # Greyed once the value already IS absent — nothing left to do.
+            none_item.set_enabled(editable and getattr(obj, attr_name) is not None)
 
     def _build_row_menu() -> None:
         # The setting-row menu (sole promote surface). Structural facts HIDE
@@ -773,7 +787,7 @@ def _render_reactive_field_row(
         # reset greys when clean/DISABLED. Nested in the label cell so the
         # widget column keeps the browser's native context menu (copy/paste in
         # inputs).
-        nonlocal reset_item
+        nonlocal reset_item, none_item
         from haywire.core.node.promotion import eligible_promotion_directions
 
         node = obj._node
@@ -794,6 +808,15 @@ def _render_reactive_field_row(
                 ui.menu_item(text, on_click=handler, auto_close=True)
             if offers_reset:
                 reset_item = ui.menu_item(reset_tooltip, on_click=_on_reset_click, auto_close=True)
+            if offers_none:
+                # Adjacent to Reset on purpose: both are "put this field back to
+                # not-my-problem", and they differ only in where back is. They
+                # only ever appear TOGETHER when they genuinely differ (a field
+                # defaulting to absence lists Reset alone), so each says where it
+                # lands — the distinction is the only reason both are here.
+                none_item = ui.menu_item("Set to none", on_click=_set_to_none, auto_close=True)
+                none_item.tooltip("Clear the value — pass nothing")
+                reset_item.tooltip(f"Back to {defn._default!r}")
             if ctx.developer_mode:
                 _build_developer_menu(
                     ctx,

@@ -12,7 +12,7 @@ from dataclasses import asdict
 
 
 from ..library.utils import TYPE, derive_library_identity, reg_key
-from .base import BaseType, CompoundType, PrimitiveType
+from .base import BaseType, CompoundType, PrimitiveType, WrapperType
 from .enums import FlowType
 from .identity import DataTypeIdentity
 from .interface import IType
@@ -95,8 +95,9 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
                 f"(via BaseType or PrimitiveType)"
             )
 
-        # Initialize _parameterized_cache for CompoundType if needed
-        if issubclass(inner_cls, CompoundType):
+        # Initialize _parameterized_cache for the parameterizable families
+        # (CompoundType holds N elements, WrapperType zero or one) if needed
+        if issubclass(inner_cls, (CompoundType, WrapperType)):
             inner_cls._parameterized_cache = {}
 
         # Get library identity and attach (survives hot-reload)
@@ -110,7 +111,7 @@ def type(**kwargs) -> Callable[[Type[T]], Type[T]]:
         parent_identity: Optional[DataTypeIdentity] = None
         for base in inner_cls.__bases__:
             # Skip abstract base classes
-            if base in (BaseType, PrimitiveType, IType):
+            if base in (BaseType, PrimitiveType, WrapperType, IType):
                 continue
             # Check if this base is a registered type
             if issubclass(base, IType) and hasattr(base, "class_identity"):

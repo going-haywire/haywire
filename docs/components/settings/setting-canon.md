@@ -383,6 +383,80 @@ bag._set_ui_state_all(UiState.HIDDEN, category="Manual")  # bulk: one category o
 
 No part of this mechanism is persisted — presentation state is always transient, recomputed at construction (`ui_state=` seed) or by whatever runtime code calls `set_ui_state`.
 
+## 3aa. Fields that can hold nothing — `OPTIONAL[T]`
+
+A settings field always holds a value; there is no null. When you wrap a library
+whose parameter is `Optional[T]`, "don't pass this at all" is a state you need
+and cannot express with a plain field — and `_is_locally_set()` **cannot** stand
+in for it (a write equal to the resolved value records no opinion, so the answer
+depends on the route the user took, not on what they chose).
+
+Say it in the type instead:
+
+```python
+from haywire.barn.builtin.types import OPTIONAL, BOOL, FLOAT, INT
+
+class nms(NodeSettings):
+    # Rests absent. None means "leave the wrapped library's own default alone".
+    eta = setting[OPTIONAL[FLOAT]](None, min=0.0, max=1.0, label="Eta")
+
+    # Rests at a value, and can still be cleared. Reset returns to -1;
+    # "Set to none" clears to absence — two different verbs, both in the menu.
+    min_steps_alive = setting[OPTIONAL[INT]](-1, min=-1, max=100, label="Min Steps Alive")
+
+    show_bounding_box = setting[OPTIONAL[BOOL]](None, label="Show Bounding Box")
+```
+
+The worker reads the bare value or `None`, and passes only what is present:
+
+```python
+kwargs = {k: v for k, v in {"eta": self.nms.eta, "top_k": self.nms.top_k}.items()
+          if v is not None}
+opts = NMSOptions(**kwargs)
+```
+
+**Declare the parameter's real range.** Because absence lives outside the value
+domain, `min`/`max` describe the values the parameter actually accepts. There is
+no sentinel to make reachable, so no reason to widen a range to admit one.
+
+**What the panel does.** Present, the row renders the **element type's own
+widget** — an `OPTIONAL[BOOL]` is a switch, an `OPTIONAL[VEC3F]` is a
+`VecWidget`. Absent, that widget is replaced by a `none` cell, framed and
+sized like a value widget so the column doesn't jump, in muted italics so it
+doesn't read as a value. (Absence must *look* absent: a `None` cell renders as
+`0` through the usual converter, which would lie about the value.)
+
+Clicking the `none` cell enters a value — in order: an explicit
+`widget_config={"restore": …}`, else the field's own non-absent default, else the
+element IType's default. It is deliberately **not** "the last value you had" —
+that memory would die on every panel redraw.
+
+Going the other way is a **Setting-row menu** act, not a widget one. The menu
+already owns the reset-shaped verbs, so the widget adds no clear button:
+
+| Declared default | Menu offers | Lands on |
+|---|---|---|
+| absence (`None`) | *Reset to default* alone | absence |
+| a value (`-1`) | *Reset to default* **and** *Set to none* | `-1` / absence |
+
+The two only appear together when they genuinely differ, and each carries a
+tooltip saying where it lands.
+
+**Three rules to know.**
+
+- **A `validator=` constrains the *present* domain only.** Write it for the
+  wrapped type (`lambda v: 0.0 <= v <= 1.0`); the framework lifts it once at
+  declaration so absence is always admissible.
+- **Promotable to `CONFIG` only.** No adapter maps `OPTIONAL[T]` to `T`, so an
+  inlet or outlet *pin* would refuse every edge — those raise at
+  class-definition time. A `CONFIG` port is pinless, so it is the seed and works
+  normally.
+- **`OPTIONAL[OPTIONAL[T]]` raises.** Absence has no degrees.
+
+See [ADR 0033](../../adr/0033-absence-is-a-type.md) for why absence is a type
+rather than a flag on `setting()`, and the glossary's **absence** entry for how
+it differs from **unset**.
+
 ## 3b. Mirroring a graph setting from a node bag
 
 A graph owns one framework-provided settings bag, `graph.props` (a `GraphProperties` instance), accessed the same way `node.props` is. Its `default_skin` field shadows the framework's studio-skin default via an ordinary `shadow()` — nothing new there. What's new is the **other** direction: a node field mirroring a field on the graph bag, so the resolution order becomes **framework default < graph opinion < node opinion**.

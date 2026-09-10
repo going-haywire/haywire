@@ -369,6 +369,42 @@ STATIC_CSS = (
     " .compact-fields .q-expansion-item__content {"
     "   padding: 0 0 0 0.5rem !important;"
     " }"
+    # ── the absence state of an OPTIONAL[T] field ──
+    # Sized and framed exactly like a value widget (NumberDrag's own rule in
+    # drag.vue), so a row reads as a field either way and the column doesn't
+    # jump when a value is cleared. Two differences carry the meaning: muted
+    # italic text says "nothing here" without pretending to be a value, and a
+    # persistent action icon says the cell is a control. The icon is always
+    # visible, never hover-revealed — a cell that looks inert until you happen
+    # to hover it is a control the user never finds.
+    " .hw-optional-none {"
+    "   display: flex; align-items: center; justify-content: space-between;"
+    "   gap: 4px; padding: 0 4px;"
+    "   width: 100%; cursor: pointer; user-select: none;"
+    "   height: var(--hw-compact-field-h, 26px);"
+    "   background: var(--hw-bg-input, rgba(255,255,255,0.06));"
+    "   border-bottom: 1px solid var(--hw-border, rgba(255,255,255,0.10));"
+    "   transition: background 0.15s, border-color 0.15s;"
+    " }"
+    # Both children are selected through .hw-optional-none so they outrank the
+    # blanket `.hw-panel *` colour rule above on specificity alone — no
+    # !important needed.
+    " .hw-panel .hw-optional-none .hw-optional-none__text {"
+    "   font-size: 12px; font-style: italic;"
+    "   color: var(--hw-text-muted, rgba(255,255,255,0.55));"
+    " }"
+    " .hw-panel .hw-optional-none .hw-optional-none__action {"
+    "   font-size: 15px;"
+    "   color: var(--hw-text-muted, rgba(255,255,255,0.55));"
+    "   transition: color 0.15s;"
+    " }"
+    " .hw-optional-none:hover {"
+    "   border-bottom-color: var(--hw-border-strong, rgba(255,255,255,0.25));"
+    "   background: var(--hw-bg-elevated, rgba(255,255,255,0.10));"
+    " }"
+    " .hw-panel .hw-optional-none:hover .hw-optional-none__action {"
+    "   color: var(--hw-accent, #4f8ef7);"
+    " }"
     # ── node-card text/widget color forwarding ──
     #
     # Mirrors the .hw-panel color-forwarding block above, rooted at

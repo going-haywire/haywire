@@ -106,7 +106,7 @@ def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
         #     'element_type': {'registry_key': 'core:type:string'}
         #   }
     """
-    from haywire.core.types.base import CompoundType
+    from haywire.core.types.base import CompoundType, WrapperType
 
     if not hasattr(type_cls, "class_identity"):
         raise ValueError(f"Type {type_cls.__name__} has no class_identity. Was it decorated with @type?")
@@ -117,9 +117,10 @@ def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
 
     result: ElementTypeSpec = {"registry_key": registry_key}
 
-    # Recurse for nested compound types
+    # Recurse for nested parameterized types. Both families carry an element:
+    # a CompoundType holds N of it, a WrapperType holds zero or one.
     if (
-        issubclass(type_cls, CompoundType)
+        issubclass(type_cls, (CompoundType, WrapperType))
         and hasattr(type_cls, "element_type_cls")
         and type_cls.element_type_cls
     ):

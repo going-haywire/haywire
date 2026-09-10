@@ -383,16 +383,26 @@ def _mount_graph_canvas(library_service, graph, editor, testid: str):
 
 
 def _build_theme_css(registry: "SettingsRegistry", theme_registry) -> str:
-    """Build :root CSS block from the first available workbench theme."""
+    """The app's stylesheet: theme ``:root`` vars plus ``STATIC_CSS``.
+
+    ``STATIC_CSS`` is what the studio itself injects (``shell.py``), and without
+    it a harness page renders settings rows with none of the app's own field
+    styling — compact-field heights, input framing, `.hw-panel` colour
+    forwarding, the `.hw-optional-none` absence cell. A page that doesn't look
+    like the app can't be used to check how the app looks, so both halves ship
+    together here.
+    """
+    from haywire.ui.app.shell import STATIC_CSS
+
     valid_keys = [k for k in theme_registry.list_workbench_keys() if not k.startswith("__system__:")]
     if not valid_keys:
-        return ""
+        return STATIC_CSS
     theme_key, _ = registry.resolve("workbench.theme")
     if theme_key not in valid_keys:
         theme_key = valid_keys[0]
     theme = theme_registry.get_workbench(theme_key)
     vars_str = " ".join(f"{k}: {v};" for k, v in theme.to_css_vars().items())
-    return f":root {{ {vars_str} }}"
+    return f":root {{ {vars_str} }}" + STATIC_CSS
 
 
 def _harness_session_context(library_service):

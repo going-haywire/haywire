@@ -1,21 +1,59 @@
 ---
 name: settings-have-no-absent-value
-description: Handoff — a setting can hold any value but cannot hold "no value", so every Optional[T] parameter of a wrapped library needs a hand-rolled sentinel; is_locally_set() looks like the answer and provably is not
+description: RESOLVED by ADR 0033 — absence is now a value expressed through the type (OPTIONAL[T], a WrapperType family); the three visiongraph sentinel workarounds are deleted
 metadata:
   type: project
-  status: open
+  status: resolved
 ---
 
-# A setting cannot express "unset"
+# A setting cannot express "unset" — RESOLVED
+
+> **Resolved 2026-09-09 by [ADR 0033](../../docs/adr/0033-absence-is-a-type.md).**
+> Absence is a **value**, and a value's domain is its **IType**:
+> `setting[OPTIONAL[FLOAT]](None, min=0.0, max=1.0)`. `OPTIONAL[T]` belongs to a
+> new fourth IType family, `WrapperType`, deliberately **not** a `CompoundType`.
+> The settings value model was not changed at all — `_set_keys`,
+> `_to_dict`/`_from_dict`, `_reset`, mirrors and the `__set__` equality guard are
+> untouched, so the mistake this handoff warned about is now structurally
+> unavailable rather than a rule to remember.
+>
+> Where things live now:
+>
+> - `core/types/base.py` — `WrapperType`, `_absence_tolerant_field`, `_wrapped_identity`
+> - `barn/builtin/types/optional.py` — `OPTIONAL`
+> - `barn/builtin/widgets/optional_widget.py` — `OptionalWidget`
+> - `core/settings/descriptor.py` — `_apply_wrapper_rules` (validator lifting + the promotion fence)
+> - `docs/components/settings/setting-canon.md` §3aa — the authoring guide
+> - Glossary: **absence**, **OPTIONAL**, **WrapperType**
+> - Tests: `tests/core/test_types/test_wrapper_type.py`,
+>   `tests/core/test_settings/test_optional_setting.py`,
+>   `tests/ui/widget/test_optional_widget.py`
+>
+> **All three visiongraph workarounds are deleted** (0.0.40): the tri-state
+> `CHOICES`, the `UNSET = -1` pair with its cross-file `hb_assign` translation,
+> and `min_steps_alive` — which kept its `promotable=Promotable.CONFIG` face,
+> because the fence landed at *pins*, not at ports.
+>
+> **Two things this did NOT resolve**, both named in the ADR's consequences:
+>
+> 1. **No inlet/outlet promotion.** "What does a `FLOAT` edge emit for absence?"
+>    is a real open question; an `OPTIONAL[T] ↔ T` adapter is its prerequisite.
+> 2. **No library-level graph migration hook.** Prehydration is a single
+>    framework-owned version chain, so a library changing a field's stored
+>    meaning still has no supported upgrade path. Graphs saved on visiongraph
+>    0.0.39 read their old `-1` sentinels as literal values.
+
+The original analysis follows, unchanged, because the reasoning about *why*
+`is_locally_set()` cannot serve is still the thing to read before anyone
+proposes changing that guard.
+
+---
 
 Identified 2026-09-08/09 while converting **haybale-visiongraph** to
 settings-first node configuration (notes.md "Settings-first configuration",
 shipped as 0.0.39). Three separate knobs in that one library needed a state
 meaning *"do not pass this to the wrapped library at all"*, and the settings
 model has no way to say it. Each got its own private workaround.
-
-This is the deepest of the gaps that conversion surfaced, and the only one
-that cannot be worked around in library code — hence its own session.
 
 ## The shape of it
 
@@ -80,9 +118,9 @@ Getting this wrong in the obvious way — reusing `is_locally_set` — produces
 software that ignores an explicit user instruction. That is what motivated the
 tri-state workaround below.
 
-## What shipped instead (three private workarounds to delete)
+## What shipped in 0.0.39 (three private workarounds — now deleted)
 
-All in `barn/haybale-visiongraph/haybale_visiongraph/nodes/`, 0.0.39:
+All in `barn/haybale-visiongraph/haybale_visiongraph/nodes/`:
 
 1. **`annotate_node.py`** — `show_bounding_box` is a tri-state `CHOICES`
    (`"Auto (per result type)"` / `"Always"` / `"Never"`); `AUTO` omits the
@@ -93,92 +131,6 @@ All in `barn/haybale-visiongraph/haybale_visiongraph/nodes/`, 0.0.39:
 
 Each is invisible to the panel: the user sees a number field where `-1` means
 "off" by private convention, with no affordance saying so. That is the UX cost.
-
-## The change not made
-
-Something along the lines of:
-
-```python
-top_k = setting[INT](UNSET, unset_value=UNSET, label="Top K")
-```
-
-where the panel renders an explicit unset affordance (a clear button, a
-"— none —" option) and the worker reads `None`. The declaration says once what
-three call sites currently encode by convention.
-
-That shape is a guess, not a decision. **The design work is real** and touches:
-
-- **serialization** — how does absence round-trip through the graph JSON and
-  TOML, distinctly from "no local override"?
-- **panel rendering** — every widget kind needs an unset presentation, and
-  `widget_key` is stamped once at class-definition time (ADR 0017), so the
-  affordance cannot be resolved at render time.
-- **`reset()`** — reset-to-default vs set-to-absent are now different verbs.
-- **type/IType interaction** — is absence a property of the *field* or of the
-  *IType*? `Optional[FLOAT]` as a type would be the other design.
-- **mirrors** — what does a `shadow()` of an absent-capable field resolve to?
-- every existing `setting[T]`, which must keep behaving exactly as now.
-
-This is ADR-shaped: hard to reverse, surprising without context, and there are
-genuine alternatives (field-level flag vs an IType, sentinel vs true `None`).
-
-## Why it was deferred
-
-It adds an axis to the value model. Bundling it with the ergonomics work
-(`promote_default=`, `bag()`, `settings_fields()`, the underscore namespace
-rule — see below) would have put a semantic change to every setting in the
-framework inside a session about boilerplate.
-
-## Where to start
-
-- `core/settings/descriptor.py` — `setting.__init__` (the parameter list),
-  `setting.__set__` (the guard above; **read its comment before touching it**)
-- `core/settings/value.py` — `SettingValue`, the existing set/unset modelling
-  for tiers. Whatever is built should be recognisably a sibling of this, not a
-  competing spelling.
-- `core/settings/settings.py` — `_set_keys`, `_is_locally_set`, `reset`,
-  `to_dict`/`from_dict`
-- `ui/panel/render_utils.py` — where a row decides its widget; the unset
-  affordance lands here
-- `docs/components/settings/setting-canon.md` — §"Live vs rebuild-category
-  settings" and the `promotable=` section were written in the same pass and
-  describe the surrounding conventions
-- `barn/haybale-visiongraph/notes.md` — "Settings-first configuration
-  (sixth inquisition)", prerequisite 5, records the reasoning in situ
-
-**Reproduce the path-dependence** (framework only — no library needed):
-
-```bash
-uv run python -c "
-from haywire.core.di.test_config import create_test_settings_registry
-from haywire.core.settings import NodeSettings, setting
-from haywire.barn.builtin.types import BOOL
-class Bag(NodeSettings):
-    flag = setting[BOOL](False)
-def fresh(): return Bag(registry=create_test_settings_registry())
-a = fresh(); a.flag = False
-b = fresh(); b.flag = True; b.flag = False
-print('pristine -> False      :', a.flag, a._is_locally_set('flag'))
-print('via True -> False      :', b.flag, b._is_locally_set('flag'))"
-```
-
-Expected today: `False False` then `False True` — same value, different answer.
-
-(Spelled `_is_locally_set` because the namespace-separation change has landed
-— see "State of the surrounding work" below.)
-
-## State of the surrounding work
-
-A companion session **has landed** four ergonomics changes to the same area:
-`promote_default=` on `setting()`, a `bag()` typed accessor, a module-level
-`settings_fields()`, and moving **all** framework methods on `Settings` behind
-`_` so the attribute namespace belongs to the author's fields.
-
-So as you read this: every `Settings` method is `_`-prefixed (`bag._to_dict()`,
-`bag._is_locally_set()`, …), a field name may not start with `_`
-(`Settings.__init_subclass__` enforces it), and `settings_fields(bag)` is the
-public way to iterate fields. None of it constrains this design — it was
-sequenced first because it is mechanical and this is not.
 
 ## One thing that is easy to get wrong
 
