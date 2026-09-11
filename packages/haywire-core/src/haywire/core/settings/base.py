@@ -2,13 +2,13 @@
 """
 SettingDescriptor — shared base for all property descriptors.
 
-Provides the metadata contract that UI panels rely on: _default, _type,
-_label, _description, _category, _order, _min, _max, _attr_name, plus the
-stamped widget contract (``widget_key``, ``widget_config``) computed ONCE by
-``_stamp_widget()`` from ``__set_name__`` — no render-time resolution.
+Carries the metadata attributes (``_default``, ``_type``, ``_label``,
+``_description``, ``_category``, ``_order``, ``_min``, ``_max``,
+``_attr_name``) and the widget contract (``widget_key``, ``widget_config``),
+which ``_stamp_widget()`` computes at ``__set_name__`` time and never on the
+render path.
 
-Subclass:
-    setting (settings/descriptor.py) — reactive instance setting on Settings subclasses
+The one subclass is ``setting`` in :mod:`haywire.core.settings.descriptor`.
 """
 
 from __future__ import annotations
@@ -21,9 +21,8 @@ class SettingDescriptor:
     """
     Common ancestor for all property descriptors.
 
-    Carries the metadata attributes that UI widget renderers depend on,
-    plus ``__set_name__`` and the class-level branch of ``__get__``
-    (returning ``self`` for introspection).
+    Class-level access (``MySettings.field``) returns the descriptor itself;
+    subclasses implement instance-level access.
     """
 
     # Set by __set_name__
@@ -31,9 +30,7 @@ class SettingDescriptor:
     """Short attribute name on the owning class, assigned by ``__set_name__``."""
 
     _owner_cls: "type | None" = None
-    """Class this descriptor was declared on, recorded by ``__set_name__``.
-    Graph mirrors use it to locate 'the instance of that bag on my graph'
-    (``BaseGraph.settings_bag_for``)."""
+    """Class this descriptor was declared on, recorded by ``__set_name__``."""
 
     # Set by constructor (subclass __init__)
     _default: Any = None
@@ -65,18 +62,16 @@ class SettingDescriptor:
     """Fully-qualified registry key — set by persistent_setting subclasses at registration."""
 
     widget_key: str = ""
-    """Widget registry key stamped ONCE at ``__set_name__`` by ``_stamp_widget()``."""
+    """Widget registry key, stamped at ``__set_name__`` by ``_stamp_widget()``."""
 
     widget_config: dict = {}
-    """Widget config (``{"properties": {...}}``) stamped ONCE at ``__set_name__``."""
+    """Widget config (``{"properties": {...}}``), stamped at ``__set_name__``."""
 
     def __set_name__(self, owner: type, name: str) -> None:
         self._attr_name = name
         self._owner_cls = owner
-        # Refine _type from a more specific source than the inferred default
-        # (e.g. Vec3f vs plain list). Two refinement sources, in priority order:
-        #   1. Owner class annotation `name: T = field(...)`
-        #   2. Generic parameter on the descriptor `field[T](...)` via __orig_class__
+        # _type comes from the owner's annotation when there is one, else from
+        # the descriptor's generic argument (`field[T](...)`, __orig_class__).
         try:
             hints = typing.get_type_hints(owner)
             hint = hints.get(name)
@@ -96,17 +91,15 @@ class SettingDescriptor:
         self._stamp_widget()
 
     def _stamp_widget(self) -> None:
-        """Compute the final widget contract ONCE. Overridden by ``setting``
-        (settings/descriptor.py); the base no-op keeps other SettingDescriptor
-        subclasses (if any) from needing to implement it."""
+        """Compute the field's widget contract. No-op on the base; ``setting`` overrides it."""
         pass
 
     def _enforce_itype(self, owner: type, name: str) -> None:
-        """A setting field must be typed with an IType (e.g. ``setting[FLOAT]``).
+        """Raise ``TypeError`` unless this field's resolved type is an IType (e.g. ``setting[FLOAT]``).
 
-        Python types (``float``/``str``/...), ``object`` (no type resolved), and
-        unions are rejected. ``shadow()``/``watch()`` mirrors inherit their
-        IType from the source and so pass here once the source is an IType.
+        A Python type (``float``, ``str``, ...), an unresolved ``object``, and a
+        union all fail. ``shadow()``/``watch()`` mirrors inherit the source's
+        IType and pass.
         """
         from haywire.core.types.interface import IType
 

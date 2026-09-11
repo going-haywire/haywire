@@ -11,23 +11,19 @@ logger = logging.getLogger(__name__)
 
 
 class NodeCache(SimpleNamespace):
-    """
-    Transient runtime cache for nodes.
+    """Transient runtime cache for a node.
 
-    NOT serialized - data is lost when node is reloaded or graph is closed.
-    Use for temporary computations, caches, buffers, and any data that
-    can be safely recomputed.
+    Never serialized: its contents are lost when the node is reloaded or the
+    graph is closed. Use it for buffers and for anything that can be recomputed::
 
-    Example:
         def post_init(self):
             self.cache.lookup_table = {}
             self.cache.last_result = None
 
         def worker(self, context, value: float):
-            # Cache expensive computation
             if value not in self.cache.lookup_table:
                 self.cache.lookup_table[value] = expensive_compute(value)
-            return self.cache.lookup_table[value]
+            self.out('result', self.cache.lookup_table[value])
     """
 
     def clear(self) -> None:
@@ -40,18 +36,11 @@ class NodeCache(SimpleNamespace):
 
 
 class NodeStore:
-    """
-    Persistent user state storage for nodes.
+    """Persistent user state for a node, serialized with it and restored on load.
 
-    Serialized with the node - data persists across saves/loads.
-    NOT exposed to GUI - use settings for user-configurable values.
+    Not shown in the GUI — use a setting for anything the user configures. Suits
+    counters, accumulated results, and internal state that must survive a save::
 
-    Use for:
-    - Accumulated results (counters, statistics)
-    - Internal state that must persist
-    - Data that users don't need to see/edit
-
-    Example:
         def post_init(self):
             self.store.execution_count = 0
             self.store.accumulated_sum = 0.0
@@ -61,8 +50,6 @@ class NodeStore:
             self.store.execution_count += 1
             self.store.accumulated_sum += value
             self.store.history.append(value)
-
-            # History is preserved when graph is saved/loaded
     """
 
     __slots__ = ("_data",)
@@ -167,13 +154,11 @@ class NodeStore:
     # =========================================================================
 
     def to_dict(self) -> dict:
-        """
-        Serialize store data to dictionary.
+        """Serialize the stored data.
 
-        Handles common Python types. Complex objects should either:
-        - Implement to_dict() method
-        - Be JSON-serializable
-        - Be skipped (with warning in logs)
+        Primitives, lists, tuples, dicts, sets and frozensets round-trip, as do
+        objects carrying a ``to_dict()`` method or a ``__dict__``. Any other
+        value is left out and a warning is logged.
         """
         result = {}
         for key, value in self._data.items():
@@ -188,52 +173,43 @@ class NodeStore:
 
     def _serialize_value(self, value: Any) -> Any:
         """Serialize a single value."""
-        # Primitives
         if value is None or isinstance(value, (str, int, float, bool)):
             return value
 
-        # Lists and tuples
         if isinstance(value, (list, tuple)):
             serialized = [self._serialize_value(v) for v in value]
             if isinstance(value, tuple):
                 return {"__type__": "tuple", "values": serialized}
             return serialized
 
-        # Dicts
         if isinstance(value, dict):
             return {k: self._serialize_value(v) for k, v in value.items()}
 
-        # Sets
         if isinstance(value, set):
             return {"__type__": "set", "values": [self._serialize_value(v) for v in value]}
 
-        # Frozensets
         if isinstance(value, frozenset):
             return {"__type__": "frozenset", "values": [self._serialize_value(v) for v in value]}
 
-        # Objects with to_dict
         if hasattr(value, "to_dict"):
             return {
                 "__type__": f"{type(value).__module__}.{type(value).__name__}",
                 "__data__": value.to_dict(),
             }
 
-        # Objects with __dict__ (simple objects)
         if hasattr(value, "__dict__"):
             return {
                 "__type__": f"{type(value).__module__}.{type(value).__name__}",
                 "__dict__": self._serialize_value(value.__dict__),
             }
 
-        # Cannot serialize
         raise TypeError(f"Cannot serialize type: {type(value).__name__}")
 
     def from_dict(self, data: dict) -> None:
-        """
-        Restore store data from dictionary.
+        """Restore the stored data, replacing whatever the store holds.
 
-        Note: Complex custom types are restored as dicts.
-        Override or extend for custom type reconstruction.
+        Tuples, sets and frozensets come back as themselves; a custom object
+        comes back as a plain dict.
         """
         self._data.clear()
         for key, value in data.items():
@@ -241,20 +217,16 @@ class NodeStore:
 
     def _deserialize_value(self, value: Any) -> Any:
         """Deserialize a single value."""
-        # Primitives
         if value is None or isinstance(value, (str, int, float, bool)):
             return value
 
-        # Lists
         if isinstance(value, list):
             return [self._deserialize_value(v) for v in value]
 
-        # Dicts (may contain type info)
         if isinstance(value, dict):
             if "__type__" in value:
                 type_name = value["__type__"]
 
-                # Built-in types
                 if type_name == "tuple":
                     return tuple(self._deserialize_value(v) for v in value["values"])
                 elif type_name == "set":
@@ -262,7 +234,7 @@ class NodeStore:
                 elif type_name == "frozenset":
                     return frozenset(self._deserialize_value(v) for v in value["values"])
 
-                # Custom objects - return as dict (node can reconstruct if needed)
+                # A custom object comes back as a dict; the node reconstructs it.
                 if "__data__" in value:
                     return value["__data__"]
                 if "__dict__" in value:
@@ -270,7 +242,6 @@ class NodeStore:
 
                 return value
 
-            # Regular dict
             return {k: self._deserialize_value(v) for k, v in value.items()}
 
         return value

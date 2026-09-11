@@ -1,7 +1,4 @@
-# haywire/core/node/decorators.py
-"""
-Node decorator for registering node classes.
-"""
+"""Node decorator for registering node classes."""
 
 from dataclasses import asdict
 from typing import Any, Callable, Type, TypeVar, cast
@@ -13,35 +10,21 @@ T = TypeVar("T")
 
 
 def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
-    """
-    Scan the node class body for all ``Settings`` subclasses, assign ``_setting_key``
-    to their ``setting`` descriptors, and store the result as ``cls._settings_bags``.
+    """Collect every ``Settings`` subclass declared on the node class, stamp
+    ``_setting_key`` on their ``setting`` descriptors, and store them as
+    ``cls._settings_bags``.
 
-    The accessor name is the inner class name in the node class body.
+    The accessor name is the inner class name. ``_setting_key`` is
+    ``'<accessor>.<field>'`` (``'filter.strength'``), a per-node identifier and
+    not a global address: node bags are never registered with
+    ``SettingsRegistry``. Re-stamping on every ``@node`` is idempotent, since
+    the key depends only on the accessor.
 
-    ``_setting_key`` format::
-
-        '{settings_name}.{field_name}'
-        e.g. 'filter.strength'
-
-    Node bags are never registered with ``SettingsRegistry``, so this key is
-    not a global address — it is only ever a per-node identifier (``_set_keys``,
-    ``_cells``, ``_ui_state``, ``_promoted_keys``, and the id of a promoted
-    port). The accessor already disambiguates fields of the same name across
-    bags on one node, so the node's registry_key adds nothing. Prefixing it
-    was also actively wrong: the descriptors of an INHERITED bag (every
-    node's ``props``) are shared objects, so the first-decorated node's name
-    got stamped onto every other node's fields.
-
-    Re-stamped on every ``@node``, deliberately: a bag subclassed per node
-    class must key off ITS accessor, and re-stamping an inherited descriptor
-    with the same accessor is idempotent.
-
-    Conflict check: raises ``ValueError`` at class-definition time if an
-    accessor name shadows any existing non-Settings attribute on the node MRO,
-    or shadows an inherited bag WITHOUT subclassing it. Redeclaring an
-    inherited bag as a subclass is the supported way for a node to override a
-    framework prop's default (e.g. ``RerouteNode`` pinning its own skin).
+    Raises:
+        ValueError: If an accessor name shadows a non-``Settings`` attribute
+            anywhere on the node's MRO, or shadows an inherited bag without
+            subclassing it. Subclassing an inherited bag is the supported way
+            for a node to override a framework prop's default.
     """
     from haywire.core.settings import NodeSettings, setting
 
@@ -52,9 +35,8 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
         for name, val in klass.__dict__.items():
             if not (isinstance(val, type) and issubclass(val, NodeSettings) and val is not NodeSettings):
                 continue
-            # Stamp '<accessor>.<field>' on every setting descriptor. Unconditional
-            # (not "only if unset"): the key depends solely on the accessor, so
-            # re-stamping a shared inherited descriptor writes the same string.
+            # Unconditional: the key depends only on the accessor, so re-stamping
+            # a shared inherited descriptor writes the same string.
             for field_name, descriptor in val._settings_descriptors().items():
                 if isinstance(descriptor, setting):
                     descriptor._setting_key = f"{name}.{field_name}"
@@ -74,12 +56,9 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
                     f"({type(existing).__name__}). Choose a different inner class name."
                 )
             if klass is not node_cls and accessor_name in node_cls.__dict__:
-                # The node redeclares an inherited bag. Legal ONLY as a subclass
-                # of the inherited one: that EXTENDS the bag (inheriting every
-                # field it does not redeclare), which is how a node overrides a
-                # framework prop's default — see NodeProperties and RerouteNode.
-                # An unrelated class of the same name would silently drop the
-                # inherited fields, so it stays an error.
+                # A redeclared bag is legal only as a subclass of the inherited one,
+                # which keeps every field it does not redeclare. An unrelated class
+                # of the same name would silently drop them.
                 own = node_cls.__dict__[accessor_name]
                 if not (isinstance(own, type) and issubclass(own, existing)):
                     raise ValueError(
@@ -93,15 +72,16 @@ def _wire_settings_schemas(node_cls: type[BaseNode]) -> None:
 
 
 def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
-    """
-    Decorator to register a class as a Haywire node.
+    """Register a class as a Haywire node.
 
-    Always invoked with parentheses — `@node(...)` or `@node()`. The bare
-    `@node` form (no parens) is not supported.
+    Always invoked with parentheses — ``@node(...)`` or ``@node()``; the bare
+    ``@node`` form is not supported. Keyword arguments are ``NodeIdentity`` and
+    ``NodeBehaviorFlags`` fields. A subclass inherits both from its decorated
+    parent, and its own keyword arguments override what it inherits.
 
-    Accepts NodeIdentity fields and NodeBehaviorFlags fields as keyword arguments.
-    Supports inheritance: child classes inherit parent's identity and behavior,
-    with child decorator arguments overriding parent values.
+    A node in a module named ``dev_*.py`` or ``*_dev.py`` is not registered in
+    the node registry automatically, but is still loaded and usable after a file
+    change — useful while a node is under development.
 
     Identity Fields (metadata):
         label (str): Human-readable display name. Default: class name
@@ -129,11 +109,6 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         has_execute_async (bool): Supports async execution. Default: False
         is_mutable (bool): Configuration can change at runtime. Default: False
         is_thread_safe (bool): Safe for multithreaded execution. Default: False
-
-    Important: Nodes in modules that start with dev_*.py or end with *_dev.py are not
-    automatically registered in the node registry. On a File change though they will
-    be loaded and are available.
-    This is useful for nodes under development that should not yet be part of the library.
 
     Examples:
         Basic data node:
@@ -226,7 +201,6 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         if not issubclass(inner_cls, BaseNode):
             raise TypeError(f"@node can only be applied to BaseNode subclasses, got {inner_cls}")
 
-        # Check for parent class attributes to inherit
         parent_identity: NodeIdentity | None = None
         parent_behavior: NodeBehaviorFlags | None = None
 
@@ -240,9 +214,8 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
             if parent_identity and parent_behavior:
                 break
 
-        # Split kwargs into identity and behavior. Freeform bags (mirrors the
-        # NodeIdentity/NodeBehaviorFlags field sets); typed dict[str, Any] so the
-        # **-splat into those dataclass constructors below isn't checked key-by-key
+        # Freeform bags mirroring the NodeIdentity/NodeBehaviorFlags field sets;
+        # typed dict[str, Any] so the **-splat below is not checked key-by-key
         # against a widened value union.
         behavior_kwargs: dict[str, Any] = {}
         identity_kwargs: dict[str, Any] = {}
@@ -255,17 +228,13 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
 
         # Inherit from parent, then override with kwargs
         if parent_identity:
-            # Start with parent's identity values (as dict)
             parent_dict = asdict(parent_identity)
-            # Remove registry_key as it will be auto-derived for child
+            # Dropped so the child derives its own below.
             parent_dict.pop("registry_key", None)
-            # Merge: parent values first, then child overrides
             identity_kwargs = {**parent_dict, **identity_kwargs}
 
         if parent_behavior:
-            # Start with parent's behavior values (as dict)
             parent_dict = asdict(parent_behavior)
-            # Merge: parent values first, then child overrides
             behavior_kwargs = {**parent_dict, **behavior_kwargs}
 
         # Set defaults from class name if not provided (and no parent)
@@ -275,22 +244,18 @@ def node(**kwargs: Any) -> Callable[[Type[T]], Type[T]]:
         # Get library identity (survives hot-reload)
         library_identity = derive_library_identity(inner_cls)
 
-        # Auto-derive registry_key
         identity_kwargs["registry_key"] = reg_key(
             library_identity.name, NODE, identity_kwargs["registry_id"]
         )
 
-        # Set source info from the class itself
         identity_kwargs["class_name"] = inner_cls.__name__
         identity_kwargs["module"] = inner_cls.__module__
 
-        # Create and attach identity, behavior, and library
         inner_cls.class_identity = NodeIdentity(**identity_kwargs)
         inner_cls.class_behavior = NodeBehaviorFlags(**behavior_kwargs)
         inner_cls.class_library = library_identity
 
-        # Wire Settings schemas; field keys are '<accessor>.<field>', scoped to
-        # the node instance rather than to the registry_key.
+        # Field keys are '<accessor>.<field>', scoped to the node instance.
         _wire_settings_schemas(inner_cls)
 
         return inner_cls

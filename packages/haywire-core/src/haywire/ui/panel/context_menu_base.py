@@ -104,25 +104,18 @@ class BaseContextMenuProvider:
         pos: Tuple[float, float],
         on_close: Optional[Callable[[], None]] = None,
     ) -> None:
-        """Gate the surface, render its tree into a hidden popup, keep it if
-        a leaf drew.
+        """Gate the surface, render its tree into a hidden popup, keep it if a leaf drew.
 
-        on_close: subclass-supplied cleanup (reset gesture/edit state, resume
-        paused drags, etc.). Always runs once the menu is dismissed — and, if
-        no popup opens, runs immediately, since the gesture is over even
-        though nothing appeared. This cleanup is load-bearing: intent
-        handlers set edit state (active_port/active_edge, right_clicked_file)
-        before calling here and rely on it being reset on close.
+        Emptiness is a property of the tree, not the root surface (ADR-0029):
+        a layout panel polls true unconditionally, so the popup is built
+        invisible, the whole tree rendered into it, and it opens only if a
+        leaf panel — one declaring no ``hosts=`` — drew through ``draw()`` or
+        ``draw_disabled()``. Otherwise it is deleted, reclaiming the subtree.
 
-        **Emptiness is a property of the tree, not of the root surface**
-        (ADR-0029). A layout panel polls true unconditionally, so the root's
-        panel list stops answering the question once nesting exists. The
-        popup is therefore built (``start-visible: False``, so invisible),
-        the whole tree is rendered into it, and it is opened only if a *leaf*
-        panel — one declaring no ``hosts=`` — drew via either ``draw()`` or
-        ``draw_disabled()``. Otherwise it is deleted, which reclaims the whole
-        subtree, and the close cleanup runs exactly as it does when nothing
-        polls true.
+        Args:
+            on_close: Cleanup run once the menu is dismissed, or immediately
+                if no popup opens. Intent handlers set edit state before
+                calling here and rely on this to reset it.
         """
 
         def _wrapped_on_close() -> None:
@@ -186,21 +179,14 @@ class BaseContextMenuProvider:
     def _host_for(self, surface: type["Surface"]) -> Tuple[bool, object | None]:
         """``(contract_satisfiable, host)`` for this surface's panels.
 
-        The two halves answer different questions, and conflating them is what
-        made a verb-less surface abort the whole menu:
-
-        - ``(True, self)`` — the surface declares a ``provides`` Protocol this
-          provider satisfies. Its panels reach the provider via ``self.actions``.
-        - ``(True, None)`` — the surface declares **no** ``provides``. There is
-          no contract to fail, so the menu proceeds and the panels render with
-          ``actions=None``. This is inert rather than broken: a verb-less
-          surface's panels never call ``self.actions``, and it is the *common*
-          case for a third-party surface reached through the DOM attribute,
-          since ``provides`` is checked against a Protocol a third-party library
-          cannot extend (ADR-0029, "No addressability check").
-        - ``(False, None)`` — the surface demands verbs this provider does not
-          have. That contract genuinely cannot be satisfied, so it is an
-          authoring error, reported as one, and the only case that aborts.
+        - ``(True, self)`` — the surface's ``provides`` Protocol is satisfied
+          here, and its panels reach this provider through ``self.actions``.
+        - ``(True, None)`` — the surface declares no ``provides``, so its
+          panels render with ``actions=None`` and never call it. The common
+          case for a third-party surface, which cannot extend the Protocol
+          (ADR-0029).
+        - ``(False, None)`` — the surface demands verbs this provider lacks.
+          An authoring error, reported as one, and the only case that aborts.
         """
         want = getattr(surface, "provides", None)
         if want is None:

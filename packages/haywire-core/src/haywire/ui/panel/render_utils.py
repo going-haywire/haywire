@@ -1,50 +1,24 @@
 # haywire/ui/panel/render_utils.py
-"""
-Utility collection of renderer functions for
-FrameworkSettings / LibrarySettings / NodeSettings schema classes.
+"""Render ``FrameworkSettings``/``LibrarySettings``/``NodeSettings`` fields as form rows.
 
-Every entry point takes the caller's ``SessionContext`` as its FIRST argument.
-It is not used for the fields themselves — a row's value, chrome and widget all
-come from the bag or the registry — but a row's context menu offers actions that
-are session-scoped (opening a component's source in this session's editor slot),
-and those need a context no bag can supply. Panels all hold one already; the one
-caller shape that does not is a bare render outside a session (the UI harness),
-which builds a throwaway ``SessionContext`` rather than making the parameter
-optional — an optional context would push a "is there a context?" branch into
-every menu-building site.
+Every entry point takes a ``SessionContext`` first. The fields themselves do
+not need it — value, chrome and widget come from the bag or the registry — but
+a row's context menu offers session-scoped actions such as opening a
+component's source in this session's editor slot. A caller with no session
+builds a throwaway context rather than passing ``None``.
 
-The module reads top-to-bottom as a waterfall:
+Both row renderers carry the same override chrome, a • dirty glyph and a
+right-click Reset on the row's label, over different notions of overridden:
 
-    1. Entry points     render_settings / render_schema / render_keys
-    2. Collect & group  sort fields, group by category, lay out the column
-    3. Row rendering     one label + widget row (reactive instance / registry)
-    4. Resolve widget   _resolve_widget_instance: resolve a shared BaseWidget
-                         by defn.widget_key (stamped once at __set_name__),
-                         build it against a SettingWidgetModel wired to
-                         an on_edit closure; returns None for a real widget, or
-                         the label fallback's apply(value) sync hook
-    5. Write policy      on_edit closure factories (instance vs. registry tier)
-
-Every field flows through the same stages. Stage 4 returns an ``apply(value)``
-callback used ONLY by the label fallback for an unknown widget key (no cell
-binding to hear); real widgets bind the field's shared cell directly and hear
-writes via ``on_changed``.
-
-BOTH row renderers carry the same override chrome — a • dirty glyph and a
-right-click Reset item on the row's label — over different notions of
-"overridden", and each keeps it in sync itself (the reactive path via the
-``updaters`` dict, the registry path via a per-row registry subscription):
-
-- reactive (instance): overridden = the bag holds a local opinion, mirror or
-  plain. Reset restores the global (mirror) or the descriptor default. The
-  chrome is suppressed when a promoted inlet owns the value — the graph drives
-  it, so reset is meaningless. Promote/Demote share this one menu (see
-  ``_build_row_menu``) — there is no other promote surface.
-- registry (schema/keys): overridden = the WORKSPACE tier is set, the tier the
-  UI writes. Reset clears it and the value falls back through ``resolve()`` to
-  the global tier (``~/.haywire/settings.json``, hand-edited, never written by
-  the app) or the descriptor default — the menu item is worded from whichever
-  it lands on. No promote half: a registry key belongs to no node.
+- reactive (instance): the bag holds a local opinion, mirror or plain. Reset
+  restores the global for a ``mirrors=`` field, otherwise the descriptor
+  default. Suppressed while a promoted inlet owns the value, since the graph
+  drives it. This menu is also the only promote surface (``_build_row_menu``).
+- registry (schema/keys): the workspace tier is set, the only tier the UI
+  writes. Reset clears it and the value falls back through ``resolve()`` to
+  the global tier or the descriptor default, whichever it lands on, and the
+  menu item is worded to match. A registry key belongs to no node, so there is
+  no promote half.
 """
 
 from __future__ import annotations
@@ -100,14 +74,12 @@ def render_settings(
       propagation) update the rendered widgets in place. The subscription is
       removed when the rendered column leaves the DOM.
 
-    ``categories`` narrows the render to the named ``category=`` groups — one
-    slice of a bag rather than all of it, for a surface that owns a subject
-    rather than an object (a toolbar's Appearance dropdown over
-    ``NodeProperties``' ``"appearance"`` fields, say). It is a *filter*, not a
-    re-sort: declaration order, grouping, headers, reset chrome and the live
-    subscription are all exactly what an unfiltered render gives, so a slice
-    cannot drift from the whole. An unknown category name is not an error —
-    it simply selects nothing, and the empty state renders.
+    Args:
+        categories: Narrows the render to these ``category=`` groups, for a
+            surface wanting one slice of a bag. A filter, not a re-sort:
+            order, grouping, headers, chrome and the subscription are what an
+            unfiltered render gives. An unknown name selects nothing and
+            renders the empty state.
     """
 
     fields = type(obj)._settings_descriptors()
@@ -198,23 +170,16 @@ def render_settings(
 
 
 def render_schema(ctx: "SessionContext", schema_cls: type["Settings"], registry: "SettingsRegistry") -> None:
-    """Render only the fields declared on *schema_cls* as labelled form rows,
-    in declaration order.
+    """Render the fields declared on *schema_cls* as form rows, in declaration order.
 
-    Walks the schema's own _settings_descriptors() directly (already in
-    declaration order — base-first MRO walk preserving dict insertion order)
-    and filters to registry-known keys, so keys registered under the same
-    namespace prefix by other code (e.g. dynamic library keys) are not
-    accidentally included. This is an order-preserving FILTER, not a
-    collect-then-sort: unlike render_keys, no (category, order, key) re-sort
-    happens here (see internals/superpowers/2026-07-18-settings-panel-ordering-spec.md).
+    Filters to registry-known keys, so keys another caller registered under
+    the same namespace prefix are left out. An order-preserving filter, not a
+    re-sort: unlike :func:`render_keys`, nothing is reordered by category.
 
-    MRO caveat: if a subclass re-declares a field name also present on a base
-    class, _settings_descriptors()'s dict-assignment overwrites the VALUE at that
-    key but does not move the key's position, so the field renders at the base
-    class's declaration position, not the subclass's. LibrarySettings /
-    FrameworkSettings block deep subclassing, so this is unreachable for
-    either — documented, not fixed.
+    A field a subclass re-declares renders at the base class's position, since
+    the override replaces the value without moving the key. Unreachable for
+    ``LibrarySettings`` and ``FrameworkSettings``, which block deep
+    subclassing.
     """
     prop_fields: dict[str, setting] = schema_cls._settings_descriptors()
     ordered_defns = [
@@ -357,29 +322,19 @@ def _render_definitions(ctx: "SessionContext", sorted_defns: list, registry: "Se
 # 2b. Developer submenu
 #
 # Every row's menu can offer "open the code behind this row" — the settings
-# class it renders, and the panel that drew it — gated on ctx.developer_mode.
-# Both are ordinary registry components, so this is the same navigation the
-# error ledger and library overview already do: point active_component at a key
-# and Reveal the source editor.
+# class and the panel that drew it — gated on ctx.developer_mode.
 #
-# Registry keys are RESOLVED, never assumed. A registered LibrarySettings /
-# FrameworkSettings carries its own class_identity; a NodeSettings bag carries
-# none (it is deliberately never registered — see settings_node.py), so the
-# useful target is the owning NODE, whose source file is where the inner
-# `class Settings` is written anyway. Anything unresolvable simply yields no
-# entry rather than a dead one.
+# Keys are resolved, never assumed: a NodeSettings bag has no identity, so the
+# target is the owning node, whose source file holds the inner `class
+# Settings` anyway. An unresolvable key yields no entry rather than a dead one.
 # ===========================================================================
 
 
 def _component_key(obj: Any) -> str | None:
-    """The registry key for a class or instance, or None if it has no identity.
+    """The registry key for a class or instance, or ``None`` if it has no identity.
 
-    ``class_identity`` is stamped at registration, so an unregistered class
-    (a bare NodeSettings bag, a test double) answers None here rather than
-    raising — the caller's job is then to offer no menu entry. ``None`` in is
-    ``None`` out: callers pass the result of a lookup that legitimately finds
-    nothing (no owning panel, no owning class), and every one of them would
-    otherwise need the same guard.
+    An unregistered class answers ``None`` rather than raising, and ``None``
+    in is ``None`` out, so callers can pass a lookup that found nothing.
     """
     if obj is None:
         return None
@@ -389,13 +344,11 @@ def _component_key(obj: Any) -> str | None:
 
 
 def _bag_source_key(obj: "Settings") -> str | None:
-    """Where the code for this settings bag lives, as a registry key.
+    """Where the code for this settings bag lives, as a registry key, or ``None``.
 
-    A registered bag answers its own key. A NodeSettings bag has no identity of
-    its own, so this answers the owning node's key: the inner ``class Settings``
-    is declared in the node's source file, so the node key opens the very same
-    file the bag is written in — a better target than the nothing a bagless
-    lookup would return.
+    A registered bag answers its own key; a ``NodeSettings`` bag answers the
+    owning node's, whose source file is where its inner ``class Settings`` is
+    written.
     """
     own = _component_key(obj)
     if own is not None:
@@ -407,16 +360,10 @@ def _bag_source_key(obj: "Settings") -> str | None:
 def _open_component_source(ctx: "SessionContext", registry_key: str) -> None:
     """Ask whoever hosts a source viewer to show ``registry_key``.
 
-    Core publishes a key and names no editor. ``Reveal`` would need the editor
-    *class*, which only the library owning it can name — and core importing a
-    barn library, however lazily or defensively, is the dependency arrow
-    backwards (``haybale-* -> haywire-studio -> haywire-core``, never the
-    reverse; see ``.insights/project_app_library_dependency_direction.md``).
-
-    ``haybale-studio`` answers this by revealing its ``ComponentSourceEditor``.
-    With no source-viewer library installed nothing answers, which is a working
-    configuration rather than an error — the same fire-and-forget shape as
-    ``RevealGraphInstance``.
+    Publishes a signal naming no editor, since core cannot import the barn
+    library that owns one. ``haybale-studio`` answers it by revealing its
+    ``ComponentSourceEditor``; with no source-viewer library installed nothing
+    answers, which is a working configuration.
     """
     from haywire.core.signals import RevealComponentSource
 
@@ -424,13 +371,10 @@ def _open_component_source(ctx: "SessionContext", registry_key: str) -> None:
 
 
 def component_source_path(ctx: "SessionContext", registry_key: str) -> "Path | None":
-    """The file ``registry_key``'s class is declared in, or None.
+    """The file ``registry_key``'s class is declared in, or ``None``.
 
-    Every step is core-side (``LibraryService.lookup_component_class`` plus
-    ``inspect.getfile``), which is what lets core turn a key into the path
-    ``RevealSource`` carries without naming an editor. None covers every way
-    this legitimately finds nothing — no app on the context, an unresolvable
-    key, a dynamically generated class with no file.
+    ``None`` covers every way this finds nothing: no app on the context, an
+    unresolvable key, or a generated class with no file.
     """
     app = ctx.app
     if app is None:
@@ -447,10 +391,9 @@ def component_source_path(ctx: "SessionContext", registry_key: str) -> "Path | N
 def _open_source_file(ctx: "SessionContext", registry_key: str) -> None:
     """Ask whoever edits files to open ``registry_key``'s source file.
 
-    The key is resolved to a path HERE rather than travelling as a key,
-    because ``RevealSource`` is deliberately file-shaped: its subscriber
-    edits files and knows nothing about registries. A key that resolves to
-    no file simply opens nothing.
+    The key is resolved to a path here, because ``RevealSource`` is
+    file-shaped: its subscriber knows nothing about registries. A key
+    resolving to no file opens nothing.
     """
     from haywire.core.signals import RevealSource
 
@@ -513,27 +456,21 @@ def _render_field_row(
     attr_name: str = "",
     cell: "DataField | None" = None,
 ) -> Callable[[Any], None] | None:
-    """Render a single label + widget row (registry path). The widget binds
-    *cell* (the registry-owned cell) for live external sync.
+    """Render one label + widget row against the registry, or ``None`` if hidden.
 
-    Carries the same override chrome as ``_render_reactive_field_row`` — a •
-    dirty prefix and a right-click Reset item on the label — but against the
-    registry's TIER stack rather than a bag's local opinion. "Locally set"
-    here means the workspace tier is set (the tier the UI writes, see
-    ``_registry_on_edit``); reset clears it and the value falls back through
-    ``resolve()`` to the global tier or the descriptor default. The menu item
-    is worded from ``resolve()``'s reported source so it never promises a
-    fallback that isn't there. There is no promote/demote half: a registry key
-    belongs to no node.
+    The same override chrome as ``_render_reactive_field_row``, over the
+    registry's tier stack: the • dirty prefix means the workspace tier is set,
+    and Reset clears it so the value falls back to the global tier or the
+    descriptor default. The item is worded from wherever it would land, so it
+    never promises a fallback that isn't there.
 
-    *error_container* is a block-level element BEFORE the label+widget row,
-    not a third flex child inside it (mirrors ``_render_reactive_field_row``):
-    as a flex sibling inside the row, its own ``w-full`` would claim a third
-    column, squeezing the widget onto a wrapped second line instead of
-    sitting beside the label.
+    Args:
+        cell: The registry-owned cell the widget binds for live external sync.
     """
     if defn._ui_state is UiState.HIDDEN:
         return None
+    # Before the row, not inside it: as a flex sibling its w-full claims a
+    # third column and wraps the widget onto its own line.
     error_container = ui.element("div").classes("w-full")
     on_edit = _registry_on_edit(registry, key, error_container)
 
@@ -541,10 +478,8 @@ def _render_field_row(
         return registry.get_global_tier(key, "workspace").is_set
 
     def _reset_label() -> str:
-        # Wording follows where a reset would actually land. The global tier is
-        # hand-edited and never written by the app (see save_to_json), so
-        # "reset to global" is offered only when that tier really holds a value
-        # — otherwise the fallback is the descriptor default.
+        # Worded for where a reset lands: the global tier is hand-edited and
+        # often unset, in which case the fallback is the descriptor default.
         return (
             "Reset to global setting"
             if registry.get_global_tier(key, "global").is_set
@@ -567,11 +502,8 @@ def _render_field_row(
             reset_caption.set_text(_reset_label())
 
     def _on_reset_click() -> None:
-        # reset_global only notifies when the effective value actually MOVES
-        # (workspace value equal to the global/default it falls back to fires
-        # nothing), so refresh this row's chrome directly rather than relying
-        # on the subscription — same reasoning as the reactive path's
-        # _on_reset_click.
+        # reset_global notifies only when the effective value moves, so refresh
+        # the chrome here instead of waiting on the subscription.
         _registry_reset(registry, key, error_container)
         _refresh_chrome()
 
@@ -760,23 +692,15 @@ def _render_reactive_field_row(
     def _set_to_none() -> None:
         setattr(obj, attr_name, None)
 
-    # Every wrapper field lists "Set to none", including one whose declared
-    # default is already absence.
-    #
-    # It was once hidden in that case, on the reasoning that Reset lands on
-    # absence anyway so two entries would do one thing. That premise was about
-    # the VALUE and ignored the AVAILABILITY: Reset greys whenever the field
-    # carries no local opinion, so on a field defaulting to absence there was
-    # then no enabled route back to absence at all. Reachable in two clicks —
-    # promote to outlet, show the pin widget, enter a value — and the user is
-    # stuck holding a value they cannot clear.
+    # Every wrapper field lists "Set to none", a field defaulting to absence
+    # included: Reset greys whenever there is no local opinion, so hiding it
+    # there leaves no enabled route back to absence.
     offers_none = defn._is_wrapper_type()
 
     def _refresh_reset_item() -> None:
-        # The menu's transient entries — listed permanently, greyed while the row
-        # is clean OR while UiState locks the row's value-editing chrome
-        # (DISABLED). Promote/Demote are structural and per-render constants:
-        # promotion changes rebuild the whole panel.
+        # Transient entries stay listed and grey while the row is clean or
+        # DISABLED. Promote/Demote are per-render constants: a promotion
+        # change rebuilds the panel.
         editable = obj._effective_ui_state(attr_name) is UiState.NORMAL
         if reset_item is not None:
             reset_item.set_enabled(_has_local_opinion() and editable)
@@ -785,12 +709,9 @@ def _render_reactive_field_row(
             none_item.set_enabled(editable and getattr(obj, attr_name) is not None)
 
     def _build_row_menu() -> None:
-        # The setting-row menu (sole promote surface). Structural facts HIDE
-        # entries: no node -> no promotion; ineligible direction -> absent;
-        # promoted <-> unpromoted swaps Promote/Demote. Transient facts DISABLE:
-        # reset greys when clean/DISABLED. Nested in the label cell so the
-        # widget column keeps the browser's native context menu (copy/paste in
-        # inputs).
+        # Structural facts hide entries (no node, ineligible direction,
+        # Promote vs Demote); transient ones only grey them. Nested in the
+        # label cell so the widget column keeps the browser's own menu.
         nonlocal reset_item, none_item
         from haywire.core.node.promotion import eligible_promotion_directions
 
@@ -916,19 +837,10 @@ def _render_reactive_field_row(
         anchor_cleanup_to_element(row_element, _unsubscribe)
 
     def _refresh_chrome():
-        # Real widgets bind the shared cell directly (on_changed), so
-        # re-pushing their value here would be a structural no-op:
-        # value_apply is None for every case except the unknown-widget label
-        # fallback, which owns no cell subscription of its own and needs this
-        # to reflect external changes at all. Everything else in this callback
-        # is pure override chrome: the • prefix, the menu's Reset enabled-state,
-        # and the ui-disabled marker.
-        #
-        # Applies to plain fields too: editing a plain field's widget writes
-        # its cell, and the • / reset must appear live rather than waiting
-        # for the next full panel redraw. is_promoted_input is a per-render constant
-        # (structural, needs a redraw to change), so a cell-value change only flips
-        # the is_locally_set half — recomputed here.
+        # value_apply is set only for the unknown-widget label fallback, which
+        # has no cell subscription of its own; real widgets hear the cell
+        # directly. The rest is override chrome, refreshed live so an edit
+        # shows its • and reset without a panel redraw.
         if value_apply is not None:
             value_apply(getattr(obj, attr_name))
         dirty = _should_show_dirty()
@@ -953,21 +865,20 @@ def _resolve_widget_instance(
 ) -> tuple[Callable[[Any], None] | None, Callable[[bool], None]]:
     """Build the shared ``BaseWidget`` for *defn* via a ``SettingWidgetModel``.
 
-    Falls back to a read-only label when the resolved widget key is unknown, so
-    a missing widget never renders a silent blank. The model always binds the
-    field's shared ``DataField`` cell: *cell* when given (the
-    registry-owned cell, registry path), else *bag*'s instance cell. Writes
-    route through *on_edit* — the write-policy closure (``_bag_on_edit`` /
-    ``_registry_on_edit``) — never raw into the cell.
+    An unknown widget key falls back to a read-only label, so a missing widget
+    never renders a silent blank.
 
-    Returns ``(apply_callback, set_enabled)``. ``apply_callback`` is ``None``
-    for a real widget (it hears cell writes directly via ``on_changed``, so
-    there is nothing left for a caller to push) or the label fallback's
-    ``apply(value)`` when the widget key is unknown (that display has no cell
-    binding of its own). ``set_enabled(bool)`` toggles the widget's
-    disabled state — ``BaseWidget.set_enabled`` (Quasar ``:disable`` / §2.11
-    CSS fallback) for a real widget, a style toggle on the label fallback —
-    and is never ``None``.
+    Args:
+        bag: Supplies the instance cell to bind when *cell* is not given.
+        cell: The registry-owned cell to bind instead.
+        on_edit: Write-policy closure every edit routes through, never raw
+            into the cell.
+
+    Returns:
+        ``(apply_callback, set_enabled)``. ``apply_callback`` is ``None`` for
+        a real widget, which hears cell writes itself, and the label
+        fallback's ``apply(value)`` otherwise. ``set_enabled`` is never
+        ``None``.
     """
     from haywire.ui.widget.globals import get_widget_class
     from haywire.ui.panel.setting_widget_model import SettingWidgetModel
@@ -998,14 +909,10 @@ def _resolve_widget_instance(
         widget = widget_cls(model)
         widget.render()
 
-    # Tear the widget's cell subscription down when its row leaves the DOM.
-    # BaseWidget.render() only anchors cleanup to *client* disconnect, not to
-    # element deletion — so a panel re-render (e.g. promoting the field to an
-    # inlet, which rebuilds this row) would otherwise leave the old widget's
-    # _model_dispatch_cb subscribed to the shared cell. A later edit then fires
-    # sync_to_view() against the deleted element (NiceGUI "element deleted but
-    # still being used"). cleanup() is idempotent, so this is safe alongside
-    # the client-disconnect hook.
+    # BaseWidget.render() anchors cleanup to client disconnect, not element
+    # deletion, so a panel re-render leaves the old widget subscribed to the
+    # shared cell and a later edit syncs a deleted element. cleanup() is
+    # idempotent, so this is safe alongside the disconnect hook.
     anchor_cleanup_to_element(widget_cell, widget.cleanup)
 
     # get_widget_class()'s declared return type is Type[IWidget] (the minimal
@@ -1050,18 +957,12 @@ def _build_label_widget(value: Any) -> tuple[Callable[[Any], None], Callable[[bo
 
 
 def _request_canvas_redraw(node: "NodeData") -> None:
-    """Best-effort canvas pin refresh after a promote/demote from the row menu.
+    """Best-effort canvas pin refresh after a promote or demote from the row menu.
 
-    Routes through BaseGraph.request_node_redraw: the debounced validation pass
-    picks the node up, the app layer (haystack) marks the graph unsaved and
-    broadcasts GraphDataMutated, and the settings panel's redraw_on rebuilds
-    this row with its new promotion state. Deliberately NO synchronous
-    publish here — a redraw of the emitting panel from inside its own click
-    handler deletes the handler's slot mid-flight (see
-    .insights/feedback_nicegui_async.md).
-
-    Headless tests build nodes on stub wrappers without a graph, hence the
-    getattr guard.
+    Requests a redraw the debounced validation pass picks up; a node with no
+    graph, as in headless tests, is skipped. Never publishes synchronously: a
+    redraw of the emitting panel from inside its own click handler deletes the
+    handler's slot mid-flight (``.insights/feedback_nicegui_async.md``).
     """
     graph = getattr(node.wrapper, "_graph", None)
     if graph is not None:
@@ -1118,17 +1019,12 @@ def _registry_on_edit(registry: "SettingsRegistry", key: str, error_container) -
 
 
 def _registry_reset(registry: "SettingsRegistry", key: str, error_container) -> None:
-    """Reset policy for the registry path: clear the workspace tier → debounced save.
+    """Clear *key*'s workspace tier and save, so it falls back to global or default.
 
-    The mirror of ``_registry_on_edit``: that closure SETS the workspace tier,
-    this clears it, and the value falls back through ``resolve()`` to the
-    global tier or the descriptor default. The save is not optional —
-    ``_collect_workspace_entries`` writes only *set* values, so persisting is
-    what actually drops the key from the workspace JSON; without it the old
-    value returns on the next load.
-
-    Only the workspace tier is ever touched. The global tier is hand-edited by
-    the user and never written by the app (see ``save_to_json``).
+    The save is not optional: only set values are written, so persisting is
+    what drops the key from the workspace JSON, and without it the old value
+    returns on the next load. The global tier, hand-edited and never written
+    by the app, is untouched.
     """
     try:
         registry.reset_global(key, "workspace")

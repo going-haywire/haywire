@@ -1,8 +1,8 @@
 """Helpers for the marketplace file: subscriptions, heaps, preferences, cache removals.
 
 Each helper reads the global (or project) file, mutates the parsed structure,
-and writes back via the serializer. All operations are idempotent where it
-makes sense; raise specific errors otherwise.
+and writes it back. A helper that would change nothing leaves the file
+untouched.
 """
 
 from __future__ import annotations
@@ -53,11 +53,15 @@ def add_heap_to_project(
 ) -> None:
     """Append a [[heaps]] entry to <project>/.haywire/marketplace.toml.
 
-    `linked_libraries` are the heap's declared sibling haybales (module names);
-    persisting them lets the marketplace install gate block a heap whose links
-    aren't installed/enabled yet, the same way it gates [[caches]] entries.
+    Empty ``label``, ``description`` and ``linked_libraries`` are omitted from
+    the entry rather than written as blanks.
 
-    Raises DuplicateHeapNameError if the name already exists in this project's heaps.
+    Args:
+        linked_libraries: The heap's declared sibling haybales, as Python
+            module names.
+
+    Raises:
+        DuplicateHeapNameError: ``name`` already exists in this project's heaps.
     """
     pm = parse_project_marketplace(project_path)
     for existing in pm.heaps:
@@ -81,10 +85,14 @@ def add_heap_to_project(
 
 
 def remove_stale_haybale_from_project(project_path: Path, *, name: str) -> bool:
-    """Remove a stale [[caches]] entry by name. Returns True iff something removed.
+    """Remove a stale [[caches]] entry by name.
 
-    Refuses to remove a non-stale entry — that would be undone by the next refresh.
-    Returns False (no exception) if no entry with the given name exists.
+    Returns True when the entry was removed and the file rewritten, False when
+    no entry with that name exists.
+
+    Raises:
+        ValueError: The named entry exists but is not stale. Only stale entries
+            are user-removable.
     """
     pm = parse_project_marketplace(project_path)
     keep: list[Haybale] = []
@@ -135,19 +143,18 @@ def _replace_subscription_in_list(
 def record_preference(global_path: Path, *, source_url: str, haybale_name: str) -> bool:
     """Make the subscription owning `source_url` the preferred source for `haybale_name`.
 
-    Exclusive by construction: the name is added to that subscription's
-    ``preference`` and removed from every other's, so one call fully settles a
-    collision no matter how many sources offered the name. The old
-    "ignore the losers" phrasing needed one write per rival and let
-    subscription order pick the intermediate winners.
+    Exclusive: the name is added to that subscription's ``preference`` and
+    removed from every other's, so one call settles a collision no matter how
+    many sources offered the name. Idempotent.
 
-    ``source_url`` is a haybale's ``via``, which for a transitively-discovered
-    stall is a URL the user never subscribed to; it is mapped to the
-    subscription that owns it via :func:`resolve_block_target` — the same
-    mapping the Block button uses. Returns False when no subscription can own
-    it, so a caller can say so rather than appearing to succeed.
+    Args:
+        source_url: A haybale's ``via``. For a transitively-discovered stall
+            this is a URL the user never subscribed to, so it is mapped to the
+            owning subscription through :func:`resolve_block_target`.
 
-    Idempotent.
+    Returns:
+        False when no subscription can own ``source_url`` and nothing was
+        written; True otherwise.
     """
     owner = resolve_block_target(global_path, source_url)
     if owner is None:
@@ -184,10 +191,8 @@ def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: 
     """Add `haybale_name` to the `blocked` array of the subscription at `source_url`.
 
     Idempotent. Searches both [[markets]] and [[stalls]] — first match wins.
-    Reversible with :func:`remove_block_on_source`, which the refresh flow's
-    name-conflict step offers as an Unblock toggle. The install flow's Block
-    affordance is still a side exit that closes the flow — blocking there means
-    you are not installing — but it is no longer a one-way door.
+    Reversible with :func:`remove_block_on_source`. Does nothing when no
+    subscription has that URL.
     """
     mf = parse_global_marketplace(global_path)
 
@@ -211,14 +216,11 @@ def record_block_on_source(global_path: Path, *, source_url: str, haybale_name: 
 def remove_block_on_source(global_path: Path, *, source_url: str, haybale_name: str) -> bool:
     """Drop `haybale_name` from the `blocked` array of the subscription at `source_url`.
 
-    The inverse of :func:`record_block_on_source`, so a block made in the
-    name-conflict step is a toggle rather than a one-way door: the step shows
-    every claimant, blocked or not, and the user moves the choice around until
-    exactly one is left standing.
+    The inverse of :func:`record_block_on_source`. Other blocked names on the
+    same subscription are untouched: a block is per-name.
 
-    Returns True iff the file changed. Other blocked names on the same
-    subscription are untouched — a block is per-name, and lifting one says
-    nothing about the rest.
+    Returns True when the file changed, False when the name was not blocked
+    there or no subscription has that URL.
     """
     mf = parse_global_marketplace(global_path)
 
@@ -265,36 +267,32 @@ def detect_subscription_conflicts(existing: list[Haybale], new: list[Haybale]) -
 def resolve_block_target(global_path: Path, via_url: str) -> str | None:
     """Pick the subscription URL that should receive a block for `via_url`.
 
-    The Block button writes to the subscription that resolved this
-    haybale. Three cases:
-      - Direct stall: via matches a [[stalls]] URL → return that URL.
-      - Direct market: via matches a [[markets]] URL → return that URL.
-      - Transitive: via is a discovered stall (not in [[stalls]]); fall back
-        to the FIRST [[markets]] URL — the user only controls the aggregator.
+    Three cases, in order:
+      - Direct stall: via matches a [[stalls]] URL → that URL.
+      - Direct market: via matches a [[markets]] URL → that URL.
+      - Transitive: via is a discovered stall, not in [[stalls]] → the first
+        [[markets]] URL, the only subscription the user controls for it.
 
-    Returns None when via is empty OR no subscription can plausibly own it
-    (e.g. no markets subscriptions and no matching stall).
+    Returns None when via is empty, or when no subscription can own it (no
+    markets subscriptions and no matching stall).
     """
     if not via_url:
         return None
 
     mf = parse_global_marketplace(global_path)
 
-    # Direct stall match.
     for sub in mf.stalls:
         if sub.url == via_url:
             return sub.url
 
-    # Direct market match (rare — markets normally serve [[stalls]] discovery,
-    # not haybales directly; but if a market is inline-haybales-only, via could
-    # equal market.url).
+    # Rare: markets normally serve [[stalls]] discovery, but an
+    # inline-haybales-only market is a haybale's own `via`.
     for sub in mf.markets:
         if sub.url == via_url:
             return sub.url
 
-    # Transitive fallback: assume the haybale arrived via an aggregator.
-    # Return the first [[markets]] URL. (Future refinement: track which market
-    # discovered which stall; for now, first-aggregator-wins is acceptable.)
+    # Transitive: the haybale arrived through an aggregator, and nothing
+    # records which market discovered which stall, so the first market owns it.
     if mf.markets:
         return mf.markets[0].url
 

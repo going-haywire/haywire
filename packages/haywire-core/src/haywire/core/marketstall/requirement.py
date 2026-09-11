@@ -1,25 +1,16 @@
-"""The ``haywire-core`` requirement token — one parser, two producers.
+"""Read and write the ``haywire-core`` requirement token.
 
-A library's framework requirement lives in exactly one place: the
-``haywire-core`` entry in its ``[project] dependencies``. The marketstall's
-``require`` field is a *projection* of it, so the marketplace gate can answer
-"will this install?" without cloning the repo.
+A library's framework requirement lives in the ``haywire-core`` entry of its
+``[project] dependencies``; a marketstall's ``require`` field is a projection
+of it, so the marketplace gate can answer "will this install?" without cloning
+the repo.
 
-Both producers of that projection — the share wizard and
-``scripts/generate_marketstall.py`` — derive it through this module, so there
-is one definition of what the token means rather than two that drift. (They
-did drift: the two former implementations disagreed on the bare case below.)
-
-The token carries the package name, not just the specifier, because a bare
-specifier cannot distinguish two different states:
+The token carries the package name, not just the specifier, so that three
+states stay distinct:
 
   * ``None``            — no ``haywire-core`` declaration at all
-  * ``"haywire-core"``  — declared with NO floor, deliberately
+  * ``"haywire-core"``  — declared with no floor
   * ``"haywire-core>=0.0.38"`` — declared with a floor
-
-The share wizard can produce the middle case (its "no-pin" option), so the
-marketstall has to be able to say it. A bare-specifier field collapses the
-first two into ``""`` and loses the author's intent.
 """
 
 from __future__ import annotations
@@ -45,10 +36,8 @@ def haywire_core_requirement(dependencies: list[str]) -> str | None:
 
     Returns ``None`` when ``haywire-core`` is not declared, the bare name when
     it is declared without a specifier, and ``name + specifier`` otherwise.
-    Those three are distinct states, not two — see the module docstring.
-
-    Whitespace between name and specifier is dropped so the token is stable
-    regardless of how the author spaced their pyproject entry.
+    Whitespace between name and specifier is dropped, so the token does not
+    depend on how the author spaced their pyproject entry.
     """
     for entry in dependencies:
         if dependency_name(entry).lower() != CORE:
@@ -75,6 +64,5 @@ def _specifier_of(entry: str) -> str:
     if rest.startswith("["):
         _, _, rest = rest.partition("]")
         rest = rest.strip()
-    # ">= 0.0.38" and ">=0.0.38" are the same requirement; normalizing here
-    # keeps the emitted token stable no matter how the author spaced theirs.
+    # ">= 0.0.38" and ">=0.0.38" are the same requirement, so strip the space.
     return re.sub(r"\s+", "", rest)

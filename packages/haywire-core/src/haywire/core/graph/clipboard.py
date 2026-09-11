@@ -1,11 +1,8 @@
 # packages/haywire-core/src/haywire/core/graph/clipboard.py
-"""
-Pure clipboard-payload builder for graph copy/paste.
+"""Build and recognise the clipboard payload for graph copy/paste.
 
-This module is intentionally free of NiceGUI and I/O: it turns a selection of
-nodes/edges into a serializable dict (the *clipboard payload*) and validates
-that an arbitrary object is a haywire payload. Transport (OS clipboard) and
-mutation (PasteClipboardAction) live elsewhere.
+Pure: no NiceGUI, no I/O. Transport (the OS clipboard) and mutation
+(``PasteClipboardAction``) live elsewhere.
 
 Payload shape — see docs/superpowers/plans/2026-06-01-node-copy-paste.md.
 """
@@ -18,11 +15,9 @@ from typing import Any, Dict, List, TYPE_CHECKING
 if TYPE_CHECKING:
     from .base import BaseGraph
 
-#: Bumped to 2 when promotion records widened to dicts (graph format v3). A
-#: payload carries whole serialized nodes, promotion records included, and is
-#: validated by exact-match — so an older payload still sitting on the system
-#: clipboard is rejected rather than pasted into a loader that now expects the
-#: v3 shape. Clipboard payloads are transient, so they are never migrated.
+#: A payload carries whole serialized nodes and is matched on this exact value.
+#: Payloads are transient and never migrated, so one left on the system
+#: clipboard by another version is refused.
 CLIPBOARD_FORMAT_VERSION = 2
 
 
@@ -32,11 +27,15 @@ def build_clipboard_payload(
     edge_ids: List[str],
     session_id: str,
 ) -> Dict[str, Any]:
-    """Serialize a slice of ``graph`` (selected nodes + edges) into a payload.
+    """Serialize the given nodes and edges of ``graph`` into a clipboard payload.
 
-    Only edges whose *both* endpoints are in ``node_ids`` are included
-    (the both-endpoints rule); boundary-crossing edges are dropped so a
-    paste is always self-consistent.
+    Only edges with both endpoints in ``node_ids`` are included, so a paste is
+    always self-consistent. Ids the graph doesn't know are skipped.
+
+    Returns:
+        ``haywire_clipboard``, ``format_version``, ``source`` (``session_id``
+        and a ``timestamp`` in epoch seconds), ``bounding_box`` over the node
+        positions, and the serialized ``nodes`` and ``edges``.
     """
     selected = set(node_ids)
 
@@ -81,10 +80,10 @@ def build_clipboard_payload(
 
 
 def is_haywire_payload(obj: Any) -> bool:
-    """True iff ``obj`` is a clipboard payload this version can paste.
+    """Return whether ``obj`` is a clipboard payload this version can paste.
 
-    Requires the discriminator, a matching format_version, and a numeric
-    ``source.timestamp`` (the paste-time arbitration relies on it).
+    Requires the ``haywire_clipboard`` marker, a ``format_version`` equal to
+    ``CLIPBOARD_FORMAT_VERSION``, and a numeric ``source.timestamp``.
     """
     if not (
         isinstance(obj, dict)

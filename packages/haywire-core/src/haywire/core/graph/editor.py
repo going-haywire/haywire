@@ -23,12 +23,10 @@ logger = logging.getLogger(__name__)
 
 
 class Editor:
-    """
-    High-level editor interface with simple callback-based change notifications.
+    """Undo-recorded graph operations: create, move, connect, remove, paste, undo and redo.
 
-    This class provides semantic methods for graph operations and abstracts away
-    the complexity of managing the graph, history, and node factory together.
-    Uses simple callbacks for change notifications rather than complex events.
+    Every mutating method records one action on the history manager and
+    reports a failure by returning ``False`` or ``None``; it does not raise.
     """
 
     def __init__(
@@ -37,13 +35,10 @@ class Editor:
         node_factory: NodeFactory,
         undo_config: Optional[UndoConfig] = None,
     ):
-        """
-        Initialize the editor with core components.
+        """Initialize the editor with the graph it edits.
 
         Args:
-            graph:        The graph instance to manipulate.
-            node_factory: Factory for looking up and subscribing to node classes.
-            undo_config:  Optional undo configuration. Defaults to UndoConfig().
+            undo_config: Undo history configuration. Defaults to ``UndoConfig()``.
         """
         self.graph: BaseGraph = graph
         self.history_manager: IHistoryManager = HistoryManager(undo_config or UndoConfig())
@@ -56,18 +51,15 @@ class Editor:
     def create_wrapper(
         self, registry_key: str, position: Tuple[float, float] = (3750, 3750)
     ) -> Optional[NodeWrapper]:
-        """
-        Create a new node wrapper of the specified type at the given position.
+        """Create a node of type ``registry_key`` as one undoable action.
 
         Args:
-            registry_key: Registry key for the node type to create
-            position: (x, y) position for the node
+            position: ``(x, y)`` in canvas coordinates.
 
         Returns:
-            The created node wrapper or None if creation failed
+            The created wrapper, or ``None`` if creation failed.
         """
         try:
-            # Create and execute undo action
             action = AddNodeAction(graph=self.graph, registry_key=registry_key, position=position)
             self.history_manager.add_action(action)
 
@@ -82,15 +74,13 @@ class Editor:
     def paste_clipboard(
         self, payload: Dict[str, Any], paste_x: float, paste_y: float
     ) -> Optional[Tuple[List[str], List[str]]]:
-        """Paste a clipboard payload at (paste_x, paste_y) as one undoable action.
+        """Paste a clipboard payload at ``(paste_x, paste_y)`` as one undoable action.
 
-        Unknown node types in the payload are NOT rejected — they paste as
-        placeholder error nodes (like loading a .haywire file whose library is
-        missing).
+        A node type the registry doesn't know pastes as a placeholder error node.
 
-        Returns ``(new_node_ids, new_edge_ids)`` for the freshly pasted
-        elements (so callers can auto-select them), or ``None`` on an
-        unexpected error.
+        Returns:
+            ``(new_node_ids, new_edge_ids)`` for the pasted elements, or
+            ``None`` on an unexpected error.
         """
         try:
             action = PasteClipboardAction(
@@ -104,22 +94,15 @@ class Editor:
             return None
 
     def move_nodes(self, nodes: List[str], deltaX: float, deltaY: float) -> bool:
-        """
-        Move multiple nodes by delta amounts.
-
-        Args:
-            nodes: List of node IDs to move
-            deltaX: Delta X amount to move all nodes
-            deltaY: Delta Y amount to move all nodes
+        """Move every node in ``nodes`` by ``(deltaX, deltaY)`` as one undoable action.
 
         Returns:
-            True if nodes were moved, False otherwise
+            ``False`` if ``nodes`` is empty or the move failed, otherwise ``True``.
         """
         if not nodes:
             return False
 
         try:
-            # Create and execute delta move action
             action = MoveNodesAction(self.graph, nodes, deltaX, deltaY)
             self.history_manager.add_action(action)
 
@@ -131,7 +114,14 @@ class Editor:
             return False
 
     def move_nodes_to(self, positions: Dict[str, Dict[str, float]]) -> bool:
-        """Move nodes to absolute positions (e.g. from a snapped drag)."""
+        """Move nodes to absolute positions as one undoable action.
+
+        Args:
+            positions: Node ID to ``{"x": ..., "y": ...}`` in canvas coordinates.
+
+        Returns:
+            ``False`` if ``positions`` is empty or the move failed, otherwise ``True``.
+        """
         if not positions:
             return False
         try:
@@ -147,10 +137,9 @@ class Editor:
         """Set a port value or settings-bag field on a node, undo-recorded.
 
         ``name`` resolves to a port id first, then a settings-bag field name;
-        ``prefer_setting=True`` flips that order for callers that mean a
-        settings field even when a port shares the name (e.g. the resize
-        commit writing ``props.width`` on a node with a ``width`` outlet).
-        Returns False (without mutating) if the node or name is unknown.
+        ``prefer_setting=True`` flips that order, for a ``name`` that must mean
+        the settings field even though a port shares it. Returns ``False``
+        without mutating anything if the node or the name is unknown.
         """
         try:
             action = SetPropertyAction(self.graph, node_id, name, value, prefer_setting=prefer_setting)
@@ -165,33 +154,26 @@ class Editor:
             return False
 
     def remove_elements(self, nodes: List[str], edges: List[str]) -> bool:
-        """
-        Remove multiple nodes and connections in a single operation.
-
-        Args:
-            nodes: List of node IDs to remove
-            connections: List of connection UUIDs to remove
+        """Remove the given nodes and edges as one undoable action.
 
         Returns:
-            True if elements were removed, False otherwise
+            ``False`` without removing anything if both lists are empty or
+            either names an element the graph doesn't have.
         """
         if not nodes and not edges:
             return False
 
-        # Validate nodes exist
         missing_nodes = [node_id for node_id in nodes if node_id not in self.graph.node_wrappers]
         if missing_nodes:
             logger.warning(f"Nodes not found for removal: {missing_nodes}")
             return False
 
-        # Validate connections exist
         missing_edges = [conn_id for conn_id in edges if not self.graph.get_edge_wrapper(conn_id)]
         if missing_edges:
             logger.warning(f"Connections not found for removal: {missing_edges}")
             return False
 
         try:
-            # Create and execute remove elements action
             action = RemoveElementsAction(self.graph, nodes, edges)
             self.history_manager.add_action(action)
 
@@ -220,20 +202,12 @@ class Editor:
     # =============================================================================
 
     def create_edge(self, source_node_id: str, outlet_pin: str, sink_node_id: str, inlet_pin: str) -> bool:
-        """
-        Create a connection between two nodes.
-
-        Args:
-            source_node_id: ID of the source node
-            outlet_pin: Name of the output pin
-            sink_node_id: ID of the sink node
-            inlet_pin: Name of the input pin
+        """Connect ``outlet_pin`` on the source node to ``inlet_pin`` on the sink node.
 
         Returns:
-            True if connection was created, False otherwise
+            ``True`` if the edge was created, ``False`` otherwise.
         """
         try:
-            # Create and execute action using graph-managed pattern
             action = AddEdgeAction(
                 graph=self.graph,
                 source_node_id=source_node_id,
@@ -256,17 +230,18 @@ class Editor:
         position: Tuple[float, float],
         registry_key: str,
     ) -> Optional[str]:
-        """Split a data edge and insert a reroute node at ``position``.
+        """Split a data edge and insert a reroute node of type ``registry_key`` at ``position``.
 
-        Removes the original edge, creates the port-less reroute node
-        (``registry_key``), adds its typed inlet/outlet (ids owned by the split
-        action), and wires it in between — all as one undoable operation (see
-        ``SplitEdgeWithRerouteAction``).
+        Removes the original edge, creates the port-less reroute node, adds its
+        typed inlet and outlet, and wires it in between — all as one undoable
+        operation (see ``SplitEdgeWithRerouteAction``).
 
-        The reroute node type is supplied by the caller (the graph editor
-        discovers it via the registry's ``_is_reroute`` flag) so the core stays
-        independent of any specific library. Returns the new reroute node id, or
-        ``None`` on failure.
+        Args:
+            registry_key: The reroute node type to instantiate, chosen by the
+                caller so the core needs no specific library.
+
+        Returns:
+            The new reroute node's id, or ``None`` on failure.
         """
         try:
             action = SplitEdgeWithRerouteAction(
@@ -283,13 +258,10 @@ class Editor:
             return None
 
     def dissolve_reroute(self, node_id: str) -> bool:
-        """Dissolve a reroute node, bridging upstream to all downstream sinks.
+        """Dissolve a reroute node, reconnecting its upstream source to every downstream sink.
 
-        Removes the reroute node and reconnects upstream directly to each
-        downstream sink — all as one undoable operation (see
-        ``DissolveRerouteAction``).
-
-        Returns ``True`` on success, ``False`` on failure.
+        One undoable operation — see ``DissolveRerouteAction``. Returns
+        ``True`` on success, ``False`` on failure.
         """
         try:
             action = DissolveRerouteAction(graph=self.graph, node_id=node_id)

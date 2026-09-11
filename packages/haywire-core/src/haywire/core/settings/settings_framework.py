@@ -37,29 +37,24 @@ class FrameworkSettings(Settings):
     For use by haywire-core and haywire-studio internals only.
     Node authors should use NodeSettings; library authors should use LibrarySettings.
 
-    Subclass with a namespace= kwarg:
+    Subclass with a ``namespace=`` kwarg; registration is automatic, and
+    subclassing a subclass raises ``TypeError``. A ``mirrors=`` field (including
+    ``shadow()``/``watch()``) is not allowed and raises ``TypeError`` too.
+
+    Consumers instantiate directly for live reactive access, with no explicit
+    registry injection::
+
         class ExecutionSettings(FrameworkSettings, namespace='execution'):
             max_threads = setting[INT](4, label='Max Threads')
 
-    Registration is automatic.
-
-    Consumers can instantiate directly for live reactive access
-      — no explicit registry injection needed:
-
-    ```
-        self.settings = ExecutionSettings()   # fully wired, no explicit injection
-
-        self.settings.max_threads = 8   # writes to registry, fires notifications
-
-        self.settings._subscribe(self.on_max_threads_change)  # subscribe to changes
-
-    ```
+        self.settings = ExecutionSettings()   # fully wired
+        self.settings.max_threads = 8         # writes to the registry, notifies
+        self.settings._subscribe(self.on_max_threads_change)
     """
 
     # Injected by the @settings decorator (or by __init_subclass__ via the
-    # class-signature namespace= form). Declared here so the framework's
-    # hot-reload machinery and type checkers both see them as legitimate
-    # class attributes — matches the pattern on @node / @state / @adapter.
+    # class-signature namespace= form); declared here so hot-reload and type
+    # checkers see them as class attributes.
     class_identity: ClassVar[SettingsClassIdentity]
     class_library: ClassVar[LibraryIdentity]
 
@@ -89,14 +84,12 @@ class FrameworkSettings(Settings):
                         f"Use plain setting() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
-                # No self-mirror stamping: _mirror_key means only "mirrors
-                # ANOTHER setting". Persistent machinery keys off _setting_key +
-                # the registry-owned cell.
+                # _mirror_key stays empty: it means "mirrors another setting".
+                # Persistence keys off _setting_key and the registry-owned cell.
                 val.__class__ = persistent_setting
 
             # Self-registration: queue or register immediately
             if FrameworkSettings._registry is not None:
-                # Registry already exists (late import / safety guard) — register now
                 FrameworkSettings._registry.register_schema(cls)
                 cls._registry = FrameworkSettings._registry
             else:

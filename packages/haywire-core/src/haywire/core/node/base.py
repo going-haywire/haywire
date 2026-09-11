@@ -17,46 +17,32 @@ logger = logging.getLogger(__name__)
 
 
 class BaseNode(NodeData):
-    """
-    Base class for all Haywire nodes.
+    """Base class for all Haywire nodes: ports, lifecycle and execution.
 
-    Combines NodeData (port management) with node lifecycle and execution.
-    Subclasses must implement the worker() method for execution logic.
+    Declare ports in `init()` and do the work in `worker()`. Inside `worker()`,
+    read a port with `value(id)` and write one with `out(id, value)`; both take
+    and return plain values, with no wrapping of your own.
 
-    The API for reading and writing port values inside worker():
-    - value(id) - Get unwrapped value
-    - out(id, value) - Set unwrapped value
-    - No manual wrapping/unwrapping needed!
-
-    Important: Nodes in modules that start with dev_*.py or end with *_dev.py are not
-    automatically registered in the node registry. On a File change though they will
-    be loaded and are available.
-    This is useful for nodes under development that should not yet be part of the library.
+    A node in a module named `dev_*.py` or `*_dev.py` is not registered in the
+    node registry automatically, but is still loaded and usable after a file
+    change — useful while a node is under development.
     """
 
     if TYPE_CHECKING:
-        # mypy view: instances expose `props` as a NodeProperties instance.
-        # Without this hint mypy would see only the inner class (below) and
-        # report attribute access as `field[T]` descriptors instead of T.
+        # mypy view: instances expose `props` as a NodeProperties instance; without
+        # this hint mypy sees only the inner class and types access as `field[T]`.
         props: NodeProperties
     else:
 
         class props(NodeProperties):
             """Per-instance observable props (collapsed, locked, skin, position, …).
 
-            Inner-class form is the schema declaration discovered by the @node
-            decorator's _wire_settings_schemas. At construction time NodeData.__init__
-            replaces this on the instance with a NodeProperties instance.
+            Replaced on each instance by a ``NodeProperties`` instance at
+            construction, so ``self.props`` is never this class.
             """
 
     def __init__(self, node_id: str, wrapper: "NodeWrapper"):
-        """
-        Initialize node.
-
-        Args:
-            node_id: Unique identifier for this node instance
-            wrapper: NodeWrapper managing this node
-        """
+        """Initialize the node."""
         super().__init__(node_id, wrapper)
 
     @property
@@ -66,104 +52,60 @@ class BaseNode(NodeData):
 
     @abstractmethod
     def init(self):
-        """
-        Override this method in subclasses to
-        Initialize Node to its default setup
+        """Bring the node to its default setup: add ports and set default values.
 
-        This method needs to be overwritten by every node and is
-        called when the node is created or rebuilt. It should be only used to
-        add ports and set default values.
-
-        Only do operations in here that can also be deserialized from file. For
-        any additional setup that cannot be done through deserialization,
-        use the post_init() method.
+        Called when the node is created or rebuilt. Restrict it to work that
+        loading a saved graph can reproduce; anything else belongs in
+        ``post_init()``.
         """
         pass
 
     def post_init(self) -> None:
-        """
-        Override this method in subclasses to implement custom
-        setup logic right after initialization.
+        """Complete the setup that loading a saved graph cannot reproduce, such as
+        instantiating helper objects.
 
-        It should be used to perform any additional setup that cannot be done
-        through deserialization, such as instantiating classes.
-
-        Do not use it for performative operations or as a preparation for the
-        worker execution - the on_startup() method should be used for that purpose.
-
-        This method is called right after
-            - init() or
-            - loading from file (_initialize_from_dict()).
-
+        Called right after ``init()``, or right after the node is loaded from
+        file. Work that prepares a worker run belongs in ``on_startup()``.
         """
         pass
 
     def on_testrun(self) -> tuple[bool, str | None]:
-        """
-        Run node test. This test is executed when the node is added
-        to the graph and can be used to verify that the node is set up
-        correctly.
-
-        Override this method in subclasses to implement node-specific tests.
+        """Verify that the node is set up correctly. Run when the node is added to the graph.
 
         Returns:
-            True if all tests pass, False otherwise
-            Optional string with failure reason if tests fail
+            ``(True, None)`` when the node passes, otherwise ``(False, reason)``
+            with a message shown on the node card.
         """
         return True, None
 
     def on_validate(self, context: ExecutionContext) -> None:
-        """
-        Override this method in subclasses to implement custom input validation.
-        Handle validation of inputs before execution.
+        """Validate inlet values — ranges, types, or any other constraint.
 
-        This method is called right before the worker is executed and
-        can be used to validate input values: to check for valid ranges, types,
-        or other constraints on input data.
+        Called right before each worker execution.
 
         TODO: what shall we do on validation failure? Raise exception?
         """
         pass
 
     def on_startup(self, context: ExecutionContext) -> None:
-        """
-        Perform any startup logic when the node is executing for the first time.
-        It is called once before the first execution of the worker.
-
-        Override this method in subclasses to implement custom startup logic.
-        """
+        """Prepare the node for execution. Called once, before its first worker run."""
         pass
 
     def on_frame_start(self, context: ExecutionContext) -> None:
-        """
-        Perform any logic needed at the start of each frame.
-
-        This method is called at the beginning of each frame before
-        any nodes are executed. It can be used to reset state or
-        prepare for the frame's execution.
-
-        Override this method in subclasses to implement custom frame-start logic.
-        """
+        """Run at the start of each frame, before any node in it executes."""
         pass
 
     def _execute(self, context: "ExecutionContext") -> Optional[str]:
+        """Run the worker and return the outlet ID to follow, or ``None``.
+
+        Resolves every dirty port and calls ``on_validate()`` first. A data node
+        with no dirty port returns ``None`` without running its worker.
         """
-        Execute the worker with optimized value extraction.
-
-        This is the single entry point
-
-        Args:
-            context: Execution context
-
-        Returns:
-            Outlet ID to follow, or None
-        """
-        # Data nodes skip execution entirely if nothing changed
         if self.behavior.is_data_node:
             if not self._has_dirty_ports:
                 return None
 
-        # Resolve dirty data for ALL node types (lazy pulls + deferred on_change)
+        # Every node type resolves dirty data here: lazy pulls and deferred on_change.
         while self._has_dirty_ports:
             _port_id, port = self._has_dirty_ports.popitem()
             port.resolve_dirty_data()
@@ -181,26 +123,22 @@ class BaseNode(NodeData):
 
     @abstractmethod
     def worker(self, context: ExecutionContext, *args, **kwargs) -> str | None:
-        """
-        The main execution logic of the node.
+        """The node's execution logic. Every concrete node overrides it.
 
-        Override this method in subclasses to implement node behavior.
-
-        Worker signature design:
-        - Parameter names must match inlet port IDs
-        - Parameters are automatically extracted and passed as unwrapped values
-        - Use type hints to document expected types
-        - Use default values for optional ports (if port doesn't exist, default used)
-        - Required parameters (no default) must have matching ports or ValueError raised
+        Each parameter after ``context`` is named for an inlet port, and that
+        port's unwrapped value is passed in. A parameter with a default is
+        optional: the default applies when no port of that name exists. A
+        required parameter with no matching port raises ``ValueError`` when the
+        signature is analyzed.
 
         Args:
-            context: Execution context (always first parameter)
-            *args: Named parameters matching inlet port IDs (auto-extracted)
-            **kwargs: Named parameters matching inlet port IDs (auto-extracted)
+            context: Execution context; always the first parameter.
+            *args: Values of the inlet ports named in the signature.
+            **kwargs: Values of the inlet ports named in the signature.
 
         Returns:
-            - None  # for data flow nodes
-            - 'next'  # for control flow nodes
+            ``None`` for a data-flow node, or the ID of the outlet to follow
+            for a control-flow node.
 
         Examples:
             Simple node with required inputs:
@@ -237,55 +175,26 @@ class BaseNode(NodeData):
         pass
 
     def on_frame_end(self, context: ExecutionContext) -> None:
-        """
-        Perform any logic needed at the end of each frame.
-
-        This method is called at the end of each frame after
-        all nodes have been executed. It can be used to finalize
-        state or perform cleanup for the frame.
-
-        Override this method in subclasses to implement custom frame-end logic.
-        """
+        """Run at the end of each frame, after every node in it has executed."""
         pass
 
     def on_shutdown(self, context: ExecutionContext) -> None:
-        """
-        Perform any shutdown logic when the graph stops executing.
-
-        Override this method in subclasses to implement custom shutdown logic.
-        """
+        """Run when the graph stops executing."""
         pass
 
     def on_saved(self) -> None:
-        """
-        Handle any logic needed when the graph is saved.
-
-        This method is called whenever the graph is saved to disk.
-        It can be used to perform any necessary cleanup or state updates
-        before serialization.
-
-        Override this method in subclasses to implement custom save handling.
-        """
+        """Run whenever the graph is saved to disk, before the node is serialized."""
         pass
 
     def on_teardown(self) -> None:
-        """
-        Clean up resources when node is destroyed.
-
-        Override this method in subclasses to implement custom cleanup logic.
-        This is called when the node is removed from the graph and should
-        release any resources held by the node.
-        """
+        """Release any resources this node holds. Called when it is removed from the graph."""
         pass
 
     def _cleanup(self) -> None:
         """Clean up resources when node is destroyed."""
-        # A subclass on_teardown() must never block the rest of cleanup or a
-        # subsequent re-instantiation. This matters most when a prior init()
-        # failed (e.g. a missing type after a deserialized graph references a
-        # since-removed type key): post_init() never ran, so teardown may hit
-        # unset attributes. Isolate it so the store/settings cleanup below still
-        # runs and the node can be re-instantiated.
+        # Isolated so a raising on_teardown() cannot block the store/settings
+        # cleanup below, or the node could not be re-instantiated. After a failed
+        # init() post_init() never ran, so teardown may hit unset attributes.
         try:
             self.on_teardown()
         except Exception as e:
@@ -309,19 +218,14 @@ class BaseNode(NodeData):
                 bag._cleanup()
 
     # =========================================================================
-    # SERIALIZATION (updated)
+    # SERIALIZATION
     # =========================================================================
 
     def _to_dict(self, include_data: bool = True) -> dict:
-        """
-        Serialize node to dictionary.
-        This also includes identity and library info.
+        """Serialize the node, including its identity and library info.
 
         Args:
-            include_data: If True, includes field values
-
-        Returns:
-            Dict representation of the node
+            include_data: When True, port field values are included.
         """
         return {
             "node_id": self.node_id,
@@ -334,47 +238,31 @@ class BaseNode(NodeData):
         }
 
     def _initialize_from_dict(self, data: dict) -> None:
-        """
-        Load node state from dictionary.
+        """Restore the node's settings, ports, props and store from a ``_to_dict()`` dict.
 
-        Restores all node state from the serialized format produced by
-        to_dict(), including dataclass fields and ports. The node instance
-        must already be created with the correct class type.
-
-        This is typically called by NodeWrapper or Graph after creating
-        the node instance via NodeFactory.
-
-        Strategy:
-        - Only restores fields that exist in the dataclass definition
-        - Silently ignores unknown fields (forward compatibility)
-        - Missing fields keep their default values (backward compatibility)
-
-        Note on extensibility:
-        - Don't add dynamic attributes to dataclass instances - use custom dict
+        The instance must already exist, built from the matching class. Unknown
+        keys are ignored and absent ones keep their defaults. A settings bag
+        saved in an incompatible format is reset to its declared defaults and a
+        warning is attached to the wrapper state instead of raising, so the node
+        still loads (see ADR 0019).
 
         Args:
-            data: Serialized node data (from to_dict())
+            data: Serialized node data.
 
         Raises:
-            ValueError: If data is invalid or ports fail to deserialize
+            ValueError: If a serialized port names a type the registry cannot
+                resolve.
 
-        Example:
-            # Create and load node
+        Example::
+
             node_cls, error = node_factory.get_node(registry_key)
             node = node_cls(node_id, wrapper)
-            node.initialize_from_dict(saved_data)
-
-            # User-defined data in metadata.custom IS preserved:
-            node.metadata.custom['my_plugin'] = {'version': '1.0', 'data': [...]}
-            # After save/load cycle, this data will be fully restored!
+            node._initialize_from_dict(saved_data)
         """
-        # Restore settings bags FIRST: regenerate_promoted_ports() below recreates
-        # each promoted port and binds its cell by reference, so the cell must
-        # already hold its loaded value before the port subscribes to it (an
-        # outlet's on_changed → propagate must not fire mid-load through a
-        # half-built graph). Settings restore mutates each cell in place (and
-        # restores each bag's _promoted_keys), so regenerating a port afterwards
-        # sees the restored value with no load-time propagation.
+        # Settings first: _regenerate_promoted_ports() below binds each promoted
+        # port to its bag cell by reference, so the cell must already hold the
+        # loaded value — otherwise an outlet's on_changed → propagate fires
+        # mid-load through a half-built graph.
         from haywire.core.settings.settings import PromotedFormatError
 
         for bag_name, bag_data in data.get("settings", {}).items():
@@ -384,11 +272,9 @@ class BaseNode(NodeData):
             try:
                 bag._from_dict(bag_data)
             except PromotedFormatError:
-                # Reset-and-continue: the bag stays at descriptor
-                # defaults (nothing restored), the node loads and stays fully
-                # functional, and the user is told via a WARNING that renders on
-                # the node card. They lose this node's individually-saved
-                # settings.
+                # Reset-and-continue: the bag stays at descriptor defaults and the
+                # node loads fully functional; the user loses this node's saved
+                # settings and is told by the warning below.
                 logger.warning(
                     "Node %r bag %r: incompatible settings format; reset to defaults.",
                     self.node_id,
@@ -400,17 +286,14 @@ class BaseNode(NodeData):
                     severity=ErrorSeverity.WARNING,
                 )
 
-        # Deserialize the NON-promoted ports (promoted ports are not in the
-        # ports block). Then regenerate promoted ports from
-        # the already-restored settings bags. This runs before edges wire
-        # (two-phase graph load), so a regenerated promoted inlet exists before
-        # any edge resolves against it.
+        # Promoted ports are absent from the "ports" block; they are regenerated
+        # from the restored bags below. Both run before edges wire (two-phase
+        # graph load), so a promoted inlet exists before any edge resolves to it.
         if "ports" in data:
             self._deserialize_ports(data["ports"])
 
         self._regenerate_promoted_ports()
 
-        # Restore reactive props
         if "props" in data:
             self.props._from_dict(data["props"])
 

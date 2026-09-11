@@ -1,17 +1,13 @@
 """Refresh pipeline.
 
-Filter functions (apply_blocked, apply_heaps_shadow) are pure transformations
-over Haybale lists.
-
-The pipeline runs in three phases so a UI can show what a refresh would do
-before it does it:
+Three phases, so a refresh can be described before it is committed:
 
   fetch_sources()  network, no writes  → FetchedSources
   resolve()        pure, no writes     → ResolvedCatalog
   apply()          the only mutation   → RefreshReport
 
-`refresh()` composes all three for callers that don't need the intermediate
-steps.
+`refresh()` composes all three. The filter functions (apply_blocked,
+apply_heaps_shadow) are pure transformations over Haybale lists.
 
 Conflict-resolution order:
   1. apply_blocked per subscription (hide rejected names)
@@ -54,13 +50,11 @@ from haywire.core.marketstall.types import (
 
 
 def _count_updates_available(final: list[Haybale]) -> int:
-    """For each non-stale cached haybale, compare its
-    `version` against the installed distribution version. Count
-    entries where ``installed < cache.version``.
+    """Count haybales whose installed distribution is older than the catalog version.
 
-    Stale entries are skipped (the upstream wasn't reachable; the stored
-    version is the old value and would falsely report "up-to-date").
-    Uninstalled haybales are skipped (nothing to update).
+    Skips stale entries, whose stored version predates an unreachable upstream,
+    entries with no version, haybales that are not installed, and versions that
+    are not parseable.
     """
     import importlib.metadata as _meta
 
@@ -98,9 +92,8 @@ def preferred_sources(mf: MarketplaceFile) -> dict[str, str]:
 def apply_blocked(haybales: list[Haybale], blocked: list[str]) -> list[Haybale]:
     """Drop haybales whose name is in `blocked`.
 
-    The user actively rejected these names via the first-install safety modal.
-    Stronger than a preference: the haybale is hidden entirely, not just
-    passed over in favour of another source.
+    Stronger than a preference: the haybale is hidden entirely, not passed over
+    in favour of another source.
     """
     if not blocked:
         return list(haybales)
@@ -111,8 +104,8 @@ def apply_blocked(haybales: list[Haybale], blocked: list[str]) -> list[Haybale]:
 def apply_heaps_shadow(heaps: list[dict], haybales: list[Haybale]) -> list[Haybale]:
     """Drop haybales whose name matches any heap's name.
 
-    Local heaps always win. The dropped haybale's
-    contribution is silently shadowed — no prompt, no diagnostic.
+    Local heaps always win, and the shadowing is silent — no prompt, no
+    diagnostic.
     """
     if not heaps:
         return list(haybales)
@@ -128,21 +121,21 @@ def dedupe_reporting_collisions(
 ) -> tuple[list[Haybale], list[SourceCollision]]:
     """Deduplicate by name, returning both the survivors and what was discarded.
 
-    The winner is the copy the user preferred; with no preference (or one
-    naming a source that no longer offers the name) the first candidate wins,
-    which depends on subscription order — hence reporting the losers, so an
-    order-dependent choice is visible instead of silent.
+    The winner is the copy whose ``via`` or ``owner_url`` the user preferred;
+    with no preference, or one naming a source that no longer offers the name,
+    the first candidate wins, which depends on subscription order. Candidate
+    order is preserved on both sides: a preferred copy takes the position of
+    the first candidate for its name, so honouring a preference never
+    reshuffles the catalog. A name with a single candidate reports no
+    collision.
 
-    Candidate order is preserved on both sides; a preferred copy takes the
-    position of the first candidate for its name, so honouring a preference
-    never reshuffles the catalog.
-
-    ``same_library`` decides whether the claimants for a name are one library
-    seen through several feeds or several libraries wearing one name — policy
-    the caller owns (see ``haybale_marketplace.identity``). Omitted, every
-    same-name candidate counts as the same library, which is what the name
-    alone has always been taken to mean. One dissenting claimant marks the
-    whole group a conflict: a group is only interchangeable if all of it is.
+    Args:
+        preferences: Haybale name to the source URL that should win it, as
+            built by :func:`preferred_sources`.
+        same_library: Decides whether two claimants for a name are one library
+            seen through several feeds. One dissenting claimant marks the whole
+            group ``same_library=False``. Omitted, every same-name candidate
+            counts as the same library.
     """
     prefs = preferences or {}
     grouped: dict[str, list[Haybale]] = {}
@@ -183,12 +176,11 @@ def mark_stale_against_previous(
 ) -> list[Haybale]:
     """Return a list where missing-from-fresh entries are stale-marked from previous.
 
-    Semantics:
-      - Entries in both: fresh wins (newest data, stale=False).
-      - Entries in previous but not fresh: copied over, marked stale.
-        If previous already had stale=True, the existing last_seen is preserved
-        (we don't keep bumping the timestamp on each refresh).
-      - Entries only in fresh: passed through unchanged.
+    - Entries in both: fresh wins, stale=False.
+    - Entries in previous but not fresh: copied over and marked stale, with
+      ``last_seen`` set to now. An entry already stale keeps its existing
+      ``last_seen`` instead of having it bumped again.
+    - Entries only in fresh: passed through unchanged.
     """
     fresh_names = {h.name for h in fresh}
     out: list[Haybale] = list(fresh)
@@ -200,10 +192,8 @@ def mark_stale_against_previous(
         if prev.stale:
             out.append(prev)
             continue
-        # Newly stale: copy, set stale + last_seen. `replace` rather than a
-        # field-by-field rebuild so a field added to Haybale is carried across a
-        # refresh automatically — the enumerated form silently dropped anything
-        # it had not been taught about.
+        # `replace`, not a field-by-field rebuild: a field added to Haybale is
+        # then carried across a refresh without touching this line.
         out.append(replace(prev, last_seen=now, stale=True))
     return out
 
@@ -231,15 +221,13 @@ def fetch_sources(
 ) -> FetchedSources:
     """Phase 1 — read the config files and fetch every subscription. No writes.
 
-    Steps 1–3 of the pipeline: parse the global marketplace and the previous
-    project file, fetch each [[markets]] subscription one level deep to
-    discover stall URLs, then fetch every [[stalls]] URL (direct first, then
-    discovered). Bodies are kept unparsed-into-candidates on the result so
-    :func:`resolve` stays pure — this is the only phase that touches the
-    network, and it is the expensive one (one HTTP round-trip per source).
+    Parses the global marketplace and the previous project file, fetches each
+    [[markets]] subscription one level deep to discover stall URLs, then
+    fetches every [[stalls]] URL, direct ones before discovered ones. A URL
+    already fetched is not fetched twice.
 
-    Nothing here mutates the project file, so a caller may show the per-source
-    outcomes and stop without having changed anything.
+    The only phase that touches the network: one HTTP round-trip per source.
+    Bodies are returned unparsed, and nothing on disk changes.
     """
     mf = parse_global_marketplace(global_path)
     pm_prev = parse_project_marketplace(project_path)
@@ -283,15 +271,14 @@ def _body_for(fetched: FetchedSources, url: str) -> str | None:
 def candidate_haybales(fetched: FetchedSources, *, honour_blocked: bool = True) -> list[Haybale]:
     """Every haybale the fetched bodies offer, stamped with its provenance.
 
-    Order is inline [[haybales]], then stalls, then market-inline — the order
-    that decides a collision the user has expressed no preference about.
+    Each haybale's ``via`` is set to the URL it came from; one discovered
+    through a [[markets]] body also gets ``owner_url``, the subscription the
+    user controls. Order is inline [[haybales]], then stalls, then
+    market-inline — the order that decides a collision the user has expressed
+    no preference about.
 
-    ``honour_blocked=False`` keeps the names a subscription blocks. The refresh
-    itself always drops them, but the name-conflict step needs to *show* a
-    blocked claimant so the block reads as a reversible choice rather than the
-    claimant having vanished — a list you can only shorten turns the step into
-    an elimination game, where the last one standing wins by attrition instead
-    of being chosen.
+    ``honour_blocked=False`` keeps the names a subscription blocks, so a caller
+    can show a blocked claimant. A refresh always drops them.
     """
     mf = fetched.global_file
 
@@ -323,11 +310,9 @@ def candidate_haybales(fetched: FetchedSources, *, honour_blocked: bool = True) 
             h.via = sub.url
         stall_haybales.extend(hb)
 
-    # Stalls a [[markets]] body pointed at. `via` stays the stall URL (that is
-    # where the haybale really came from, and the provenance label shows it),
-    # but `owner_url` records the subscription the user actually controls —
-    # nothing here is directly subscribed, so a preference can only ever be
-    # expressed against the aggregator that discovered it.
+    # Stalls a [[markets]] body pointed at. `via` stays the stall URL the
+    # haybale came from; `owner_url` is the aggregator, the only subscription
+    # a preference for it can be written against.
     owner = mf.markets[0].url if mf.markets else ""
     for url in fetched.discovered_stall_urls:
         if url in seen_stall_urls:
@@ -352,19 +337,17 @@ def resolve(
 ) -> ResolvedCatalog:
     """Phase 2 — turn fetched bodies into the catalog that would be written.
 
-    Steps 4–6: apply each subscription's blocked filter, combine candidates
-    (inline [[haybales]], then stalls, then market-inline — the order that
-    decides collisions the user has expressed no preference about), shadow
-    local heaps, dedupe honouring ``preference``, and stale-mark against the
-    previous [[caches]].
+    Applies each subscription's blocked filter, combines the candidates (see
+    :func:`candidate_haybales` for the order), shadows local heaps, dedupes
+    honouring ``preference``, and stale-marks against the previous [[caches]].
+    A blocked name is dropped from the previous list too, so it disappears
+    rather than returning as stale.
 
-    Pure: no network, no writes. The deltas on the result (``newly_stale``,
-    ``newly_added``) exist so a caller can present the consequences of the
-    write before :func:`apply` performs it.
+    Pure: no network, no writes.
 
-    ``same_library`` is the identity policy, supplied by the caller so this
-    module never has to know what makes two rows the same library — see
-    :func:`dedupe_reporting_collisions`.
+    Args:
+        same_library: The identity policy, passed through to
+            :func:`dedupe_reporting_collisions`.
     """
     mf = fetched.global_file
     pm_prev = fetched.previous
@@ -376,8 +359,6 @@ def resolve(
         candidates, preferred_sources(mf), same_library=same_library
     )
 
-    # Drop blocked names from the previous list before stale-rescue: blocked
-    # entries must disappear, not be re-added as stale.
     blocked_names: set[str] = set()
     for sub in mf.markets:
         blocked_names.update(sub.blocked)
@@ -404,14 +385,14 @@ def apply(
     project_path: Path,
     cache_dir: Path | None = None,
 ) -> RefreshReport:
-    """Phase 3 — write the project file and GC the caches. The only mutation.
+    """Phase 3 — write the project file and collect the caches. The only mutation.
 
-    Step 7. Split out so the two read-only phases can be shown to the user
-    first; everything that makes a refresh irreversible happens here.
+    Rewrites <project>/.haywire/marketplace.toml with the resolved catalog,
+    keeping the previous [[heaps]], then drops cache files for URLs no longer
+    subscribed and doc caches for libraries no longer in the catalog.
 
     The global marketplace is never written by a refresh: it holds user intent
-    (subscriptions, ``preference``, ``blocked``) and only an explicit user
-    action changes it.
+    (subscriptions, ``preference``, ``blocked``).
     """
     mf = fetched.global_file
     pm_prev = fetched.previous
@@ -422,13 +403,12 @@ def apply(
     body = serialize_project_marketplace(new_pm)
     project_path.write_text(body if body else "")
 
-    # GC orphan cache files. Active URLs = all subscription URLs + discovered.
+    # Discovered stalls count as active: they are refetched on the next run.
     active_urls: set[str] = (
         {s.url for s in mf.markets} | {s.url for s in mf.stalls} | set(fetched.discovered_stall_urls)
     )
     gc_orphans(active_urls, cache_dir=cache_dir)
 
-    # GC doc caches for libraries no longer in the resolved catalog.
     gc_doc_dirs({h.name for h in final}, cache_dir=cache_dir)
 
     return RefreshReport(
@@ -450,10 +430,8 @@ def refresh(
 ) -> RefreshReport:
     """Run the whole refresh pipeline in one call: fetch → resolve → apply.
 
-    The convenience composition for callers that have no UI to step through
-    the phases (the farmhand tool, first-enable auto-refresh). A caller that
-    wants to show the user what a refresh *would* do before writing anything
-    should drive the three phases itself.
+    Writes unconditionally. To describe a refresh before committing it, or to
+    supply a ``same_library`` policy, drive the three phases separately.
     """
     fetched = fetch_sources(global_path=global_path, project_path=project_path, cache_dir=cache_dir)
     resolved = resolve(fetched)

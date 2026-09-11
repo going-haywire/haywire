@@ -26,21 +26,22 @@ class LibrarySettings(Settings):
     """
     Library plugin-defined settings schema.
 
-    Must be decorated with @settings to be discoverable by BaseRegistry:
+    Decorate with ``@settings`` to be discoverable by ``SettingsRegistry``.
+    Subclassing a subclass raises ``TypeError``, and so does a ``mirrors=``
+    field (including ``shadow()``/``watch()``).
 
-        @settings(namespace='my_lib.general', label='My Library')
+    After registration ``cls._registry`` holds the registry back-reference, so
+    a bare construction is fully wired::
+
+        @settings(namespace='general', label='My Library')
         class GeneralSettings(LibrarySettings):
             quality = setting[INT](80, label='Quality')
 
-    Registration is via hot-reload machinery
-
-    After registration, cls._registry holds the registry back-reference, so:
-        self.settings = GeneralSettings()   # fully wired, no explicit injection
+        self.settings = GeneralSettings()   # no explicit injection
     """
 
-    # Injected by the @settings decorator. Declared here so the framework's
-    # hot-reload machinery and type checkers both see them as legitimate
-    # class attributes — matches the pattern on @node / @state / @adapter.
+    # Injected by the @settings decorator; declared here so hot-reload and type
+    # checkers see them as class attributes.
     class_identity: ClassVar[SettingsClassIdentity]
     class_library: ClassVar[LibraryIdentity]
 
@@ -66,12 +67,11 @@ class LibrarySettings(Settings):
                         f"Use plain setting() without mirrors=, shadow(), or watch()."
                     )
                 val._setting_key = f"{namespace}.{name}"
-                # No self-mirror stamping: _mirror_key means only "mirrors
-                # ANOTHER setting". Persistent machinery keys off _setting_key +
-                # the registry-owned cell.
+                # _mirror_key stays empty: it means "mirrors another setting".
+                # Persistence keys off _setting_key and the registry-owned cell.
                 val.__class__ = persistent_setting
 
-        # No registry touch here — registration handled by BaseRegistry hot-reload path
+        # No registry touch here — registration runs on the BaseRegistry hot-reload path.
 
     def __init__(self) -> None:
         super().__init__(registry=type(self)._registry)

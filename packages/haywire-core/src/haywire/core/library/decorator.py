@@ -14,29 +14,15 @@ T = TypeVar("T")
 
 
 def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
-    """
-    Decorator to register a class as a Haywire library.
+    """Register a class as a Haywire library.
 
-    Always invoked with parentheses — ``@library(...)``. The bare ``@library``
-    form (no parens) is not supported.
+    Always invoked with parentheses — ``@library(...)``; the bare ``@library``
+    form is not supported. ``file_watcher`` is the only keyword it accepts.
 
-    **Descriptive metadata is not declared here.** It lives in ``haybale.toml``,
+    Descriptive metadata is not declared here: it lives in ``haybale.toml``,
     beside ``__init__.py`` inside the package, and is read from disk at
-    decoration time. That is what makes a metadata edit a plain file write:
-    visible on the next read, with no ``uv sync`` and no registry reload. A
-    decorator kwarg would be a *source* edit, and a source edit needs a reload —
-    the cost this design exists to remove. Nothing in the studio writes this
-    call.
-
-    Takes exactly this one keyword argument. The signature is explicit rather
-    than ``**kwargs``, so a stale call site passing a descriptive field that
-    moved to ``haybale.toml`` (``name``, ``label``, ``description``, ``tags``,
-    ``author``, ``author_url``, ``url``, ``on_reload``, ``linked_libraries``,
-    ``version``) — or any other unrecognized name — fails immediately with
-    Python's own "unexpected keyword argument" ``TypeError``, rather than
-    being silently accepted and overwritten by the file.
-
-    ``haybale.toml``::
+    decoration time, so a metadata edit is a plain file write — visible on the
+    next read, with no ``uv sync`` and no registry reload::
 
         name = "haybale-mylib"
         version = "1.0.0"
@@ -46,22 +32,23 @@ def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
         on_reload = "none"
         linked_libraries = ["haybale_core"]
 
-    ``version`` is required but is not hand-authored: ``haybale.toml`` is
-    canon, and ``scripts/bump_version.py`` / the share wizard write it here and
-    sync the generated copy into ``pyproject.toml``. A library missing the key
-    has not been through either path yet.
+    ``version`` is required there and is written by ``scripts/bump_version.py``
+    or the share wizard, which sync the generated copy into ``pyproject.toml``.
 
     Args:
-        file_watcher (bool, optional): Watch this library's files and hot-reload
-            on change. Development only; has no publishing meaning.
+        file_watcher: Watch this library's files and hot-reload on change.
+            Development only; has no publishing meaning.
 
     Raises:
         HaybaleTomlError: ``haybale.toml`` is missing, malformed, or declares no
             ``name`` or no ``version``. Fatal for this library alone —
             ``LibraryRegistry`` wraps each load, so the studio still starts and
             the failure names the file.
-        TypeError: an unrecognized kwarg was passed — including any name that
-            moved to ``haybale.toml``.
+        TypeError: the decorated class is not a ``BaseLibrary`` subclass, or an
+            unrecognized kwarg was passed — including any descriptive field
+            (``name``, ``label``, ``description``, ``tags``, ``author``,
+            ``author_url``, ``url``, ``on_reload``, ``linked_libraries``,
+            ``version``) that belongs in ``haybale.toml``.
     """
 
     def decorator(inner_cls: Type[T]) -> Type[T]:
@@ -70,8 +57,7 @@ def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
 
         kwargs: dict[str, Any] = {"file_watcher": file_watcher}
 
-        # Auto-detect folder_path — the directory where inner_cls is defined,
-        # which is also where haybale.toml lives.
+        # The directory holding the class's module is also where haybale.toml lives.
         class_file = inspect.getfile(inner_cls)
         package_dir = Path(class_file).parent
         kwargs["folder_path"] = str(package_dir)
@@ -79,16 +65,11 @@ def library(*, file_watcher: bool = False) -> Callable[[Type[T]], Type[T]]:
 
         # haybale.toml is canon for everything it declares, including `name` —
         # the library's sole identifier and the prefix of every component's
-        # registry key. There is no decorator-side kwarg to cross-check against
-        # any more; the file is the only source.
+        # registry key.
         declared = read_haybale_toml(package_dir)
-        # read_haybale_toml() returns every LibraryIdentity-shaped field the
-        # file declares, including ones (description, tags, ...) that live
-        # only in the file now — LibraryIdentity itself carries just what
-        # cannot be answered by a file read. Filter to what the dataclass
-        # still accepts rather than splatting the whole dict; unfiltered,
-        # a descriptive field's presence in the file would raise
-        # "unexpected keyword argument" here at import time.
+        # Filter, don't splat: read_haybale_toml() also returns file-only fields
+        # (description, tags, ...) that LibraryIdentity does not accept, and
+        # they would raise "unexpected keyword argument" here at import time.
         kwargs.update(
             {
                 k: v

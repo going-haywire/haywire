@@ -1,7 +1,7 @@
-"""HostProvider Protocol + ParsedRef.
+"""The HostProvider Protocol and ParsedRef.
 
-No `parse_repo_url` and no `default_branch` — bare repo URLs are rejected
-at input time, so no provider ever needs to probe for a default branch.
+A provider never probes for a default branch: every URL it builds carries an
+explicit ref, and a bare repo URL is rejected at input time.
 """
 
 from __future__ import annotations
@@ -27,23 +27,17 @@ class HostProvider(Protocol):
 
     label: str
     """
-    Human-facing brand, for prose. Distinct from ``name`` because
-    ``"github".title()`` is ``"Github"``, which is not how the brand is
-    written, and a UI that gets a brand's own capitalization wrong reads as
-    careless.
+    Human-facing brand for prose, in the brand's own capitalization
+    (``"GitHub"``). Never derive it from ``name``: ``"github".title()`` gives
+    ``"Github"``.
     """
 
     auth_docs: dict[str, str]
     """
-    Where this host documents authenticating a push, keyed by transport —
-    an SSH remote fails over keys, an HTTPS one over tokens or a credential
-    helper, and the two docs pages are different. Empty when the host has
-    no page worth linking; callers must treat a missing key as "no link"
-    rather than assume both are present.
-    
-    A plain mapping, not a method: this is a constant per host, and the
-    rest of this Protocol is about parsing and building URLs. A provider
-    that never adds one still satisfies the Protocol
+    Where this host documents authenticating a push, keyed by transport:
+    ``"ssh"`` for key setup, ``"https"`` for tokens and credential helpers.
+    Either key may be absent, and the whole mapping may be empty; treat a
+    missing key as "no link" rather than assuming both are present.
     """
 
     def matches(self, hostname: str) -> bool:
@@ -77,7 +71,7 @@ class HostProvider(Protocol):
     def parse_origin(self, url: str) -> tuple[str, str] | None:
         """Split a bare repository URL into ``(owner, repo)``. None if not a match.
 
-        The existing parse_* methods take blob/raw URLs, which carry a ref and a
-        path; a row's ``origin`` has neither, so it needs its own parser.
+        Takes a URL with no ref and no path, such as a row's ``origin``; a
+        trailing ``.git`` or ``/`` is accepted.
         """
         ...

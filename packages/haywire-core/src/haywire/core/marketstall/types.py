@@ -1,10 +1,8 @@
 """Marketstall runtime dataclasses.
 
-These describe *distribution and transport* — feeds and refresh runs — not
-libraries. ``Haybale`` (the library metadata record itself) lives in
-:mod:`haywire.core.library.haybale`; the [[markets]] and [[stalls]]
-subscription dataclasses here carry a ``blocked`` array for the first-install
-safety modal.
+These describe distribution and transport — feeds and refresh runs — not
+libraries. The library metadata record itself is
+:class:`haywire.core.library.haybale.Haybale`.
 """
 
 from __future__ import annotations
@@ -17,15 +15,16 @@ from haywire.core.library.haybale import Haybale
 
 @dataclass(frozen=True)
 class Subscription:
-    """One [[markets]] or [[stalls]] entry. Same shape; distinction is which list it lives in.
+    """One [[markets]] or [[stalls]] entry. Same shape; the distinction is which list it lives in.
 
     Both arrays are user intent — a refresh never writes here.
 
-    ``preference`` names the haybales this source should *win* when several
-    offer the same name; it is exclusive, so one write settles a collision at
-    any source count and the outcome does not depend on subscription order.
-    ``blocked`` names those the user rejected in the install-safety modal,
-    un-blockable only by editing the file.
+    ``preference`` names the haybales this source should win when several offer
+    the same name; it is exclusive, so one write settles a collision at any
+    source count and the outcome does not depend on subscription order.
+    ``blocked`` names those the user rejected; a blocked haybale is hidden
+    entirely, and the block is lifted by
+    :func:`~haywire.core.marketstall.helpers.remove_block_on_source`.
     """
 
     url: str
@@ -86,11 +85,9 @@ class FetchResult:
 class RefreshReport:
     """Summary of a refresh run.
 
-    sources_fetched + sources_from_cache + sources_unavailable always
-    partition the active subscription set. `sources_from_cache` is the new
-    middle tier that distinguishes "everything fresh" from "we recovered from
-    cache" — both produce a populated catalog but only the latter warrants the
-    toast "N sources served from cache" line.
+    ``sources_fetched`` + ``sources_from_cache`` + ``sources_unavailable``
+    always partition the active subscription set. The first two both produce a
+    populated catalog; only the second means the network failed.
     """
 
     sources_fetched: int = 0
@@ -106,10 +103,9 @@ class RefreshReport:
 class SourceOutcome:
     """What one subscription URL yielded during the fetch phase.
 
-    ``body`` is None exactly when ``outcome`` is UNAVAILABLE. ``discovered``
-    marks a stall URL that came from a [[markets]] body rather than from the
-    user's own subscription list — the UI labels those differently because the
-    user never subscribed to them directly.
+    ``body`` is None exactly when ``outcome`` is ``UNAVAILABLE``.
+    ``discovered`` marks a stall URL that came from a [[markets]] body rather
+    than from the user's own subscription list.
     """
 
     url: str
@@ -123,9 +119,9 @@ class SourceOutcome:
 class FetchedSources:
     """Read-only result of the fetch phase — no file has been written yet.
 
-    Carries the parsed global marketplace and the previous project file so the
-    resolve phase stays a pure function of this object: fetch once, resolve as
-    often as the caller likes.
+    Carries the parsed global marketplace and the previous project file, so
+    :func:`~haywire.core.marketstall.refresh.resolve` is a pure function of
+    this object and may be run repeatedly on one fetch.
     """
 
     global_file: MarketplaceFile
@@ -150,12 +146,10 @@ class FetchedSources:
 class SourceCollision:
     """One library name offered by more than one source during a single resolve.
 
-    Carries versions alongside URLs because the user-visible consequence of a
-    collision is usually a version change, not a provenance change.
-
-    Distinct from :class:`SubscriptionConflict`, which is the *add-source*
-    check against the cached catalog. This one is a *standing* collision
-    between sources already subscribed, detected on every refresh.
+    Distinct from
+    :class:`~haywire.core.marketstall.helpers.SubscriptionConflict`, which is
+    the add-source check against the cached catalog. This one is a standing
+    collision between sources already subscribed, detected on every refresh.
     """
 
     name: str
@@ -173,17 +167,13 @@ class SourceCollision:
     same_library: bool = True
     """Whether every claimant is provably the same library.
 
-    ``True`` — several feeds carrying one library; "which source?" is a
-    preference, and the versions are comparable.
+    ``True`` — several feeds carrying one library, so the versions are
+    comparable and picking a source is a preference. ``False`` — different
+    libraries wearing one name, so they are not interchangeable.
 
-    ``False`` — different libraries wearing one name, which the marketplace
-    has no namespace to prevent. Not a preference: choosing one picks *which
-    project you mean*, so the UI must not offer them as interchangeable.
-
-    What counts as "provably the same" is policy the marketplace owns and
-    passes to :func:`~haywire.core.marketstall.refresh.resolve`; core records
-    the answer without knowing the rule. Defaults ``True`` so a caller that
-    supplies no comparator keeps the historical name-is-identity behaviour."""
+    What counts as "provably the same" is decided by the ``same_library``
+    comparator passed to :func:`~haywire.core.marketstall.refresh.resolve`;
+    ``True`` when no comparator is supplied."""
 
     @property
     def source_count(self) -> int:
@@ -195,14 +185,10 @@ class SourceCollision:
 class ResolvedCatalog:
     """The catalog the apply phase would write, plus the deltas that justify it.
 
-    Produced without mutating anything, so a UI can show "3 newly stale, 2
-    updates available" and let the user decide whether to commit the write.
-    ``newly_stale`` / ``newly_added`` are names, not Haybales — they exist to
-    be listed in a confirmation panel.
-
-    ``collisions`` is the same idea applied to dedup: the names several sources
-    offered, and which copy won — so the refresh flow can show a version
-    downgrade *before* the write rather than leaving it to be discovered later.
+    Produced without mutating anything, so the write can be described before it
+    is committed. ``newly_stale`` and ``newly_added`` are haybale names, not
+    ``Haybale`` records; ``collisions`` names each library several sources
+    offered and which copy won.
     """
 
     haybales: list[Haybale] = field(default_factory=list)

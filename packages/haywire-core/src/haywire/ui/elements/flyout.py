@@ -1,46 +1,29 @@
 """Nested-flyout menu mechanics.
 
-A **flyout menu** is a nested context-menu submenu that opens *on hover* of its
-anchor item and cascades to the right, raised above the context-menu popup. Only
-one open path from the root exists at a time: opening one flyout closes its
-siblings (same-level group) and their open descendants.
+A flyout is a submenu that opens on hover of its anchor and cascades to the
+right, raised above the context-menu popup. One open path exists at a time:
+opening a flyout closes its siblings and their descendants. Keeping that
+machinery here is what stops hierarchical hover menus from drifting apart —
+it is fragile under NiceGUI 3.x, which drops closed-menu DOM and whose
+``auto-close`` does not fire when the mouse moves to a sibling category (see
+``.insights/feedback_nicegui_nested_menu_flyouts.md``).
 
-The hover-open / sibling-close behaviour is fragile under NiceGUI 3.x's render
-model (see ``.insights/feedback_nicegui_nested_menu_flyouts.md``): ``auto-close``
-dismisses a flyout on selection or click-away but NOT when the mouse moves to a
-*sibling* category, and 3.x drops closed-menu DOM, so close-timers break. This
-module is the single home for that machinery, so callers that build hierarchical
-hover menus (the add-node menu) share one behaviour and can never drift.
-
-Callers keep their own domain recursion and leaf rendering; this module owns only
-the mechanics. The typical pattern::
+Callers own their domain recursion and leaf rendering. A tree that owns its
+own ``ui.menu`` recursion threads an explicit sibling group::
 
     siblings: FlyoutSiblings = []
     with hui.flyout_category("📁 filter", siblings) as child_siblings:
-        # render leaves here (plain ui.menu_item), and recurse for
-        # subcategories passing `child_siblings` as their sibling group.
+        # leaves here; recurse for subcategories with `child_siblings`
         ...
 
-Two more general primitives build on the same mechanics for callers that are
-NOT ``ui.menu``-recursion-owning trees (``NodeMenuBuilder``'s case): panels that
-are mutually blind and can't thread a shared ``siblings`` list themselves.
+Callers that cannot thread one — mutually blind panels — use ``SubmenuRow``
+(``hui.submenu_row``), a labelled row expanding sideways into a flyout body,
+or ``FlyoutIcon`` (``hui.flyout``), its icon-only face for a toolbar. Both
+read and push the ambient ``_flyout_siblings`` context var, so a caller pushes
+a group once around a popup's content and everything nested below finds it.
 
-- ``SubmenuRow`` (``hui.submenu_row``) — a labelled row, styled independently of
-  any enclosing ``QMenu``, that expands sideways into a flyout body. The sibling
-  group it registers into, and the group it opens for its own body, are both
-  read from and pushed onto an ambient ``ContextVar`` (``_flyout_siblings``), the
-  same shape as this codebase's other ``ContextVar``-based render-path
-  mechanisms. Callers push a group once (around a popup's content, or around a
-  ``SubmenuRow``'s body); everything nested below just reads the ambient group
-  and never learns it has siblings.
-- ``FlyoutIcon`` (``hui.flyout``) — the bare icon-only face of the same anchor,
-  for a toolbar/icon-row context menu rather than a labelled list.
-
-Both are classes, not ``@contextmanager`` generators: a generator that is never
-entered executes nothing, so a disabled, non-expanding ``SubmenuRow`` (which
-never calls ``__enter__``) would draw no row at all if it were a generator. A
-class draws its anchor in ``__init__`` and opens the flyout slot in
-``__enter__``, serving both the bare-call and ``with`` shapes.
+Both are classes rather than ``@contextmanager`` generators, so a disabled
+``SubmenuRow`` that is never entered still draws its row.
 """
 
 from __future__ import annotations
@@ -53,43 +36,24 @@ from nicegui import ui
 
 from haywire.ui.elements.elements import MENU_ROW_ICON_CLASS, menu_row
 
-# One rung above Quasar's interaction tier (QMenu hardcodes 6000).
+# One rung above Quasar's interaction tier, which QMenu hardcodes at 6000: a
+# flyout is a QMenu inside another QMenu, so without this the child wins only
+# on portal insertion order. The literal is the fallback for pages rendered
+# without the shell's CSS (previews, tests).
 #
-# This is NOT about clearing the Popup — a Popup sits at 5001, below the whole
-# tier, so a flyout drawn inside one already wins. It is about menu-over-menu:
-# a flyout IS a QMenu opened from inside another QMenu, so parent and child
-# both land on 6000 and the child wins only on portal insertion order. The
-# extra rung makes that explicit rather than incidental.
-#
-# Derived from --hw-z-quasar-interaction in app/shell.py; the literal is the
-# fallback for pages rendered without the shell's static CSS (previews, tests).
-#
-# Deliberately no width here. A QMenu is already shrink-to-fit, so a flyout that
-# stretches to the browser edge is never the menu's own sizing — it is an
-# *inline-level* leaf inside it (a bare QBtn is `display: inline-flex`), which
-# makes the menu's max-content the sum of every leaf on one line. Setting
-# `width: max-content` / a max-width cap here only re-measures or truncates that
-# same wrong number; the fix belongs on the leaf, and `hui.button` carries it.
+# No width: a flyout stretching to the browser edge is an inline-level leaf
+# inside it, not the menu's sizing, and the fix belongs on the leaf —
+# `hui.button` carries it.
 FLYOUT_Z = "z-index: var(--hw-z-menu-over-menu, 6001)"
 
 # Flyout to the right of the anchor, cascading rightward for nested submenus.
 FLYOUT_PROPS = 'anchor="top end" self="top start"'
 
-# Where a dropdown panel sits relative to its icon (`hui.dropdown`). A Quasar
-# anchor/self point is two words — vertical, then horizontal — and those two
-# words are two independent questions, so they are two tables and two
-# parameters rather than one table of six compound names ("up-left", …).
-#
-# Both are named for where the *panel* sits, the way `text-align` is named, not
-# for the direction it travels: "left" puts the panel's left edge on the icon's,
-# so it grows rightward. Quasar's `start`/`end` (rather than `left`/`right`)
-# keep the reading direction's meaning.
-#
-# Neither is a promise. Quasar flips a panel that would leave the viewport —
-# measured: the same three dropdowns on a toolbar pinned to the bottom of the
-# window all opened *upward*, alignment preserved, with no `direction="up"`
-# anywhere. `direction` is for wanting up while down still fits (a toolbar
-# along the bottom edge of a panel, a status-bar control).
+# Where a dropdown panel sits relative to its icon (`hui.dropdown`), named for
+# where the panel lands the way `text-align` is, not the direction it travels.
+# Neither this nor `direction` is a promise: Quasar flips a panel that would
+# leave the viewport, keeping alignment. Use `direction` to want up while down
+# still fits, such as a toolbar along a panel's bottom edge.
 DROPDOWN_ALIGNMENTS: dict[str, tuple[str, str]] = {  # (anchor, self) horizontal
     # panel's left edge on the icon's left edge — it grows rightward
     "left": ("start", "start"),
@@ -136,20 +100,16 @@ def dropdown_props(*, align: DropdownAlign = "left", direction: DropdownDirectio
 # dropdown gets that does not ask.
 DROPDOWN_PROPS = dropdown_props()
 
-# ANCHORING: a QMenu positions against, and opens on a click of, its PARENT
-# element — not whatever element you pass to `open()`. So every flyout menu
-# here is built *inside* its anchor (`with self._anchor:` / `with self._row:`).
-# Built in the ambient slot instead, it anchored to whichever container the
-# panel happened to draw into: measured, the selection toolbar's ⋯ flyout
-# aligned to the top of the shared panel div rather than to the ⋯ button, a
-# submenu opened level with the top of its popup rather than with its own row,
-# and clicking the Copy button in the toolbar opened the ⋯ flyout.
+# A QMenu positions against, and opens on a click of, its parent element, not
+# whatever is passed to `open()`. So every flyout is built inside its anchor
+# (`with self._anchor:` / `with self._row:`); built in the ambient slot it
+# anchors to whichever container the panel drew into, and a click anywhere in
+# that container opens it.
 
-# A fast diagonal mouse path across a sibling item would otherwise switch
-# flyouts unintentionally (`.insights/feedback_nicegui_nested_menu_flyouts.md`
-# "Known rough edge"). This delays the *open*, never the close — closing still
-# happens synchronously via sibling-close / `auto-close`. Do NOT turn this into
-# a close-timer; that machinery was removed for a reason (see the same file).
+# Guards against a fast diagonal mouse path across a sibling item switching
+# flyouts. Delays the open only — closing stays synchronous through
+# sibling-close and `auto-close`. A close-timer breaks under 3.x's dropped
+# DOM (`.insights/feedback_nicegui_nested_menu_flyouts.md`).
 FLYOUT_OPEN_DELAY_S = 0.12
 
 _DISABLED_STYLE = "opacity: 0.4; pointer-events: none"
@@ -172,21 +132,14 @@ class FlyoutMenu(ui.menu):
 FlyoutSiblings = List[FlyoutMenu]
 
 
-# The ambient sibling group for the current menu *level* (a popup or a flyout
-# body — a visual box, not a surface). Mirrors the module-level ContextVar
-# pattern used elsewhere in this codebase (e.g. `_render_path`): a container
-# (a context-menu host, or `SubmenuRow.__enter__`) pushes a fresh group when it
-# opens a box; everything drawn inside reads the ambient group via `.get()`
-# without knowing it has siblings.
+# The ambient sibling group for the current menu level — a popup or a flyout
+# body, a visual box rather than a surface. A container pushes a fresh group
+# when it opens a box; everything drawn inside reads it without knowing it has
+# siblings.
 #
-# No usable default: unlike `_leaves_drawn` (0 is a correct empty state), a
-# `FlyoutSiblings` default would have to be a fresh list *per read*, and
-# ContextVar defaults are a single shared object evaluated once at declaration
-# time — a mutable default here would silently pool unrelated top-level rows
-# into one shared sibling group. A row/icon constructed with nothing pushed
-# means a caller forgot to open a box (the context-menu host, or an outer
-# `SubmenuRow`/`FlyoutIcon`) — surface that as a clear error, not a quiet
-# cross-wired default.
+# No default, so a row constructed with nothing pushed raises instead of
+# silently pooling unrelated rows into one shared group: a ContextVar default
+# is one object evaluated once, never a fresh list per read.
 _flyout_siblings: ContextVar[FlyoutSiblings] = ContextVar("_flyout_siblings")
 
 
@@ -194,19 +147,13 @@ _flyout_siblings: ContextVar[FlyoutSiblings] = ContextVar("_flyout_siblings")
 def open_flyout_group() -> Generator[FlyoutSiblings]:
     """Push a fresh sibling group as the ambient level for everything drawn inside.
 
-    This is the primitive a context-menu host wraps around a ``Popup``'s content
-    — the container-owns-the-group half of the sibling-group contract
-    (``SubmenuRow.__enter__`` is the other half, owning the group for its own
-    flyout body). Panels rendered inside pass nothing and never learn they have
-    siblings; only whoever opens the box calls this.
+    Call it around a box with no owning row: a ``Popup``'s top-level content,
+    or a ``ui.menu`` opened directly. Panels rendered inside pass nothing.
 
-    Do **not** call this again directly inside a ``with hui.submenu_row(...)`` /
-    ``with hui.flyout(...)`` body — their own ``__enter__`` already pushes a
-    fresh group for that body. Pushing a second, unread group here would orphan
-    everything drawn inside from the row's ``_child_flyouts``, breaking
-    cascade-close for that whole branch. Call this only around a *box* that has
-    no owning row of its own — a ``Popup``'s top-level content, or a ``ui.menu``
-    opened directly.
+    Never call it inside a ``hui.submenu_row`` or ``hui.flyout`` body, whose
+    ``__enter__`` pushes its own group — a second group there orphans
+    everything inside from the row's ``_child_flyouts`` and breaks
+    cascade-close for that branch.
     """
     child_siblings: FlyoutSiblings = []
     token = _flyout_siblings.set(child_siblings)
@@ -216,44 +163,24 @@ def open_flyout_group() -> Generator[FlyoutSiblings]:
         _flyout_siblings.reset(token)
 
 
-# "Did anything draw inside this body" — a minimal counter, ambient the same
-# way as `_flyout_siblings`, that lets a hosting row grey itself retroactively
-# once its body is fully drawn. Two things bump it:
-#   1. A caller-drawn leaf (future `draw()` / `draw_disabled()` panel methods;
-#      simulated directly by tests here) — this module does not itself decide
-#      what counts as a leaf "drawing something".
-#   2. Constructing a nested `SubmenuRow`/`FlyoutIcon` at this level, but ONLY
-#      when the enclosing level is itself a flyout body (see `_in_flyout_body`
-#      below) — a container whose body is *only* further nested rows, with no
-#      direct leaf of its own, must not grey itself just because none of its
-#      own leaves fired: its children existing at all is itself "something
-#      drew" at this level, whether or not those children later grey
-#      themselves. This fires for `enabled=False` rows too — a disabled
-#      nested row still renders a real greyed row, it is not absent.
-# Only a level where NEITHER happened -- no leaf and no nested row of any
-# kind -- reads as truly empty and greys retroactively in `__exit__`.
+# "Did anything draw inside this body", so a hosting row can grey itself
+# retroactively in `__exit__`. Two things bump it: a caller-drawn leaf, and
+# constructing a nested row or icon — the latter only when the enclosing level
+# is itself a flyout body (`_in_flyout_body`). A disabled nested row counts:
+# it still renders. A level where neither happened reads as empty.
 _leaves_drawn: ContextVar[int] = ContextVar("_leaves_drawn", default=0)
 
-# Whether the ambient `_leaves_drawn` counter belongs to a flyout BODY
-# (`SubmenuRow`/`FlyoutIcon`'s own `__enter__`) rather than a host's top-level
-# scope (`open_flyout_group()`, pushed once around a `Popup`'s content). Both
-# push the same `_flyout_siblings` group shape, so without this there is no
-# way to tell the two kinds of box apart from inside `__init__`.
+# Whether the ambient `_leaves_drawn` belongs to a flyout body rather than a
+# host's top-level scope. Both push the same sibling-group shape, so nothing
+# else tells the two boxes apart from inside `__init__`.
 #
-# The distinction matters because a `SubmenuRow`/`FlyoutIcon` counting as
-# "something drew" at its enclosing level is correct ONLY when that level is
-# itself another row's body — that is the nested-container case above. A
-# `SubmenuRow`/`FlyoutIcon` constructed directly in a host's top-level scope
-# (e.g. a hosting panel like `GraphMorePanel` drawing `hui.flyout(...)`
-# straight into its own `draw()`) is, at that scope, architecturally a
-# container — exactly the category `render_panel` already excludes from the
-# popup-emptiness count for hosting panels (`class_identity.hosts != ()`).
-# Bumping the host's own counter there would make a popup whose only content
-# is one empty flyout icon look non-empty, opening a popup around a single
-# retroactively-greyed, useless control instead of not opening at all.
+# A row drawn straight into a host's own `draw()` is a container at that
+# scope, the category `render_panel` already excludes from popup-emptiness
+# counting. Bumping the host's counter there makes a popup whose only content
+# is one empty flyout icon look non-empty, so it opens around a single greyed
+# control instead of not opening.
 #
-# `open_flyout_group()` does not set this to `True` (the default `False`
-# already holds for it); only `SubmenuRow.__enter__`/`FlyoutIcon.__enter__` do.
+# Only `SubmenuRow.__enter__`/`FlyoutIcon.__enter__` set it True.
 _in_flyout_body: ContextVar[bool] = ContextVar("_in_flyout_body", default=False)
 
 
@@ -346,14 +273,9 @@ def flyout_category(
     are not, passes ``dense=False``. The caller cannot fix this after the fact:
     the anchor is internal and only the child sibling group is yielded.
     """
-    # `white-space: nowrap` here, not on the QMenu: when Quasar flips this
-    # flyout to open leftward (no room to the right), it shrink-to-fits
-    # against the now-smaller leftward space. The label text is a genuine
-    # NiceGUI `ItemSection` child (unlike a QBtn label — see `hui.button`'s
-    # docstring), so it's free to wrap unless pinned; nowrap forces this
-    # item's minimum content size to its full width, which — inherited down
-    # to the label — keeps the menu at its natural width even when flipped,
-    # instead of wrapping the longest row to fit the smaller side.
+    # `white-space: nowrap` on the item, not the QMenu: a flyout Quasar flips
+    # leftward shrink-to-fits the smaller space, and the label is a real
+    # `ItemSection` child free to wrap. Pinning it keeps the natural width.
     anchor_props = "dense" if dense else ""
     with ui.menu_item(label, auto_close=False).props(anchor_props).style("white-space: nowrap") as item:
         if tooltip:
@@ -376,14 +298,10 @@ def flyout_category(
 def _anchor_row(label: str, icon: str | None, enabled: bool) -> ui.row:
     """A ``hui.menu_row`` plus the sideways affordance — a row that expands.
 
-    The look is **not** built here: it is one ``hui.menu_row``, so a submenu row
-    and the leaf commands beside it are the same element by construction and
-    cannot drift. ``flyout_category`` uses ``ui.menu_item``, whose look comes
-    from an enclosing ``QMenu`` — fine for ``NodeMenuBuilder``, which always
-    opens one, but a panel drawing into a ``Popup`` content column has no such
-    ancestor; ``menu_row`` carries its own marker class and reads identically in
-    both contexts. ``hw-flyout-row`` stays on top of it as the "this one
-    expands" marker (what the retroactive greying and tests look for).
+    Built on ``menu_row`` rather than ``ui.menu_item``, whose look needs an
+    enclosing ``QMenu`` a panel drawing into a ``Popup`` column does not have.
+    Carries ``hw-flyout-row``, the marker retroactive greying and tests look
+    for.
     """
     row = menu_row(label, icon=icon, enabled=enabled).classes(add="hw-flyout-row")
     with row:
@@ -394,18 +312,13 @@ def _anchor_row(label: str, icon: str | None, enabled: bool) -> ui.row:
 class FlyoutIcon:
     """``hui.flyout(icon, tooltip=...)`` — an icon-only anchor that opens a flyout.
 
-    The icon-row counterpart of ``SubmenuRow``, for a toolbar/icon-row context
-    menu (e.g. ``GraphToolBar``) rather than a labelled list. Registers into the
-    ambient sibling group the same way ``SubmenuRow`` does, and pushes a fresh
-    group for its own body on ``__enter__``.
+    The icon-row counterpart of ``SubmenuRow``, for a toolbar rather than a
+    labelled list. Registers into the ambient sibling group and pushes a fresh
+    one for its own body on ``__enter__``.
 
-    Like ``SubmenuRow``, ``__exit__`` decides retroactively whether the body
-    drew anything and greys the icon anchor if it drew nothing at all — same
-    ``_leaves_drawn`` counter, same ``opacity: 0.4; pointer-events: none``
-    treatment, same reasoning (no user observes the anchor mid-construction).
-    This is what makes an unextended ⋯ — a panel hosting an extension-point
-    surface nobody has extended yet — read as unavailable rather than as a live
-    control opening an empty box.
+    If the body draws nothing, ``__exit__`` greys the anchor and makes it
+    unclickable, so an unextended ⋯ reads as unavailable instead of opening an
+    empty box.
 
     Usage::
 
@@ -426,12 +339,8 @@ class FlyoutIcon:
         if tooltip:
             self._anchor.tooltip(tooltip)
 
-        # Inside the anchor, not beside it: a QMenu positions against — and
-        # opens on a click of — its PARENT element. Constructed in the ambient
-        # slot it would anchor to whatever container the panel drew into (for
-        # the toolbar, the one div every toolbar panel shares), so the flyout
-        # aligned to that container and a click on any *other* button in it
-        # opened this flyout. See the ANCHORING note at the top of this module.
+        # Inside the anchor, not beside it: a QMenu positions against, and
+        # opens on a click of, its parent element. See the anchoring note above.
         with self._anchor:
             self._menu = FlyoutMenu()
         self._menu.props(self._menu_props()).style(FLYOUT_Z)
@@ -439,11 +348,9 @@ class FlyoutIcon:
         siblings = _flyout_siblings.get()
         siblings.append(self._menu)
         self._wire_trigger(siblings)
-        # This row itself is content having drawn at the ENCLOSING level (the
-        # level that was ambient when this constructor ran, not the fresh
-        # level this row pushes for its own body in __enter__) -- but only
-        # when that enclosing level is itself a flyout body. See
-        # SubmenuRow.__init__ and `_in_flyout_body` for the full rationale.
+        # This row counts as content drawn at the enclosing level — the one
+        # ambient here, not the level __enter__ pushes — when that level is
+        # itself a flyout body. See `_in_flyout_body`.
         if _in_flyout_body.get():
             _leaves_drawn.set(_leaves_drawn.get() + 1)
 
@@ -475,44 +382,30 @@ class FlyoutIcon:
             self._anchor.classes(add="hw-disabled").style(_DISABLED_STYLE)
 
 
-# A popup opened from *inside* a dropdown — a select's option list, a colour
-# picker — is a Quasar portal of its own at the default z-6000, i.e. BEHIND the
-# dropdown that spawned it wherever the two overlap. It teleports to <body>, so
-# no CSS descendant rule can reach it; the lift has to be stamped on the element
-# while it is being built. Above the dropdown's own layer, not merely equal to
-# it, so stacking never depends on portal insertion order.
+# A popup opened inside a dropdown is its own Quasar portal at the default
+# z-6000, behind the dropdown that spawned it. It teleports to <body>, beyond
+# the reach of any CSS descendant rule, so the lift is stamped on the element
+# as it is built — one rung above the dropdown, so stacking never depends on
+# portal insertion order.
 _NESTED_POPUP_Z = "z-index: calc(var(--hw-z-menu-over-menu, 6001) + 1)"
 
 
 def _lift_nested_popups(body: ui.element) -> None:
     """Raise every popup-spawning control drawn inside a dropdown body.
 
-    A dropdown panel is itself a ``QMenu`` sitting one rung above Quasar's
-    interaction tier (``FLYOUT_Z``), so anything it contains that opens its
-    own portal — a select's option list, a colour picker, a row's context
-    menu — lands on the bare tier *underneath the panel that spawned it* and
-    is invisible. One further rung clears the panel.
+    A dropdown panel is a ``QMenu`` one rung above Quasar's interaction tier,
+    so a select's option list, a colour picker or a row menu inside it opens
+    on the bare tier, underneath the panel that spawned it. One more rung
+    clears it. A menu inside a ``Popup`` needs none of this — a popup sits
+    below the tier.
 
-    This is NOT the Popup problem. A ``Popup`` sits below the interaction tier
-    (see ``popup.vue``), so a menu inside a *popup* needs no help at all; only
-    a menu inside a *dropdown* does, because a dropdown is a QMenu itself.
-
-    The dropdown does this for its whole body rather than asking content to
-    opt in: the body is often a hosted surface whose widgets are built by the
-    widget factory, where no caller is in a position to pass a flag. Content
-    outside a dropdown keeps the default — an unconditional lift would let a
-    panel's dropdown escape to <body> and float above overlays it should sit
-    under.
-
-    ``ui.context_menu()`` is matched explicitly. It renders a ``q-menu`` like
-    ``ui.menu`` does, but ``ContextMenu`` is a *sibling* of ``Menu`` (both
-    subclass ``Element`` directly), so an ``isinstance(el, ui.menu)`` test
-    silently misses every row menu — which is exactly how a settings row's
-    right-click menu came to open behind the dropdown that spawned it.
+    Applies to the whole body, since it is often a hosted surface whose
+    widgets the factory builds, where no caller could pass a flag.
     """
     for element in body.descendants():
+        # ContextMenu is a sibling of Menu, not a subclass, so testing only
+        # ui.menu misses every row menu.
         if isinstance(element, (ui.menu, ui.context_menu)):
-            # A colour picker, a nested flyout, or a row menu IS the portal.
             element.style(_NESTED_POPUP_Z)
         elif isinstance(element, ui.select):
             element.props(f'popup-content-style="{_NESTED_POPUP_Z}"')
@@ -521,11 +414,11 @@ def _lift_nested_popups(body: ui.element) -> None:
 def close_siblings_on_open(submenu: FlyoutMenu, siblings: FlyoutSiblings) -> None:
     """Keep the one-open-path rule for a menu Quasar opens by itself.
 
-    A ``QMenu`` built inside its anchor already opens (and toggles) on a click
-    of that anchor, so a click-triggered dropdown needs no open handler — only
-    the sibling-close half of :func:`open_on_hover`, hung off Quasar's ``show``
-    event. Deliberately not a second explicit ``open()``: that would fight
-    Quasar's own toggle and leave the menu stuck open on the second click.
+    A ``QMenu`` built inside its anchor already toggles on a click of it, so a
+    click-triggered dropdown needs only the sibling-close half of
+    :func:`open_on_hover`, hung off Quasar's ``show`` event. Adding an
+    explicit ``open()`` fights Quasar's toggle and sticks the menu open on the
+    second click.
     """
 
     def _close_others() -> None:
@@ -549,31 +442,26 @@ class DropdownIcon(FlyoutIcon):
 
       ``align`` picks the horizontal edges: ``"left"`` (the default) puts the
       panel's left edge on the icon's so it grows rightward, ``"right"`` grows
-      leftward from the icon's right edge, ``"center"`` centres it. Worth
-      choosing deliberately — a wide panel under the last icon of a toolbar
-      wants ``"right"``, one under a middle icon usually ``"center"``.
+      leftward from the icon's right edge, ``"center"`` centres it. A wide
+      panel under a toolbar's last icon wants ``"right"``, one under a middle
+      icon usually ``"center"``.
 
-      ``direction`` picks the vertical side: ``"down"`` (the default) hangs the
-      panel below the icon, ``"up"`` stands it above. Reach for ``"up"`` only
-      when up is what you *want* while down would still fit — a toolbar along
-      the bottom edge of a panel, a status-bar control. When down simply does
-      not fit, Quasar already flips on its own (measured: the same toolbar
-      moved to the bottom of the window opened every dropdown upward, alignment
-      intact, with no ``direction=`` anywhere), which is also why neither
-      parameter is a promise — never lay content out assuming the panel is
-      exactly where you asked.
-    - **Click, not hover.** You do not graze a panel you are about to fill in.
-      Quasar's own anchor-click toggle does the opening (see
+      ``direction`` picks the vertical side: ``"down"`` (the default) hangs
+      the panel below the icon, ``"up"`` stands it above. Reach for ``"up"``
+      only when up is what you want while down would still fit — a toolbar
+      along a panel's bottom edge, a status-bar control. Quasar flips a panel
+      that would leave the viewport, so neither parameter is a promise: never
+      lay out content assuming the panel is where you asked.
+    - **Click, not hover**, through Quasar's own anchor-click toggle (see
       :func:`close_siblings_on_open`).
-    - **No ``auto-close``.** ``auto-close`` dismisses the menu on *any* click
-      inside it, so the first click into a field would close the panel —
-      measured, not theorised. A dropdown closes on click-away, or when a
-      sibling flyout opens.
+    - **No ``auto-close``**, which dismisses on any click inside, so the first
+      click into a field would close the panel. A dropdown closes on
+      click-away, or when a sibling flyout opens.
 
-    Everything drawn inside must still be a *panel* for the emptiness rule to
-    work: ``__exit__`` greys the icon when nothing bumped the leaf counter, and
-    only ``render_panel`` bumps it. Render a hosted surface here (the
-    ADR-0029 shape) rather than fields drawn straight into the body, or an
+    Everything drawn inside must be a panel for the emptiness rule to work:
+    ``__exit__`` greys the icon when nothing bumped the leaf counter, and only
+    ``render_panel`` bumps it. Render a hosted surface here (the ADR-0029
+    shape) rather than fields drawn straight into the body, or an
     otherwise-fine dropdown greys itself.
 
     Usage::
@@ -617,25 +505,17 @@ class DropdownIcon(FlyoutIcon):
 class SubmenuRow:
     """``hui.submenu_row(label, icon=None, enabled=True)`` — a row that expands sideways.
 
-    ``enabled=False`` renders the greyed, non-expanding form (no flyout is
-    created at all — a later stage's ``draw_disabled()`` calls this bare, never
-    entering it): ``opacity: 0.4; pointer-events: none``, never a grey fill,
-    following ``hui.icon_action``'s documented disabled-state rule.
+    ``enabled=False`` renders the greyed, non-expanding form and creates no
+    flyout, so it may be called bare and never entered.
 
-    On construction, a row reads the ambient sibling group (``_flyout_siblings``)
-    to register its own flyout into and wire sibling-close — it never receives a
-    ``siblings`` list from its caller, and never learns it has siblings. On
-    ``__enter__`` it pushes a *fresh* group for its own body, becoming the new
-    ambient level (and the group is stashed as the menu's ``_child_flyouts`` for
-    depth-first cascade-close).
+    A row reads the ambient sibling group to register its own flyout into; it
+    never takes a ``siblings`` list from its caller. ``__enter__`` pushes a
+    fresh group for its body, which becomes the menu's ``_child_flyouts`` for
+    cascade-close.
 
-    ``__exit__`` also decides, retroactively, whether the body drew anything:
-    a body that drew nothing at all greys the anchor row after the fact (no
-    user can observe the row mid-construction). A body where every leaf itself
-    chose a disabled/greyed form still counts as "drew something" — only a
-    body that drew *nothing* is regreyed here. Counting is delegated to the
-    ambient ``_leaves_drawn`` counter, which real callers increment from inside
-    the ``with`` block (this module does not decide what "drew" means).
+    ``__exit__`` greys the anchor row if the body drew nothing at all. A body
+    whose leaves all drew themselves greyed still counts as having drawn.
+    Callers do the counting, by bumping ``_leaves_drawn`` inside the block.
     """
 
     def __init__(self, label: str, *, icon: str | None = None, enabled: bool = True) -> None:
@@ -647,19 +527,10 @@ class SubmenuRow:
         self._count_token: Token[int] | None = None
         self._body_token: Token[bool] | None = None
 
-        # A row -- enabled or not -- is itself content having drawn at the
-        # ENCLOSING level (the level ambient right now, before __enter__
-        # pushes a fresh one for this row's own body) -- but only when that
-        # enclosing level is itself a flyout body (`_in_flyout_body`), not a
-        # host's top-level popup scope (see `_in_flyout_body`'s definition for
-        # why). A container whose body consists entirely of nested
-        # SubmenuRow/FlyoutIcon children (no direct leaf of its own) must not
-        # grey itself just because none of ITS leaves fired -- its children
-        # existing at all *is* the "drew something" signal for it. This must
-        # fire for enabled=False too: a disabled nested row still renders a
-        # real greyed row, it is not absent, so it still counts here.
-        # (Contrast: the fresh counter this row resets to 0 in __enter__
-        # tracks its OWN body, a separate level.)
+        # A row, enabled or not, counts as content drawn at the enclosing
+        # level when that level is itself a flyout body — so a container whose
+        # body is only nested rows does not grey itself. Distinct from the
+        # counter __enter__ resets for this row's own body.
         if _in_flyout_body.get():
             _leaves_drawn.set(_leaves_drawn.get() + 1)
 

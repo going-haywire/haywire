@@ -21,31 +21,22 @@ _UNWALKED_DIRS = frozenset({"__pycache__", ".venv", "venv", "node_modules", ".gi
 
 
 def _walk_files(folder_path: str) -> Iterator[str]:
-    """Yield every file under ``folder_path``, skipping :data:`_UNWALKED_DIRS`.
-
-    An explicit walk rather than ``rglob``: pruning has to happen *before*
-    descending, and ``rglob`` offers no way to say "do not enter this one".
-    """
+    """Yield every file under ``folder_path``, skipping :data:`_UNWALKED_DIRS`."""
     for dirpath, dirnames, filenames in os.walk(folder_path):
+        # In place, so os.walk never descends into the pruned directories.
         dirnames[:] = [d for d in dirnames if d not in _UNWALKED_DIRS]
         for filename in filenames:
             yield os.path.join(dirpath, filename)
 
 
 class LibraryFileHandler(FileSystemEventHandler):
-    """
-    Handles file system events with multiple folder-to-registry mappings.
+    """Routes file system events to registries, by folder-to-registry mapping.
 
-    Library-agnostic handler that routes **every** non-directory event to the
-    registries whose folder matches, based on folder path matching. Each folder
-    mapping includes its own library identity, allowing one handler to serve
-    multiple libraries.
-
-    The handler is a router: it detects file changes and informs. It asserts
-    nothing about which *kind* of file matters — a registry that only reloads
-    Python modules rejects the rest itself (see
-    ``BaseRegistry.event_dispatcher``), and a consumer interested in some other
-    file registers for it like any other.
+    Every non-directory event is routed to the registries whose folder path is
+    a prefix of the file's, whatever the file's kind; a registry rejects what
+    it does not care about itself (see ``BaseRegistry.event_dispatcher``). Each
+    folder mapping carries its own library identity, so one handler serves
+    several libraries.
     """
 
     def __init__(self):
@@ -60,13 +51,13 @@ class LibraryFileHandler(FileSystemEventHandler):
         self.pending_events: Dict[Tuple[str, int], FileChangeEvent] = {}
         # (file_path, registry_id) -> timer
         self.debounce_timers: Dict[Tuple[str, int], threading.Timer] = {}
-        # file_path -> expiry timestamp: suppress DELETED events for files recently
-        # promoted via atomic write (tmp → py), since the OS may deliver a spurious
-        # DELETE for the destination file after the move event.
+        # file_path -> expiry timestamp: suppresses DELETED for a file just
+        # promoted by an atomic write (tmp → py), for which the OS may deliver
+        # a spurious DELETE after the move event.
         self._atomic_write_suppress: Dict[str, float] = {}
-        # .py files known to exist on disk — seeded when a folder mapping is
-        # added and maintained as CREATE/DELETE events flow through.  Used to
-        # downgrade a spurious CREATE (from an atomic write) to MODIFIED.
+        # Files known to exist on disk — seeded when a folder mapping is added
+        # and maintained as CREATE/DELETE events flow through. Downgrades a
+        # spurious CREATE (from an atomic write) to MODIFIED.
         self._known_files: Set[str] = set()
         self._lock = threading.Lock()
 
@@ -80,9 +71,8 @@ class LibraryFileHandler(FileSystemEventHandler):
         """Register a folder path to be routed to a specific registry"""
         with self._lock:
             self.folder_mappings[folder_path] = (library_identity, registry, debounce_delay)
-            # Seed _known_files with the files already on disk so that
-            # atomic-write CREATEs for pre-existing files are correctly
-            # downgraded to MODIFIED.
+            # Seed from disk, so an atomic-write CREATE for a pre-existing file
+            # is downgraded to MODIFIED.
             self._known_files.update(_walk_files(folder_path))
 
     def remove_folder_mapping(self, folder_path: str):
@@ -98,12 +88,11 @@ class LibraryFileHandler(FileSystemEventHandler):
         registries: List[HotReloadRegistry],
         debounce_delay: float = 0.5,
     ):
-        """
-        Register a library root as a fallback for files not covered by any folder_mapping.
+        """Register a library root as a fallback for files not covered by any folder_mapping.
 
-        Files matching the root but no folder_mapping will be dispatched to all
-        provided registries as dependency events. Each registry decides via its
-        own dependency graph whether the file is relevant.
+        A file under the root but under no folder mapping is dispatched to
+        every given registry as a dependency event; each registry decides from
+        its own dependency graph whether the file is relevant.
         """
         with self._lock:
             self.root_fallbacks[root_path] = (library_identity, list(registries), debounce_delay)
@@ -117,13 +106,13 @@ class LibraryFileHandler(FileSystemEventHandler):
     def _get_matching_registries(
         self, file_path: str
     ) -> List[Tuple[LibraryIdentity, HotReloadRegistry, float, bool]]:
-        """
-        Find all registries that should receive events for this file.
+        """Find all registries that should receive events for this file.
 
         Returns:
-            List of (library_identity, registry, debounce_delay, is_dependency)
-            tuples. is_dependency=True for root-fallback matches; the registry
-            should treat the event as a dependency change.
+            ``(library_identity, registry, debounce_delay, is_dependency)``
+            tuples. ``is_dependency`` is True for root-fallback matches, which
+            the registry treats as a dependency change. A folder mapping
+            shadows the fallbacks: when any matches, no fallback is consulted.
         """
         matches: List[Tuple[LibraryIdentity, HotReloadRegistry, float, bool]] = []
         for folder_path, mapping in self.folder_mappings.items():
@@ -155,8 +144,7 @@ class LibraryFileHandler(FileSystemEventHandler):
             already_known = event.src_path in self._known_files
             self._known_files.add(event.src_path)
         if already_known:
-            # File already existed — this CREATE is from an atomic write
-            # (or similar overwrite). Downgrade to MODIFIED.
+            # The file already existed, so this CREATE is an overwrite.
             logger.debug(f"FileWatcher: downgrading CREATE to MODIFIED for known file: {event.src_path}")
             self._handle_file_change(event.src_path, FileEventType.MODIFIED)
         else:
@@ -177,28 +165,19 @@ class LibraryFileHandler(FileSystemEventHandler):
         self._handle_file_change(event.src_path, FileEventType.DELETED)
 
     def on_moved(self, event):
-        """
-        Handle file moves within the watched directory.
+        """Handle file moves within the watched directory.
 
-        A true rename (foo.py → bar.py) is treated as DELETED + CREATED.
-        An atomic write (foo.py.tmp → foo.py) is treated as MODIFIED — the
-        source was a temp file, not a tracked file. This also cancels any
-        pending DELETED event for the destination file that may have been
-        queued when the editor truncated/replaced the original.
+        A true rename (foo.py → bar.py) is dispatched as DELETED on the source
+        plus CREATED on the destination. An atomic write (foo.py.tmp → foo.py)
+        is dispatched as MODIFIED on the destination, and suppresses a spurious
+        DELETE for it for the next two seconds.
 
-        The two are told apart by whether the move *lands on an existing file*.
-        A rename gives a file a new name, so the destination did not exist; an
-        atomic write promotes a scratch file over a target that did. Source
-        tracking alone is not enough: a tool that writes its temp file inside
-        the watched folder gets it into ``_known_files`` via that file's own
-        CREATE, which made every such save look like a rename — emitting a
-        DELETED the destination never recovered from, because the recreate
-        arrives as MODIFIED (``on_created`` downgrades a known path) and only
-        a CREATED re-registers a module. See
-        ``test_atomic_write_from_a_tracked_temp_file_in_the_watched_folder``.
-
-        Args:
-            event: FileMovedEvent with src_path and dest_path
+        The two are told apart by whether the move lands on a file already in
+        ``_known_files``: a rename gives a file a new name, so the destination
+        did not exist; an atomic write promotes a scratch file over a target
+        that did. The source being tracked is not enough to tell them apart —
+        a temp file written inside the watched folder is tracked by its own
+        CREATE.
         """
         if event.is_directory:
             return
@@ -217,13 +196,10 @@ class LibraryFileHandler(FileSystemEventHandler):
             self._handle_file_change(event.src_path, FileEventType.DELETED)
             self._handle_file_change(event.dest_path, FileEventType.CREATED)
         else:
-            # Atomic write: a temp file promoted over an existing target —
-            # treat as a modification of the destination. Suppress any spurious
-            # DELETE the OS may deliver for dest_path after this move event
-            # (observed on macOS/kqueue). The source path is dropped because it
-            # no longer exists: a temp file written inside the watched folder
-            # was tracked by its own CREATE, and leaving it behind would make
-            # the next save reuse a stale entry.
+            # Atomic write. The suppression window covers the spurious DELETE
+            # the OS may deliver for dest_path after this move (macOS/kqueue).
+            # The source path is dropped: it is gone from disk, and a stale
+            # entry would be reused by the next save.
             with self._lock:
                 self._known_files.discard(event.src_path)
                 self._known_files.add(event.dest_path)
@@ -231,12 +207,11 @@ class LibraryFileHandler(FileSystemEventHandler):
             self._handle_file_change(event.dest_path, FileEventType.MODIFIED)
 
     def _handle_file_change(self, file_path: str, event_type: FileEventType):
-        """
-        Handle file change with per-registry debouncing.
+        """Handle file change with per-registry debouncing.
 
-        Routes events to all matching registries based on folder mappings.
-        Each registry gets its own debounced event stream with the
-        appropriate library_identity.
+        Each matching registry gets its own debounced event stream, carrying
+        that folder's library identity; only the latest event per file and
+        registry survives the debounce window.
         """
         matching_registries = self._get_matching_registries(file_path)
 
@@ -248,11 +223,9 @@ class LibraryFileHandler(FileSystemEventHandler):
                 registry_id = id(registry)
                 event_key = (file_path, registry_id)
 
-                # Cancel existing timer for this file+registry combination
                 if event_key in self.debounce_timers:
                     self.debounce_timers[event_key].cancel()
 
-                # Create new event with the folder's library_identity
                 event = FileChangeEvent(
                     file_path=file_path,
                     event_type=event_type,
@@ -261,10 +234,8 @@ class LibraryFileHandler(FileSystemEventHandler):
                     dependency_event=is_dependency,
                 )
 
-                # Store latest event for this registry
                 self.pending_events[event_key] = event
 
-                # Set up debounce timer
                 timer = threading.Timer(
                     debounce_delay, self._process_debounced_event, args=[event_key, registry]
                 )
@@ -298,22 +269,19 @@ class LibraryFileHandler(FileSystemEventHandler):
 
 
 class FileWatcher:
-    """
-    Manages a single file observer that can watch multiple libraries.
+    """Manages a single file observer that can watch multiple libraries.
 
-    Library-agnostic watcher that creates one Observer for a root path,
-    with folder-to-registry routing (including library identity) handled
-    by the handler. This design allows the FileWatcher to be shared across
-    multiple libraries, reducing the number of observer threads.
+    One Observer per root path, watching recursively; folder-to-registry
+    routing (including library identity) is the handler's job, so one watcher
+    serves every library under that root.
     """
 
     def __init__(self, watch_path: str):
-        """
-        Initialize file watcher for a root path.
+        """Initialize file watcher for a root path.
 
         Args:
-            watch_path: Root path to watch recursively (e.g., library root
-                       or parent folder containing multiple libraries)
+            watch_path: Root path to watch recursively — a library root, or a
+                parent folder containing several libraries.
         """
         self.watch_path = watch_path
         self.observer: Optional[BaseObserver] = None
@@ -328,14 +296,11 @@ class FileWatcher:
         registry: HotReloadRegistry,
         debounce_delay: float = 0.5,
     ):
-        """
-        Register a folder to be routed to a specific registry.
+        """Register a folder to be routed to a specific registry.
 
         Args:
-            folder_path: Path to folder whose files should route to this registry
-            library_identity: Identity of the library this folder belongs to
-            registry: Registry that will receive file change events
-            debounce_delay: Delay in seconds before processing file changes
+            debounce_delay: Seconds of quiet before a file's change is
+                dispatched.
         """
         self.handler.add_folder_mapping(folder_path, library_identity, registry, debounce_delay)
 
@@ -345,12 +310,10 @@ class FileWatcher:
         )
 
     def remove_watch(self, folder_path: str, library_identity: LibraryIdentity):
-        """
-        Unregister a folder from routing.
+        """Unregister a folder from routing.
 
         Args:
-            folder_path: Path to folder to stop routing
-            library_identity: Identity of the library (for logging)
+            library_identity: Used for logging only.
         """
         self.handler.remove_folder_mapping(folder_path)
 
@@ -366,10 +329,10 @@ class FileWatcher:
         registries: List[HotReloadRegistry],
         debounce_delay: float = 0.5,
     ):
-        """
-        Register a library-root fallback so files outside any watched folder
-        can still trigger dependency reloads if a registry's dependency graph
-        knows them.
+        """Register a library-root fallback for files outside every watched folder.
+
+        Such a file still triggers a dependency reload when a registry's
+        dependency graph knows it.
         """
         self.handler.add_root_fallback(root_path, library_identity, registries, debounce_delay)
         logger.info(

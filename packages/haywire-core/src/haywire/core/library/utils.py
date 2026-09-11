@@ -7,7 +7,6 @@ import re
 from .identity import LibraryIdentity
 
 # Component type segments — the middle token in every registry key (lib_id:TYPE:class_id).
-# Use these constants instead of bare strings to avoid typos and silent key mismatches.
 NODE = "node"
 WIDGET = "widget"
 TYPE = "type"
@@ -22,30 +21,19 @@ FARMHAND = "farmhand"
 
 
 def derive_library_identity(cls: Type) -> LibraryIdentity:
-    """
-    Derive full LibraryIdentity by finding the parent Library class.
+    """Return the identity of the library ``cls`` belongs to.
 
-    Used by type decorators to set the class_library attribute at
-    decoration time, which survives hot-reloads.
+    Walks up ``cls.__module__`` for the nearest already-imported module
+    exposing a ``Library`` class with a ``class_identity``, so a module that
+    has not been imported is skipped rather than imported here. A class that
+    lives under no library gets the synthetic ``__system__`` identity, so the
+    result is always a ``LibraryIdentity``, never ``None``.
 
-    Walks up the module hierarchy looking for a Library class with
-    class_identity attribute. Uses sys.modules to avoid re-importing.
-    Falls back to the synthetic ``__system__`` identity for classes
-    that don't live under a Library — so the return value is always a
-    valid LibraryIdentity, never None.
+    Example::
 
-    Args:
-        cls: The class to find the library for
-
-    Returns:
-        LibraryIdentity: Either the resolved library identity or the
-        ``__system__`` fallback for unparented classes.
-
-    Example:
-        For a type at haywire.libraries.core.types.specs.FLOAT:
-        - Walks up: haywire.libraries.core.types -> haywire.libraries.core
-        - Finds Library class in haywire.libraries.core.__init__
-        - Returns the complete LibraryIdentity object from Library.class_identity
+        # haywire.barn.builtin.types.specs.FLOAT walks up to
+        # haywire.barn.builtin, and returns its Library.class_identity.
+        identity = derive_library_identity(FLOAT)
     """
     module_path = cls.__module__
     parts = module_path.split(".")

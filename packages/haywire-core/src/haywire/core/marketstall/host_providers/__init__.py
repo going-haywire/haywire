@@ -1,13 +1,12 @@
 """Host-provider abstraction.
 
-GitHub + GitLab ship in the first cut. Bitbucket and Gitea are deferred.
-Self-hosted instances declare themselves in ~/.haywire/config.toml, or travel
-with a published library as ``origin_provider``.
+GitHub and GitLab ship; Bitbucket and Gitea are deferred. Self-hosted
+instances declare themselves in ~/.haywire/config.toml, or travel with a
+published library as ``origin_provider``.
 
-Providers are **host-parameterised**: a self-hosted forge gets its own instance
-rather than borrowing the ``github.com`` / ``gitlab.com`` one. A shared instance
-would recognise the hostname and then build URLs for the *default* host, sending
-users to a server that does not have the repository.
+Providers are host-parameterised: a self-hosted forge gets its own instance
+bound to its hostname, so every URL it builds targets that host rather than
+the ``github.com`` / ``gitlab.com`` default.
 """
 
 import re
@@ -48,11 +47,12 @@ HOST_PROVIDERS: list[HostProvider] = [
 def provider_for(provider_name: str, hostname: str) -> HostProvider | None:
     """Build the named provider bound to *hostname*, or None if unknown.
 
-    The publisher-side entry point: a library that travels with
-    ``origin_provider`` names the kind of forge, and the hostname comes from its
-    ``origin``. Together they resolve without any local configuration — which is
-    the point, since a consumer has no reason to have heard of the publisher's
-    self-hosted instance.
+    Resolves without any local configuration, so a published library's
+    ``origin_provider`` and ``origin`` are enough to reach a self-hosted
+    instance the consumer has never heard of.
+
+    Args:
+        provider_name: A key of ``PROVIDER_CLASSES`` — "github" or "gitlab".
     """
     cls = PROVIDER_CLASSES.get(provider_name)
     return cls(hostname) if cls is not None else None
@@ -63,11 +63,10 @@ def resolve_host(hostname: str) -> HostProvider | None:
 
     Consults the user's self-hosted config (~/.haywire/config.toml) first; a
     matching [[hosts]] entry naming a shipped provider yields an instance bound
-    to *that* hostname. Otherwise falls back to the built-in default-host
+    to that hostname. Otherwise falls back to the built-in default-host
     providers.
 
-    Returns None — never a guess — for an unrecognised host. Callers render no
-    link rather than a wrong one.
+    Returns None — never a guess — for an unrecognised host.
     """
     user_hosts = _host_config.load_self_hosted_hosts()
     if hostname in user_hosts:
@@ -80,15 +79,14 @@ def resolve_host(hostname: str) -> HostProvider | None:
 
 
 def ssh_to_https(url: str) -> str:
-    """Convert an SSH-style git URL to HTTPS; HTTPS URLs pass through unchanged.
+    """Convert an SSH-style git URL to HTTPS; any other URL passes through unchanged.
 
-    git@github.com:user/repo.git  ->  https://github.com/user/repo.git
-    git@gitlab.com:user/repo.git  ->  https://gitlab.com/user/repo.git
+    Takes whatever ``git remote get-url origin`` returns and yields a form a
+    hostname can be parsed out of::
 
-    Shared by the share pipeline's precondition check (host recognition) and
-    ``haywire.core.publishing.url`` (share-URL derivation) — both need
-    to parse a hostname out of whatever ``git remote get-url origin`` returns,
-    which may be either form.
+        git@github.com:user/repo.git  ->  https://github.com/user/repo.git
+
+    Any trailing ``.git`` is preserved.
     """
     match = re.match(r"^git@([^:]+):(.+)$", url)
     if match:

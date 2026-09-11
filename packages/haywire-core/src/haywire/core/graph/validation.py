@@ -1,12 +1,9 @@
 # haywire/core/graph/validation.py
-"""
-ValidationManager - Handles validation pipeline for graph changes.
+"""ValidationManager — the debounced validation pipeline behind ``BaseGraph``.
 
-Internal component used by BaseGraph. Manages:
-- Dirty tracking (what needs validation)
-- Change categorization (added/changed/removed)
-- Debounced batch validation
-- Subscriber notifications
+Tracks which nodes and edges are dirty and why, coalesces a burst of marks
+into one batch, rebuilds whatever the batch requires, and notifies
+subscribers with a ``ValidationResult``.
 """
 
 import threading
@@ -27,18 +24,10 @@ ValidationCallback = Callable[[ValidationResult], None]
 
 
 class ValidationManager:
-    """
-    Manages the validation pipeline for a graph.
+    """Runs a graph's validation pipeline: dirty tracking, debounce, batch, notify.
 
-    This is an internal component - external code should interact through
-    BaseGraph's public API (subscribe_to_validation, etc).
-
-    Responsibilities:
-    - Track dirty nodes/edges with change reasons
-    - Categorize changes (added/changed/removed)
-    - Debounce validation with configurable delay
-    - Execute batch validation
-    - Notify subscribers with categorized results
+    Internal to ``BaseGraph``; external code goes through its public API
+    (``subscribe_to_validation`` and the ``request_*`` methods).
     """
 
     def __init__(
@@ -50,39 +39,35 @@ class ValidationManager:
         self._graph = graph
         self._debounce_ms = debounce_ms
 
-        # Injected debounce strategy; defaults to the threading.Timer scheduler.
-        # See scheduler.py.
+        # Injected debounce strategy; see scheduler.py and ADR 0002.
         self._scheduler: ValidationScheduler = scheduler or ThreadingTimerScheduler()
 
         self._dirty_graph: ChangeReason | None = None
         """If the whole graph is dirty, reason for it"""
 
-        # Simplified tracking - just map elements to reasons
         self._dirty_nodes: Dict[str, ChangeReason] = {}
         """node_id -> reason for being dirty"""
 
         self._dirty_edges: Dict[str, ChangeReason] = {}
         """edge_id -> reason for being dirty"""
 
-        # Pending debounced validation (from the injected scheduler) and the
-        # re-entrancy lock guarding all dirty-tracking mutation.
+        # The lock guards every dirty-tracking mutation and is re-entrant, so a
+        # synchronous scheduler can validate inside a mark_*_dirty call.
         self._pending_handle: Optional[ScheduleHandle] = None
         self._validation_lock = threading.RLock()
 
-        # Monotonic batch counter. Lets _schedule_validation detect when a
-        # synchronous scheduler ran the batch re-entrantly inside schedule().
+        # Lets _schedule_validation detect a batch that a synchronous scheduler
+        # ran re-entrantly inside schedule().
         self._batch_generation = 0
 
-        # Subscribers
         self._callbacks: List[ValidationCallback] = []
 
-        # Statistics
         self._validation_count = 0
         self._last_validation_time = 0.0
         self._total_validation_time_ms = 0.0
 
     def _set_reason(self, id: str, reason: ChangeReason, store: dict) -> None:
-        """Set the reason according to priority"""
+        """Record ``reason`` for ``id`` unless a higher-priority reason is already stored."""
         if id in store:
             existing_reason = store[id]
             if existing_reason.has_higher_priority_than(reason):
@@ -90,10 +75,9 @@ class ValidationManager:
         store[id] = reason
 
     def mark_graph_dirty(self, reason: ChangeReason) -> None:
-        """
-        Mark a graph as needing validation.
+        """Mark the whole graph as needing validation and restart the debounce.
 
-        Uses priority system - higher priority reasons override lower ones.
+        The new reason replaces any reason already recorded for the graph.
         """
         with self._validation_lock:
             self._dirty_graph = reason
@@ -102,10 +86,9 @@ class ValidationManager:
             logger.info(f"Marked graph dirty (reason: {reason.value})")
 
     def mark_node_dirty(self, node_id: str, reason: ChangeReason) -> None:
-        """
-        Mark a node as needing validation.
+        """Mark a node as needing validation and restart the debounce.
 
-        Uses priority system - higher priority reasons override lower ones.
+        A lower-priority reason does not replace one already recorded for it.
         """
         with self._validation_lock:
             self._set_reason(node_id, reason=reason, store=self._dirty_nodes)
@@ -114,10 +97,9 @@ class ValidationManager:
             logger.info(f"Marked node dirty: {node_id} (reason: {reason.value})")
 
     def mark_edge_dirty(self, edge_id: str, reason: ChangeReason) -> None:
-        """
-        Mark an edge as needing validation.
+        """Mark an edge as needing validation and restart the debounce.
 
-        Uses priority system - higher priority reasons override lower ones.
+        A lower-priority reason does not replace one already recorded for it.
         """
         with self._validation_lock:
             self._set_reason(id=edge_id, reason=reason, store=self._dirty_edges)
@@ -126,36 +108,29 @@ class ValidationManager:
             logger.info(f"Marked edge dirty: {edge_id} (reason: {reason.value})")
 
     def subscribe(self, callback: ValidationCallback) -> None:
-        """
-        Subscribe to validation completion events.
+        """Register ``callback`` to run after each validation batch that found changes.
 
-        The callback will be invoked after each validation batch completes,
-        receiving a ValidationResult with categorized changes.
-
-        Args:
-            callback: Callable that accepts ValidationResult
+        Registering the same callback twice still calls it once per batch.
         """
         if callback not in self._callbacks:
             self._callbacks.append(callback)
             logger.debug(f"Added validation subscriber: {getattr(callback, '__name__', repr(callback))}")
 
     def unsubscribe(self, callback: ValidationCallback) -> None:
-        """
-        Unsubscribe from validation events.
-
-        Args:
-            callback: The callback to remove
-        """
+        """Remove ``callback`` from the subscribers; a callback that isn't subscribed is ignored."""
         if callback in self._callbacks:
             self._callbacks.remove(callback)
             logger.debug(f"Removed validation subscriber: {getattr(callback, '__name__', repr(callback))}")
 
     def get_statistics(self) -> Dict[str, Any]:
-        """
-        Get validation pipeline statistics.
+        """Return the pipeline's counters.
 
         Returns:
-            Dictionary with validation metrics
+            ``validation_count``, ``last_validation_time`` (epoch seconds of
+            the last batch, ``0.0`` if none ran), ``average_validation_time_ms``,
+            ``total_validation_time_ms``, ``debounce_ms``, ``dirty_nodes``,
+            ``dirty_edges``, ``subscriber_count``, and ``pending_validation``
+            (whether a debounced run is waiting).
         """
         with self._validation_lock:
             avg_time = (
@@ -177,40 +152,29 @@ class ValidationManager:
             }
 
     def force_immediate_validation(self) -> Optional[ValidationResult]:
-        """
-        Force immediate validation without debouncing.
-
-        Useful for testing or when you need synchronous validation.
+        """Run a validation batch now and cancel any pending debounced run.
 
         Returns:
-            ValidationResult if there were dirty elements, None otherwise
+            The batch result, or ``None`` when no node and no edge is dirty —
+            a graph-only dirty mark on its own runs no batch.
         """
         with self._validation_lock:
-            # Cancel any pending debounced run; we're validating now.
             if self._pending_handle is not None:
                 self._pending_handle.cancel()
                 self._pending_handle = None
 
-            # Only validate if there are dirty elements
             if not self._dirty_nodes and not self._dirty_edges:
                 return None
 
-            # Run validation immediately
             return self._validate_batch()
 
     def clear(self) -> None:
-        """
-        Clear all dirty tracking and pending validations.
-
-        Called when graph is cleared or reset.
-        """
+        """Drop all dirty tracking and cancel any pending validation, without notifying subscribers."""
         with self._validation_lock:
-            # Cancel pending validation
             if self._pending_handle is not None:
                 self._pending_handle.cancel()
                 self._pending_handle = None
 
-            # Clear all tracking
             self._dirty_nodes.clear()
             self._dirty_edges.clear()
             self._dirty_graph = None
@@ -222,29 +186,21 @@ class ValidationManager:
     # =========================================================================
 
     def _schedule_validation(self) -> None:
-        """
-        Schedule a validation pass with debouncing.
-
-        Multiple dirty marks within the debounce window will result in a
-        single validation pass, improving efficiency.
-        """
+        """Schedule the batch, replacing any pending one, so marks inside the window validate once."""
         with self._validation_lock:
-            # Cancel any pending run before scheduling a fresh one — this is
-            # what coalesces a burst of marks into a single batch. cancel() is
-            # idempotent and a no-op if the previous run already fired.
+            # Cancelling the pending run first is what coalesces a burst of
+            # marks into one batch.
             if self._pending_handle is not None:
                 self._pending_handle.cancel()
             self._pending_handle = None
 
-            # Bump the generation, then schedule. A synchronous scheduler runs
-            # _validate_batch *inside* schedule(), which bumps the generation
-            # again and clears _pending_handle. In that case we must not adopt
-            # the (inert) returned handle, or pending_validation would lie.
+            # A synchronous scheduler runs _validate_batch inside schedule(),
+            # which bumps the generation and clears _pending_handle; adopting
+            # the inert handle it returns would make pending_validation lie.
             scheduled_generation = self._batch_generation
             delay_seconds = self._debounce_ms / 1000.0
             handle = self._scheduler.schedule(delay_seconds, self._validate_batch)
             if self._batch_generation == scheduled_generation:
-                # No inline run happened — this is a genuinely pending handle.
                 self._pending_handle = handle
 
             logger.debug(
@@ -253,24 +209,23 @@ class ValidationManager:
             )
 
     def _validate_batch(self) -> ValidationResult:
-        """
-        Execute a validation batch for all dirty elements.
+        """Validate every dirty element and return the batch result.
 
-        Returns ValidationResult with element IDs mapped to their change reasons.
+        Rebuilds the nodes and edges whose reason calls for it, spreads a dirty
+        node's reason to the edges attached to it, runs node housekeeping, and
+        notifies subscribers when the result has changes. A failure on one
+        element is logged and the batch continues; marks made during the batch
+        are kept for the next one.
         """
         start_time = time.perf_counter()
 
         with self._validation_lock:
-            # This run consumes the pending schedule. Clearing it here keeps
-            # ``pending_validation`` honest and means a re-entrant mark during
-            # this batch schedules a genuinely new run. (When invoked via
-            # SyncScheduler the handle is already inert.) The generation bump
-            # lets _schedule_validation see that a synchronous batch ran
-            # inside its schedule() call.
+            # This run consumes the pending schedule, so a mark made during the
+            # batch schedules a new one. The generation bump tells
+            # _schedule_validation that a synchronous batch ran inside schedule().
             self._pending_handle = None
             self._batch_generation += 1
 
-            # Snapshot dirty elements with their reasons
             dirty_nodes = dict(self._dirty_nodes)
             dirty_edges = dict(self._dirty_edges)
             dirty_graph = self._dirty_graph
@@ -287,7 +242,6 @@ class ValidationManager:
                 f"{dirty_graph.value if dirty_graph else 'no graph change'}"
             )
 
-            # Result will contain all changed elements with their reasons
             validated_nodes: Dict[str, ChangeReason] = {}
             validated_edges: Dict[str, ChangeReason] = {}
             validated_graph: Optional[ChangeReason] = None
@@ -298,7 +252,6 @@ class ValidationManager:
             # Validate nodes
             for node_id, reason in dirty_nodes.items():
                 try:
-                    # For removal, just track it
                     if reason.requires_removal():
                         validated_nodes[node_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
@@ -310,39 +263,28 @@ class ValidationManager:
                         continue
 
                     if reason.requires_rebuild():
-                        # For structural changes, validate
                         node_wrapper = self._graph.get_node_wrapper(node_id)
                         if node_wrapper:
                             node_wrapper.build()
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
-                                # we add all the attached edges to this node to
-                                # the list of edges that need to be validated
-                                # we need to be carefull and
-                                # adhere to the reason priorities
+                                # Attached edges revalidate too, at this reason's priority.
                                 self._set_reason(id=edge_wrapper.edge_id, reason=reason, store=dirty_edges)
-                            # Always include in result with its reason
                             validated_nodes[node_id] = reason
                             validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue
 
                     if reason.requires_validation():
-                        # For structural changes, validate
                         node_wrapper = self._graph.get_node_wrapper(node_id)
                         if node_wrapper:
                             edge_wrappers = self._graph._get_edge_wrappers_for_node(node_id)
                             for edge_wrapper in edge_wrappers:
-                                # we add all the attached edges to this node to
-                                # the list of edges that need to be validated
-                                # we need to be carefull and
-                                # adhere to the reason priorities
+                                # Attached edges revalidate too, at this reason's priority.
                                 self._set_reason(id=edge_wrapper.edge_id, reason=reason, store=dirty_edges)
-                            # Always include in result with its reason
                             validated_nodes[node_id] = reason
                             validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue
 
-                    # For visual-only changes, skip validation
                     if reason.requires_redraw():
                         validated_nodes[node_id] = reason
                         continue
@@ -353,36 +295,31 @@ class ValidationManager:
             # Validate edges
             for edge_id, reason in dirty_edges.items():
                 try:
-                    # For removal, just track it
                     if reason.requires_removal():
                         validated_edges[edge_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     if reason.requires_adding():
-                        # Update port links (needs to be done after registration)
                         validated_edges[edge_id] = reason
                         validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                         continue
 
                     found_edge_wrapper = self._graph.get_edge_wrapper(edge_id)
                     if reason.requires_rebuild() or reason.requires_validation():
-                        # we play it safe - in case the node has changed the type of an
-                        # existing port with the same id the edge is rebuild and validated
+                        # Rebuild unconditionally: the node may have changed the
+                        # type of a port that kept its id.
                         if found_edge_wrapper:
                             was_functional = found_edge_wrapper.is_functional()
                             found_edge_wrapper.build()
                             if found_edge_wrapper.is_functional():
                                 found_edge_wrapper.link()
                             elif was_functional:
-                                # Lost functionality during rebuild
                                 found_edge_wrapper.unlink()
-                            # Always include in result with its reason
                             validated_edges[edge_id] = reason
                             validated_graph = ChangeReason.GRAPH_REQUIRE_REASSEMBLY
                             continue
 
-                    # For visual-only changes, skip validation
                     if reason.requires_redraw():
                         validated_edges[edge_id] = reason
                         continue
@@ -390,19 +327,16 @@ class ValidationManager:
                 except Exception as e:
                     logger.error(f"Edge validation failed: {edge_id}", exc_info=e)
 
-            # Now that all nodes and edges are validated, we can
-            # Do the housekeeping on nodes that require rebuild or validation
+            # Housekeeping runs only once every node and edge is validated.
             for node_id, reason in validated_nodes.items():
                 if reason.requires_adding() or reason.requires_rebuild() or reason.requires_validation():
                     node_wrapper = self._graph.get_node_wrapper(node_id)
                     if node_wrapper:
                         node_wrapper._housekeeping()
 
-            # Build simplified result
             validation_time_ms = (time.perf_counter() - start_time) * 1000.0
 
-            # Capture a pending canvas resize that was set by BaseGraph during
-            # add/move/remove operations that happened in this validation window.
+            # Report a canvas resize that BaseGraph flagged during this window.
             canvas_size = None
             if self._graph._canvas_size_changed:
                 canvas_size = (self._graph.canvas_width, self._graph.canvas_height)
@@ -416,7 +350,6 @@ class ValidationManager:
                 validation_time_ms=validation_time_ms,
             )
 
-            # Update statistics
             self._validation_count += 1
             self._last_validation_time = time.time()
             self._total_validation_time_ms += validation_time_ms
@@ -426,22 +359,16 @@ class ValidationManager:
                 f"{validation_time_ms:.2f}ms"
             )
 
-            # Notify subscribers (only if there were changes)
             if result.has_changes():
                 self._notify_subscribers(result)
 
             return result
 
     def _notify_subscribers(self, result: ValidationResult) -> None:
-        """
-        Notify all validation subscribers with the result.
-
-        Args:
-            result: ValidationResult with categorized changes
-        """
+        """Call every subscriber with ``result``; an exception in one is logged and the rest still run."""
         logger.debug(f"Notifying {len(self._callbacks)} validation subscribers")
 
-        # Copy list to prevent modification during iteration
+        # Iterate a copy: a callback may subscribe or unsubscribe.
         for callback in self._callbacks[:]:
             try:
                 callback(result)

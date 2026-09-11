@@ -9,7 +9,7 @@ Three-tier value storage:
     local tier     (Settings per-node)        — serialised into graph JSON
 
 Each tier value is simply set or unset (SettingValue.is_set); there is no
-forcing/OVERRIDE strength (dropped in the P2 tier collapse).
+forcing strength.
 
 Resolution priority (highest-priority *set* tier wins):
     local SET > workspace SET > global SET > default
@@ -102,10 +102,9 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._subscribers: dict[str | None, list[weakref.ref]] = {}
         self._categories: dict[str, list[str]] = {}
 
-        # One live DataField per definition — THE cell every consumer of a
-        # persistent setting binds ("one cell, N views"). Lazily created by
-        # cell_for(), kept current by the _notify_subscribers write-through, and
-        # dropped with its definition on unregister (hot-reload).
+        # One live DataField per definition — the cell every consumer of a
+        # persistent setting binds. Created by cell_for(), kept current by the
+        # _notify_subscribers write-through, dropped with its definition.
         self._cells: dict[str, "DataField"] = {}
 
         # Track which definitions came from a settings file (vs code)
@@ -116,9 +115,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
         self._workspace_path: Path | None = None
 
         # File I/O + watching collaborator (persistence.py) — one store, one
-        # set of watchdog observers, shared across both tiers. Registry keeps
-        # only the per-tier enabled flags (read externally, e.g. di/config.py's
-        # status printer).
+        # set of watchdog observers, shared across both tiers.
         self._files = SettingsFileStore()
         self._global_watch_enabled = False
         self._workspace_watch_enabled = False
@@ -155,14 +152,11 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def _register_class(
         self, cls: type[Settings], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
-        """Register schema class fields then store class in BaseRegistry.
+        """Register a schema class's fields, then the class itself in BaseRegistry.
 
-        After registering the fields, re-reads both settings files (global +
-        workspace) for the keys this schema declared. This restores any
-        on-disk values for these fields — necessary on re-registration
-        (library disable→enable, hot-reload) because
-        ``_unregister_schema_fields`` clears the in-memory tier entries
-        while the files keep their values.
+        Re-reads the global and workspace settings files for the keys this
+        schema declares, so on-disk values survive a library disable→enable or
+        hot-reload cycle, which clears the in-memory tier entries.
         """
         registry_key = cls.class_identity.registry_key
         self._register_schema_fields(cls)
@@ -201,20 +195,16 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
     def _notify_subscribers(self, changed: dict[str, "SettingValue"]) -> None:
         """
-        Notify all subscribers for a batch of changed keys.
+        Notify subscribers for a batch of changed keys and bring their cells current.
 
         Exact-key subscribers fire for their key; subscribers registered under
         key=None receive every change. Dead weakrefs are cleaned up.
 
-        Also the single write-through point for registry-owned cells (ADR
-        0016): every tier mutation funnels here, so this is where the changed
-        key's live cell is brought current — set → the new effective value,
-        unset → whatever resolve() now yields (lower tier or default). A key
-        whose definition is gone (hot-reload unregister / undefine) drops its
-        cell; anything still bound to it holds a frozen, orphaned field.
-
-        Subscriptions are exact-key, plus ``None`` for listen-all (debug
-        configurator).
+        The single write-through point for registry-owned cells (see ADR 0013):
+        a set key's cell takes the new effective value, an unset key's takes
+        whatever ``resolve()`` now yields. A key whose definition is gone
+        (hot-reload unregister, ``undefine``) drops its cell, and anything
+        still bound to that cell holds a frozen, orphaned field.
         """
         self._write_through_cells(changed)
         for key, value in changed.items():
@@ -247,13 +237,16 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 cell.set_value(new_val)
 
     def cell_for(self, key: str) -> DataField:
-        """THE live cell for a registered setting — one per definition.
+        """Return the live cell for a registered setting — one per definition.
 
-        Lazily created, seeded via ``resolve(key)`` (so a tier already loaded
-        from JSON seeds correctly), stamped with ``field_id = key``, and kept
-        current by the ``_notify_subscribers`` write-through. Settings
-        instances and panels borrow this cell by reference — "one cell,
-        N views". Raises ``KeyError`` for an unregistered key.
+        Created on first call, seeded via ``resolve(key)``, stamped with
+        ``field_id = key``, and kept current by the ``_notify_subscribers``
+        write-through. Settings instances and panels borrow this cell by
+        reference.
+
+        Raises:
+            KeyError: *key* has no definition.
+            TypeError: the definition's type is not an IType.
         """
         cell = self._cells.get(key)
         if cell is None:
@@ -399,11 +392,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
                 setattr(self, watch_flag, True)
 
     def _reload_from_file(self, path: Path, tier: str = "workspace") -> None:
-        """Read *path* via the store and apply its entries into *tier*.
-
-        Used by `load_from_json`, the file watcher callback, and external
-        callers (e.g. di/config.py's `reload_settings()`).
-        """
+        """Read *path* via the store and apply its entries into *tier*. No-op if unparseable."""
         flat = self._files.read(path)
         if flat is None:
             return
@@ -450,18 +439,10 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def _repopulate_from_file_for_keys(self, keys: set[str], path: Path, tier: str = "workspace") -> None:
         """Restore file values for *keys* in *tier* without touching other keys.
 
-        Used by ``_register_class`` to re-hydrate the in-memory tier dict
-        for a schema's fields after it's re-registered (library
-        disable→re-enable, hot-reload). ``_unregister_schema_fields``
-        clears the tier entries when a schema leaves the registry; this
-        method puts them back from the on-disk file when the schema
-        comes back.
-
-        Unlike ``_reload_from_file``, this does NOT reset other keys'
-        tier values or clear ``_file_defined``. Only the entries whose
-        flattened key is in *keys* are applied.
-
-        Silently skips if the file can't be parsed — best-effort restore.
+        Only entries whose flattened key is in *keys* are applied; unlike
+        ``_reload_from_file`` this leaves other keys' tier values and
+        ``_file_defined`` alone. An unparseable file logs an error and
+        restores nothing.
         """
         flat = self._files.read(path)
         if flat is None:
@@ -505,8 +486,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
         """Parse a configuration dict from a settings file (legacy {override,value} → bare value)."""
         result: dict = {}
 
-        # Legacy compatibility: a {override=true, value=X} table from a pre-P2
-        # file is read as a plain set value X. The 'override' flag is ignored.
+        # A legacy {override=true, value=X} table reads as a plain set value X;
+        # the 'override' flag is ignored.
         if "value" in config:
             result["value"] = config["value"]
 
@@ -556,11 +537,9 @@ class SettingsRegistry(BaseRegistry[Settings]):
             parts = name.split(".")
             category = ".".join(parts[:-1]) if len(parts) > 1 else "root"
 
-        # IType cutover: the descriptor stores an IType, never a Python type.
-        # Resolve the inferred Python type to its registered IType via each
-        # IType's declared element_type_cls (no hand-maintained mapping). An
-        # undeclared settings-file key whose Python type has no registered
-        # IType is skipped rather than crashing settings load.
+        # The descriptor stores an IType, never a Python type. A key whose
+        # inferred Python type has no registered IType is skipped rather than
+        # crashing the settings load.
         itype = self._resolve_itype_for_python_type(type_)
         if itype is None:
             logger.warning(
@@ -599,11 +578,9 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def _resolve_itype_for_python_type(self, py_type: type) -> "type[IType] | None":
         """Resolve an inferred Python type to its registered IType.
 
-        Used only by the runtime/settings-file auto-define path. Prefers the global
-        TypeRegistry (source of truth via each IType's ``element_type_cls``); when
-        it is unavailable (e.g. an isolated registry in a unit test, or early init
-        before libraries load) falls back to the builtin scalar ITypes so a plain
-        settings-file scalar still auto-defines. Returns ``None`` only for a Python type
+        Prefers the global TypeRegistry; when that is unavailable (an isolated
+        registry in a unit test, or early init before libraries load) falls
+        back to the builtin scalar ITypes. Returns ``None`` for a Python type
         with no scalar builtin and no registry match.
         """
         try:
@@ -641,15 +618,12 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def save_to_json_debounced(self, path: Path | str | None = None) -> None:
         """Schedule a debounced ``save_to_json()`` call.
 
-        Each call resets the timer so that the file write only happens
-        once the caller stops requesting saves for the store's debounce
-        window. Useful during continuous interactions like drag-to-change
-        widgets.
+        Each call resets the timer, so the file is written once the caller
+        stops requesting saves for the store's debounce window.
 
-        No-op when there is no workspace path configured AND no path is
-        passed in — there is nowhere to persist to (unsaved workspace, or
-        test fixture). In-memory tier values still update via set_global;
-        only the disk write is skipped.
+        No-op when no workspace path is configured and none is passed — there
+        is nowhere to persist to. In-memory tier values still update through
+        ``set_global``; only the disk write is skipped.
         """
         if path is None and self._workspace_path is None:
             return
@@ -660,7 +634,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
 
     @property
     def _save_timer(self) -> threading.Timer | None:
-        """Exposes the store's debounce timer for introspection (tests)."""
+        """The store's pending debounced-save timer, or ``None``."""
         return self._files._save_timer
 
     def _collect_workspace_entries(self) -> dict[str, Any]:
@@ -692,12 +666,9 @@ class SettingsRegistry(BaseRegistry[Settings]):
     # =========================================================================
 
     def stop_watching(self) -> None:
-        """Stop all file watchers.
+        """Stop all file watchers and clear both tiers' watch flags.
 
-        Delegates to the store, which bounds its ``join`` so a watchdog
-        observer thread that fails to terminate (seen with the macOS
-        FSEvents backend) degrades to a warning instead of wedging the
-        caller.
+        Never blocks indefinitely — see ``SettingsFileStore.stop``.
         """
         self._files.stop()
         self._global_watch_enabled = False
@@ -829,25 +800,20 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def _rehydrate_entry(self, name: str, entry: Any) -> Any:
         """Rehydrate a flattened JSON entry into the live value for _process_entry.
 
-        ``_process_entry`` expects either a bare scalar or a {"value": …, ...} dict.
-        For an ALREADY-DEFINED typed key whose entry is a {"value": …} dict, run
-        from_dict so the tier stores the live Python value (Vec2i, etc.); otherwise
-        (unknown key — the auto-define path, or a plain scalar) pass through
-        unchanged. Only defined keys are rehydrated: ``_value_from_jsonable``
-        returns its input as-is when there is no definition yet, so re-wrapping
-        that passthrough here would double-wrap the whole entry (including
-        auto-define metadata like ``type``/``choices``) inside another
-        ``{"value": ...}``.
+        For an already-defined typed key whose entry is a ``{"value": …}``
+        dict, runs ``from_dict`` so the tier stores the live Python value
+        (``Vec2i``, etc.). An unknown key (the auto-define path) or a plain
+        scalar passes through unchanged.
         """
+        # Only defined keys: _value_from_jsonable passes an undefined key's entry
+        # through, so re-wrapping it here would nest the whole entry — auto-define
+        # metadata included — inside a second {"value": ...}.
         if name in self._definitions and isinstance(entry, dict) and "value" in entry:
             return {"value": self._value_from_jsonable(name, entry)}
         return entry
 
     def _effective_value(self, name: str) -> SettingValue:
-        """Return the merged effective global value: workspace-set beats global-set, else unset.
-
-        Used internally for change detection and by get_global().
-        """
+        """Return the merged effective global value: workspace-set beats global-set, else unset."""
         workspace_sv = self._workspace_tier_values.get(name, SettingValue.unset())
         if workspace_sv.is_set:
             return workspace_sv
@@ -859,8 +825,6 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def get_global(self, name: str) -> SettingValue:
         """
         Get the merged effective global value (workspace tier beats global tier).
-
-        Used by ResolutionChain and Settings for value resolution.
         """
         return self._effective_value(name)
 
@@ -955,10 +919,8 @@ class SettingsRegistry(BaseRegistry[Settings]):
         if global_sv.is_set:
             return global_sv.value, "global"
 
-        # A callable default is late-binding (e.g. "current default skin" —
-        # the source registry doesn't exist at class-definition time). It is
-        # evaluated here, at resolve/seed time — never on the read path, which
-        # is a pure cell read.
+        # A callable default is late-binding (e.g. "current default skin"),
+        # evaluated at resolve time rather than at class definition.
         default = defn._default() if callable(defn._default) else defn._default
         return default, "default"
 
@@ -969,8 +931,7 @@ class SettingsRegistry(BaseRegistry[Settings]):
     def registered_schemas(self) -> list[type]:
         """
         All registered FrameworkSettings / LibrarySettings schema classes, in
-        registration order.  Useful for building workspace settings panels that
-        enumerate settings grouped by schema.
+        registration order.
         """
         return list(self._classes.values())
 

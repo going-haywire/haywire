@@ -79,14 +79,10 @@ class PanelRegistry(BaseRegistry[BasePanel]):
     def _report_cycles(self, cls: type[BasePanel]) -> None:
         """Log a warning if ``cls`` closes a cycle in the ``hosts=`` graph.
 
-        **Logged, not rejected.** The graph closes only through
-        surface → panels, so a cycle first becomes visible when the *second*
-        panel registers; refusing that one would drop a panel from the catalog
-        based on which library loaded first, and two libraries each sound
-        alone would then fail differently depending on install order.
-        Enforcement is the render-time re-entry guard in
-        ``BasePanel.render_surface``, which has to exist regardless — so
-        reporting here costs nothing and gives the author both signals.
+        Logged, never rejected: a cycle first shows when the second panel
+        registers, so refusing it would drop a panel by load order. The
+        render-time re-entry guard in ``BasePanel.render_surface`` is the
+        enforcement.
         """
         identity = getattr(cls, "class_identity", None)
         start = getattr(getattr(identity, "surface", None), "id", None)

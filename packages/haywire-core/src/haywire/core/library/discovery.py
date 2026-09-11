@@ -1,8 +1,7 @@
-"""
-Library discovery system for installed Haywire libraries via entry points.
+"""Discovery of Haywire libraries installed as pip packages.
 
-This module provides functionality to discover libraries installed as pip packages
-through the standard Python entry points mechanism.
+Libraries are found through the ``haywire.libraries`` entry point group, and
+classified as a regular or an editable install by where their module sits.
 """
 
 from __future__ import annotations
@@ -40,20 +39,18 @@ class LibraryDiscovery:
 
     @classmethod
     def discover_installed_libraries(cls) -> list[DiscoveredLibrary]:
-        """
-        Discover all installed Haywire libraries via entry points.
+        """Discover all installed Haywire libraries via entry points.
 
-        Returns:
-            List of DiscoveredLibrary objects, separated by install type
+        An entry point that fails to load is logged and skipped, so one broken
+        library does not hide the rest. The result is sorted by install type,
+        then by library name.
         """
         discovered = []
 
         try:
-            # Get entry points for Python 3.10+
             if sys.version_info >= (3, 10):
                 eps = entry_points(group=cls.ENTRY_POINT_GROUP)
             else:
-                # Fallback for Python 3.9
                 eps = entry_points().get(cls.ENTRY_POINT_GROUP, [])
 
             for ep in eps:
@@ -67,32 +64,27 @@ class LibraryDiscovery:
         except Exception as e:
             logger.error(f"Entry point discovery failed: {e}", exc_info=True)
 
-        # Sort by install type: regular first, then editable
         discovered.sort(key=lambda x: (x.install_type.value, x.identity.name))
 
         return discovered
 
     @classmethod
     def _load_library_from_entry_point(cls, ep: EntryPoint) -> DiscoveredLibrary | None:
-        """Load library class and metadata from entry point"""
+        """Load a library class and its identity from an entry point, or None if either is unusable."""
 
         try:
-            # Load the library class
             library_cls = ep.load()
 
-            # Validate it's a BaseLibrary subclass
             if not issubclass(library_cls, BaseLibrary):
                 logger.warning(f"Entry point '{ep.name}' does not point to BaseLibrary subclass")
                 return None
 
-            # Get library identity from decorator
             if not hasattr(library_cls, "class_identity"):
                 logger.warning(f"Library class {library_cls.__name__} missing @library decorator")
                 return None
 
             identity: LibraryIdentity = library_cls.class_identity
 
-            # Get library file path and determine install type
             library_path, install_type = cls._get_library_path_and_type(library_cls)
 
             logger.info(
@@ -115,11 +107,10 @@ class LibraryDiscovery:
 
     @classmethod
     def _get_library_path_and_type(cls, library_cls: type[BaseLibrary]) -> Tuple[Path, InstallType]:
-        """
-        Get library path and determine if it's an editable or regular install.
+        """Return the directory holding the library's module and its install type.
 
-        Returns:
-            Tuple of (library_path, install_type)
+        Raises:
+            RuntimeError: the library's module has no ``__file__``.
         """
         module = import_module(library_cls.__module__)
 
@@ -129,7 +120,6 @@ class LibraryDiscovery:
         module_file = Path(module.__file__)
         library_path = module_file.parent
 
-        # Determine if editable install by checking if it's in site-packages
         install_type = cls._detect_install_type(library_path)
 
         if install_type == InstallType.REGULAR:
@@ -141,31 +131,26 @@ class LibraryDiscovery:
 
     @classmethod
     def _detect_install_type(cls, library_path: Path) -> InstallType:
-        """
-        Detect if library is a regular or editable install.
+        """Classify a library path as a regular (inside site-packages) or editable install.
 
-        Editable installs are outside site-packages.
-        Regular installs are inside site-packages.
+        A path that cannot be compared against site-packages is reported as
+        editable, with a warning logged.
         """
-        # Get site-packages locations
         try:
             import site
 
             site_packages = [Path(p) for p in site.getsitepackages()]
 
-            # Also check user site-packages
             if site.ENABLE_USER_SITE:
                 site_packages.append(Path(site.getusersitepackages()))
 
-            # Check if library_path is within any site-packages directory
             for sp in site_packages:
                 try:
                     library_path.relative_to(sp)
-                    return InstallType.REGULAR  # Inside site-packages
+                    return InstallType.REGULAR
                 except ValueError:
-                    continue  # Not relative to this site-packages
+                    continue
 
-            # Not in any site-packages = editable install
             return InstallType.EDITABLE
 
         except Exception as e:

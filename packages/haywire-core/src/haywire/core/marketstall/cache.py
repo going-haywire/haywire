@@ -1,12 +1,10 @@
 """HTTP cache with tri-state outcomes.
 
-Cache lives at ~/.haywire/cache/<url-hash>.toml. No TTL: entries are valid
-until overwritten by a successful fetch. GC removes orphans (cache files
-whose URL no longer corresponds to an active subscription) at end of refresh.
+Cache lives at ~/.haywire/cache/<url-hash>.toml. Entries never expire: they are
+valid until overwritten by a successful fetch, or collected by
+:func:`gc_orphans` / :func:`gc_doc_dirs`.
 
-`cache_dir` parameter on every function: defaults to ~/.haywire/cache; tests
-override to use tmp_path. Keeps the production code testable without
-monkey-patching Path.home().
+Every function takes ``cache_dir``, defaulting to ~/.haywire/cache.
 """
 
 from __future__ import annotations
@@ -57,7 +55,7 @@ def cache_read(url: str, *, cache_dir: Path | None = None) -> tuple[str | None, 
 
 
 def _urlopen(url: str, *, timeout: float):
-    """Wrapped urllib.request.urlopen — separate function for ease of patching in tests."""
+    """Wrap ``urllib.request.urlopen`` as a single patch point."""
     return urllib.request.urlopen(url, timeout=timeout)
 
 
@@ -67,11 +65,14 @@ def fetch_with_cache_fallback(
     timeout: float = 5.0,
     cache_dir: Path | None = None,
 ) -> FetchResult:
-    """Fetch a URL. On success: cache + return FRESH. On failure: try cache → CACHE_FALLBACK.
+    """Fetch a URL, caching the body on success and falling back to the cache on failure.
 
-    Raises RemoteFetchError only when the URL fails AND no cache exists.
-    Never returns UNAVAILABLE — the orchestrator converts the exception into
-    that outcome at the call site.
+    Returns ``FRESH`` on success (the cache is overwritten) and
+    ``CACHE_FALLBACK`` when the fetch failed but a cached body exists. Never
+    returns ``UNAVAILABLE``.
+
+    Raises:
+        RemoteFetchError: The URL failed and no cache exists.
     """
     try:
         with _urlopen(url, timeout=timeout) as resp:
@@ -88,8 +89,8 @@ def fetch_with_cache_fallback(
 def docs_cache_dir(library: str, *, cache_dir: Path | None = None) -> Path:
     """Per-library partition of the doc-body cache: <cache>/docs/<library>/.
 
-    Isolated from the subscription cache and from gc_orphans (which only
-    scans top-level files) so doc bodies have an independent lifecycle.
+    :func:`gc_orphans` scans only top-level files, so these directories survive
+    it; :func:`gc_doc_dirs` collects them instead.
     """
     base = cache_dir if cache_dir is not None else _default_cache_dir()
     return base / "docs" / library
@@ -104,8 +105,8 @@ def fetch_doc(
 ) -> str | None:
     """Fetch a documentation URL through the shared cache-with-fallback.
 
-    Returns the body (FRESH or CACHE_FALLBACK), or None when the URL fails and
-    no cache exists. Same no-TTL semantics as every other marketstall fetch.
+    Returns the body, fresh or from cache, or ``None`` when the URL fails and
+    no cache exists.
     """
     try:
         result = fetch_with_cache_fallback(
@@ -117,10 +118,10 @@ def fetch_doc(
 
 
 def gc_doc_dirs(active_libraries: set[str], *, cache_dir: Path | None = None) -> int:
-    """Delete <cache>/docs/<library>/ for libraries not in active_libraries.
+    """Delete <cache>/docs/<library>/ for libraries not in ``active_libraries``.
 
-    Driven by refresh()'s resolved-catalog set: a library that left the
-    catalog loses its cached docs. Returns the number of directories removed.
+    Returns the number of directories removed; 0 when the docs directory does
+    not exist.
     """
     base = (cache_dir if cache_dir is not None else _default_cache_dir()) / "docs"
     if not base.is_dir():
@@ -134,11 +135,10 @@ def gc_doc_dirs(active_libraries: set[str], *, cache_dir: Path | None = None) ->
 
 
 def gc_orphans(active_urls: set[str], *, cache_dir: Path | None = None) -> int:
-    """Delete cache files whose URL is not in `active_urls`. Returns count deleted.
+    """Delete top-level <url-hash>.toml cache files whose URL is not in ``active_urls``.
 
-    At end of refresh, drop orphaned <url-hash>.toml files.
-    Resolves URLs to their hashes; deletes any cache file whose stem doesn't
-    match any active subscription. Missing cache dir returns 0 (nothing to GC).
+    Returns the number deleted; 0 when the cache directory does not exist.
+    Subdirectories are left alone (see :func:`docs_cache_dir`).
     """
     cache_dir = cache_dir if cache_dir is not None else _default_cache_dir()
     if not cache_dir.is_dir():

@@ -1,9 +1,8 @@
 """Add Source orchestrator.
 
-The resolution algorithm composes the foundation's classify_input,
-fetch_with_cache_fallback, parsers, and helpers into one pure function.
-The UI dialog calls this; the function has no I/O beyond what the underlying
-foundation primitives already do.
+Two phases: :func:`resolve_source` works out what an input is and what it
+offers without writing anything, and :func:`subscribe` commits it to the
+global marketplace. :func:`resolve_and_subscribe` runs both.
 """
 
 from __future__ import annotations
@@ -35,8 +34,9 @@ from haywire.core.marketstall.url_resolution import (
 class SubscribeError(RuntimeError):
     """Raised by resolve_and_subscribe on fetch failure, malformed body, or unwriteable paste file.
 
-    Distinct from BareRepoUrlRejectedError (which propagates separately from
-    classify_input). Callers should catch both to render distinct UI messages.
+    A bare repo URL raises
+    :class:`~haywire.core.marketstall.url_resolution.BareRepoUrlRejectedError`
+    instead, which is not a subclass of this.
     """
 
 
@@ -61,15 +61,14 @@ class SubscribeResult:
 class ResolvedSource:
     """What a source turned out to be, before anything is written.
 
-    Produced by :func:`resolve_source`, consumed by :func:`subscribe`. Holds
-    everything the decision needs — which section it would be written to, what
-    it offers — so a UI can show the consequences of subscribing before it
-    happens.
+    Produced by :func:`resolve_source`, consumed by :func:`subscribe`. ``kind``
+    is the section subscribing would write to, and ``haybales`` is what the
+    source offers.
 
-    ``pasted_body`` is the raw TOML for a pasted block, kept **in memory**:
-    the file under ``paste_dir`` is written by :func:`subscribe`, so
-    abandoning after a resolve leaves no orphan behind. It is None for every
-    URL form.
+    ``pasted_body`` is the raw TOML of a pasted block, held in memory until
+    :func:`subscribe` writes it under ``paste_dir``; it is None for every URL
+    form. ``persist_url`` is likewise empty for a pasted block, since its
+    ``file://`` URL is only known once that file has a home.
     """
 
     kind: SubscriptionKind
@@ -84,7 +83,11 @@ class ResolvedSource:
 
 
 def _derive_dist_name(toml_body: str) -> str:
-    """Extract the first haybale's `name` from a pasted TOML block."""
+    """Extract the first haybale's `name` from a pasted TOML block.
+
+    Raises SubscribeError on malformed TOML, no [[haybales]] section, or a
+    first entry with no `name`.
+    """
     try:
         data = toml.loads(toml_body)
     except toml.TomlDecodeError as exc:
@@ -130,19 +133,18 @@ def resolve_source(
     *,
     cache_dir: Path | None = None,
 ) -> ResolvedSource:
-    """Phase 1 — work out what *user_input* is. Writes nothing.
+    """Phase 1 — work out what *user_input* is. Writes nothing, not even a pasted block.
 
-    Classifies the input, fetches the body (or takes the pasted block), and
-    decides from its shape whether subscribing would write a [[markets]] or a
-    [[stalls]] entry. The haybales it offers are parsed out so a caller can
-    show them, and detect name collisions, before committing.
+    Classifies the input, fetches the body or takes the pasted block, and
+    decides from its shape which section subscribing would write: a body with
+    [[markets]] or [[stalls]] resolves as ``"market"``, one with only
+    [[haybales]] as ``"stall"``. The haybales it offers are parsed onto the
+    result.
 
-    A pasted block's file is NOT written here — its body rides along on the
-    result and :func:`subscribe` persists it, so a resolve the user abandons
-    leaves nothing on disk.
-
-    Raises BareRepoUrlRejectedError (propagates from classify_input) on form-3
-    bare repo URLs. Raises SubscribeError on fetch failure or malformed body.
+    Raises:
+        BareRepoUrlRejectedError: *user_input* is a bare repo URL.
+        SubscribeError: The fetch failed, the body is malformed TOML, or it is
+            neither a marketplace nor a marketstall.
     """
     classified = classify_input(user_input)
 
@@ -150,9 +152,8 @@ def resolve_source(
     if classified.form is InputForm.PASTED_BLOCK:
         assert classified.toml_body is not None  # invariant of classify_input
         pasted_body = classified.toml_body
-        # The persist/fetch URL is only knowable once the file has a home, and
-        # that is subscribe()'s job. Derive the name now so a bad block fails
-        # here, on the read step, rather than at write time.
+        # Derive the name now, though only subscribe() uses it, so a bad block
+        # fails on the read step rather than at write time.
         dist_name = _derive_dist_name(pasted_body)
         _require_safe_name(dist_name)
         body = pasted_body
@@ -206,13 +207,12 @@ def subscribe(
 ) -> SubscribeResult:
     """Phase 2 — write the subscription. The only mutation.
 
-    For a pasted block this also writes the block to ``paste_dir`` and uses
-    the resulting ``file://`` URL as the subscription target; that write is
-    deliberately here rather than in :func:`resolve_source` so nothing lands
-    on disk until the user commits.
+    For a pasted block this first writes the block to
+    ``paste_dir/<dist-name>.toml`` and subscribes to the resulting ``file://``
+    URL, overwriting any file already there.
 
-    Both underlying writers are idempotent on URL match, so re-subscribing an
-    already-present source is a no-op rather than a duplicate entry.
+    Idempotent on URL match: re-subscribing an already-present source adds no
+    duplicate entry.
     """
     persist_url = resolved.persist_url
     if resolved.pasted_body is not None:
@@ -235,14 +235,14 @@ def resolve_and_subscribe(
 ) -> SubscribeResult:
     """Run the full Add Source algorithm: resolve, then subscribe.
 
-    The compose-both convenience for callers with no UI to step through the
-    phases. A caller that wants to show the user what a source offers — and
-    which names it would collide with — before writing anything should drive
-    the two phases itself.
+    Writes unconditionally. To show what a source offers, and which names it
+    would collide with, before writing anything, drive the two phases
+    separately.
 
-    Raises BareRepoUrlRejectedError (propagates from classify_input) on form-3
-    bare repo URLs. Raises SubscribeError on fetch failure, malformed body,
-    or unwriteable paste file.
+    Raises:
+        BareRepoUrlRejectedError: *user_input* is a bare repo URL.
+        SubscribeError: The fetch failed, the body is malformed, or the paste
+            file could not be written.
     """
     resolved = resolve_source(user_input, cache_dir=cache_dir)
     return subscribe(resolved, global_path, paste_dir=paste_dir)

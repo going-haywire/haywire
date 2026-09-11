@@ -1,12 +1,9 @@
 # haywire/core/graph/properties.py
-"""
-GraphProperties — framework-provided per-graph props (``graph.props``).
+"""GraphProperties — framework-provided per-graph props (``graph.props``).
 
-The graph-side analogue of NodeProperties. Fields here interpose the graph
-tier between framework defaults and per-node opinions: each field shadows
-a framework setting (registry-key mirror), and node-bag fields may declare
-``graph(src=<field here>)`` (graph mirror), yielding framework < graph <
-node.
+Each field here shadows a framework setting, and a node-bag field may mirror
+one with ``graph(src=<field here>)``, interposing the graph tier between the
+framework default and a node's own opinion: framework < graph < node.
 
 Serialized under the ``'props'`` key in graph JSON; restored before nodes
 on load.
@@ -35,8 +32,8 @@ class GraphProperties(GraphSettings):
         ),
         category="appearance",
         order=10,
-        # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT
-        # its per-setting widget_config — options must be re-supplied here.
+        # A mirror inherits its IType from src but not src's widget_config, so
+        # the options have to be repeated on every field below.
         widget_config={"options": _node_skin_choices},
     )
 

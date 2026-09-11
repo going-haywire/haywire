@@ -14,106 +14,56 @@ if TYPE_CHECKING:
 
 
 class IType(ABC):
-    """
-    Abstract base for Haywire type system.
+    """Root of the type system: what a value is, apart from where it is stored.
 
-    ARCHITECTURE:
+    A type describes data — its metadata, the ports it can build, the adapters
+    it takes part in. An instance is a template used for defaults and adapters;
+    runtime values live in the ``DataField`` the type builds through
+    :meth:`create_field`.
 
-    Type System (IType):
-        - Describes data types (metadata, ports, adapters)
-        - Can be instantiated for adapters and defaults
-        - Instances are TEMPLATES, not runtime storage
+    Four families derive from this base, each answering ``element_type_cls``
+    differently:
 
-    Storage System (DataField):
-        - Stores actual runtime data efficiently
-        - Uses unwrapped values for primitives
-        - Uses instances for complex types
+    - ``PrimitiveType`` (``FLOAT``, ``INT``, ``STRING``) — one primitive,
+      stored unwrapped. ``element_type_cls`` is the Python type. Cannot hold
+      ``None``: ``PrimitiveType.__init__`` raises on one.
+    - ``BaseType`` (``MeshData``, ``Vector3``) — one structured instance, which
+      is both descriptor and data. ``element_type_cls`` is the class itself.
+    - ``CompoundType`` (``ArrayType[FLOAT]``) — N elements of one type, from
+      ``__class_getitem__``. ``element_type_cls`` is the element type. Other
+      subsystems dispatch on this family to mean "container": ``AdapterFactory``
+      builds element-wise chains for it and ``pin_render`` gives it collection
+      iconography, so a type that holds one value must not subclass it.
+    - ``WrapperType`` (``OPTIONAL[INT]``) — one value of another type, or
+      absence, parameterized the same way. ``element_type_cls`` is the wrapped
+      type. See ADR 0033.
 
-    FOUR FAMILIES:
+    Nesting reads back through ``element_type_cls``, so
+    ``ArrayType[FLOAT].element_type_cls`` is ``FLOAT`` and
+    ``FLOAT.element_type_cls`` is ``float``.
 
-    1. PRIMITIVES (FLOAT, INT, STRING) — PrimitiveType
-       - Type: FLOAT class (descriptor)
-       - Instance: FLOAT(value=42.0) (template for adapters/defaults)
-       - Storage: 42.0 (unwrapped in PrimitiveField)
-       - Cannot hold absence: PrimitiveType.__init__ raises on a None value.
-
-    2. BASE (MeshData, Vector3) — BaseType
-       - Type: MeshData class (descriptor AND data container)
-       - Instance: MeshData(...) (descriptor instance IS the data)
-       - Storage: MeshData(...) instance (in BaseField)
-
-    3. COMPOUND (ArrayType[FLOAT], PooledType[MeshData]) — CompoundType
-       - N elements of one IType. Parameterized via __class_getitem__.
-       - Other subsystems DISPATCH on this family: AdapterFactory builds
-         element-wise adapter chains for it, pin_render gives it collection
-         iconography. So "is a CompoundType" means "is a container", and a type
-         that is not a container must not join it.
-
-    4. WRAPPER (OPTIONAL[INT]) — WrapperType
-       - Exactly ONE value of another IType, or absence. Parameterized the same
-         way, but deliberately NOT a CompoundType — see family 3.
-       - Storage: the element's own field class, made absence-tolerant.
-
-    The .value property provides uniform interface:
-    - PrimitiveType.value → unwrapped primitive
-    - BaseType.value → self (instance is the value)
-    - WrapperType.value → the wrapped value, or None
-
-    HIERARCHICAL TYPE SYSTEM:
-
-    element_type_cls creates a hierarchical structure:
-    - PrimitiveType: Points to Python primitive (float, str, int, bool)
-    - BaseType: Points to itself (the class IS the element type)
-    - CompoundType: Points to IType of elements (FLOAT, MeshData)
-    - WrapperType: Points to the IType it wraps (INT, VEC3F)
-
-    This enables drilling down through type layers:
-        ArrayType[FLOAT].element_type_cls → FLOAT
-        FLOAT.element_type_cls → float
-
-    **Abstract Requirements** (subclasses must implement):
-    - value property: Returns the type's data in natural form
-
-    **Concrete Defaults** (subclasses inherit, can override):
-    - as_inlet/as_outlet/as_config: Port creation methods
-    - create_field: DataField creation
-    - _validate_port_type: Port type validation hook (default: allow all)
-    - _configure_port: Port configuration hook (default: no config)
-
-    **Class Attributes** (subclasses must set):
-    - field_class: DataField class that handles storage
-    - element_type_cls: What this type wraps/contains (set automatically)
-
-    This follows Python's ABC pattern where base classes provide both
-    abstract requirements and concrete default implementations.
-
-    Attributes (set by @type decorator):
-        class_identity: DataTypeIdentity with all type metadata
-        class_library: LibraryIdentity of the library this type belongs to
+    Subclasses must implement :attr:`value`, :meth:`to_dict` and
+    :meth:`from_dict`, and set ``field_class``. Port creation and
+    :meth:`create_field` are inherited; :meth:`_validate_port_type` and
+    :meth:`_configure_port` are hooks that do nothing by default.
     """
 
-    # STRUCTURAL ATTRIBUTES (type system mechanics)
     field_class: type["DataField"] | None = None
-    # DataField class responsible for storing this type's data.
-    # Subclasses MUST set this to their corresponding DataField subclass.
-    # This allows the type to create its own field instances with the correct configuration.
 
     element_type_cls: type | None = None
-    # What this type wraps/contains
 
-    # IDENTITY ATTRIBUTES (set by @type decorator)
+    # Stamped by the @type decorator; absent on an undecorated subclass.
     class_identity: ClassVar["DataTypeIdentity"]
     class_library: ClassVar["LibraryIdentity"]
 
     @property
     @abstractmethod
     def value(self):
-        """
-        Returns the value of this type in its natural form.
+        """This instance's data in its natural form.
 
-        For PrimitiveType: returns the unwrapped primitive (42.0, "hello")
-        For BaseType: returns self (the instance IS the value)
-        For CompoundType: returns the container (list, dict, etc.)
+        A primitive returns the unwrapped value, a ``BaseType`` returns
+        ``self``, a ``CompoundType`` its container, a ``WrapperType`` the
+        wrapped value or ``None``.
         """
         pass
 
@@ -123,23 +73,19 @@ class IType(ABC):
 
     @abstractmethod
     def to_dict(self) -> Dict[str, Any]:
-        """Serialize this instance to a dict.
+        """Serialize this instance to a dict :meth:`from_dict` can read back.
 
-        For PrimitiveType: serializes the wrapped value via {'value': self.value}.
-        For BaseType: serializes the instance's state (subclasses define structure).
+        A primitive writes ``{'value': self.value}``; a ``BaseType`` defines
+        its own structure.
         """
         ...
 
     @classmethod
     @abstractmethod
     def from_dict(cls, data: Dict[str, Any]) -> Any:
-        """Deserialize a dict to a value/instance.
+        """Read back what :meth:`to_dict` wrote, as this type's natural value.
 
-        For PrimitiveType: returns the unwrapped value (T).
-        For BaseType: returns an instance (Self).
-
-        Return type is Any at the IType level because the natural value
-        differs per subclass.
+        A primitive returns the unwrapped value, a ``BaseType`` an instance.
         """
         ...
 
@@ -149,26 +95,20 @@ class IType(ABC):
 
     @classmethod
     def create_field(cls, default_override: Optional[Dict[str, Any]] = None) -> "DataField":
-        """
-        Create the DataField for this type.
-
-        Each type is responsible for creating its own field instance.
+        """Build the ``DataField`` that stores values of this type.
 
         Args:
-            default_override: Override default kwargs from @type decorator
-
-        Returns:
-            Configured DataField instance
+            default_override: Constructor kwargs for the field's initial value,
+                replacing the ``default`` the ``@type`` decorator declared. An
+                empty dict counts as absent and the declared default is used.
 
         Raises:
-            ValueError: If field_class not declared
+            ValueError: If the type declares no ``field_class``.
 
-        Examples:
-            # Simple type
+        Example::
+
             field = FLOAT.create_field()
-
-            # Compound type
-            field = ArrayType.create_field()
+            field = FLOAT.create_field({"value": 1.5})
         """
         if not cls.field_class:
             raise ValueError(
@@ -176,7 +116,6 @@ class IType(ABC):
                 f"Add 'field_class = SomeField' to the type definition."
             )
 
-        # Get default kwargs
         default_kwargs = default_override or {}
         if not default_kwargs and hasattr(cls, "class_identity"):
             default_kwargs = getattr(cls.class_identity, "default", {})
@@ -189,48 +128,34 @@ class IType(ABC):
 
     @classmethod
     def _validate_port_type(cls, port_type: PortType) -> None:
-        """
-        Validate if this type supports the given port type.
+        """Reject a port type this type cannot be used as. Accepts all by default.
 
-        Hook for subclasses to restrict which port types they support.
-        Default implementation allows all port types.
+        Override to restrict, raising ``ValueError`` for a port type the type
+        does not support::
 
-        Args:
-            port_type: PortType
-
-        Raises:
-            ValueError: If this type doesn't support the port type
-
-        Examples:
-            # Override to restrict
             class PooledType(CompoundType):
                 @classmethod
                 def _validate_port_type(cls, port_type: PortType):
                     if port_type != PortType.INLET:
                         raise ValueError("PooledType only supports inlets")
         """
-        pass  # Default: all port types allowed
+        pass
 
     @classmethod
     def _configure_port(cls, port: "DataPort", **context) -> None:
-        """
-        Configure port-specific attributes after creation.
+        """Adjust a freshly created port. Does nothing by default.
 
-        Hook for subclasses to add custom port configuration.
-        Default implementation does nothing.
+        Called from ``DataPort.from_spec`` with no context, so an override
+        must read what it needs off ``port`` and ``cls``.
 
-        Args:
-            port: Port to configure
-            **context: Additional context (element_type_cls, etc.)
+        Override to set attributes the type always wants::
 
-        Examples:
-            # Override to configure
             class PooledType(CompoundType):
                 @classmethod
                 def _configure_port(cls, port, **context):
                     port.allow_multiple_links = True
         """
-        pass  # Default: no extra configuration
+        pass
 
     # ========================================================================
     # PORT CREATION - Returns PortSpec for node.add() to instantiate
@@ -238,26 +163,14 @@ class IType(ABC):
 
     @classmethod
     def as_inlet(cls, id: str, **kwargs) -> "PortSpec":
-        """
-        Create an inlet specification from this type.
+        """Build an inlet spec for ``node.add()``, which instantiates the ``DataPort``.
 
-        Returns a PortSpec dict, not a port instance. The node's add()
-        method uses this spec to instantiate the actual DataPort.
-
-        Sets the store_strategy to WIDGET
-        (only stores widget data when saving the graph)
-
-        Universal implementation that works for all type categories:
-        - PrimitiveType: FLOAT.as_inlet('value', default=0.0)
-        - BaseType: MeshData.as_inlet('mesh', default={...})
-        - CompoundType: Uses parameterized syntax (see below)
-
-        For CompoundType, use parameterized syntax:
-            ArrayType[FLOAT].as_inlet('numbers')
-            PooledType[MeshData].as_inlet('meshes')
+        ``store_strategy`` defaults to ``HAS_WIDGET``, so the value is saved
+        with the graph only when the port has a widget. Compound and wrapper
+        types are subscripted first (``ArrayType[FLOAT].as_inlet('numbers')``).
 
         Args:
-            id: Port identifier
+            id: Port identifier, unique within the node.
             **kwargs: Override identity or port attributes. All values below
                 are inherited from the type's class_identity and can be
                 overridden per-port.
@@ -300,11 +213,8 @@ class IType(ABC):
                 on_connect (str): Node method name to call when connected
                 on_disconnect (str): Node method name to call when disconnected
 
-        Returns:
-            PortSpec dict for node.add()
+        Example::
 
-        Examples:
-        .. code-block:: python
             self.add(FLOAT.as_inlet('value', default=1.0))
             self.add(FLOAT.as_inlet('threshold', default=0.5,
                      widget=SliderWidget.config(min=0.0, max=1.0)))
@@ -314,7 +224,6 @@ class IType(ABC):
         """
         from haywire.core.types.utils import create_port_spec
 
-        # Validate port type
         cls._validate_port_type(PortType.INLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.HAS_WIDGET))
@@ -323,19 +232,13 @@ class IType(ABC):
 
     @classmethod
     def as_outlet(cls, id: str, **kwargs) -> "PortSpec":
-        """
-        Create an outlet specification from this type.
+        """Build an outlet spec for ``node.add()``, which instantiates the ``DataPort``.
 
-        Returns a PortSpec dict, not a port instance. The node's add()
-        method uses this spec to instantiate the actual DataPort.
-
-        Sets the store_strategy to STORE
-        (stores when saving the graph)
-
-        Note: Data-flow outlets automatically get allow_multiple_links=True.
+        The value is saved with the graph, and compound and wrapper types are
+        subscripted first (``ArrayType[FLOAT].as_outlet('sorted')``).
 
         Args:
-            id: Port identifier
+            id: Port identifier, unique within the node.
 
             **kwargs: Override identity or port attributes. All values below
                 are inherited from the type's class_identity and can be
@@ -381,18 +284,14 @@ class IType(ABC):
                 on_connect (str): Node method name to call when connected
                 on_disconnect (str): Node method name to call when disconnected
 
-        Returns:
-            PortSpec dict for node.add()
+        Example::
 
-        Examples:
-        .. code-block:: python
             self.add(FLOAT.as_outlet('result'))
             self.add(ArrayType[FLOAT].as_outlet('sorted'))
             self.add(CTRL.as_outlet('loop_body', needs_loopback=True))
         """
         from haywire.core.types.utils import create_port_spec
 
-        # Validate port type
         cls._validate_port_type(PortType.OUTLET)
 
         kwargs.setdefault("store_strategy", cls._resolve_store_strategy(StoreStrategy.ALWAYS))
@@ -401,17 +300,13 @@ class IType(ABC):
 
     @classmethod
     def as_config(cls, id: str, **kwargs) -> "PortSpec":
-        """
-        Create a config inlet specification (no visible pin) from this type.
+        """Build a config spec for ``node.add()``: a parameter with a widget but no pin.
 
-        Config inlets are internal parameters that don't show as connection pins.
-        Returns a PortSpec dict, not a port instance.
-
-        Sets flow_type to NONE and store_strategy to STORE
-        (always stores when saving the graph)
+        ``flow_type`` is forced to ``NONE``, so a config can never be linked,
+        and its value is saved with the graph.
 
         Args:
-            id: Config identifier
+            id: Config identifier, unique among the node's ports.
 
             **kwargs: Override identity or port attributes. All values below
                 are inherited from the type's class_identity and can be
@@ -445,11 +340,8 @@ class IType(ABC):
             Callbacks:
                 on_change (str): Node method name to call when value changes
 
-        Returns:
-            PortSpec dict for node.add() with flow_type=NONE
+        Example::
 
-        Examples:
-        .. code-block:: python
             self.add(FLOAT.as_config('threshold', default=0.5))
             self.add(FLOAT.as_config('speed', default=1.0,
                      widget=SliderWidget.config(min=0.0, max=10.0)))
@@ -458,7 +350,6 @@ class IType(ABC):
         from haywire.core.types.enums import FlowType
         from haywire.core.types.utils import create_port_spec
 
-        # Validate port type
         cls._validate_port_type(PortType.CONFIG)
 
         kwargs["flow_type"] = FlowType.NONE

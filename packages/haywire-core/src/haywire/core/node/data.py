@@ -20,15 +20,12 @@ if TYPE_CHECKING:
 
 
 class NodeData:
-    """
-    Node data management with unified port collection and dynamic reconfiguration.
+    """Port storage and reconfiguration for a node.
 
-    Provides:
-    - Unified port storage (inlets and outlets in single dict)
-    - Dynamic port reconfiguration (rejig context manager)
-    - Hierarchical grouping (nested groups with context managers)
-    - Section organization (for property panels)
-    - Clean API for port access
+    Every port — inlet, outlet and config — lives in one ``ports`` dict.
+    ``rejig()`` reconfigures them while keeping the edges of those that come
+    back, ``group()`` nests them under a collapsible group port on the node
+    card, and ``section()`` groups them for the Properties panel.
     """
 
     # Class-level attributes (set by @node decorator)
@@ -63,25 +60,20 @@ class NodeData:
         self.ports: Dict[str, DataPort] = {}
         """Single source of truth for all ports (inlets and outlets)."""
 
-        # Settings bags (GUI-facing, serialized)
-        # Each Settings subclass declared in the node class body is instantiated with
-        # the global registry injected, then bound directly as a
-        # node instance attribute so node authors can write self.filter.threshold.
+        # Each Settings subclass declared in the node class body becomes an instance
+        # attribute, so node authors write self.filter.threshold.
         _registry = get_settings_registry()
         for _bag_name, _bag_cls in type(self)._settings_bags.items():
             _bag_instance: Settings = _bag_cls(registry=_registry, node=self)
             _bag_instance._subscribe_settings()
             object.__setattr__(self, _bag_name, _bag_instance)
 
-        # Cache (transient, NOT serialized)
         self._cache: NodeCache = NodeCache()
 
-        # Store (persistent, serialized, NOT GUI-facing)
         self._store: NodeStore = NodeStore()
 
-        # Keyed by port id (str → C-level hash, cached on the str) rather than a
-        # Set[DataPort] (whose membership calls the Python-level DataPort.__hash__
-        # on every mark). Idempotent: re-marking the same id overwrites.
+        # Keyed by port id: a str caches its hash at C level, while a set of
+        # DataPort would call the Python-level DataPort.__hash__ on every mark.
         self._has_dirty_ports: Dict[str, DataPort] = {}
 
         # ---------------------------------------------------------------------
@@ -119,52 +111,24 @@ class NodeData:
         return self.__class__.class_library
 
     def list_setting_bags(self) -> dict[str, Settings]:
-        """
-        Return all user-declared Settings instances keyed by name.
+        """Return every user-declared ``Settings`` instance on this node, keyed by accessor name.
 
-        Used by panels and framework code to discover and render node settings.
-        Node authors access bags directly via the instance attribute instead::
-
-            class filter(Settings):
-                threshold: float = field(0.5)
+        A node author reads and writes a bag through its instance attribute
+        instead::
 
             self.filter.threshold         # read
-            self.filter.threshold = 0.8   # write local override
-            self.filter.reset('threshold')
+            self.filter.threshold = 0.8   # write a local override
         """
         return {name: getattr(self, name) for name in type(self)._settings_bags}
 
     @property
     def cache(self) -> NodeCache:
-        """
-        Transient cache (NOT serialized).
-
-        Use for temporary data that can be safely lost:
-        - Computation caches
-        - Temporary buffers
-        - Runtime-only state
-
-        Example:
-            self.cache.lookup = {}
-            self.cache.last_input = None
-        """
+        """The node's transient cache. See ``NodeCache``."""
         return self._cache
 
     @property
     def store(self) -> NodeStore:
-        """
-        Persistent store (serialized, NOT GUI-facing).
-
-        Use for internal state that must persist but users
-        don't need to see or edit:
-        - Counters
-        - Accumulated results
-        - Internal state machines
-
-        Example:
-            self.store.execution_count = 0
-            self.store.history = []
-        """
+        """The node's persistent store. See ``NodeStore``."""
         return self._store
 
     # =========================================================================
@@ -172,13 +136,7 @@ class NodeData:
     # =========================================================================
 
     def _housekeeping(self) -> None:
-        """
-        Perform housekeeping tasks for the node.
-
-        This method is called during the graph housekeeping phase
-        to allow the node to refresh its internal state, such as
-        rebuilding connection pipes after structural changes.
-        """
+        """Refresh every port's internal state, rebuilding its connection pipes."""
         for port in self.ports.values():
             port._housekeeping()
 
@@ -187,64 +145,31 @@ class NodeData:
     # =========================================================================
 
     def add(self, spec: "dict[Any, Any] | PortSpec") -> DataPort:
+        """Add an inlet or outlet from a port spec and return the built port.
+
+        The port joins the enclosing ``group()`` and ``section()`` blocks, if
+        any, and is ordered after the ports added before it. Inside ``rejig()``,
+        re-adding a port ID the block flagged replaces that port and keeps its
+        edges (see ``DataPort.adopt_state_from``); any other existing ID raises
+        ``ValueError``::
+
+            self.add(FLOAT.as_inlet("value"))
         """
-        Add a port (inlet or outlet) to the node with automatic hierarchy tracking.
-
-        Accepts either:
-        - PortSpec dict (from FLOAT.as_inlet(), etc.) - instantiates port
-        - DataPort instance (backward compatibility)
-
-        When given a PortSpec, instantiates the port with wrapper reference
-        available immediately - no race condition!
-
-        This method automatically:
-        - Assigns the port to the current group (if in a group context)
-        - Assigns the port to the current section (if in a section context)
-        - Assigns a display order
-        - Preserves connections if replacing an existing port (during reconfiguration)
-        - Unflags the port if in a rejig context
-
-        Args:
-            spec: specification dict
-
-        Returns:
-            The added DataPort
-
-        Raises:
-            ValueError: If port ID already exists (unless in rejig context)
-
-        Examples:
-            # Recommended: pass spec (returns PortSpec dict)
-            self.add(FLOAT.as_inlet('value'))
-
-            # Port in group
-            with self.group('advanced'):
-                self.add(FLOAT.as_inlet('param'))  # Auto-assigned to 'advanced' group
-
-            # Port with section
-            with self.section('validation'):
-                self.add(FLOAT.as_inlet('tolerance'))  # Auto-assigned to section
-        """
-        # Resolve spec to port instance if needed
         port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
-        # Set parent from current group stack
         if self._group_stack:
             port.parent_group = self._group_stack[-1]
 
-        # Set section from current section stack
         if self._section_stack:
             port.section = self._section_stack[-1]
 
-        # Assign display order
         port.order = self._port_order_counter
         self._port_order_counter += 1
 
-        # Handle existing port (reconfiguration case)
         if port.id in self.ports:
             existing = self.ports[port.id]
 
-            # If in push context, unflag it (it's being refreshed)
+            # Flagged by the enclosing rejig(): this add refreshes it.
             if self._push_stack and port.id in self._push_stack[-1]:
                 self._push_stack[-1].remove(port.id)
             else:
@@ -253,7 +178,6 @@ class NodeData:
             # Preserve edges (and value, if types match) from the replaced port.
             port.adopt_state_from(existing)
 
-        # Add to ports collection
         self.ports[port.id] = port
 
         if self.wrapper:
@@ -264,24 +188,14 @@ class NodeData:
 
     @contextmanager
     def group(self, spec: "dict[Any, Any] | PortSpec"):
-        """
-        Context manager for creating collapsible port groups.
+        """Add a collapsible group port; every port added inside becomes its child.
 
-        Creates a special group port with a boolean widget that controls
-        visibility of all ports added within the context. Groups can be nested.
-
-        The group itself is a port (boolean inlet) that appears in the node UI.
-        When collapsed (False), child ports are hidden but connections are
-        preserved and drawn to a ghost pin.
-
-        Args:
-            spec: specification dict for group port
+        The group is itself a boolean port on the node card, and its value is
+        the expanded state. While it is collapsed, child ports are hidden but
+        their edges are kept and drawn to a ghost pin. Groups nest.
 
         Raises:
-            ValueError: If group_port is not an inlet or id already exists
-
-        Yields:
-            None (context manager)
+            ValueError: If the group port's ID already exists.
 
         Examples:
             # Simple group
@@ -298,16 +212,13 @@ class NodeData:
                     self.add(FLOAT.as_inlet('tolerance'))
 
             # Initially collapsed
-            with self.group(GROUP.as_inlet('expert', label='Expert Settings', is_expanded=False)):
+            with self.group(GROUP.as_inlet('expert', label='Expert Settings', default=False)):
                 self.add(FLOAT.as_inlet('epsilon'))
         """
-        # Add group port
         group_port = self.add(spec)
 
-        # Mark as group
         group_port.is_group = True
 
-        # Push group context (all ports added in this context become children)
         self._group_stack.append(group_port.id)
         try:
             yield
@@ -316,18 +227,10 @@ class NodeData:
 
     @contextmanager
     def section(self, name: str):
-        """
-        Context manager for organizing ports into property panel sections.
+        """Group the ports added inside under ``name`` in the Properties panel.
 
-        Sections don't create visible ports in the node itself - they only
-        affect how ports are organized in the property panel/inspector.
-        This is useful for grouping related configuration options.
-
-        Args:
-            name: Section name for property panel
-
-        Yields:
-            None (context manager)
+        A section creates no port of its own, and its ports are left out of the
+        node card unless a caller asks for them (see ``iter_visible_ports``).
 
         Examples:
             # Ports in validation section
@@ -337,7 +240,7 @@ class NodeData:
                 self.add(BOOL.as_inlet('clamp'))
 
             # Nested sections and groups
-            with self.group('advanced'):
+            with self.group(GROUP.as_inlet('advanced')):
                 with self.section('performance'):
                     self.add(INT.as_inlet('max_iterations'))
         """
@@ -352,7 +255,6 @@ class NodeData:
     ) -> None:
         """Internal: flag ports for potential removal. Use rejig() instead."""
 
-        # Step 1: Build include set
         if include is None:
             flagged = set(self.ports.keys())
         elif isinstance(include, str):
@@ -361,7 +263,6 @@ class NodeData:
         else:
             flagged = set(include) & set(self.ports.keys())
 
-        # Step 2: Apply exclusions
         if exclude is not None:
             if isinstance(exclude, str):
                 pattern = re.compile(exclude)
@@ -393,11 +294,10 @@ class NodeData:
                             edge._update_link_state()
                             edge._outlet_port._housekeeping()
                     else:
-                        # Outlet destroyed → do NOT inform sink inlet (asymmetric)
+                        # Outlet destroyed: the sink inlet is not informed (asymmetric).
                         edge._update_link_state()
                     edge.redraw()
 
-                # Remove port
                 del self.ports[port_id]
                 removed.append(port_id)
 
@@ -407,26 +307,16 @@ class NodeData:
 
     @contextmanager
     def rejig(self, include: Optional[List[str] | str] = None, exclude: Optional[List[str] | str] = None):
-        """
-        Context manager for dynamic port reconfiguration.
+        """Flag ports for removal, yield for re-adding them, then remove the rest.
 
-        Flags existing ports for potential removal, yields control for
-        re-adding ports, then removes any ports that weren't refreshed.
-        Edges on refreshed ports are preserved automatically.
-
-        This is the recommended API over raw _push()/_pop() calls — it
-        guarantees _pop() runs even if an exception occurs during
-        reconfiguration.
+        Edges on re-added ports are preserved, and the removal pass runs even if
+        the body raises.
 
         Args:
-            include: Ports to flag (applied first):
-                - None: Start with all ports
-                - List[str]: Start with these specific port IDs
-                - str: Regex pattern to match port IDs
-            exclude: Ports to exclude from flagging (applied second):
-                - None: No exclusions
-                - List[str]: Exclude these specific port IDs
-                - str: Regex pattern to exclude matching port IDs
+            include: Ports to flag, applied first — ``None`` for every port, a
+                list of port IDs, or a regex searched against each port ID.
+            exclude: Ports to drop from the flagged set, applied second, in the
+                same three forms.
 
         Examples:
             Reconfigure all ports except a config port:
@@ -456,24 +346,14 @@ class NodeData:
     # =========================================================================
 
     def value(self, id: str) -> Any:
-        """
-        Get the unwrapped value of a port for worker access.
+        """Return a port's value unwrapped, in the shape its field type yields.
 
-        This is the primary method workers use to read port values.
-        Returns data in its most convenient form:
-        - PrimitiveField: Unwrapped primitive (42.0, "hello")
-        - BaseField: BaseType instance (MeshData(...))
-        - PooledField: Dict[str, T] of unwrapped values
-        - ArrayField: List[T] of unwrapped values
-
-        Args:
-            id: The ID of the port
-
-        Returns:
-            Unwrapped value appropriate for the field type
+        A ``PrimitiveField`` yields the bare primitive, a ``BaseField`` the
+        ``BaseType`` instance, a ``PooledField`` a dict of unwrapped values, and
+        an ``ArrayField`` a list of them.
 
         Raises:
-            KeyError: If port not found
+            KeyError: If no port has this ID.
 
         Examples:
             # Primitive inlet
@@ -498,19 +378,11 @@ class NodeData:
         return port.get_value()
 
     def out(self, id: str, value: Any) -> None:
-        """
-        Set the value of an outlet from worker.
-
-        This is the primary method workers use to write output values.
-        Accepts unwrapped values - no need to wrap in IType!
-
-        Args:
-            id: The ID of the outlet
-            value: Unwrapped value to set
+        """Set an outlet's value from the worker, taking the value unwrapped.
 
         Raises:
-            KeyError: If port not found
-            ValueError: If port is not an outlet
+            KeyError: If no port has this ID.
+            ValueError: If the port is an inlet.
 
         Examples:
             # Primitive outlet
@@ -540,29 +412,13 @@ class NodeData:
         yield from sorted(self.ports.values(), key=lambda p: p.order)
 
     def iter_visible_ports(self, include_sections: bool = False) -> Iterator[DataPort]:
-        """
-        Yield ports visible in the node UI (respecting group collapse state).
+        """Yield the ports drawn on the node card, in display order.
 
-        Handles:
-        - Filtering by group expansion state (collapsed groups hide children)
-        - Filtering section-marked ports (optional)
-        - Sorted by display order
+        A port inside a collapsed group is skipped.
 
         Args:
-            include_sections: If True, include ports marked with sections.
-                            If False, section ports are excluded from node UI
-                            (but still available for property panels).
-
-        Yields:
-            Visible ports in display order
-
-        Examples:
-            # Iterate ports for node rendering
-            for port in node.iter_visible_ports():
-                render_port(port)
-
-            # Collect as list when needed
-            visible = list(node.iter_visible_ports())
+            include_sections: When True, also yield ports assigned to a section;
+                by default those reach only the Properties panel.
         """
         for port in self._iter_ports():
             if not include_sections and port.section:
@@ -572,33 +428,19 @@ class NodeData:
             yield port
 
     def get_visible_ports(self, include_sections: bool = False) -> List[DataPort]:
-        """Get ports visible in the node UI as a list.
-
-        Convenience wrapper around iter_visible_ports().
-        """
+        """The ports drawn on the node card, as a list. See ``iter_visible_ports``."""
         return list(self.iter_visible_ports(include_sections=include_sections))
 
     def get_all_ports(self) -> List[DataPort]:
-        """Every port in display order, ignoring group collapse and sections.
-
-        The unfiltered counterpart to :meth:`get_visible_ports`, for callers
-        that must see ports a collapsed group hides — a folded node card, whose
-        linked pins have to include those, or an edge would lose its endpoint
-        (see :meth:`get_folded_ports`). Public wrapper around ``_iter_ports``
-        so the display ordering keeps one definition.
-        """
+        """Every port in display order, ignoring group collapse and sections."""
         return list(self._iter_ports())
 
     def get_folded_ports(self) -> List[DataPort]:
-        """The ports a FOLDED node card draws: every *linked* port, whatever
-        its group state.
+        """The ports a folded node card draws: every linked port, whatever its group state.
 
-        Group collapse is ignored on purpose — an edge must always find its
-        endpoint, and a folded card is all header, so there is nowhere else
-        for a hidden port's pin to go. Unlinked ports are dropped, which is
-        what makes a folded 23-port node actually small. Sections and group
-        control ports are excluded, matching :meth:`get_hidden_connected_ports`;
-        a group control port is never linked, so it falls out anyway.
+        Group collapse is ignored so that an edge always finds its endpoint on a
+        folded card. Unlinked ports, sectioned ports and group control ports are
+        left out.
         """
         return [
             port
@@ -607,14 +449,10 @@ class NodeData:
         ]
 
     def iter_section_ports(self, section: Optional[str] = None) -> Iterator[DataPort]:
-        """
-        Yield ports that belong to sections, in display order.
+        """Yield the ports assigned to a section, in display order.
 
         Args:
-            section: Specific section name to filter by, or None for all sections
-
-        Yields:
-            Section-assigned ports in display order
+            section: Section name to filter by, or ``None`` for every section.
         """
         for port in self._iter_ports():
             if not port.section:
@@ -624,17 +462,10 @@ class NodeData:
             yield port
 
     def get_section_ports(self, section: Optional[str] = None) -> Dict[str, List[DataPort]]:
-        """
-        Get ports organized by section for property panel rendering.
-
-        Returns ports grouped by their section assignment, useful for
-        building property panels with organized sections.
+        """Return the ports grouped by section name, each list in display order.
 
         Args:
-            section: Specific section name to filter by, or None for all sections
-
-        Returns:
-            Dict mapping section names to lists of ports in display order
+            section: Section name to filter by, or ``None`` for every section.
 
         Examples:
             sections = self.get_section_ports()
@@ -650,32 +481,17 @@ class NodeData:
         return sections
 
     def iter_group_children(self, group_id: str) -> Iterator[DataPort]:
-        """
-        Yield direct children of a group in display order.
-
-        Args:
-            group_id: ID of the group port
-
-        Yields:
-            Ports that are direct children of the group
-        """
+        """Yield the direct children of group ``group_id``, in display order."""
         for port in self._iter_ports():
             if port.parent_group == group_id:
                 yield port
 
     def is_group_expanded(self, group_id: str) -> bool:
-        """
-        Check if a group is currently expanded.
-
-        Args:
-            group_id: ID of the group port
-
-        Returns:
-            True if expanded, False if collapsed
+        """Return whether a group is currently expanded.
 
         Raises:
-            KeyError: If group not found
-            ValueError: If port is not a group
+            KeyError: If no port has this ID.
+            ValueError: If the port is not a group.
         """
         port = self.ports.get(group_id)
         if not port:
@@ -693,21 +509,14 @@ class NodeData:
         is_not_flow_type: Optional[FlowType] = None,
         has_widget: Optional[bool] = None,
     ) -> list[DataPort]:
-        """
-        Get ports matching optional filter criteria.
-
-        Only filters by criteria that are explicitly provided (not None).
-        If all parameters are None, returns all ports.
+        """Return the ports matching every filter given. ``None`` disables a filter.
 
         Args:
-            is_port_type: Filter by PortType. None = no filter.
-            is_flow_type: Filter by flow type (CONTROL, DATA, CALLBACK, NONE). None = no filter.
-            is_not_flow_type: Exclude this flow type. None = no filter.
-            has_widget: Filter by presence of widget. None = no filter.
-            has_pin: Filter by presence of visual pin. None = no filter.
-        Returns:
-            List of ports matching all specified criteria
-
+            is_port_type: Keep ports of this ``PortType``.
+            has_pin: Keep ports that do, or do not, draw a visual pin.
+            is_flow_type: Keep ports of this ``FlowType``.
+            is_not_flow_type: Drop ports of this ``FlowType``.
+            has_widget: Keep ports that do, or do not, carry a widget.
         """
         return [
             port
@@ -720,18 +529,14 @@ class NodeData:
         ]
 
     def iter_hidden_connected_ports(self, is_inlet: bool) -> Iterator[DataPort]:
-        """
-        Yield ports that are hidden but have active connections, in display order.
+        """Yield linked ports that a collapsed ancestor group hides, in display order.
 
-        These ports need ghost pins rendered near the title to maintain
-        visual connection endpoints. A port is considered hidden if it
-        has any ancestor group that is collapsed.
+        Their pins are drawn near the node title so an edge keeps an endpoint.
+        Sectioned ports and group control ports are left out.
 
         Args:
-            is_inlet: True to get hidden inlets, False for outlets
-
-        Yields:
-            Hidden ports with connections, in display order
+            is_inlet: Selects the opposite side: ``True`` yields the hidden ports
+                that are not inlets, ``False`` the hidden inlets.
         """
         visible_ids = {p.id for p in self.iter_visible_ports()}
 
@@ -744,25 +549,11 @@ class NodeData:
                 yield port
 
     def get_hidden_connected_ports(self, is_inlet: bool) -> List[DataPort]:
-        """Get hidden connected ports as a list.
-
-        Convenience wrapper around iter_hidden_connected_ports().
-        """
+        """Hidden linked ports as a list. See ``iter_hidden_connected_ports``."""
         return list(self.iter_hidden_connected_ports(is_inlet))
 
     def _is_any_ancestor_collapsed(self, port: DataPort) -> bool:
-        """
-        Check if any ancestor group in the port's hierarchy is collapsed.
-
-        Traverses the parent chain from the port up to the root,
-        checking if any group along the way is collapsed.
-
-        Args:
-            port: The port to check
-
-        Returns:
-            True if any ancestor group is collapsed, False otherwise
-        """
+        """Return whether any ancestor group of *port* is collapsed."""
         current_group_id = port.parent_group
 
         while current_group_id is not None:
@@ -771,31 +562,19 @@ class NodeData:
                 # Broken hierarchy - assume visible
                 break
 
-            # group_port is in self.ports (checked above), so value() cannot
-            # KeyError here. Check whether this group is collapsed.
+            # group_port is in self.ports (checked above), so value() cannot KeyError.
             if not self.value(current_group_id):
                 return True
 
-            # Move up to parent group
             current_group_id = group_port.parent_group
 
         return False
 
     def get_port_hierarchy(self, port_id: str) -> str:
-        """
-        Get the hierarchical path of a port from bottom to root.
-
-        Returns a string showing the port hierarchy delineated with '>>'
-        and ending with 'root' when there is no parent group.
-
-        Args:
-            port_id: ID of the port to get hierarchy for
-
-        Returns:
-            Hierarchy string in format 'port_id>>parent_id>>root'
+        """Return the port's path up to ``'root'``, its parent groups joined with ``'>>'``.
 
         Raises:
-            KeyError: If port_id not found
+            KeyError: If no port has this ID.
 
         Examples:
             # Top-level port
@@ -814,32 +593,26 @@ class NodeData:
         if not port:
             raise KeyError(f"Port '{port_id}' not found")
 
-        # Build hierarchy from bottom up
         hierarchy_parts = [port_id]
         current_port = port
 
-        # Traverse up the parent chain
         while current_port.parent_group is not None:
             parent_id = current_port.parent_group
             parent_port = self.ports.get(parent_id)
 
             if not parent_port:
-                # Parent group not found - broken hierarchy
+                # Broken hierarchy: stop where the chain ends.
                 break
 
             hierarchy_parts.append(parent_id)
             current_port = parent_port
 
-        # Add 'root' at the end
         hierarchy_parts.append("root")
 
         return ">>".join(hierarchy_parts)
 
     def mark_port_as_dirty(self, port: DataPort) -> None:
-        """
-        Called by ports when their value changes to indicate
-        the requirement for executing the worker method
-        """
+        """Record that *port* changed, so the node's worker runs on the next execution."""
         self._has_dirty_ports[port.id] = port
 
     # =========================================================================
@@ -847,18 +620,13 @@ class NodeData:
     # =========================================================================
 
     def _analyze_worker_signature(self) -> Callable:
-        """
-        Analyze worker signature and build an optimized executor.
-
-        Called after ports are configured (end of initialize or after port changes).
-
-        Returns:
-            Callable taking a context that invokes self.worker with the right
-            unwrapped port values.
+        """Build a callable that takes a context and invokes ``self.worker`` with the
+        unwrapped values of the ports its signature names.
 
         Raises:
-            RuntimeError: If self has no ``worker`` method. Concrete BaseNode
-                subclasses must override ``worker()`` (it is ``@abstractmethod``).
+            ValueError: If a worker parameter without a default names no existing
+                port.
+            RuntimeError: If ``self`` has no ``worker`` method.
         """
         worker_method = getattr(self, "worker", None)
         if not worker_method:
@@ -873,10 +641,8 @@ class NodeData:
         params.pop("context", None)
 
         if not params:
-            # Legacy: no params, call worker(context) directly
             return lambda ctx: self.worker(ctx)
 
-        # Collect params that have matching ports (in signature order)
         param_names_with_ports = []
 
         for name, param in params.items():
@@ -928,7 +694,7 @@ class NodeData:
             return lambda ctx: self.worker(ctx, **extract_dict())
 
     def _parse_worker_result(self, result: str | None) -> str | None:
-        """Parse worker result - just flow control."""
+        """Return the worker's outlet ID unchanged, raising ``ValueError`` for any non-``str``."""
         if result is not None and not isinstance(result, str):
             raise ValueError(
                 f"Worker must return str (outlet ID) or None, got {type(result).__name__}: {result!r}"
@@ -940,19 +706,13 @@ class NodeData:
     # =========================================================================
 
     def _serialize_ports(self, include_data: bool = True) -> Dict[str, Any]:
-        """
-        Serialize all NON-promoted ports to dictionary, optionally with data.
+        """Return each non-promoted port's ``to_dict()``, keyed by port ID.
 
-        Promoted ports are deliberately omitted: promotion is
-        recorded in the owning settings bag's "promoted" block and the port is
-        regenerated on load via regenerate_promoted_ports. Serializing it here
-        too would be a second, drifting source of truth.
+        A promoted port is omitted: its promotion is recorded in the owning
+        settings bag and the port is regenerated on load (see ADR 0019).
 
         Args:
-            include_data: If True, includes field values
-
-        Returns:
-            Dictionary mapping port IDs to PortSpec-format dicts (promoted ports excluded)
+            include_data: When True, port field values are included.
         """
         return {
             port_id: port.to_dict(include_data=include_data)
@@ -961,31 +721,24 @@ class NodeData:
         }
 
     def _deserialize_ports(self, ports_data: Dict[str, Any]) -> bool:
-        """
-        Deserialize ports from PortSpec-format dictionaries.
-
-        Uses the same _instantiate_port_from_spec() path as add(),
-        ensuring consistent port creation.
+        """Replace every port with the ones *ports_data* describes, and return True.
 
         Args:
-            ports_data: Dictionary of PortSpec-format port data
+            ports_data: Port specs keyed by port ID, as ``_serialize_ports``
+                produces them.
 
-        Returns:
-            True if deserialization succeeded
+        Raises:
+            ValueError: If a spec names a type the registry cannot resolve.
         """
-        # Clear existing ports
         self.ports.clear()
         self._port_order_counter = 0
 
-        # Recreate each port from PortSpec
         for _port_id, spec in ports_data.items():
-            # Use same instantiation path as add()
             port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
-            # Add directly to collection (skip add() to preserve order from spec)
+            # Bypass add() so the display order stored in the spec survives.
             self.ports[port.id] = port
 
-            # Update order counter
             if port.order >= self._port_order_counter:
                 self._port_order_counter = port.order + 1
 
@@ -993,8 +746,7 @@ class NodeData:
         return True
 
     def _regenerate_promoted_ports(self) -> None:
-        """Regenerate promoted ports from settings — delegates to
-        haywire.core.node.promotion."""
+        """Regenerate this node's promoted ports from its settings bags."""
         from haywire.core.node.promotion import regenerate_promoted_ports
 
         regenerate_promoted_ports(self)

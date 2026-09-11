@@ -3,8 +3,7 @@
 The same fields whether the row came from a library's own ``haybale.toml``
 (:func:`~haywire.core.library.haybale_toml.read_haybale`) or a published
 marketstall feed (``_parse_haybale_entry`` in
-:mod:`haywire.core.marketstall.parsing`) — a renderer takes one row and never
-asks which source it came from.
+:mod:`haywire.core.marketstall.parsing`).
 """
 
 from __future__ import annotations
@@ -17,12 +16,11 @@ from typing import ClassVar
 class Deprecation:
     """An author's notice that a library is being retired.
 
-    ``since`` is required because deprecation is a historical fact, not a
-    current state: without it a user on 0.0.30 cannot be told whether their
-    version predates the notice.
+    ``since`` is the version the notice was issued at, and is required: it is
+    what tells a user whether their installed version predates the notice.
 
     Informational only — it never blocks an install, an enable, or an update.
-    ``os`` remains the only field that gates installation.
+    ``os`` is the only field that gates installation.
     """
 
     since: str
@@ -50,16 +48,12 @@ class Haybale:
     registry key (``haybale-core:node:Add``)."""
     version: str = ""
     """The version the publisher advertised. Defaulted so a row can be built
-    field-by-field in tests and fixtures; an absent version in a real feed is
-    still an error, raised by :func:`~haywire.core.marketstall.parsing` — which
-    is the only place a row is constructed from untrusted input."""
-    # The framework requirement as a full PEP 508 token, identical in shape to
-    # the library's own pyproject entry: "haywire-core>=0.0.31",
-    # "haywire-core~=0.0.31,<1.0.0", or the bare "haywire-core" when the author
-    # deliberately declared no floor. Empty means undeclared — a state distinct
-    # from the bare name, which is why this carries the package name and not
-    # just the specifier. Derived from the library's pyproject at write time,
-    # never authored independently. See haywire.core.marketstall.requirement.
+    field-by-field; an absent version in a real feed is still an error, raised
+    by :func:`~haywire.core.marketstall.parsing`."""
+    # The framework requirement as a full PEP 508 token, as the library's own
+    # pyproject declares it: "haywire-core>=0.0.31" or the bare "haywire-core".
+    # Empty means undeclared, which the bare name does not.
+    # See haywire.core.marketstall.requirement.
     require: str = ""
     label: str = ""
     description: str = ""
@@ -69,38 +63,28 @@ class Haybale:
     os: list[str] = field(default_factory=list)
     on_reload: str = "none"
     linked_libraries: list[str] = field(default_factory=list)
-    """Sibling haybales this library subscribes to, as **module** names
-    (``haybale_studio``). Renamed from ``dependencies``, which collided with
-    ``[project] dependencies`` — a different concept entirely."""
+    """Sibling haybales this library subscribes to, as *module* names
+    (``haybale_studio``), not distribution names."""
 
     origin: str = ""
     """The repository this library is published from. The base that every path
-    below resolves against; renamed from ``source_url``."""
+    below resolves against."""
 
     origin_provider: str = ""
     """Which kind of forge ``origin`` is — ``"github"`` / ``"gitlab"``.
 
-    Published because the hostname→provider mapping is otherwise machine-local
-    (``~/.haywire/config.toml``), while ``origin`` travels to every consumer. A
-    self-hosted forge would then resolve on the publisher's machine and nowhere
-    else, so its links would silently not render — invisibly to the one person
-    who could fix it. Only the publisher knows what their host runs, so that
-    answer is published rather than rediscovered."""
+    Published with the row because the hostname→provider mapping is otherwise
+    machine-local (``~/.haywire/config.toml``), and a self-hosted forge would
+    then resolve only on the publisher's machine."""
 
     notes: str = ""
     """A bare filename inside the package directory — one supplementary
-    human-readable page. Not the front page: label/description/tags already
-    carry that. Replaces ``docs_path``, which held the *module directory* and
-    to which both consumers appended something."""
+    human-readable page, not the front page."""
 
     deprecated: "Deprecation | None" = None
     """The author's retirement notice, or None.
 
-    Travels in the row so a consumer sees it *before* installing. The
-    ``[project] classifiers`` projection cannot serve that: it carries neither
-    ``reason`` nor ``successor``, and the studio never reads PyPI metadata —
-    which would leave the notice invisible to exactly the already-installed
-    users who most need it."""
+    Travels in the row, so a consumer sees it *before* installing."""
 
     homepage_url: str = ""
     documentation_url: str = ""
@@ -110,15 +94,11 @@ class Haybale:
 
     examples_path: str = ""
     tests_path: str = ""
-    """Paths, not URLs, relative to the **project root** — the directory holding
+    """Paths, not URLs, relative to the *project root* — the directory holding
     ``.haywire/``, which preflight requires to be the git root.
 
-    Project-relative rather than library-relative because examples and tests
-    belong to the project: an example graph wires several libraries together and
-    cannot live inside any one of them. The consumer resolves them against
-    ``origin`` at ``install_spec``'s ref — see
-    :func:`haywire.core.marketstall.locate.resolve_row_path`. Storing a baked
-    URL instead let the ref disagree with the one actually published; a trailing
+    The consumer resolves them against ``origin`` at ``install_spec``'s ref —
+    see :func:`haywire.core.marketstall.locate.resolve_row_path`. A trailing
     slash marks a directory."""
 
     # Runtime-only routing metadata (not persisted). `source_origin` is
@@ -130,10 +110,9 @@ class Haybale:
     owner_url: str = ""
     """The subscription URL a `preference` for this row must be written against.
 
-    Empty when ``via`` is itself a subscription (the common case). Set only for
-    a stall discovered through a `[[markets]]` body: the user never subscribed
-    to that stall, so the aggregator is the only thing they can express a
-    preference on. Runtime-only — never persisted."""
+    Empty when ``via`` is itself a subscription; set only for a stall
+    discovered through a `[[markets]]` body, where the aggregator is the URL
+    the user is subscribed to. Runtime-only — never persisted."""
 
     # Cache-only fields (project [[caches]] only).
     via: str = ""
@@ -169,9 +148,8 @@ class Haybale:
         "via",
         "last_seen",
         "stale",
-        # Both serialize to TOML tables, so they MUST stay last and in this
-        # order: every bare key written after a table header is parsed into
-        # that table.
+        # Both serialize to TOML tables, so they stay last and in this order:
+        # every bare key written after a table header is parsed into that table.
         "authors",
         "deprecated",
     )

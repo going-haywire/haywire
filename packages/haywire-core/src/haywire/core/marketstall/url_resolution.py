@@ -1,19 +1,19 @@
 """Add Source input classification.
 
-Four input forms (form 3 / bare repo URL dropped per inquisition Q4):
-  1. Blob URL — host provider rewrites to raw; raw URL is both fetched and persisted.
-  2. Raw URL — fetched and persisted as-is.
-  3. Plain TOML URL — fetched as-is; persisted as-is.
-  4. Pasted TOML block — written to ~/.haywire/db/.../stalls/<name>.toml,
-     then referenced as file:// (handled by the caller after classify_input).
+Four accepted input forms:
+  - Blob URL — the host provider rewrites it to raw; the raw URL is both
+    fetched and persisted.
+  - Raw URL — fetched and persisted as-is.
+  - Plain TOML URL — fetched and persisted as-is.
+  - Pasted TOML block — written to a file and referenced as file:// by the
+    caller, after classify_input.
 
-Persistence rule: the URL written to marketplace.toml must be directly fetchable
-by the refresh pipeline (it calls fetch_with_cache_fallback on sub.url with no
-re-classification). Blob URLs return HTML, so any blob input is normalized to
+Persistence rule: the URL written to marketplace.toml must be directly
+fetchable by the refresh pipeline, which fetches ``sub.url`` with no
+re-classification. Blob URLs return HTML, so any blob input is normalized to
 its raw form before persisting.
 
-Bare repo URLs (e.g. `https://github.com/alice/cool-libs`) are rejected with a
-clear error pointing at the README marker pattern.
+Bare repo URLs (``https://github.com/alice/cool-libs``) are rejected.
 """
 
 from __future__ import annotations
@@ -63,14 +63,21 @@ _URL_LIKE = re.compile(r"^(https?|file)://", re.IGNORECASE)
 
 
 def classify_input(user_input: str) -> ClassifiedInput:
-    """Classify Add Source input. Raises BareRepoUrlRejectedError on form-3 URLs."""
+    """Classify Add Source input. Raises BareRepoUrlRejectedError on a bare repo URL.
+
+    Anything that does not start with ``http://``, ``https://`` or ``file://``
+    is taken as a pasted block. A URL is stripped of a trailing ``/`` and
+    ``.git`` before matching, and falls through to PLAIN_TOML_URL when no host
+    provider recognises it.
+    """
     stripped = user_input.strip()
 
     if not _URL_LIKE.match(stripped):
-        # Form 4: pasted TOML block.
+        # The unstripped input is kept: a pasted block's own whitespace is
+        # part of the TOML.
         return ClassifiedInput(form=InputForm.PASTED_BLOCK, toml_body=user_input)
 
-    # Strip trailing artifacts that browsers/users commonly add.
+    # Strip trailing artifacts that browsers and users commonly add.
     normalized = stripped.rstrip("/")
     for suffix in (".git",):
         if normalized.endswith(suffix):
@@ -105,8 +112,8 @@ def classify_input(user_input: str) -> ClassifiedInput:
                 persist_url=normalized,
             )
 
-        # Provider matched the hostname but URL didn't match blob or raw shape.
-        # If the path looks like a bare /owner/repo, reject as form 3.
+        # The provider claims the hostname but the URL is neither blob nor raw;
+        # a bare /owner/repo path is the repo itself.
         path_parts = [p for p in parts.path.split("/") if p]
         if len(path_parts) == 2:
             raise BareRepoUrlRejectedError(
@@ -133,7 +140,7 @@ def classify_input(user_input: str) -> ClassifiedInput:
                 persist_url=normalized,
             )
 
-    # If it has a path that looks like /owner/repo with no further file, reject.
+    # A known forge with a bare /owner/repo path names the repo, not a file.
     path_parts = [p for p in parts.path.split("/") if p]
     if hostname in {"github.com", "gitlab.com", "bitbucket.org"} and len(path_parts) == 2:
         raise BareRepoUrlRejectedError(
@@ -141,7 +148,6 @@ def classify_input(user_input: str) -> ClassifiedInput:
             f"Look for a `marketstall:share-url` block in the {hostname} repo's README."
         )
 
-    # Plain TOML URL — anything else with a path.
     return ClassifiedInput(
         form=InputForm.PLAIN_TOML_URL,
         fetch_url=normalized,

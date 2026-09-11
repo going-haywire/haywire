@@ -1,8 +1,8 @@
-"""Read-only schema introspection over a single live BaseNode instance.
+"""Read-only schema introspection over a single live ``BaseNode`` instance.
 
-Answers "what ports/settings does this node declare" from an already-built
-instance. Does NOT construct nodes and does NOT read live state (values,
-links, promotion) — that overlay belongs to callers that hold a NodeWrapper.
+Answers what ports and settings a node declares, from an already-built
+instance. It neither constructs nodes nor reads live state — values, links and
+promotion are not part of what it reports.
 """
 
 from __future__ import annotations
@@ -40,11 +40,8 @@ class SettingInfo:
 
 
 def _port_direction(port: Any) -> str:
-    """Three-way port direction: 'inlet', 'outlet', or 'config'.
-
-    A CONFIG port is neither inlet nor outlet — collapsing to a binary
-    inlet/else-outlet mislabels every ``as_config(...)`` port as an outlet.
-    """
+    """Three-way port direction: ``'inlet'``, ``'outlet'``, or ``'config'`` for a
+    port that is neither."""
     if port.is_inlet():
         return "inlet"
     if port.is_outlet():
@@ -53,11 +50,8 @@ def _port_direction(port: Any) -> str:
 
 
 def _port_type_key(port: Any) -> str | None:
-    """The concrete data-type registry key, or None.
-
-    Defensive: type_cls or its class_identity can be absent on edge cases, so
-    miss quietly rather than raise inside a read-only inspector.
-    """
+    """The port's concrete data-type registry key, or ``None`` when the port carries
+    no type identity."""
     identity = getattr(port.type_cls, "class_identity", None)
     return getattr(identity, "registry_key", None)
 

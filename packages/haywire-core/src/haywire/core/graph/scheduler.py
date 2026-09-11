@@ -11,8 +11,7 @@ class ScheduleHandle(Protocol):
     """Cancellable handle for a pending scheduled call.
 
     ``cancel()`` must be idempotent and safe to call after the scheduled
-    function has already run (a no-op in that case) — ``ValidationManager``
-    cancels unconditionally before rescheduling.
+    function has already run, where it is a no-op.
     """
 
     def cancel(self) -> None: ...
@@ -23,9 +22,8 @@ class ValidationScheduler(Protocol):
     """Schedules a single debounced call, returning a cancellable handle.
 
     Implementations arrange for ``fn`` to run once, ``delay_seconds`` from
-    now. Re-scheduling is the caller's responsibility: ``ValidationManager``
-    cancels the previous handle and schedules a fresh one on every dirty mark,
-    which is what produces the debounce.
+    now. Re-scheduling is the caller's responsibility: the debounce comes from
+    cancelling the previous handle and scheduling a fresh one.
     """
 
     def schedule(self, delay_seconds: float, fn: Callable[[], object]) -> ScheduleHandle: ...
@@ -41,9 +39,8 @@ class _CancelledHandle:
 class SyncScheduler:
     """Runs the callback immediately, ignoring the delay.
 
-    Removes all timing nondeterminism — intended for tests and headless use.
-    With this scheduler a ``mark_*_dirty`` validates inline, so assertions can
-    follow a mutation without ``force_immediate_validation``.
+    Intended for tests and headless use: a ``mark_*_dirty`` validates inline,
+    so assertions can follow a mutation without ``force_immediate_validation``.
     """
 
     def schedule(self, delay_seconds: float, fn: Callable[[], object]) -> ScheduleHandle:

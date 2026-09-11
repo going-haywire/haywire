@@ -1,20 +1,8 @@
-"""ActivitySettings — history size and audit-log destination for Farmhand activity tracking.
-
-Settled 2026-08-18, see
-``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``.
-
-``FrameworkSettings`` (not ``LibrarySettings``): this schema configures
-``haywire.core.farmhand.activity``, framework internals rather than a barn
-library — the docstring on ``FrameworkSettings`` scopes it to exactly this
-case ("For use by haywire-core and haywire-studio internals only").
+"""History size and audit-log destination for the Farmhand activity tracker.
 
 The ``farmhand.activity`` namespace is the literal nesting path in a project's
-``.haywire/settings.json`` (``_setting_key = f"{namespace}.{name}"``), so it is
-deliberately unchanged by the move from haywire-studio into haywire-core: a
-rename would not error, it would silently orphan every value a user had already
-set and revert them to defaults. It also remains correctly *named* — Farmhand's
-contribution seam lives in ``haywire.core.farmhand`` too; only the MCP host that
-serves the tools is studio-side.
+``.haywire/settings.json``, so renaming it orphans every value a user has
+already set, silently reverting them to defaults.
 """
 
 from __future__ import annotations

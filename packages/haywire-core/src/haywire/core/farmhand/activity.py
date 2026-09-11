@@ -1,78 +1,31 @@
 """What each agent principal is doing right now, and what it just did.
 
-The studio already answers "who is connected" two different ways, because the
-two kinds of principal offer different liveness signals (see
-``auth/presence.py``). This module adds the third question the presence row
-could not answer at all: **what is that agent actually doing?**
+Answers the question ``auth/presence.py`` cannot: an agent's tool calls mutate
+graphs under a human collaborator's cursor, and this attributes the change and
+records what the call sent and got back.
 
-A browser principal's actions are visible as they happen — the human doing them
-is looking at the same screen. An agent's are not: its tool calls mutate graphs
-under a human collaborator's cursor with nothing on screen to explain the
-change. Every mutating Farmhand tool already broadcasts ``GraphDataMutated``, so
-the *data* refreshes live; what was missing is *attribution* — and, now,
-*content*: what the call actually sent and got back.
+Every call is recorded by the Farmhand host's ``call_tool`` wrapper, the only
+layer that knows the calling principal — tools receive a ``FarmhandContext``,
+not a request — so read-only tools and tools from third-party barn libraries
+are covered with no per-tool opt-in.
 
-Recording happens in one place — the Farmhand host's ``call_tool`` wrapper —
-rather than in the tools. That is deliberate:
+Records land in two places:
 
-* the host is the only layer that knows the calling principal (tools receive a
-  ``FarmhandContext``, not a request), and
-* one call site covers read-only tools, tools from third-party barn libraries,
-  and tools that do not exist yet, with no per-tool opt-in to forget.
+* a bounded in-memory history, this module's ``ActivityTracker``, wiped on
+  restart;
+* an append-only JSONL audit log, written whenever
+  ``ActivitySettings.log_path`` is non-empty. Nothing here ever trims it: a UI
+  clear and the history cap both leave it alone.
 
-Threading: every mutation runs on the NiceGUI event loop, from the MCP request
-task. Tools may ``ctx.offload`` blocking work to a thread, but the tracker is
-never touched from inside that work. Reached through the ambient accessor in
-``core/di/context.py`` (a module-level global rather than a ContextVar, for the
-reason in ``.insights/project_di_context.md``) — never as a module-level
-instance here, so a test can swap it and so construction is deferred until a
-settings registry exists.
+Arguments and results are stored as JSON text, truncated to
+``PAYLOAD_CHAR_CAP``, and are not redacted — a VIEW principal can already
+inspect graph contents and library state by other means.
 
-**Observable store.** This is the second implementation of the pattern
-``ErrorLedger`` established, and the two are deliberately identical in shape:
-an ambient ``get_/set_`` accessor that survives hot-reload, a zero-arg listener
-list fired on every state change, an app-side bridge that turns those fires
-into a cross-session signal, and a payload-free signal whose subscribers
-re-read this store.
-
-Why the listener seam rather than having this store call
-``get_signal_dispatcher().broadcast(...)`` itself — which it *could*, since
-``FarmhandContext.broadcast`` does exactly that from this same package:
-
-* **Thread safety by default.** ``SignalDispatcher.broadcast`` dispatches
-  synchronously into the single-threaded SignalBus. This tracker happens to be
-  touched only from the loop, but ``ErrorLedger`` is not — ``.log()`` fires
-  from watchdog and timer threads, which is why it holds a lock and this does
-  not. A self-broadcasting store would have to capture an event loop at startup
-  and hold it as state. Keeping the hop in the bridge means the *pattern* is
-  safe wherever it is copied, instead of safe only where someone checked.
-* **Isolation.** A bare ``ActivityTracker()`` is inert — no session manager, no
-  DI, no running loop — so the tests exercise ``start``/``finish`` directly.
-* **Signal choice is the application's.** The store records that state changed;
-  that this means ``FarmhandActivity``, cross-session, to every open browser is
-  a policy a headless embedding or a second host may answer differently.
-
-What this store deliberately does *not* copy from ``ErrorLedger`` is the triage
-half: no ``seen`` flag, no stable per-record sequence, no second "triage
-changed" signal. An error is a task — someone must notice and act on it, so
-"have I acknowledged this" is real state. A finished tool call is a fact; there
-is nothing to acknowledge.
-
-Two tiers of record (settled 2026-08-18, see
-``docs/superpowers/plans/2026-08-18-farmhand-activity-expansion.md``):
-
-* An in-memory, bounded history (this module's ``ActivityTracker``) — serves
-  live-awareness and short-term debugging. Wiped on restart.
-* An optional, per-project, append-only JSONL audit log, written alongside
-  the in-memory record whenever ``ActivitySettings.log_path`` is non-empty.
-  Never trimmed by anything in this module — a UI "clear" or a history-size
-  cap must never touch it, or it stops being an audit trail.
-
-Arguments/result are stored as already-JSON-serialized text (the same
-``json.dumps(..., default=str)`` shape the host computes for the MCP
-response), truncated to a fixed character cap. No redaction: VIEW-tier access
-to this data discloses nothing a VIEW principal could not already inspect by
-other means (graph contents, library state, …).
+Reach the process-wide tracker through ``activity_tracker()`` in
+``core/di/context.py``, never as a module-level instance here, so tests can
+swap it and construction waits for a settings registry. Mutations run on the
+NiceGUI event loop from the MCP request task; work a tool sends to a thread
+with ``ctx.offload`` must not touch the tracker.
 """
 
 from __future__ import annotations
@@ -90,34 +43,25 @@ from haywire.core.di.context import activity_tracker, set_activity_tracker
 
 logger = logging.getLogger(__name__)
 
-#: Default cap on remembered finished calls — overridden per-instance by
-#: ``ActivitySettings.history_size`` where a registry is available (the
-#: process-wide tracker picks it up in ``activity_tracker()``). Kept as a
-#: plain constant so a bare ``ActivityTracker()`` (tests, embedding without
-#: the studio settings registry) still behaves sensibly.
+#: Fallback cap on remembered finished calls, used when no settings registry
+#: offers an ``ActivitySettings.history_size`` to override it.
 HISTORY_LIMIT = 50
 
-#: Arguments/result text longer than this is cut, with a marker appended.
-#: Applies uniformly to the in-memory record and the persisted log line —
-#: there is no framework-level cap upstream of this on the Farmhand call
-#: path (tool-level pagination like ``truncation_note`` is opt-in, not a
-#: guarantee), so this is the first real backstop.
+#: Arguments and result text longer than this is cut and marked, in the
+#: in-memory record and the persisted log line alike.
 PAYLOAD_CHAR_CAP = 4000
 _TRUNCATION_MARKER = "...[truncated]"
 
-# A tracker listener is a zero-arg callback fired after each state change
-# (start / finish / clear). It carries no payload — listeners re-read the
-# tracker, matching the "signals carry no payload, subscribers re-read state"
-# convention shared with ErrorLedger and the SignalBus.
+#: Zero-arg callback fired after each state change. It carries no payload;
+#: listeners re-read the tracker.
 ActivityListener = Callable[[], None]
 
 
 def _serialize(value: Any) -> str:
-    """JSON-encode arguments/result the same way the host encodes tool results.
+    """JSON-encode a value, truncating past ``PAYLOAD_CHAR_CAP``.
 
-    ``default=str`` mirrors ``host.py``'s own serialization (see its
-    docstring on why: a non-serializable value like a mesh or frame degrades
-    to a repr instead of raising).
+    Never raises: a value JSON cannot encode degrades to its ``repr``, and an
+    encoder failure comes back as a quoted error string.
     """
     try:
         text = json.dumps(value, default=str)
@@ -132,16 +76,13 @@ def _serialize(value: Any) -> str:
 class ActivityRecord:
     """One Farmhand tool call by one principal.
 
-    ``started_at``/``finished_at`` are ``time.monotonic()`` — correct for
-    elapsed-time math (immune to clock adjustments) but meaningless across a
-    restart. ``started_wall`` is a ``time.time()`` companion, carried only so
-    a persisted log line has a real-world timestamp to show; nothing in this
-    module does duration math with it.
+    ``started_at`` and ``finished_at`` are ``time.monotonic()`` seconds: use
+    them for durations, never as timestamps, since they mean nothing across a
+    restart. ``started_wall`` is the ``time.time()`` companion a log line
+    shows.
 
-    ``arguments``/``result`` are pre-serialized JSON text (see ``_serialize``),
-    already truncated to ``PAYLOAD_CHAR_CAP`` — never raw Python objects, so
-    every consumer (in-memory render, JSONL line, popup) treats them
-    uniformly as strings.
+    ``arguments`` and ``result`` are JSON text, already truncated to
+    ``PAYLOAD_CHAR_CAP``, never raw objects.
     """
 
     principal: Optional[str]
@@ -180,12 +121,10 @@ class ActivityRecord:
 
     @property
     def finished_wall(self) -> Optional[float]:
-        """Wall-clock finish time, derived from the monotonic elapsed duration.
+        """Wall-clock finish time, or ``None`` while the call is running.
 
-        There is no separately-stored ``finished_at`` wall-clock field —
-        deriving it from ``started_wall + elapsed()`` avoids a second
-        ``time.time()`` call that could disagree with ``elapsed()`` if the
-        system clock stepped between the two calls.
+        Derived as ``started_wall + elapsed()``, so it never disagrees with
+        :meth:`elapsed` even if the system clock stepped mid-call.
         """
         if self.finished_at is None:
             return None
@@ -196,18 +135,15 @@ class ActivityRecord:
 class ActivityTracker:
     """In-flight and recently-finished tool calls, process-wide.
 
-    Concurrency: MCP permits several requests in flight at once, so calls are
-    keyed by an opaque token rather than by principal. ``current`` therefore
-    answers with the *most recently started* running call for a principal —
-    which is what a one-line status chip can honestly show.
+    :meth:`start` returns a token to pass to :meth:`finish`; several calls may
+    be in flight for one principal at once, so :meth:`current` answers with
+    the most recently started of them and :meth:`running_calls` lists them all.
     """
 
     _running: dict[int, ActivityRecord] = field(default_factory=dict)
     _history: Deque[ActivityRecord] = field(default_factory=lambda: deque(maxlen=HISTORY_LIMIT))
     _tokens: Iterator[int] = field(default_factory=lambda: itertools.count(1))
-    # Instance state (not a module global) so a fresh ActivityTracker per test
-    # starts with no listeners — leakage across tests is structurally
-    # impossible. Mirrors ErrorLedger._listeners for the same reason.
+    # Per-instance, so a fresh tracker starts with no listeners.
     _listeners: list[ActivityListener] = field(default_factory=list)
 
     def add_listener(self, listener: ActivityListener) -> None:
@@ -223,13 +159,11 @@ class ActivityTracker:
             pass
 
     def _notify(self) -> None:
-        """Fire every listener, isolating failures.
+        """Fire every listener. One that raises is logged and the rest still run.
 
-        Snapshot the list so a listener that unsubscribes mid-notify cannot
-        mutate what we are iterating. Each listener is isolated — one raising
-        must not abort the rest, and must never turn a successful tool call
-        into a failed one (this runs inside the host's call path).
+        A listener may unsubscribe from inside the callback.
         """
+        # Snapshot, so unsubscribing mid-notify cannot mutate the iteration.
         for listener in tuple(self._listeners):
             try:
                 listener()
@@ -239,9 +173,11 @@ class ActivityTracker:
     def start(self, principal: Optional[str], tool: str, arguments: Any = None) -> int:
         """Record a call beginning. Returns the token to pass to :meth:`finish`.
 
-        ``arguments`` is the tool's raw call arguments (a dict off the MCP
-        transport); serialized+truncated immediately so every stored record —
-        running or finished — carries text, never a live object.
+        Args:
+            arguments: The tool's raw call arguments, serialized and truncated
+                immediately so no stored record holds a live object.
+
+        Fires listeners.
         """
         token = next(self._tokens)
         self._running[token] = ActivityRecord(
@@ -262,20 +198,15 @@ class ActivityTracker:
         error: Optional[str] = None,
         result: Any = None,
     ) -> None:
-        """Record a call ending. Unknown tokens are ignored.
+        """Record a call ending, appending it to the history and the audit log.
 
-        Tolerating an unknown token keeps a bookkeeping slip from turning into a
-        second exception on the failure path, where ``finish`` is called from an
-        ``except`` block that is about to re-raise the real error.
+        A token that is unknown or already finished is ignored, and no
+        listener fires — safe to call from an ``except`` block that is about
+        to re-raise.
 
-        ``result`` is the tool's raw return value; serialized+truncated the
-        same way as ``arguments``. Appends to the in-memory history and, if
-        persistence is configured, to the audit log — in that order, so a
-        write failure in one never blocks the other.
-
-        Listeners fire only when a call actually moved from running to
-        finished: an unknown token returns before any state changed, so it
-        must not wake subscribers to re-read an unchanged store.
+        Args:
+            result: The tool's raw return value, serialized and truncated like
+                ``arguments``.
         """
         record = self._running.pop(token, None)
         if record is None:
@@ -297,14 +228,10 @@ class ActivityTracker:
         self._notify()
 
     def _sync_history_size(self) -> None:
-        """Pick up a live ``ActivitySettings.history_size`` edit before the next append.
+        """Resize the history to a changed ``ActivitySettings.history_size``.
 
-        Checked per-append rather than via a settings subscription: this
-        tracker is a bare module-level global constructed at import time,
-        before ``ActivitySettings`` is necessarily registered, so a
-        subscription would have nowhere reliable to attach at construction.
-        Resolving lazily (and tolerating absence, like ``_resolve_log_path``)
-        avoids that ordering problem entirely.
+        Leaves the current size in place when the settings can't be reached,
+        so a tracker built before the registry exists still works.
         """
         try:
             from .settings import ActivitySettings
@@ -318,11 +245,9 @@ class ActivityTracker:
     def finish_if_running(self, token: int, *, error: str = "cancelled") -> bool:
         """Close out a call only if nothing has closed it yet. Returns whether it did.
 
-        The host calls this from a ``finally``, to catch the path neither the
-        success nor the failure branch covers: a cancelled request. MCP requests
-        run as tasks the SDK cancels when the client disconnects, and a
-        ``CancelledError`` unwinds straight past both — leaving the call pinned
-        as forever-running in the presence chip.
+        Call from a ``finally`` to catch a cancelled request, whose
+        ``CancelledError`` unwinds past both the success and failure paths and
+        would otherwise leave the call pinned as forever-running.
         """
         if token not in self._running:
             return False
@@ -344,70 +269,49 @@ class ActivityTracker:
         return None
 
     def running_calls(self) -> list[ActivityRecord]:
-        """Every call currently in flight, newest first, across all principals.
-
-        Distinct from :meth:`current`, which answers the one-line question a
-        presence chip asks ("what is *this* principal doing?"). The activity
-        editor lists them all, so concurrent calls are each visible instead of
-        collapsing into the most recent.
-        """
+        """Every call currently in flight, newest first, across all principals."""
         return sorted(self._running.values(), key=lambda r: r.started_at, reverse=True)
 
     def recent(self, limit: Optional[int] = None) -> list[ActivityRecord]:
         """Finished calls, newest first.
 
-        ``limit`` caps the returned page; ``None`` (default) returns
-        everything ``_history`` holds, which is itself already capped at
-        ``ActivitySettings.history_size`` (synced on every :meth:`finish`).
+        Args:
+            limit: How many to return at most. ``None`` returns the whole
+                remembered history, itself capped at
+                ``ActivitySettings.history_size``.
         """
         items = list(reversed(self._history))
         return items if limit is None else items[:limit]
 
     def clear(self) -> None:
-        """Drop all state — for tests, and for a studio restart in-process.
+        """Drop every record, in-flight calls included, without firing listeners.
 
-        Wipes ``_running`` too — unlike :meth:`clear_history`, which the UI's
-        Clear button calls. This one is not reachable from the UI.
-
-        Deliberately does NOT notify: this is teardown, not a state change any
-        subscriber should redraw for, and firing here would push a listener
-        registered by a previous app instance during test teardown.
+        For teardown: a studio restart in-process, or a test. The UI's Clear
+        button calls :meth:`clear_history` instead.
         """
         self._running.clear()
         self._history.clear()
 
     def clear_history(self) -> None:
-        """Drop finished calls only — what the Activity editor's Clear button does.
+        """Drop finished calls, backing the Activity editor's Clear button.
 
-        Deliberately leaves ``_running`` untouched: clearing an in-flight call
-        out from under itself would strand it with no way to ever be seen
-        finishing. Never touches the persisted audit log (see module
-        docstring) — a UI action that could erase durable audit history would
-        defeat the reason that log exists.
-
-        Notifies: the clearing session redraws itself, but every *other* open
-        session is showing history that no longer exists.
+        In-flight calls survive, so each is still seen finishing, and the
+        persisted audit log is never touched. Fires listeners, so other open
+        sessions stop showing history that is gone.
         """
         self._history.clear()
         self._notify()
 
     def resize_history(self, maxlen: int) -> None:
-        """Rebuild ``_history`` with a new cap, keeping the most recent entries.
-
-        Called when ``ActivitySettings.history_size`` changes. ``deque`` has
-        no in-place maxlen change, so this replaces the deque, keeping
-        whichever tail still fits.
-        """
+        """Change the history cap, dropping the oldest records that no longer fit."""
         self._history = deque(self._history, maxlen=maxlen)
 
     def _persist(self, record: ActivityRecord) -> None:
         """Append ``record`` to the audit log, if one is configured.
 
-        Best-effort: a misconfigured path or a full disk must not turn a
-        successful tool call into a failed one. Resolves the path fresh on
-        every call rather than caching it, so a live settings edit (path
-        changed, or cleared to turn logging off) takes effect on the very
-        next call with no restart.
+        Never raises: a misconfigured path or a full disk is logged and
+        skipped. The path is resolved per call, so a settings edit takes
+        effect on the next one.
         """
         path = _resolve_log_path()
         if path is None:
@@ -423,10 +327,9 @@ class ActivityTracker:
 def _resolve_log_path() -> Optional[Path]:
     """The audit log's absolute path, or ``None`` when logging is off.
 
-    ``ActivitySettings.log_path`` is empty-means-off, non-empty-means-a-path-
-    relative-to-the-workspace-root (see ``settings.py``). Reached via DI
-    rather than threaded through every ``finish()`` call, and tolerant of
-    absence like ``FarmhandContext.broadcast``.
+    Resolves ``ActivitySettings.log_path`` against the workspace root; an
+    empty setting means off, as does any failure to reach the settings, which
+    is logged rather than raised.
     """
     try:
         from haywire.core.di.context import get_workspace_root

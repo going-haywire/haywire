@@ -1,21 +1,15 @@
 """Reading ``haybale.toml`` — a library's own metadata, from its own directory.
 
 The file sits next to ``__init__.py``, *inside* the Python package, so it ships
-in the wheel and is readable from disk at runtime. That is the whole point: a
-metadata edit is a file write, visible on the next read, with no ``uv sync`` and
-no registry reload. ``pyproject.toml`` cannot do this — it is not installed —
-and the installed distribution's ``METADATA`` cannot either, because it is
-written once at install time and never changes when the source does.
+in the wheel and is readable from disk at runtime: a metadata edit is a file
+write, visible on the next read, with no ``uv sync`` and no registry reload.
 
-Two readers, deliberately separate:
+Two readers:
 
 * :func:`read_haybale_toml` — strict. Used at decoration time, where a library
   that cannot state its own identity must not load half-configured.
 * :func:`read_haybale_toml_lenient` — returns ``{}`` on any failure, for
   report-only callers that would rather show a partial answer than none.
-
-The same split ``read_manifest`` / ``read_manifest_lenient`` already draws for
-``pyproject.toml``.
 """
 
 from __future__ import annotations
@@ -46,16 +40,10 @@ __all__ = [
 #: The file's name, wherever it is looked for.
 HAYBALE_TOML = "haybale.toml"
 
-#: Scalar/list fields copied straight into ``LibraryIdentity`` kwargs. Keys
-#: absent from the file are omitted from the result rather than set empty, so a
-#: caller can splat over defaults without clobbering them — the contract
-#: ``distribution_fields()`` established for the reader this replaces.
-#:
-#: ``version`` is here too, but unlike the others its absence is fatal — see
-#: the check in :func:`read_haybale_toml`. This file is canon for the value;
-#: ``pyproject.toml`` carries the generated copy because pip reads version out
-#: of that file and cannot read this one. The value is written here by
-#: ``scripts/bump_version.py`` and the share wizard rather than by hand.
+#: Scalar/list fields copied straight into ``LibraryIdentity`` kwargs. A key
+#: absent from the file is omitted from the result rather than set empty, so a
+#: caller can splat over defaults without clobbering them. ``version`` is canon
+#: here; ``pyproject.toml`` carries the generated copy.
 _STR_FIELDS = ("name", "label", "on_reload", "description", "version")
 _LIST_FIELDS = ("linked_libraries", "tags", "os")
 
@@ -67,13 +55,9 @@ _MODULE_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 class HaybaleTomlError(Exception):
     """``haybale.toml`` is missing, malformed, or does not identify its library.
 
-    Raised at decoration time, and deliberately fatal *for that library only* —
-    ``LibraryRegistry`` already wraps each library's load in ``try/except``, so
-    the studio still starts, the broken library is visibly absent, and the error
-    names the file. The alternative, defaulting to empty, yields
-    ``linked_libraries=[]`` and a subscriber holding a stale class reference
-    after a reload: the exact failure the field exists to prevent, surfacing
-    later and somewhere unrelated.
+    Raised at decoration time, and fatal *for that library only* —
+    ``LibraryRegistry`` wraps each library's load, so the studio still starts,
+    the broken library is visibly absent, and the error names the file.
     """
 
 
@@ -82,26 +66,19 @@ def module_of(dist_name: str) -> str:
 
     ``haybale-image-tools`` → ``haybale_image_tools``.
 
-    Normalises rather than merely swapping separators: PEP 503 lowercases
-    distribution names while ``[project] name`` keeps whatever case the author
-    typed, so ``haybale-TEST_A`` installs as ``haybale_test_a``. A plain
-    ``replace("-", "_")`` yields ``haybale_TEST_A`` — a directory that does not
-    exist. Verified against every in-tree haybale.
+    Separators collapse to ``_`` and the result is lowercased, matching what
+    pip installs: PEP 503 lowercases distribution names while ``[project] name``
+    keeps the author's case, so ``haybale-TEST_A`` installs as
+    ``haybale_test_a``.
 
-    A *publisher* holding the filesystem should prefer
-    :func:`~haywire.core.library.dep_detect.find_module_dir`, which observes the
-    directory instead of deriving it. This exists for the consumer, who has only
-    the name.
+    A caller holding the filesystem can observe the directory instead with
+    :func:`~haywire.core.library.dep_detect.find_module_dir`.
     """
     return re.sub(r"[-_.]+", "_", dist_name).lower()
 
 
 def tag_for(version: str) -> str:
     """The git tag for a released version — ``0.0.40`` → ``v0.0.40``.
-
-    One definition of the convention, for the three places that need it: the
-    commit step, the tag step, and ``install_spec``. Each previously re-encoded
-    ``f"v{...}"`` independently, which is the shape that drifts.
 
     The ``v`` belongs to the tag, not to the version: ``version`` is PEP 440 and
     is generated into ``[project] version``, where a leading ``v`` is invalid.
@@ -110,13 +87,11 @@ def tag_for(version: str) -> str:
 
 
 def _validate_linked_libraries(values: list[str], source: Path) -> None:
-    """Every entry must be an importable module name.
+    """Raise :class:`HaybaleTomlError` unless every entry is a Python module name.
 
-    ``_get_tracking_scopes`` builds a hot-reload scope by appending ``"."`` to
-    each entry verbatim, so ``"haybale-studio"`` yields the prefix
-    ``"haybale-studio."`` — which matches no module, silently disabling reload
-    tracking for that dependency. A hand-editable TOML invites exactly that
-    typo, so it is rejected at read time rather than accepted and ignored.
+    A hot-reload scope is built by appending ``"."`` to each entry verbatim, so
+    a distribution-style ``"haybale-studio"`` yields a prefix that matches no
+    module and silently disables reload tracking for that dependency.
     """
     bad = [v for v in values if not _MODULE_NAME.match(v)]
     if bad:
@@ -160,8 +135,7 @@ def read_haybale_toml(package_dir: Path) -> dict[str, Any]:
         kwargs.update(read_haybale_toml(package_dir))
 
     Raises :class:`HaybaleTomlError` when the file is missing, malformed, or
-    declares no ``name`` — each of which leaves the library unable to name itself
-    or to be found in a registry.
+    declares no ``name`` or no ``version``.
     """
     source = package_dir / HAYBALE_TOML
     if not source.is_file():
@@ -210,9 +184,8 @@ def read_haybale_toml_lenient(package_dir: Path) -> dict[str, Any]:
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-#: (path, mtime_ns) -> parsed row. The overview re-renders on every panel redraw,
-#: so a parse per render is waste; a stat per render is not. Keyed on mtime so an
-#: edit invalidates the entry without anyone having to remember to.
+#: (path, mtime_ns) -> parsed row. Keyed on mtime, so an edit to the file
+#: invalidates the entry.
 _row_cache: dict[Path, tuple[int, "Haybale"]] = {}
 
 
@@ -220,14 +193,11 @@ def read_haybale(package_dir: Path) -> "Haybale":
     """The library's declared metadata, read from *package_dir*'s ``haybale.toml``.
 
     The same :class:`~haywire.core.library.haybale.Haybale` a marketstall feed
-    yields — the two files carry the same fields, so a renderer takes one row and
-    never asks which source it came from.
+    yields.
 
-    Never raises: an unreadable or malformed file yields an empty row. That is the
-    opposite of :func:`read_haybale_toml`'s import-time rule, and correct here — a
-    renderer has a frame to draw, and a caller displaying a half-known library is
-    better than a panel that cannot draw. Cached on the file's mtime, so repeated
-    renders cost one ``stat``.
+    Never raises: an unreadable or malformed file yields an empty row, and a
+    wrong-typed value is dropped. Cached on the file's mtime, so repeated reads
+    cost one ``stat``.
 
     ``source`` is ``"local"`` and the publish/transport fields are empty: this row
     was read off disk, not fetched from a feed.
@@ -255,11 +225,7 @@ def read_haybale(package_dir: Path) -> "Haybale":
 
 
 def _row_from(data: dict) -> "Haybale":
-    """Project a parsed document onto :class:`Haybale`, ignoring junk.
-
-    Wrong-typed values are dropped rather than raised on — see
-    :func:`read_haybale`: rendering degrades, it does not fail.
-    """
+    """Project a parsed document onto :class:`Haybale`, dropping wrong-typed values."""
 
     def _str(key: str) -> str:
         value = data.get(key)
@@ -323,12 +289,9 @@ def _row_from(data: dict) -> "Haybale":
 # ─────────────────────────────────────────────────────────────────────────────
 
 #: What :func:`write_haybale_fields` will set. Everything else in the file is
-#: off-limits to the editor: `name` is changed only by `haywire rename` (it
-#: rewrites registry keys and every consumer's install_spec), `version` is canon here and
-#: is written by `scripts/bump_version.py` and the share wizard, which sync the
-#: generated copy into `pyproject.toml`, `origin` and `origin_provider` are
-#: written by the share wizard from facts it observes, and `[deprecated]` is
-#: hand-edited because retiring a library is rare and deliberate.
+#: off-limits to the editor: `name` is changed only by `haywire rename`,
+#: `version` by `scripts/bump_version.py` or the share wizard, `origin` and
+#: `origin_provider` by the share wizard, and `[deprecated]` by hand.
 EDITABLE_FIELDS = (
     "label",
     "os",
@@ -349,27 +312,20 @@ EDITABLE_FIELDS = (
 def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
     """Update *fields* in *package_dir*'s ``haybale.toml``, preserving the rest.
 
-    Comment-preserving: the file is hand-editable and carries the author's own
-    notes, so it is edited in place rather than rebuilt from a dict — a
-    round-trip through plain dicts would silently delete every comment.
-
-    Only :data:`EDITABLE_FIELDS` are writable; anything else raises rather than
-    being silently dropped, so a caller passing ``version`` learns that
-    ``scripts/bump_version.py`` / the share wizard own it instead of wondering
-    why the write did nothing.
-
-    An empty value removes the key rather than writing ``""``. Absent and empty
-    then mean the same thing, which keeps a file edited through the UI
-    indistinguishable from one an author wrote by hand.
+    The file is edited in place, so the author's comments and layout survive.
+    An empty value (``""``, ``[]``, ``None``) removes the key instead of
+    writing it, so absent and empty mean the same thing.
 
     ``authors`` is the one non-scalar/non-string-list field: it takes
-    ``(name, url)`` tuples — matching :attr:`~haywire.core.library.haybale.Haybale.authors`
-    — and is converted to ``[[authors]]`` tables here, dropping ``url`` when it is
-    ``""`` rather than writing an empty key. A tuple with a blank ``name`` is
-    the caller's problem, not this function's: nothing downstream of a bare
-    ``[[authors]]`` table treats a missing ``name`` as a landmine the way a
-    malformed ``linked_libraries`` entry does, so there is nothing here to
-    validate against.
+    ``(name, url)`` tuples — matching
+    :attr:`~haywire.core.library.haybale.Haybale.authors` — and is written as
+    ``[[authors]]`` tables, dropping ``url`` when it is ``""``. A blank ``name``
+    is not validated.
+
+    Raises:
+        HaybaleTomlError: a key outside :data:`EDITABLE_FIELDS` was passed, a
+            ``linked_libraries`` entry is not a module name, or the file does
+            not exist.
     """
     unknown = set(fields) - set(EDITABLE_FIELDS)
     if unknown:
@@ -401,14 +357,12 @@ def write_haybale_fields(package_dir: Path, fields: dict[str, Any]) -> None:
 def read_raw(package_dir: Path) -> dict[str, Any]:
     """The whole file as a plain dict, or ``{}`` when unreadable.
 
-    For the publisher, which needs keys the runtime never loads — ``notes``,
-    ``examples_path``, ``tests_path``, ``[deprecated]``. The typed readers
-    deliberately return only what their consumer uses; this is the escape hatch
-    for the one caller that legitimately wants everything.
+    For a caller that needs keys the typed readers leave out — ``notes``,
+    ``examples_path``, ``tests_path``, ``[deprecated]``.
 
-    Plain builtins throughout, via :func:`~haywire.core.tomlio.plain` — the publisher writes these
-    values straight into a marketstall with ``toml.dumps``, which cannot
-    serialize tomlkit's ``str`` subclass correctly.
+    Plain builtins throughout, via :func:`~haywire.core.tomlio.plain`, so the
+    values can be re-serialized with ``toml.dumps``, which cannot handle
+    tomlkit's ``str`` subclass.
     """
     source = package_dir / HAYBALE_TOML
     try:

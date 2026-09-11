@@ -29,11 +29,8 @@ logger = logging.getLogger(__name__)
 class _HaybaleTomlWatcher(HotReloadRegistry):
     """Turns a ``haybale.toml`` write into a metadata refresh.
 
-    An adapter, not a base class: a library is a plugin host, not a registry,
-    and this interface is one method — cheap to delegate, misleading to inherit.
-    It rides the ordinary root-fallback dispatch so metadata changes travel the
-    same path as everything else the watcher sees, rather than a second
-    mechanism beside it.
+    Registered on the library's root fallback, so it receives every file event
+    the watcher sees and refreshes only on its own library's file.
     """
 
     def __init__(self, library: "BaseLibrary") -> None:
@@ -51,12 +48,12 @@ class _HaybaleTomlWatcher(HotReloadRegistry):
 
 
 class BaseLibrary(ABC):
-    """
-    Abstract base class for all libraries.
+    """Abstract base class for all libraries.
 
-    A subclass must be named ``Library`` and decorated with ``@library``::
+    A subclass must be named ``Library``, live in the package's ``__init__.py``
+    next to its ``haybale.toml``, and be decorated with ``@library``::
 
-        @library(label="my.library")
+        @library()
         class Library(BaseLibrary):
             ...
     """
@@ -74,16 +71,14 @@ class BaseLibrary(ABC):
 
         self._enabled = False  # Library starts disabled by default
 
-        # Initialize FileWatcher with library folder path
-        # Note: library_identity will be passed per-folder in add_watch
         if self.identity.folder_path is None:
             raise RuntimeError(
                 f"Library '{self.identity.label}' has no folder_path set on its identity. "
                 "Library registration must populate folder_path before instantiation."
             )
         self.file_watcher: FileWatcher = FileWatcher(watch_path=self.identity.folder_path)
-        # Rides the root fallback like any other registry — see
-        # _HaybaleTomlWatcher and _attach_to_registries.
+        # Registered on the root fallback like any other registry — see
+        # _attach_to_registries.
         self._toml_watcher = _HaybaleTomlWatcher(self)
 
     @property
@@ -92,10 +87,10 @@ class BaseLibrary(ABC):
         return self._enabled
 
     def enable(self):
-        """Enable the library and register its components.
+        """Enable the library and register its components. Does nothing if already enabled.
 
-        MAY RUN OFF THE EVENT LOOP — the marketplace calls this from a worker
-        thread after an install. So no hook reached from here may call NiceGUI.
+        May run off the event loop — the marketplace calls this from a worker
+        thread after an install — so no hook reached from here may call NiceGUI.
         """
         if not self._enabled:
             self._enabled = True
@@ -120,11 +115,11 @@ class BaseLibrary(ABC):
         return self.__class__.class_identity
 
     def compatibility_warnings(self) -> list[CompatibilityWarning]:
-        """Author-declared, APPEND-ONLY history of compatibility notices.
+        """Author-declared, append-only history of compatibility notices.
 
         Override in a library subclass to advise users when a graph saved by an
         older version of this library may not reflect a later behavioural change.
-        Entries are NEVER removed or re-dated — a graph saved at any past version
+        Entries are never removed or re-dated: a graph saved at any past version
         must still trigger the right historical entries.
 
         Example::
@@ -156,8 +151,9 @@ class BaseLibrary(ABC):
     def on_library_enable(self):
         """Hook called when the library is enabled.
 
-        Override to acquire resources at enable time. Do NOT call NiceGUI from
-        here — see :meth:`enable` for why.
+        Override to acquire resources at enable time, calling ``super()`` to
+        keep the per-library log level setting. Don't call NiceGUI from here —
+        see :meth:`enable`.
         """
         self._register_log_level_setting()
 
@@ -206,11 +202,9 @@ class BaseLibrary(ABC):
 
     @abstractmethod
     def register_components(self):
-        """
-        Register this library's components with the global registries
-        This method is called by the library registry when loading the library
+        """Register this library's components with the global registries.
 
-        Do NOT call NiceGUI from here — see :meth:`enable` for why.
+        Don't call NiceGUI from here — see :meth:`enable`.
         """
         pass
 
@@ -225,27 +219,26 @@ class BaseLibrary(ABC):
         registry_cls: Type[BaseRegistry[Any]],
         exclude_patterns: Optional[List[str]] = None,
     ):
-        """
-        Scan a folder for classes matching the registry's class filter
-        and add them to the specified registry.
-
-        This method should only be called by the _init__ method within each library subfolder
+        """Scan a folder for classes matching the registry's class filter and add them to it.
 
         Args:
-            folder: Relative folder path within the library
-            registry_cls: The registry class to add discovered classes to
+            folder_path: Absolute path to a subfolder of the library. The
+                library root itself is rejected.
+            exclude_patterns: Filename patterns the registry skips while
+                scanning, or ``None`` for no exclusions.
+
+        Raises:
+            ValueError: ``registry_cls`` is not one of this library's
+                registries, or ``folder_path`` is the library root.
         """
         registry: Type[BaseRegistry] = self.get_registry(registry_cls)
         if registry is None:
             raise ValueError(f"Registry {registry_cls} not found in library {self.identity.label}")
 
         if Path(folder_path).resolve() == Path(self.identity.folder_path).resolve():
-            # Folder mappings have priority AND exclusivity over root fallbacks
-            # in the watcher: if any folder mapping matches a path, the fallbacks
-            # are never consulted. Claiming the root as a component folder would
-            # therefore starve everything registered on the fallback — including
-            # this library's own haybale.toml refresh, which would simply stop
-            # firing with nothing to show for it. Register a subfolder.
+            # A folder mapping shadows the root fallbacks in the watcher, so a
+            # mapping on the root starves everything registered on the fallback
+            # — including this library's own haybale.toml refresh.
             raise ValueError(
                 f"Library '{self.identity.label}': cannot register the library root "
                 f"('{folder_path}') as a component folder for {registry_cls.__name__}. "
@@ -254,10 +247,8 @@ class BaseLibrary(ABC):
 
         self._registry_folders[registry_cls] = (folder_path, exclude_patterns)
 
-    # Canonical scan order: settings → state → (types/nodes/adapters/
-    # widgets/skins/themes) → panels → editors → farmhands. State must exist before editor
-    # CLASS_ADDED events fire;
-    # Registry classes not listed here sort to the middle tier (priority 50).
+    # Canonical scan order: state must exist before editor CLASS_ADDED events
+    # fire. A registry class not listed here sorts to the middle (priority 50).
     _REGISTRY_SCAN_PRIORITY: ClassVar[Dict[str, int]] = {
         "ThemeRegistry": 10,
         "SettingsRegistry": 20,
@@ -273,28 +264,15 @@ class BaseLibrary(ABC):
     }
 
     def _reload_metadata(self) -> None:
-        """Re-read ``haybale.toml`` into :attr:`identity`.
+        """Re-read ``haybale.toml`` into :attr:`identity`, without a reload.
 
-        A metadata edit is not a code change: nothing needs re-importing and no
-        class reference goes stale, so this deliberately skips the reload
-        pipeline entirely.
+        Refreshes only ``label``, ``linked_libraries`` and ``on_reload`` — the
+        fields that cannot be read at the point of use. Mutates the identity in
+        place, because the same object is held by the watcher's routing tables
+        and by the registry.
 
-        Only the fields that *cannot* be read at the point of use are refreshed.
-        ``label`` is logged and rendered from inside the registry, which cannot
-        do a file read per line; ``linked_libraries`` is consumed during module
-        registration, inside the import machinery; ``on_reload`` is read after a
-        library is evicted, when its files may already be gone. Everything else
-        — description, tags, urls — is read straight from the file by whoever
-        displays it.
-
-        Mutates the identity in place rather than replacing it: the same object
-        is held by the watcher's routing tables and by the registry, so a fresh
-        instance would update nothing.
-
-        Never raises. The author is mid-keystroke and a half-written file is
-        expected; the previous values stay in force until the next save. That is
-        the opposite of the import-time rule, where a library that cannot name
-        itself must not load at all.
+        Never raises: a missing or half-written file logs a warning and leaves
+        the previous values in force.
         """
         try:
             fields = read_haybale_toml(Path(self.identity.folder_path))
@@ -316,7 +294,7 @@ class BaseLibrary(ABC):
         logger.info(f"Library '{self.identity.label}': reloaded {HAYBALE_TOML}")
 
     def _attach_to_registries(self):
-        """Add ALL library classes to their registries, in canonical scan order."""
+        """Add every library class to its registry, in canonical scan order."""
 
         def _priority(item: Tuple[Type[BaseRegistry], Any]) -> int:
             return self._REGISTRY_SCAN_PRIORITY.get(item[0].__name__, 50)
@@ -335,7 +313,7 @@ class BaseLibrary(ABC):
             )
 
     def _detach_from_registries(self):
-        """Remove ALL library classes from their registries"""
+        """Remove every library class from its registry."""
         for registry_cls, (folder_path, exclude_patterns) in self._registry_folders.items():
             self._unregister_folder(folder_path, registry_cls, exclude_patterns)
 

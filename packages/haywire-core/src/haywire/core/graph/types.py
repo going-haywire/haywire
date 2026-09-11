@@ -1,7 +1,5 @@
 # haywire/core/graph/types.py
-"""
-Shared types for graph validation system.
-"""
+"""Change reasons and batch results shared by the graph validation pipeline."""
 
 from dataclasses import dataclass, field
 from enum import Enum
@@ -9,24 +7,19 @@ from typing import Dict, Optional, Tuple
 
 
 class ChangeReason(Enum):
-    """
-    Reasons for element changes.
+    """Why a node, edge or graph was marked dirty.
 
-    Subscribers can use these to decide how to handle updates:
-    - Some reasons require full UI redraw (ADDED, HOT_RELOADED)
-    - Some only need visual updates (MOVED, SELECTED)
-    - Some need removal (REMOVED)
-
-    Priority order (highest to lowest):
-    REMOVED > ADDED > HOT_RELOADED/ADAPTERS_RELOADED > VALIDATION_REQUESTED
-    > REDRAW > GRAPH_REQUIRE_REASSEMBLY
+    Subscribers read it to decide how to react. The ``requires_*`` methods
+    group the reasons, and ``get_priority`` orders them when two marks land on
+    one element: removal, then adding, rebuild, validation, redraw, graph
+    reassembly, and everything else last.
     """
 
     # Graph reasons
     GRAPH_REQUIRE_REASSEMBLY = "graph_require_assembly"
     """Aspects of the graph have changed that require it to be reassembled."""
 
-    # Node reasons - structural changes (require redraw)
+    # Node reasons that rebuild or revalidate the node
     NODE_ADDED = "node_added"
     NODE_REMOVED = "node_removed"
     NODE_HOT_RELOADED = "node_hot_reloaded"
@@ -35,10 +28,10 @@ class ChangeReason(Enum):
     NODE_VALIDATION_REQUESTED = "node_validation_requested"
     NODE_RESET_REQUESTED = "node_reset_requested"
 
-    # Node reasons - visual only (no redraw needed)
+    # Node reason that changes no structure
     NODE_MOVED = "node_moved"
 
-    # Edge reasons - structural changes (require redraw)
+    # Edge reasons that rebuild or revalidate the edge
     EDGE_ADDED = "edge_added"
     EDGE_REMOVED = "edge_removed"
     EDGE_ADAPTERS_RELOADED = "edge_adapters_reloaded"
@@ -46,7 +39,7 @@ class ChangeReason(Enum):
     EDGE_VALIDATION_REQUESTED = "edge_validation_requested"
     EDGE_RESET_REQUESTED = "edge_reset_requested"
 
-    # Edge reasons - visual only (no redraw needed)
+    # Edge reasons that change no structure
     EDGE_PORT_CHANGED = "edge_port_changed"
     EDGE_REDRAW_REQUESTED = "edge_redraw_requested"
 
@@ -96,20 +89,11 @@ class ChangeReason(Enum):
         return self in redraw_reasons
 
     def is_visual_only(self) -> bool:
-        """True when this reason repaints the UI without changing saved data.
+        """Return whether this reason repaints the UI without changing data a save records.
 
-        The inverse question to :meth:`requires_redraw` — not "must the canvas
-        repaint" but "did anything a save would record actually change". A
-        repaint is not a data change, so an app layer must not mark the file
-        unsaved or announce a data mutation for one.
-
-        ``NODE_MOVED`` is deliberately NOT here. A move repaints too, but
-        position *is* persisted (``props.posX``/``posY``), so treating it as
-        visual-only would silently drop a drag from the next save.
-
-        Treating a repaint as a data change is what let a single colour
-        keystroke broadcast ``GraphDataMutated``, which rebuilds the whole
-        properties editor and destroys the input being typed into.
+        An app layer must not mark the file unsaved or announce a data
+        mutation for one. ``NODE_MOVED`` is not visual-only: a move repaints,
+        but position is persisted as ``props.posX``/``posY``.
         """
         visual_reasons = {
             ChangeReason.NODE_REDRAW_REQUESTED,
@@ -136,42 +120,30 @@ class ChangeReason(Enum):
         return self in reassembly_reasons
 
     def get_priority(self) -> int:
-        """
-        Get the priority level of this reason.
-        Higher numbers = higher priority (processed first, not overridden).
+        """Return this reason's priority; the higher number wins when two marks collide.
 
-        Priority levels:
-        100: REMOVED (highest - always wins)
-        90:  ADDED
-        80:  HOT_RELOADED/ADAPTERS_RELOADED (rebuild)
-        70:  VALIDATION_REQUESTED
-        60:  REDRAW_REQUESTED
-        50:  Visual changes (MOVED, SELECTED, etc.) - lowest
+        Returns:
+            100 for a removal, 90 adding, 80 rebuild, 70 validation, 60
+            redraw, 50 graph reassembly, 40 for anything else.
         """
-        # Removal has highest priority
         if self.requires_removal():
             return 100
 
-        # Adding has second highest
         if self.requires_adding():
             return 90
 
-        # Rebuild has third
         if self.requires_rebuild():
             return 80
 
-        # Validation has fourth
         if self.requires_validation():
             return 70
 
-        # Redraw has fifth
         if self.requires_redraw():
             return 60
 
         if self.requires_graph_reassembly():
             return 50
 
-        # Everything else (visual changes)
         return 40
 
     def has_higher_priority_than(self, other: "ChangeReason") -> bool:
@@ -181,12 +153,7 @@ class ChangeReason(Enum):
 
 @dataclass
 class ValidationResult:
-    """
-    Result of a validation batch with reason-based changes.
-
-    Subscribers receive dictionaries mapping element IDs to their change reasons,
-    allowing flexible handling based on the type of change.
-    """
+    """What one validation batch changed, as maps of element ID to change reason."""
 
     graph: ChangeReason | None = None
     """Reason for whole graph change, if applicable"""
@@ -200,7 +167,6 @@ class ValidationResult:
     canvas_size: Optional[Tuple[int, int]] = None
     """New (width, height) of the canvas if it was resized during this batch, else None."""
 
-    # Metadata
     validation_time_ms: float = 0.0
     """Time taken for validation in milliseconds"""
 

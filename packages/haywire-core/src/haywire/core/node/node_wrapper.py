@@ -1,8 +1,5 @@
-"""
-NodeWrapper - Complete lifecycle management for Haywire nodes.
-
-This wrapper manages the complete lifecycle of a HaywireNode instance,
-including creation, hot reload, serialization, and cleanup.
+"""Lifecycle management for one Haywire node instance: creation, hot reload,
+serialization and cleanup.
 """
 
 import time
@@ -57,13 +54,14 @@ class NodeWrapperState:
     error_runtime: Optional[HaywireException] = None
     """node runtime error (startup, execution, shutdown)"""
     test_execution_time_ns: float = 0.0
-    """Last transform() execution time"""
+    """Duration of the last on_testrun() call, in microseconds despite the name"""
     warnings: list[NodeWarning] = field(default_factory=list)
-    """Advisory, non-fatal notices (e.g. compatibility warnings). Does NOT
-    affect is_valid() — these are informational only."""
+    """Advisory, non-fatal notices such as compatibility warnings. They do not
+    affect is_valid()."""
 
     def is_valid(self) -> bool:
-        """Check if node is in valid state (initialized and tested)"""
+        """True once every stage has passed: registered, imported, instantiated,
+        initialized, structurally valid and tested."""
         return (
             self.is_registered
             and self.is_imported
@@ -74,7 +72,8 @@ class NodeWrapperState:
         )
 
     def get_errors(self) -> list[HaywireException] | None:
-        """Get error. Having an error does not necessarily mean the node is invalid."""
+        """Every error recorded on this node, or ``None`` if there are none. Carrying
+        an error does not necessarily make the node invalid."""
         error: list[HaywireException] = []
         if self.error_import:
             error.append(self.error_import)
@@ -118,17 +117,11 @@ class NodeWrapperState:
 
 
 class NodeWrapper:
-    """
-    Manages the complete lifecycle of a HaywireNode instance.
+    """Manages the complete lifecycle of one node instance.
 
-    Responsibilities:
-    - Node instance management and lifecycle
-    - Hot reload detection and migration
-    - Execution preparation and cleanup
-    - State validation and error handling
-    - Change notifications
-    - Serialization/deserialization
-    - Resource management
+    Instantiates, initializes, structurally validates and tests the node; reacts
+    to the node class being reloaded, added or removed; serializes the node with
+    the graph; and releases it on cleanup.
     """
 
     def __init__(
@@ -138,19 +131,15 @@ class NodeWrapper:
         graph: "BaseGraph",
         position: Tuple[float, float] = (3750, 3750),
     ):
-        """
-        Initialize a new NodeWrapper.
+        """Initialize a new NodeWrapper.
 
         Args:
-            registry_key: Registry key for the node class
-            node_id: Unique identifier for the node instance
-            graph: Parent graph instance
-            position: Initial (x, y) position
+            position: Initial (x, y) canvas position of the node.
         """
         self.registry_key = registry_key
-        """The registry key of the node class. DO NOT CHANGE AFTER INITIALIZATION"""
+        """The registry key of the node class. Only _rebuild() may change it."""
         self._node_id = node_id
-        """The node ID of the node instance. DO NOT CHANGE AFTER INITIALIZATION"""
+        """The node instance's ID, fixed for the wrapper's lifetime."""
         self._graph = graph
         """Parent graph instance"""
 
@@ -188,12 +177,10 @@ class NodeWrapper:
 
     @property
     def node(self) -> "BaseNode":
-        """
-        Get the current node instance with validation and migration.
-        Returns:
-            BaseNode: The current node instance
+        """The current node instance.
+
         Raises:
-            RuntimeError: If the node has not yet been built or has been cleaned up.
+            RuntimeError: If the node has not been built yet, or has been cleaned up.
         """
         with self._lock:
             if self._node_instance is None:
@@ -204,7 +191,7 @@ class NodeWrapper:
             return self._node_instance
 
     def is_valid(self) -> bool:
-        """Check if edge is valid"""
+        """True when the node has passed every lifecycle stage. See ``NodeWrapperState.is_valid``."""
         return self._state.is_valid()
 
     @property
@@ -229,12 +216,7 @@ class NodeWrapper:
         return self._graph
 
     def set_as_registered(self, is_registered: bool) -> None:
-        """
-        Set the node as registered with the graph.
-
-        Args:
-            is_registered: True if the node is registered
-        """
+        """Record whether the node is registered with the graph."""
         with self._lock:
             self._state.is_registered = is_registered
 
@@ -243,9 +225,8 @@ class NodeWrapper:
     # =========================================================================
 
     def _import_node_cls(self):
-        """
-        gets the node class and import error, if any
-        """
+        """Resolve the node class for ``registry_key``, recording any import error
+        and, when it fails, the alternate registry keys to offer instead."""
         self._node_cls, self._state.error_import = self._node_factory.get_node(self.registry_key)
         if self._state.error_import:
             self._state.is_imported = False
@@ -260,8 +241,7 @@ class NodeWrapper:
             self._state.is_imported = True
 
     def _rebuild(self, registry_key: str) -> None:
-        """
-        Rebuild the node wrapper for a new registry key."""
+        """Rebuild the node under a new registry key, carrying its serialized state over."""
         with self._lock:
             self.registry_key = registry_key
             self._import_node_cls()
@@ -272,19 +252,22 @@ class NodeWrapper:
                 self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_HOT_RELOADED)
 
     def build(self, node_info: Optional[Dict[str, Any]] = None):
-        """
-        Build node from class.
-        This includes instantiation, initialization, and testing of the node.
+        """Build the node: instantiate, initialize, validate structurally, then test it.
+
+        Clears any recorded errors and advisory warnings first, and subscribes to
+        the redraw-triggering props afterwards. Failures are recorded on
+        ``state`` rather than raised.
+
         Args:
-            node_info: Optional serialized node data for deserialization
+            node_info: Serialized node data to restore from; ``None`` builds a
+                fresh node through its ``init()``.
         """
         with self._lock:
             logger.debug(f"Start node building: {self._node_id} ... ")
 
             self._state._clear_errors()
-            # Advisory warnings (e.g. compatibility warnings) are derived from the
-            # SAVED file at load time. A rebuild re-derives the node from current
-            # code (Reset / hot-reload), so any such warning no longer applies.
+            # Advisory warnings come from the saved file; a rebuild re-derives the
+            # node from current code, so none of them apply to the result.
             self._state.clear_warnings()
 
             if (
@@ -300,10 +283,9 @@ class NodeWrapper:
             self._subscribe_props_redraw()
 
     def _instantiate(self) -> bool:
-        """
-        Instantiate the node instance from the node class.
-        Returns:
-            True if instantiation succeeded, False otherwise
+        """Create the node instance, cleaning up any existing one first.
+
+        Returns whether it succeeded; a failure lands in ``state.error_instantiate``.
         """
         if self._node_cls is None:
             return False
@@ -321,7 +303,6 @@ class NodeWrapper:
             return True
 
         except Exception as e:
-            # Create detailed error with context about the node instantiation
             self._state.error_instantiate = HaywireException.from_exception(
                 exception=e,
                 operation="Instantiate Node",
@@ -340,14 +321,10 @@ class NodeWrapper:
         return False
 
     def _initialize(self, node_info: Optional[Dict[str, Any]] = None) -> bool:
-        """
-        Initializes the node after instantiation to its default setup
-        by either calling the nodes initialize() method or using the
-        serialized node_info to restore its state.
-        Args:
-            node_info: Optional serialized node data for deserialization
-        Returns:
-            True if initialization succeeded, False otherwise
+        """Bring the node to its initial state — from *node_info* if given, else
+        through its ``init()`` — and run ``post_init()`` last.
+
+        Returns whether it succeeded; a failure lands in ``state.error_initialize``.
         """
         assert self._node_instance is not None, "must be set by _instantiate"
         assert self._node_cls is not None, "must be set by _import_node_cls"
@@ -360,10 +337,9 @@ class NodeWrapper:
                 node_instance._initialize_from_dict(node_info)
             else:
                 node_instance.init()
-                # Fresh drop: realise any setting(promote_default=...) seeds the
-                # bags recorded at construction. Same call the load path makes,
-                # so promoted ports have ONE creation path either way and land
-                # after the author-declared ports on both.
+                # Fresh drop: realise the setting(promote_default=...) seeds the bags
+                # recorded at construction, through the same call the load path makes,
+                # so promoted ports land after the author-declared ports either way.
                 node_instance._regenerate_promoted_ports()
             node_instance.post_init()
             self._state.is_initialized = True
@@ -387,25 +363,18 @@ class NodeWrapper:
         return False
 
     def _structural_validation(self) -> bool:
-        """
-        Validate structural constraints for this node.
+        """Check the node against the graph's structural validator — event-node
+        constraints, control-flow topology, and the like.
 
-        Uses the graph's structural validator to check domain-specific rules
-        such as event node constraints, control flow topology, etc.
-
-        Returns:
-            True if validation passed, False otherwise
+        Returns whether it passed; a failure lands in ``state.error_structural``.
         """
         assert self._node_cls is not None, "must be set by _import_node_cls"
         node_cls = self._node_cls
         try:
-            # Call structural validator
             (is_valid, error_message, suggestions) = self._structural_validator.validate_node(self)
 
-            # Update state
             self._state.is_structural = is_valid
 
-            # Create exception from error message if validation failed
             if not is_valid and error_message:
                 self._state.error_structural = HaywireException.create(message=error_message).enrich(
                     node_id=self._node_id,
@@ -444,20 +413,16 @@ class NodeWrapper:
             return False
 
     def _test(self) -> bool:
-        """
-        test the node after initialization
-        Returns:
-            True if test was run without errors, False otherwise
+        """Run the node's ``on_testrun()``, recording its verdict and duration.
+
+        Returns whether the test passed; a failure lands in ``state.error_test``.
         """
 
         try:
-            # Execute adapter chain with performance tracking
-
             if self._node_instance:
                 start_time = time.perf_counter()
                 success, error = self._node_instance.on_testrun()
 
-                # Update metrics
                 execution_time = (time.perf_counter() - start_time) * 1000000.0
                 self._state.test_execution_time_ns = execution_time
 
@@ -497,11 +462,11 @@ class NodeWrapper:
         return False
 
     def _on_node_lifecycle_event(self, lc_event: LifeCycleEvent) -> None:
-        """
-        Handle event notification from factory.
+        """React to the node class being reloaded, added or removed.
 
-        Args:
-            event: The life cycle event with complete context
+        A removal or error event records an import error; a successful reload
+        adopts the new class. Either way the node is marked dirty, so the graph
+        rebuilds or reports it.
         """
         with self._lock:
             logger.info(
@@ -510,9 +475,8 @@ class NodeWrapper:
 
             if lc_event.is_warning_event():
                 if lc_event.is_removal():
-                    # The registry doesn't flag this as an error, but we
-                    # cannot use the node anymore. Therefore generate our
-                    # own error state and enhance the event
+                    # The registry does not flag a removal as an error, but the node
+                    # is unusable without its class, so record one here.
                     self._state.error_import = HaywireException(
                         operation="Node Removed",
                         message=(
@@ -552,10 +516,10 @@ class NodeWrapper:
                 self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_HOT_RELOADED)
 
     def cleanup(self) -> None:
-        """Full cleanup when wrapper is being destroyed.
+        """Release the node instance and the factory subscription.
 
-        Callers must not access the wrapper's fields after cleanup() returns —
-        the contract is signalled by ``self._cleaned_up = True``.
+        Callers must not touch the wrapper's fields afterwards. Calling it a
+        second time does nothing.
         """
         with self._lock:
             if self._cleaned_up:
@@ -574,30 +538,21 @@ class NodeWrapper:
     # =========================================================================
 
     def move(self, new_x: float, new_y: float):
-        """
-        Move internal node instance and set the default position
-
-        Args:
-            new_x: New X position
-            new_y: New Y position
-        """
+        """Move the node, and record the position a later rebuild restores it to."""
         self._initial_position = (new_x, new_y)
         if self._node_instance:
             self._node_instance.props.set_position(self._initial_position)
 
     def _add_runtime_error(self, error: HaywireException) -> None:
-        """
-        Add a runtime error with limiting to prevent accumulation.
+        """Record a runtime error, replacing any error already held.
 
-        Keeps only the first error and the most recent error to prevent
-        thousands of errors from accumulating during loop execution.
+        Only the first error after a clear triggers a redraw, so a node failing
+        every loop iteration cannot flood the UI.
         """
         if self._state.error_runtime is None:
-            # First error - add and trigger redraw
             self._state.error_runtime = error
             self.redraw()
         else:
-            # Subsequent errors - replace the last one (keep first + recent)
             self._state.error_runtime = error
 
     def clear_runtime_errors(self) -> None:
@@ -611,14 +566,10 @@ class NodeWrapper:
     # =========================================================================
 
     def on_startup(self, exec_ctx: "ExecutionContext") -> None:
-        """
-        Wrapper flow startup logic.
-        """
+        """Wrapper-level startup hook, run as the flow starts."""
 
     def on_shutdown(self, exec_ctx: "ExecutionContext") -> None:
-        """
-        Wrapper shutdown logic after last node in flow has executed and flow is shutting down.
-        """
+        """Wrapper-level shutdown hook, run once the last node in the flow has executed."""
         ...
 
     # =========================================================================
@@ -626,13 +577,10 @@ class NodeWrapper:
     # =========================================================================
 
     def mark_as_structuraly_dirty(self) -> None:
-        """
-        Mark the node as structurally dirty, requiring re-validation.
+        """Mark the node as needing structural re-validation.
 
-        This is required to be called when the node
-        changes its inlets or outlets.
-
-        the node needs to be registered with the graph for this to work.
+        Call it whenever the node changes its inlets or outlets. It does nothing
+        until the node is registered with the graph.
         """
         with self._lock:
             # Notify graph of redraw request
@@ -643,9 +591,7 @@ class NodeWrapper:
                 self._is_dirty_structural = True
 
     def redraw(self) -> None:
-        """
-        Request a redraw of the node in the UI.
-        """
+        """Request a redraw of the node in the UI."""
         with self._lock:
             # Notify graph of redraw request
             if self._graph:
@@ -664,16 +610,11 @@ class NodeWrapper:
         self.redraw()
 
     def request_graph_reassembly(self) -> None:
-        """
-        Request a reassembly of the flow from the graph.
-        This will notify the flow assembler to regenerate the flow structure.
-        It will not trigger any rebuild or redraw of the graph.
+        """Ask the graph to regenerate the flow structure, rebuilding and redrawing nothing.
 
-        This is needed when a setting inside the node was changed and the flow
-        assembler needs this information to build the flow.
-
-        if the node has changed its inlet or outlet structure, use
-        mark_as_structuraly_dirty() instead.
+        Call it when a setting inside the node changed something the flow
+        assembler reads. When the node's inlets or outlets changed instead, call
+        ``mark_as_structuraly_dirty()``.
         """
         with self._lock:
             # Notify graph of reassembly request
@@ -681,12 +622,10 @@ class NodeWrapper:
                 self._graph._validation.mark_graph_dirty(ChangeReason.GRAPH_REQUIRE_REASSEMBLY)
 
     def _housekeeping(self) -> None:
-        """
-        Perform housekeeping of the node and its ports.
-        Should only be called by the graph validation or
-        after deserialization, but not from inside a node.
+        """Rebuild the node's port pipelines if it is structurally dirty.
 
-        This includes the rebuild of the port pipelines
+        Called by graph validation or after deserialization, never from inside a
+        node.
         """
         with self._lock:
             if self._node_instance:
@@ -699,14 +638,11 @@ class NodeWrapper:
     # =========================================================================
 
     def serialize(self, include_data: bool = True) -> Dict[str, Any]:
-        """
-        Serialize wrapper state for graph save.
+        """Return the wrapper and node state for a graph save, calling the node's
+        ``on_saved()`` first.
 
         Args:
-            include_data: If True, includes field values
-
-        Returns:
-            Dictionary containing wrapper and node state
+            include_data: When True, port field values are included.
         """
         with self._lock:
             if self._node_instance:
@@ -718,7 +654,6 @@ class NodeWrapper:
                 "position": list(self._initial_position),
             }
 
-            # Serialize node instance if available
             if self._node_instance:
                 result["node_data"] = self._node_instance._to_dict(include_data=include_data)
 

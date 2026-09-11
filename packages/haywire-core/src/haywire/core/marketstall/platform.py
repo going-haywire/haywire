@@ -1,9 +1,7 @@
-"""Current-OS detection mapping table.
+"""Current-OS detection against the runtime vocabulary ``macos | windows | linux | other``.
 
-`platform.system()` returns OS-family strings; we map them to the four-value
-runtime vocabulary (macos | windows | linux | other). `other` is a runtime-only
-sentinel — never a declarable value (haywire share rejects it). The absent
-default on Haybale.os is the "supports all platforms" case.
+``other`` is a runtime-only sentinel, never a declarable value. An empty
+``Haybale.os`` means "supports all platforms".
 """
 
 from __future__ import annotations

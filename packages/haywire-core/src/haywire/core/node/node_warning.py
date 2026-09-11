@@ -1,7 +1,6 @@
 """Advisory warning record carried on a node's wrapper state.
 
-Distinct from errors (which make a node invalid). A warning is informational;
-the first writer is the Compatibility Warning feature (kind="compatibility").
+A warning is informational and, unlike an error, never makes a node invalid.
 """
 
 from __future__ import annotations

@@ -38,8 +38,8 @@ class CompatibilityWarning:
     Fields:
         version: The version in which the change landed (strict semver string).
             A graph whose saved node was stored with a library version *below*
-            this value triggers the warning. This is a historical fact and is
-            ALWAYS explicit — never derived from the library's current version.
+            this value triggers the warning. Always stated explicitly, never
+            derived from the library's current version.
         component: A node class exposing ``class_identity.registry_key`` (or a
             plain registry_key string), or ``None`` for a library-wide warning.
             A non-None component is matched against saved nodes by registry_key.
@@ -138,7 +138,7 @@ class CompatibilityChecker:
                 target_key = _component_registry_key(warning.component)
 
                 if target_key is None:
-                    # Library-wide: one finding if ANY node is below the version.
+                    # Library-wide: one finding when any node is below the version.
                     if any(_is_older(n.saved_version, warning) for n in nodes_for_lib):
                         findings.append(
                             CompatibilityFinding(

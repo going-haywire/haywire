@@ -1,20 +1,13 @@
 # haywire/core/graph/metadata.py
-"""
-GraphMetadata — framework-provided per-graph document metadata (``graph.meta``).
+"""GraphMetadata — framework-provided per-graph document metadata (``graph.meta``).
 
-The editable half of a graph's metadata: who wrote it, what it is for, what
-they call it. A settings bag rather than four plain attributes so the
-settings framework owns editing (``render_settings`` draws the whole bag),
-serialization and change propagation.
+A settings bag holding the editable half of a graph's metadata, so the settings
+framework owns its editing, serialization and change propagation. It declares no
+``shadow()`` fields and no node-side mirrors, so it is document data, not a
+settings tier.
 
-Unlike its sibling ``graph.props``, this bag declares no ``shadow()`` fields
-and no node-side mirrors — it is plain per-graph document data, not a
-settings tier. That is why its restore order relative to nodes is
-unconstrained.
-
-The framework-written fields (``filestem``, ``created_at``, ``modified_at``)
-deliberately stay OUT of the bag: they have no setter, and a generic bag
-renderer draws every field as editable.
+The framework-written fields (``filestem``, ``created_at``, ``modified_at``) are
+not in the bag; a bag renderer draws every field it holds as editable.
 
 Serialized under the ``'meta'`` key in graph JSON.
 """

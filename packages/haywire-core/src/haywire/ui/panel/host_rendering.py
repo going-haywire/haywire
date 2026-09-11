@@ -1,32 +1,18 @@
 """Host-side panel rendering for panel-aware hosts.
 
-Two hosts render panels: the PropertiesEditor (persistent display panels)
-and BaseContextMenuProvider (ephemeral context-menu panels). Both run the
-same steps — poll each panel for visibility, then instantiate, inject the
-actions host, and draw the visible ones — and both need the same error
-boundary around panel-authored code.
+The ``PropertiesEditor`` and ``BaseContextMenuProvider`` both poll panels for
+visibility, then instantiate, inject the actions host and draw the visible
+ones, under one error boundary around panel-authored code. These verbs are
+that shared contract; hosts own their own iteration:
 
-`_guarded` is that boundary: it invokes a panel's poll() or draw() and
-returns ``(result, exception)`` instead of letting the exception escape.
-Hosts don't call it directly — they use the intention-revealing verbs built
-on top of it:
+  - :func:`visible_panels` — poll-filters a list down to the panels to show.
+  - :func:`partition_panels` — the superset, ``(applies, disabled)``, for a
+    host rendering a panel's inapplicable state through ``draw_disabled()``.
+  - :func:`render_panel` — instantiates, injects the host, and draws one.
+  - :func:`_poll_surface` — gates a surface once before querying its panels.
 
-  - `visible_panels` — poll-filters a list down to the panels to show.
-  - `partition_panels` — the superset: ``(applies, disabled)``, for hosts
-    that render a panel's own inapplicable state via ``draw_disabled()``.
-  - `render_panel` — instantiates, injects the host, and draws one panel.
-  - `_poll_surface` — the surface-level twin of `_poll_panel`, used by hosts
-    (and by ``BasePanel.render_surface``) to gate a surface once before
-    querying its panels.
-
-Both hosts share those, so the rendering contract lives in one place. The
-hosts own their own iteration (the editor wraps each panel in an expansion
-section; the context menu gates popup-open on whether any *leaf* panel drew).
-
-``_render_path`` lives here — a per-render ``ContextVar`` holding the surface
-ids on the current render path, which is the cycle *enforcement*
-(registration only logs). It is request-scoped state, not DI state: the trap
-in ``.insights/project_di_context.md`` is about the *injector*, not this.
+``_render_path``, the per-render surface ids, is where surface cycles are
+enforced; registration only logs them.
 
 The leaf counter is **not** declared here. ``flyout._leaves_drawn`` already
 owns it: a ``SubmenuRow`` greys its anchor retroactively when its body drew
@@ -62,17 +48,9 @@ logger = logging.getLogger(__name__)
 # inside itself. This is the cycle *enforcement* — registration only logs.
 _render_path: ContextVar[tuple[str, ...]] = ContextVar("_render_path", default=())
 
-# The panel class whose draw() is currently on the stack, or None outside one.
-#
-# Set by render_panel around the draw call, the same shape as the leaf counter
-# beside it. It exists so content a panel renders can name the panel that drew
-# it WITHOUT that panel having to pass itself down: a settings row's developer
-# menu offers "open the panel's source", and render_settings is called by a
-# dozen panels that would each otherwise have to hand themselves to it.
-#
-# Read it through `drawing_panel()`, never directly. Nested panels (a hosting
-# panel rendering a surface whose panels draw their own content) correctly
-# report the INNERMOST panel — the one that actually made the element.
+# The panel class whose draw() is on the stack, so content can name the panel
+# that drew it without being passed it. Set by render_panel; read through
+# `drawing_panel()`. Nested panels report the innermost one.
 _drawing_panel: ContextVar[type["BasePanel"] | None] = ContextVar("_drawing_panel", default=None)
 
 
@@ -259,28 +237,22 @@ def render_panel(
 ) -> bool:
     """Instantiate, inject the host, and draw one panel. Returns whether it drew.
 
-    ``actions_host`` is set on the instance as ``panel.actions`` — the host
-    whose verbs the panel calls, ``None`` when its surface declares no
-    ``provides``. ``registry`` and ``layout.state_bag`` are set as
-    ``_hw_registry`` / ``_hw_state_bag``, the two things a panel needs to
-    render a further surface of its own (see
-    :meth:`BasePanel.render_surface`); the ``_hw_`` prefix marks them
-    framework-injected, matching ``session/handlers.py`` (``hb_*`` is the
-    namespace reserved for *authors*).
+    Assumes the panel's visibility is already decided, by
+    :func:`partition_panels` or :func:`visible_panels`.
 
-    ``disabled=True`` calls ``draw_disabled()`` instead of ``draw()`` — a
-    panel's own rendering of its inapplicable state, defaulting to a no-op.
-    Either runs under the same error boundary, so a panel that raises is
-    logged and an inline ``error_label`` is rendered into ``layout`` rather
-    than crashing the host; the call then returns ``False``.
+    A panel that raises is logged and renders an inline ``error_label`` into
+    *layout* instead of crashing the host, and returns ``False``.
 
-    A panel that inherits the no-op ``draw_disabled`` is skipped entirely and
-    reports ``False``: it drew nothing, so it must not count toward a menu
-    opening. That is the zero-migration guarantee — every panel that does not
-    opt into greying keeps vanishing exactly as it does today.
-
-    Callers filter first via :func:`partition_panels` / :func:`visible_panels`,
-    so this assumes the panel's state has already been decided.
+    Args:
+        actions_host: Set on the instance as ``panel.actions``, the host whose
+            verbs the panel calls. ``None`` when its surface declares no
+            ``provides``.
+        registry: Set as ``_hw_registry``, with ``layout.state_bag`` as
+            ``_hw_state_bag`` — what a panel needs to render a surface of its
+            own (see :meth:`BasePanel.render_surface`).
+        disabled: Draw the panel's inapplicable state through
+            ``draw_disabled()``. A panel inheriting that no-op is skipped and
+            reports ``False``, so it never counts toward a menu opening.
     """
 
     # Callers are expected to filter through partition_panels() first, but

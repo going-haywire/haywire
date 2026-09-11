@@ -37,21 +37,17 @@ class LibraryLoadError(LibraryDiscoveryError):
 class LibraryRegistry:
     """Registry for managing loaded libraries.
 
-    The registry owns the persisted-disabled-state contract: writes go through
-    ``HostStore`` (under section ``libraries``, key ``disabled``) whenever
-    ``enable_library`` / ``disable_library`` is called. The bootstrap-apply
-    path is ``apply_persisted_disabled_state()`` — called once between
-    ``scan_for_libraries()`` and ``enable_all_libraries()`` and explicitly
-    suppresses the write-through (the values being applied came *from* the
-    store; re-writing them would be a no-op churn).
+    Owns the persisted-disabled-state contract: ``enable_library`` and
+    ``disable_library`` write the disabled set through ``HostStore`` (section
+    ``libraries``, key ``disabled``). ``apply_persisted_disabled_state()``
+    reads it back and is called once between ``scan_for_libraries()`` and
+    ``enable_all_libraries()``.
 
-    If the host supplied no ``HostStore``, the in-memory default returned by
-    ``HostStore.in_memory()`` is used: reads return defaults, writes are
-    kept in memory only.
+    With no ``HostStore`` from the host, ``HostStore.in_memory()`` is used:
+    reads return defaults and writes never reach disk.
     """
 
     def __init__(self, host_store: Optional[HostStore] = None):
-        # Registry functionality moved from BaseRegistry
         self._libraries: Dict[str, BaseLibrary] = {}  # registry_id -> library_instance
         """key is library_registry_name (e.g. 'visiongraph'), value is the instantiated library object"""
         # registry_cls -> registry instance
@@ -73,15 +69,11 @@ class LibraryRegistry:
         # supplies no store, a detached in-memory one is used so the registry
         # still has a uniform write interface.
         self._host_store: HostStore = host_store if host_store is not None else HostStore.in_memory()
-        # Set of library_registry_names the user has explicitly disabled. Honored
-        # by enable_all_libraries() (skipped during bootstrap) and by
-        # _fire_library_enabled paths. Populated from HostStore by
-        # apply_persisted_disabled_state() and mutated by
-        # enable_library / disable_library at runtime.
+        # library_registry_names the user has explicitly disabled; skipped by
+        # enable_all_libraries().
         self._user_disabled: set[str] = set()
-        # Reentrancy flag: True while apply_persisted_disabled_state() applies
-        # values that came *from* the store, so disable_library() doesn't churn
-        # the same list back to disk.
+        # True while apply_persisted_disabled_state() applies values that came
+        # from the store, so they are not written straight back to it.
         self._suppress_disable_persist: bool = False
 
         # Loading configuration
@@ -89,17 +81,7 @@ class LibraryRegistry:
         self.load_pip_packages = True  # Load from pip installed packages
         self.core_libraries_path: Optional[str] = None  # Set during initialization
 
-        # Post-enable callbacks: fired AFTER library.enable() returns
-        # successfully. Used by LibraryStateContainer to learn "library X
-        # has finished registering all its components" so it can catch up
-        # on that library's state classes — the key timing point that
-        # avoids the load-order race.
         self._library_enabled_callbacks: List[Callable[[BaseLibrary], None]] = []
-        # Post-disable callbacks: mirror of the above, fired AFTER
-        # library.disable() returns. By that point the CLASS_REMOVED events
-        # from _detach_from_registries have drained; the callback is used by
-        # LibraryStateContainer to drop the library id from its filter set
-        # so events for the (now-disabled) library are subsequently rejected.
         self._library_disabled_callbacks: List[Callable[[BaseLibrary], None]] = []
 
     def _register(self, library_instance: Any):
@@ -125,46 +107,36 @@ class LibraryRegistry:
         return list(self._libraries.keys())
 
     def add_class_registry(self, cls: Type[BaseRegistry], instance: BaseRegistry):
-        """
-        Add a registry instance for a given registry class
-        This allows to dynamically add registries that libraries can use
-
-        Args:
-            cls: The class of the registry
-            instance: The instance of the registry
-        """
+        """Add a registry instance libraries can register their components with."""
         self._class_registries[cls] = instance
 
     def add_library_root_path(self, path: str):
-        """
-        Add a path to search for libraries
-        Each library root path is scanned for subdirectories containing a library structure.
+        """Add a path to search for libraries.
 
-        Args:
-            path: The root path to add
+        Each root path is scanned for subdirectories holding a library
+        structure. Adding a path already present does nothing.
         """
         if path not in self._library_root_paths:
             self._library_root_paths.append(path)
 
     def enable_file_watching(self, debounce_delay: float = 0.5, force: bool = False):
-        """
-        Enable file watching for library directories
-        This overrides library settings to enforce file watching.
+        """Configure file watching for library directories.
 
         Args:
-            debounce_delay: Delay in seconds to debounce file change events
-            force: Force enable even if library settings disable it
+            debounce_delay: Seconds of quiet before a file change is dispatched.
+            force: Watch libraries that did not ask for it with
+                ``@library(file_watcher=True)``. A regular pip install is
+                never watched this way.
         """
         self.debounce_delay = debounce_delay
         self.enforce_file_watching = force
 
     def add_library_disabled_callback(self, callback: Callable[[BaseLibrary], None]) -> None:
-        """Register a callback fired AFTER each library's disable() returns.
+        """Register a callback fired after each library's disable() returns.
 
-        Mirror of ``add_library_enabled_callback``. Used by
-        ``LibraryStateContainer`` to drop the library id from its
-        ``_enabled_library_ids`` set so subsequent events for the (now
-        disabled) library are rejected by the filter.
+        By then the library's components are out of their registries and its
+        CLASS_REMOVED events have drained. Mirror of
+        ``add_library_enabled_callback``.
 
         Multiple subscribers allowed; callbacks fire in registration order.
         Callbacks that raise are logged but don't propagate.
@@ -172,15 +144,7 @@ class LibraryRegistry:
         self._library_disabled_callbacks.append(callback)
 
     def _fire_library_disabled(self, library: BaseLibrary) -> None:
-        """Invoke every post-disable callback for *library*.
-
-        Called as the last thing in ``disable_library`` after
-        ``library.disable()`` has returned (i.e. after on_library_disable,
-        _detach_from_registries, file_watcher.stop()). At this point the
-        CLASS_REMOVED events from the registry have already drained and
-        the container's instance dicts no longer hold this library's
-        state instances.
-        """
+        """Invoke every post-disable callback for *library*, logging any that raise."""
         for callback in self._library_disabled_callbacks:
             try:
                 callback(library)
@@ -191,15 +155,10 @@ class LibraryRegistry:
                 )
 
     def add_library_enabled_callback(self, callback: Callable[[BaseLibrary], None]) -> None:
-        """Register a callback fired AFTER each library's enable() returns successfully.
+        """Register a callback fired after each library's enable() returns successfully.
 
-        Used by ``LibraryStateContainer`` to learn when a library has finished
-        registering all its components (types, nodes, panels, state classes,
-        editors), so it can safely query the state registry for that library's
-        state classes and call ``on_enable`` on them. Doing this per-library
-        AFTER the library's own ``enable()`` returns is what avoids the
-        load-order race where a state ``on_enable`` would otherwise fire
-        mid-enable, before the library's other components were available.
+        By then the library has registered all of its components, so a
+        subscriber may query any registry for them.
 
         Multiple subscribers are allowed; callbacks fire in registration order.
         Callbacks that raise are logged but don't stop subsequent callbacks
@@ -208,12 +167,7 @@ class LibraryRegistry:
         self._library_enabled_callbacks.append(callback)
 
     def _fire_library_enabled(self, library: BaseLibrary) -> None:
-        """Invoke every post-enable callback for *library*.
-
-        Called as the VERY LAST thing in enable_library / enable_all_libraries,
-        after library.enable() has completed (register_components +
-        _attach_to_registries + on_library_enable + file_watcher.start()).
-        """
+        """Invoke every post-enable callback for *library*, logging any that raise."""
         for callback in self._library_enabled_callbacks:
             try:
                 callback(library)
@@ -224,12 +178,7 @@ class LibraryRegistry:
                 )
 
     def enable_all_libraries(self):
-        """Enable every loaded library except those the user has explicitly disabled.
-
-        Libraries in ``self._user_disabled`` (populated from HostStore via
-        ``apply_persisted_disabled_state`` and mutated at runtime by
-        ``disable_library`` / ``enable_library``) skip the enable step.
-        """
+        """Enable every loaded library except those the user has explicitly disabled."""
         for library_id, library in self._libraries.items():
             if library_id in self._user_disabled:
                 continue
@@ -251,14 +200,10 @@ class LibraryRegistry:
     def disable_library(self, library_registry_name: str) -> bool:
         """Disable a specific library. Adds it to the persisted-disabled set.
 
-        Refuses (returns False) for InstallType.FOLDER libraries — today
-        this is only the framework-owned `builtin` library, for which
-        disabling has no legitimate use. This is the one protection guard
-        core can compute on its own (a pure filesystem-mechanism fact); it
-        does NOT cover project-local libraries, which require workspace
-        context core deliberately doesn't have — that protection remains
-        enforced at the marketplace UI layer only. See
-        internals/handoff/library-origin-and-required-classification.md.
+        Returns False, changing nothing, for an unknown library and for an
+        ``InstallType.FOLDER`` one — the framework-owned `builtin` library.
+        Project-local libraries are not covered here; that guard needs
+        workspace context and lives in the marketplace UI.
         """
         library = self._libraries.get(library_registry_name)
         if not library:
@@ -276,8 +221,9 @@ class LibraryRegistry:
         """Populate the user-disabled set from the host store.
 
         Called once between ``scan_for_libraries()`` and
-        ``enable_all_libraries()``. The values being applied came *from* the
-        store, so the write-back is suppressed for this call.
+        ``enable_all_libraries()``. Ignores ids no library was loaded under,
+        and does not write back. A stored value that is not a list logs a
+        warning and is ignored.
         """
         disabled = self._host_store.get(_HOST_STORE_SECTION, _HOST_STORE_KEY_DISABLED, [])
         if not isinstance(disabled, list):
@@ -340,15 +286,15 @@ class LibraryRegistry:
         return library.enabled if library else False
 
     def scan_for_libraries(self):
-        """
-        Discover and load all libraries from multiple sources in priority order:
-        1. Core libraries (hardcoded in src/haywire/libraries)
-        2. Regular pip installs
-        3. Editable pip installs (-e flag)
-        4. Manual folder paths (avoiding duplicates)
+        """Discover and load all libraries, in priority order.
 
-        This method can be called multiple times to discover
-        new libraries added or removed at runtime.
+        1. Core libraries (from ``core_libraries_path``)
+        2. and 3. Pip installs, regular and editable
+        4. Manual folder paths
+
+        A library already discovered at a higher priority is skipped. Safe to
+        call again at runtime: libraries added since the last call are loaded,
+        and ones that have gone are disabled and unregistered.
         """
         logger.info("=" * 60)
         logger.info("Starting library discovery and loading process")
@@ -418,10 +364,11 @@ class LibraryRegistry:
         logger.info("=" * 60)
 
     def _scan_directory(self, directory: str) -> Dict[str, str]:
-        """Scan a directory for library subdirectories
+        """Scan a directory for library subdirectories.
 
         Returns:
-            Dict mapping library_id -> actual module path containing __init__.py
+            The module folder name mapped to the path of the directory holding
+            its ``__init__.py``. Empty when the directory cannot be listed.
         """
         lib_folders = {}
         try:
@@ -445,19 +392,13 @@ class LibraryRegistry:
         return lib_folders
 
     def _check_library_structure(self, library_id: str, library_path: str) -> list[str]:
-        """
-        Check if a directory follows a valid library structure and return module paths.
+        """Check a directory for a valid library structure and return its module paths.
 
-        Two patterns:
-        1. Flat structure: library_path/__init__.py (e.g., core library)
-           → Returns [library_path]
-
-        2. Package structure with pyproject.toml: library_path/pyproject.toml
-           → Scans one level deep for folders with __init__.py
-           → Returns list of all found module paths (can be multiple libraries in one package)
-
-        Returns:
-            List of paths to module directories containing __init__.py
+        A flat structure (``library_path/__init__.py``) returns that one path.
+        A package structure (``library_path/pyproject.toml``) is scanned one
+        level deep and returns every subfolder holding an ``__init__.py``, so
+        one package can carry several libraries. Neither: logs an error and
+        returns an empty list.
         """
         module_paths = []
 
@@ -502,7 +443,6 @@ class LibraryRegistry:
     def _load_library_class(self, library_folder_name: str, library_path: str) -> type[BaseLibrary]:
         """Load a library class from its path"""
         try:
-            # Use the existing metadata loading method to get both module and metadata
             module = self._load_module_and_metadata(library_folder_name, library_path)
             if not (module and hasattr(module, "Library")):
                 raise LibraryLoadError(
@@ -528,9 +468,9 @@ class LibraryRegistry:
         """Return the dotted import path for a library bundled inside the installed
         ``haywire`` package, or ``None`` if ``library_path`` is outside it.
 
-        Bundled libraries (e.g. ``haywire/barn/builtin``) must be imported under their
-        real dotted name so the registered library class is identical to the one
-        ``import haywire.barn.builtin`` yields — not a duplicate top-level module.
+        A bundled library (e.g. ``haywire/barn/builtin``) has to be imported
+        under this name, so the registered class is the same object
+        ``import haywire.barn.builtin`` yields, not a duplicate.
         """
         import haywire
 
@@ -548,27 +488,25 @@ class LibraryRegistry:
         return ".".join(parts)
 
     def _load_module_and_metadata(self, library_id: str, library_path: str) -> Optional[ModuleType]:
-        """
-        Load module from a library's __init__.py.
-        Handles both flat and package structures automatically.
+        """Load the module holding a library's ``Library`` class.
+
+        Handles flat and package structures, and a library bundled inside the
+        installed ``haywire`` package. For an external library the parent
+        directory is put on ``sys.path`` for the import and removed after.
+
+        Raises:
+            ImportError: no ``__init__.py`` was found for the library.
         """
         module = None
         parent_dir_added = False
 
-        # Determine the proper module path for import
-        # Check if this is a core library (in src/haywire/libraries/)
         if "src/haywire/libraries" in library_path:
-            # For core libraries, use the haywire.libraries.X import path (flat structure)
             module_path = f"haywire.libraries.{library_id}"
         elif (bundled_module_path := self._bundled_module_path(library_path)) is not None:
-            # Library bundled inside the installed ``haywire`` package (e.g.
-            # ``haywire/barn/builtin``). Import it under its real dotted name so the
-            # decorator-registered class is the SAME object that ``import
-            # haywire.barn.builtin`` resolves to — importing it under the bare folder
-            # name would create a duplicate, distinct module/class (see CLAUDE.md trap).
+            # Its real dotted name: under the bare folder name the import would
+            # build a second, distinct module and class for the same library.
             module_path = bundled_module_path
         else:
-            # For external libraries, check structure type
             flat_init = os.path.join(library_path, "__init__.py")
             package_init = os.path.join(library_path, library_id, "__init__.py")
 
@@ -577,20 +515,15 @@ class LibraryRegistry:
                 sys.path.insert(0, parent_dir)
                 parent_dir_added = True
 
-            # Determine if flat or package structure
             if os.path.exists(flat_init):
-                # Flat structure: import library_id directly
                 module_path = library_id
             elif os.path.exists(package_init):
-                # Package structure: import library_id.library_id
                 module_path = f"{library_id}.{library_id}"
             else:
                 raise ImportError(f"Could not find __init__.py for library '{library_id}'")
 
-        # Import the module using the proper path
         module = importlib.import_module(module_path)
 
-        # Remove from sys.path if we added it
         if parent_dir_added and "src/haywire/libraries" not in library_path:
             parent_dir = os.path.dirname(library_path)
             if parent_dir in sys.path:
@@ -672,13 +605,10 @@ class LibraryRegistry:
                 continue
 
             try:
-                # Regular pip installs live in site-packages and only change during
-                # uv pip install operations. Watching them causes spurious hot-reload
-                # events (file deletions, etc.) when other packages are installed.
-                # Only enforce file watching for editable or folder-based installs.
+                # Never watch a regular install: site-packages changes while
+                # other packages are installed, which fires spurious reloads.
                 should_watch = self.enforce_file_watching and lib_info.install_type != InstallType.REGULAR
 
-                # Instantiate the library
                 library_instance = lib_info.library_cls(
                     str(lib_info.library_path), should_watch, self.debounce_delay
                 )
@@ -702,11 +632,9 @@ class LibraryRegistry:
     def _register_library_instance(self, library_instance: BaseLibrary):
         """Register a single library instance"""
         try:
-            # Add registries to the library
             for reg_cls, ref_i in self._class_registries.items():
                 library_instance.add_registry(reg_cls, ref_i)
 
-            # Register the library
             self._register(library_instance)
 
             logger.info(
@@ -735,11 +663,9 @@ class LibraryRegistry:
             if library_instance:
                 logger.info(f"  ⊘ Removing library '{library_instance.identity.label}'")
 
-                # Disable and unregister
                 library_instance.disable()
                 self._unregister(library_id)
 
-                # Remove from sources tracking
                 if library_id in self._library_sources:
                     del self._library_sources[library_id]
                 if library_id in self._library_distribution_names:

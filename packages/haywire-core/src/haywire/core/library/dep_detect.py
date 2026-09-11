@@ -11,14 +11,10 @@ shapes downstream consumers need:
     ``[project] dependencies`` in the library's pyproject.toml. Includes
     framework, registered libraries, and third-party packages.
 
-The function is pure (no writes) and uses the running interpreter's
-installed-version metadata for ``~=`` / ``>=`` specifiers. Dynamic imports
-(``importlib.import_module(name)``) are not detected — that is a documented
-limitation; callers are expected to surface the output for review rather
-than write blindly.
-
-Used by:
-  - haywire-studio's ``haywire share`` pre-publish gate
+:func:`detect_deps` is pure (no writes) and reads installed-version metadata
+from the running interpreter for the version floors. Dynamic imports
+(``importlib.import_module(name)``) are not detected, so the output is a
+suggestion to review rather than a complete answer.
 """
 
 from __future__ import annotations
@@ -46,9 +42,7 @@ from haywire.core.tomlio import edit_toml
 class HaywireLibrarySource(Protocol):
     """Minimal interface for an object that knows which dists are haywire libraries.
 
-    Satisfied by the live ``LibraryRegistry``. Tests pass a tiny fake. Kept
-    deliberately narrow so this module does not pull in the full registry
-    surface.
+    Satisfied by the live ``LibraryRegistry``.
     """
 
     def list_names(self) -> list[str]:
@@ -63,10 +57,9 @@ class HaywireLibrarySource(Protocol):
 class EntryPointLibrarySource:
     """HaywireLibrarySource backed by ``importlib.metadata.entry_points()``.
 
-    Used by CLI flows (``haywire share``) that need to classify imports
-    without bootstrapping the haywire runtime / live registry. Treats any
-    installed distribution declaring an entry point in the
-    ``haywire.libraries`` group as a haywire library.
+    For callers that classify imports without a running haywire runtime or
+    live registry. Treats any installed distribution declaring an entry point
+    in the ``haywire.libraries`` group as a haywire library.
 
     The mapping is built lazily on first access and cached for the lifetime
     of the instance.
@@ -81,7 +74,6 @@ class EntryPointLibrarySource:
         if self._cache is None:
             cache: dict[str, str] = {}
             for ep in importlib.metadata.entry_points(group=self.GROUP):
-                # ep.dist is the distribution providing this entry point.
                 dist_name = ep.dist.name if ep.dist else None
                 if dist_name:
                     cache[ep.name] = dist_name
@@ -137,9 +129,9 @@ def find_module_dir(lib_dir: Path) -> Path | None:
 def _read_self_module_name(lib_dir: Path) -> str | None:
     """Return the normalized module name of the library's own package, or None.
 
-    Reads ``lib_dir/pyproject.toml`` ``[project] name`` and converts to the
-    underscored module form (``haybale-foo`` → ``haybale_foo``). Used to drop
-    self-imports from the dependency set.
+    Reads ``lib_dir/pyproject.toml`` ``[project] name`` and converts it to the
+    underscored module form (``haybale-foo`` → ``haybale_foo``). ``None`` when
+    the file is absent, unparseable, or declares no name.
     """
     pyproject = lib_dir / "pyproject.toml"
     if not pyproject.is_file():
@@ -172,13 +164,14 @@ def _read_pyproject_name(start: Path) -> str | None:
 def _resolve_module_to_dist(module: str, mapping: Mapping[str, list[str]]) -> str | None:
     """Map a top-level module name to its installed distribution name.
 
-    Tries *mapping* (``importlib.metadata.packages_distributions()``) first.
-    The mapping is passed in rather than fetched here because building it
-    scans every installed distribution (~1s in a large venv) — callers fetch
-    it once per detection run, not once per module.
     Falls back to locating the module on disk and walking up to its
-    pyproject.toml, which is necessary for editable installs created in dev
-    monorepos where the metadata mapping is sometimes incomplete.
+    pyproject.toml, which covers editable installs in dev monorepos where the
+    metadata mapping is sometimes incomplete. ``None`` when neither resolves.
+
+    Args:
+        mapping: ``importlib.metadata.packages_distributions()``. Passed in
+            because building it scans every installed distribution (~1s in a
+            large venv), so a run fetches it once, not once per module.
     """
     owners = mapping.get(module)
     if owners:
@@ -268,8 +261,8 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
         return DetectedDeps()
 
     self_module = _read_self_module_name(lib_dir)
-    # The haywire.* submodule paths are collected but no longer classify the
-    # framework dist: every haywire.* import maps to haywire-core (see below).
+    # The haywire.* submodule paths go unused: every haywire.* import maps to
+    # haywire-core (see below).
     top_level, _haywire_paths = _collect_imports(module_dir)
 
     # Drop self and stdlib.
@@ -293,8 +286,8 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
 
     for module in sorted(candidates):
         if module == "haywire":
-            # The ENTIRE `haywire` top-level package ships in haywire-core —
-            # including haywire.ui
+            # The whole `haywire` top-level package ships in haywire-core,
+            # including haywire.ui.
 
             pyproject.append(_format_specifier("haywire-core"))
             resolved["haywire"] = "haywire-core"
@@ -311,11 +304,8 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
             linked.append(module)
             pyproject.append(_format_specifier(dist))
         elif dist.startswith("haywire-"):
-            # Framework dist reached via a top-level other than `haywire` —
-            # e.g. `import haywire_studio` resolving to haywire-studio.
-            # Framework, so pyproject only (not linked_libraries).
-            # `candidates` is a set, so each module is visited once and no
-            # duplicate guard is needed.
+            # Framework dist reached via a top-level other than `haywire` (e.g.
+            # `import haywire_studio`): pyproject only, not linked_libraries.
             pyproject.append(_format_specifier(dist))
         else:
             # Third-party.
@@ -335,14 +325,12 @@ def detect_deps(lib_dir: Path, *, libraries: HaywireLibrarySource) -> DetectedDe
 def set_pyproject_dependencies(lib_dir: Path, dependencies: list[str]) -> None:
     """Replace ``[project] dependencies`` in a library's pyproject.toml.
 
-    Writes the file back with the new dependencies list and every other
-    section preserved verbatim (TOML round-trip via the ``toml`` library).
-    Used by the Edit-dialog Detect-Dependencies flow and by the
-    ``haywire share`` pre-publish gate when the author opts to auto-fix.
+    The rest of the file, including its comments, is preserved.
 
-    Raises ``FileNotFoundError`` if the library has no pyproject.toml.
-    Raises ``toml.TomlDecodeError`` if the existing file is malformed —
-    callers should surface the error rather than silently overwrite.
+    Raises:
+        FileNotFoundError: the library has no pyproject.toml.
+        toml.TomlDecodeError: the existing file is malformed. Nothing is
+            written in that case.
     """
     pyproject = lib_dir / "pyproject.toml"
     if not pyproject.is_file():
@@ -355,22 +343,12 @@ def set_pyproject_dependencies(lib_dir: Path, dependencies: list[str]) -> None:
 def _format_specifier(dist: str) -> str:
     """Render a ``<dist>>=<version>`` requirement string.
 
-    Always a floor, for framework and third-party alike. Framework and
-    registered-library dists used to get ``~=`` (compatible-release) on the
-    reasoning that the lockstep convention justified a tighter specifier. It
-    does not — it inverts. ``~=X.Y.Z`` means ``>=X.Y.Z, ==X.Y.*``, so a
-    suggested ``haywire-core~=0.0.34`` bakes in a ceiling that excludes 0.1.0,
-    and lockstep dists are exactly the ones with no independent compatibility
-    boundary to express: they move together, so pinning one below the others is
-    never what the author meant.
+    Always a floor and never a ceiling, for framework and third-party alike;
+    an author who wants an upper bound writes it themselves.
 
-    A ceiling that a tool suggests is also the kind nobody revisits. Authors who
-    want one write it themselves — see ``_release_pin`` in
-    ``haywire_studio/init.py``, which scaffolds ``>=`` for the same reason.
-
-    Falls back to bare ``<dist>`` if the installed version can't be read —
-    rare, but handles the case where a library imports something that is
-    declared but not yet installed in the running interpreter.
+    Falls back to bare ``<dist>`` if the installed version can't be read — a
+    library that imports something declared but not installed in the running
+    interpreter.
     """
     version = _installed_version(dist)
     if version is None:

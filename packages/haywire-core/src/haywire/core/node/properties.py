@@ -1,12 +1,7 @@
-# haywire/core/settings/builtins/node_instance.py
-"""
-NodeInstanceSettings — per-node-instance observable props.
+"""Per-node-instance observable props.
 
-Migrated from NodeSettings + setting() to Settings + setting().
-No longer part of the Settings resolution chain.
-
-Access via:  node.props.locked,  node.props.collapsed, ...
-Serialized under the 'props' key in graph JSON.
+Read and written as ``node.props.locked``, ``node.props.collapsed``, …, and
+serialized under the ``'props'`` key in the graph JSON.
 """
 
 from haywire.core.settings import NodeSettings, setting
@@ -39,35 +34,23 @@ class NodeProperties(NodeSettings):
     )
     """Fields whose change triggers a full node-card redraw.
 
-    NodeWrapper subscribes to these after each build; layout fields
-    (posX/posY/width/height/…) are deliberately absent — position changes
-    ride the cheaper NODE_MOVED path and fire on every drag tick.
+    ``NodeWrapper`` subscribes to these after each build. A field belongs here
+    only when its change alters what the card builds: ``collapsed`` gates
+    construction, so it does.
 
-    ``collapsed`` belongs here for a reason specific to it: it is a
-    CONSTRUCTION gate, so a change must rebuild the card rather than restyle
-    it. Hiding with CSS would leave every element built, mounted and
-    re-walked, which is the cost the axis exists to avoid (ADR 0032).
-
-    ``detail`` (NodeDetail) does NOT belong here, deliberately, as of the
-    2026-09 CSS-filter redesign (ADR 0032's "Superseded" section): every
-    element a rank could exclude is now always built, and a rank change is a
-    ``.hw-detail-*`` class flip handled by ``UINode._apply_detail_attr`` and
-    canvas.vue's ``[data-node-props-detail]`` rules — not a card rebuild. It
-    used to be here for the same construction-gate reason ``collapsed`` still
-    is; the measurement that justified moving it lives in
-    ``internals/handoff/node-detail-and-lod-classes.md``.
-
-    So are the two appearance fields (``node_theme``, ``color_override``):
-    both resolve to CSS custom properties written onto the node's host slot,
-    which the browser re-resolves without the card being rebuilt. Redrawing for
-    a colour is what destroyed the input being typed into.
+    Layout fields (posX/posY/width/height) stay out — a position change rides
+    the cheaper NODE_MOVED path and fires on every drag tick, and a size change
+    is a style-write on the host slot. ``detail`` stays out because a rank
+    change is a CSS class flip, not a rebuild (ADR 0032), as do ``node_theme``
+    and ``color_override``, which resolve to CSS custom properties the browser
+    re-reads in place.
     """
 
     # -----------------------------------------------------------------
     # Annotation
     # -----------------------------------------------------------------
     #
-    # Resolution lives in ONE place, `NodeData.display_label`
+    # Resolution lives in one place: `NodeData.display_label`.
     label = setting[STRING](
         "",
         label="Label",
@@ -113,8 +96,8 @@ class NodeProperties(NodeSettings):
         label="Skin",
         category="appearance",
         order=10,
-        # Mirrors inherit IType (-> CHOICES/SELECT_WIDGET) from src, but NOT its
-        # per-setting widget_config — options must be re-supplied here.
+        # A mirror inherits its IType (-> CHOICES/SELECT_WIDGET) from src but not
+        # src's widget_config, so the options are re-supplied here.
         widget_config={"options": _node_skin_choices},
     )
 
@@ -162,12 +145,10 @@ class NodeProperties(NodeSettings):
 
     posX = setting[FLOAT](0.0, order=10, category="layout")
     posY = setting[FLOAT](0.0, order=20, category="layout")
-    # Size — a valid pair from birth (200/200 bootstrap for headless nodes).
-    # size_adapt discriminates per axis: an "auto" axis is measured from render
-    # (written back by the ResizeObserver in ui_node.py); a "manual" axis is
-    # fixed by the user's resize gadget. Applied to the host slot as a
-    # style-write — see UINode._apply_slot_style (no card redraw). width/height stay
-    # OUT of REDRAW_FIELDS.
+    # A valid pair from birth (200/200 bootstraps a headless node). size_adapt
+    # discriminates per axis: an "auto" axis is measured from the render and
+    # written back, a "manual" axis is fixed by the user's resize gadget. Both
+    # apply as a style-write on the host slot, with no card redraw.
     width = setting[INT](200, order=30, category="layout")
     height = setting[INT](200, order=40, category="layout")
     size_adapt = setting[CHOICES](

@@ -1,6 +1,6 @@
 """TOML parsers and serializers for marketplace and marketstall files.
 
-The new section vocabulary:
+The section vocabulary:
   - [[markets]] / [[stalls]]: subscriptions, parsed as Subscription
   - [[haybales]]: inline haybale entries, parsed as Haybale
   - [[heaps]]: path-based libraries (raw dicts), project-only
@@ -34,11 +34,10 @@ from haywire.core.marketstall.types import (
 def _parse_deprecation(raw: dict) -> Deprecation | None:
     """Parse a `[deprecated]` block, or None when absent or unusable.
 
-    Deliberately lenient where the rest of this module is strict: a deprecation
-    notice is advisory, so a malformed one must not cost the user the whole
-    catalog entry — the library still installs and runs. ``since`` is the one
-    load-bearing field (it decides whether a user's version predates the
-    notice), so a block without it is dropped rather than half-shown.
+    Never raises: a malformed notice costs the notice, not the catalog entry.
+    ``since`` is required — it decides whether a user's version predates the
+    notice — so a block without it yields None; ``reason`` and ``successor``
+    default to "".
     """
     block = raw.get("deprecated")
     if not isinstance(block, dict):
@@ -58,10 +57,8 @@ def _parse_deprecation(raw: dict) -> Deprecation | None:
 def _parse_authors(raw: dict) -> list[tuple[str, str]]:
     """``[[authors]]`` tables as ``(name, url)`` pairs.
 
-    A nameless entry is not an author and is dropped, matching
-    ``haybale.toml``'s own read rule. Junk entries are skipped rather than
-    raised on: a feed is untrusted input, and one malformed author must not
-    cost the consumer the whole row.
+    Never raises. A nameless or non-table entry is dropped; a missing ``url``
+    becomes "". Returns an empty list when there is no ``authors`` list.
     """
     entries = raw.get("authors")
     if not isinstance(entries, list):
@@ -81,9 +78,11 @@ def _parse_authors(raw: dict) -> list[tuple[str, str]]:
 def _parse_haybale_entry(raw: dict) -> Haybale:
     """Parse one [[haybales]] (or [[caches]]) TOML entry into a Haybale.
 
-    ``version`` is required. Defaulting it to "" would silently disable
-    update reporting — refresh skips falsy-version entries — so an absent
-    version is an error, matching the existing ``name`` check.
+    An absent ``install_spec`` defaults to ``name``, making the entry a plain
+    PyPI requirement.
+
+    Raises:
+        MalformedMarketplaceError: ``name`` or ``version`` is missing or empty.
     """
     name = raw.get("name")
     if not isinstance(name, str) or not name:
@@ -122,8 +121,12 @@ def _parse_haybale_entry(raw: dict) -> Haybale:
 def _parse_subscription(raw: dict, kind: str) -> Subscription:
     """Parse one [[markets]] or [[stalls]] TOML entry.
 
-    `kind` is the section name ("markets" or "stalls"); used only for error
-    messages — the resulting Subscription is identical regardless.
+    Args:
+        kind: The section name, "markets" or "stalls". Reaches only the error
+            message; the resulting Subscription is identical either way.
+
+    Raises:
+        MalformedMarketplaceError: ``url`` is missing or empty.
     """
     url = raw.get("url")
     if not isinstance(url, str) or not url:
@@ -136,10 +139,13 @@ def _parse_subscription(raw: dict, kind: str) -> Subscription:
 
 
 def _parse_heap_entry(raw: dict) -> dict:
-    """Parse one [[heaps]] TOML entry. Returns a dict (heap shape is flexible).
+    """Parse one [[heaps]] TOML entry, returning the raw table.
 
-    `name` and `path` are required. Other fields (label, description) are
-    preserved verbatim so the project marketplace file is round-trippable.
+    Every field is preserved verbatim, so the project marketplace file
+    round-trips.
+
+    Raises:
+        MalformedMarketplaceError: ``name`` or ``path`` is missing or empty.
     """
     name = raw.get("name")
     if not isinstance(name, str) or not name:
@@ -187,11 +193,9 @@ def parse_project_marketplace(path: Path) -> ProjectMarketplaceFile:
         raise MalformedMarketplaceError(f"malformed project marketplace.toml at {path}: {exc}") from exc
 
     heaps = [_parse_heap_entry(raw) for raw in data.get("heaps", [])]
-    # [[caches]] are derived artifacts, refetched on every refresh. A strict
-    # parser must not block the very refresh that would heal a malformed file,
-    # and _merge_cache reads the previous cache — so discard and refetch.
-    # Cost: one cycle of `stale` bookkeeping. [[heaps]] above are user-authored
-    # and stay strict.
+    # [[caches]] are derived and refetched on every refresh, so a malformed one
+    # is discarded rather than raised on — raising would block the very refresh
+    # that heals it. [[heaps]] above are user-authored and stay strict.
     try:
         caches = [_parse_haybale_entry(raw) for raw in data.get("caches", [])]
     except MalformedMarketplaceError:
@@ -203,9 +207,8 @@ def parse_project_marketplace(path: Path) -> ProjectMarketplaceFile:
 class RemoteMarketplaceContents:
     """What `parse_remote_marketplace_body` extracts from a [[markets]] response.
 
-    Resolution is one level deep: any [[markets]] entries
-    inside the fetched marketplace body are ignored. Only [[stalls]] URLs and
-    inline [[haybales]] are consumed.
+    Resolution is one level deep: only [[stalls]] URLs and inline [[haybales]]
+    are consumed, and [[markets]] entries inside the fetched body are ignored.
     """
 
     stall_urls: list[str] = field(default_factory=list)
@@ -215,9 +218,9 @@ class RemoteMarketplaceContents:
 def parse_marketstall_body(body: str) -> list[Haybale]:
     """Parse a fetched marketstall TOML body into a list of Haybale.
 
-    A marketstall is [[haybales]]-only. Other sections are silently
-    dropped — a misbehaving server might return extra sections, but we never
-    use them. Returns an empty list on malformed TOML or missing [[haybales]].
+    A marketstall is [[haybales]]-only; other sections are silently dropped.
+    Never raises: malformed TOML, a missing [[haybales]] section, or a
+    malformed entry within it all yield an empty list.
     """
     try:
         data = toml.loads(body)
@@ -232,8 +235,10 @@ def parse_marketstall_body(body: str) -> list[Haybale]:
 def parse_remote_marketplace_body(body: str) -> RemoteMarketplaceContents:
     """Parse a fetched remote marketplace body into stall_urls + inline haybales.
 
-    One-level-deep: [[markets]] entries inside `body` are silently ignored.
-    Malformed TOML returns empty contents (the orchestrator treats as unavailable).
+    One level deep: [[markets]] entries inside `body` are silently ignored, as
+    are [[stalls]] entries with no ``url``. Never raises — malformed TOML
+    yields empty contents, and one malformed [[haybales]] entry drops the
+    inline haybales while keeping the stall URLs.
     """
     try:
         data = toml.loads(body)
@@ -257,8 +262,8 @@ def parse_remote_marketplace_body(body: str) -> RemoteMarketplaceContents:
 def _subscription_to_dict(sub: Subscription) -> dict:
     """Serialize a Subscription back to its TOML dict shape.
 
-    Always emits both arrays (even when empty) so users editing the file see
-    the schema — every subscription declares both.
+    Emits ``preference`` and ``blocked`` even when empty, so a user editing the
+    file sees the full schema.
     """
     return {
         "url": sub.url,
@@ -270,9 +275,8 @@ def _subscription_to_dict(sub: Subscription) -> dict:
 def serialize_global_marketplace(mf: MarketplaceFile) -> str:
     """Serialize a MarketplaceFile to a TOML string.
 
-    Section order: [[markets]], [[stalls]], [[haybales]].
-    Empty sections are omitted entirely (no header) — caller can detect
-    "nothing to write" by checking the empty-string result.
+    Section order: [[markets]], [[stalls]], [[haybales]]. Empty sections are
+    omitted entirely, so a file with nothing in it serializes to "".
     """
     data: dict[str, list[dict]] = {}
     if mf.markets:
@@ -287,8 +291,8 @@ def serialize_global_marketplace(mf: MarketplaceFile) -> str:
 def serialize_project_marketplace(pm: ProjectMarketplaceFile) -> str:
     """Serialize a ProjectMarketplaceFile to a TOML string.
 
-    Section order: [[heaps]] first (written once by haywire init), then [[caches]]
-    (refresh result). Empty sections omitted.
+    Section order: [[heaps]], then [[caches]]. Empty sections are omitted
+    entirely, so a file with nothing in it serializes to "".
     """
     data: dict[str, list[dict]] = {}
     if pm.heaps:

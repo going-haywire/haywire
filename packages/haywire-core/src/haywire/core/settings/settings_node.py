@@ -13,7 +13,7 @@ Subclass inside a @node class body and declare fields with ``setting()``:
 NodeSettings are:
 - Purely local — values never enter the registry
 - Instantiated once per node instance by the @node framework
-- Registry-injected at instantiation for mirror/read_only field resolution
+- Registry-injected at instantiation, so mirror fields resolve
 - Never auto-registered; field keys are assigned by _wire_settings_schemas()
 
 Nodes access their settings via self.<inner_class_name>:
@@ -34,7 +34,7 @@ class NodeSettings(Settings):
 
     Declare as an inner class on a @node class.  The @node decorator assigns
     ``_setting_key`` to each ``setting()`` descriptor, and the node instance
-    injects the registry at construction for mirror/read_only resolution.
+    injects the registry at construction so mirror fields resolve.
 
     NodeSettings are never registered with SettingsRegistry.
     """

@@ -3,12 +3,7 @@
 Decorators for the Haywire settings system.
 
 @settings(namespace=...) — marks a LibrarySettings subclass for auto-discovery
-    by FrameworkSettingsRegistry when a library calls add_folder().
-
-Consistent with @node, @editor, @panel, @theme pattern:
-  - Derives library identity via derive_library_identity()
-  - Attaches class_library so hot-reload works
-  - Validates the base class with issubclass()
+    by SettingsRegistry when a library folder is scanned (``add_folder()``).
 """
 
 from __future__ import annotations
@@ -18,10 +13,8 @@ from typing import Callable, TypeVar
 from haywire.core.library.utils import SETTING, derive_library_identity, reg_key
 from haywire.core.registry.identity import BaseIdentity
 
-# Preserves the decorated class's type so IDEs (Pylance/Pyright) keep
-# completions for fields and methods on instances of the decorated class.
-# Without this, the decorator's return type is inferred as `Any` and
-# every reference to the decorated class loses its type information.
+# Preserves the decorated class's type, so the decorator's return type is the
+# class itself rather than `Any` and IDE completions survive decoration.
 _TSettings = TypeVar("_TSettings", bound=type)
 
 
@@ -30,11 +23,8 @@ class SettingsClassIdentity(BaseIdentity):
     """
     Identity object attached to LibrarySettings / FrameworkSettings classes.
 
-    Required by BaseRegistry._register() — analogous to how @node attaches
-    NodeIdentity, @editor attaches EditorClassIdentity, etc.
-
-    registry_id mirrors namespace (the dot-separated TOML key prefix) so that
-    BaseRegistry lookups work consistently across all registry types.
+    ``namespace`` is the class's settings namespace — library-qualified
+    (``my_lib.ui.info``) when ``@settings`` built the identity.
     """
 
     namespace: str = ""
@@ -46,28 +36,27 @@ def settings(
     """
     Decorator for library settings classes.
 
-    Sets class_identity (required by BaseRegistry), class_library (for hot-reload),
-    _namespace, and _setting_key on all descriptor fields (namespace known at decoration time).
+    Sets ``class_identity``, ``class_library``, ``_namespace``, and
+    ``_setting_key`` on every descriptor field, and promotes each field to
+    ``persistent_setting`` so writes route through the registry's workspace
+    tier. Raises ``TypeError`` unless the class subclasses ``LibrarySettings``
+    or ``FrameworkSettings``.
 
     Args:
-        namespace:   Dot-separated sub-namespace (e.g. 'ui.info').
-                     the actual namespace is derived from the library
-                     identity and this sub namespace (e.g. 'my_lib.ui.info').
+        namespace:   Dot-separated sub-namespace (e.g. 'ui.info'). Each field's
+                     ``_setting_key`` becomes ``<namespace>.<field>``, while the
+                     class identity's namespace is prefixed with the library
+                     name (e.g. 'my_lib.ui.info').
         label:       Human-readable display name. Defaults to namespace.
         description: Human-readable description. Defaults to ''.
         deprecation_warning: Optional human-readable message shown when this
             settings class is listed anywhere. Empty string means not deprecated.
 
-    Usage:
+    Example::
+
         @settings(namespace='ui.info')
         class MyLibSettings(LibrarySettings):
-            bg_color = field[Color]('#1e1e2e', label='Node Background')
-
-    Notes:
-        the namespace of the field bg_color would be 'my_lib.ui.info.bg_color'
-
-    Auto-discovered by FrameworkSettingsRegistry when the library calls:
-        settings_registry.add_folder(path, library_identity)
+            bg_color = setting[COLOR]('#1e1e2e', label='Node Background')
     """
 
     def decorator(inner_cls: _TSettings) -> _TSettings:
@@ -104,11 +93,8 @@ def settings(
         inner_cls._namespace = namespace
         inner_cls.class_library = library_identity
 
-        # Set _setting_key on all prop descriptors (namespace known at decoration time).
-        # Also promote each descriptor to persistent_setting so writes route through
-        # the registry's workspace tier — matches the symmetric path in
-        # FrameworkSettings/LibrarySettings.__init_subclass__ for class-signature
-        # namespaces.
+        # Same stamping as the class-signature `namespace=` path in
+        # FrameworkSettings/LibrarySettings.__init_subclass__.
         for attr_name, descriptor in inner_cls._settings_descriptors().items():
             descriptor._setting_key = f"{namespace}.{attr_name}"
             descriptor.__class__ = persistent_setting

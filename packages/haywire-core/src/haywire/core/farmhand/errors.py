@@ -6,14 +6,18 @@ from typing import Optional
 
 
 class FarmhandError(Exception):
-    """Expected tool failure. The host renders it as an MCP tool error;
-    clients see '[code] message (id=..., ...)' followed by a 'help: ...' line
-    when a recovery hint is known — never a stack trace.
+    """An expected tool failure, raised instead of letting an exception escape.
 
-    `help` is the single command (or concrete next step) that resolves this
-    failure, e.g. "Run haystack_list_graphs to see open graphs." Supply it
-    whenever the fix is knowable at the throw site: an agent that gets a hint
-    self-corrects in one turn instead of guessing at the tool surface.
+    The host renders it as an MCP tool error, never a stack trace: clients see
+    ``[code] message (id=..., ...)``, followed by a ``help: ...`` line when a
+    hint is given.
+
+    Args:
+        code: Stable machine-readable identifier for this failure.
+        ids: The offending ids, shown in parentheses after the message.
+        help: One command or concrete next step that resolves the failure, so
+            an agent self-corrects in one turn. Pass it whenever the fix is
+            knowable where the error is raised.
     """
 
     def __init__(

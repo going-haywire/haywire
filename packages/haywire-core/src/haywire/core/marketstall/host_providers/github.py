@@ -3,19 +3,17 @@
 Blob URL: https://github.com/{owner}/{repo}/blob/{ref}/{path}
 Raw URL:  https://raw.githubusercontent.com/{owner}/{repo}/{ref}/{path}
 
-`{ref}` can be a branch name, tag name, or commit SHA. The provider does not
-distinguish — it carries whatever the author shared.
+`{ref}` can be a branch name, tag name, or commit SHA; the provider carries
+whatever the author shared without distinguishing.
 
-**Host-parameterised.** github.com is only the default. A self-hosted instance
-(GitHub Enterprise) declared in ``~/.haywire/config.toml`` — or named by a
-published ``origin_provider`` — gets its own instance, so every pattern and
-every builder targets *that* host. A single shared github.com instance would
-recognise the hostname and then emit github.com URLs for it, which is worse than
-not matching at all.
+Host-parameterised: github.com is only the default, and a GitHub Enterprise
+host declared in ``~/.haywire/config.toml`` or named by a published
+``origin_provider`` gets its own instance, whose every pattern and builder
+targets that host.
 
 Raw content is the one asymmetry: github.com serves it from the separate
 ``raw.githubusercontent.com`` domain, while Enterprise serves it from the same
-host under ``/raw/``. :attr:`_raw_host` encodes that split.
+host under ``/raw/``.
 """
 
 from __future__ import annotations
@@ -53,7 +51,7 @@ class GitHubProvider:
 
     @property
     def hostname(self) -> str:
-        """The host this instance serves. Never assume github.com."""
+        """The host this instance serves, which is github.com only by default."""
         return self._hostname
 
     @property

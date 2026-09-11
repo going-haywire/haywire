@@ -6,14 +6,10 @@ Raw URL:  https://gitlab.com/{owner}/{repo}/-/raw/{ref}/{path}
 GitLab supports nested subgroups, so `{owner}` may contain slashes
 (e.g. `group/subgroup`). Repos themselves do not contain slashes.
 
-**Host-parameterised.** gitlab.com is only the default. Self-hosted GitLab is
-common — `gitlab.zhdk.ch`, `git.acme.example` — and each gets its own instance
-so every pattern and every builder targets *that* host. Without this, declaring
-a self-hosted host in ``~/.haywire/config.toml`` resolved to the shared
-gitlab.com instance, which then emitted gitlab.com URLs for it: a link pointing
-at the wrong server, which is worse than no link. That defect made
-:func:`~haywire.core.marketstall.host_providers.config.load_self_hosted_hosts`
-inert in practice.
+Host-parameterised: gitlab.com is only the default, and each self-hosted
+instance declared in ``~/.haywire/config.toml`` — `gitlab.zhdk.ch`,
+`git.acme.example` — gets its own instance, whose every pattern and builder
+targets that host.
 
 Unlike GitHub, raw content lives on the same host under ``/-/raw/``, so there is
 no second domain to parameterise.
@@ -54,7 +50,7 @@ class GitLabProvider:
 
     @property
     def hostname(self) -> str:
-        """The host this instance serves. Never assume gitlab.com."""
+        """The host this instance serves, which is gitlab.com only by default."""
         return self._hostname
 
     def matches(self, hostname: str) -> bool:

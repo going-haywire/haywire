@@ -36,24 +36,20 @@ class NodeRegistry(BaseRegistry[BaseNode]):
     def _register_class(
         self, cls: type[BaseNode], library_identity: Optional[LibraryIdentity] = None
     ) -> str | None:
-        """
-        Register a node class with library metadata.
+        """Register a node class under the registry_key its ``@node`` decorator stamped,
+        and return that key.
 
-        Uses the registry_key that was set by the @node decorator during class definition.
-
-        Args:
-            cls: The node class to register
-            library_identity: Library metadata to use for setting node attributes
-        Returns:
-            str: The haywire registry_key of the registered node.
+        A class declaring ``_is_error`` also becomes the registry's error node,
+        unless one with a higher ``_error_priority`` already holds the slot; a
+        class declaring ``_is_reroute`` becomes the reroute provider, replacing
+        any earlier one with a warning.
 
         Raises:
-            ValueError: If a node with the same key is already registered
+            ValueError: If the class has no ``class_identity``, or a node is
+                already registered under the same key.
         """
-        # Use registry_key that was set by the decorator
         registry_key = cls.class_identity.registry_key
 
-        # Check if this is an error node and register it automatically
         if cls.class_identity._is_error:
             if self._error_node is not None:
                 if cls.class_identity._error_priority > self._error_node.class_identity._error_priority:
@@ -69,7 +65,6 @@ class NodeRegistry(BaseRegistry[BaseNode]):
             else:
                 self._error_node = cls
 
-        # Track the reroute provider (last-registered wins, warn on override).
         if cls.class_identity._is_reroute:
             if self._reroute_node is not None and self._reroute_node is not cls:
                 logger.warning(
@@ -82,12 +77,10 @@ class NodeRegistry(BaseRegistry[BaseNode]):
         return super()._register(registry_key, cls, library_identity)
 
     def _unregister_class(self, registry_key) -> type[BaseNode] | None:
-        """Unregister a node by its registry_key
-        Args:
-            registry_key: The registry_key of the node to unregister
+        """Unregister a node and return its class, or ``None`` if the key is unknown.
 
-        Returns:
-            type[BaseNode] | None: The unregistered node class or None if not found
+        Clears the error-node or reroute-provider slot, with a warning, when the
+        removed node held it.
         """
         if self.get(registry_key) == self._error_node:
             self._error_node = None
@@ -100,28 +93,20 @@ class NodeRegistry(BaseRegistry[BaseNode]):
         return super()._unregister(registry_key)
 
     def _get_error_node(self) -> type[BaseNode] | None:
-        """Get the error node class"""
+        """The class registered as the error node, or ``None``."""
         return self._error_node
 
     def _get_reroute_node(self) -> type[BaseNode] | None:
-        """Get the reroute node class (the node registered with _is_reroute)."""
+        """The class registered as the reroute provider, or ``None``."""
         return self._reroute_node
 
     def get_node_lastevent(self, key: str) -> LifeCycleEvent | None:
-        """Get the last lifecycle event for a node by its registry key."""
+        """The node's last lifecycle event, or ``None`` if it has had none."""
         return self._regkey_to_last_lifecycle_event.get(key)
 
     def get_alternate_node_registry_keys(self, registry_key: str) -> list[str]:
-        """
-        Get alternate node registry keys for a given node registry key.
-        It takes the regitry_id from the registry_key and finds all nodes
-        with the same registry_id but from differtent libraries.
-
-        Args:
-            registry_key (str): The registry key of the node to find alternates for.
-        Returns:
-            list[str]: A list of alternate node registry keys.
-        """
+        """The keys of every registered node sharing this key's registry_id but coming
+        from a different library. The key itself is excluded."""
         registry_id = get_registry_id_from_key(registry_key)
         alternates = []
         for key in self._classes.keys():

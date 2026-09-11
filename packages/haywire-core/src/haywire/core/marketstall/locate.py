@@ -1,13 +1,10 @@
 """Turn a marketstall row's coordinates into a URL.
 
-A row says *which repo* (``origin``), *which commit* (``install_spec``), and
-*which file* (``notes``/``examples_path``/``tests_path``). It deliberately
-stores no URLs: the ref would then live in four places that could disagree about
-which commit was published, and raw-versus-rendered would be frozen at publish
-time instead of chosen by the caller. This module is the one place those three
-coordinates become a URL.
+A row says which repo (``origin``), which commit (``install_spec``), and which
+file (``notes``/``examples_path``/``tests_path``); it stores no URLs, so the
+caller picks raw-versus-rendered at read time.
 
-Resolution happens on the *reader's* machine, so a self-hosted host registered in
+Resolution happens on the reader's machine, so a self-hosted host registered in
 the reader's config resolves even when the publisher had never heard of it.
 """
 
@@ -23,7 +20,7 @@ if TYPE_CHECKING:
 
 
 def _ref_from_install_spec(install_spec: str) -> str | None:
-    """The tag glued into a git+URL, or None. Single source of the commit."""
+    """The tag glued into a git+URL, or None."""
     spec = install_spec.strip()
     if " @ " in spec:
         spec = spec.split(" @ ", 1)[1].strip()
@@ -50,9 +47,8 @@ def resolve_row_path(
     ``form`` picks the shape: ``"raw"`` to fetch bytes, ``"blob"`` to link a file
     in a browser, ``"tree"`` to link a directory.
 
-    Returns None — never a guess — when the host is unrecognised, the row lacks
-    ``origin`` or a ref, or *path* is empty. A wrong URL is worse than no link:
-    the previous implementation guessed ``main``/``master`` and 404'd silently.
+    Returns None — never a guessed ref — when the host is unrecognised, the row
+    lacks ``origin`` or a ref, or *path* is empty.
     """
     if not path or not row.origin or not row.install_spec:
         return None
@@ -89,12 +85,8 @@ def link_form(path: str) -> Literal["blob", "tree"]:
 def module_dir_path(row: "Haybale") -> str:
     """The row's module directory, relative to the git root — ``barn/x/haybale_x/``.
 
-    Derived rather than stored. ``install_spec`` already carries the library
-    directory as ``#subdirectory=``, and the module name follows from the
-    distribution name, so a stored copy could only disagree with the spec about
-    which directory was published.
-
-    Empty when ``install_spec`` names no subdirectory.
+    Built from ``install_spec``'s ``#subdirectory=`` and the module name derived
+    from ``row.name``. Empty when ``install_spec`` names no subdirectory.
     """
     from haywire.core.library.haybale_toml import module_of
 

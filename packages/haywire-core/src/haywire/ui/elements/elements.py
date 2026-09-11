@@ -353,31 +353,18 @@ def button(
     on_click: Callable | None = None,
     disabled: bool = False,
 ) -> ui.button:
-    """
-    A flat labelled action button for use inside panels.
+    """A flat labelled action button for use inside panels.
 
-    Distinct from ``hui.icon_action`` (icon-only) and ``hui.dialog_actions``
-    (confirm/cancel pair). Use this when you need a visible text label,
-    optionally with a leading icon.
+    Use it when you need a visible text label, optionally with a leading icon;
+    ``hui.icon_action`` is the icon-only form and ``hui.dialog_actions`` the
+    confirm/cancel pair. Never draw one on a menu surface — that is
+    ``hui.menu_row``. Colour is inherited, so never pass Quasar's ``color=``.
 
-    Visual rules:
-    - Props: ``flat dense``
-    - Classes: ``text-sm w-full flex``
-    - Colour: inherited — never use Quasar ``color=`` prop
-    - Disabled: ``opacity: 0.5; pointer-events: none``
-    - Transition: ``color 0.15s ease``
-
-    ``flex`` is load-bearing, not decoration: a ``QBtn`` is ``display:
-    inline-flex``, so a stack of them is a stack of *inline-level* boxes that
-    share one line box. Inside a shrink-to-fit container (a ``QMenu`` flyout,
-    any content-sized popup) percentage widths drop out of intrinsic sizing,
-    so ``w-full`` contributes nothing and the container's max-content becomes
-    the *sum* of every button on one line — measured at 653px for five short
-    labels, which is why a flyout stretched to the viewport edge instead of
-    hugging its icons and text. ``display: flex`` makes each button
-    block-level (Quasar's own ``flex-direction: column; align-items: stretch``
-    still applies, so the button itself looks identical) and the container
-    then measures the widest single row.
+    The ``flex`` class is load-bearing: a ``QBtn`` is ``inline-flex``, so
+    inside a shrink-to-fit container percentage widths drop out of intrinsic
+    sizing and the container's max-content becomes the sum of every button on
+    one line, stretching a flyout to the viewport edge. ``display: flex``
+    makes each button block-level, and the button itself looks identical.
 
     Usage::
 
@@ -404,21 +391,10 @@ MENU_ROW_CLASS = "hw-menu-row"
 MENU_ROW_ICON_CLASS = "hw-menu-row-icon"
 """Marker class for a menu row's icons — coloured by ``--hw-menu-row-icon``."""
 
-#: A disabled row keeps its pointer events so a ``tooltip=`` still opens on
-#: hover — a greyed command is the case where "why can't I use this?" most
-#: needs an answer. ``pointer-events: none`` used to be how the hover
-#: background was suppressed; that is now the hover rule's own
-#: ``:not(.hw-disabled)`` (``app/shell.py``), which does not blind the row.
-#: Nothing else depended on it here: ``on_click`` is never wired when
-#: disabled, and a click lands on the popup card either way (the overlay's
-#: dismissal is ``@click.self``, so only a click on the overlay ITSELF
-#: closes a menu). ``cursor`` must be reset explicitly — ``.hw-menu-row``
-#: sets ``pointer``, and with pointer events restored it would now apply.
-#:
-#: NOT the same constant as ``flyout._DISABLED_STYLE``, which keeps
-#: ``pointer-events: none`` deliberately: there it is what stops an empty
-#: submenu opening on hover, and it is applied inline, so it wins over the
-#: class rule regardless of what this one says.
+#: Pointer events stay on so a ``tooltip=`` still opens on a disabled row; the
+#: hover rule in ``app/shell.py`` skips ``.hw-disabled`` itself. ``cursor`` is
+#: reset because ``.hw-menu-row`` sets ``pointer``. ``flyout._DISABLED_STYLE``
+#: differs: its ``pointer-events: none`` is what keeps an empty submenu shut.
 _MENU_ROW_DISABLED_STYLE = "opacity: 0.4; cursor: default"
 
 
@@ -430,33 +406,21 @@ def menu_row(
     enabled: bool = True,
     tooltip: str | None = None,
 ) -> ui.row:
-    """
-    One command in a menu — the leaf counterpart of ``hui.submenu_row``.
+    """One command in a menu — the leaf counterpart of ``hui.submenu_row``.
 
-    Use this, never ``hui.button``, for anything drawn on a menu surface. A
-    ``QBtn`` carries Quasar's own look (``text-primary`` from NiceGUI's default
-    ``color='primary'``, ``text-transform: uppercase`` from ``.q-btn``), which
-    no ``--hw-*`` token reaches, so a menu built from buttons cannot be themed
-    and does not match the submenu rows beside it.
+    Use this, never ``hui.button``, for anything drawn on a menu surface: a
+    ``QBtn`` carries Quasar styling no ``--hw-*`` token reaches, so a menu
+    built from buttons cannot be themed and will not match the submenu rows
+    beside it.
 
-    **Every visual property lives in one CSS block** (``.hw-menu-row`` in
-    ``app/shell.py``), keyed on the marker class this returns rather than on
-    an ancestor. That matters because a flyout ``QMenu`` portals to ``<body>``:
-    rules scoped to ``.hw-panel`` (the icon-dim rule, for one) reach a row in
-    a popup and miss the identical row in a flyout, which is how one menu ends
-    up with three different colours. Every value in that block reads a
-    ``--hw-menu-row-*`` token, so a ``WorkbenchTheme`` restyles menus without
-    touching any element code.
+    The look comes entirely from the ``.hw-menu-row`` block in ``app/shell.py``,
+    keyed on the marker class this returns rather than on an ancestor, so a row
+    reads the same in a popup and in a flyout that portals to ``<body>``. Every
+    value there reads a ``--hw-menu-row-*`` token a ``WorkbenchTheme`` can
+    restyle.
 
-    Visual rules (all token-driven — see ``WorkbenchTheme._CSS_TOKEN_MAP``):
-    - Text: ``--hw-menu-row-text``, ``--hw-menu-row-font-size``,
-      ``--hw-menu-row-font-weight``, ``--hw-menu-row-text-transform``
-    - Icon: ``--hw-menu-row-icon``
-    - Hover: ``--hw-menu-row-hover-bg``
-    - Disabled: ``opacity: 0.4; cursor: default`` (the menu convention — an
-      inapplicable command greys rather than disappearing). The row keeps its
-      pointer events, so ``tooltip=`` still opens on a disabled row — say
-      *why* the command does not apply.
+    ``enabled=False`` greys the row rather than removing it, and keeps pointer
+    events, so pass ``tooltip`` to say why the command does not apply.
 
     Usage::
 
@@ -1075,26 +1039,18 @@ def dialog_actions(
 
 
 def clipboard_script(value: str) -> str:
-    """JS that copies ``value``, returning ``true`` on success.
+    """JS that copies ``value``, evaluating to ``true`` on success.
 
-    ``navigator.clipboard`` is restricted to **secure contexts**. ``localhost``
-    and ``127.0.0.1`` qualify even over plain ``http://``; a LAN address does
-    not. So on a studio reached at ``http://192.168.1.5:8124`` — the exposed
-    deployment, the one where copying an agent token actually matters — the
-    Clipboard API is ``undefined``, the click throws inside the browser, and
-    the user sees no copy, no error and no log line.
+    ``navigator.clipboard`` needs a secure context, which ``localhost`` and
+    ``127.0.0.1`` satisfy over plain http but a LAN address does not — so a
+    studio reached at ``http://192.168.1.5:8124`` falls back to a hidden
+    ``<textarea>`` and ``document.execCommand('copy')``. That fallback is
+    deprecated and can be refused, so the result is a boolean to report, never
+    an assumption of success (see :func:`_perform_copy`). Every local
+    development path is a secure context, so the fallback goes untested there.
 
-    You will not catch this locally: ``uv run haywire`` binds 127.0.0.1,
-    ``ui.run(show=True)`` opens ``localhost``, and the Playwright harness drives
-    localhost too. Every development path is a secure context.
-
-    The fallback is a hidden ``<textarea>`` plus ``document.execCommand('copy')``,
-    which still works outside a secure context. It is deprecated and can itself
-    be refused, which is why this returns a boolean rather than assuming success
-    — see :func:`_perform_copy`, which reports the result.
-
-    The value is JSON-encoded, never interpolated: it may be a token, a
-    filesystem path, or arbitrary source text containing quotes and newlines.
+    ``value`` is JSON-encoded rather than interpolated, so quotes and newlines
+    in a token or source text are safe.
     """
     encoded = _json.dumps(value)
     return f"""(function () {{

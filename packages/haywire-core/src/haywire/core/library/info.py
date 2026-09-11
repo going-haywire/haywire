@@ -4,8 +4,7 @@ LibraryInfo — a library as the Library Manager sees it.
 
 Pairs the library's declared metadata (a ``Haybale``, read from its own
 ``haybale.toml`` or taken from a marketstall row) with the install state
-discovered during scanning. Built for catalogued-but-absent libraries too, so
-the browser and the detail editor consume one type either way.
+discovered during scanning. Built for catalogued-but-absent libraries too.
 """
 
 from dataclasses import dataclass, field
@@ -22,11 +21,8 @@ if TYPE_CHECKING:
 class LibraryInfo:
     """A library and, when it is installed here, its install state.
 
-    The pip distribution name is ``row.name`` — canon. There is no
-    separate field for it: the entry point's ``dist.name`` is a runtime echo of
-    ``pyproject.toml``'s ``[project] name``, which is itself generated from
-    ``haybale.toml``. Reading the echo would also lose folder installs, which
-    have no entry point but do have a name (``builtin`` is ``haywire-core``).
+    The pip distribution name is ``row.name``; there is no separate field for
+    it. A folder install has one too (``builtin`` is ``haywire-core``).
 
     Attributes:
         row:          Declared metadata. The same shape whether it came from

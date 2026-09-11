@@ -86,20 +86,14 @@ class SettingsFileStore(object):
 
         A dict is a *setting entry* (rather than a namespace) when it holds a
         ``value``, or when it holds only entry metadata and no nested tables.
-
-        The two-step test matters because several metadata names are also
-        perfectly good namespace segments. ``ui.node.default.skin.studio_skin``
-        is a real framework key, and treating the bare presence of ``default``
-        as proof of an entry stopped the walk at ``ui.node`` — the registry
-        then tried to auto-define a whole subtree as one setting and logged
-        "no registered IType for Python type <class 'dict'>", silently
-        dropping every setting beneath it.
+        Metadata names are also valid namespace segments (``default`` appears
+        in ``ui.node.default.skin.studio_skin``), so both halves of the test
+        matter.
         """
         result = {}
-        # 'override'/'mode' are retained here (post-P2) only so a legacy
-        # {override=true, value=…} table is still recognised as a *setting entry*
-        # (not a namespace) and routed through the registry's _parse_config_dict,
-        # which strips the override flag and reads it as a plain set value.
+        # 'override'/'mode' are listed so a legacy {override=true, value=…}
+        # table still reads as an entry rather than a namespace; the registry's
+        # _parse_config_dict then drops the flag.
         metadata_keys = {
             "override",
             "default",
@@ -117,9 +111,9 @@ class SettingsFileStore(object):
             # anything carrying one is a leaf regardless of what else it holds.
             if "value" in table:
                 return True
-            # Otherwise a hand-authored entry may be declared by metadata alone
-            # (e.g. {"default": 5, "type": "int"}) — but only if nothing inside
-            # it is itself a table, which would make it a namespace.
+            # A hand-authored entry may be declared by metadata alone
+            # (e.g. {"default": 5, "type": "int"}), but a nested table makes it
+            # a namespace.
             if not table or any(isinstance(v, dict) for v in table.values()):
                 return False
             return all(k in metadata_keys for k in table)
@@ -183,10 +177,8 @@ class SettingsFileStore(object):
                     except Exception as e:
                         logger.error(f"Failed to reload settings: {e}")
 
-        # The settings file may not exist yet ("create on save"), which means
-        # its parent directory may also be absent. Linux inotify raises when
-        # asked to watch a non-existent directory (macOS FSEvents tolerates
-        # it), so ensure the directory exists before scheduling the observer.
+        # The settings file (and its directory) may not exist yet — Linux
+        # inotify raises on a missing directory, macOS FSEvents tolerates it.
         try:
             path.parent.mkdir(parents=True, exist_ok=True)
         except OSError as e:
@@ -208,10 +200,9 @@ class SettingsFileStore(object):
     def stop(self) -> None:
         """Stop all file watchers.
 
-        ``join`` is bounded so a watchdog observer thread that fails to
-        terminate (seen with the macOS FSEvents backend) degrades to a warning
-        instead of wedging the caller — the watcher is non-essential, and an
-        unbounded ``join()`` here can hang app shutdown or a whole test suite.
+        Each observer gets a bounded 2s ``join``; one that fails to terminate
+        (seen with the macOS FSEvents backend) is abandoned with a warning
+        rather than wedging the caller.
         """
         for observer in self._observers:
             observer.stop()

@@ -94,9 +94,7 @@ class BasePanel(ABC):
     ) -> None:
         """Render ``surface``'s panels here, inside the caller's layout context.
 
-        The nesting call. Pairs with ``host_rendering.render_panel`` — this is
-        composition over the same machinery the outer hosts use, not new
-        machinery.
+        The nesting call, over the same machinery the outer hosts use.
 
         ``actions`` decides the host the nested panels receive:
 
@@ -108,11 +106,10 @@ class BasePanel(ABC):
         Delegate    neither implements nor received it          ``obj``
         ==========  ==========================================  ===============
 
-        The host is **piped, never inferred** (ADR-0029). The ``isinstance``
-        check below validates the object that was *chosen*; it is never a way
-        of choosing one — a structural check cannot tell "I implement this"
-        from "I accidentally match", and a member-less Protocol matches
-        everything.
+        The host is piped, never inferred (ADR-0029): the ``isinstance`` check
+        validates the object chosen, and never chooses one. A structural check
+        cannot tell "I implement this" from "I accidentally match", and a
+        member-less Protocol matches everything.
         """
         from nicegui import ui
 

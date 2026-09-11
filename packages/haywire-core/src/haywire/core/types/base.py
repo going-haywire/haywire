@@ -317,104 +317,71 @@ class BaseType(IType, ABC):
 
 
 class CompoundType(BaseType, ABC, Generic[T]):
-    """
-    Abstract base for compound/collection types.
+    """N elements of one type, the third type family.
 
-    Compound types hold multiple elements of a specific type.
-    They track element_type_cls for type safety and adapter support.
+    Subscripting sets ``element_type_cls`` to the element's IType, which in
+    turn names the Python type: ``ArrayType[FLOAT].element_type_cls`` is
+    ``FLOAT`` and its ``element_type_cls`` is ``float``. Elements are stored
+    unwrapped by a ``CompoundField`` subclass.
 
-    Storage strategy: CompoundField subclasses store unwrapped elements
+    Subclasses declare a ``field_class`` and may override
+    :meth:`_validate_port_type` and :meth:`_configure_port`::
 
-    HIERARCHICAL element_type_cls:
-
-    element_type_cls is set during parameterization to the IType:
-        ArrayType[FLOAT].element_type_cls → FLOAT
-        ArrayType[FLOAT].element_type_cls.element_type_cls → float
-
-    This creates a two-level hierarchy for drilling down to Python types.
-
-    Type parameterization via __class_getitem__:
-        ArrayType[FLOAT].as_inlet(id='numbers')
-        PooledType[MeshData].as_inlet(id='meshes')
-
-    Subclasses must:
-    - Define field_class (ArrayField, PooledField, etc.)
-    - Can override _validate_port_type() to restrict inlet/outlet
-    - Can override _configure_port() to add port attributes
-
-    Examples:
-
-    .. code-block:: python
         @type(default={'value': []})
         class ArrayType(CompoundType[T]):
             field_class = ArrayField
 
-        # Usage with type parameterization:
         ArrayType[FLOAT].as_inlet(id='numbers')
-        # → element_type_cls = FLOAT
-
-        # Or explicit element_type_cls:
-        ArrayType.as_inlet(id='numbers', element_type_cls=FLOAT)
     """
 
-    # Subclasses MUST override field_class
     field_class: "type[DataField[Any]] | None" = None
 
-    # Cache for parameterized classes
-    # this cache is cleared in the decorator when a class is recreated by hot-reload
+    #: Cache of parameterized classes; cleared by the @type decorator on reload.
     _parameterized_cache: "dict[Any, type]" = {}
 
     @classmethod
     def __class_getitem__(cls, element_type_cls: type[IType]):
-        """
-        Create parameterized compound type with caching.
+        """Return the parameterized subclass for *element_type_cls*, cached.
 
-        Returns a cached class instance to ensure type identity:
-        ArrayType[FLOAT] is ArrayType[FLOAT] → True
+        Cached per element, so ``ArrayType[FLOAT] is ArrayType[FLOAT]``.
 
-        Each parameterized class has its own element_type_cls but SHARES the
-        parent's ``class_identity`` object — so every ``ArrayType[*]`` reports
-        one registry key, one colour, one widget_key, and differs only in its
-        element. Round-tripping works anyway because ``serialize_element_type``
-        writes the shared key plus a recursive ``element_type`` recipe. The
-        consequence to know: anything reading appearance off the identity
-        (pin colour, widget properties) cannot tell ``ArrayType[FLOAT]`` from
-        ``ArrayType[STRING]``. ``WrapperType`` deliberately does NOT share —
-        it stamps a per-parameterization identity so the element's appearance
-        survives (``_wrapped_identity``).
+        Every parameterization shares the parent's ``class_identity``, so all
+        of ``ArrayType[*]`` report one registry key, colour and widget_key and
+        differ only in ``element_type_cls``. Anything reading appearance off
+        the identity therefore cannot tell ``ArrayType[FLOAT]`` from
+        ``ArrayType[STRING]``; saved graphs still round-trip, because
+        ``serialize_element_type`` writes the shared key plus a recursive
+        ``element_type`` recipe. ``WrapperType`` stamps a per-parameterization
+        identity instead — see ``_wrapped_identity``.
         """
         if not hasattr(cls, "_parameterized_cache"):
             cls._parameterized_cache = {}
 
-        # Check cache
         cache_key = (cls, element_type_cls)
         if cache_key in cls._parameterized_cache:
             return cls._parameterized_cache[cache_key]
 
-        # Create new parameterized class
         class_name = f"{cls.__name__}[{element_type_cls.__name__}]"
 
-        # Build attributes dict - only include if they exist on parent
         attrs: dict[str, Any] = {
             "element_type_cls": element_type_cls,
             "field_class": cls.field_class,
-            # Share the cache
+            # One cache for the whole family, so nesting stays identity-stable.
             "_parameterized_cache": cls._parameterized_cache,
         }
 
-        # Copy identity attributes if they exist (after decoration)
+        # Absent until the @type decorator runs, so subscripting an
+        # undecorated class must still work.
         if hasattr(cls, "class_identity"):
             attrs["class_identity"] = cls.class_identity
         if hasattr(cls, "class_library"):
             attrs["class_library"] = cls.class_library
 
-        # Use the parent class's metaclass explicitly
-        # This prevents ABC/metaclass issues
+        # The parent's own metaclass, so an ABC subclass keeps working.
         metaclass = type(cls)
 
         parameterized_cls = metaclass(class_name, (cls,), attrs)  # type: ignore[misc]
 
-        # Cache and return
         cls._parameterized_cache[cache_key] = parameterized_cls
         return parameterized_cls
 
@@ -431,18 +398,18 @@ _ABSENCE_TOLERANT_FIELDS: "dict[type, type]" = {}
 
 
 def _absence_tolerant_field(base_field_cls: type) -> type:
-    """Return a subclass of *base_field_cls* whose ``set_value`` accepts ``None``.
+    """Return a subclass of *base_field_cls* whose ``set_value`` also accepts ``None``.
 
-    A wrapped element keeps its own storage behaviour while a value is PRESENT —
-    ``OPTIONAL[INT]`` still coerces through ``INTField``, so an optional int and a
-    plain int answer identically for the same write. Absence has to bypass that
-    coercion (``int(None)`` raises), so the ``None`` branch stores through
-    ``PrimitiveField.set_value`` directly: it skips the element field's override
-    while keeping the change event that widgets and promoted ports listen on.
+    A present value keeps the element's own storage behaviour, coercion
+    included; only ``None`` takes a different path, storing through
+    ``PrimitiveField.set_value`` and still emitting the change event widgets
+    and promoted ports listen on. Cached, so one element field class yields
+    one subclass.
 
-    Restricted to ``PrimitiveField`` descendants, which is what "the cell holds a
-    bare value or ``None``" means in storage terms. A ``BaseField`` element has no
-    unwrapped slot to put absence in and would need its own design.
+    Raises:
+        TypeError: If *base_field_cls* isn't a ``PrimitiveField`` subclass.
+            Absence needs an unwrapped slot to live in, which only that
+            storage has.
     """
     from .fields import PrimitiveField
 
@@ -462,26 +429,24 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
 
         def set_value(self, value: Any, source_id: "str | None" = None) -> None:
             if value is None:
+                # Past the element's own set_value, whose coercion rejects None.
                 PrimitiveField.set_value(self, None, source_id)
                 return
             super().set_value(value, source_id)
 
         def get_stored_type(self) -> "type[IType]":
-            """The ELEMENT type — what flows on an edge.
+            """Return the element type, which is what travels on an edge.
 
-            ``type_cls`` remains the wrapper (``OPTIONAL[INT]``), which is what
-            ``OptionalWidget`` and the identity read. Everything that asks what
-            travels along a link — ``EdgeWrapper``'s adapter resolution,
-            ``pin_render``'s icon and colour, reroute creation from an outlet —
-            gets ``INT``, so a promoted optional behaves as an ordinary INT pin
-            and needs no ``OPTIONAL[T] -> T`` adapter.
+            ``type_cls`` stays the wrapper, so a promoted ``OPTIONAL[INT]``
+            renders as an ordinary ``INT`` pin and links to one with no
+            adapter, while the widget and identity still see the wrapper.
             """
             element = self.type_cls.element_type_cls
             assert element is not None  # __class_getitem__ always sets it
             return element
 
         def accepts_absence(self) -> bool:
-            """True — this is the field class that exists to hold ``None``."""
+            """Always True: this field class exists to hold ``None``."""
             return True
 
     _AbsenceTolerantField.__name__ = f"AbsenceTolerant{base_field_cls.__name__}"
@@ -491,15 +456,15 @@ def _absence_tolerant_field(base_field_cls: type) -> type:
 
 
 def _wrapped_identity(wrapper_identity: Any, element_type_cls: type[IType]) -> Any:
-    """The wrapper's identity, wearing the element's appearance.
+    """Return *wrapper_identity* with the element's colour and widget properties merged in.
 
-    ``registry_key`` and ``widget_key`` stay the WRAPPER's: a saved graph must
-    resolve back to the wrapper (``serialize_element_type`` writes the wrapper's
-    key plus an ``element_type`` recipe), and the wrapper's own widget is what
-    renders the row. ``color`` and the declared widget properties come from the
-    ELEMENT, so ``OPTIONAL[VEC3F]`` reaches ``VecWidget`` with the ``vec_meta`` it
-    cannot render without, and an optional int keeps INT's hue instead of one
-    shared "wrapper" grey.
+    ``registry_key`` and ``widget_key`` stay the wrapper's, so a saved graph
+    resolves back to it and its own widget renders the row. The element
+    contributes ``color`` and its declared widget properties, which the
+    wrapper's own properties override, so ``OPTIONAL[VEC3F]`` reaches
+    ``VecWidget`` with the ``vec_meta`` it needs and an optional int keeps
+    INT's hue. Returns *wrapper_identity* unchanged when the element has no
+    identity.
     """
     import dataclasses
 
@@ -516,68 +481,41 @@ def _wrapped_identity(wrapper_identity: Any, element_type_cls: type[IType]) -> A
 
 
 class WrapperType(IType, ABC, Generic[T]):
-    """
-    A value of another IType, or absence.
+    """One value of another IType, or absence. The fourth type family.
 
-    The fourth type family, beside ``PrimitiveType`` (one primitive),
-    ``BaseType`` (one structured instance) and ``CompoundType`` (N elements).
     A wrapper qualifies one element type with a state that type cannot express
-    on its own — ``OPTIONAL[INT]`` is an int that may also be *nothing*.
+    on its own: ``OPTIONAL[INT]`` is an int that may also be nothing. Use it
+    when a value's domain needs a member the element type has no room for, and
+    where borrowing one of the element's values as a sentinel would corrupt
+    its range.
 
-    Use it when a value's domain needs a member the element type has no room
-    for, and where borrowing one of the element's own values as a sentinel
-    would corrupt its range. The framework's only member today is ``OPTIONAL``,
-    which exists because wrapping a library means mirroring its ``Optional[T]``
-    parameters, and "don't pass this at all" is a real state.
-
-    BEHAVIOUR:
-
-    Reads and writes are the element's, unchanged, while a value is present.
-    ``OPTIONAL[INT]`` keeps ``INTField``'s int coercion, so an optional int and
-    a plain int answer identically for the same write; only ``None`` takes a
-    different path. Storage is the element's own field class made
-    absence-tolerant (``_absence_tolerant_field``), so the cell holds a bare
+    While a value is present, reads and writes are the element's, unchanged —
+    ``OPTIONAL[INT]`` keeps ``INTField``'s int coercion, so an optional int
+    and a plain int answer identically for the same write. Storage is the
+    element's own field class made absence-tolerant, so the cell holds a bare
     value or ``None`` and a worker reads exactly that.
 
-    Appearance is the element's too. A parameterized wrapper carries its OWN
-    ``class_identity`` — the wrapper's ``registry_key`` and ``widget_key`` (a
-    saved graph must resolve back to the wrapper, and the wrapper's widget
-    renders the row) over the element's colour and declared widget properties
-    (``_wrapped_identity``). So ``OPTIONAL[VEC3F]`` reaches ``VecWidget`` with
-    the ``vec_meta`` it needs, and an optional int keeps INT's hue.
+    A parameterization carries its own ``class_identity``, merging the
+    element's colour and widget properties into the wrapper's keys (see
+    ``_wrapped_identity``). It counts as a scalar everywhere else, so adapter
+    resolution and pin rendering treat it as one value and not a collection.
+    Not a ``CompoundType``, whose predicate means "container of N" and is
+    dispatched on — see ADR 0033.
 
-    A wrapper is a SCALAR for every other purpose — one value, not a
-    collection — so adapter resolution and pin rendering treat it as one.
+    Declare one by decorating it; ``field_class`` and ``element_type_cls`` are
+    derived from the element at parameterization time and must not be set::
 
-    AUTHORING ONE:
-
-    .. code-block:: python
         @type(default={'value': None}, widget_key=widget_keys.OPTIONAL_WIDGET)
         class OPTIONAL(WrapperType[T]):
             '''docstring'''
 
-    That is the whole declaration. Do not set ``field_class`` or
-    ``element_type_cls``: ``__class_getitem__`` derives both from the element at
-    parameterization time, along with the merged identity.
-
-    USING ONE:
-
-    .. code-block:: python
-        OPTIONAL[INT]                      # cached: is-identical on re-subscript
+        OPTIONAL[INT]                      # cached: identical on re-subscript
         OPTIONAL[INT].element_type_cls     # INT
         setting[OPTIONAL[INT]](None, min=1, max=1000, label="Top K")
 
-    LIMITS (all raise at parameterization time, not later):
-
-    - the element must be stored by a ``PrimitiveField`` — "absence" means a
-      bare value or ``None`` in an unwrapped slot, and a ``BaseField`` element
-      has nowhere to put it;
-    - a wrapper may not wrap a wrapper;
-    - the element must declare a ``field_class``.
-
-    Note for anyone extending the type system: a wrapper is deliberately not a
-    ``CompoundType``, because that predicate means "container of N" and is
-    dispatched on elsewhere. See ADR 0033.
+    Subscripting raises ``TypeError`` unless the element declares a
+    ``field_class`` stored by a ``PrimitiveField``, and a wrapper may not wrap
+    another wrapper.
     """
 
     field_class: "type[DataField[Any]] | None" = None
@@ -586,12 +524,7 @@ class WrapperType(IType, ABC, Generic[T]):
     _parameterized_cache: "dict[Any, type]" = {}
 
     def __init__(self, value: Any = None, **kwargs: Any) -> None:
-        """Wrap *value*, which may legitimately be ``None``.
-
-        Unlike ``PrimitiveType.__init__``, absence is not an error here — it is
-        the whole point of the family, and ``create_default()`` relies on it
-        (the decorator default is ``{'value': None}``).
-        """
+        """Wrap *value*, where ``None`` means absence and is not an error."""
         if value is None and "value" in kwargs:
             value = kwargs["value"]
         self._value: Any = value
@@ -602,7 +535,7 @@ class WrapperType(IType, ABC, Generic[T]):
         return self._value
 
     def to_dict(self) -> dict:
-        """Serialize, delegating a PRESENT value to the element's own encoding."""
+        """Serialize, delegating a present value to the element's own encoding."""
         if self._value is None:
             return {"value": None}
         element = self.element_type_cls
@@ -614,8 +547,8 @@ class WrapperType(IType, ABC, Generic[T]):
     def from_dict(cls, data: dict) -> Any:
         """Deserialize to the bare value, or ``None``.
 
-        Absence is stored as an explicit ``null``, so a missing/``None`` value
-        reads back as absence rather than as the element's default.
+        A missing or null ``value`` reads back as absence, not as the
+        element's default.
         """
         if data.get("value") is None:
             return None
@@ -626,13 +559,16 @@ class WrapperType(IType, ABC, Generic[T]):
 
     @classmethod
     def __class_getitem__(cls, element_type_cls: type[IType]):
-        """
-        Create the parameterized wrapper, caching so type identity holds:
-        ``OPTIONAL[INT] is OPTIONAL[INT]`` → True.
+        """Return the parameterized wrapper for *element_type_cls*, cached.
 
-        Beyond ``CompoundType``'s version this also derives an absence-tolerant
-        ``field_class`` from the element, merges the element's appearance into a
-        per-parameterization identity, and refuses to wrap another wrapper.
+        Derives an absence-tolerant ``field_class`` from the element and
+        merges the element's appearance into a per-parameterization identity.
+        A ``TypeVar`` is handed to ``Generic``, so the generic declaration
+        ``class OPTIONAL(WrapperType[T])`` works.
+
+        Raises:
+            TypeError: If the element is itself a wrapper, or declares no
+                ``field_class``, or is not stored by a ``PrimitiveField``.
         """
         if not isinstance(element_type_cls, type):
             # A TypeVar, not an element: this is the generic DECLARATION

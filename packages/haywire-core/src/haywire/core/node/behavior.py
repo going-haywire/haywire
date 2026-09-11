@@ -8,22 +8,22 @@ from enum import IntFlag
 
 
 class NodeType(IntFlag):
-    """
-    Bitwise flags for node behavior.
+    """Bitwise flags for node behavior.
 
-    Node types are mutually exclusive and determined by control port configuration:
+    The types are mutually exclusive, and each follows from a control port
+    configuration:
+
     - DATA: 0 ctrl inlet / 0 ctrl outlet
     - CONTROL: 1 ctrl inlet / 1 ctrl outlet
     - EVENT: 0 ctrl inlet / 1 ctrl outlet
     - OUTPUT: 1 ctrl inlet / 0 ctrl outlet
     - LOOPBACK: 1 ctrl inlet / 2+ ctrl outlets (one with, and one without loopback)
-    - REROUTE: a standalone bit for pass-through nodes that may exist in a port-less
-      latent state until configured by the edge-split action; used to split an edge
-      and bend a wire. Supports DATA, CONTROL, and CALLBACK edges.
-
-    REROUTE is a standalone bit (no DATA or CONTROL bit). The structural validator
-    catches REROUTE before DATA/CONTROL checks and applies the looser reroute rules
-    (port-less latent state is valid; any single FlowType passthrough pair is valid).
+    - REROUTE: a pass-through node that splits an edge and bends a wire. It
+      carries neither the DATA nor the CONTROL bit and may stay port-less until
+      the edge-split action configures it; the structural validator checks it
+      before the DATA/CONTROL rules and applies the looser reroute ones (a
+      port-less state is valid, as is any single-FlowType passthrough pair).
+      Supports DATA, CONTROL and CALLBACK edges.
 
     Examples:
         @node(node_type=NodeType.EVENT)
@@ -43,12 +43,9 @@ class NodeType(IntFlag):
 
 @dataclass(frozen=True)
 class NodeBehaviorFlags:
-    """
-    Immutable behavioral characteristics of a node class.
+    """Immutable behavioral characteristics of a node class.
 
-    These flags are set at class definition time via the @node decorator
-    and cannot be changed at runtime. They define the fundamental nature
-    of the node and how the execution engine treats it.
+    Set at class-definition time by the ``@node`` decorator and fixed from then on.
 
     Set via decorator:
         @node(
@@ -67,36 +64,22 @@ class NodeBehaviorFlags:
     """
 
     node_type: NodeType = NodeType(0)
-    """
-    Primary node type classification.
-    Determines control flow behavior and execution semantics.
-    """
+    """Primary node type classification; decides the node's control-flow behavior."""
 
     is_stateful: bool = False
-    """
-    If True, this node maintains state between executions.
-    Stateful nodes may produce different outputs even with
-    identical inputs (e.g., counters, accumulators).
-    """
+    """If True, this node keeps state between executions, so identical inputs may
+    produce different outputs (a counter, an accumulator)."""
 
     has_execute_async: bool = False
-    """
-    If True, this node supports asynchronous execution.
-    Async nodes can yield control while waiting for I/O
-    or long-running operations.
-    """
+    """If True, this node supports asynchronous execution and can yield control
+    while waiting on I/O or a long-running operation."""
 
     is_thread_safe: bool = False
-    """
-    If True, this node can safely run within a multithreaded
-    flow execution.
-    """
+    """If True, this node can safely run inside a multithreaded flow execution."""
 
     is_mutable: bool = False
-    """
-    If True, this node's configuration can change at runtime.
-    Mutable nodes may add/remove ports dynamically.
-    """
+    """If True, this node's configuration can change at runtime, adding or removing
+    ports dynamically."""
 
     # =========================================================================
     # COMPUTED PROPERTIES
@@ -109,7 +92,7 @@ class NodeBehaviorFlags:
 
     @property
     def is_data_node(self) -> bool:
-        """True if node is a pure data node (DATA). Reroute nodes are NOT data nodes."""
+        """True if node is a pure data node (DATA). A reroute node is not one."""
         return bool(NodeType.DATA in self.node_type)
 
     @property

@@ -2,25 +2,17 @@
 """
 setting — reactive property descriptor for Settings subclasses.
 
-Cell-authoritative model:
-
-  __get__ is a pure cell read (``obj._cell_for(self).get_value()``) on every
-  path — no mode branch, no resolution-chain walk. The cell is kept correct at
-  write/seed time: a plain field's cell seeds with the descriptor default; a
-  cross-mirror (shadow/watch of another setting) seeds from the resolved
-  global and is synced by ``_on_field_change``; a wired persistent field
-  borrows THE registry-owned cell (``registry.cell_for``), kept current by the
-  registry's tier write-through. ``_set_keys`` carries the set-or-unset
-  opinion; change notification is the cell's own ``on_changed`` event.
-
-  ``persistent_setting`` (FrameworkSettings/LibrarySettings) routes writes to
-  ``registry.set_global``; plain ``setting`` writes the instance cell and
-  marks the opinion.
+``__get__`` reads the field's ``DataField`` cell; ``__set__`` writes that cell
+and records the local opinion in ``_set_keys``, and the cell's own
+``on_changed`` event is the one change-notification channel.
+``persistent_setting`` (FrameworkSettings/LibrarySettings) routes writes to
+``registry.set_global`` instead. See ADR 0013.
 
 Convenience factories:
     shadow(src, ...)  — writable mirror of src setting
-    watch(src, ...)   — mirror of src setting, seeded DISABLED + outlet-only
-                         (write-guard is convention, not enforced — see watch())
+    watch(src, ...)   — mirror of src setting, seeded disabled + outlet-only
+                        (the write guard is convention, not enforced)
+    graph(src, ...)   — mirror of a field on the owning graph's settings bag
 """
 
 from __future__ import annotations
@@ -37,31 +29,23 @@ if TYPE_CHECKING:
     from haywire.core.settings.registry import SettingsRegistry
     from haywire.core.types.enums import PortType
 
-# ``setting`` is generic over its IType (e.g. ``setting[FLOAT]``). The descriptor
-# stores raw Python values, so the value side (default / __get__ / __set__) is
-# typed ``Any``: mypy cannot project an IType's value type (FLOAT -> float) from
-# the subscript (no higher-kinded types). ``_type`` stays strict (``type[T]``).
+# The descriptor stores raw Python values, so its value side (default,
+# __get__, __set__) is typed ``Any``: mypy cannot project an IType's value type
+# (FLOAT -> float) from the subscript. ``_type`` stays strict (``type[T]``).
 T = TypeVar("T", bound=IType)
 
 
 class Promotable(Flag):
-    """Which DATA-port directions a ``setting()`` may be promoted to.
+    """Which data-port directions a ``setting()`` may be promoted to.
 
-    Declared intent only. ``eligible_promotion_directions()`` in
-    ``haywire.core.node.promotion`` is the single place that reads this flag.
+    ``NONE`` bars promotion entirely: use it where a port would be misleading
+    rather than ill-typed, such as a restart-required device parameter that a
+    live edge could not actually control.
 
-    ``NONE`` marks fields where a promotion would be *misleading* rather than
-    ill-typed — e.g. restart-required device-pipeline parameters, where a port
-    would imply live control the hardware can't deliver. ``watch()`` seeds
-    ``OUTLET`` for the same reason: a mirrored value has no legitimate write
-    path in.
-
-    ``CONFIG`` promotes a field to a pinless ``PortType.CONFIG`` port (never
-    edge-drivable).
-    ``INPUT`` groups the two directions whose value flows INTO the setting
-    from outside the panel widget (an edge, or nothing but the widget itself
-    with no mirror-tracking guarantee) — INLET and CONFIG — as opposed to
-    OUTLET, whose value the setting itself still owns and writes.
+    ``CONFIG`` promotes a field to a pinless ``PortType.CONFIG`` port, which no
+    edge can drive. ``INPUT`` groups the two directions whose value arrives
+    from outside the panel widget, ``INLET`` and ``CONFIG``, as opposed to
+    ``OUTLET``, whose value the setting itself still owns and writes.
     """
 
     NONE = 0
@@ -77,7 +61,7 @@ class UiState(IntEnum):
 
     Pure chrome: a DISABLED or HIDDEN field stays fully readable/writable
     from code, keeps its value, and serializes normally.
-    Severity-ordered on purpose — ``effective_ui_state`` composes multiple
+    Severity-ordered, so ``Settings._effective_ui_state`` composes multiple
     sources by ``max()``: NORMAL < DISABLED < HIDDEN.
 
     - NORMAL: rendered, interactive.
@@ -101,149 +85,79 @@ class setting(SettingDescriptor, Generic[T]):
             threshold = setting[FLOAT](0.5, min=0.0, max=1.0, label='Threshold')
             mode = setting[CHOICES]('fast', widget_config={'options': ['fast', 'precise']}, label='Mode')
 
-    On ``FrameworkSettings`` and ``LibrarySettings`` ,writes go through
-    the registry's workspace tier and persist to ``.haywire/settings.json``).
+    On ``FrameworkSettings`` and ``LibrarySettings``, writes go through the
+    registry's workspace tier and persist to ``.haywire/settings.json``. On
+    ``NodeSettings`` and plain ``Settings``, writes go to the instance's
+    per-field ``DataField`` cell only and are stored with the graph. Authors
+    declare ``setting[T](...)`` either way.
 
-    On ``NodeSettings`` and plain ``Settings``, writes go to the
-    instance's per-field ``DataField`` cell only and are stored with the Graph.
-
-    Authors declare ``setting[T](...)`` either way — the framework
-    picks the right behaviour.
-
-    Parameters
-    ----------
-    default
-        Initial value for the field. Can be a literal of type ``T`` or a
-        zero-argument callable returning ``T`` for late binding (e.g. the
-        source registry doesn't exist at class-definition time). A callable
-        default is evaluated ONCE, when the field's cell seeds — never per
-        read (the read path is a pure cell read). When a
-        ``validator`` is set, the default is checked at construction time and
-        ``ValueError`` is raised if it fails.
-
-    label : str
-        Human-readable name shown in the UI. If empty, auto-renderers fall
-        back to the attribute name. Display-only; no functional effect.
-
-    description : str
-        Help text surfaced as a tooltip / inline help by the auto-renderer
-        (``render_schema``). Display-only.
-
-    category : str
-        Grouping key for auto-rendered panels — fields with the same
-        category cluster under one section header. Defaults to ``"root"``
-        (no nesting).
-
-    order : int
-        Sort key within a category. Lower numbers render first. Defaults to 0.
-
-    min, max
-        Bounds passed to numeric widgets (``NumberDrag``). UI-only — NOT
-        enforced on direct writes. Use ``validator`` if you need runtime
-        enforcement. Folded into ``widget_config["properties"]`` at
-        ``__set_name__`` time.
-
-    widget : dict or None
-        Explicit widget contract built via ``WidgetCls.config(...)`` (see
-        ``IWidget.config``), e.g. ``widget=SimpleLabelWidget.config()`` or
-        ``widget=SelectWidget.config(properties={"options": [...]})``. When
-        given, it wins outright over the field IType's declared default
-        widget. ``None`` (default): the widget comes from the field IType's
-        declared default ``widget_key`` — use ``setting[CHOICES]`` for a
-        dropdown (see ``widget_config`` below for its options).
-
-    widget_config : dict or None
-        Bare config overrides layered on top of the IType's default widget
-        config when the default widget is fine but its properties need a
-        tweak — e.g. ``setting[CHOICES]("fast", widget_config={"options":
-        ["fast", "precise"]})``. Accepts either a ``{"properties": {...}}``
-        wrapper or a bare properties dict (``{"options": [...]}``) — both
-        spellings are equivalent.
-
-    mirrors : SettingDescriptor or str or None
-        Marks this field as a mirror of another setting. Two forms:
-
-        * A ``SettingDescriptor`` reference — e.g.
-          ``mirrors=NodeSkinSettings.studio_skin``. Inherits label,
-          description, and type from the source at construction time (the
-          mirror's own widget_key/widget_config are stamped from its own
-          ``_type`` at ``__set_name__``, since mirrors already inherit IType);
-          the source's setting key is resolved lazily. Must reference a field
-          declared on a DIFFERENT class (a registered ``LibrarySettings`` /
-          ``FrameworkSettings`` global, or any other class's field) — a
-          same-class (same-bag) sibling raises ``ValueError`` at construction.
-        * A plain string key — e.g.
-          ``mirrors="ui.node.default.skin.studio_skin"``. Use only when
-          a descriptor reference is unavailable.
-
-        **Prefer the ``shadow()`` and ``watch()`` factories** over
-        constructing ``setting(mirrors=...)`` directly.
-
-    type_ : type[IType] or None
-        Explicit IType (e.g. ``type_=FLOAT``). Usually omitted — the IType
-        comes from the ``setting[T]`` generic subscript via ``__set_name__``.
-        Python types are rejected (IType cutover); there is no inference from
-        ``default``.
-
-    validator : Callable or None
-        Callable ``(value) -> bool`` returning ``True`` if the value is
-        valid. Called from ``__set__`` (silently ignores invalid writes) AND
-        at construction time on the default (raises ``ValueError`` if the
-        default itself fails validation).
-
-    metadata : dict or None
-        Free-form dict for application-specific metadata. The framework
-        doesn't consult it; downstream code (custom renderers, introspection)
-        can store anything here. Defaults to ``{}``.
-
-    ui_state : UiState
-        The field's initial presentation state in the panel (default
-        ``UiState.NORMAL``). ``DISABLED`` renders via Quasar ``:disable``
-        (or reduced opacity for container widgets); ``HIDDEN`` removes the
-        row entirely. Never affects reads/writes (a normal ``setattr``
-        still works). This is only the SEED for ``Settings._ui_state``;
-        the live per-instance state is controlled via
-        ``Settings.set_ui_state(name, state)`` / ``ui_state(name)`` and
-        announced on the dedicated UI-state channel
-        (``subscribe_ui_state``) — never on the value/cell channel. See
-        also the ``enabled_when`` / ``visible_when`` metadata conventions
-        for declarative, same-bag reactive gating (setting-canon.md) and
-        ``effective_ui_state`` for how all sources compose.
-
-    promotable : Promotable
-        Applies only to NodeSettings fields.
-        Defines which port directions this field may be promoted to (default
-        ``Promotable.ALL``). A wrapper-typed (``OPTIONAL[T]``) field is ordinary
-        here: it promotes to a port of its ELEMENT type, so the pin connects to
-        whatever that element connects to.
-        ``Promotable.NONE`` removes the field from the
-        Setting-row menu entirely and makes ``promote_setting()`` raise — use it
-        for fields where a port would be misleading (e.g. restart-required
-        pipeline parameters). ``watch()`` seeds ``Promotable.OUTLET`` — a
-        field whose value comes from elsewhere has no legitimate write path
-        in, so inlet promotion would be misleading even though nothing
-        structurally forbids it.
-
-    promote_default : PortType or None
-        Applies only to NodeSettings fields. Seeds this field as promoted in
-        *direction* when the bag is first constructed, giving a freshly-dropped
-        node a sensible default face while leaving the user free to demote it.
-
-        The seed is a **default, not a policy**: it is written into the bag's
-        ``_promoted_keys`` at construction, and ``_from_dict`` clears that
-        record before restoring, so a graph's saved promotion state always
-        wins. A user's demotion is an *absence* in the saved block, and an
-        absence beats a seed precisely because the seed is gone by then.
-
-        Must be one of the directions ``promotable=`` allows, checked at
-        class-definition time — a default that ``promote_setting()`` would
-        refuse is a declaration bug, not a runtime surprise.
-
-        Prefer this over calling ``bag.promote(...)`` from node code. Doing it
-        by hand in ``post_init()`` is a live bug: that hook runs on graph load
-        too, *after* promotions are restored, so an unconditional promote there
-        silently re-promotes on every load and the user's demotion can never
-        stick.
+    Args:
+        default: Initial value — a literal of type ``T``, or a zero-argument
+            callable returning ``T`` for late binding (e.g. a source registry
+            that doesn't exist at class-definition time). A callable default is
+            evaluated once, when the field's cell seeds. With a ``validator``
+            set, the default is checked at construction and ``ValueError`` is
+            raised if it fails.
+        label: Name shown in the UI. Empty falls back to the attribute name.
+            Display-only.
+        description: Tooltip / inline help text. Display-only.
+        category: Grouping key for auto-rendered panels — fields sharing a
+            category cluster under one section header. Defaults to ``"root"``
+            (no nesting).
+        order: Sort key within a category; lower renders first.
+        min: Lower bound for numeric widgets, folded into
+            ``widget_config["properties"]`` at ``__set_name__`` time. Not
+            enforced on writes — use ``validator`` for that.
+        max: Upper bound, same rules as ``min``.
+        widget: Explicit widget contract built via ``WidgetCls.config(...)``
+            (see ``IWidget.config``), e.g.
+            ``widget=SelectWidget.config(properties={"options": [...]})``. It
+            wins outright over the field IType's declared default widget.
+            ``None`` takes the IType's declared ``widget_key``.
+        widget_config: Config overrides layered on top of the IType's default
+            widget config, e.g.
+            ``setting[CHOICES]("fast", widget_config={"options": [...]})``.
+            A ``{"properties": {...}}`` wrapper and a bare properties dict are
+            equivalent spellings.
+        mirrors: Marks this field as a mirror of another setting, either as a
+            ``SettingDescriptor`` reference (``mirrors=NodeSkinSettings.studio_skin``),
+            which inherits label, description and type from the source at
+            construction and resolves the source's setting key lazily, or as a
+            plain string key (``mirrors="ui.node.default.skin.studio_skin"``)
+            for when no descriptor reference is available. The referenced field
+            must be declared on a different class; a same-bag sibling raises
+            ``ValueError``. Prefer the ``shadow()``, ``watch()`` and ``graph()``
+            factories over passing this directly.
+        type_: Explicit IType (e.g. ``type_=FLOAT``). Usually omitted — the
+            IType comes from the ``setting[T]`` subscript via ``__set_name__``.
+            A Python type raises ``TypeError``, and nothing is inferred from
+            ``default``.
+        validator: Callable ``(value) -> bool`` returning True if the value is
+            valid. ``__set__`` silently drops an invalid write; an invalid
+            default raises ``ValueError`` at construction.
+        metadata: Free-form dict for application-specific metadata; the
+            framework does not consult it. Defaults to ``{}``. The panel reads
+            the ``enabled_when`` / ``visible_when`` conventions from it — see
+            ``Settings._effective_ui_state``.
+        ui_state: The field's initial presentation state. ``DISABLED`` renders
+            the widget non-interactive, ``HIDDEN`` removes the row; neither
+            affects reads or writes. This seeds only the initial state — the
+            live state goes through ``Settings._set_ui_state``, which announces
+            on the UI-state channel, never on the value channel.
+        promotable: Which port directions this field may be promoted to
+            (NodeSettings fields only; default ``Promotable.ALL``). A
+            wrapper-typed (``OPTIONAL[T]``) field promotes to a port of its
+            element type. ``Promotable.NONE`` leaves no eligible direction, so
+            the row menu offers no promotion and ``promote_setting()`` raises.
+        promote_default: Seeds this field as promoted in that direction when
+            the bag is constructed (NodeSettings fields only), so a
+            freshly-dropped node arrives with the face its author intended. A
+            graph's saved promotion state always wins, so the user stays free
+            to demote. Must be a direction ``promotable=`` allows, checked at
+            class-definition time. Prefer it over promoting from
+            ``post_init()``, which runs on graph load too — after promotions are
+            restored — so a promote there re-applies on every load and the
+            user's demotion never sticks.
     """
 
     def __init__(
@@ -267,10 +181,8 @@ class setting(SettingDescriptor, Generic[T]):
         promote_default: "PortType | None" = None,
     ) -> None:
         self._default = default
-        # IType cutover: an explicit type_= must be an IType (Python-type inference
-        # via type(default) is gone). When type_ is absent, leave _type as the
-        # sentinel ``object`` so __set_name__ resolves it from the setting[IType]
-        # generic arg and enforces IType there.
+        # With type_ absent, _type stays the sentinel ``object`` so __set_name__
+        # resolves it from the setting[IType] generic arg and enforces it there.
         if type_ is not None:
             if not (isinstance(type_, type) and issubclass(type_, IType)):
                 raise TypeError(
@@ -295,21 +207,19 @@ class setting(SettingDescriptor, Generic[T]):
         self._attr_name: str = ""  # set by __set_name__
         """the literal attribute name you'd write as ``self.<bag>.<attr_name>``"""
         self._setting_key: str = ""  # namespaced registry key, set at registration
-        """the registry key  ``self.<namespace>.<attr_name>``"""
+        """the registry key ``<namespace>.<attr_name>``"""
         self._mirror_descriptor: "SettingDescriptor | None" = None  # set when mirrors= is a descriptor
         self._graph_mirror: bool = False  # set True by the graph() factory
 
         if self._validator is not None and default is not None and not self.validate(default):
             raise ValueError(f"Default value {default!r} fails validation for field '{label or '?'}'")
 
-        # mirrors= accepts either:
-        #   - a class-level descriptor access (SettingDescriptor) — key may not be set yet
-        #   - a plain string field key (e.g. "ui.node.default.skin.studio_skin")
         if mirrors is not None:
             if isinstance(mirrors, str):
                 self._mirror_key: str = mirrors
             else:
-                # Descriptor form: inherit metadata immediately; resolve key lazily via property
+                # Descriptor form: the source's key may not be stamped yet, so
+                # inherit metadata now and resolve the key lazily (see _mirror_key).
                 self._mirror_descriptor = mirrors
                 self._mirror_key = getattr(mirrors, "_setting_key", "")
                 if not label:
@@ -321,13 +231,9 @@ class setting(SettingDescriptor, Generic[T]):
         else:
             self._mirror_key = ""
 
-        # Stamp the widget contract now if the IType is already known:
-        # an explicit type_= (registry.define()/_auto_define(), or any setting(...)
-        # built outside a class body) or a mirror that inherited a resolved IType
-        # above. A class-body ``setting[T](...)`` field with no explicit type_=
-        # still has ``_type is object`` here — __set_name__ resolves the IType
-        # from the generic subscript and stamps then (this call would be a no-op
-        # widget_key="" anyway, since class_identity isn't available yet).
+        # Stamp only when the IType is already known — an explicit type_= or a
+        # mirror that inherited one. A class-body setting[T](...) still has
+        # _type is object here and gets stamped by __set_name__ instead.
         if isinstance(self._type, type) and issubclass(self._type, IType):
             self._stamp_widget()
             self._apply_wrapper_rules()
@@ -337,31 +243,13 @@ class setting(SettingDescriptor, Generic[T]):
         return isinstance(self._type, type) and issubclass(self._type, WrapperType)
 
     def _apply_wrapper_rules(self, owner: "type | None" = None, name: str = "") -> None:
-        """Rules that only apply to a wrapper-typed (``OPTIONAL[T]``) field.
+        """Apply the rules that hold only for a wrapper-typed (``OPTIONAL[T]``) field.
 
-        Runs once the field's IType is known — from ``__set_name__`` for a
-        class-body ``setting[T]``, or at the end of ``__init__`` for an explicit
-        ``type_=``. Never on the read or write path.
-
-        One rule, from the "absence is a value" model: **the validator
-        constrains the PRESENT domain only.** A validator written for the
-        wrapped type (``lambda v: 0.0 <= v <= 1.0``) would raise ``TypeError``
-        on a clear, from inside a plain attribute assignment. Lifting it here —
-        rather than guarding ``__set__`` — covers all three callers of
-        ``validate()``, including ``SettingsRegistry.set_global`` on a mirrored
-        field, and costs nothing per write.
-
-        Promotion is NOT restricted. A wrapper-typed field promotes to a port of
-        its ELEMENT type (``_metadata_to_port_kwargs``), so the pin is an
-        ordinary ``INT`` and connects to whatever ``INT`` connects to; absence
-        travels on the sink field's ``accepts_absence()`` capability rather than
-        on the declared type. There is nothing left for a fence to protect.
-
-        No-op for a field whose IType is not a wrapper. The guard lives HERE
-        rather than at the call sites: there are two of them (``__set_name__``
-        for a class-body ``setting[T]``, ``__init__`` for an explicit
-        ``type_=``), and guarding only one leaves the other applying wrapper
-        rules to every field.
+        Lifts the validator so that clearing the field always passes: a
+        validator written for the wrapped type then sees present values only.
+        No-op for a non-wrapper field, and idempotent. Called once the IType is
+        known — from ``__set_name__``, or from the end of ``__init__`` for an
+        explicit ``type_=`` — never on the read or write path.
         """
         if not self._is_wrapper_type():
             return
@@ -386,9 +274,8 @@ class setting(SettingDescriptor, Generic[T]):
         self._apply_wrapper_rules(owner, name)
 
         if self._promote_default is not None:
-            # A default promotion that promote_setting() would refuse is a
-            # declaration bug — surface it here rather than at construction,
-            # where it would be one node failing to build.
+            # Checked at class definition: a seed promote_setting() would refuse
+            # is a declaration bug, not one node failing to build later.
             from haywire.core.node.promotion import eligible_promotion_directions
 
             eligible = eligible_promotion_directions(self)
@@ -413,11 +300,7 @@ class setting(SettingDescriptor, Generic[T]):
 
     @property
     def is_mirror(self) -> bool:
-        """True for a shadow/watch field that tracks another setting.
-
-        ``_mirror_key`` means only that: a genuine shadow()/watch() points it at
-        another setting's key, and the instance cell is kept authoritative for
-        it — seeded from the resolved global, synced by ``_on_field_change``."""
+        """True for a shadow/watch field that tracks another setting's key."""
         return bool(self._mirror_key)
 
     @property
@@ -425,9 +308,9 @@ class setting(SettingDescriptor, Generic[T]):
         """True for a field declared via the ``graph()`` factory — a mirror
         of a field on the owning graph's settings bag (GraphSettings).
 
-        Wired cell-to-cell against the graph bag's live cell ('unset tracks,
-        set ignores', per hop) — NOT through the registry-key channel
-        (``is_mirror`` is False for these: the src has no ``_setting_key``)."""
+        These are wired cell-to-cell against the graph bag's live cell, not
+        through the registry-key channel, so ``is_mirror`` is False for them:
+        the source has no ``_setting_key``."""
         return self._graph_mirror
 
     def validate(self, value: Any) -> bool:
@@ -437,8 +320,8 @@ class setting(SettingDescriptor, Generic[T]):
         return bool(self._validator(value))
 
     def _stamp_widget(self) -> None:
-        """Compute the final widget contract ONCE: explicit widget= wins, else
-        the field IType's declared default. No render-time resolution."""
+        """Compute the field's widget contract: an explicit ``widget=`` wins,
+        else the field IType's declared default."""
         identity = getattr(self._type, "class_identity", None)
         spec = self._widget_spec or {}
         self.widget_key: str = spec.get("key") or (getattr(identity, "widget_key", None) or "")
@@ -449,10 +332,8 @@ class setting(SettingDescriptor, Generic[T]):
         if self._max is not None:
             own_props["max"] = self._max
         # A wrapper-typed field's non-absent default doubles as the value the
-        # panel restores when the user leaves absence. Declared as a widget
-        # property so an author can override it per-use (widget_config=
-        # {"restore": ...}) without changing what the field rests at — the two
-        # are genuinely different questions once a default may itself be absent.
+        # panel restores when the user leaves absence. A widget property, so
+        # widget_config={"restore": ...} can override it per use.
         if self._default is not None and self._is_wrapper_type():
             own_props["restore"] = self._default
         spec_props = (spec.get("config") or {}).get("properties", {})
@@ -465,15 +346,11 @@ class setting(SettingDescriptor, Generic[T]):
     def storage_key(self) -> str:
         """Canonical key for this field's cell / ``_set_keys`` entry on a ``Settings``.
 
-        The fully-qualified ``_setting_key`` (``namespace.accessor.field``) once a
-        namespacing path (@node / @settings / schema __init_subclass__) has run,
-        otherwise the short ``_attr_name`` set by ``__set_name__``. This single
-        accessor replaces the ``_setting_key if _setting_key else name`` fallback
-        that was previously hand-written at every value-store call site.
-
-        NOTE: this does NOT change the meaning of an empty ``_setting_key`` — that
-        still signals "not namespaced, not registry-eligible" to SettingsRegistry.
-        Only per-instance value keying is unified here.
+        The fully-qualified ``_setting_key`` (``namespace.accessor.field``) once
+        a namespacing path (@node / @settings / schema ``__init_subclass__``)
+        has run, otherwise the short ``_attr_name`` set by ``__set_name__``. An
+        empty ``_setting_key`` still means "not namespaced, not registry-eligible"
+        to SettingsRegistry; only per-instance value keying falls back here.
         """
         return self._setting_key or self._attr_name
 
@@ -485,37 +362,25 @@ class setting(SettingDescriptor, Generic[T]):
         if obj is None:
             return self  # class-level access -> descriptor itself
 
-        # THE read path: a pure cell read — no mode branch, no chain walk, no
-        # set-or-unset check. The cell is kept correct at write/seed time
-        # instead: seeded with the default (plain field) or the resolved global
-        # (cross-mirror), written by descriptor sets / edge drives /
-        # _on_field_change, and for a wired persistent field _cell_for returns
-        # the registry-owned cell the write-through keeps current. A promoted
-        # port SHARES this cell (bind_field), so reading the setting and reading
-        # the port hit the same object.
+        # A plain cell read: the cell is kept correct at write and seed time
+        # instead. A promoted port shares this cell (bind_field), so reading
+        # the setting and reading the port hit the same object.
         return obj._cell_for(self).get_value()
 
     def __set__(self, obj: Any, value: Any) -> None:
         if not self.validate(value):
             return
 
-        # No-op if the write matches what the field already RESOLVES to. For a
-        # mirror/shadow field with no local override the resolved value is the
-        # mirrored global, not _default — so writing that value back must not
-        # create a local override (which is_locally_set() would then report as
-        # an override, defeating reset). Comparing against the resolved value
-        # also terminates the cross-tab echo loop at the model layer, so the
-        # settings-panel setter doesn't need its own equality guard.
+        # Compared against the resolved value, not _default: for a mirror with
+        # no local override that is the mirrored global, and writing it back
+        # must not create an override that then defeats reset. It also ends the
+        # cross-tab echo loop here, at the model layer.
         old = self.__get__(obj, type(obj))
         if value == old:
             return
 
-        # The value lives in the field's DataField cell; _set_keys carries the
-        # set-or-unset opinion (the cell always holds a value, so it can't).
-        # Mark the opinion BEFORE the cell write: set_value fires the cell
-        # event — the one notification channel — and a subscriber (e.g. the
-        # panel's dot-prefix/reset-button updater) must see is_locally_set()
-        # already True inside its callback.
+        # Opinion before the cell write: set_value fires the cell event, and a
+        # subscriber must already see _is_locally_set() True inside its callback.
         obj._set_keys.add(self.storage_key)
         obj._cell_for(self).set_value(value)
 
@@ -523,23 +388,20 @@ class setting(SettingDescriptor, Generic[T]):
 class persistent_setting(setting, Generic[T]):
     """A `setting` whose writes persist through the registry's workspace tier.
 
-    Used by FrameworkSettings and LibrarySettings — every field declared on
-    those schemas is auto-promoted to persistent_setting by their
-    __init_subclass__. Instantiating this class directly bypasses the
-    registration machinery and is unsupported; declare fields as
-    ``setting[T](...)`` and let the parent class promote them.
+    Every field on a ``FrameworkSettings`` or ``LibrarySettings`` schema is
+    promoted to this class by the parent's ``__init_subclass__``. Instantiating
+    it directly bypasses the registration machinery and is unsupported; declare
+    fields as ``setting[T](...)`` instead.
 
-    Behavior change vs `setting`:
-        Writes call ``registry.set_global(setting_key, value)`` followed by
-        ``registry.save_to_json_debounced()``. The registry's write-through
-        then updates its owned cell for this key, whose event notifies every
-        borrowing instance's subscribers and bound widgets —
-        so this class deliberately writes NO cell itself.
+    A write calls ``registry.set_global(setting_key, value)`` and then
+    ``registry.save_to_json_debounced()``; the registry's write-through updates
+    its owned cell for the key, and that cell's event reaches every borrowing
+    instance. This class writes no cell of its own.
 
     Falls back to ``super().__set__`` (a per-instance cell write) when the
-    instance has no registry wired (e.g. a test fixture) or when the field has
-    no namespaced ``_setting_key``, so a schema constructed without a registry
-    still stores its value on the instance.
+    instance has no registry wired or the field has no namespaced
+    ``_setting_key``, so a schema built without a registry still stores its
+    value on the instance.
     """
 
     def __set__(self, obj: Any, value: Any) -> None:
@@ -548,21 +410,18 @@ class persistent_setting(setting, Generic[T]):
 
         registry: "SettingsRegistry | None" = getattr(obj, "_registry", None)
         if registry is None or not self._setting_key:
-            # No registry wired (test fixture), or no namespaced key — fall back
-            # to the per-instance cell write (incl. its resolved-value no-op
-            # guard).
+            # Per-instance cell write, including its resolved-value no-op guard.
             super().__set__(obj, value)
             return
 
-        # No-op if the write matches the resolved value — terminates the
-        # cross-tab echo loop and avoids a redundant registry write + JSON save.
+        # No-op on a write matching the resolved value: ends the cross-tab echo
+        # loop and avoids a redundant registry write plus JSON save.
         if value == self.__get__(obj, type(obj)):
             return
 
-        # registry.set_global fires _notify_subscribers → the registry-owned
-        # cell's write-through → the cell event notifies every borrowing
-        # instance. We MUST NOT also write the cell here, or subscribers fire
-        # twice.
+        # set_global's write-through updates the registry-owned cell, whose
+        # event reaches every borrowing instance; writing the cell here too
+        # would fire subscribers twice.
         registry.set_global(self._setting_key, value)
         registry.save_to_json_debounced()
 
@@ -575,11 +434,10 @@ def shadow(src: "setting[T]", **kwargs: Any) -> "setting[T]":
 def watch(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     """Read-only-by-convention mirror of *src* setting. Inherits src metadata.
 
-    Sugar over ``shadow()``: seeds ``ui_state=UiState.DISABLED`` (renders as a
-    greyed, non-interactive widget) and ``promotable=Promotable.OUTLET`` (the
-    only direction that makes sense for a field whose value comes from
-    elsewhere). Nothing prevents a direct Python write (``obj.field = x``) —
-    read-only is a naming/usage convention, not an enforced guarantee.
+    Sugar over ``shadow()``: seeds ``ui_state=UiState.DISABLED`` (a greyed,
+    non-interactive widget) and ``promotable=Promotable.OUTLET``. Nothing
+    prevents a direct Python write (``obj.field = x``) — read-only is a usage
+    convention, not an enforced guarantee.
     """
     return setting(mirrors=src, ui_state=UiState.DISABLED, promotable=Promotable.OUTLET, **kwargs)
 
@@ -588,15 +446,14 @@ def graph(src: "setting[T]", **kwargs: Any) -> "setting[T]":
     """Mirror of a field on the owning graph's settings bag (GraphSettings).
 
     The graph-tier analogue of ``shadow()``: while unset, the field tracks
-    the graph bag's live value; a local set wins; ``reset()`` returns to the
-    graph's CURRENT value. Requires a graph-attached bag (node → wrapper →
-    graph) to be live; a detached bag (tests, standalone construction) holds
-    the descriptor default and does not track — there is no registry
-    fallback.
+    the graph bag's live value; a local set wins; a reset returns it to the
+    graph's current value. Tracking needs a graph-attached bag (node → wrapper
+    → graph); a detached bag (tests, standalone construction) holds the
+    descriptor default and never tracks — there is no registry fallback.
 
-    Validates eagerly: *src* must be a field declared on a ``GraphSettings``
-    subclass (e.g. ``GraphProperties.default_skin``). For framework/library
-    settings use ``shadow()``/``watch()``.
+    Raises ``TypeError`` unless *src* is a field declared on a
+    ``GraphSettings`` subclass (e.g. ``GraphProperties.default_skin``). For
+    framework/library settings use ``shadow()``/``watch()``.
     """
     from haywire.core.settings.settings_graph import GraphSettings
 

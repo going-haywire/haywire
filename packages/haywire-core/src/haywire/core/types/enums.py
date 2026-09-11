@@ -168,61 +168,30 @@ _LAYOUT_DIRECTION_GLYPH_TRANSFORMS: dict[LayoutDirection, str] = {
 
 
 class NodeDetail(StrEnum):
-    """
-    How much of an uncollapsed node card is drawn. See ADR 0032, superseded
-    in part (2026-09) by the CSS-filter redesign — see the "Superseded"
-    section at the end of that ADR.
+    """How much of an uncollapsed node card is drawn. See ADR 0032.
 
-    Cumulative: each rank draws everything the rank below it draws, plus its
-    own. Resolved per node through the framework < graph < node chain
-    (``node.props.detail``), so one graph may legitimately mix densities.
+    Cumulative — each rank draws everything below it plus its own:
 
-    - PINS: linked ports only — the same visual floor Node collapse folds
-      down to, but drawn on a full-chrome (unfolded) card
-    - PINS_ALL: + unlinked ports
-    - WIDGETS: + inline port widgets
-    - LABELS: + port labels
-    - FULL: + inline diagnostics detail
+    - ``PINS``: linked ports only
+    - ``PINS_ALL``: + unlinked ports
+    - ``WIDGETS``: + inline port widgets
+    - ``LABELS``: + port labels
+    - ``FULL``: + inline diagnostics detail
 
-    Labels sit *above* widgets deliberately: pin and config-row tooltips
-    already carry identification, and a label is one element per port against
-    a widget's whole subtree — so cheap-first makes each step of the ladder
-    buy something.
+    Resolved per node through the framework < graph < node chain
+    (``node.props.detail``), so one graph may mix densities.
 
-    A **CSS filter**, not a construction gate: every element at every rank is
-    BUILT, and every one unconditionally carries its ``.hw-detail-*`` class
-    (see the skin ``_render_*`` methods in ``barn/haybale-studio/.../skins/``).
-    A ``display: none`` rule in ``canvas.vue``, keyed off the
-    ``data-node-props-detail`` attribute ``UINode`` stamps directly from this
-    enum's value, does the rank-based hiding — Python never re-derives which
-    rank a card is at to decide anything; it only stamps the one attribute.
-    This is deliberately the same mechanism the zoom-driven LOD system (ADR
-    0006) uses for its own classes — the two remain conceptually separate
-    (LOD decides what is painted of what exists at THIS frame; NodeDetail
-    decides what a rank includes) even though they share a technique. Because
-    nothing is omitted from construction, ``detail`` is NOT in
-    ``NodeProperties.REDRAW_FIELDS`` — a rank change is a class-attribute
-    flip, not a card rebuild.
+    Ranks hide with CSS, they do not gate construction: every element is
+    built and carries its ``.hw-detail-*`` class, and a rule in
+    ``canvas.vue`` keyed off the ``data-node-props-detail`` attribute does
+    the hiding. So ``detail`` is absent from
+    ``NodeProperties.REDRAW_FIELDS`` — a rank change never rebuilds a card.
+    Node collapse is the separate, construction-gated axis, read through
+    ``NodeSkin.is_collapsed(wrapper)``.
 
-    No Python object resolves this rank for a skin to consult (2026-09): an
-    earlier cut of this redesign added a ``NodeVisibility`` value carrying a
-    ``detail`` field and four rank-derived properties deciding which class to
-    add, but once every class became an unconditional literal those
-    properties — and the value itself — had no reader left, and both were
-    deleted. What remains for **Node collapse** (a genuinely different,
-    still construction-gated axis) is ``NodeSkin.is_collapsed(wrapper)``, a
-    plain ``bool``.
-
-    A ``StrEnum`` with an explicit :attr:`rank`, exactly like ``AccessTier``
-    and for the same reason: the wire values stay strings, so adding a rank
-    later renumbers nothing in saved graphs. A density scale is precisely the
-    kind that grows a member.
-
-    **Breaking change (2026-09):** the old 3-member enum's wire values
-    (``"compact"``, ``"standard"``) are gone. No migration shim — an old
-    saved graph's value is simply unrecognised now and :meth:`coerce`
-    degrades it to ``FULL`` like any other unrecognised string, per this
-    repo's pre-external-install-base state at the time of the change.
+    Wire values are the member strings, so a rank added later renumbers
+    nothing in saved graphs. A string a release no longer defines degrades
+    through :meth:`coerce`.
     """
 
     PINS = "pins"
@@ -247,15 +216,10 @@ class NodeDetail(StrEnum):
 
     @classmethod
     def coerce(cls, value: object) -> "NodeDetail":
-        """Resolve a stored value, falling back to FULL rather than raising.
+        """Resolve a stored value to a rank, returning ``FULL`` for anything unrecognised.
 
-        Settings store the enum's ``str`` value (CHOICES is a STRING subtype),
-        and this runs on the render path — an unrecognised or stale string must
-        degrade to the most legible card, never take one down. Degrading
-        *upward* is deliberate: a node that draws too much is a performance
-        cost, one that draws too little looks broken. Unchanged by the 2026-09
-        rank-count change: old ``"compact"``/``"standard"`` values are simply
-        unrecognised strings now and take this same path.
+        Never raises: this runs on the render path, where a stale or
+        misspelled setting must still draw a card.
         """
         if isinstance(value, cls):
             return value
