@@ -28,6 +28,26 @@ class NodeSkin(BaseSkin, ABC):
     Geometry is read live from ``NodeSkinSettings`` (which documents each
     field) through the upper-case properties below, so a settings change takes
     effect on the next render.
+
+    Pin glyphs come from ``pin_icons``, which :meth:`_render_pin` forwards to
+    ``render_pin`` — so assigning one covers every pin a subclass draws. Assign
+    an INSTANCE, and leave the map unannotated (``ICONS: dict[str, str]`` is
+    rejected as overriding a ``ClassVar``)::
+
+        class ArrowPinIcons(PinIconResolver):
+            ICONS = {
+                'data_in': ICONS.KEYBOARD_DOUBLE_ARROW_RIGHT,
+                'data_out': ICONS.KEYBOARD_DOUBLE_ARROW_LEFT,
+                'fallback': ICONS.CIRCLE,
+            }
+
+        @skin(label='Arrow Skin')
+        class ArrowSkin(NodeSkin):
+            pin_icons = ArrowPinIcons()
+
+    Every key is optional — a role falls back to its flow type, then to
+    ``'fallback'`` — so a one-key map is a complete resolver. A glyph declared
+    on a port or its type still wins over it; see ``PinIconResolver``.
     """
 
     def __init__(self, widget_factory: "IWidgetFactory"):
