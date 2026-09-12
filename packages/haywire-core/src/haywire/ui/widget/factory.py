@@ -40,6 +40,7 @@ def _widget_model_for(port: DataPort) -> Any:
 
     try:
         from haywire.core.node.promotion import _resolve_promoted
+
         bag, descriptor = _resolve_promoted(port._node, port.id)
     except KeyError:
         return port

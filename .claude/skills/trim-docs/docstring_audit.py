@@ -14,6 +14,7 @@ for a human or agent to review, not verdicts.
 after removing docstrings and comments. Exits with status 1 if any code
 changed.
 """
+
 from __future__ import annotations
 
 import argparse
@@ -48,17 +49,68 @@ PATTERNS = {
 CAPS_WORD = re.compile(r"(?<![\w.`\[])([A-Z][A-Z0-9_]+)(?![\w`(\[\]])")
 CODE_SPAN = re.compile(r"``.*?``|`[^`]*`")
 ACRONYMS = {
-    "ADR", "API", "ASCII", "CLI", "CPU", "CSS", "CSV", "DB", "EOF", "FIXME",
-    "GPU", "GUI", "HTML", "HTTP", "HTTPS", "ID", "IDE", "IDS", "IO", "IP",
-    "ISO", "JSON", "MIME", "NOTE", "OK", "ORM", "OS", "PDF", "PNG", "RAM",
-    "README", "RGB", "RGBA", "SDK", "SQL", "TCP", "TODO", "UDP", "UI", "URL",
-    "UTC", "UTF", "UUID", "XML", "XXX", "YAML",
+    "ADR",
+    "API",
+    "ASCII",
+    "CLI",
+    "CPU",
+    "CSS",
+    "CSV",
+    "DB",
+    "EOF",
+    "FIXME",
+    "GPU",
+    "GUI",
+    "HTML",
+    "HTTP",
+    "HTTPS",
+    "ID",
+    "IDE",
+    "IDS",
+    "IO",
+    "IP",
+    "ISO",
+    "JSON",
+    "MIME",
+    "NOTE",
+    "OK",
+    "ORM",
+    "OS",
+    "PDF",
+    "PNG",
+    "RAM",
+    "README",
+    "RGB",
+    "RGBA",
+    "SDK",
+    "SQL",
+    "TCP",
+    "TODO",
+    "UDP",
+    "UI",
+    "URL",
+    "UTC",
+    "UTF",
+    "UUID",
+    "XML",
+    "XXX",
+    "YAML",
 }
-SKIP_COMMENT = re.compile(
-    r"^#\s*(noqa|type:|pragma|fmt:|pylint:|mypy:|isort:|ruff:|-\*-|!)", re.IGNORECASE
-)
-SKIP_DIRS = {".git", ".venv", "venv", "env", "node_modules", "build", "dist",
-             "__pycache__", "site-packages", ".tox", ".nox", ".mypy_cache"}
+SKIP_COMMENT = re.compile(r"^#\s*(noqa|type:|pragma|fmt:|pylint:|mypy:|isort:|ruff:|-\*-|!)", re.IGNORECASE)
+SKIP_DIRS = {
+    ".git",
+    ".venv",
+    "venv",
+    "env",
+    "node_modules",
+    "build",
+    "dist",
+    "__pycache__",
+    "site-packages",
+    ".tox",
+    ".nox",
+    ".mypy_cache",
+}
 
 
 @dataclass
@@ -82,12 +134,15 @@ class Finding:
 
 # ---------------------------------------------------------------- scan
 
+
 def python_files(paths: list[str]) -> list[Path]:
     """Return the Python files under ``paths``, skipping virtualenvs and build output."""
     try:
         out = subprocess.run(
             ["git", "ls-files", "--", *(paths or ["."])],
-            capture_output=True, text=True, check=True,
+            capture_output=True,
+            text=True,
+            check=True,
         ).stdout
         files = [Path(p) for p in out.splitlines() if p.endswith(".py")]
         if files:
@@ -227,12 +282,15 @@ def cmd_scan(args: argparse.Namespace) -> int:
     for finding in shown:
         print(finding)
     files = len({f.path for f in findings})
-    print(f"\n{len(findings)} findings in {files} of {len(parsed)} files"
-          + (f" (showing {len(shown)})" if len(shown) < len(findings) else ""))
+    print(
+        f"\n{len(findings)} findings in {files} of {len(parsed)} files"
+        + (f" (showing {len(shown)})" if len(shown) < len(findings) else "")
+    )
     return 0
 
 
 # ---------------------------------------------------------------- verify
+
 
 class _StripDocs(ast.NodeTransformer):
     """Remove bare string statements (docstrings and no-op strings)."""
@@ -245,9 +303,7 @@ class _StripDocs(ast.NodeTransformer):
 
 def _is_noop(stmt: ast.stmt) -> bool:
     return isinstance(stmt, ast.Pass) or (
-        isinstance(stmt, ast.Expr)
-        and isinstance(stmt.value, ast.Constant)
-        and stmt.value.value is Ellipsis
+        isinstance(stmt, ast.Expr) and isinstance(stmt.value, ast.Constant) and stmt.value.value is Ellipsis
     )
 
 
@@ -300,8 +356,10 @@ def cmd_verify(args: argparse.Namespace) -> int:
         print(f"warning: {msg}")
     for msg in failures:
         print(f"FAIL: {msg}")
-    print(f"\nchecked {checked} changed file(s) against {args.base}: "
-          + ("code unchanged" if not failures else f"{len(failures)} problem(s)"))
+    print(
+        f"\nchecked {checked} changed file(s) against {args.base}: "
+        + ("code unchanged" if not failures else f"{len(failures)} problem(s)")
+    )
     return 1 if failures else 0
 
 
