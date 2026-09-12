@@ -53,11 +53,13 @@ class IType(ABC):
     element_type_cls: type | None = None
 
     _is_any: bool = False
-    """Whether this type is the undecided placeholder (``ANY``).
+    """Whether this type is undecided (a bare ``ADD``).
 
     ``AdapterFactory.create_chain`` returns a pass-through for any pair with one
-    end flagged, so an edge involving ``ANY`` is always valid and no adapter is
-    ever looked up. See :class:`~haywire.barn.builtin.types.any.ANY`.
+    end flagged, so an edge involving a bare ``ADD`` is always valid and no
+    adapter is ever looked up. An ``ADD[T]`` clears the flag: it presents as
+    ``T`` and resolves a real chain like any other pin. See
+    :class:`~haywire.barn.builtin.types.add.ADD`.
     """
 
     # Stamped by the @type decorator; absent on an undecorated subclass.

@@ -15,6 +15,7 @@ from haywire.barn.builtin.types import (
     VEC3F,
     VEC4F,
 )
+from haybale_testing.types.test_types import TEST_STRING
 
 
 @node(
@@ -203,7 +204,7 @@ class SettingsNode(BaseNode):
     # --8<-- [end:settings_node_class]
 
     def init(self):
-        self.add(STRING.as_outlet("settings", label="Settings", default="default value"))
+        self.add(TEST_STRING.as_outlet("settings", label="Settings", default="default value"))
 
     def post_init(self):
         print(f"Post-init: example_string = {self.example.example_string}")

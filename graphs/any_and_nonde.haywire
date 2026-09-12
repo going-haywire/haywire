@@ -2,7 +2,7 @@
   "format_version": 3,
   "filestem": "any_and_nonde",
   "created_at": "2026-09-12T10:04:10.101874",
-  "modified_at": "2026-09-12T11:07:09.610022",
+  "modified_at": "2026-09-12T18:25:21.394244",
   "meta": {
     "values": {},
     "promoted": {}
@@ -12,7 +12,7 @@
       "node_id": "SettingsNode_fbf021",
       "registry_key": "haybale-testing:node:SettingsNode",
       "position": [
-        3700,
+        3650,
         3300
       ],
       "node_data": {
@@ -20,26 +20,25 @@
         "ports": {
           "settings": {
             "kwargs": {
-              "registry_id": "STRING",
-              "registry_key": "haywire-core:type:STRING",
+              "registry_id": "TEST_STRING",
+              "registry_key": "haybale-testing:type:TEST_STRING",
               "label": "Settings",
               "description": "Text data",
-              "class_name": "STRING",
-              "module": "haywire.barn.builtin.types.specs",
+              "class_name": "TEST_STRING",
+              "module": "haybale_testing.types.test_types",
               "flow_type": "data",
               "default": {
                 "value": "default value"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:TextWidget",
               "id": "settings",
               "port_type": "outlet",
               "allow_multiple_links": true,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:STRING"
+              "registry_key": "haybale-testing:type:TEST_STRING"
             },
             "field_data": {
               "value": "default value"
@@ -49,42 +48,24 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 3700.0,
+              "posX": 3650.0,
               "posY": 3300.0,
-              "width": 269,
-              "height": 194
+              "width": 268,
+              "height": 110
             },
             "promoted": {}
           },
           "example": {
-            "values": {
-              "example_vec4f": [
-                0.0,
-                0.0,
-                0.0,
-                0.0
-              ],
-              "optional_float": 0.0
-            },
-            "promoted": {
-              "example.example_vec2i": {
-                "direction": "inlet"
-              },
-              "example.example_vec4f": {
-                "direction": "inlet"
-              },
-              "example.optional_float": {
-                "direction": "inlet"
-              }
-            }
+            "values": {},
+            "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 3700.0,
+            "posX": 3650.0,
             "posY": 3300.0,
-            "width": 269,
-            "height": 194
+            "width": 268,
+            "height": 110
           },
           "promoted": {}
         },
@@ -113,7 +94,7 @@
         },
         "library": {
           "label": "Testing",
-          "version": "0.1.3",
+          "version": "0.2.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
           "module_name": "haybale_testing",
           "name": "haybale-testing",
@@ -138,26 +119,25 @@
         "ports": {
           "settings": {
             "kwargs": {
-              "registry_id": "STRING",
-              "registry_key": "haywire-core:type:STRING",
+              "registry_id": "TEST_STRING",
+              "registry_key": "haybale-testing:type:TEST_STRING",
               "label": "Settings",
               "description": "Text data",
-              "class_name": "STRING",
-              "module": "haywire.barn.builtin.types.specs",
+              "class_name": "TEST_STRING",
+              "module": "haybale_testing.types.test_types",
               "flow_type": "data",
               "default": {
                 "value": "default value"
               },
               "store_strategy": 14,
               "color": "#ffc107",
-              "widget_key": "haywire-core:widget:TextWidget",
               "id": "settings",
               "port_type": "outlet",
               "allow_multiple_links": true,
               "show_widget": "never"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:STRING"
+              "registry_key": "haybale-testing:type:TEST_STRING"
             },
             "field_data": {
               "value": "default value"
@@ -169,8 +149,8 @@
             "values": {
               "posX": 2850.0,
               "posY": 3300.0,
-              "width": 269,
-              "height": 182
+              "width": 268,
+              "height": 138
             },
             "promoted": {}
           },
@@ -178,8 +158,7 @@
             "values": {},
             "promoted": {
               "example.example_vec2i": {
-                "direction": "outlet",
-                "show_widget": "always"
+                "direction": "outlet"
               }
             }
           }
@@ -188,8 +167,8 @@
           "values": {
             "posX": 2850.0,
             "posY": 3300.0,
-            "width": 269,
-            "height": 182
+            "width": 268,
+            "height": 138
           },
           "promoted": {}
         },
@@ -218,7 +197,7 @@
         },
         "library": {
           "label": "Testing",
-          "version": "0.1.3",
+          "version": "0.2.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
           "module_name": "haybale_testing",
           "name": "haybale-testing",
@@ -231,17 +210,17 @@
         }
       }
     },
-    "AnyPortTestNode_39a27d": {
-      "node_id": "AnyPortTestNode_39a27d",
-      "registry_key": "haybale-testing:node:AnyPortTestNode",
+    "AddPortTestNode_43a781": {
+      "node_id": "AddPortTestNode_43a781",
+      "registry_key": "haybale-testing:node:AddPortTestNode",
       "position": [
-        3200,
+        3300,
         3050
       ],
       "node_data": {
-        "node_id": "AnyPortTestNode_39a27d",
+        "node_id": "AddPortTestNode_43a781",
         "ports": {
-          "any_in_0": {
+          "add_in_0": {
             "kwargs": {
               "registry_id": "VEC2I",
               "registry_key": "haywire-core:type:VEC2I",
@@ -270,9 +249,9 @@
                   "orientation": "column"
                 }
               },
-              "id": "any_in_0",
+              "id": "add_in_0",
               "port_type": "inlet",
-              "order": 2,
+              "order": 5,
               "origin": "resolved",
               "on_connect": "hb_resolve"
             },
@@ -286,144 +265,126 @@
               ]
             }
           },
-          "any_out_0": {
+          "add_out_0": {
             "kwargs": {
-              "registry_id": "VEC4F",
-              "registry_key": "haywire-core:type:VEC4F",
+              "registry_id": "ADD",
+              "registry_key": "haywire-core:type:ADD",
               "label": "Out 0",
-              "description": "4D float vector",
-              "class_name": "VEC4F",
-              "module": "haywire.barn.builtin.types.vectors",
-              "flow_type": "data",
-              "default": {
-                "value": [
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0
-                ]
-              },
-              "store_strategy": 14,
-              "widget_key": "haywire-core:widget:VecWidget",
-              "widget_config": {
-                "properties": {
-                  "vec_meta": {
-                    "length": 4,
-                    "labels": [
-                      "W",
-                      "X",
-                      "Y",
-                      "Z"
-                    ]
-                  },
-                  "orientation": "column"
-                }
-              },
-              "id": "any_out_0",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 4,
-              "origin": "resolved",
-              "on_connect": "hb_resolve",
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:VEC4F"
-            },
-            "field_data": {
-              "value": [
-                0.0,
-                0.0,
-                0.0,
-                0.0
-              ]
-            }
-          },
-          "any_in_1": {
-            "kwargs": {
-              "registry_id": "ANY",
-              "registry_key": "haywire-core:type:ANY",
-              "label": "In 1",
-              "description": "Undecided until connected; the node retypes the port from the other end",
-              "class_name": "ANY",
-              "module": "haywire.barn.builtin.types.any",
+              "description": "Grows a new port from whatever connects to it",
+              "class_name": "ADD",
+              "module": "haywire.barn.builtin.types.add",
               "flow_type": "data",
               "default": {
                 "value": null
               },
               "store_strategy": 1,
-              "color": "#9e9e9e",
-              "id": "any_in_1",
+              "color": "#666666",
+              "icon_in": "add_circle_outline",
+              "icon_in_multi": "add_circle_outline",
+              "icon_out": "add_circle",
+              "icon_out_multi": "add_circle",
+              "id": "add_out_0",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 1,
+              "on_connect": "hb_resolve",
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:ADD"
+            }
+          },
+          "str_in_0": {
+            "kwargs": {
+              "registry_id": "TEST_STRING",
+              "registry_key": "haybale-testing:type:TEST_STRING",
+              "label": "Str 0",
+              "description": "Text data",
+              "class_name": "TEST_STRING",
+              "module": "haybale_testing.types.test_types",
+              "flow_type": "data",
+              "default": {
+                "value": ""
+              },
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "id": "str_in_0",
               "port_type": "inlet",
               "order": 3,
+              "origin": "resolved",
               "on_connect": "hb_resolve"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:ANY"
+              "registry_key": "haybale-testing:type:TEST_STRING"
             }
           },
-          "any_out_2": {
+          "str_in_1": {
             "kwargs": {
-              "registry_id": "FLOAT",
-              "registry_key": "haywire-core:type:FLOAT",
-              "label": "Out 2",
-              "description": "Decimal numberer",
-              "class_name": "FLOAT",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": 0.0
-              },
-              "store_strategy": 14,
-              "color": "#50b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "any_out_2",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 8,
-              "origin": "resolved",
-              "on_connect": "hb_resolve",
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:FLOAT"
-            },
-            "field_data": {
-              "value": 0.0
-            }
-          },
-          "any_out_3": {
-            "kwargs": {
-              "registry_id": "ANY",
-              "registry_key": "haywire-core:type:ANY",
-              "label": "Out 3",
-              "description": "Undecided until connected; the node retypes the port from the other end",
-              "class_name": "ANY",
-              "module": "haywire.barn.builtin.types.any",
+              "registry_id": "ADD",
+              "registry_key": "haywire-core:type:ADD",
+              "label": "Str 1",
+              "description": "Grows a new port from whatever connects to it",
+              "class_name": "ADD",
+              "module": "haywire.barn.builtin.types.add",
               "flow_type": "data",
               "default": {
                 "value": null
               },
               "store_strategy": 1,
-              "color": "#9e9e9e",
-              "id": "any_out_3",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 9,
-              "on_connect": "hb_resolve",
-              "show_widget": "never"
+              "color": "#ffc107",
+              "icon_in": "add_circle_outline",
+              "icon_in_multi": "add_circle_outline",
+              "icon_out": "add_circle",
+              "icon_out_multi": "add_circle",
+              "widget_config": {
+                "properties": {}
+              },
+              "id": "str_in_1",
+              "port_type": "inlet",
+              "order": 4,
+              "on_connect": "hb_resolve"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:ANY"
+              "registry_key": "haywire-core:type:ADD",
+              "element_type": {
+                "registry_key": "haybale-testing:type:TEST_STRING"
+              }
+            }
+          },
+          "add_in_1": {
+            "kwargs": {
+              "registry_id": "ADD",
+              "registry_key": "haywire-core:type:ADD",
+              "label": "In 1",
+              "description": "Grows a new port from whatever connects to it",
+              "class_name": "ADD",
+              "module": "haywire.barn.builtin.types.add",
+              "flow_type": "data",
+              "default": {
+                "value": null
+              },
+              "store_strategy": 1,
+              "color": "#666666",
+              "icon_in": "add_circle_outline",
+              "icon_in_multi": "add_circle_outline",
+              "icon_out": "add_circle",
+              "icon_out_multi": "add_circle",
+              "id": "add_in_1",
+              "port_type": "inlet",
+              "order": 6,
+              "on_connect": "hb_resolve"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:ADD"
             }
           }
         },
         "settings": {
           "props": {
             "values": {
-              "posX": 3200.0,
+              "posX": 3300.0,
               "posY": 3050.0,
-              "width": 266,
+              "width": 268,
               "height": 222
             },
             "promoted": {}
@@ -431,26 +392,26 @@
         },
         "props": {
           "values": {
-            "posX": 3200.0,
+            "posX": 3300.0,
             "posY": 3050.0,
-            "width": 266,
+            "width": 268,
             "height": 222
           },
           "promoted": {}
         },
         "store": {},
         "identity": {
-          "registry_id": "AnyPortTestNode",
-          "registry_key": "haybale-testing:node:AnyPortTestNode",
-          "label": "Any Port TestNode",
+          "registry_id": "AddPortTestNode",
+          "registry_key": "haybale-testing:node:AddPortTestNode",
+          "label": "Add Port TestNode",
           "description": "",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "AnyPortTestNode",
-          "module": "haybale_testing.nodes.testbed.any_port_test",
+          "class_name": "AddPortTestNode",
+          "module": "haybale_testing.nodes.testbed.add_port_test",
           "search_tags": [
             "testing",
-            "any",
+            "add",
             "placeholder",
             "resolve",
             "variadic"
@@ -464,251 +425,7 @@
         },
         "library": {
           "label": "Testing",
-          "version": "0.1.3",
-          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
-          "module_name": "haybale_testing",
-          "name": "haybale-testing",
-          "linked_libraries": [
-            "haybale_core",
-            "haybale_graph_editor"
-          ],
-          "file_watcher": true,
-          "on_reload": "none"
-        }
-      }
-    },
-    "AnyPortTestNode_28906a": {
-      "node_id": "AnyPortTestNode_28906a",
-      "registry_key": "haybale-testing:node:AnyPortTestNode",
-      "position": [
-        3700,
-        2900
-      ],
-      "node_data": {
-        "node_id": "AnyPortTestNode_28906a",
-        "ports": {
-          "any_in_0": {
-            "kwargs": {
-              "registry_id": "VEC2I",
-              "registry_key": "haywire-core:type:VEC2I",
-              "label": "In 0",
-              "description": "2D integer vector",
-              "class_name": "VEC2I",
-              "module": "haywire.barn.builtin.types.vectors",
-              "flow_type": "data",
-              "default": {
-                "value": [
-                  0,
-                  0
-                ]
-              },
-              "store_strategy": 2,
-              "widget_key": "haywire-core:widget:VecWidget",
-              "widget_config": {
-                "properties": {
-                  "vec_meta": {
-                    "length": 2,
-                    "labels": [
-                      "X",
-                      "Y"
-                    ]
-                  },
-                  "orientation": "column"
-                }
-              },
-              "id": "any_in_0",
-              "port_type": "inlet",
-              "order": 2,
-              "origin": "resolved",
-              "on_connect": "hb_resolve"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:VEC2I"
-            },
-            "field_data": {
-              "value": [
-                0,
-                0
-              ]
-            }
-          },
-          "any_out_0": {
-            "kwargs": {
-              "registry_id": "VEC4F",
-              "registry_key": "haywire-core:type:VEC4F",
-              "label": "Out 0",
-              "description": "4D float vector",
-              "class_name": "VEC4F",
-              "module": "haywire.barn.builtin.types.vectors",
-              "flow_type": "data",
-              "default": {
-                "value": [
-                  0.0,
-                  0.0,
-                  0.0,
-                  0.0
-                ]
-              },
-              "store_strategy": 14,
-              "widget_key": "haywire-core:widget:VecWidget",
-              "widget_config": {
-                "properties": {
-                  "vec_meta": {
-                    "length": 4,
-                    "labels": [
-                      "W",
-                      "X",
-                      "Y",
-                      "Z"
-                    ]
-                  },
-                  "orientation": "column"
-                }
-              },
-              "id": "any_out_0",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 4,
-              "origin": "resolved",
-              "on_connect": "hb_resolve",
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:VEC4F"
-            },
-            "field_data": {
-              "value": [
-                0.0,
-                0.0,
-                0.0,
-                0.0
-              ]
-            }
-          },
-          "any_out_1": {
-            "kwargs": {
-              "registry_id": "ANY",
-              "registry_key": "haywire-core:type:ANY",
-              "label": "Out 1",
-              "description": "Undecided until connected; the node retypes the port from the other end",
-              "class_name": "ANY",
-              "module": "haywire.barn.builtin.types.any",
-              "flow_type": "data",
-              "default": {
-                "value": null
-              },
-              "store_strategy": 1,
-              "color": "#9e9e9e",
-              "id": "any_out_1",
-              "port_type": "outlet",
-              "allow_multiple_links": true,
-              "order": 5,
-              "on_connect": "hb_resolve",
-              "show_widget": "never"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:ANY"
-            }
-          },
-          "any_in_2": {
-            "kwargs": {
-              "registry_id": "FLOAT",
-              "registry_key": "haywire-core:type:FLOAT",
-              "label": "In 2",
-              "description": "Decimal numberer",
-              "class_name": "FLOAT",
-              "module": "haywire.barn.builtin.types.specs",
-              "flow_type": "data",
-              "default": {
-                "value": 0.0
-              },
-              "store_strategy": 2,
-              "color": "#50b0ff",
-              "widget_key": "haywire-core:widget:NumberWidget",
-              "id": "any_in_2",
-              "port_type": "inlet",
-              "order": 8,
-              "origin": "resolved",
-              "on_connect": "hb_resolve"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:FLOAT"
-            },
-            "field_data": {
-              "value": 0.0
-            }
-          },
-          "any_in_3": {
-            "kwargs": {
-              "registry_id": "ANY",
-              "registry_key": "haywire-core:type:ANY",
-              "label": "In 3",
-              "description": "Undecided until connected; the node retypes the port from the other end",
-              "class_name": "ANY",
-              "module": "haywire.barn.builtin.types.any",
-              "flow_type": "data",
-              "default": {
-                "value": null
-              },
-              "store_strategy": 1,
-              "color": "#9e9e9e",
-              "id": "any_in_3",
-              "port_type": "inlet",
-              "order": 9,
-              "on_connect": "hb_resolve"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:ANY"
-            }
-          }
-        },
-        "settings": {
-          "props": {
-            "values": {
-              "posX": 3700.0,
-              "posY": 2900.0,
-              "width": 266,
-              "height": 266
-            },
-            "promoted": {}
-          }
-        },
-        "props": {
-          "values": {
-            "posX": 3700.0,
-            "posY": 2900.0,
-            "width": 266,
-            "height": 266
-          },
-          "promoted": {}
-        },
-        "store": {},
-        "identity": {
-          "registry_id": "AnyPortTestNode",
-          "registry_key": "haybale-testing:node:AnyPortTestNode",
-          "label": "Any Port TestNode",
-          "description": "",
-          "deprecation_warning": "",
-          "hidden": false,
-          "class_name": "AnyPortTestNode",
-          "module": "haybale_testing.nodes.testbed.any_port_test",
-          "search_tags": [
-            "testing",
-            "any",
-            "placeholder",
-            "resolve",
-            "variadic"
-          ],
-          "menu": "testing/testbed",
-          "help_md": null,
-          "help_url": "https://haywire.io/internals/node-help",
-          "_is_error": false,
-          "_error_priority": 0,
-          "_is_reroute": false
-        },
-        "library": {
-          "label": "Testing",
-          "version": "0.1.3",
+          "version": "0.2.0",
           "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
           "module_name": "haybale_testing",
           "name": "haybale-testing",
@@ -723,50 +440,23 @@
     }
   },
   "edges": {
-    "SettingsNode_bd8b7f[example.example_vec2i]->AnyPortTestNode_39a27d[any_in_0]": {
+    "SettingsNode_bd8b7f[settings]->AddPortTestNode_43a781[str_in_0]": {
+      "source_node_id": "SettingsNode_bd8b7f",
+      "outlet_port_id": "settings",
+      "sink_node_id": "AddPortTestNode_43a781",
+      "inlet_port_id": "str_in_0",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "SettingsNode_bd8b7f[example.example_vec2i]->AddPortTestNode_43a781[add_in_0]": {
       "source_node_id": "SettingsNode_bd8b7f",
       "outlet_port_id": "example.example_vec2i",
-      "sink_node_id": "AnyPortTestNode_39a27d",
-      "inlet_port_id": "any_in_0",
+      "sink_node_id": "AddPortTestNode_43a781",
+      "inlet_port_id": "add_in_0",
       "edge_type": "data",
       "chain_adapter_keys": [],
       "is_lazy": true
-    },
-    "AnyPortTestNode_39a27d[any_out_0]->SettingsNode_fbf021[example.example_vec4f]": {
-      "source_node_id": "AnyPortTestNode_39a27d",
-      "outlet_port_id": "any_out_0",
-      "sink_node_id": "SettingsNode_fbf021",
-      "inlet_port_id": "example.example_vec4f",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": false
-    },
-    "SettingsNode_bd8b7f[example.example_vec2i]->SettingsNode_fbf021[example.example_vec2i]": {
-      "source_node_id": "SettingsNode_bd8b7f",
-      "outlet_port_id": "example.example_vec2i",
-      "sink_node_id": "SettingsNode_fbf021",
-      "inlet_port_id": "example.example_vec2i",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": true
-    },
-    "AnyPortTestNode_39a27d[any_out_2]->SettingsNode_fbf021[example.optional_float]": {
-      "source_node_id": "AnyPortTestNode_39a27d",
-      "outlet_port_id": "any_out_2",
-      "sink_node_id": "SettingsNode_fbf021",
-      "inlet_port_id": "example.optional_float",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": false
-    },
-    "AnyPortTestNode_39a27d[any_out_2]->AnyPortTestNode_28906a[any_in_2]": {
-      "source_node_id": "AnyPortTestNode_39a27d",
-      "outlet_port_id": "any_out_2",
-      "sink_node_id": "AnyPortTestNode_28906a",
-      "inlet_port_id": "any_in_2",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": false
     }
   },
   "variables": {},

@@ -1,4 +1,4 @@
-from .testbed.any_port_test import AnyPortTestNode
+from .testbed.add_port_test import AddPortTestNode
 from .testbed.begin_play_node import TestBeginPlayNode
 from .testbed.custom_callback_node import TestCustomCallbackNode
 from .testbed.display_node import DisplayNode
@@ -11,7 +11,7 @@ from .testbed.test_performance import PerformanceTester
 
 
 __all__ = [
-    "AnyPortTestNode",
+    "AddPortTestNode",
     "DisplayNode",
     "DynamicPortTestNode",
     "EdgeLinkTestNode",

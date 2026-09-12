@@ -42,9 +42,9 @@ class PortOrigin(Enum):
     - PROMOTED: promoted from a setting. The port is a second view of the
       setting's cell, so it does not serialize its own value and is regenerated
       on load from the settings block. Detached through ``demote_setting``.
-    - RESOLVED: created by connecting to an ``ANY`` placeholder, which adopted
-      the type at the other end. Unlike a promoted port this one owns its value
-      and serializes normally.
+    - RESOLVED: created by connecting to an ``ADD`` pin, which grew a real port
+      in its place. Unlike a promoted port this one owns its value and
+      serializes normally.
 
     Only DECLARED is permanent; see :meth:`DataPort.is_user_removable`.
     """

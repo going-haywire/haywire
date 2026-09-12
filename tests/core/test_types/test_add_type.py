@@ -1,13 +1,15 @@
-"""Tests for ANY — the placeholder type resolved from a connected pin.
+"""Tests for ADD — the pin that grows a new port from whatever connects to it.
 
-Covers the adapter short-circuit (every pairing involving ANY is a
-pass-through), the config-port rejection, and the end-to-end resolve: an ANY
-inlet adopts the connected outlet's type and grows a fresh slot.
+Two forms, and the split between them is the point. Bare ``ADD`` is undecided:
+it short-circuits the adapter layer, connects to anything, and adopts the other
+end's type. ``ADD[T]`` is decided: it presents as ``T`` to the adapter layer, so
+its edges resolve real conversion chains and anything that cannot reach ``T`` is
+refused before the pin ever grows.
 """
 
 import pytest
 
-from haywire.barn.builtin.types import ANY, BOOL, FLOAT, INT, STRING
+from haywire.barn.builtin.types import ADD, BOOL, FLOAT, INT, STRING
 from haywire.core.adapter.factory import AdapterFactory
 from haywire.core.adapter.registry import AdapterRegistry
 from haywire.core.adapter.base import ReturnAdapter
@@ -23,40 +25,113 @@ def factory() -> AdapterFactory:
     """An AdapterFactory over an empty registry.
 
     Empty on purpose: every pairing here must resolve without a registered
-    adapter, so a hit could only come from the ANY short-circuit.
+    adapter, so a hit could only come from the ADD short-circuit.
     """
     return AdapterFactory(AdapterRegistry())
 
 
-class TestAnyTypeDeclaration:
+class TestAddTypeDeclaration:
     def test_any_is_flagged_and_other_types_are_not(self):
-        assert ANY._is_any is True
+        assert ADD._is_any is True
         assert INT._is_any is False
         assert STRING._is_any is False
 
     def test_any_declares_no_widget(self):
         """An undecided pin has no value to edit, so it renders no widget."""
-        assert not ANY.class_identity.widget_key
+        assert not ADD.class_identity.widget_key
 
     def test_an_undecided_instance_constructs_and_serializes(self):
         """``PrimitiveType`` rejects None, which a placeholder has to hold."""
-        assert ANY().to_dict() == {"value": None}
-        assert ANY(value=None).to_dict() == {"value": None}
-        assert ANY.create_field().to_dict() == {"value": None}
+        assert ADD().to_dict() == {"value": None}
+        assert ADD(value=None).to_dict() == {"value": None}
+        assert ADD.create_field().to_dict() == {"value": None}
 
     def test_an_any_port_never_stores_its_value(self):
         """Nothing to save, so the port is not asked to serialize one."""
-        assert ANY.class_identity.store_strategy is StoreStrategy.NEVER
+        assert ADD.class_identity.store_strategy is StoreStrategy.NEVER
 
     def test_config_port_is_rejected(self):
-        """A config port has no pin, so an ANY config could never resolve."""
+        """A config port has no pin, so an ADD config could never resolve."""
         with pytest.raises(ValueError, match="config port"):
-            ANY.as_config("nope")
+            ADD.as_config("nope")
 
     @pytest.mark.parametrize("factory_name", ["as_inlet", "as_outlet"])
     def test_pin_carrying_port_types_are_allowed(self, factory_name):
-        spec = getattr(ANY, factory_name)("slot")
+        spec = getattr(ADD, factory_name)("slot")
         assert spec["kwargs"]["id"] == "slot"
+
+
+class TestAddParameterization:
+    """``ADD[T]`` is decided: it knows the type the port it grows will carry."""
+
+    def test_a_parameterization_is_not_undecided(self):
+        """Its edges must resolve a real chain, not short-circuit."""
+        assert ADD[STRING]._is_any is False
+        assert ADD[INT]._is_any is False
+
+    def test_parameterizations_are_cached_and_subclass_add(self):
+        assert ADD[STRING] is ADD[STRING]
+        assert ADD[STRING] is not ADD[INT]
+        assert issubclass(ADD[STRING], ADD)
+
+    def test_it_takes_the_element_colour_and_keeps_the_add_glyph(self):
+        """The pin shows what it accepts, in ADD's own shape."""
+        identity = ADD[STRING].class_identity
+        assert identity.color == STRING.class_identity.color
+        assert identity.icon_in == ADD.class_identity.icon_in
+        assert identity.icon_out == ADD.class_identity.icon_out
+
+    def test_every_form_reports_one_registry_key(self):
+        """A saved graph resolves back to ADD; the element rides the recipe."""
+        assert ADD[STRING].class_identity.registry_key == ADD.class_identity.registry_key
+
+    def test_the_element_is_readable(self):
+        assert ADD[STRING].element_type_cls is STRING
+
+    def test_it_cannot_grow_another_add(self):
+        with pytest.raises(TypeError, match="cannot grow another ADD"):
+            ADD[ADD]
+
+    def test_a_non_type_is_refused(self):
+        with pytest.raises(TypeError, match="not a valid type"):
+            ADD["STRING"]
+
+
+class TestAddStoredType:
+    """``type_cls`` is what the pin IS; ``get_stored_type`` is what crosses the edge."""
+
+    def test_a_decided_pin_presents_as_its_element(self):
+        """This is what makes FLOAT -> ADD[STRING] resolve the FLOAT->STRING chain."""
+        assert ADD[STRING].create_field().get_stored_type() is STRING
+        assert ADD[INT].create_field().get_stored_type() is INT
+
+    def test_an_undecided_pin_presents_as_itself(self):
+        """Nothing to convert into yet, so the short-circuit handles it."""
+        assert ADD.create_field().get_stored_type() is ADD
+
+    def test_it_stores_nothing(self):
+        field = ADD[STRING].create_field()
+        assert field.get_value() is None
+        assert field.has_data() is False
+        field.set_value("ignored")
+        assert field.get_value() is None
+
+
+class TestAddSerialization:
+    """A parameterization round-trips through its element recipe."""
+
+    def test_a_decided_pin_writes_its_element(self):
+        from haywire.core.types.utils import serialize_element_type
+
+        assert serialize_element_type(ADD[STRING]) == {
+            "registry_key": ADD.class_identity.registry_key,
+            "element_type": {"registry_key": STRING.class_identity.registry_key},
+        }
+
+    def test_an_undecided_pin_writes_no_element(self):
+        from haywire.core.types.utils import serialize_element_type
+
+        assert serialize_element_type(ADD) == {"registry_key": ADD.class_identity.registry_key}
 
 
 def _bare_port(spec) -> DataPort:
@@ -111,16 +186,16 @@ class TestPortOrigin:
         assert port.to_dict()["kwargs"]["origin"] == "resolved"
 
 
-class TestAnyAdapterShortCircuit:
+class TestAddAdapterShortCircuit:
     @pytest.mark.parametrize(
         ("source", "sink"),
         [
-            (INT, ANY),
-            (ANY, INT),
-            (STRING, ANY),
-            (ANY, STRING),
-            (FLOAT, ANY),
-            (BOOL, ANY),
+            (INT, ADD),
+            (ADD, INT),
+            (STRING, ADD),
+            (ADD, STRING),
+            (FLOAT, ADD),
+            (BOOL, ADD),
         ],
     )
     def test_any_paired_with_a_concrete_type_passes_through(self, factory, source, sink):
@@ -131,7 +206,7 @@ class TestAnyAdapterShortCircuit:
     def test_any_to_any_passes_through(self):
         """Two undecided ends still make a valid edge; neither resolves."""
         factory = AdapterFactory(AdapterRegistry())
-        adapter, error = factory.create_chain(ANY, ANY, "edge-1")
+        adapter, error = factory.create_chain(ADD, ADD, "edge-1")
         assert error is None
         assert isinstance(adapter, ReturnAdapter)
 
@@ -139,7 +214,7 @@ class TestAnyAdapterShortCircuit:
         """The short-circuit runs before scalar/compound dispatch."""
         from haybale_core.types import ArrayType
 
-        adapter, error = factory.create_chain(ArrayType[INT], ANY, "edge-1")
+        adapter, error = factory.create_chain(ArrayType[INT], ADD, "edge-1")
         assert error is None
         assert isinstance(adapter, ReturnAdapter)
 
@@ -150,10 +225,10 @@ class TestAnyAdapterShortCircuit:
         assert error is not None
 
 
-def _make_any_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
-    from haybale_testing.nodes.testbed.any_port_test import AnyPortTestNode
+def _make_add_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
+    from haybale_testing.nodes.testbed.add_port_test import AddPortTestNode
 
-    wrapper = graph.create_node_wrapper(AnyPortTestNode.class_identity.registry_key, position=position)
+    wrapper = graph.create_node_wrapper(AddPortTestNode.class_identity.registry_key, position=position)
     assert wrapper is not None, f"node creation failed at {position}"
     return wrapper
 
@@ -176,54 +251,54 @@ def _make_link_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrap
 
 
 @pytest.mark.integration
-class TestAnyResolution:
-    """End-to-end: an ANY pin adopts the type of what connects to it."""
+class TestAddResolution:
+    """End-to-end: an ADD pin adopts the type of what connects to it."""
 
     def test_any_inlet_adopts_connected_type_and_grows_a_new_slot(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        assert target.node.ports["any_in_0"].type_cls is ANY
+        assert target.node.ports["add_in_0"].type_cls is ADD
 
-        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert edge is not None
 
-        resolved = target.node.ports["any_in_0"]
+        resolved = target.node.ports["add_in_0"]
         assert resolved.type_cls is not None
-        assert resolved.type_cls is not ANY
+        assert resolved.type_cls is not ADD
         assert resolved.type_cls.class_identity.registry_key.endswith("TEST_INT")
         # A fresh undecided slot is appended below the one just resolved.
-        assert target.node.ports["any_in_1"].type_cls is ANY
+        assert target.node.ports["add_in_1"].type_cls is ADD
 
     def test_any_outlet_adopts_connected_type_and_grows_a_new_slot(
         self, graph_with_library_system: BaseGraph, library_system
     ):
         """An outlet resolves from the inlet it feeds, mirroring the inlet side."""
         graph = graph_with_library_system
-        source = _make_any_node(graph, (100, 100))
+        source = _make_add_node(graph, (100, 100))
         sink = _make_link_node(graph, (300, 100))
 
-        assert source.node.ports["any_out_0"].type_cls is ANY
+        assert source.node.ports["add_out_0"].type_cls is ADD
 
-        edge = graph.create_edge_wrapper(source.node_id, "any_out_0", sink.node_id, "float_inlet")
+        edge = graph.create_edge_wrapper(source.node_id, "add_out_0", sink.node_id, "float_inlet")
         assert edge is not None
 
-        resolved = source.node.ports["any_out_0"]
+        resolved = source.node.ports["add_out_0"]
         assert resolved.type_cls is not None
-        assert resolved.type_cls is not ANY
+        assert resolved.type_cls is not ADD
         assert resolved.type_cls.class_identity.registry_key.endswith("TEST_FLOAT")
-        assert source.node.ports["any_out_1"].type_cls is ANY
+        assert source.node.ports["add_out_1"].type_cls is ADD
 
     def test_resolved_edge_is_valid(self, graph_with_library_system: BaseGraph, library_system):
         """The edge survives the port swap and rebuilds against the new type."""
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert edge is not None
         graph._validation.force_immediate_validation()
 
@@ -234,22 +309,82 @@ class TestAnyResolution:
     ):
         """Neither end has a type to adopt, so no port is retyped or added."""
         graph = graph_with_library_system
-        source = _make_any_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        source = _make_add_node(graph, (100, 100))
+        target = _make_add_node(graph, (300, 100))
 
         edge: EdgeWrapper | None = graph.create_edge_wrapper(
-            source.node_id, "any_out_0", target.node_id, "any_in_0"
+            source.node_id, "add_out_0", target.node_id, "add_in_0"
         )
         assert edge is not None
 
-        assert target.node.ports["any_in_0"].type_cls is ANY
-        assert source.node.ports["any_out_0"].type_cls is ANY
-        assert "any_in_1" not in target.node.ports
-        assert "any_out_1" not in source.node.ports
+        assert target.node.ports["add_in_0"].type_cls is ADD
+        assert source.node.ports["add_out_0"].type_cls is ADD
+        assert "add_in_1" not in target.node.ports
+        assert "add_out_1" not in source.node.ports
 
 
 @pytest.mark.integration
-class TestAnyPersistence:
+class TestDecidedSlotResolution:
+    """``ADD[T]`` keeps T and lets the adapters convert into it."""
+
+    def test_a_convertible_type_resolves_to_the_declared_type(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """The pin grows a TEST_STRING port, not a port of the connected type."""
+        from haybale_testing.types.test_types import TEST_STRING
+
+        graph = graph_with_library_system
+        source = _make_link_node(graph, (100, 100))
+        target = _make_add_node(graph, (300, 100))
+
+        assert target.node.ports["str_in_0"].type_cls is ADD[TEST_STRING]
+
+        edge = graph.create_edge_wrapper(source.node_id, "float_outlet", target.node_id, "str_in_0")
+        assert edge is not None
+        graph._validation.force_immediate_validation()
+
+        resolved = target.node.ports["str_in_0"]
+        assert resolved.type_cls is TEST_STRING
+        assert edge.is_functional()
+        # A fresh decided slot is appended below the one just resolved.
+        assert target.node.ports["str_in_1"].type_cls is ADD[TEST_STRING]
+
+    def test_an_unconvertible_type_never_grows_a_pin(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """No chain means the edge never links, so on_connect never fires.
+
+        This is the whole reason ADD[T] is worth having: the type declaration
+        is the filter, and refusing costs the node no code at all.
+        """
+        from haybale_testing.types.test_types import TEST_STRING
+
+        graph = graph_with_library_system
+        source = _make_link_node(graph, (100, 100))
+        target = _make_add_node(graph, (300, 100))
+
+        # The same outlet a bare ADD accepts happily, so the refusal below can
+        # only come from the parameterization.
+        edge = graph.create_edge_wrapper(source.node_id, "array_bool_outlet", target.node_id, "add_in_0")
+        assert edge is not None
+        graph._validation.force_immediate_validation()
+        assert edge.is_functional(), "a bare ADD must still accept anything"
+
+        # No chain reaches a scalar TEST_STRING from a compound.
+        unconvertible = graph.create_edge_wrapper(
+            source.node_id, "array_bool_outlet", target.node_id, "str_in_0"
+        )
+        graph._validation.force_immediate_validation()
+
+        # The decided slot is untouched and no new one was grown.
+        assert target.node.ports["str_in_0"].type_cls is ADD[TEST_STRING]
+        assert "str_in_1" not in target.node.ports
+        if unconvertible is not None:
+            assert not unconvertible.is_functional()
+
+
+@pytest.mark.integration
+class TestAddPersistence:
     """A resolved slot outlives the edge that made it, and can be reconnected."""
 
     def test_the_resolved_slot_survives_edge_removal(
@@ -257,30 +392,30 @@ class TestAnyPersistence:
     ):
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert edge is not None
 
         graph.remove_edge_wrapper(edge.edge_id)
 
-        # The typed slot stays, now empty, and the trailing ANY stays with it.
-        resolved = target.node.ports["any_in_0"]
+        # The typed slot stays, now empty, and the trailing ADD stays with it.
+        resolved = target.node.ports["add_in_0"]
         assert resolved.type_cls is not None
         assert resolved.type_cls.class_identity.registry_key.endswith("TEST_INT")
-        assert target.node.ports["any_in_1"].type_cls is ANY
+        assert target.node.ports["add_in_1"].type_cls is ADD
 
     def test_a_released_slot_can_be_reconnected(self, graph_with_library_system: BaseGraph, library_system):
         """Reconnecting to an emptied slot links, without needing a second attempt."""
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert first is not None
         graph.remove_edge_wrapper(first.edge_id)
 
-        again = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        again = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert again is not None
         graph._validation.force_immediate_validation()
 
@@ -297,10 +432,10 @@ class TestAnyPersistence:
         """
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
-        second = graph.create_edge_wrapper(source.node_id, "string_outlet", target.node_id, "any_in_1")
+        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
+        second = graph.create_edge_wrapper(source.node_id, "string_outlet", target.node_id, "add_in_1")
         assert first is not None
         assert second is not None
 
@@ -309,20 +444,20 @@ class TestAnyPersistence:
 
         # The STRING slot keeps its id, so its edge is still linked.
         assert second.state.is_linked
-        assert target.node.ports["any_in_1"].type_cls is not ANY
-        assert target.node.ports["any_in_2"].type_cls is ANY
+        assert target.node.ports["add_in_1"].type_cls is not ADD
+        assert target.node.ports["add_in_2"].type_cls is ADD
 
     def test_a_resolved_port_is_user_removable(self, graph_with_library_system: BaseGraph, library_system):
         """The pin the user created is the one the user may delete."""
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
 
-        assert target.node.ports["any_in_0"].is_user_removable()
+        assert target.node.ports["add_in_0"].is_user_removable()
         # The undecided slot is author-declared, so it stays.
-        assert not target.node.ports["any_in_1"].is_user_removable()
+        assert not target.node.ports["add_in_1"].is_user_removable()
 
     def test_remove_port_drops_a_resolved_pin_and_its_edge(
         self, graph_with_library_system: BaseGraph, library_system
@@ -332,20 +467,20 @@ class TestAnyPersistence:
 
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert edge is not None
 
-        assert remove_port(target.node, "any_in_0") is True
+        assert remove_port(target.node, "add_in_0") is True
 
-        assert "any_in_0" not in target.node.ports
+        assert "add_in_0" not in target.node.ports
         assert not edge.state.is_linked
 
     def test_removing_an_edge_through_an_action_succeeds(
         self, graph_with_library_system: BaseGraph, library_system
     ):
-        """Every callback an ANY slot names must exist on the node.
+        """Every callback an ADD slot names must exist on the node.
 
         A port naming a method the node does not define raises from inside
         ``_trigger_callback``, which surfaces as a failed undo action rather
@@ -355,9 +490,9 @@ class TestAnyPersistence:
 
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert edge is not None
 
         action = RemoveElementsAction(graph=graph, edges=[edge.edge_id])
@@ -375,16 +510,16 @@ class TestAnyPersistence:
         """
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
         # Both an untouched node and one carrying a resolved slot.
         assert target.serialize(include_data=True)["node_data"]["ports"]
 
-        graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         ports = target.serialize(include_data=True)["node_data"]["ports"]
 
-        assert "any_in_0" in ports
-        assert "any_in_1" in ports
+        assert "add_in_0" in ports
+        assert "add_in_1" in ports
 
     def test_pasting_with_its_edge_does_not_grow_extra_slots(
         self, graph_with_library_system: BaseGraph, library_system
@@ -402,8 +537,8 @@ class TestAnyPersistence:
         # A STRING outlet, not EdgeLinkTestNode: that node's CALLBACK ports
         # cannot be serialized, which is a separate defect.
         source = _make_settings_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
-        edge = graph.create_edge_wrapper(source.node_id, "settings", target.node_id, "any_in_0")
+        target = _make_add_node(graph, (300, 100))
+        edge = graph.create_edge_wrapper(source.node_id, "settings", target.node_id, "add_in_0")
         assert edge is not None
 
         payload = build_clipboard_payload(
@@ -417,7 +552,7 @@ class TestAnyPersistence:
         pasted = [
             wrapper
             for nid in action.new_node_ids
-            if "AnyPort" in nid and (wrapper := graph.get_node_wrapper(nid)) is not None
+            if "AddPort" in nid and (wrapper := graph.get_node_wrapper(nid)) is not None
         ]
         assert len(pasted) == 1
         assert sorted(pasted[0].node.ports) == copied
@@ -428,14 +563,14 @@ class TestAnyPersistence:
         """The same guard, by the shortest route: connect, disconnect, reconnect."""
         graph = graph_with_library_system
         source = _make_link_node(graph, (100, 100))
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert first is not None
         after_first = sorted(target.node.ports)
 
         graph.remove_edge_wrapper(first.edge_id)
-        again = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        again = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "add_in_0")
         assert again is not None
 
         assert sorted(target.node.ports) == after_first
@@ -445,10 +580,10 @@ class TestAnyPersistence:
         from haywire.core.node.promotion import remove_port
 
         graph = graph_with_library_system
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        assert remove_port(target.node, "any_in_0") is False
-        assert "any_in_0" in target.node.ports
+        assert remove_port(target.node, "add_in_0") is False
+        assert "add_in_0" in target.node.ports
 
     def test_remove_port_is_a_no_op_for_an_unknown_pin(
         self, graph_with_library_system: BaseGraph, library_system
@@ -456,7 +591,7 @@ class TestAnyPersistence:
         from haywire.core.node.promotion import remove_port
 
         graph = graph_with_library_system
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
         assert remove_port(target.node, "nope") is False
 
@@ -465,7 +600,7 @@ class TestAnyPersistence:
     ):
         """A node with nothing connected still offers one undecided pin per side."""
         graph = graph_with_library_system
-        target = _make_any_node(graph, (300, 100))
+        target = _make_add_node(graph, (300, 100))
 
-        assert target.node.ports["any_in_0"].type_cls is ANY
-        assert target.node.ports["any_out_0"].type_cls is ANY
+        assert target.node.ports["add_in_0"].type_cls is ADD
+        assert target.node.ports["add_out_0"].type_cls is ADD

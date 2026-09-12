@@ -250,7 +250,7 @@ def remove_port(node: "NodeData", port_id: str) -> bool:
     """Remove a user-created port, releasing whatever its origin holds.
 
     The one verb behind the pin menu's removal row, for a port the user brought
-    into being: a setting promoted to a pin, or a slot resolved from an ``ANY``
+    into being: a setting promoted to a pin, or a slot resolved from an ``ADD``
     placeholder. An author-declared port is part of what the node is and is
     refused. Any edges on the port are detached with it.
 

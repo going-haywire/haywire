@@ -106,6 +106,7 @@ def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
         #     'element_type': {'registry_key': 'core:type:string'}
         #   }
     """
+    from haywire.barn.builtin.types.add import ADD
     from haywire.core.types.base import CompoundType, WrapperType
 
     if not hasattr(type_cls, "class_identity"):
@@ -117,14 +118,13 @@ def serialize_element_type(type_cls: type["IType"]) -> ElementTypeSpec:
 
     result: ElementTypeSpec = {"registry_key": registry_key}
 
-    # Recurse for nested parameterized types. Both families carry an element:
-    # a CompoundType holds N of it, a WrapperType holds zero or one.
-    if (
-        issubclass(type_cls, (CompoundType, WrapperType))
-        and hasattr(type_cls, "element_type_cls")
-        and type_cls.element_type_cls
-    ):
-        result["element_type"] = serialize_element_type(type_cls.element_type_cls)
+    # Recurse for nested parameterized types. Each family carries an element:
+    # a CompoundType holds N of it, a WrapperType zero or one, an ADD the type
+    # the port it grows will carry. A BaseType's element is the class itself,
+    # which would recurse forever.
+    element = getattr(type_cls, "element_type_cls", None)
+    if issubclass(type_cls, (CompoundType, WrapperType, ADD)) and element and element is not type_cls:
+        result["element_type"] = serialize_element_type(element)
 
     return result
 

@@ -22,7 +22,7 @@ class PortActions(Protocol):
     """Verbs available when the user right-clicks a pin.
 
     ``remove_port`` backs the removal row and applies to any pin the user
-    added, promoted or resolved from an ``ANY`` placeholder. The rest are
+    added, promoted or resolved from an ``ADD`` pin. The rest are
     meaningful only on a promoted pin: the demote it dispatches to, the
     widget-visibility choice backing "Show widget", and the two value verbs —
     ``reset_setting`` and ``clear_setting`` — that put the backing field back

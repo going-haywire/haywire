@@ -110,7 +110,7 @@ class DataPort(DataTypeIdentity):
         """Whether the user may delete this port from the pin context menu.
 
         True for a port the user brought into being — promoted from a setting,
-        or resolved from an ``ANY`` placeholder — and False for one the node's
+        or resolved from an ``ADD`` pin — and False for one the node's
         author declared.
         """
         return self.origin is not PortOrigin.DECLARED

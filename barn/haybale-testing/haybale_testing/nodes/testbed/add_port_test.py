@@ -1,8 +1,7 @@
-"""ANY port test node — resolves a placeholder pin from the connected type.
+"""ADD port test node — grows a new pin from whatever connects to it.
 
-Grows a fresh ANY slot each time the trailing one is filled, on both the inlet
-and outlet side. A resolved slot is marked ``PortOrigin.RESOLVED`` and stays
-until the user removes it, which is the variadic-port pattern ANY exists for.
+Covers both forms: bare ``ADD`` slots, which adopt the connected type, and an
+``ADD[TEST_STRING]`` slot, which stays TEST_STRING and lets the adapters convert.
 """
 
 from haywire.core.execution.execution_context import ExecutionContext
@@ -11,49 +10,67 @@ from haywire.core.types import PortOrigin
 
 
 @node(
-    label="Any Port TestNode",
-    search_tags=["testing", "any", "placeholder", "resolve", "variadic"],
+    label="Add Port TestNode",
+    search_tags=["testing", "add", "placeholder", "resolve", "variadic"],
     menu="testing/testbed",
     node_type=NodeType.DATA,
 )
-class AnyPortTestNode(BaseNode):
-    """Node whose ANY pins adopt the type of whatever is connected to them.
+class AddPortTestNode(BaseNode):
+    """Node whose ADD pins grow real ports when something connects to them.
 
-    Starts with one undecided inlet, `any_in_0`, and one undecided outlet,
-    `any_out_0`. Connecting to either replaces it with a port of the connected
-    type and appends a fresh ANY slot below, so each side always ends in
-    exactly one undecided pin.
+    Starts with one undecided inlet, `add_in_0`, one undecided outlet,
+    `add_out_0`, and one decided inlet, `str_in_0`, typed `ADD[TEST_STRING]`.
+
+    Connecting to an undecided pin replaces it with a port of the connected
+    type. Connecting to the decided pin replaces it with a `TEST_STRING` port,
+    and anything convertible to it may connect — the value arrives converted.
+    Each side appends a fresh slot below, so it always ends in one open pin.
 
     A resolved pin stays once its edge is gone — unplugging leaves an empty
     typed slot the user can reconnect, and removing it for good is a separate
     gesture on the pin menu. Slot indices are never reused, so the pins a saved
     graph refers to keep their ids.
 
-    A connection between two ANY pins is ignored — neither end has a type to
-    adopt — and both stay undecided.
+    A connection between two undecided pins is ignored — neither end has a type
+    to adopt — and both stay undecided.
     """
 
     #: Port-id prefix per side, and the label each side shows.
-    _SIDES = {"in": ("any_in_", "In"), "out": ("any_out_", "Out")}
+    _SIDES = {"in": ("add_in_", "In"), "out": ("add_out_", "Out"), "str": ("str_in_", "Str")}
 
     def init(self):
-        from haywire.barn.builtin.types import ANY
+        from haywire.barn.builtin.types import ADD
 
-        self._add_slot("in", 0, ANY)
-        self._add_slot("out", 0, ANY)
+        from haybale_testing.types.test_types import TEST_STRING
+
+        self._add_slot("in", 0, ADD)
+        self._add_slot("out", 0, ADD)
+        self._add_slot("str", 0, ADD[TEST_STRING])
 
     # ------------------------------------------------------------------
     # Callbacks
     # ------------------------------------------------------------------
 
     def hb_resolve(self, port, edge_wrapper):
-        """Retype *port* to the type at the other end and append a new ANY slot."""
-        from haywire.barn.builtin.types import ANY
+        """Retype *port* and append a new slot of the same kind."""
+        from haywire.barn.builtin.types import ADD
 
-        if port.type_cls is None or not port.type_cls._is_any:
+        from haybale_testing.types.test_types import TEST_STRING
+
+        if port.type_cls is None or not issubclass(port.type_cls, ADD):
             # Already resolved. Connecting decides a slot once, and the callback
             # fires again whenever the edge is re-linked — on load, on paste, on
             # any revalidation — which must not grow a second slot.
+            return
+
+        side = self._side_of(port.id)
+
+        # A decided slot keeps its own type; the edge already carries the
+        # conversion, so there is nothing to adopt from the other end.
+        if side == "str":
+            with self.rejig(include=[port.id]):
+                self._add_slot(side, self._index_of(side, port.id), TEST_STRING, PortOrigin.RESOLVED)
+            self._add_slot(side, self._next_index(side), ADD[TEST_STRING])
             return
 
         # An inlet reads the type from the outlet feeding it, and vice versa.
@@ -66,14 +83,20 @@ class AnyPortTestNode(BaseNode):
             # Both ends undecided: nothing to adopt, and no new slot.
             return
 
-        side = "in" if port.is_inlet() else "out"
         with self.rejig(include=[port.id]):
             self._add_slot(side, self._index_of(side, port.id), incoming, PortOrigin.RESOLVED)
-        self._add_slot(side, self._next_index(side), ANY)
+        self._add_slot(side, self._next_index(side), ADD)
 
     # ------------------------------------------------------------------
     # Slot management
     # ------------------------------------------------------------------
+
+    def _side_of(self, port_id: str) -> str:
+        """The side *port_id* belongs to."""
+        for side, (prefix, _) in self._SIDES.items():
+            if port_id.startswith(prefix):
+                return side
+        raise KeyError(f"no side owns port id {port_id!r}")
 
     def _index_of(self, side: str, port_id: str) -> int:
         """The numeric suffix of *port_id* on *side*."""
@@ -94,7 +117,7 @@ class AnyPortTestNode(BaseNode):
     def _add_slot(self, side: str, index: int, itype, origin=None) -> None:
         """Add one slot of *itype* at *index* on *side*."""
         prefix, label = self._SIDES[side]
-        factory = itype.as_inlet if side == "in" else itype.as_outlet
+        factory = itype.as_outlet if side == "out" else itype.as_inlet
         kwargs = {} if origin is None else {"origin": origin}
         self.add(
             factory(
