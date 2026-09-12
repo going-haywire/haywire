@@ -805,6 +805,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Important concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-four-families" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The four families
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3234,6 +3251,23 @@
     </span>
   </a>
   
+    <nav class="md-nav" aria-label="3. Important concepts">
+      <ul class="md-nav__list">
+        
+          <li class="md-nav__item">
+  <a href="#the-four-families" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        The four families
+      
+    </span>
+  </a>
+  
+</li>
+        
+      </ul>
+    </nav>
+  
 </li>
       
         <li class="md-nav__item">
@@ -3310,6 +3344,48 @@
 <p><strong>Widget binding.</strong> Set <code>widget_key=</code> and <code>widget_config=</code> on the type when <strong>every port</strong> of this type should use the same widget. <strong>Discouraged for general use</strong> — the codebase's <code>@type</code> docstring marks <code>widget_key</code>/<code>widget_config</code> as <code>NOT RECOMMENDED</code>. Prefer per-port widget overrides via <code>as_inlet(widget_key=...)</code> unless you have a specific reason (e.g. a fixed <code>MathOperation</code> enum where a <code>SelectWidget</code> is the only sensible UI).</p>
 <p><strong><code>store_strategy</code>.</strong> Enum (<code>StoreStrategy</code>) on <code>DataTypeIdentity</code> controlling when field values persist on save. Default is <code>NONE</code>. Older docs may refer to a <code>store_data: bool</code> parameter — that name is out of date; the current code uses <code>store_strategy: StoreStrategy</code>.</p>
 <p><strong><code>@adapter</code>-paired types.</strong> If two types should interop, write an adapter in <a href="../../adapters/adapter-canon/">components/adapters</a>. The adapter system chains automatically: <code>INT → FLOAT</code> and <code>FLOAT → STRING</code> together yield <code>INT → STRING</code> for free, no explicit chain adapter needed.</p>
+<h3 id="the-four-families">The four families<a class="headerlink" href="#the-four-families" title="Permanent link">&para;</a></h3>
+<p>Every IType belongs to exactly one, and the choice is not cosmetic — other subsystems dispatch on it.</p>
+<table>
+<thead>
+<tr>
+<th>Family</th>
+<th>Holds</th>
+<th>Storage</th>
+<th>Parameterised</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>PrimitiveType</code></td>
+<td>one unwrapped primitive</td>
+<td><code>PrimitiveField</code></td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>BaseType</code></td>
+<td>a structured instance (the instance IS the data)</td>
+<td><code>BaseField</code></td>
+<td>no</td>
+</tr>
+<tr>
+<td><code>CompoundType</code></td>
+<td><strong>N</strong> elements of one IType</td>
+<td><code>CompoundField</code> subclasses</td>
+<td><code>ArrayType[FLOAT]</code></td>
+</tr>
+<tr>
+<td><code>WrapperType</code></td>
+<td><strong>exactly one</strong> value of another IType, <strong>or absence</strong></td>
+<td>the element's field class, made absence-tolerant</td>
+<td><code>OPTIONAL[INT]</code></td>
+</tr>
+</tbody>
+</table>
+<p>Two rules worth knowing before you add a type:</p>
+<p><strong>A <code>PrimitiveType</code> cannot hold absence.</strong> <code>PrimitiveType.__init__</code> treats <code>None</code> as "not supplied" at every step and raises if one survives the fallbacks, so <code>@type(default={'value': None})</code> on a primitive is a latent <code>TypeError</code> — <code>create_field()</code> never instantiates the type, but <code>create_default()</code> and <code>PrimitiveField.to_dict()</code> do. A type whose domain includes absence belongs in <code>WrapperType</code>.</p>
+<p><strong><code>CompoundType</code> means "container", and code acts on that.</strong> <code>AdapterFactory</code> builds element-wise adapter chains for compounds, and <code>pin_render</code> gives them collection iconography. A type holding zero-or-one that inherited <code>CompoundType</code> for the parameterisation machinery would get both behaviours silently and wrongly. That is why <code>WrapperType</code> exists as a separate family rather than as a <code>CompoundType</code> subclass — see <a href="../../../adr/0033-absence-is-a-type/">ADR 0033</a>.</p>
+<p><strong>Parameterised identity differs between the two.</strong> A <code>CompoundType[T]</code> <strong>shares</strong> its parent's <code>class_identity</code>, so every <code>ArrayType[*]</code> reports one colour and one widget key and differs only in its element. A <code>WrapperType[T]</code> stamps a <strong>per-parameterisation</strong> identity instead: it keeps the wrapper's <code>registry_key</code> and <code>widget_key</code> (a graph must resolve back to the wrapper, and the wrapper's own widget renders the row) but takes the element's colour and declared widget properties — without which <code>OPTIONAL[VEC3F]</code> would reach <code>VecWidget</code> with no <code>vec_meta</code> and be unrenderable.</p>
 <h2 id="4-live-examples-from-the-codebase">4. Live examples from the codebase<a class="headerlink" href="#4-live-examples-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p>Source: <a href="../../../barn/haybale-example/haybale_example/types/"><code>barn/haybale-example/haybale_example/types/</code></a></p>
 <p><strong>Derived primitive type</strong> — <code>Temperature</code> extends <code>FLOAT</code> with a custom widget binding. Inherits all FLOAT adapters automatically; a <code>Temperature</code> outlet connects to any <code>FLOAT</code> inlet with no extra adapter:</p>
@@ -3404,6 +3480,20 @@
 </span><span id="__span-3-42"><a id="__codelineno-3-42" name="__codelineno-3-42" href="#__codelineno-3-42"></a><span class="c1"># ============================================================================</span>
 </span></code></pre></div>
 <p>from: <code>MapsStringType</code> — registry_key: <code>haybale-example:type:MapsStringType</code></p>
+<p><strong>Wrapper type</strong> — <code>OPTIONAL</code> is the framework's only <code>WrapperType</code>. The whole type is a decorator plus a docstring: <code>__class_getitem__</code> on the family base derives the absence-tolerant <code>field_class</code>, stamps the merged identity, and refuses to wrap another wrapper:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-4-1"><a id="__codelineno-4-1" name="__codelineno-4-1" href="#__codelineno-4-1"></a><span class="n">T</span> <span class="o">=</span> <span class="n">TypeVar</span><span class="p">(</span><span class="s2">&quot;T&quot;</span><span class="p">)</span>
+</span><span id="__span-4-2"><a id="__codelineno-4-2" name="__codelineno-4-2" href="#__codelineno-4-2"></a>
+</span><span id="__span-4-3"><a id="__codelineno-4-3" name="__codelineno-4-3" href="#__codelineno-4-3"></a>
+</span><span id="__span-4-4"><a id="__codelineno-4-4" name="__codelineno-4-4" href="#__codelineno-4-4"></a><span class="nd">@type</span><span class="p">(</span>
+</span><span id="__span-4-5"><a id="__codelineno-4-5" name="__codelineno-4-5" href="#__codelineno-4-5"></a>    <span class="n">flow_type</span><span class="o">=</span><span class="n">FlowType</span><span class="o">.</span><span class="n">DATA</span><span class="p">,</span>
+</span><span id="__span-4-6"><a id="__codelineno-4-6" name="__codelineno-4-6" href="#__codelineno-4-6"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Optional&quot;</span><span class="p">,</span>
+</span><span id="__span-4-7"><a id="__codelineno-4-7" name="__codelineno-4-7" href="#__codelineno-4-7"></a>    <span class="n">description</span><span class="o">=</span><span class="s2">&quot;A value of the wrapped type, or absence&quot;</span><span class="p">,</span>
+</span><span id="__span-4-8"><a id="__codelineno-4-8" name="__codelineno-4-8" href="#__codelineno-4-8"></a>    <span class="n">default</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;value&quot;</span><span class="p">:</span> <span class="kc">None</span><span class="p">},</span>
+</span><span id="__span-4-9"><a id="__codelineno-4-9" name="__codelineno-4-9" href="#__codelineno-4-9"></a>    <span class="n">widget_key</span><span class="o">=</span><span class="n">widget_keys</span><span class="o">.</span><span class="n">OPTIONAL_WIDGET</span><span class="p">,</span>
+</span><span id="__span-4-10"><a id="__codelineno-4-10" name="__codelineno-4-10" href="#__codelineno-4-10"></a><span class="p">)</span>
+</span><span id="__span-4-11"><a id="__codelineno-4-11" name="__codelineno-4-11" href="#__codelineno-4-11"></a><span class="k">class</span><span class="w"> </span><span class="nc">OPTIONAL</span><span class="p">(</span><span class="n">WrapperType</span><span class="p">[</span><span class="n">T</span><span class="p">]):</span>
+</span></code></pre></div>
+<p>from: <code>OPTIONAL</code> — registry_key: <code>haywire-core:type:OPTIONAL</code></p>
 <p>What these examples exercise:</p>
 <table>
 <thead>
@@ -3442,8 +3532,16 @@
 <td><code>MapsStringType.field_class = MapsStringField</code></td>
 </tr>
 <tr>
+<td><code>WrapperType[T]</code> for a value-or-absence type</td>
+<td><code>OPTIONAL</code></td>
+</tr>
+<tr>
+<td><code>default={'value': None}</code> (legal only outside <code>PrimitiveType</code>)</td>
+<td><code>OPTIONAL</code></td>
+</tr>
+<tr>
 <td><code>flow_type=FlowType.DATA</code> explicit</td>
-<td>all three</td>
+<td>all four</td>
 </tr>
 </tbody>
 </table>

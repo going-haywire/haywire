@@ -5022,6 +5022,16 @@
 <td>choices (the removed <code>setting(choices=...)</code> parameter), enum type, <code>*_SEL</code> type</td>
 </tr>
 <tr>
+<td><strong>WrapperType</strong></td>
+<td>The fourth IType family, beside <code>PrimitiveType</code> / <code>BaseType</code> / <code>CompoundType</code>: <strong>exactly one value of another IType, or absence</strong>. Parameterized like a compound (<code>WRAPPER[T]</code>, cached, element round-trips through <code>serialize_element_type</code>'s <code>recipe</code>) but deliberately <strong>not</strong> a <code>CompoundType</code> — that predicate means "a container of N elements" and <code>AdapterFactory</code> and <code>pin_render</code> dispatch on it, so a wrapper inheriting it would silently get element-wise adapter chains and collection pin iconography. A wrapper answers <code>False</code> there and is treated as scalar, which is correct. <code>OPTIONAL</code> is its first member; a future <code>RESULT[T]</code> or <code>LAZY[T]</code> would be siblings. <em>(designed, unbuilt)</em></td>
+<td>CompoundType (a container — do not conflate), OptionType</td>
+</tr>
+<tr>
+<td><strong>OPTIONAL</strong></td>
+<td>Builtin parameterized <code>IType</code> (<code>WrapperType</code>) declaring "a value of the wrapped IType, <strong>or absence</strong>": <code>setting[OPTIONAL[INT]](None, label="Top K")</code> mirrors <code>Optional[int]</code> in a wrapped library's signature 1:1. Its field class is derived from the element's and made absence-tolerant, so an optional field behaves exactly like its element type when present (<code>OPTIONAL[INT]</code> keeps <code>INTField</code>'s int coercion) and holds <code>None</code> when not — a worker reads the bare value either way. One <code>OptionalWidget</code> serves every wrapped IType by delegating to the element type's own declared widget. <strong>Promotes to a port of its ELEMENT type</strong> and is otherwise an ordinary field (<code>promotable</code> defaults to <code>ALL</code>, eligibility never depends on the current value): an <code>OPTIONAL[INT]</code> setting becomes an <code>INT</code> pin, connecting to whatever <code>INT</code> connects to. Absence still crosses an <code>OPTIONAL → OPTIONAL</code> edge, because it travels on the sink field's <code>accepts_absence()</code> capability rather than on the declared type; <code>OPTIONAL → INT</code> connects natively and simply skips absence, leaving the sink at its last value.</td>
+<td>nullable, maybe, <code>Optional</code> (the Python typing construct)</td>
+</tr>
+<tr>
 <td><strong>widget key</strong></td>
 <td>The registry key (a plain string, e.g. <code>builtin:widget:SelectWidget</code>) selecting which <code>BaseWidget</code> subclass renders a field or port. Stamped on a <code>setting()</code> descriptor's <code>widget_key</code> attribute exactly once — at <code>__set_name__</code> for a class-body field, or at the end of <code>__init__</code> for a registry-constructed one (<code>registry.define(...)</code>, file auto-define) — never re-resolved at render time. An explicit <code>widget=</code> dict wins; otherwise it comes from the field's IType's declared identity (<code>@type(widget_key=...)</code>). See <a href="../../adr/0017-widget-selection-port-contract/">ADR 0017</a></td>
 <td>resolved_widget_key (removed — no render-time resolution), widget hint</td>
@@ -5058,7 +5068,7 @@
 </tr>
 <tr>
 <td><strong>UiState</strong></td>
-<td>Per-field, per-instance presentation state of a setting in the properties panel: <code>NORMAL</code> | <code>DISABLED</code> (visible but non-interactive) | <code>HIDDEN</code> (row not rendered; a fully-hidden category hides its header). Pure chrome — a DISABLED or HIDDEN field stays fully readable/writable from code, keeps its value, and serializes normally; UiState itself is <strong>never persisted</strong> (recomputed from the descriptor seed <code>ui_state=</code> plus runtime <code>set_ui_state</code> calls). Imperative API <code>set_ui_state(name, state)</code> / <code>set_ui_state_all(state, category=None)</code> (category is a <em>selector</em>, never a state store) announces transitions on the dedicated UI-state channel (<code>subscribe_ui_state</code>, <code>cb(name, UiState)</code>); declarative same-bag gating via <code>enabled_when</code> (contributes at most DISABLED) and <code>visible_when</code> (contributes HIDDEN) metadata. <code>bag.effective_ui_state(name)</code> composes all sources by severity max (<code>NORMAL &lt; DISABLED &lt; HIDDEN</code>) — the one oracle consumed by panel rows and the Setting-row menu. <strong>Hiding never unpromotes</strong>: graph structure never depends on UiState (ADR 0020). <em>(new)</em></td>
+<td>Per-field, per-instance presentation state of a setting in the properties panel: <code>NORMAL</code> | <code>DISABLED</code> (visible but non-interactive) | <code>HIDDEN</code> (row not rendered; a fully-hidden category hides its header). Pure chrome — a DISABLED or HIDDEN field stays fully readable/writable from code, keeps its value, and serializes normally; UiState itself is <strong>never persisted</strong> (recomputed from the descriptor seed <code>ui_state=</code> plus runtime <code>set_ui_state</code> calls). Imperative API <code>set_ui_state(name, state)</code> / <code>set_ui_state_all(state, category=None)</code> (category is a <em>selector</em>, never a state store) announces transitions on the dedicated UI-state channel (<code>subscribe_ui_state</code>, <code>cb(name, UiState)</code>); declarative same-bag gating via <code>enabled_when</code> (contributes at most DISABLED) and <code>visible_when</code> (contributes HIDDEN) metadata. <code>bag._effective_ui_state(name)</code> composes all sources by severity max (<code>NORMAL &lt; DISABLED &lt; HIDDEN</code>) — the one oracle consumed by panel rows and the Setting-row menu. <strong>Hiding never unpromotes</strong>: graph structure never depends on UiState (ADR 0020). <em>(new)</em></td>
 <td>ui_disabled (removed boolean API), ui_visibility, visibility flag</td>
 </tr>
 <tr>
@@ -5073,7 +5083,7 @@
 </tr>
 <tr>
 <td><strong>seeded promotion</strong></td>
-<td>An author-declared <em>default</em> promotion: a <code>self.&lt;bag&gt;.promote(field, direction)</code> call in a node's <strong><code>init()</code></strong>, giving a freshly-dropped node a sensible face while leaving the user free to demote. Belongs in <code>init()</code> because that hook runs only on a first drop — a node restored from a graph goes through <code>_initialize_from_dict</code>, which never calls it, so the serialized <code>_promoted_keys</code> stays the sole authority thereafter. The same call in <code>post_init()</code> is a defect: <code>post_init</code> runs on both paths and <em>after</em> load has restored and regenerated promotions, and <code>promote()</code> cannot distinguish "the user demoted this" from "nobody has decided yet" — so it silently re-promotes on every load and the demotion is unrecoverable</td>
+<td>An author-declared <em>default</em> promotion: <code>setting(promote_default=PortType....)</code>, giving a freshly-dropped node a sensible face while leaving the user free to demote. The seed is written into the bag's <code>_promoted_keys</code> at construction and realised as a port by <code>_regenerate_promoted_ports()</code> — the same call the load path makes, so promoted ports have one creation path either way. It is a <strong>default, not a policy</strong>: <code>_from_dict</code> clears <code>_promoted_keys</code> before restoring, so a saved graph always wins, <em>including when what it saved is the absence of a promotion</em> — which is exactly what makes a user's demotion stick. A bag a saved graph never mentions keeps its seeds, so a library adding a bag later still gets its intended face. Must be a direction <code>promotable=</code> allows (checked at class-definition time). Superseded the hand-written <code>bag._promote(...)</code> call, which was an outright defect in <code>post_init()</code>: that hook runs on both load and fresh drop, <em>after</em> promotions are restored, and <code>_promote()</code> cannot distinguish "the user demoted this" from "nobody has decided yet"</td>
 <td>default promotion, auto-promotion</td>
 </tr>
 <tr>
@@ -5092,6 +5102,21 @@
 <td>—</td>
 </tr>
 <tr>
+<td><strong>bag()</strong></td>
+<td>Module-level helper attaching a settings bag to a node with a correctly-typed accessor (<code>style = bag(AnnotateStyle)</code>). Returns the CLASS at runtime — so <code>@node</code>'s collection walk and its "redeclare only as a subclass" check are untouched — while declaring an <em>instance</em> return type, which is what the attribute genuinely resolves to once <code>NodeData.__init__</code> replaces the placeholder. Needed because a bag touched from an <strong>annotated</strong> method otherwise types as the class, making every field read look like a <code>setting[T]</code> descriptor; replaces the four-line <code>if TYPE_CHECKING: ... else: ...</code> alias</td>
+<td>typed bag accessor</td>
+</tr>
+<tr>
+<td><strong>settings_fields()</strong></td>
+<td>Module-level <code>settings_fields(bag_or_cls) -&gt; {name: descriptor}</code>, MRO order, base-first. The supported way to iterate a bag's fields; <code>_settings_descriptors()</code> is the internal spelling. A function rather than a method because a bag's attribute namespace belongs to the author's fields — the same reason <code>promote_setting</code> / <code>demote_setting</code> are module-level</td>
+<td>_settings_descriptors (internal)</td>
+</tr>
+<tr>
+<td><strong>field-name rule</strong></td>
+<td>A settings field name may not begin with <code>_</code>, enforced by <code>Settings.__init_subclass__</code> at class-definition time. Field names are public identifiers (graph-JSON keys, TOML keys, panel labels), while every framework member on a bag is <code>_</code>-prefixed and <code>Settings</code> carries no public names — so the two namespaces are provably disjoint and there is no reserved-word list to maintain. Hide a field with <code>ui_state=UiState.HIDDEN</code>, never an underscore</td>
+<td>reserved names</td>
+</tr>
+<tr>
 <td><strong>accessor name</strong></td>
 <td>The inner <code>NodeSettings</code> class name as it appears on the node instance (e.g. <code>class filter</code> → <code>self.filter</code>); must not collide with existing <code>BaseNode</code> attributes</td>
 <td>settings name, bag name</td>
@@ -5105,6 +5130,11 @@
 <td><strong>Three-tier resolution</strong></td>
 <td>The precedence chain for a settings value (highest-priority <em>set</em> tier wins): local instance value → workspace TOML set → global TOML set → descriptor default. Tiers are set-or-unset; there is no "override" strength</td>
 <td>—</td>
+</tr>
+<tr>
+<td><strong>absence</strong></td>
+<td>A <strong>value</strong>, not an opinion: the state of an <code>OPTIONAL[T]</code> field the user has deliberately chosen to hold nothing, meaning "do not pass this parameter to the wrapped library at all". Orthogonal to <strong>unset</strong> — a tier can be <em>set</em> to absence, and that choice survives a save/load; "unset" instead means a tier has no view and defers down the chain. Left via the row's <code>none</code> cell (a framed, always-iconed control, not bare text); reached via the Setting-row menu's <em>Reset</em> or <em>Set to none</em>; a <code>validator=</code> constrains only the <em>present</em> domain (absence is always admissible). Never model absence as "not in <code>_set_keys</code>" — that is the opinion axis, already spoken for by <code>reset()</code> and mirror resolution.</td>
+<td>unset (the opinion axis — do not conflate), null, nothing, "not locally set"</td>
 </tr>
 <tr>
 <td><strong>cache</strong></td>

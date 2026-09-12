@@ -1002,6 +1002,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#delegating-to-another-types-widget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delegating to another type's widget
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#hot-reload" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3492,6 +3503,17 @@
 </li>
         
           <li class="md-nav__item">
+  <a href="#delegating-to-another-types-widget" class="md-nav__link">
+    <span class="md-ellipsis">
+      
+        Delegating to another type's widget
+      
+    </span>
+  </a>
+  
+</li>
+        
+          <li class="md-nav__item">
   <a href="#hot-reload" class="md-nav__link">
     <span class="md-ellipsis">
       
@@ -3616,12 +3638,12 @@
 <li>You want a richer control than the framework's defaults for an existing type (a Blender-style number drag instead of a plain spinbox).</li>
 <li>You need a whole-value display (a streaming image preview, a formatted label, a swatch) driven from the port value.</li>
 </ul>
-<p>A widget is <em>not</em> an editor or a panel — those are workspace-level UI components. A widget lives <strong>inside a port row</strong> on a node card.</p>
+<p>A widget is <em>not</em> an editor or a panel — those are workspace-level UI components. A widget renders a single <strong>value</strong>, and does so on two surfaces: a port row on a node card, and a settings row in the Properties panel (the panel supplies a <code>SettingWidgetModel</code> so the same widget classes serve both).</p>
 <h2 id="2-how-it-fits">2. How it fits<a class="headerlink" href="#2-how-it-fits" title="Permanent link">&para;</a></h2>
-<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@widget(compatible_types=[FLOAT])  ──► WidgetRegistry  ──►  port renders the widget
-</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>class KnobWidget(BaseWidget):                                 when the canvas
-</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    def build(self):                                          draws the node card
-</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        knob = ui.knob(value=0)
+<div class="language-text highlight"><pre><span></span><code><span id="__span-0-1"><a id="__codelineno-0-1" name="__codelineno-0-1" href="#__codelineno-0-1"></a>@widget(description=&quot;A knob&quot;)     ──► WidgetRegistry  ──►  a port or settings row
+</span><span id="__span-0-2"><a id="__codelineno-0-2" name="__codelineno-0-2" href="#__codelineno-0-2"></a>class KnobWidget(BaseWidget):                                 renders it when its
+</span><span id="__span-0-3"><a id="__codelineno-0-3" name="__codelineno-0-3" href="#__codelineno-0-3"></a>    def build(self):                                          stamped widget_key
+</span><span id="__span-0-4"><a id="__codelineno-0-4" name="__codelineno-0-4" href="#__codelineno-0-4"></a>        knob = ui.knob(value=0)         names this class
 </span><span id="__span-0-5"><a id="__codelineno-0-5" name="__codelineno-0-5" href="#__codelineno-0-5"></a>        return self.bind(knob)          model → view : on_model_changed() / bind()-ings
 </span><span id="__span-0-6"><a id="__codelineno-0-6" name="__codelineno-0-6" href="#__codelineno-0-6"></a>                                        view → model : each bind()-ed element
 </span></code></pre></div>
@@ -3630,17 +3652,17 @@
 <li>call <strong><code>bind()</code></strong> (the <em>sugar</em>) to wire each value-bound element to a model field, or</li>
 <li>override <strong><code>on_model_changed()</code></strong> (the <em>floor</em>) and drive the view yourself for whole-value or non-field widgets.</li>
 </ul>
-<p><code>BaseWidget</code> implements the minimal <code>IWidget</code> contract. The <code>@widget</code> decorator attaches <code>class_identity</code> (used by <code>WidgetRegistry</code> for hot-reload) and registers <code>compatible_types</code> (which datatypes the widget accepts).</p>
+<p><code>BaseWidget</code> implements the minimal <code>IWidget</code> contract. The <code>@widget</code> decorator attaches <code>class_identity</code>, which <code>WidgetRegistry</code> uses as the lookup key and for hot-reload. A widget declares no datatypes — see §3.</p>
 <p><strong>Boundaries.</strong> What datatypes <em>are</em> lives in <a href="../../datatypes/datatype-canon/">components/datatypes</a>. How a port binds a widget at creation time (<code>as_inlet(widget=...)</code>) lives in <a href="../../../guides/ports/">guides/ports</a>. The runtime layer that converts values between incompatible <em>types</em> on an edge lives in <a href="../../adapters/adapter-canon/">components/adapters</a> and <a href="../../../architecture/execution/edges/edges-arch/">architecture/execution/edges</a>.</p>
 <h2 id="3-important-concepts">3. Important concepts<a class="headerlink" href="#3-important-concepts" title="Permanent link">&para;</a></h2>
 <h3 id="the-widget-decorator">The <code>@widget</code> decorator<a class="headerlink" href="#the-widget-decorator" title="Permanent link">&para;</a></h3>
 <p><code>@widget(...)</code> registers the class with <code>WidgetRegistry</code> and attaches its identity. It is always invoked with parentheses.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Fast number input&quot;</span><span class="p">,</span> <span class="n">compatible_types</span><span class="o">=</span><span class="p">[</span><span class="n">FLOAT</span><span class="p">,</span> <span class="n">INT</span><span class="p">])</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-1-1"><a id="__codelineno-1-1" name="__codelineno-1-1" href="#__codelineno-1-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;Fast number input&quot;</span><span class="p">)</span>
 </span><span id="__span-1-2"><a id="__codelineno-1-2" name="__codelineno-1-2" href="#__codelineno-1-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">NumberWidget</span><span class="p">(</span><span class="n">BaseWidget</span><span class="p">):</span>
 </span><span id="__span-1-3"><a id="__codelineno-1-3" name="__codelineno-1-3" href="#__codelineno-1-3"></a>    <span class="o">...</span>
 </span></code></pre></div>
 <ul>
-<li><strong><code>compatible_types</code></strong> (required) — the list (or set) of <code>IType</code> classes this widget can edit. A widget is offered for a port when the port's type is in — or inherits from — one of the compatible types. Pass an explicit empty list to register a widget with no type constraint.</li>
+<li><strong>A widget declares no types.</strong> <code>compatible_types</code> was removed and now raises <code>TypeError</code> — nothing matches widgets to types, and nothing "offers" a widget for a port. Selection is the stamped <code>widget_key</code>: a port or field names one class outright, resolved by direct registry lookup (<code>get_widget_class(registry_key)</code>), never by inspecting the value or searching for a compatible widget. See <a href="../../../adr/0017-widget-selection-port-contract/">ADR 0017</a>.</li>
 <li><strong><code>class_identity</code></strong> — derived from the class and its owning library, exposed as <code>class_identity.registry_key</code> (<code>&lt;library_id&gt;:widget:&lt;registry_id&gt;</code>). This is the key <code>WidgetRegistry</code> uses, and the value <code>config()</code> embeds for the call site.</li>
 </ul>
 <h3 id="build"><code>build()</code><a class="headerlink" href="#build" title="Permanent link">&para;</a></h3>
@@ -3753,58 +3775,70 @@
 </span><span id="__span-9-2"><a id="__codelineno-9-2" name="__codelineno-9-2" href="#__codelineno-9-2"></a>    <span class="bp">self</span><span class="o">.</span><span class="n">_backend</span><span class="o">.</span><span class="n">stop</span><span class="p">()</span>
 </span></code></pre></div>
 <p>This template-method split guarantees base teardown always runs, so a subclass can't accidentally leak the model subscription.</p>
+<h3 id="delegating-to-another-types-widget">Delegating to another type's widget<a class="headerlink" href="#delegating-to-another-types-widget" title="Permanent link">&para;</a></h3>
+<p>A widget for a <em>wrapper</em> type (<code>OPTIONAL[T]</code>) can't know what it is wrapping, and shouldn't. <code>OptionalWidget</code> reads the element type off the cell, looks up <strong>that type's own declared <code>widget_key</code></strong>, and builds it inside itself — so a library shipping a new IType gets <code>OPTIONAL[TheirType]</code> rendered correctly without <code>OptionalWidget</code> changing.</p>
+<p>Two mechanics make it work:</p>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="n">element</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">port</span><span class="o">.</span><span class="n">data</span><span class="o">.</span><span class="n">get_stored_type</span><span class="p">()</span><span class="o">.</span><span class="n">element_type_cls</span>   <span class="c1"># the wrapped IType</span>
+</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="n">inner_cls</span> <span class="o">=</span> <span class="n">WIDGET_REGISTRY</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">element</span><span class="o">.</span><span class="n">class_identity</span><span class="o">.</span><span class="n">widget_key</span><span class="p">)</span>
+</span></code></pre></div>
+<ul>
+<li><strong>Share the cell, adjust only the read.</strong> The inner widget receives a thin <code>WidgetModel</code> whose <code>data</code> returns the <em>same</em> <code>DataField</code>, so its own <code>on_changed</code> subscription and bindings stay live. The only override is <code>get_value()</code>, which substitutes a fallback for <code>None</code> — a <code>NumberDrag</code> has no way to display "nothing", so absence is communicated by <em>hiding</em> that widget, never by feeding it <code>None</code>.</li>
+<li><strong>Forward cleanup.</strong> The outer <code>_on_cleanup()</code> must call the inner widget's <code>cleanup()</code>; the base class only tears down its own subscription.</li>
+</ul>
+<p>A stand-in state should be <strong>framed like the widget it replaces</strong> — <code>hw-optional-none</code> reuses the same <code>--hw-compact-field-h</code> height and input framing as <code>NumberDrag</code>, so the value column doesn't jump when a field is cleared, and differs only in muted italic text plus an always-visible action icon — hover-revealing that icon would hide the only signal the cell is a control. And don't add a control the Setting-row menu already offers: <code>OptionalWidget</code> has no clear button because clearing is reset-shaped, and the menu owns those verbs.</p>
+<p>This doesn't breach the stamped-widget contract of <a href="../../../adr/0017-widget-selection-port-contract/">ADR 0017</a>: the row's <code>widget_key</code> is still stamped once (to <code>OptionalWidget</code>). Only the <em>inner</em> class is resolved at build time, from another stamped key — the same thing <code>SelectWidget</code> already does with callable <code>options</code>.</p>
 <h3 id="hot-reload">Hot-reload<a class="headerlink" href="#hot-reload" title="Permanent link">&para;</a></h3>
 <p><code>WidgetRegistry</code> re-registers widget classes when a library reloads. Widgets already mounted in the running UI are <strong>not</strong> swapped (tearing down a connected NiceGUI element is risky); newly-created widgets pick up the new class.</p>
 <h3 id="the-imports-you-need">The imports you need<a class="headerlink" href="#the-imports-you-need" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-10-1"><a id="__codelineno-10-1" name="__codelineno-10-1" href="#__codelineno-10-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
-</span><span id="__span-10-2"><a id="__codelineno-10-2" name="__codelineno-10-2" href="#__codelineno-10-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
-</span><span id="__span-10-3"><a id="__codelineno-10-3" name="__codelineno-10-3" href="#__codelineno-10-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
+</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
+</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
 </span></code></pre></div>
 <h2 id="4-live-example-from-the-codebase">4. Live example from the codebase<a class="headerlink" href="#4-live-example-from-the-codebase" title="Permanent link">&para;</a></h2>
 <p>Source: <code>barn/haybale-example/haybale_example/widgets/knob_widget.py</code></p>
 <p><code>KnobWidget</code> is a <code>BaseWidget</code> that binds a <code>ui.knob</code> to <code>FLOAT</code> or <code>INT</code> ports. It shows the common single-value path: <code>build()</code> reads <code>self._config</code>, constructs the element, and returns it through <code>self.bind()</code> with a default-bearing converter.</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-11-1"><a id="__codelineno-11-1" name="__codelineno-11-1" href="#__codelineno-11-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;knob widget&quot;</span><span class="p">)</span>
-</span><span id="__span-11-2"><a id="__codelineno-11-2" name="__codelineno-11-2" href="#__codelineno-11-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">KnobWidget</span><span class="p">(</span><span class="n">BaseWidget</span><span class="p">):</span>
-</span><span id="__span-11-3"><a id="__codelineno-11-3" name="__codelineno-11-3" href="#__codelineno-11-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
-</span><span id="__span-11-4"><a id="__codelineno-11-4" name="__codelineno-11-4" href="#__codelineno-11-4"></a><span class="sd">    Rotary knob widget for numeric ports.</span>
-</span><span id="__span-11-5"><a id="__codelineno-11-5" name="__codelineno-11-5" href="#__codelineno-11-5"></a>
-</span><span id="__span-11-6"><a id="__codelineno-11-6" name="__codelineno-11-6" href="#__codelineno-11-6"></a><span class="sd">    Config options (via ``KnobWidget.config(properties={...})``):</span>
-</span><span id="__span-11-7"><a id="__codelineno-11-7" name="__codelineno-11-7" href="#__codelineno-11-7"></a>
-</span><span id="__span-11-8"><a id="__codelineno-11-8" name="__codelineno-11-8" href="#__codelineno-11-8"></a><span class="sd">    - ``min`` (int | float): Minimum value.</span>
-</span><span id="__span-11-9"><a id="__codelineno-11-9" name="__codelineno-11-9" href="#__codelineno-11-9"></a><span class="sd">    - ``max`` (int | float): Maximum value.</span>
-</span><span id="__span-11-10"><a id="__codelineno-11-10" name="__codelineno-11-10" href="#__codelineno-11-10"></a><span class="sd">    - ``step`` (int | float): Step increment.</span>
-</span><span id="__span-11-11"><a id="__codelineno-11-11" name="__codelineno-11-11" href="#__codelineno-11-11"></a><span class="sd">    - ``color`` (str): Quasar color name for the knob arc (e.g. ``&#39;primary&#39;``, ``&#39;green&#39;``).</span>
-</span><span id="__span-11-12"><a id="__codelineno-11-12" name="__codelineno-11-12" href="#__codelineno-11-12"></a><span class="sd">    - ``size`` (str): CSS size of the knob element (e.g. ``&#39;60px&#39;``).</span>
-</span><span id="__span-11-13"><a id="__codelineno-11-13" name="__codelineno-11-13" href="#__codelineno-11-13"></a>
-</span><span id="__span-11-14"><a id="__codelineno-11-14" name="__codelineno-11-14" href="#__codelineno-11-14"></a><span class="sd">    Example::</span>
-</span><span id="__span-11-15"><a id="__codelineno-11-15" name="__codelineno-11-15" href="#__codelineno-11-15"></a>
-</span><span id="__span-11-16"><a id="__codelineno-11-16" name="__codelineno-11-16" href="#__codelineno-11-16"></a><span class="sd">        KnobWidget.config(properties={&#39;min&#39;: 0, &#39;max&#39;: 360, &#39;step&#39;: 1, &#39;color&#39;: &#39;teal&#39;})</span>
-</span><span id="__span-11-17"><a id="__codelineno-11-17" name="__codelineno-11-17" href="#__codelineno-11-17"></a><span class="sd">    &quot;&quot;&quot;</span>
-</span><span id="__span-11-18"><a id="__codelineno-11-18" name="__codelineno-11-18" href="#__codelineno-11-18"></a>
-</span><span id="__span-11-19"><a id="__codelineno-11-19" name="__codelineno-11-19" href="#__codelineno-11-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
-</span><span id="__span-11-20"><a id="__codelineno-11-20" name="__codelineno-11-20" href="#__codelineno-11-20"></a>        <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;properties&quot;</span><span class="p">,</span> <span class="p">{})</span>
-</span><span id="__span-11-21"><a id="__codelineno-11-21" name="__codelineno-11-21" href="#__codelineno-11-21"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full justify-center text-xs&quot;</span><span class="p">):</span>
-</span><span id="__span-11-22"><a id="__codelineno-11-22" name="__codelineno-11-22" href="#__codelineno-11-22"></a>            <span class="n">knob</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">knob</span><span class="p">(</span>
-</span><span id="__span-11-23"><a id="__codelineno-11-23" name="__codelineno-11-23" href="#__codelineno-11-23"></a>                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
-</span><span id="__span-11-24"><a id="__codelineno-11-24" name="__codelineno-11-24" href="#__codelineno-11-24"></a>                <span class="n">show_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
-</span><span id="__span-11-25"><a id="__codelineno-11-25" name="__codelineno-11-25" href="#__codelineno-11-25"></a>                <span class="nb">min</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
-</span><span id="__span-11-26"><a id="__codelineno-11-26" name="__codelineno-11-26" href="#__codelineno-11-26"></a>                <span class="nb">max</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
-</span><span id="__span-11-27"><a id="__codelineno-11-27" name="__codelineno-11-27" href="#__codelineno-11-27"></a>                <span class="n">step</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
-</span><span id="__span-11-28"><a id="__codelineno-11-28" name="__codelineno-11-28" href="#__codelineno-11-28"></a>                <span class="n">color</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;primary&quot;</span><span class="p">),</span>
-</span><span id="__span-11-29"><a id="__codelineno-11-29" name="__codelineno-11-29" href="#__codelineno-11-29"></a>                <span class="n">size</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="s2">&quot;60px&quot;</span><span class="p">),</span>
-</span><span id="__span-11-30"><a id="__codelineno-11-30" name="__codelineno-11-30" href="#__codelineno-11-30"></a>            <span class="p">)</span>
-</span><span id="__span-11-31"><a id="__codelineno-11-31" name="__codelineno-11-31" href="#__codelineno-11-31"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
-</span><span id="__span-11-32"><a id="__codelineno-11-32" name="__codelineno-11-32" href="#__codelineno-11-32"></a>            <span class="n">knob</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-32 h-32&quot;</span><span class="p">),</span>
-</span><span id="__span-11-33"><a id="__codelineno-11-33" name="__codelineno-11-33" href="#__codelineno-11-33"></a>            <span class="n">converter</span><span class="o">=</span><span class="n">PrimitiveUnwrappingConverter</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">),</span>
-</span><span id="__span-11-34"><a id="__codelineno-11-34" name="__codelineno-11-34" href="#__codelineno-11-34"></a>        <span class="p">)</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="nd">@widget</span><span class="p">(</span><span class="n">description</span><span class="o">=</span><span class="s2">&quot;knob widget&quot;</span><span class="p">)</span>
+</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a><span class="k">class</span><span class="w"> </span><span class="nc">KnobWidget</span><span class="p">(</span><span class="n">BaseWidget</span><span class="p">):</span>
+</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a><span class="w">    </span><span class="sd">&quot;&quot;&quot;</span>
+</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a><span class="sd">    Rotary knob widget for numeric ports.</span>
+</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a>
+</span><span id="__span-12-6"><a id="__codelineno-12-6" name="__codelineno-12-6" href="#__codelineno-12-6"></a><span class="sd">    Config options (via ``KnobWidget.config(properties={...})``):</span>
+</span><span id="__span-12-7"><a id="__codelineno-12-7" name="__codelineno-12-7" href="#__codelineno-12-7"></a>
+</span><span id="__span-12-8"><a id="__codelineno-12-8" name="__codelineno-12-8" href="#__codelineno-12-8"></a><span class="sd">    - ``min`` (int | float): Minimum value.</span>
+</span><span id="__span-12-9"><a id="__codelineno-12-9" name="__codelineno-12-9" href="#__codelineno-12-9"></a><span class="sd">    - ``max`` (int | float): Maximum value.</span>
+</span><span id="__span-12-10"><a id="__codelineno-12-10" name="__codelineno-12-10" href="#__codelineno-12-10"></a><span class="sd">    - ``step`` (int | float): Step increment.</span>
+</span><span id="__span-12-11"><a id="__codelineno-12-11" name="__codelineno-12-11" href="#__codelineno-12-11"></a><span class="sd">    - ``color`` (str): Quasar color name for the knob arc (e.g. ``&#39;primary&#39;``, ``&#39;green&#39;``).</span>
+</span><span id="__span-12-12"><a id="__codelineno-12-12" name="__codelineno-12-12" href="#__codelineno-12-12"></a><span class="sd">    - ``size`` (str): CSS size of the knob element (e.g. ``&#39;60px&#39;``).</span>
+</span><span id="__span-12-13"><a id="__codelineno-12-13" name="__codelineno-12-13" href="#__codelineno-12-13"></a>
+</span><span id="__span-12-14"><a id="__codelineno-12-14" name="__codelineno-12-14" href="#__codelineno-12-14"></a><span class="sd">    Example::</span>
+</span><span id="__span-12-15"><a id="__codelineno-12-15" name="__codelineno-12-15" href="#__codelineno-12-15"></a>
+</span><span id="__span-12-16"><a id="__codelineno-12-16" name="__codelineno-12-16" href="#__codelineno-12-16"></a><span class="sd">        KnobWidget.config(properties={&#39;min&#39;: 0, &#39;max&#39;: 360, &#39;step&#39;: 1, &#39;color&#39;: &#39;teal&#39;})</span>
+</span><span id="__span-12-17"><a id="__codelineno-12-17" name="__codelineno-12-17" href="#__codelineno-12-17"></a><span class="sd">    &quot;&quot;&quot;</span>
+</span><span id="__span-12-18"><a id="__codelineno-12-18" name="__codelineno-12-18" href="#__codelineno-12-18"></a>
+</span><span id="__span-12-19"><a id="__codelineno-12-19" name="__codelineno-12-19" href="#__codelineno-12-19"></a>    <span class="k">def</span><span class="w"> </span><span class="nf">build</span><span class="p">(</span><span class="bp">self</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="n">Any</span><span class="p">:</span>
+</span><span id="__span-12-20"><a id="__codelineno-12-20" name="__codelineno-12-20" href="#__codelineno-12-20"></a>        <span class="n">props</span> <span class="o">=</span> <span class="bp">self</span><span class="o">.</span><span class="n">_config</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;properties&quot;</span><span class="p">,</span> <span class="p">{})</span>
+</span><span id="__span-12-21"><a id="__codelineno-12-21" name="__codelineno-12-21" href="#__codelineno-12-21"></a>        <span class="k">with</span> <span class="n">ui</span><span class="o">.</span><span class="n">row</span><span class="p">()</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-full justify-center text-xs&quot;</span><span class="p">):</span>
+</span><span id="__span-12-22"><a id="__codelineno-12-22" name="__codelineno-12-22" href="#__codelineno-12-22"></a>            <span class="n">knob</span> <span class="o">=</span> <span class="n">ui</span><span class="o">.</span><span class="n">knob</span><span class="p">(</span>
+</span><span id="__span-12-23"><a id="__codelineno-12-23" name="__codelineno-12-23" href="#__codelineno-12-23"></a>                <span class="n">value</span><span class="o">=</span><span class="mi">0</span><span class="p">,</span>
+</span><span id="__span-12-24"><a id="__codelineno-12-24" name="__codelineno-12-24" href="#__codelineno-12-24"></a>                <span class="n">show_value</span><span class="o">=</span><span class="kc">True</span><span class="p">,</span>
+</span><span id="__span-12-25"><a id="__codelineno-12-25" name="__codelineno-12-25" href="#__codelineno-12-25"></a>                <span class="nb">min</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;min&quot;</span><span class="p">,</span> <span class="mi">0</span><span class="p">),</span>
+</span><span id="__span-12-26"><a id="__codelineno-12-26" name="__codelineno-12-26" href="#__codelineno-12-26"></a>                <span class="nb">max</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;max&quot;</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span>
+</span><span id="__span-12-27"><a id="__codelineno-12-27" name="__codelineno-12-27" href="#__codelineno-12-27"></a>                <span class="n">step</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;step&quot;</span><span class="p">,</span> <span class="mf">0.01</span><span class="p">),</span>
+</span><span id="__span-12-28"><a id="__codelineno-12-28" name="__codelineno-12-28" href="#__codelineno-12-28"></a>                <span class="n">color</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;color&quot;</span><span class="p">,</span> <span class="s2">&quot;primary&quot;</span><span class="p">),</span>
+</span><span id="__span-12-29"><a id="__codelineno-12-29" name="__codelineno-12-29" href="#__codelineno-12-29"></a>                <span class="n">size</span><span class="o">=</span><span class="n">props</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s2">&quot;size&quot;</span><span class="p">,</span> <span class="s2">&quot;60px&quot;</span><span class="p">),</span>
+</span><span id="__span-12-30"><a id="__codelineno-12-30" name="__codelineno-12-30" href="#__codelineno-12-30"></a>            <span class="p">)</span>
+</span><span id="__span-12-31"><a id="__codelineno-12-31" name="__codelineno-12-31" href="#__codelineno-12-31"></a>        <span class="k">return</span> <span class="bp">self</span><span class="o">.</span><span class="n">bind</span><span class="p">(</span>
+</span><span id="__span-12-32"><a id="__codelineno-12-32" name="__codelineno-12-32" href="#__codelineno-12-32"></a>            <span class="n">knob</span><span class="o">.</span><span class="n">classes</span><span class="p">(</span><span class="s2">&quot;w-32 h-32&quot;</span><span class="p">),</span>
+</span><span id="__span-12-33"><a id="__codelineno-12-33" name="__codelineno-12-33" href="#__codelineno-12-33"></a>            <span class="n">converter</span><span class="o">=</span><span class="n">PrimitiveUnwrappingConverter</span><span class="p">(</span><span class="n">default_value</span><span class="o">=</span><span class="mf">0.0</span><span class="p">),</span>
+</span><span id="__span-12-34"><a id="__codelineno-12-34" name="__codelineno-12-34" href="#__codelineno-12-34"></a>        <span class="p">)</span>
 </span></code></pre></div>
 <p>from: <code>KnobWidget</code> — registry_key: <code>haybale-example:widget:KnobWidget</code></p>
 <p>Using it from a node's <code>init()</code>:</p>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-12-1"><a id="__codelineno-12-1" name="__codelineno-12-1" href="#__codelineno-12-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-12-2"><a id="__codelineno-12-2" name="__codelineno-12-2" href="#__codelineno-12-2"></a>    <span class="s2">&quot;angle&quot;</span><span class="p">,</span>
-</span><span id="__span-12-3"><a id="__codelineno-12-3" name="__codelineno-12-3" href="#__codelineno-12-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Angle&quot;</span><span class="p">,</span>
-</span><span id="__span-12-4"><a id="__codelineno-12-4" name="__codelineno-12-4" href="#__codelineno-12-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">KnobWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">360</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;teal&quot;</span><span class="p">}),</span>
-</span><span id="__span-12-5"><a id="__codelineno-12-5" name="__codelineno-12-5" href="#__codelineno-12-5"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a>    <span class="s2">&quot;angle&quot;</span><span class="p">,</span>
+</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a>    <span class="n">label</span><span class="o">=</span><span class="s2">&quot;Angle&quot;</span><span class="p">,</span>
+</span><span id="__span-13-4"><a id="__codelineno-13-4" name="__codelineno-13-4" href="#__codelineno-13-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">KnobWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">360</span><span class="p">,</span> <span class="s2">&quot;step&quot;</span><span class="p">:</span> <span class="mi">1</span><span class="p">,</span> <span class="s2">&quot;color&quot;</span><span class="p">:</span> <span class="s2">&quot;teal&quot;</span><span class="p">}),</span>
+</span><span id="__span-13-5"><a id="__codelineno-13-5" name="__codelineno-13-5" href="#__codelineno-13-5"></a><span class="p">))</span>
 </span></code></pre></div>
 <p><strong>Multiple elements.</strong> A widget can bind several elements to one port. A <code>Vector3</code> widget calls <code>bind()</code> three times, each with a different <code>to=</code> field path (<code>"x"</code>, <code>"y"</code>, <code>"z"</code>); for a worked example that mixes a two-way input with a read-only derived label, see <code>TemperatureWidget</code> in <code>barn/haybale-example/haybale_example/widgets/example_widget.py</code> — it binds a <code>ui.number</code> (custom converter, two-way) alongside a <code>ui.label</code> (<code>prop="text"</code>, <code>one_way=True</code>).</p>
 <p>What this example exercises:</p>
@@ -3817,7 +3851,7 @@
 </thead>
 <tbody>
 <tr>
-<td><code>@widget(compatible_types=[FLOAT, INT])</code> decorator</td>
+<td><code>@widget(description="...")</code> decorator</td>
 <td>class decoration</td>
 </tr>
 <tr>
@@ -3847,7 +3881,7 @@
 <h2 id="quick-reference">Quick reference<a class="headerlink" href="#quick-reference" title="Permanent link">&para;</a></h2>
 <h3 id="authoring-checklist">Authoring checklist<a class="headerlink" href="#authoring-checklist" title="Permanent link">&para;</a></h3>
 <ul class="task-list">
-<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@widget(description="...", compatible_types=[Type1, Type2])</code> on the class</li>
+<li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> <code>@widget(description="...")</code> on the class</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Subclass <code>BaseWidget</code></li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Implement <code>build()</code> returning the NiceGUI root element</li>
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Call <code>self.bind(element, ...)</code> for each value-bound element</li>
@@ -3857,9 +3891,9 @@
 <li class="task-list-item"><label class="task-list-control"><input type="checkbox" disabled/><span class="task-list-indicator"></span></label> Override <code>_on_cleanup()</code> to release subclass-owned resources — never override <code>cleanup()</code></li>
 </ul>
 <h3 id="imports">Imports<a class="headerlink" href="#imports" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-13-1"><a id="__codelineno-13-1" name="__codelineno-13-1" href="#__codelineno-13-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
-</span><span id="__span-13-2"><a id="__codelineno-13-2" name="__codelineno-13-2" href="#__codelineno-13-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
-</span><span id="__span-13-3"><a id="__codelineno-13-3" name="__codelineno-13-3" href="#__codelineno-13-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.base</span><span class="w"> </span><span class="kn">import</span> <span class="n">BaseWidget</span>
+</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.decorator</span><span class="w"> </span><span class="kn">import</span> <span class="n">widget</span>
+</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a><span class="kn">from</span><span class="w"> </span><span class="nn">haywire.ui.widget.converters</span><span class="w"> </span><span class="kn">import</span> <span class="n">Converters</span><span class="p">,</span> <span class="n">BindingConverter</span><span class="p">,</span> <span class="n">PrimitiveUnwrappingConverter</span>
 </span></code></pre></div>
 <h3 id="common-prop-event-pairs">Common <code>prop</code> / <code>event</code> pairs<a class="headerlink" href="#common-prop-event-pairs" title="Permanent link">&para;</a></h3>
 <table>
@@ -3889,18 +3923,18 @@
 </tbody>
 </table>
 <h3 id="per-port-override-at-the-call-site">Per-port override at the call site<a class="headerlink" href="#per-port-override-at-the-call-site" title="Permanent link">&para;</a></h3>
-<div class="language-python highlight"><pre><span></span><code><span id="__span-14-1"><a id="__codelineno-14-1" name="__codelineno-14-1" href="#__codelineno-14-1"></a><span class="c1"># Preferred: config() builds the {key, config} dict for you.</span>
-</span><span id="__span-14-2"><a id="__codelineno-14-2" name="__codelineno-14-2" href="#__codelineno-14-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-14-3"><a id="__codelineno-14-3" name="__codelineno-14-3" href="#__codelineno-14-3"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
-</span><span id="__span-14-4"><a id="__codelineno-14-4" name="__codelineno-14-4" href="#__codelineno-14-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}),</span>
-</span><span id="__span-14-5"><a id="__codelineno-14-5" name="__codelineno-14-5" href="#__codelineno-14-5"></a><span class="p">))</span>
-</span><span id="__span-14-6"><a id="__codelineno-14-6" name="__codelineno-14-6" href="#__codelineno-14-6"></a>
-</span><span id="__span-14-7"><a id="__codelineno-14-7" name="__codelineno-14-7" href="#__codelineno-14-7"></a><span class="c1"># Lower-level: pass the registry key and config explicitly.</span>
-</span><span id="__span-14-8"><a id="__codelineno-14-8" name="__codelineno-14-8" href="#__codelineno-14-8"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
-</span><span id="__span-14-9"><a id="__codelineno-14-9" name="__codelineno-14-9" href="#__codelineno-14-9"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
-</span><span id="__span-14-10"><a id="__codelineno-14-10" name="__codelineno-14-10" href="#__codelineno-14-10"></a>    <span class="n">widget_key</span><span class="o">=</span><span class="s2">&quot;my_lib:widget:NumberWidget&quot;</span><span class="p">,</span>
-</span><span id="__span-14-11"><a id="__codelineno-14-11" name="__codelineno-14-11" href="#__codelineno-14-11"></a>    <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}},</span>
-</span><span id="__span-14-12"><a id="__codelineno-14-12" name="__codelineno-14-12" href="#__codelineno-14-12"></a><span class="p">))</span>
+<div class="language-python highlight"><pre><span></span><code><span id="__span-15-1"><a id="__codelineno-15-1" name="__codelineno-15-1" href="#__codelineno-15-1"></a><span class="c1"># Preferred: config() builds the {key, config} dict for you.</span>
+</span><span id="__span-15-2"><a id="__codelineno-15-2" name="__codelineno-15-2" href="#__codelineno-15-2"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-15-3"><a id="__codelineno-15-3" name="__codelineno-15-3" href="#__codelineno-15-3"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
+</span><span id="__span-15-4"><a id="__codelineno-15-4" name="__codelineno-15-4" href="#__codelineno-15-4"></a>    <span class="n">widget</span><span class="o">=</span><span class="n">NumberWidget</span><span class="o">.</span><span class="n">config</span><span class="p">(</span><span class="n">properties</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}),</span>
+</span><span id="__span-15-5"><a id="__codelineno-15-5" name="__codelineno-15-5" href="#__codelineno-15-5"></a><span class="p">))</span>
+</span><span id="__span-15-6"><a id="__codelineno-15-6" name="__codelineno-15-6" href="#__codelineno-15-6"></a>
+</span><span id="__span-15-7"><a id="__codelineno-15-7" name="__codelineno-15-7" href="#__codelineno-15-7"></a><span class="c1"># Lower-level: pass the registry key and config explicitly.</span>
+</span><span id="__span-15-8"><a id="__codelineno-15-8" name="__codelineno-15-8" href="#__codelineno-15-8"></a><span class="bp">self</span><span class="o">.</span><span class="n">add</span><span class="p">(</span><span class="n">FLOAT</span><span class="o">.</span><span class="n">as_inlet</span><span class="p">(</span>
+</span><span id="__span-15-9"><a id="__codelineno-15-9" name="__codelineno-15-9" href="#__codelineno-15-9"></a>    <span class="s2">&quot;amount&quot;</span><span class="p">,</span>
+</span><span id="__span-15-10"><a id="__codelineno-15-10" name="__codelineno-15-10" href="#__codelineno-15-10"></a>    <span class="n">widget_key</span><span class="o">=</span><span class="s2">&quot;my_lib:widget:NumberWidget&quot;</span><span class="p">,</span>
+</span><span id="__span-15-11"><a id="__codelineno-15-11" name="__codelineno-15-11" href="#__codelineno-15-11"></a>    <span class="n">widget_config</span><span class="o">=</span><span class="p">{</span><span class="s2">&quot;properties&quot;</span><span class="p">:</span> <span class="p">{</span><span class="s2">&quot;min&quot;</span><span class="p">:</span> <span class="mi">0</span><span class="p">,</span> <span class="s2">&quot;max&quot;</span><span class="p">:</span> <span class="mi">100</span><span class="p">}},</span>
+</span><span id="__span-15-12"><a id="__codelineno-15-12" name="__codelineno-15-12" href="#__codelineno-15-12"></a><span class="p">))</span>
 </span></code></pre></div>
 <p>The <code>widget_key</code> is <code>&lt;library_id&gt;:widget:&lt;registry_id&gt;</code>. Register the class once with <code>@widget</code> and reference it from any node.</p>
 
