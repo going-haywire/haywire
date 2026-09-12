@@ -68,18 +68,8 @@ def _widget_identity(ctx: "SessionContext") -> Any | None:
 class PinEditMenuPanel(BasePanel):
     """The "Edit…" row — a submenu over the components behind this pin.
 
-    A hosting panel: it draws only the row and the flyout, and pipes the
-    ``PortActions`` host one hop further to the rows inside. Mirrors
-    ``DetailSelectionMenuPanel``, which does the same for the detail ranks.
-
-    **The rows inside must be their own panels, not inline ``hui.menu_row``
-    calls.** The leaf counter that decides whether a ``hui.submenu_row`` greys
-    itself is bumped by ``render_panel`` — once per panel — and by nothing
-    else; ``hui.menu_row`` does not touch it. Drawing the rows inline
-    therefore leaves the body's count at 0, and ``SubmenuRow.__exit__`` greys
-    the anchor retroactively: a fully populated flyout that cannot be opened
-    (``hw-disabled``, ``pointer-events: none``), with nothing in the DOM to
-    say why.
+    It draws the row and the flyout, and pipes the ``PortActions`` host 
+    one hop further to the rows inside.
     """
 
     actions: PortActions
@@ -277,18 +267,6 @@ class ClearSettingMenuPanel(BasePanel):
 )
 class DetachSettingMenuPanel(BasePanel):
     """Enabled only on a promoted inlet; demotes it back to a plain setting.
-
-    On any other pin it greys rather than disappearing — the platform
-    convention every panel on ``SelectionMenu`` already follows, and here it
-    is also load-bearing. This is ``PinMenu``'s only **leaf**: the "Edit" row
-    beside it is a hosting panel, and a hosting panel is deliberately
-    excluded from the popup's leaf count (ADR-0029, and the leaf counter is
-    reset per flyout level, so what the submenu body draws never reaches the
-    popup's own count). Were this panel to vanish on an unpromoted pin, the
-    popup would render with zero leaves and be deleted — **no pin menu at
-    all**, on the great majority of pins, taking the edge-drag resume that
-    rides on its close with it. ``draw_disabled`` is what keeps the count at
-    one. See ``.insights/project_surface_popup_emptiness_contract.md``.
     """
 
     actions: PortActions
@@ -337,14 +315,9 @@ class PinShowWidgetMenuPanel(BasePanel):
     """The "Show widget ▸" row — picks when this pin's Widget is rendered.
 
     A hosting panel over ``PinWidgetMenu``, mirroring ``PinEditMenuPanel``.
-    Offered on **promoted** pins only: an author-declared port's visibility is
-    the author's decision (ADR 0003), while a promoted port's strategy came
-    from a blanket per-direction default nobody chose, so the user who
-    promoted it owns it.
+    Offered on **promoted** pins only
 
-    Greys rather than vanishing on an unpromoted pin — the same convention
-    ``DetachSettingMenuPanel`` follows, and for the same structural reason
-    described there.
+    Greys rather than vanishing on an unpromoted pin
     """
 
     actions: PortActions
@@ -382,18 +355,8 @@ class PortShowWidgetStrategyPanel(BasePanel):
     """One row per ``ShowWidgetStrategy``, radio-marked with the port's current
     choice.
 
-    **All four rows are drawn by this ONE panel, deliberately.** The leaf
-    counter that decides whether the hosting ``hui.submenu_row`` greys itself
-    is bumped once per *panel* by ``render_panel`` and not at all by
-    ``hui.menu_row`` — so one panel drawing four rows counts 1 (the flyout
-    opens), whereas four panels would count 4 and read identically. What must
-    never happen is *zero* panels on the surface, which is what greys a fully
-    populated flyout with nothing in the DOM to say why (see
-    ``PinEditMenuPanel``).
-
     The rows are mutually exclusive, hence ``radio_checked``/``radio_unchecked``
-    rather than the checkbox pair: the icon is the only thing carrying the
-    selection, so a checkbox glyph would misstate how the group behaves.
+    rather than the checkbox pair.
     """
 
     actions: PortActions

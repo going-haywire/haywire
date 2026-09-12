@@ -9,7 +9,7 @@ from __future__ import annotations
 from dataclasses import MISSING, dataclass, field, fields
 from typing import Any, Dict, Optional, TYPE_CHECKING
 
-from haywire.core.types.enums import FlowType, PortType, ShowWidgetStrategy, StoreStrategy
+from haywire.core.types.enums import FlowType, PortOrigin, PortType, ShowWidgetStrategy, StoreStrategy
 from haywire.core.edge.edge_wrapper import EdgeWrapper
 from haywire.core.types.identity import DataTypeIdentity
 from haywire.core.types.interface import IType
@@ -92,6 +92,29 @@ class DataPort(DataTypeIdentity):
         """True for inlet, False for anything else"""
         return self.port_type == PortType.INLET
 
+    @property
+    def promoted(self) -> bool:
+        """True for a port promoted from a setting (``origin is PROMOTED``).
+
+        Decides value ownership, not just provenance: a promoted port borrows
+        the setting's cell, so it does not serialize its own value and its
+        widget is bound through the descriptor.
+        """
+        return self.origin is PortOrigin.PROMOTED
+
+    @promoted.setter
+    def promoted(self, value: bool) -> None:
+        self.origin = PortOrigin.PROMOTED if value else PortOrigin.DECLARED
+
+    def is_user_removable(self) -> bool:
+        """Whether the user may delete this port from the pin context menu.
+
+        True for a port the user brought into being — promoted from a setting,
+        or resolved from an ``ANY`` placeholder — and False for one the node's
+        author declared.
+        """
+        return self.origin is not PortOrigin.DECLARED
+
     # ========================================================================
     # HIERARCHY & ORGANIZATION
     # ========================================================================
@@ -114,8 +137,8 @@ class DataPort(DataTypeIdentity):
     needs_loopback: bool = False
     """Set to True if the control flow from this outlet needs to loop back to the node"""
 
-    promoted: bool = False
-    """True for a port promoted from a setting"""
+    origin: PortOrigin = PortOrigin.DECLARED
+    """Where this port came from, and so whether the user may remove it."""
 
     is_linked_lazy: bool = False
     """Force any linked edge to lazy (pull-on-demand) propagation"""
@@ -732,6 +755,13 @@ class DataPort(DataTypeIdentity):
         if "store_strategy" in kwargs:
             kwargs["store_strategy"] = StoreStrategy(kwargs["store_strategy"])
 
+        # A spec says promoted=True (the promotion path, and graphs saved before
+        # origin existed); origin is the field that carries it.
+        if kwargs.pop("promoted", False):
+            kwargs.setdefault("origin", PortOrigin.PROMOTED.value)
+        if "origin" in kwargs:
+            kwargs["origin"] = PortOrigin(kwargs["origin"])
+
         # Freeform constructor-kwargs bag (mirrors PortSpec.kwargs: Dict[str, Any]).
         # Annotated explicitly so the merge of the Any-valued spec kwargs with the
         # typed literals below stays Any rather than widening to a concrete union
@@ -794,6 +824,8 @@ class DataPort(DataTypeIdentity):
             if isinstance(value, ShowWidgetStrategy):
                 value = value.value
             if isinstance(value, StoreStrategy):
+                value = value.value
+            if isinstance(value, PortOrigin):
                 value = value.value
 
             result["kwargs"][f.name] = value

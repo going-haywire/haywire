@@ -34,6 +34,26 @@ class PortType(Enum):
     CONFIG = "config"
 
 
+class PortOrigin(Enum):
+    """Where a port came from, which decides whether the user may remove it.
+
+    - DECLARED: the node's author added it in ``init()``. Part of what the node
+      is, so the user cannot take it away.
+    - PROMOTED: promoted from a setting. The port is a second view of the
+      setting's cell, so it does not serialize its own value and is regenerated
+      on load from the settings block. Detached through ``demote_setting``.
+    - RESOLVED: created by connecting to an ``ANY`` placeholder, which adopted
+      the type at the other end. Unlike a promoted port this one owns its value
+      and serializes normally.
+
+    Only DECLARED is permanent; see :meth:`DataPort.is_user_removable`.
+    """
+
+    DECLARED = "declared"
+    PROMOTED = "promoted"
+    RESOLVED = "resolved"
+
+
 class LayoutDirection(Enum):
     """
     Orientation of flow across a node card.

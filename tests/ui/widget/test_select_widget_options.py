@@ -5,7 +5,7 @@ from unittest.mock import MagicMock, patch
 from haywire.barn.builtin.widgets import basic_widgets
 from haywire.barn.builtin.widgets.basic_widgets import SelectWidget
 from haywire.core.types.port import DataPort
-from haywire.core.types.enums import FlowType, PortType
+from haywire.core.types.enums import FlowType, PortOrigin, PortType
 from haywire.barn.builtin.types import STRING
 
 pytestmark = pytest.mark.unit
@@ -14,7 +14,7 @@ pytestmark = pytest.mark.unit
 def make_string_port_with_config(widget_config: dict[str, Any], port_id: str = "select_test") -> DataPort:
     """Create a STRING port with custom widget config.
 
-    ``promoted=True``: several tests in this module deliberately exercise a
+    ``PortOrigin.PROMOTED``: several tests in this module deliberately exercise a
     LIVE CALLABLE in ``widget_config`` (dynamic-options resolution at build
     time). A plain (non-promoted) port rejects a non-serializable widget_config
     at construction — a promoted port is exempt because its widget_config is
@@ -30,7 +30,7 @@ def make_string_port_with_config(widget_config: dict[str, Any], port_id: str = "
         port_type=PortType.INLET,
         flow_type=FlowType.DATA,
         widget_config=widget_config,
-        promoted=True,
+        origin=PortOrigin.PROMOTED,
     )
     return port
 

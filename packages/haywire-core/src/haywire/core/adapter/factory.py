@@ -102,6 +102,14 @@ class AdapterFactory:
             if first_adapter:
                 result = first_adapter.execute(temp_value)
         """
+        # An undecided end has no representation to convert, so there is nothing
+        # to look up: the edge is valid and carries the value untouched. This is
+        # what lets a node see the connection (via on_connect) and retype the
+        # port to the other end's type; ANY -> ANY stays a pass-through, leaving
+        # both ends undecided.
+        if source_type._is_any or sink_type._is_any:
+            return (ReturnAdapter(), None)
+
         # Get base types for compound type detection
         # (ArrayType[FLOAT] → ArrayType)
         source_base = self._get_base_type(source_type)
