@@ -54,7 +54,9 @@ class ADDField(DataField):
     description="Grows a new port from whatever connects to it",
     color="#666666",
     icon_in="add_circle_outline",
+    icon_in_multi="add_circle_outline",
     icon_out="add_circle",
+    icon_out_multi="add_circle",
     default={"value": None},
     # A placeholder holds nothing worth saving.
     store_strategy=StoreStrategy.NEVER,

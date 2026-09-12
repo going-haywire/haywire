@@ -135,3 +135,10 @@ lookup on a hot path.
   (`as_inlet` merges `asdict(type_cls.class_identity)`), so no `_configure_port`
   override is needed — unlike `PooledType`/`ArrayType`, which rewrite
   `port.color` because a compound shares its parent's identity.
+
+  The glyph half required `_resolve_pin_icon` to read the icon from the port
+  rather than from `stored_type`, which for `ADD[STRING]` is `STRING`. Colour
+  already travelled through the port; the icon was the one appearance field
+  re-read from the type at render time, so a parameterization could not keep
+  its own. Reading both from the port also makes a per-port `icon_in=` override
+  reach the glyph, as `color=` already did.

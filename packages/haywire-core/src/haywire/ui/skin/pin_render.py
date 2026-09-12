@@ -279,11 +279,16 @@ def _resolve_pin_icon(pin: DataPort) -> str | None:
     Returns the icon name, or ``None`` for an unsupported flow type (signalling
     the caller to render no pin).
 
-    A DATA pin takes the icon its type declared for that direction, and the
-    ``_multi`` variant while the pin accepts several links. The fields resolve
-    their own hierarchy — see ``DataTypeIdentity.__post_init__`` — so reading
-    one here is enough. CONTROL and CALLBACK pins carry their icon on the port
-    itself, and take ``icon_in``/``icon_out`` directly.
+    Every pin takes the icon for its direction from the port, and the
+    ``_multi`` variant while it accepts several links. The port carries all
+    four, merged from the type's identity at ``as_inlet``/``as_outlet`` and
+    already resolved through ``DataTypeIdentity.__post_init__``'s hierarchy, so
+    a per-port ``icon_in=`` override reaches the glyph and a parameterized type
+    keeps its own — ``ADD[STRING]`` renders ADD's glyph in STRING's colour,
+    where its ``stored_type`` would say STRING.
+
+    A DATA pin falls back to collection iconography when its type is a
+    ``CompoundType``, and to the scalar default otherwise.
     """
     flow = pin.flow_type
     if flow == FlowType.CONTROL:
@@ -298,17 +303,16 @@ def _resolve_pin_icon(pin: DataPort) -> str | None:
 
     if flow == FlowType.DATA:
         stored_type = pin.stored_type
-        ci = stored_type.class_identity
         is_compound = bool(pin.type_cls and issubclass(pin.type_cls, CompoundType))
 
         if pin.is_inlet():
             if pin.allow_multiple_links:
                 if issubclass(stored_type, CompoundType):
-                    return ci.icon_in_multi or ICONS.WEB_STORIES
-                return ci.icon_in_multi or ICONS.FIBER_SMART_RECORD
-            return ci.icon_in or (ICONS.VIEW_DAY if is_compound else ICONS.MY_LOCATION)
+                    return pin.icon_in_multi or ICONS.WEB_STORIES
+                return pin.icon_in_multi or ICONS.FIBER_SMART_RECORD
+            return pin.icon_in or (ICONS.VIEW_DAY if is_compound else ICONS.MY_LOCATION)
 
-        icon = ci.icon_out_multi if pin.allow_multiple_links else ci.icon_out
+        icon = pin.icon_out_multi if pin.allow_multiple_links else pin.icon_out
         return icon or (ICONS.VIEW_DAY if is_compound else ICONS.CIRCLE)
 
     return None

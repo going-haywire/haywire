@@ -16,6 +16,7 @@ import pytest
 
 from haywire.barn.builtin.types import FLOAT
 from haywire.core.types import DataPort, FlowType, PortType
+from haywire.core.types.enums import ShowWidgetStrategy, StoreStrategy
 from haywire.ui.skin.pin_render import _resolve_pin_icon
 
 pytestmark = pytest.mark.unit
@@ -29,16 +30,22 @@ def _typed(**icons: str | None) -> type:
 
 
 def _port(type_cls: type, port_type: PortType, **kwargs) -> DataPort:
-    return DataPort(
-        registry_id="icon",
-        registry_key="test:type:icon",
-        label="I",
-        id=f"p_{port_type.value}",
-        type_cls=type_cls,
-        port_type=port_type,
-        flow_type=FlowType.DATA,
-        **kwargs,
-    )
+    """A port built the way the app builds one, through the type's own factory.
+
+    ``as_inlet``/``as_outlet`` merge the type's identity into the spec, which is
+    where a port gets its icons; constructing ``DataPort`` directly leaves all
+    four unset and the pin draws the framework default.
+    """
+    factory = type_cls.as_inlet if port_type is PortType.INLET else type_cls.as_outlet  # type: ignore[attr-defined]
+    spec = dict(factory(f"p_{port_type.value}")["kwargs"])
+    spec.pop("flow_type", None)
+    spec.pop("promoted", None)
+    spec.pop("port_type", None)
+    for field, enum in (("show_widget", ShowWidgetStrategy), ("store_strategy", StoreStrategy)):
+        if field in spec and not isinstance(spec[field], enum):
+            spec[field] = enum(spec[field])
+    spec.update(type_cls=type_cls, flow_type=FlowType.DATA, **kwargs)
+    return DataPort(port_type=port_type, **spec)
 
 
 def test_a_data_inlet_uses_icon_in():
@@ -110,3 +117,32 @@ def test_a_type_declaring_no_icon_falls_back_to_the_defaults():
     bare = _typed(icon=None, icon_in=None, icon_in_multi=None, icon_out=None, icon_out_multi=None)
     assert _resolve_pin_icon(_port(bare, PortType.INLET)) == "my_location"
     assert _resolve_pin_icon(_port(bare, PortType.OUTLET)) == "circle"
+
+
+def test_a_per_port_override_reaches_the_glyph():
+    """``as_inlet(icon_in=...)`` overrides the type, like ``color=`` already does."""
+    port = _port(_typed(icon_in="from_type"), PortType.INLET, icon_in="from_port")
+    assert _resolve_pin_icon(port) == "from_port"
+
+
+def test_a_parameterized_type_keeps_its_own_glyph():
+    """``ADD[STRING]`` is an ADD pin that carries STRING, and must look like one.
+
+    Its ``stored_type`` is ``STRING`` — that is the seam that lets the adapter
+    layer treat it as an ordinary STRING sink — so resolving the icon from the
+    stored type would draw STRING's default and lose the affordance that tells
+    the user the pin grows.
+    """
+    from haywire.barn.builtin.types import ADD, STRING
+
+    assert ADD[STRING].create_field().get_stored_type() is STRING
+    assert _resolve_pin_icon(_port(ADD[STRING], PortType.INLET)) == "add_circle_outline"
+    assert _resolve_pin_icon(_port(ADD[STRING], PortType.OUTLET)) == "add_circle"
+
+
+def test_a_wrapper_type_still_renders_as_its_element():
+    """``OPTIONAL[INT]`` declares no icon of its own, so it draws INT's pin (ADR 0033)."""
+    from haywire.barn.builtin.types import INT, OPTIONAL
+
+    assert _resolve_pin_icon(_port(OPTIONAL[INT], PortType.INLET)) == "my_location"
+    assert _resolve_pin_icon(_port(OPTIONAL[INT], PortType.OUTLET)) == "circle"

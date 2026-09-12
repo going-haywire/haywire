@@ -2,7 +2,7 @@
   "format_version": 3,
   "filestem": "any_and_nonde",
   "created_at": "2026-09-12T10:04:10.101874",
-  "modified_at": "2026-09-12T18:25:21.394244",
+  "modified_at": "2026-09-12T19:04:53.430784",
   "meta": {
     "values": {},
     "promoted": {}
@@ -214,57 +214,12 @@
       "node_id": "AddPortTestNode_43a781",
       "registry_key": "haybale-testing:node:AddPortTestNode",
       "position": [
-        3300,
+        3250,
         3050
       ],
       "node_data": {
         "node_id": "AddPortTestNode_43a781",
         "ports": {
-          "add_in_0": {
-            "kwargs": {
-              "registry_id": "VEC2I",
-              "registry_key": "haywire-core:type:VEC2I",
-              "label": "In 0",
-              "description": "2D integer vector",
-              "class_name": "VEC2I",
-              "module": "haywire.barn.builtin.types.vectors",
-              "flow_type": "data",
-              "default": {
-                "value": [
-                  0,
-                  0
-                ]
-              },
-              "store_strategy": 2,
-              "widget_key": "haywire-core:widget:VecWidget",
-              "widget_config": {
-                "properties": {
-                  "vec_meta": {
-                    "length": 2,
-                    "labels": [
-                      "X",
-                      "Y"
-                    ]
-                  },
-                  "orientation": "column"
-                }
-              },
-              "id": "add_in_0",
-              "port_type": "inlet",
-              "order": 5,
-              "origin": "resolved",
-              "on_connect": "hb_resolve"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:VEC2I"
-            },
-            "field_data": {
-              "value": [
-                0,
-                0
-              ]
-            }
-          },
           "add_out_0": {
             "kwargs": {
               "registry_id": "ADD",
@@ -292,30 +247,6 @@
             },
             "recipe": {
               "registry_key": "haywire-core:type:ADD"
-            }
-          },
-          "str_in_0": {
-            "kwargs": {
-              "registry_id": "TEST_STRING",
-              "registry_key": "haybale-testing:type:TEST_STRING",
-              "label": "Str 0",
-              "description": "Text data",
-              "class_name": "TEST_STRING",
-              "module": "haybale_testing.types.test_types",
-              "flow_type": "data",
-              "default": {
-                "value": ""
-              },
-              "store_strategy": 2,
-              "color": "#ffc107",
-              "id": "str_in_0",
-              "port_type": "inlet",
-              "order": 3,
-              "origin": "resolved",
-              "on_connect": "hb_resolve"
-            },
-            "recipe": {
-              "registry_key": "haybale-testing:type:TEST_STRING"
             }
           },
           "str_in_1": {
@@ -382,20 +313,20 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 3300.0,
+              "posX": 3250.0,
               "posY": 3050.0,
               "width": 268,
-              "height": 222
+              "height": 166
             },
             "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 3300.0,
+            "posX": 3250.0,
             "posY": 3050.0,
             "width": 268,
-            "height": 222
+            "height": 166
           },
           "promoted": {}
         },
@@ -439,26 +370,7 @@
       }
     }
   },
-  "edges": {
-    "SettingsNode_bd8b7f[settings]->AddPortTestNode_43a781[str_in_0]": {
-      "source_node_id": "SettingsNode_bd8b7f",
-      "outlet_port_id": "settings",
-      "sink_node_id": "AddPortTestNode_43a781",
-      "inlet_port_id": "str_in_0",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": false
-    },
-    "SettingsNode_bd8b7f[example.example_vec2i]->AddPortTestNode_43a781[add_in_0]": {
-      "source_node_id": "SettingsNode_bd8b7f",
-      "outlet_port_id": "example.example_vec2i",
-      "sink_node_id": "AddPortTestNode_43a781",
-      "inlet_port_id": "add_in_0",
-      "edge_type": "data",
-      "chain_adapter_keys": [],
-      "is_lazy": true
-    }
-  },
+  "edges": {},
   "variables": {},
   "props": {
     "values": {},
