@@ -277,9 +277,13 @@ def _resolve_pin_icon(pin: DataPort) -> str | None:
     """Resolve a pin's icon for its flow type.
 
     Returns the icon name, or ``None`` for an unsupported flow type (signalling
-    the caller to render no pin). Inlet/outlet and compound/multi variants pick
-    different default icons; an explicit ``pin.icon_in`` / ``pin.icon_out``
-    always wins.
+    the caller to render no pin).
+
+    A DATA pin takes the icon its type declared for that direction, and the
+    ``_multi`` variant while the pin accepts several links. The fields resolve
+    their own hierarchy — see ``DataTypeIdentity.__post_init__`` — so reading
+    one here is enough. CONTROL and CALLBACK pins carry their icon on the port
+    itself, and take ``icon_in``/``icon_out`` directly.
     """
     flow = pin.flow_type
     if flow == FlowType.CONTROL:
@@ -295,16 +299,16 @@ def _resolve_pin_icon(pin: DataPort) -> str | None:
     if flow == FlowType.DATA:
         stored_type = pin.stored_type
         ci = stored_type.class_identity
+        is_compound = bool(pin.type_cls and issubclass(pin.type_cls, CompoundType))
+
         if pin.is_inlet():
             if pin.allow_multiple_links:
                 if issubclass(stored_type, CompoundType):
                     return ci.icon_in_multi or ICONS.WEB_STORIES
                 return ci.icon_in_multi or ICONS.FIBER_SMART_RECORD
-            if pin.type_cls and issubclass(pin.type_cls, CompoundType):
-                return ci.icon_in or ICONS.VIEW_DAY
-            return ci.icon_in or ICONS.MY_LOCATION
-        if pin.type_cls and issubclass(pin.type_cls, CompoundType):
-            return ci.icon_out_multi or ICONS.VIEW_DAY
-        return ci.icon_out_multi or ICONS.CIRCLE
+            return ci.icon_in or (ICONS.VIEW_DAY if is_compound else ICONS.MY_LOCATION)
+
+        icon = ci.icon_out_multi if pin.allow_multiple_links else ci.icon_out
+        return icon or (ICONS.VIEW_DAY if is_compound else ICONS.CIRCLE)
 
     return None

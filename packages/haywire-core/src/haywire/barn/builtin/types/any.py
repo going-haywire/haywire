@@ -9,7 +9,9 @@ from haywire.core.types import FlowType, PortType, PrimitiveType, StoreStrategy,
     flow_type=FlowType.DATA,
     label="Any",
     description="Undecided until connected; the node retypes the port from the other end",
-    color="#9e9e9e",
+    color="#666666",
+    icon_in="add_circle_outline",
+    icon_out="add_circle",
     default={"value": None},
     # A placeholder holds nothing worth saving, and a PrimitiveType cannot
     # represent absence — constructing one to serialize would raise.

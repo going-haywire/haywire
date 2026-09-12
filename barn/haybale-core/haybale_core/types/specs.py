@@ -128,13 +128,15 @@ class EXEC(PrimitiveType[dict]):
     color="#ff3c00",
     default={},
     # CALLBACK inherits STRING's payload but is a control-flow signal, not an
-    # editable value — it must NOT inherit STRING's TextWidget. A widget_key here
-    # also flips has_widget=True in StoreStrategy.should_store, which would try to
-    # serialize the signal's (None) field and crash. Keep it widget-less.
+    # editable value — it must NOT inherit STRING's TextWidget.
     widget_key=None,
+    # It might be set by the node's logic, but it is not a user-editable value
+    # and should only be stored if the node itself is storing it, not the port.
+    store_strategy=StoreStrategy.NODE_SET,
 )
 class CALLBACK(STRING):
     """
     callback signal type - represents callback flow
     Inherits from STRING for payload compatibility.
+    but is by default not serialized, and has no widget.
     """

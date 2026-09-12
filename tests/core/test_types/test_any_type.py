@@ -158,6 +158,15 @@ def _make_any_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapp
     return wrapper
 
 
+def _make_settings_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
+    """A node with a plain STRING outlet, safe to serialize."""
+    from haybale_testing.nodes.testbed.settings_node import SettingsNode
+
+    wrapper = graph.create_node_wrapper(SettingsNode.class_identity.registry_key, position=position)
+    assert wrapper is not None, f"node creation failed at {position}"
+    return wrapper
+
+
 def _make_link_node(graph: BaseGraph, position: tuple[float, float]) -> NodeWrapper:
     from haybale_testing.nodes.testbed.edge_link_test import EdgeLinkTestNode
 
@@ -376,6 +385,60 @@ class TestAnyPersistence:
 
         assert "any_in_0" in ports
         assert "any_in_1" in ports
+
+    def test_pasting_with_its_edge_does_not_grow_extra_slots(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """A re-linked edge must not re-resolve an already-resolved slot.
+
+        Paste restores the ports, then re-creates the edges, firing on_connect
+        on pins that were resolved when the node was copied. The pasted node
+        must carry exactly the ports that were copied.
+        """
+        from haywire.core.graph.clipboard import build_clipboard_payload
+        from haywire.core.undo.actions.graph_actions import PasteClipboardAction
+
+        graph = graph_with_library_system
+        # A STRING outlet, not EdgeLinkTestNode: that node's CALLBACK ports
+        # cannot be serialized, which is a separate defect.
+        source = _make_settings_node(graph, (100, 100))
+        target = _make_any_node(graph, (300, 100))
+        edge = graph.create_edge_wrapper(source.node_id, "settings", target.node_id, "any_in_0")
+        assert edge is not None
+
+        payload = build_clipboard_payload(
+            graph, [source.node_id, target.node_id], [edge.edge_id], session_id="s"
+        )
+        copied = sorted(payload["nodes"][target.node_id]["node_data"]["ports"])
+
+        action = PasteClipboardAction(graph=graph, payload=payload, paste_x=900.0, paste_y=900.0)
+        action.execute()
+
+        pasted = [
+            wrapper
+            for nid in action.new_node_ids
+            if "AnyPort" in nid and (wrapper := graph.get_node_wrapper(nid)) is not None
+        ]
+        assert len(pasted) == 1
+        assert sorted(pasted[0].node.ports) == copied
+
+    def test_reconnecting_a_resolved_slot_does_not_grow_one(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """The same guard, by the shortest route: connect, disconnect, reconnect."""
+        graph = graph_with_library_system
+        source = _make_link_node(graph, (100, 100))
+        target = _make_any_node(graph, (300, 100))
+
+        first = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        assert first is not None
+        after_first = sorted(target.node.ports)
+
+        graph.remove_edge_wrapper(first.edge_id)
+        again = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        assert again is not None
+
+        assert sorted(target.node.ports) == after_first
 
     def test_remove_port_refuses_a_declared_pin(self, graph_with_library_system: BaseGraph, library_system):
         """An author-declared port is part of what the node is."""

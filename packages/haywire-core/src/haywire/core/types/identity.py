@@ -40,11 +40,11 @@ class DataTypeIdentity(BaseIdentity):
         cls: Python type (int, float, str, MeshData, etc.)
         flow_type: DATA, CTRL, or NONE
         color: UI pin color (hex)
-        icon: UI pin icon
-        icon_in: Icon for inlet pins
-        icon_in_multi: Icon for multi-link inlet pins
-        icon_out: Icon for outlet pins
-        icon_out_multi: Icon for multi-link outlet pins
+        icon: UI pin icon, used by any direction that declares none of its own
+        icon_in: Icon for inlet pins, defaulting to ``icon``
+        icon_in_multi: Icon for multi-link inlet pins, defaulting to ``icon_in``
+        icon_out: Icon for outlet pins, defaulting to ``icon``
+        icon_out_multi: Icon for multi-link outlet pins, defaulting to ``icon_out``
         widget: Widget for editing values
         default: Default value for this type
         store_strategy: when to serialize field values
@@ -90,13 +90,12 @@ class DataTypeIdentity(BaseIdentity):
         if not self.description and self.label:
             self.description = self.label
 
-        if self.icon:
-            # Use same icon for in/out unless specified
-            if not self.icon_in:
-                self.icon_in = self.icon
-            if not self.icon_out:
-                self.icon_out = self.icon
-            if not self.icon_in_multi:
-                self.icon_in_multi = self.icon
-            if not self.icon_out_multi:
-                self.icon_out_multi = self.icon
+        # Resolve each per-direction icon from the widest declared value it
+        # inherits, so all four are set whatever the author declared. Each
+        # _multi falls back to its own direction, not to icon, or a type
+        # declaring icon= plus icon_out= would lose icon_out on its multi-link
+        # outlets — which is every DATA outlet.
+        self.icon_in = self.icon_in or self.icon
+        self.icon_out = self.icon_out or self.icon
+        self.icon_in_multi = self.icon_in_multi or self.icon_in
+        self.icon_out_multi = self.icon_out_multi or self.icon_out

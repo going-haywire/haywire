@@ -50,6 +50,12 @@ class AnyPortTestNode(BaseNode):
         """Retype *port* to the type at the other end and append a new ANY slot."""
         from haywire.barn.builtin.types import ANY
 
+        if port.type_cls is None or not port.type_cls._is_any:
+            # Already resolved. Connecting decides a slot once, and the callback
+            # fires again whenever the edge is re-linked — on load, on paste, on
+            # any revalidation — which must not grow a second slot.
+            return
+
         # An inlet reads the type from the outlet feeding it, and vice versa.
         other = edge_wrapper._outlet_port if port.is_inlet() else edge_wrapper._inlet_port
         if other is None:
