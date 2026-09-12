@@ -33,7 +33,7 @@ class TestFamilyBoundary:
     def test_pin_render_treats_it_as_scalar(self):
         # Same predicate, different consumer: collection iconography would make
         # an optional pin look like an array pin.
-        from haywire.ui.skin.pin_render import CompoundType as PinCompoundType
+        from haywire.ui.skin.pin_icons import CompoundType as PinCompoundType
 
         assert not issubclass(OPTIONAL[INT], PinCompoundType)
 

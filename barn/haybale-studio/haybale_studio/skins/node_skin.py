@@ -555,6 +555,7 @@ class NodeSkin(BaseSkin, ABC):
             pin_gutter=self.PIN_GUTTER,
             card_padding=self.CARD_V_PADDING if layout.is_vertical else self.CARD_H_PADDING,
             pin_protrusion=self.PIN_PROTRUSION,
+            pin_icons=self.pin_icons,
         )
         if pin_el is not None:
             # No menu attribute: the pin menu is structural now. The canvas

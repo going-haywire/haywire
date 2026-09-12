@@ -117,4 +117,5 @@ class RerouteSkin(BaseSkin):
             pin_gutter=_PIN_GUTTER,
             card_padding=_CARD_PADDING,
             pin_protrusion=_PIN_PROTRUSION,
+            pin_icons=self.pin_icons,
         )

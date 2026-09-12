@@ -14,6 +14,7 @@ from ..widget.interface import IWidget
 from ..widget.factory_interface import IWidgetFactory
 from ..widget.sizing import stamp_size_declaration
 from .nodecard import UINodeCard
+from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
 
 logger = logging.getLogger(__name__)
 
@@ -34,10 +35,16 @@ class BaseSkin(ABC):
 
     NodeSkin classes define the look and structure of nodes.
     They are cached and reused by the SkinFactory.
+
+    Override ``pin_icons`` with a ``PinIconResolver`` subclass to restyle every
+    pin this skin draws; a glyph declared on a port or its type still wins.
     """
 
     class_identity: ClassVar[SkinIdentity]
     class_library: ClassVar[LibraryIdentity]
+
+    #: Glyph vocabulary for this skin's pins, passed to ``render_pin``.
+    pin_icons: ClassVar[PinIconResolver] = DEFAULT_PIN_ICONS
 
     def __init__(self, widget_factory: IWidgetFactory):
         """

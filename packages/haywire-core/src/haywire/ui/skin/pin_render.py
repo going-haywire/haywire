@@ -18,10 +18,10 @@ from nicegui import ui
 from nicegui.elements.mixins.color_elements import QUASAR_COLORS, TAILWIND_COLORS
 from nicegui.elements.mixins.text_element import TextElement
 
-from haywire.core.types import DataPort, CompoundType, FlowType, LayoutDirection
+from haywire.core.types import DataPort, LayoutDirection
 
-from ..themes.icons import ICONS
 from ..utils import generate_pin_uuid
+from .pin_icons import DEFAULT_PIN_ICONS, PinIconResolver
 
 if TYPE_CHECKING:
     from haywire.core.node.node_wrapper import NodeWrapper
@@ -177,6 +177,7 @@ def render_pin(
     pin_gutter: int,
     card_padding: int,
     pin_protrusion: int,
+    pin_icons: PinIconResolver | None = None,
 ) -> ui.element | None:
     """Render a connection-compatible pin and return the created element.
 
@@ -196,6 +197,10 @@ def render_pin(
     ``cell_style`` is appended to the pin element's own style, letting the
     caller place the pin directly into a grid cell (grid-column / *-self
     centering).
+
+    ``pin_icons`` supplies the skin's glyph vocabulary; omitting it uses the
+    framework's. A glyph declared on the port or its type wins over it either
+    way — see :class:`~haywire.ui.skin.pin_icons.PinIconResolver`.
 
     The ``data-pin-id`` emitted below is also what makes the pin menu work:
     the canvas detects a pin structurally from it, exactly as it detects a
@@ -251,7 +256,7 @@ def render_pin(
 
     # Resolve the per-flow-type icon; everything else (classes, color,
     # data-type, props chain) is identical across all three flow types.
-    icon = _resolve_pin_icon(pin)
+    icon = _resolve_pin_icon(pin, pin_icons)
     if icon is None:
         # Unknown / unsupported flow type — render no pin.
         return None
@@ -273,46 +278,11 @@ def render_pin(
     )
 
 
-def _resolve_pin_icon(pin: DataPort) -> str | None:
-    """Resolve a pin's icon for its flow type.
+def _resolve_pin_icon(pin: DataPort, pin_icons: PinIconResolver | None = None) -> str | None:
+    """Return the glyph *pin* draws, or ``None`` if its flow type draws no pin.
 
-    Returns the icon name, or ``None`` for an unsupported flow type (signalling
-    the caller to render no pin).
-
-    Every pin takes the icon for its direction from the port, and the
-    ``_multi`` variant while it accepts several links. The port carries all
-    four, merged from the type's identity at ``as_inlet``/``as_outlet`` and
-    already resolved through ``DataTypeIdentity.__post_init__``'s hierarchy, so
-    a per-port ``icon_in=`` override reaches the glyph and a parameterized type
-    keeps its own — ``ADD[STRING]`` renders ADD's glyph in STRING's colour,
-    where its ``stored_type`` would say STRING.
-
-    A DATA pin falls back to collection iconography when its type is a
-    ``CompoundType``, and to the scalar default otherwise.
+    Delegates to *pin_icons* (the shared default when a skin supplies none),
+    which resolves the declared icon, then its own map. See
+    :class:`~haywire.ui.skin.pin_icons.PinIconResolver`.
     """
-    flow = pin.flow_type
-    if flow == FlowType.CONTROL:
-        if pin.is_inlet():
-            return pin.icon_in or ICONS.JOIN_LEFT
-        return pin.icon_out or ICONS.JOIN_RIGHT
-
-    if flow == FlowType.CALLBACK:
-        if pin.is_inlet():
-            return pin.icon_in or ICONS.SWIPE_LEFT_ALT
-        return pin.icon_out or ICONS.SWIPE_RIGHT_ALT
-
-    if flow == FlowType.DATA:
-        stored_type = pin.stored_type
-        is_compound = bool(pin.type_cls and issubclass(pin.type_cls, CompoundType))
-
-        if pin.is_inlet():
-            if pin.allow_multiple_links:
-                if issubclass(stored_type, CompoundType):
-                    return pin.icon_in_multi or ICONS.WEB_STORIES
-                return pin.icon_in_multi or ICONS.FIBER_SMART_RECORD
-            return pin.icon_in or (ICONS.VIEW_DAY if is_compound else ICONS.MY_LOCATION)
-
-        icon = pin.icon_out_multi if pin.allow_multiple_links else pin.icon_out
-        return icon or (ICONS.VIEW_DAY if is_compound else ICONS.CIRCLE)
-
-    return None
+    return (pin_icons or DEFAULT_PIN_ICONS).resolve(pin)
