@@ -38,6 +38,16 @@ class TestAnyTypeDeclaration:
         """An undecided pin has no value to edit, so it renders no widget."""
         assert not ANY.class_identity.widget_key
 
+    def test_an_undecided_instance_constructs_and_serializes(self):
+        """``PrimitiveType`` rejects None, which a placeholder has to hold."""
+        assert ANY().to_dict() == {"value": None}
+        assert ANY(value=None).to_dict() == {"value": None}
+        assert ANY.create_field().to_dict() == {"value": None}
+
+    def test_an_any_port_never_stores_its_value(self):
+        """Nothing to save, so the port is not asked to serialize one."""
+        assert ANY.class_identity.store_strategy is StoreStrategy.NEVER
+
     def test_config_port_is_rejected(self):
         """A config port has no pin, so an ANY config could never resolve."""
         with pytest.raises(ValueError, match="config port"):
@@ -304,6 +314,88 @@ class TestAnyPersistence:
         assert target.node.ports["any_in_0"].is_user_removable()
         # The undecided slot is author-declared, so it stays.
         assert not target.node.ports["any_in_1"].is_user_removable()
+
+    def test_remove_port_drops_a_resolved_pin_and_its_edge(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """The pin-menu verb, on the pin the user created."""
+        from haywire.core.node.promotion import remove_port
+
+        graph = graph_with_library_system
+        source = _make_link_node(graph, (100, 100))
+        target = _make_any_node(graph, (300, 100))
+
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        assert edge is not None
+
+        assert remove_port(target.node, "any_in_0") is True
+
+        assert "any_in_0" not in target.node.ports
+        assert not edge.state.is_linked
+
+    def test_removing_an_edge_through_an_action_succeeds(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """Every callback an ANY slot names must exist on the node.
+
+        A port naming a method the node does not define raises from inside
+        ``_trigger_callback``, which surfaces as a failed undo action rather
+        than anything pointing at the port.
+        """
+        from haywire.core.undo.actions.graph_actions import RemoveElementsAction
+
+        graph = graph_with_library_system
+        source = _make_link_node(graph, (100, 100))
+        target = _make_any_node(graph, (300, 100))
+
+        edge = graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        assert edge is not None
+
+        action = RemoveElementsAction(graph=graph, edges=[edge.edge_id])
+        action.execute()
+
+        assert graph.get_edge_wrapper(edge.edge_id) is None
+
+    def test_a_node_with_any_pins_can_be_serialized(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        """The copy path, which serializes with ``include_data=True``.
+
+        An unresolved pin has no value, and building one to write it out is
+        what used to raise from inside ``PrimitiveField.to_dict``.
+        """
+        graph = graph_with_library_system
+        source = _make_link_node(graph, (100, 100))
+        target = _make_any_node(graph, (300, 100))
+
+        # Both an untouched node and one carrying a resolved slot.
+        assert target.serialize(include_data=True)["node_data"]["ports"]
+
+        graph.create_edge_wrapper(source.node_id, "int_outlet", target.node_id, "any_in_0")
+        ports = target.serialize(include_data=True)["node_data"]["ports"]
+
+        assert "any_in_0" in ports
+        assert "any_in_1" in ports
+
+    def test_remove_port_refuses_a_declared_pin(self, graph_with_library_system: BaseGraph, library_system):
+        """An author-declared port is part of what the node is."""
+        from haywire.core.node.promotion import remove_port
+
+        graph = graph_with_library_system
+        target = _make_any_node(graph, (300, 100))
+
+        assert remove_port(target.node, "any_in_0") is False
+        assert "any_in_0" in target.node.ports
+
+    def test_remove_port_is_a_no_op_for_an_unknown_pin(
+        self, graph_with_library_system: BaseGraph, library_system
+    ):
+        from haywire.core.node.promotion import remove_port
+
+        graph = graph_with_library_system
+        target = _make_any_node(graph, (300, 100))
+
+        assert remove_port(target.node, "nope") is False
 
     def test_the_trailing_any_slot_is_always_present(
         self, graph_with_library_system: BaseGraph, library_system

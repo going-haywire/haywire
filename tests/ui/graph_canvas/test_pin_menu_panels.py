@@ -14,6 +14,7 @@ import pytest
 
 from haywire.core.session.context import SessionContext
 from haywire.core.signals import RevealComponentSource
+from haywire.core.types.enums import PortOrigin
 from haybale_graph_editor.panels.graph.menu.port.port import (
     DetachSettingMenuPanel,
     PinEditMenuPanel,
@@ -46,12 +47,23 @@ class _Identity:
         self.label = label
 
 
-def _port(*, stored_type: Any = None, widget_key: str | None = None, promoted: bool = False) -> Any:
+def _port(
+    *,
+    stored_type: Any = None,
+    widget_key: str | None = None,
+    promoted: bool = False,
+    origin: PortOrigin | None = None,
+) -> Any:
+    """A port stub. ``origin`` defaults to what ``promoted`` implies."""
+    if origin is None:
+        origin = PortOrigin.PROMOTED if promoted else PortOrigin.DECLARED
     return SimpleNamespace(
         id="value",
         stored_type=stored_type,
         widget_key=widget_key,
-        promoted=promoted,
+        promoted=origin is PortOrigin.PROMOTED,
+        origin=origin,
+        is_user_removable=lambda: origin is not PortOrigin.DECLARED,
     )
 
 
@@ -111,9 +123,18 @@ def test_widget_row_polls_true_for_a_registered_widget(monkeypatch: pytest.Monke
 # ---------------------------------------------------------------------------
 
 
-def test_detach_polls_only_on_a_promoted_port():
-    assert DetachSettingMenuPanel.poll(_ctx(_port(promoted=True))) is True
-    assert DetachSettingMenuPanel.poll(_ctx(_port(promoted=False))) is False
+def test_detach_polls_on_any_user_created_port():
+    """Both kinds of user-added pin offer the row; an author-declared one does not."""
+    assert DetachSettingMenuPanel.poll(_ctx(_port(origin=PortOrigin.PROMOTED))) is True
+    assert DetachSettingMenuPanel.poll(_ctx(_port(origin=PortOrigin.RESOLVED))) is True
+    assert DetachSettingMenuPanel.poll(_ctx(_port(origin=PortOrigin.DECLARED))) is False
+
+
+def test_detach_row_label_follows_the_origin():
+    """One affordance, named for how the pin came to exist."""
+    labels = DetachSettingMenuPanel._LABELS
+    assert labels[PortOrigin.PROMOTED] == "Detach from setting"
+    assert labels[PortOrigin.RESOLVED] == "Remove pin"
 
 
 def test_detach_still_draws_greyed_when_it_does_not_apply():

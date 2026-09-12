@@ -5,8 +5,8 @@ Pin context-menu panels — the surface ``PinMenu``.
 Reached structurally now: the canvas detects a pin from ``data-pin-id``,
 which ``render_pin`` emits on every pin from every skin, so every skin gains
 this menu and none can suppress it. Every panel below is safe under that:
-the "Edit…" rows are read-only navigation, and the demote verb polls true
-only on a promoted inlet.
+the "Edit…" rows are read-only navigation, and the removal verb polls true
+only on a pin the user added.
 
 "Edit…" holds the components behind the pin — its data type, and the widget
 editing its value — and the selection menu carries the same submenu over its
@@ -23,7 +23,7 @@ from haywire.ui.panel import BasePanel
 from haywire.ui.panel.layout import PanelLayout
 from haywire.ui.panel.decorator import panel
 
-from haywire.core.types.enums import ShowWidgetStrategy
+from haywire.core.types.enums import PortOrigin, ShowWidgetStrategy
 
 from ..component_rows import component_row, identity_of, key_and_label
 from .....surfaces import PinEditMenu, PinMenu, PinWidgetMenu, PortActions
@@ -68,7 +68,7 @@ def _widget_identity(ctx: "SessionContext") -> Any | None:
 class PinEditMenuPanel(BasePanel):
     """The "Edit…" row — a submenu over the components behind this pin.
 
-    It draws the row and the flyout, and pipes the ``PortActions`` host 
+    It draws the row and the flyout, and pipes the ``PortActions`` host
     one hop further to the rows inside.
     """
 
@@ -266,17 +266,28 @@ class ClearSettingMenuPanel(BasePanel):
     order=30,
 )
 class DetachSettingMenuPanel(BasePanel):
-    """Enabled only on a promoted inlet; demotes it back to a plain setting.
+    """Removes a pin the user added, on the pin that carries it.
+
+    One row for both kinds of user-created pin, reading "Detach from setting"
+    on a promoted one and "Remove pin" on a slot resolved from an ``ANY``
+    placeholder — the same act either way, since the user added the pin by a
+    gesture and takes it away by one.
     """
 
     actions: PortActions
 
-    _LABEL = "Detach from setting"
+    #: Row label per origin. A declared pin cannot be removed, so its label is
+    #: the one the greyed row carries.
+    _LABELS = {
+        PortOrigin.PROMOTED: "Detach from setting",
+        PortOrigin.RESOLVED: "Remove pin",
+        PortOrigin.DECLARED: "Remove pin",
+    }
 
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         port = ctx.data[EditState].active_port
-        return port is not None and port.promoted
+        return port is not None and port.is_user_removable()
 
     def draw(
         self,
@@ -288,19 +299,24 @@ class DetachSettingMenuPanel(BasePanel):
             return
         with layout:
             hui.menu_row(
-                self._LABEL,
+                self._LABELS[port.origin],
                 icon=hui.icon.delete,
-                on_click=lambda: self.actions.demote_setting(port.id),
+                on_click=lambda: self.actions.remove_port(port.id),
             )
 
     def draw_disabled(self, ctx: "SessionContext", layout: PanelLayout) -> None:
-        """The greyed form, on a pin that was never promoted."""
+        """The greyed form, on a pin the node's author declared."""
+        port = ctx.data[EditState].active_port
+        label = self._LABELS[port.origin] if port is not None else "Remove pin"
         with layout:
             hui.menu_row(
-                self._LABEL,
+                label,
                 icon=hui.icon.delete,
                 enabled=False,
-                tooltip="Only a pin promoted from a setting can be detached",
+                tooltip=(
+                    "Only a pin you added — promoted from a setting, or "
+                    "resolved from an Any pin — can be removed"
+                ),
             )
 
 

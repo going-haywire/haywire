@@ -654,6 +654,20 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         demote_setting(wrapper.node, port_id)
         self._redraw_node(wrapper.node_id)
 
+    def remove_port(self, port_id: str) -> None:
+        """Remove the user-created port ``port_id`` on the right-clicked node.
+
+        Not undoable — matching ``demote_setting``, which it dispatches to for a
+        promoted pin.
+        """
+        from haywire.core.node.promotion import remove_port
+
+        wrapper = self._context.data[EditState].active_node
+        if wrapper is None:
+            return
+        if remove_port(wrapper.node, port_id):
+            self._redraw_node(wrapper.node_id)
+
     def reset_setting(self, port_id: str) -> None:
         """Reset the setting behind ``port_id`` to its declared default.
 

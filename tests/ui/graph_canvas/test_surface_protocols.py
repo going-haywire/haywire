@@ -41,12 +41,14 @@ def test_selection_actions_is_runtime_checkable():
 
 def test_port_actions_declares_the_demote_verb():
     """PortActions carries real verbs, which is why it survived the rename
-    while the empty NodeContextActions marker did not. All are promoted-port
-    verbs: demote, the widget-visibility choice, and the two value verbs that
-    put the backing setting back to a resting state."""
+    while the empty NodeContextActions marker did not: removal of a
+    user-created pin, demote beneath it, the widget-visibility choice, and the
+    two value verbs that put the backing setting back to a resting state."""
 
     class _PortImpl:
         def demote_setting(self, port_id: str) -> None: ...
+
+        def remove_port(self, port_id: str) -> None: ...
 
         def set_port_show_widget(self, port_id: str, strategy: str) -> None: ...
 

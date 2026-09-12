@@ -2,7 +2,7 @@
 
 from typing import Any as AnyValue
 
-from haywire.core.types import FlowType, PortType, PrimitiveType, type
+from haywire.core.types import FlowType, PortType, PrimitiveType, StoreStrategy, type
 
 
 @type(
@@ -11,6 +11,9 @@ from haywire.core.types import FlowType, PortType, PrimitiveType, type
     description="Undecided until connected; the node retypes the port from the other end",
     color="#9e9e9e",
     default={"value": None},
+    # A placeholder holds nothing worth saving, and a PrimitiveType cannot
+    # represent absence — constructing one to serialize would raise.
+    store_strategy=StoreStrategy.NEVER,
 )
 class ANY(PrimitiveType[object]):
     """A placeholder pin that takes its type from the first edge drawn to it.
@@ -49,6 +52,15 @@ class ANY(PrimitiveType[object]):
     """
 
     _is_any = True
+
+    def __init__(self, value: AnyValue = None, **kwargs: AnyValue) -> None:
+        """Wrap *value*, where ``None`` means "not decided yet".
+
+        ``PrimitiveType`` rejects ``None``, which a placeholder must be able to
+        hold: an unresolved pin has no value, and anything that constructs one
+        to inspect it — serialization included — would otherwise raise.
+        """
+        self._value = value if value is not None else kwargs.get("value")
 
     def to_dict(self) -> dict:
         return {"value": None}

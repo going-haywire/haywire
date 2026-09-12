@@ -39,22 +39,8 @@ class AnyPortTestNode(BaseNode):
     def init(self):
         from haywire.barn.builtin.types import ANY
 
-        self.add(
-            ANY.as_inlet(
-                id="any_in_0",
-                label="In 0",
-                on_connect="hb_resolve",
-                on_disconnect="hb_release",
-            )
-        )
-        self.add(
-            ANY.as_outlet(
-                id="any_out_0",
-                label="Out 0",
-                on_connect="hb_resolve",
-                on_disconnect="hb_release",
-            )
-        )
+        self._add_slot("in", 0, ANY)
+        self._add_slot("out", 0, ANY)
 
     # ------------------------------------------------------------------
     # Callbacks
