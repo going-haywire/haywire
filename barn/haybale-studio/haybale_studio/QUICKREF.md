@@ -1,4 +1,4 @@
-# haybale-studio — component index (v0.1.3)
+# haybale-studio — component index (v0.2.0)
 
 ## setting
 - `haybale-studio:setting:NodeSkinSettings` — Node Skin — 
@@ -22,16 +22,17 @@
 
 ## panel
 - `haybale-studio:panel:ActivitySettingsPanel` — Activity — 
-- `haybale-studio:panel:CanvasSettingsPanel` — Canvas — 
+- `haybale-studio:panel:CanvasSettingsPanel` — Grid — 
 - `haybale-studio:panel:DebugOverlaySettingsPanel` — Debug Overlay — 
 - `haybale-studio:panel:DebugSettingsPanel` — Log Levels — 
+- `haybale-studio:panel:DeveloperModePanel` — Developer mode — 
 - `haybale-studio:panel:EditingSettingsPanel` — Editing — 
 - `haybale-studio:panel:EditorZoomPanSettingsPanel` — Zoom & Pan — 
 - `haybale-studio:panel:ExecutionSettingsPanel` — Execution — 
 - `haybale-studio:panel:LogoutPanel` — Sign out — 
 - `haybale-studio:panel:MinimapSettingsPanel` — Minimap — 
 - `haybale-studio:panel:NodeSkinDefaultPanel` — Default Skins — 
-- `haybale-studio:panel:NodeSkinSettingsPanel` — Skins — Skin Configuration:Node dimensions, typography and label visibility.
+- `haybale-studio:panel:NodeSkinSettingsPanel` — Skin — Skin Configuration:Node dimensions, typography and label visibility.
 - `haybale-studio:panel:OpenActivityPanel` — Agent activity — 
 - `haybale-studio:panel:OpenInCodeEditorMenuPanel` — Open in Code Editor — 
 - `haybale-studio:panel:OpenInFileViewerMenuPanel` — Open in File Viewer — 

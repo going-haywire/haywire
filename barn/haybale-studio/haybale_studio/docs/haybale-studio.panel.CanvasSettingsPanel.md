@@ -1,4 +1,4 @@
-# Canvas
+# Grid
 
 `haybale-studio:panel:CanvasSettingsPanel` · kind: panel
 

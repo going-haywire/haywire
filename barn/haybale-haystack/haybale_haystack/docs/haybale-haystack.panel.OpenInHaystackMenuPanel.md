@@ -1,4 +1,4 @@
-# Open in Haystack
+# Load into Haystack
 
 `haybale-haystack:panel:OpenInHaystackMenuPanel` · kind: panel
 
@@ -9,4 +9,4 @@
 
 ## Notes
 
-Open a .haywire graph file in the GraphEditor via the Haystack.
+Load a .haywire graph file into the Haystack (does not open an editor tab).

@@ -1,14 +1,16 @@
-# haywire-core — component index (v0.1.3)
+# haywire-core — component index (v0.2.0)
 
 ## node
 - `haywire-core:node:ErrorNode` — Core Error Node — Placeholder for node that could not be loaded  _tags: error, system, placeholder_
 
 ## type
+- `haywire-core:type:ANY` — Any — Undecided until connected; the node retypes the port from the other end
 - `haywire-core:type:BOOL` — Boolean — True or False
 - `haywire-core:type:CHOICES` — Choices — A string constrained to a set of options (options live per-use in widget_config)
 - `haywire-core:type:COLOR` — Color — Hex or rgba color string
 - `haywire-core:type:FLOAT` — Float — Decimal numberer
 - `haywire-core:type:INT` — Integer — Whole number
+- `haywire-core:type:OPTIONAL` — Optional — A value of the wrapped type, or absence
 - `haywire-core:type:STRING` — String — Text data
 - `haywire-core:type:VEC2F` — Vec2f — 2D float vector
 - `haywire-core:type:VEC2I` — Vec2i — 2D integer vector
@@ -28,6 +30,7 @@
 - `haywire-core:widget:CheckboxWidget` — CheckboxWidget — checkbox widget
 - `haywire-core:widget:ColorWidget` — ColorWidget — Color picker widget
 - `haywire-core:widget:NumberWidget` — NumberWidget — Fast number input widget
+- `haywire-core:widget:OptionalWidget` — OptionalWidget — Optional value — the wrapped type's widget, plus an absence state
 - `haywire-core:widget:SelectWidget` — SelectWidget — select widget
 - `haywire-core:widget:SimpleLabelWidget` — SimpleLabelWidget — Simple label for display only
 - `haywire-core:widget:SliderWidget` — SliderWidget — slider widget

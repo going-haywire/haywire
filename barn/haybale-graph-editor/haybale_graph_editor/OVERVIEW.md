@@ -63,9 +63,13 @@ Visual graph editor library — host-agnostic
 - **Reset Detail** — 
 - **Reset Node Detail** — 
 - **Reset Selection** — 
+- **Reset to default** — 
 - **Revalidate Selection** — 
+- **Set to none** — 
+- **Show widget** — 
 - **Skin** — 
 - **Status** — 
+- **Strategy** — 
 - **Theme** — 
 - **Type** — 
 - **Widget** — 

@@ -13,3 +13,4 @@ Signal for callback execution between nodes
 
 callback signal type - represents callback flow
 Inherits from STRING for payload compatibility.
+but is by default not serialized, and has no widget.

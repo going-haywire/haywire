@@ -20,8 +20,8 @@ File-centric multi-graph manager
 - **Haystack State** — 
 
 ## Panels
-- **Open in Haystack** — 
-- **Run Settings** — 
+- **Graph Settings** — 
+- **Load into Haystack** — 
 
 ## Editors
 - **Haystack** — All open graphs. Click to switch; "+" to create a new graph.

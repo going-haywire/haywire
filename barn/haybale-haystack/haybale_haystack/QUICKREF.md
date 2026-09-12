@@ -1,4 +1,4 @@
-# haybale-haystack — component index (v0.1.3)
+# haybale-haystack — component index (v0.2.0)
 
 ## setting
 - `haybale-haystack:setting:HaystackSettings` — Haystack — 
@@ -18,8 +18,8 @@
 - `haybale-haystack:state:HaystackState` — Haystack State — 
 
 ## panel
-- `haybale-haystack:panel:GraphRunSettingsPanel` — Run Settings — 
-- `haybale-haystack:panel:OpenInHaystackMenuPanel` — Open in Haystack — 
+- `haybale-haystack:panel:GraphRunSettingsPanel` — Graph Settings — 
+- `haybale-haystack:panel:OpenInHaystackMenuPanel` — Load into Haystack — 
 
 ## editor
 - `haybale-haystack:editor:HaystackEditor` — Haystack — All open graphs. Click to switch; "+" to create a new graph.

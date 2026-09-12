@@ -1,4 +1,4 @@
-# Skins
+# Skin
 
 `haybale-studio:panel:NodeSkinSettingsPanel` · kind: panel
 

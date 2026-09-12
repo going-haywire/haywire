@@ -7,11 +7,13 @@ Framework-owned primitive types and adapters
 - **Core Error Node** — Placeholder for node that could not be loaded
 
 ## Types
+- **Any** — Undecided until connected; the node retypes the port from the other end
 - **Boolean** — True or False
 - **Choices** — A string constrained to a set of options (options live per-use in widget_config)
 - **Color** — Hex or rgba color string
 - **Float** — Decimal numberer
 - **Integer** — Whole number
+- **Optional** — A value of the wrapped type, or absence
 - **String** — Text data
 - **Vec2f** — 2D float vector
 - **Vec2i** — 2D integer vector
@@ -31,6 +33,7 @@ Framework-owned primitive types and adapters
 - **CheckboxWidget** — checkbox widget
 - **ColorWidget** — Color picker widget
 - **NumberWidget** — Fast number input widget
+- **OptionalWidget** — Optional value — the wrapped type's widget, plus an absence state
 - **SelectWidget** — select widget
 - **SimpleLabelWidget** — Simple label for display only
 - **SliderWidget** — slider widget

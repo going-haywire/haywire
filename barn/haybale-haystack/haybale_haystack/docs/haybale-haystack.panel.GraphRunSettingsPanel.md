@@ -1,10 +1,10 @@
-# Run Settings
+# Graph Settings
 
 `haybale-haystack:panel:GraphRunSettingsPanel` · kind: panel
 
 ## Details
 
-- **surface**: `graph`
+- **surface**: `execution`
 - **order**: `20`
 
 ## Notes

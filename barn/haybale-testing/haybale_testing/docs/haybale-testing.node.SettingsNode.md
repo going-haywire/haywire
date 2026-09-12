@@ -43,6 +43,11 @@ Test the Settings for debugging
 | validated_string | example | 'hello' | Must be non-empty |
 | clamped_positive | example | 1.0 | Must be positive (validator rejects <= 0) |
 | even_int | example | 4 | Must be an even integer |
+| optional_int | example | None | Rests absent. The declared range is the REAL range — no sentinel to admit. |
+| optional_float | example | None | A validator constrains the PRESENT domain only; absence is always allowed. |
+| optional_bool | example | None | Tri-state without a tri-state: True, False, or nothing. |
+| optional_with_default | example | -1 | Rests at a VALUE and can still be cleared — so Reset and 'Set to none' differ. |
+| optional_restore | example | None | Absent by default, but clicking 'none' enters 42 (per-use restore=). |
 
 ## Notes
 

@@ -25,11 +25,12 @@ Library for haywire studio
 ## Panels
 - **Activity** — 
 - **Agent activity** — 
-- **Canvas** — 
 - **Debug Overlay** — 
 - **Default Skins** — 
+- **Developer mode** — 
 - **Editing** — 
 - **Execution** — 
+- **Grid** — 
 - **Log Levels** — 
 - **Manage principals** — 
 - **Minimap** — 
@@ -38,7 +39,7 @@ Library for haywire studio
 - **Security** — 
 - **Sign everyone out** — 
 - **Sign out** — 
-- **Skins** — Skin Configuration:Node dimensions, typography and label visibility.
+- **Skin** — Skin Configuration:Node dimensions, typography and label visibility.
 - **Workbench** — 
 - **Zoom & Pan** — 
 

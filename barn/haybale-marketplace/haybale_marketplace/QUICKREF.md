@@ -1,4 +1,4 @@
-# haybale-marketplace — component index (v0.1.3)
+# haybale-marketplace — component index (v0.2.0)
 
 ## farmhand
 - `haybale-marketplace:farmhand:dry_run_install` — Dry-run install — Resolve what an install would remove/upgrade, without installing (informational valve).
@@ -13,5 +13,5 @@
 - `haybale-marketplace:state:MarketplaceState` — Marketplace State — 
 
 ## editor
-- `haybale-marketplace:editor:LibraryBrowserEditor` — Libraries — Searchable list of installed and available libraries.
+- `haybale-marketplace:editor:LibraryBrowserEditor` — Marketplace — Searchable list of installed and available libraries.
 - `haybale-marketplace:editor:LibraryOverviewEditor` — Library Detail — Detailed information for the selected library.

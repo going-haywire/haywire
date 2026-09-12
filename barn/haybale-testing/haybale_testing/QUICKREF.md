@@ -1,6 +1,7 @@
-# haybale-testing — component index (v0.1.3)
+# haybale-testing — component index (v0.2.0)
 
 ## node
+- `haybale-testing:node:AnyPortTestNode` — Any Port TestNode —   _tags: testing, any, placeholder, resolve, variadic_
 - `haybale-testing:node:BenchBareNode` — Bench Bare Node — FROZEN: minimal no-port control node for measuring _execute dispatch overhead.  _tags: benchmark, frozen, bare, dispatch_
 - `haybale-testing:node:BenchExecNode` — Bench Exec Node — FROZEN: minimal EXEC in→out conduit for measuring control-edge payload forwarding.  _tags: benchmark, frozen, exec, conduit, control-edge_
 - `haybale-testing:node:ControlPayloadTestNode` — Control Payload TestNode — Test-only control node for exercising EXEC-edge payloads. Records the payload that arrived on its exec inlet, then advances — optionally writing its own payload, optionally forwarding the entered one implicitly (transparent conduit).  _tags: test, control, exec, payload, conduit_

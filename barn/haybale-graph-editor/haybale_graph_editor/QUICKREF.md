@@ -1,4 +1,4 @@
-# haybale-graph-editor — component index (v0.1.3)
+# haybale-graph-editor — component index (v0.2.0)
 
 ## farmhand
 - `haybale-graph-editor:farmhand:add_node` — Add node — Add a node by registry key. Call studio_describe_component first to learn its ports.
@@ -20,6 +20,7 @@
 ## panel
 - `haybale-graph-editor:panel:AppearanceToolbarPanel` — Appearance — 
 - `haybale-graph-editor:panel:ClearDetailOverridesMenuPanel` — Reset Detail — 
+- `haybale-graph-editor:panel:ClearSettingMenuPanel` — Set to none — 
 - `haybale-graph-editor:panel:CollapseSelectionMenuPanel` — Collapse — 
 - `haybale-graph-editor:panel:CollapseToolbarPanel` — Collapse — 
 - `haybale-graph-editor:panel:CopySelectionMenuPanel` — Copy Selection — 
@@ -58,6 +59,8 @@
 - `haybale-graph-editor:panel:NodeThemeMenuPanel` — Theme — 
 - `haybale-graph-editor:panel:PastePanel` — Paste — 
 - `haybale-graph-editor:panel:PinEditMenuPanel` — Edit — 
+- `haybale-graph-editor:panel:PinShowWidgetMenuPanel` — Show widget — 
+- `haybale-graph-editor:panel:PortShowWidgetStrategyPanel` — Strategy — 
 - `haybale-graph-editor:panel:PortTypeMenuPanel` — Type — 
 - `haybale-graph-editor:panel:PortWidgetMenuPanel` — Widget — 
 - `haybale-graph-editor:panel:RebuildSelectionMenuPanel` — Rebuild — 
@@ -65,6 +68,7 @@
 - `haybale-graph-editor:panel:RedrawSelectionMenuPanel` — Redraw Selection — 
 - `haybale-graph-editor:panel:ResetNodeCardsMenuPanel` — Reset Node Detail — 
 - `haybale-graph-editor:panel:ResetSelectionMenuPanel` — Reset Selection — 
+- `haybale-graph-editor:panel:ResetSettingMenuPanel` — Reset to default — 
 - `haybale-graph-editor:panel:RevalidateSelectionMenuPanel` — Revalidate Selection — 
 - `haybale-graph-editor:panel:SelectionOverflowPanel` — More — 
 

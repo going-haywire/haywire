@@ -1,4 +1,4 @@
-# Libraries
+# Marketplace
 
 `haybale-marketplace:editor:LibraryBrowserEditor` · kind: editor
 
