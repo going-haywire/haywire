@@ -30,6 +30,10 @@ execute = false
 path = "graphs/10x512n_5x448e.haywire"
 execute = false
 
+[[graphs]]
+path = "graphs/any_and_nonde.haywire"
+execute = false
+
 [haystack]
 name = "haystack"
 active_graph = "graphs/webcam.haywire"
