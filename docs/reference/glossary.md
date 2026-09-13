@@ -52,10 +52,12 @@ The three projections relate as: the **dataclass** (3) is the metadata that a **
 | **NodeWrapper** | The live runtime instance of a node inside a running graph; wraps the user-defined node class | Node instance (ambiguous — use NodeWrapper for the runtime object, Node for the class) |
 | **Edge** | A directed connection between an outlet on one node and an inlet on another. See [architecture/execution/edges](../architecture/execution/edges/edges-arch.md) | Connection, wire, link (use only as a verb: "to link an edge") |
 | **EdgeWrapper** | The runtime edge object that owns the `link/unlink/detach` lifecycle and the `is_lazy` flag | — |
-| **Port** | A typed, directional connection point on a node — either an inlet or an outlet. See [guides/ports](../guides/ports.md) | Pin (avoid for data ports), socket |
+| **Port** | A typed, directional connection point on a node — an inlet, an outlet, or a config port. See [guides/ports](../guides/ports.md) | Socket |
 | **Inlet** | A port that receives data or control into a node | Input, sink port |
 | **Outlet** | A port that emits data or control from a node | Output, source port |
-| **Pin** | Acceptable synonym for an EXEC (control) port specifically | — |
+| **Pin** | A port that carries an edge handle on the node card — every inlet and outlet, whatever its FlowType. A **config port has no pin**: it is never linked and never driven by an edge, so it renders a widget but no handle. The term names what the user can grab and drag from, which is why the canvas layer is spelled `PinMenu` / `data-pin-id` / `PinGlyph` | Socket; "pin" for a config port (there is no handle to mean) |
+| **Fold** | A pin-less, widget-less boolean port that contains other ports and is opened or closed by a disclosure triangle. Declared with `with self.fold("Name"):`, which mints the port — the author chooses no type, widget, direction or pin. Its value is a **disclosure state**, not a decision, and it persists; a node may still read it or hook `on_change=` to reconfigure itself. Scoped to one direction: a fold renders in the lane its children belong to (config band, inlet lane, or outlet lane) and may not mix directions. **Nests to any depth**: depth indents a port row's *content column* only, never its pin column, so a pin stays on the card border whatever its depth. Replaces both `group()` and `section()` | Group (the superseded `GROUP`-port spelling), section (removed), collapsible, expander |
+| **Port order** | A port's position among its siblings within one direction lane and one **Fold**, held in `DataPort.order` and the sort key for every card and panel rendering. Author-declared by `init()` call order; the graph user may override it by dragging in the **Ports panel**, and the user's order wins over a later author reordering | Display index, sort order (ambiguous with a settings row's `order=`) |
 
 ---
 

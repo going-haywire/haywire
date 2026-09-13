@@ -182,6 +182,15 @@ class AppIcon:
     row's label already says, never as a state indicator contradicting it."""
     node_detail: Final[str] = "tune"
     """Node density rank (NodeDetail) — the Detail submenu and its rows."""
+    fold_open: Final[str] = "expand_more"
+    """A fold that is open, on a node card or in the Ports panel.
+
+    Unlike ``node_collapse``/``node_expand``, the fold pair shows the STATE, not
+    the verb: a disclosure triangle points down when open and right when closed,
+    which is what every platform's triangle means. Nothing labels it, so there
+    is no verb for it to agree with."""
+    fold_closed: Final[str] = "chevron_right"
+    """A fold that is closed. Paired with ``fold_open``; see that entry."""
     open_external: Final[str] = "open_in_new"
     """Open in external editor or browser."""
 
