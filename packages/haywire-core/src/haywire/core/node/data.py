@@ -89,9 +89,6 @@ class NodeData:
         self._fold_direction: Dict[str, PortType] = {}
         """The direction each open fold has committed to, by fold port id."""
 
-        self._pending_folds: set[str] = set()
-        """Ids of folds being declared, which have yet to take a direction."""
-
         self._port_order_counter: int = 0
         """Counter for assigning display order to ports."""
 
@@ -163,11 +160,7 @@ class NodeData:
         if self._group_stack:
             port.parent_group = self._group_stack[-1]
 
-        # A nested fold is spec'd as_config but has no direction of its own yet
-        # — it takes one from its children when its block closes, and votes in
-        # its parent's lane then (see fold()). Voting the CONFIG it is spec'd
-        # with here would reject it from any inlet or outlet parent.
-        if port.parent_group and port.id not in self._pending_folds:
+        if port.parent_group:
             self._commit_fold_direction(port.parent_group, port.id, port.port_type)
 
         port.order = self._port_order_counter
@@ -226,7 +219,8 @@ class NodeData:
 
         Its id is derived from ``label``. The fold takes the direction of the
         ports inside it, so that it renders in their lane; mixing directions
-        inside one fold raises, and so does an empty one. Folds nest.
+        inside one fold raises, and so does an empty one. A fold holds ports,
+        not other folds — nesting one raises.
 
         Label a fold as a section ("Custom Name"), not as an imperative
         ("Use Custom Name") — it names what is inside, and the user opens it
@@ -236,11 +230,13 @@ class NodeData:
             label: The header text, and the source of the fold's port id.
             default: Whether the fold starts open.
             **kwargs: Forwarded to the port spec — ``on_change``, ``description``
-                and the rest of ``as_config``'s keywords.
+                and the rest of ``as_config``'s keywords. ``description`` shows
+                under the label in the header's hover tooltip.
 
         Raises:
-            ValueError: If the fold's id already exists on this node, if the
-                ports inside it disagree on direction, or if it holds none.
+            ValueError: If the fold's id already exists on this node, if it is
+                declared inside another fold, if the ports inside it disagree
+                on direction, or if it holds none.
 
         Examples:
             # A fold over two config ports
@@ -256,36 +252,25 @@ class NodeData:
             with self.fold('Custom Name', on_change='hb_change'):
                 self.add(STRING.as_config('name', default='my_callback'))
         """
-        from haywire.barn.builtin.types import BOOL
+        from haywire.barn.builtin.types import FOLD
 
         fold_id = self._fold_id(label)
-        # widget_key=None: BOOL's identity declares SWITCH_WIDGET, and a fold
-        # whose state is reached by the disclosure triangle must not also render
-        # one. as_config resolves store_strategy to ALWAYS (BOOL sets none), so
-        # a widget-less fold still persists its open state.
-        spec = BOOL.as_config(
-            fold_id,
-            label=label,
-            default=default,
-            widget_key=None,
-            **kwargs,
-        )
-        # Announced before add() so it can tell this port is a container that
-        # has yet to learn its direction, rather than a config port.
-        self._pending_folds.add(fold_id)
-        parent_id = self._group_stack[-1] if self._group_stack else None
-        try:
-            fold_port = self.add(spec)
-            fold_port.is_group = True
+        spec = FOLD.as_config(fold_id, label=label, default=default, **kwargs)
+        if self._group_stack:
+            raise ValueError(
+                f"Fold {fold_id!r} is declared inside fold {self._group_stack[-1]!r}. "
+                f"A fold holds ports, not other folds."
+            )
 
-            self._group_stack.append(fold_port.id)
-            try:
-                yield fold_port
-            finally:
-                self._group_stack.pop()
-                committed = self._fold_direction.pop(fold_port.id, None)
+        fold_port = self.add(spec)
+        fold_port.is_group = True
+
+        self._group_stack.append(fold_port.id)
+        try:
+            yield fold_port
         finally:
-            self._pending_folds.discard(fold_id)
+            self._group_stack.pop()
+            committed = self._fold_direction.pop(fold_port.id, None)
 
         # Only on a clean exit: raising here on the exception path would mask
         # whatever the body raised (the mixing ValueError above, most often).
@@ -298,12 +283,6 @@ class NodeData:
         # as_config() spec would otherwise put it in. It stays pinless through
         # is_group — see DataPort.has_pin().
         fold_port.adopt_port_type(committed)
-
-        # The vote add() deferred: a nested fold joins its parent's lane with
-        # the direction it just took, so a config fold inside an inlet fold is
-        # still rejected.
-        if parent_id is not None:
-            self._commit_fold_direction(parent_id, fold_port.id, committed)
 
     def _push(
         self, include: Optional[List[str] | str] = None, exclude: Optional[List[str] | str] = None
@@ -492,27 +471,6 @@ class NodeData:
         """
         return [port for port in self.get_all_ports() if not port.is_group and port.is_linked()]
 
-    def iter_group_children(self, group_id: str) -> Iterator[DataPort]:
-        """Yield the direct children of group ``group_id``, in display order."""
-        for port in self._iter_ports():
-            if port.parent_group == group_id:
-                yield port
-
-    def is_group_expanded(self, group_id: str) -> bool:
-        """Return whether a group is currently expanded.
-
-        Raises:
-            KeyError: If no port has this ID.
-            ValueError: If the port is not a group.
-        """
-        port = self.ports.get(group_id)
-        if not port:
-            raise KeyError(f"Group '{group_id}' not found")
-        if not port.is_group:
-            raise ValueError(f"Port '{group_id}' is not a group")
-
-        return self.value(group_id)
-
     def get_ports(
         self,
         is_port_type: Optional[PortType] = None,
@@ -581,47 +539,6 @@ class NodeData:
             current_group_id = group_port.parent_group
 
         return False
-
-    def get_port_hierarchy(self, port_id: str) -> str:
-        """Return the port's path up to ``'root'``, its parent groups joined with ``'>>'``.
-
-        Raises:
-            KeyError: If no port has this ID.
-
-        Examples:
-            # Top-level port
-            path = self.get_port_hierarchy('value')
-            # Returns: 'value>>root'
-
-            # Port in a group
-            path = self.get_port_hierarchy('tolerance')
-            # Returns: 'tolerance>>advanced>>root'
-
-            # Port in nested groups
-            path = self.get_port_hierarchy('epsilon')
-            # Returns: 'epsilon>>validation>>advanced>>root'
-        """
-        port = self.ports.get(port_id)
-        if not port:
-            raise KeyError(f"Port '{port_id}' not found")
-
-        hierarchy_parts = [port_id]
-        current_port = port
-
-        while current_port.parent_group is not None:
-            parent_id = current_port.parent_group
-            parent_port = self.ports.get(parent_id)
-
-            if not parent_port:
-                # Broken hierarchy: stop where the chain ends.
-                break
-
-            hierarchy_parts.append(parent_id)
-            current_port = parent_port
-
-        hierarchy_parts.append("root")
-
-        return ">>".join(hierarchy_parts)
 
     def mark_port_as_dirty(self, port: DataPort) -> None:
         """Record that *port* changed, so the node's worker runs on the next execution."""

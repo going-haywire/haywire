@@ -13,4 +13,7 @@ Inlet group
 
 ## Notes
 
-Group data type
+Group data type.
+
+Superseded by ``NodeData.fold()``, which mints a `FOLD` port of its own.
+Kept for graphs saved before the change; new nodes use ``fold()``.

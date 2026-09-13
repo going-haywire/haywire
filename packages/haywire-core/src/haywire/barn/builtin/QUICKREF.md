@@ -4,11 +4,12 @@
 - `haywire-core:node:ErrorNode` — Core Error Node — Placeholder for node that could not be loaded  _tags: error, system, placeholder_
 
 ## type
-- `haywire-core:type:ANY` — Any — Undecided until connected; the node retypes the port from the other end
+- `haywire-core:type:ADD` — Add — Grows a new port from whatever connects to it
 - `haywire-core:type:BOOL` — Boolean — True or False
 - `haywire-core:type:CHOICES` — Choices — A string constrained to a set of options (options live per-use in widget_config)
 - `haywire-core:type:COLOR` — Color — Hex or rgba color string
 - `haywire-core:type:FLOAT` — Float — Decimal numberer
+- `haywire-core:type:FOLD` — Fold — Hides or shows the ports inside it
 - `haywire-core:type:INT` — Integer — Whole number
 - `haywire-core:type:OPTIONAL` — Optional — A value of the wrapped type, or absence
 - `haywire-core:type:STRING` — String — Text data

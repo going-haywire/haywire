@@ -59,11 +59,21 @@ def _node(graph):
     return wrapper
 
 
-@pytest.fixture
-def rendered(library_system, nicegui_slot_context):
+def _fold_node(graph):
+    """A node whose ports sit in folds, so the fold header's tooltip — hosted
+    on the header row, triggered by its triangle — is exercised too."""
+    from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
+
+    wrapper = graph.create_node_wrapper(FoldProbeNode.class_identity.registry_key, position=(0, 0))
+    assert wrapper is not None
+    return wrapper
+
+
+@pytest.fixture(params=[_node, _fold_node], ids=["widgets_and_configs", "folds"])
+def rendered(request, library_system, nicegui_slot_context):
     skin_factory = library_system.injector.get(SkinFactory)
     graph = _graph()
-    wrapper = _node(graph)
+    wrapper = request.param(graph)
     skin_key = skin_factory._skin_registry.get_default_skin_registry_key()
     assert skin_key, "no default skin registered"
     container = ui.element("div")

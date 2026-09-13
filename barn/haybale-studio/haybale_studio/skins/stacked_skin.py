@@ -13,6 +13,7 @@ from haywire.core.types import DataPort
 from haywire.core.types.enums import LayoutDirection, PortType
 from haywire.ui import elements as hui
 from haywire.ui.skin.decorator import skin
+from haywire.ui.skin.pin_render import add_pin_tooltip
 
 from .node_skin import NodeSkin
 
@@ -274,7 +275,7 @@ class StackedNodeSkin(NodeSkin):
         depth: int = 0,
     ):
         """
-        Render a collapsible group with visual hierarchy.
+        Render a collapsible fold with visual hierarchy.
 
         Folds are rendered with:
         - A disclosure-triangle header (no widget — a fold carries none)
@@ -282,13 +283,12 @@ class StackedNodeSkin(NodeSkin):
         - Child ports only while open
 
         Args:
-            group_port: The group control port (boolean inlet)
+            group_port: The fold's control port
             all_ports: All visible ports (to find children)
             wrapper: NodeWrapper containing the node
             port_type: Port Type
             layout: Resolved layout direction; looked up from the wrapper when omitted
-            depth: This group's own nesting level. Children render at
-                ``depth + 1``.
+            depth: This fold's own level. Children render at ``depth + 1``.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         node = wrapper.node
@@ -315,13 +315,23 @@ class StackedNodeSkin(NodeSkin):
                     f'data-hw-fold-id="{group_port.id}" data-hw-fold-open="{str(bool(is_expanded)).lower()}"'
                 )
                 .on("click", lambda pid=group_port.id: self._toggle_fold(wrapper, pid))
-            ):
-                ui.icon(hui.icon.fold_open if is_expanded else hui.icon.fold_closed).classes("text-sm")
-                ui.label(group_port.label).classes("text-xs")
+            ) as header_row:
+                triangle = ui.icon(hui.icon.fold_open if is_expanded else hui.icon.fold_closed).classes(
+                    "text-sm"
+                )
+                ui.label(group_port.label).classes("text-xs grow")
+                # The fold's value is a real boolean a node can read, so the
+                # header states it as one. Open is checked: the value and the
+                # open state are the same thing.
+                ui.icon(hui.icon.checked if is_expanded else hui.icon.unchecked).classes("text-sm")
 
-            # Group children (if expanded)
+            # Hosted on the row, triggered by the triangle: a trigger must be
+            # small and must never contain another (see add_pin_tooltip).
+            add_pin_tooltip(header_row, group_port, trigger_el=triangle)
+
+            # Fold children (while open). A fold holds ports, not other folds,
+            # so every child renders as a port row.
             if is_expanded:
-                # Find and render direct children
                 children = [
                     port
                     for port in all_ports
@@ -329,19 +339,13 @@ class StackedNodeSkin(NodeSkin):
                 ]
 
                 for child_port in sorted(children, key=lambda p: p.order):
-                    # Recursively handle nested groups
-                    if child_port.is_group:
-                        self._render_group(
-                            child_port, all_ports, wrapper, port_type, layout, depth=depth + 1
-                        )
-                    else:
-                        self.render_port(
-                            child_port,
-                            wrapper,
-                            widget_classes="widget-container zoom-pan-lod2",
-                            layout=layout,
-                            depth=depth + 1,
-                        )
+                    self.render_port(
+                        child_port,
+                        wrapper,
+                        widget_classes="widget-container zoom-pan-lod2",
+                        layout=layout,
+                        depth=depth + 1,
+                    )
 
     def _toggle_fold(self, wrapper: NodeWrapper, fold_id: str) -> None:
         """Flip a fold's open state and redraw.

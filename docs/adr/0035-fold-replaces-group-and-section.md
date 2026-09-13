@@ -37,10 +37,12 @@ with self.fold("Solver"):
     self.add(INT.as_config("substeps", default=10))
 ```
 
-and chooses nothing else. The framework mints a boolean port in the config
-direction — so `has_pin()` is false and it draws no edge handle — with no
-widget. The disclosure triangle is the affordance. Ports added inside become its
-children, exactly as under `group()`.
+and chooses nothing else. The framework mints a `FOLD` port — a `BOOL` subtype
+declaring the rules a fold needs rather than restating them at each call: no
+widget, and `StoreStrategy.ALWAYS` so a widget-less port still remembers whether
+it was open. `has_pin()` is false, so it draws no edge handle. The disclosure
+triangle is the affordance. Ports added inside become its children, exactly as
+under `group()`.
 
 `section()` and everything reachable only from it are removed: `DataPort.section`,
 `DataPort.is_section`, `iter_section_ports`, `get_sections_map`, and the
@@ -62,6 +64,12 @@ this is the same affordance Blender gives its modifier panels.
 Authors should therefore label a fold as a section (`"Custom Name"`), not as an
 imperative.
 
+The header still states the value as a boolean: a checkbox to the right of the
+label, checked while the fold is open. A fold's value is readable by the node
+and drives `on_change=`, so a header showing only a triangle understates what
+folding does — the checkbox says the state is a value, while the triangle says
+there is content underneath. They never disagree: both render the same boolean.
+
 ## A fold is scoped to one direction
 
 Skins render inlets, outlets and config ports in separate lanes — opposite card
@@ -73,22 +81,36 @@ So a fold takes the direction of the ports inside it, and mixing directions
 raises at declaration time. A config fold renders in the config band, an inlet
 fold in the inlet lane.
 
-## Nesting is safe because indentation never moves a pin
+## A fold holds ports, not other folds
 
-Folds nest to any depth. This is only true because depth indents a port row's
-**content column** and never its pin column.
+Folds are one level deep. A fold declared inside another raises at declaration
+time, alongside the mixed-direction and empty-fold errors.
+
+Arbitrary depth is expressible but costs more than it returns. A fold is spec'd
+`as_config` and only learns its direction when its block closes, so a nested one
+cannot vote in its parent's lane on the way in — it has no direction yet. Making
+that work needs the parent's direction vote deferred for containers and replayed
+afterwards, plus a recursive renderer. No node in the repository needs more than
+one level, so the depth buys nothing that pays for that machinery.
+
+Indentation still belongs on a port row's **content column**, never its pin
+column, and that rule is independent of depth.
 
 A port row is a two-column grid, `{PIN_GUTTER}px 1fr` — the pin in the first
 column, label and widget in the second. A pin is placed by a negative offset,
 `card_padding + pin_gutter // 2 + pin_protrusion`, which assumes the row begins
 at the card edge. Indenting the whole row — as the superseded `_render_group`
 did with `pl-2 ml-1` — falsifies that assumption and insets the pin from the
-border, silently, once per level.
+border, silently.
 
 Indenting the content column instead leaves the pin column's geometry untouched,
-so the offset stays correct at any depth and label and widget indent together.
-The edge layer is unaffected either way: `_getPinPosition` measures pins with
+so the offset stays correct and label and widget indent together. The edge layer
+is unaffected either way: `_getPinPosition` measures pins with
 `getBoundingClientRect()` and follows the pin wherever it lands.
+
+A fold's own header is pinless, so it indents like a config row rather than a
+port row — measured against `CONTENT_GAP`, which is negative to overlap the pin
+gutter, a header is pulled left of the card padding.
 
 ## Consequences
 

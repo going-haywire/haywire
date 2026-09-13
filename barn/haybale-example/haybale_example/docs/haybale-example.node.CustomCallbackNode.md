@@ -8,7 +8,7 @@ Listens for custom callbacks from other flows
 
 | id | direction | type | description |
 |---|---|---|---|
-| custom_name | config | haywire-core:type:BOOL | True or False |
+| custom_name | config | haywire-core:type:FOLD | Hides or shows the ports inside it |
 | custom_callback_name | config | haywire-core:type:STRING | Text data |
 | thread_mode | config | haywire-core:type:STRING | Text data |
 | listen_callback | outlet | haybale-core:type:CALLBACK | Signal for callback execution between nodes |

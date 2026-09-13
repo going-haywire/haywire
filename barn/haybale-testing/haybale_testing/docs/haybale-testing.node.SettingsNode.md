@@ -8,7 +8,7 @@ Test the Settings for debugging
 
 | id | direction | type | description |
 |---|---|---|---|
-| settings | outlet | haywire-core:type:STRING | Text data |
+| settings | outlet | haybale-testing:type:TEST_STRING | Text data |
 
 ## Settings
 

@@ -71,22 +71,20 @@ def _render(ctx, wrapper) -> ui.element:
 
 
 def test_an_inlet_fold_s_children_render_their_pins(ctx) -> None:
-    """InletFoldNode holds inlet 'a', plus 'b' in a fold nested inside it."""
-    from haybale_testing.nodes.testbed.inlet_fold import InletFoldNode
+    """FoldProbeNode's 'Inputs' fold holds inlets 'a' and 'b'."""
+    from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
 
     _skin_factory, graph, _skin_key = ctx
-    wrapper = graph.create_node_wrapper(InletFoldNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(FoldProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
 
     container = _render(ctx, wrapper)
 
     pin_ids = {el._props["data-pin-id"] for el in _pins(container)}
-    assert "a" in pin_ids, "inlet 'a' inside the 'Input as' fold has no pin"
-    assert "b" in pin_ids, "inlet 'b' inside the nested 'Input bs' fold has no pin"
+    assert "a" in pin_ids, "inlet 'a' inside the 'Inputs' fold has no pin"
+    assert "b" in pin_ids, "inlet 'b' inside the 'Inputs' fold has no pin"
 
-    labels = _labels(container)
-    assert "Input as" in labels, "the fold header itself must still render"
-    assert "Input bs" in labels, "the nested fold's header must render too"
+    assert "Inputs" in _labels(container), "the fold header itself must still render"
 
 
 def test_a_config_fold_s_children_still_render(ctx) -> None:
@@ -106,20 +104,18 @@ def test_a_config_fold_s_children_still_render(ctx) -> None:
     assert "Float" in labels, "the fold's config child ('substeps') must render alongside its header"
 
 
-def test_a_nested_fold_header_indents_past_its_parent(ctx) -> None:
+def test_a_fold_header_sits_at_or_past_the_card_padding(ctx) -> None:
     """A fold header is pinless, so it indents like a config row. Measured
-    against CONTENT_GAP (negative, to overlap the pin gutter) the step
-    disappeared and both headers sat flush at the card edge."""
-    from haybale_testing.nodes.testbed.nested_fold import NestedFoldNode
+    against CONTENT_GAP (negative, to overlap the pin gutter) a header is
+    pulled left of the card padding."""
+    from haybale_testing.nodes.testbed.fold_probe import FoldProbeNode
 
     _skin_factory, graph, _skin_key = ctx
-    wrapper = graph.create_node_wrapper(NestedFoldNode.class_identity.registry_key, position=(0, 0))
+    wrapper = graph.create_node_wrapper(FoldProbeNode.class_identity.registry_key, position=(0, 0))
     assert wrapper is not None
 
     headers = _fold_headers(_render(ctx, wrapper))
 
-    assert headers.keys() == {"solver", "interpolation_range"}
-    assert headers["solver"] >= 0, "a header must not sit left of the card padding"
-    assert headers["interpolation_range"] > headers["solver"], (
-        "a nested fold must read as nested — its header indents past its parent's"
-    )
+    assert headers.keys() == {"solver", "inputs", "advanced"}
+    for fold_id, indent in headers.items():
+        assert indent >= 0, f"{fold_id} header sits left of the card padding"

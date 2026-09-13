@@ -1,4 +1,11 @@
-"""fold() mints one container port: no pin, no widget, state persists."""
+"""fold() mints one container port: no pin, no widget, state persists.
+
+``FoldProbeNode`` carries three sibling folds — ``solver`` (config),
+``inputs`` (inlet) and ``advanced`` (config, starts closed) — so one built
+node covers the lane, pin and open-state cases. The three raising cases each
+need their own node: ``init()`` aborts at the first raise, so a node that
+fails cannot also serve as the happy path.
+"""
 
 from __future__ import annotations
 
@@ -14,6 +21,20 @@ def _make_probe(graph, position=(100.0, 100.0)):
     wrapper = graph.create_node_wrapper(FoldProbeNode.class_identity.registry_key, position=position)
     assert wrapper is not None, "node creation failed"
     return wrapper.node
+
+
+def _build(graph, node_cls, position=(100.0, 100.0)):
+    """Build a probe whose init() raises, returning its recorded error.
+
+    NodeWrapper.build() records an init() failure on the wrapper rather than
+    propagating it, so a raise is asserted here and not with pytest.raises.
+    """
+    wrapper = graph.create_node_wrapper(node_cls.class_identity.registry_key, position=position)
+    assert wrapper is not None, "node creation failed"
+    error = wrapper.state.error_initialize
+    assert error is not None, "expected init() to fail"
+    assert isinstance(error.original_exception, ValueError)
+    return error.original_exception
 
 
 def test_fold_id_is_derived_from_the_label() -> None:
@@ -36,48 +57,44 @@ def test_a_fold_takes_the_direction_of_its_children(graph_with_library_system) -
     not the CONFIG its as_config() spec starts out with."""
     from haywire.core.types.enums import PortType
 
-    from haybale_testing.nodes.testbed.inlet_fold import InletFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        InletFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    fold = wrapper.node.ports["input_as"]
-    assert fold.port_type is PortType.INLET
+    probe = _make_probe(graph_with_library_system)
+    assert probe.ports["inputs"].port_type is PortType.INLET
+    assert probe.ports["solver"].port_type is PortType.CONFIG
 
 
 def test_an_inherited_direction_refreshes_the_is_inlet_cache(graph_with_library_system) -> None:
     """set_value branches on the cached _is_inlet, not on is_inlet(). A fold
     that took INLET with a stale cache would run the OUTLET write path —
     node-set plus propagate, skipping on_change — silently."""
-    from haybale_testing.nodes.testbed.inlet_fold import InletFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        InletFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    fold = wrapper.node.ports["input_as"]
+    probe = _make_probe(graph_with_library_system)
+    fold = probe.ports["inputs"]
     assert fold._is_inlet == fold.is_inlet()
 
 
 def test_an_inlet_fold_still_draws_no_pin(graph_with_library_system) -> None:
     """is_group, not is_config, is what keeps a fold pinless — otherwise a fold
     that inherits INLET would sprout a connectable pin of its own."""
-    from haybale_testing.nodes.testbed.inlet_fold import InletFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        InletFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    fold = wrapper.node.ports["input_as"]
+    probe = _make_probe(graph_with_library_system)
+    fold = probe.ports["inputs"]
     assert fold.is_config() is False, "fixture assumption: this fold inherited INLET"
     assert fold.has_pin() is False
 
 
 def test_fold_carries_no_widget(graph_with_library_system) -> None:
-    """BOOL declares SWITCH_WIDGET; a fold must not inherit it."""
+    """The disclosure triangle is the whole control, so FOLD overrides the
+    SWITCH_WIDGET it would otherwise inherit from BOOL."""
     probe = _make_probe(graph_with_library_system)
     assert probe.ports["solver"].widget_key is None
+
+
+def test_a_fold_describes_itself_without_the_author(graph_with_library_system) -> None:
+    """An undescribed fold must not fall through to BOOL's "True or False",
+    which describes the mechanism rather than what the fold holds."""
+    probe = _make_probe(graph_with_library_system)
+    assert probe.ports["advanced"].description == "Hides or shows the ports inside it"
+    assert probe.ports["solver"].description == "How the solver steps through time.", (
+        "an explicit description= must still win"
+    )
 
 
 def test_fold_persists_its_open_state(graph_with_library_system) -> None:
@@ -95,6 +112,7 @@ def test_fold_persists_its_open_state(graph_with_library_system) -> None:
 def test_fold_parents_its_children(graph_with_library_system) -> None:
     probe = _make_probe(graph_with_library_system)
     assert probe.ports["substeps"].parent_group == "solver"
+    assert probe.ports["a"].parent_group == "inputs"
     assert probe.ports["out"].parent_group is None
 
 
@@ -106,114 +124,39 @@ def test_fold_is_marked_as_a_group(graph_with_library_system) -> None:
 def test_fold_defaults_to_open(graph_with_library_system) -> None:
     probe = _make_probe(graph_with_library_system)
     assert probe.value("solver") is True
+    assert probe.value("advanced") is False, "default=False starts a fold closed"
+
+
+def test_a_closed_fold_hides_its_children(graph_with_library_system) -> None:
+    """get_visible_ports() drops a closed fold's children, keeping the fold."""
+    probe = _make_probe(graph_with_library_system)
+    visible = {p.id for p in probe.get_visible_ports()}
+    assert "epsilon" not in visible
+    assert "advanced" in visible
+    assert "substeps" in visible, "an open fold's child stays visible"
 
 
 def test_mixing_directions_in_one_fold_raises(graph_with_library_system) -> None:
-    """init() raises inside NodeWrapper.build(), which records rather than
-    propagates it (see NodeWrapper.build) — so the raise is checked on
-    wrapper.state.error_initialize.original_exception, not via pytest.raises.
-    """
     from haybale_testing.nodes.testbed.mixed_fold import MixedFoldNode
 
-    wrapper = graph_with_library_system.create_node_wrapper(
-        MixedFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    error = wrapper.state.error_initialize
-    assert error is not None, "expected init() to fail"
-    assert isinstance(error.original_exception, ValueError)
-    assert "one direction" in str(error.original_exception)
+    error = _build(graph_with_library_system, MixedFoldNode)
+    assert "one direction" in str(error)
 
 
-def test_a_nested_fold_of_the_wrong_direction_raises(graph_with_library_system) -> None:
-    """Deferring a nested fold's vote must not drop it: once the inner block
-    closes and it knows it is CONFIG, an INLET parent still has to reject it."""
-    from haybale_testing.nodes.testbed.mixed_nested_fold import MixedNestedFoldNode
+def test_a_fold_inside_a_fold_raises(graph_with_library_system) -> None:
+    """A fold holds ports, not other folds."""
+    from haybale_testing.nodes.testbed.nested_fold import NestedFoldNode
 
-    wrapper = graph_with_library_system.create_node_wrapper(
-        MixedNestedFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    error = wrapper.state.error_initialize
-    assert error is not None, "expected init() to fail"
-    assert isinstance(error.original_exception, ValueError)
-    assert "one direction" in str(error.original_exception)
+    error = _build(graph_with_library_system, NestedFoldNode)
+    assert "not other folds" in str(error)
 
 
 def test_an_empty_fold_raises(graph_with_library_system) -> None:
-    """A fold with nothing inside has no direction to take. Recorded on the
-    wrapper rather than raised — see test_mixing_directions_in_one_fold_raises."""
+    """A fold with nothing inside has no direction to take."""
     from haybale_testing.nodes.testbed.empty_fold import EmptyFoldNode
 
-    wrapper = graph_with_library_system.create_node_wrapper(
-        EmptyFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    error = wrapper.state.error_initialize
-    assert error is not None, "expected init() to fail"
-    assert isinstance(error.original_exception, ValueError)
-    assert "holds no ports" in str(error.original_exception)
-
-
-def test_a_fold_of_inlets_is_fine(graph_with_library_system) -> None:
-    from haybale_testing.nodes.testbed.inlet_fold import InletFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        InletFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    probe = wrapper.node
-    assert probe.ports["a"].parent_group == "input_as"
-    assert probe.ports["b"].parent_group == "input_bs"
-
-
-def test_a_fold_nests_inside_an_inlet_fold(graph_with_library_system) -> None:
-    """A fold is spec'd as_config and only takes a direction when its block
-    closes, so it must not vote CONFIG into its parent's lane on the way in —
-    that rejects every nested fold from an inlet or outlet parent."""
-    from haywire.core.types.enums import PortType
-
-    from haybale_testing.nodes.testbed.inlet_fold import InletFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        InletFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    assert wrapper.state.error_initialize is None, "a nested inlet fold must build"
-
-    inner = wrapper.node.ports["input_bs"]
-    assert inner.parent_group == "input_as"
-    assert inner.port_type is PortType.INLET
-    assert inner.is_group is True
-
-
-def test_folds_nest(graph_with_library_system) -> None:
-    from haybale_testing.nodes.testbed.nested_fold import NestedFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        NestedFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    probe = wrapper.node
-    assert probe.ports["substeps"].parent_group == "solver"
-    assert probe.ports["interpolation_range"].parent_group == "solver"
-    assert probe.ports["begin"].parent_group == "interpolation_range"
-    assert probe.ports["end"].parent_group == "interpolation_range"
-
-
-def test_a_closed_outer_fold_hides_a_nested_fold_child(graph_with_library_system) -> None:
-    """_is_any_ancestor_collapsed walks the whole chain, not just one level."""
-    from haybale_testing.nodes.testbed.nested_closed_fold import NestedClosedFoldNode
-
-    wrapper = graph_with_library_system.create_node_wrapper(
-        NestedClosedFoldNode.class_identity.registry_key, position=(100.0, 100.0)
-    )
-    assert wrapper is not None, "node creation failed"
-    probe = wrapper.node
-    visible = {p.id for p in probe.get_visible_ports()}
-    assert "begin" not in visible
-    assert "interpolation_range" not in visible
-    assert "solver" in visible
+    error = _build(graph_with_library_system, EmptyFoldNode)
+    assert "holds no ports" in str(error)
 
 
 def test_section_api_is_gone() -> None:
@@ -226,6 +169,15 @@ def test_section_api_is_gone() -> None:
     assert not hasattr(NodeData, "get_section_ports")
     assert "section" not in {f.name for f in DataPort.__dataclass_fields__.values()}
     assert "is_section" not in {f.name for f in DataPort.__dataclass_fields__.values()}
+
+
+def test_the_tree_shaped_port_api_is_gone() -> None:
+    """Folds are one level, so an ancestor path has nothing to walk."""
+    from haywire.core.node.data import NodeData
+
+    assert not hasattr(NodeData, "get_port_hierarchy")
+    assert not hasattr(NodeData, "iter_group_children")
+    assert not hasattr(NodeData, "is_group_expanded")
 
 
 def test_visible_ports_takes_no_section_argument() -> None:

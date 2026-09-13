@@ -1,4 +1,4 @@
-"""Nested-fold probe — proves fold() nests to any depth."""
+"""Nested fold probe — a fold holds ports, not other folds, so this raises."""
 
 from haywire.core.execution.execution_context import ExecutionContext
 from haywire.core.node import node, BaseNode, NodeType
@@ -6,7 +6,7 @@ from haywire.core.node import node, BaseNode, NodeType
 
 @node(
     label="Nested Fold",
-    description="Tests that folds nest",
+    description="Tests that a fold declared inside another fold raises",
     search_tags=["testing", "fold"],
     menu="testing/testbed",
     node_type=NodeType.DATA,
@@ -18,11 +18,10 @@ class NestedFoldNode(BaseNode):
         from haywire.barn.builtin.types import FLOAT, STRING
 
         self.add(STRING.as_outlet("out"))
-        with self.fold("Solver"):
+        with self.fold("Outer"):
             self.add(FLOAT.as_config("substeps", default=10.0))
-            with self.fold("Interpolation Range"):
+            with self.fold("Inner"):
                 self.add(FLOAT.as_config("begin", default=0.0))
-                self.add(FLOAT.as_config("end", default=1.0))
 
     def worker(self, context: ExecutionContext) -> str | None:
         return None

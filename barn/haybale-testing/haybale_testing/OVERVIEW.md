@@ -11,12 +11,10 @@ Test library for test support
 - **Display** — Displays input values for debugging
 - **Dynamic Port TestNode** — 
 - **Edge Link TestNode** — 
-- **Fold** — Tests fold rendering
-- **Fold Probe** — Tests fold() minting and nesting
-- **Inlet Fold** — Tests that a fold of only inlets is fine
+- **Empty Fold** — Tests that a fold holding no ports raises
+- **Fold Probe** — Tests fold minting, lanes and open state
 - **Mixed Fold** — Tests that a fold spanning two directions raises
-- **Nested Closed** — Tests that a closed outer fold hides a nested fold child
-- **Nested Fold** — Tests that folds nest
+- **Nested Fold** — Tests that a fold declared inside another fold raises
 - **Performance Testing Node** — Helps test performance of execution system
 - **Settings Test Node** — Test the Settings for debugging
 - **Size Box (content-sized)** — Hosts an oversized widget with no declared box

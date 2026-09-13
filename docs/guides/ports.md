@@ -136,8 +136,9 @@ inlet.data.get_source_ids()    # ['node_a', 'node_b', 'node_c']
 A fold is a real port, as any inlet or outlet is: it holds the open/closed
 state, serializes with the graph, and parents its children through
 `parent_group`. Unlike a hand-declared port, the author supplies only a
-label — the framework mints a pin-less, widget-less `BOOL` config port whose
-disclosure triangle is the only affordance:
+label — the framework mints a pin-less, widget-less `FOLD` port, whose header
+carries a disclosure triangle, the label, and a checkbox showing the same
+open/closed boolean:
 
 ```python
 with self.fold('Solver'):
@@ -159,20 +160,30 @@ with self.fold('Custom Name', on_change='hb_change'):
     self.add(STRING.as_config('name', default='my_callback'))
 ```
 
+`description=` replaces the default line under the label in the header's hover
+tooltip, which appears when the pointer crosses the disclosure triangle:
+
+```python
+with self.fold('Solver', description='How the solver steps through time.'):
+    self.add(INT.as_config('substeps', default=10))
+```
+
 **One direction per fold.** Every port added inside one fold must share the
 same `PortType` (inlet, outlet, or config) — a skin renders each direction in
 its own lane, so a fold spanning two would need its header drawn twice.
 Mixing raises `ValueError` at declaration time, from `init()`.
 
-**Folds nest to any depth**, each child fold rendering under its parent, and
-a closed ancestor hides every fold beneath it:
+**A fold holds ports, not other folds.** Folds are one level deep; declaring
+one inside another raises `ValueError`, like the two errors above. Use sibling
+folds instead:
 
 ```python
 with self.fold('Solver'):
     self.add(FLOAT.as_config('substeps', default=10.0))
-    with self.fold('Interpolation Range'):
-        self.add(FLOAT.as_config('begin', default=0.0))
-        self.add(FLOAT.as_config('end', default=1.0))
+
+with self.fold('Interpolation Range'):
+    self.add(FLOAT.as_config('begin', default=0.0))
+    self.add(FLOAT.as_config('end', default=1.0))
 ```
 
 Label a fold as a section name ("Custom Name"), not as an imperative ("Use

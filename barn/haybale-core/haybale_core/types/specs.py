@@ -19,8 +19,8 @@ from haywire.barn.builtin.types import STRING
 class GROUP(PrimitiveType[bool]):
     """Group data type.
 
-    Superseded by ``NodeData.fold()``, which mints its own container port. Kept
-    for graphs saved before the change; new nodes use ``fold()``.
+    Superseded by ``NodeData.fold()``, which mints a `FOLD` port of its own.
+    Kept for graphs saved before the change; new nodes use ``fold()``.
     """
 
     def to_dict(self) -> dict:

@@ -7,11 +7,12 @@ Framework-owned primitive types and adapters
 - **Core Error Node** — Placeholder for node that could not be loaded
 
 ## Types
-- **Any** — Undecided until connected; the node retypes the port from the other end
+- **Add** — Grows a new port from whatever connects to it
 - **Boolean** — True or False
 - **Choices** — A string constrained to a set of options (options live per-use in widget_config)
 - **Color** — Hex or rgba color string
 - **Float** — Decimal numberer
+- **Fold** — Hides or shows the ports inside it
 - **Integer** — Whole number
 - **Optional** — A value of the wrapped type, or absence
 - **String** — Text data
