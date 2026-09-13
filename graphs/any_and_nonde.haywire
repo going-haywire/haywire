@@ -2,7 +2,7 @@
   "format_version": 3,
   "filestem": "any_and_nonde",
   "created_at": "2026-09-12T10:04:10.101874",
-  "modified_at": "2026-09-13T15:54:02.693922",
+  "modified_at": "2026-09-13T22:11:44.966150",
   "meta": {
     "values": {},
     "promoted": {}
@@ -12,7 +12,7 @@
       "node_id": "SettingsNode_fbf021",
       "registry_key": "haybale-testing:node:SettingsNode",
       "position": [
-        3650,
+        3900,
         3300
       ],
       "node_data": {
@@ -48,7 +48,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 3650.0,
+              "posX": 3900.0,
               "posY": 3300.0,
               "width": 268,
               "height": 110
@@ -62,7 +62,7 @@
         },
         "props": {
           "values": {
-            "posX": 3650.0,
+            "posX": 3900.0,
             "posY": 3300.0,
             "width": 268,
             "height": 110
@@ -214,8 +214,8 @@
       "node_id": "AddPortTestNode_43a781",
       "registry_key": "haybale-testing:node:AddPortTestNode",
       "position": [
-        3250,
-        3050
+        3550,
+        3000
       ],
       "node_data": {
         "node_id": "AddPortTestNode_43a781",
@@ -273,38 +273,62 @@
               "registry_key": "haybale-testing:type:TEST_STRING"
             }
           },
-          "add_in_1": {
+          "str_in_2": {
             "kwargs": {
-              "registry_id": "ADD",
-              "registry_key": "haywire-core:type:ADD",
-              "label": "In 1",
-              "description": "Grows a new port from whatever connects to it",
-              "class_name": "ADD",
-              "module": "haywire.barn.builtin.types.add",
+              "registry_id": "TEST_STRING",
+              "registry_key": "haybale-testing:type:TEST_STRING",
+              "label": "Str 2",
+              "description": "Text data",
+              "class_name": "TEST_STRING",
+              "module": "haybale_testing.types.test_types",
               "flow_type": "data",
               "default": {
-                "value": null
+                "value": ""
               },
-              "store_strategy": 1,
-              "color": "#666666",
-              "icon_in": "add_circle_outline",
-              "icon_in_multi": "add_circle_outline",
-              "icon_out": "add_circle",
-              "icon_out_multi": "add_circle",
-              "id": "add_in_1",
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "id": "str_in_2",
               "port_type": "inlet",
-              "order": 6,
+              "order": 8,
+              "origin": "resolved",
               "on_connect": "hb_resolve"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:ADD"
+              "registry_key": "haybale-testing:type:TEST_STRING"
             }
           },
-          "str_in_2": {
+          "add_in_2": {
+            "kwargs": {
+              "registry_id": "ArrayType",
+              "registry_key": "haybale-core:type:ArrayType",
+              "label": "In 2",
+              "description": "Homogeneous typed array",
+              "class_name": "ArrayType",
+              "module": "haybale_core.types.array_type",
+              "flow_type": "data",
+              "default": {
+                "value": []
+              },
+              "store_strategy": 2,
+              "color": "#4caf50",
+              "id": "add_in_2",
+              "port_type": "inlet",
+              "order": 10,
+              "origin": "resolved",
+              "on_connect": "hb_resolve"
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:ArrayType",
+              "element_type": {
+                "registry_key": "haybale-testing:type:TEST_BOOL"
+              }
+            }
+          },
+          "str_in_3": {
             "kwargs": {
               "registry_id": "ADD",
               "registry_key": "haywire-core:type:ADD",
-              "label": "Str 2",
+              "label": "Str 3",
               "description": "Grows a new port from whatever connects to it",
               "class_name": "ADD",
               "module": "haywire.barn.builtin.types.add",
@@ -321,9 +345,9 @@
               "widget_config": {
                 "properties": {}
               },
-              "id": "str_in_2",
+              "id": "str_in_3",
               "port_type": "inlet",
-              "order": 8,
+              "order": 14,
               "on_connect": "hb_resolve"
             },
             "recipe": {
@@ -332,25 +356,79 @@
                 "registry_key": "haybale-testing:type:TEST_STRING"
               }
             }
+          },
+          "add_in_3": {
+            "kwargs": {
+              "registry_id": "ArrayType",
+              "registry_key": "haybale-core:type:ArrayType",
+              "label": "In 3",
+              "description": "Homogeneous typed array",
+              "class_name": "ArrayType",
+              "module": "haybale_core.types.array_type",
+              "flow_type": "data",
+              "default": {
+                "value": []
+              },
+              "store_strategy": 2,
+              "color": "#ffc107",
+              "id": "add_in_3",
+              "port_type": "inlet",
+              "order": 12,
+              "origin": "resolved",
+              "on_connect": "hb_resolve"
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:ArrayType",
+              "element_type": {
+                "registry_key": "haybale-testing:type:TEST_STRING"
+              }
+            }
+          },
+          "add_in_4": {
+            "kwargs": {
+              "registry_id": "ADD",
+              "registry_key": "haywire-core:type:ADD",
+              "label": "In 4",
+              "description": "Grows a new port from whatever connects to it",
+              "class_name": "ADD",
+              "module": "haywire.barn.builtin.types.add",
+              "flow_type": "data",
+              "default": {
+                "value": null
+              },
+              "store_strategy": 1,
+              "color": "#666666",
+              "icon_in": "add_circle_outline",
+              "icon_in_multi": "add_circle_outline",
+              "icon_out": "add_circle",
+              "icon_out_multi": "add_circle",
+              "id": "add_in_4",
+              "port_type": "inlet",
+              "order": 16,
+              "on_connect": "hb_resolve"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:ADD"
+            }
           }
         },
         "settings": {
           "props": {
             "values": {
-              "posX": 3250.0,
-              "posY": 3050.0,
+              "posX": 3550.0,
+              "posY": 3000.0,
               "width": 268,
-              "height": 194
+              "height": 278
             },
             "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 3250.0,
-            "posY": 3050.0,
+            "posX": 3550.0,
+            "posY": 3000.0,
             "width": 268,
-            "height": 194
+            "height": 278
           },
           "promoted": {}
         },
@@ -397,7 +475,7 @@
       "node_id": "EdgeLinkTestNode_c57a95",
       "registry_key": "haybale-testing:node:EdgeLinkTestNode",
       "position": [
-        3250,
+        2850,
         3500
       ],
       "node_data": {
@@ -1057,7 +1135,7 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 3250.0,
+              "posX": 2850.0,
               "posY": 3500.0,
               "width": 276,
               "height": 782
@@ -1067,7 +1145,7 @@
         },
         "props": {
           "values": {
-            "posX": 3250.0,
+            "posX": 2850.0,
             "posY": 3500.0,
             "width": 276,
             "height": 782
@@ -1119,7 +1197,7 @@
       "node_id": "PerformanceTester_9da7f8",
       "registry_key": "haybale-testing:node:PerformanceTester",
       "position": [
-        3750,
+        3600,
         3600
       ],
       "node_data": {
@@ -1141,7 +1219,8 @@
               "color": "#004cff",
               "id": "exec",
               "port_type": "inlet",
-              "allow_multiple_links": true
+              "allow_multiple_links": true,
+              "order": 41
             },
             "recipe": {
               "registry_key": "haybale-core:type:EXEC"
@@ -1249,7 +1328,7 @@
               "id": "float_outlet_0",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 4,
+              "order": 42,
               "show_widget": "never"
             },
             "recipe": {
@@ -1275,8 +1354,7 @@
               "color": "#50b0ff",
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "float_inlet_1",
-              "port_type": "inlet",
-              "order": 5
+              "port_type": "inlet"
             },
             "recipe": {
               "registry_key": "haywire-core:type:FLOAT"
@@ -1303,7 +1381,7 @@
               "id": "float_outlet_1",
               "port_type": "outlet",
               "allow_multiple_links": true,
-              "order": 6,
+              "order": 36,
               "show_widget": "never"
             },
             "recipe": {
@@ -1317,20 +1395,22 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 3750.0,
+              "posX": 3600.0,
               "posY": 3600.0,
               "width": 340,
-              "height": 332
+              "height": 348,
+              "size_adapt": "manual_height"
             },
             "promoted": {}
           }
         },
         "props": {
           "values": {
-            "posX": 3750.0,
+            "posX": 3600.0,
             "posY": 3600.0,
             "width": 340,
-            "height": 332
+            "height": 348,
+            "size_adapt": "manual_height"
           },
           "promoted": {}
         },
@@ -1577,7 +1657,8 @@
               "posX": 4169.389665212402,
               "posY": 3596.8146741086766,
               "width": 340,
-              "height": 296
+              "height": 297,
+              "size_adapt": "manual_height"
             },
             "promoted": {}
           }
@@ -1587,7 +1668,8 @@
             "posX": 4169.389665212402,
             "posY": 3596.8146741086766,
             "width": 340,
-            "height": 296
+            "height": 297,
+            "size_adapt": "manual_height"
           },
           "promoted": {}
         },
@@ -1629,15 +1711,15 @@
         }
       }
     },
-    "InletFoldNode_a63763": {
-      "node_id": "InletFoldNode_a63763",
-      "registry_key": "haybale-testing:node:InletFoldNode",
+    "FoldProbeNode_a90f81": {
+      "node_id": "FoldProbeNode_a90f81",
+      "registry_key": "haybale-testing:node:FoldProbeNode",
       "position": [
         4200,
         4000
       ],
       "node_data": {
-        "node_id": "InletFoldNode_a63763",
+        "node_id": "FoldProbeNode_a90f81",
         "ports": {
           "out": {
             "kwargs": {
@@ -1666,27 +1748,83 @@
               "value": ""
             }
           },
-          "input_as": {
+          "solver": {
             "kwargs": {
-              "registry_id": "BOOL",
-              "registry_key": "haywire-core:type:BOOL",
-              "label": "Input as",
-              "description": "True or False",
-              "class_name": "BOOL",
-              "module": "haywire.barn.builtin.types.specs",
+              "registry_id": "FOLD",
+              "registry_key": "haywire-core:type:FOLD",
+              "label": "Solver",
+              "description": "How the solver steps through time.",
+              "class_name": "FOLD",
+              "module": "haywire.barn.builtin.types.fold",
+              "flow_type": "data",
               "default": {
                 "value": true
               },
               "store_strategy": 14,
-              "color": "#4caf50",
-              "id": "input_as",
-              "port_type": "inlet",
+              "color": "#90a4ae",
+              "id": "solver",
+              "port_type": "config",
               "order": 1,
               "is_group": true,
               "show_widget": "always"
             },
             "recipe": {
-              "registry_key": "haywire-core:type:BOOL"
+              "registry_key": "haywire-core:type:FOLD"
+            },
+            "field_data": {
+              "value": true
+            }
+          },
+          "substeps": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 10.0
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "substeps",
+              "port_type": "config",
+              "parent_group": "solver",
+              "order": 2,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 10.0
+            }
+          },
+          "inputs": {
+            "kwargs": {
+              "registry_id": "FOLD",
+              "registry_key": "haywire-core:type:FOLD",
+              "label": "Inputs",
+              "description": "Hides or shows the ports inside it",
+              "class_name": "FOLD",
+              "module": "haywire.barn.builtin.types.fold",
+              "flow_type": "data",
+              "default": {
+                "value": true
+              },
+              "store_strategy": 14,
+              "color": "#90a4ae",
+              "id": "inputs",
+              "port_type": "inlet",
+              "order": 3,
+              "is_group": true,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FOLD"
             },
             "field_data": {
               "value": true
@@ -1709,41 +1847,14 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "a",
               "port_type": "inlet",
-              "parent_group": "input_as",
-              "order": 2
+              "parent_group": "inputs",
+              "order": 4
             },
             "recipe": {
               "registry_key": "haywire-core:type:FLOAT"
             },
             "field_data": {
               "value": 0.0
-            }
-          },
-          "input_bs": {
-            "kwargs": {
-              "registry_id": "BOOL",
-              "registry_key": "haywire-core:type:BOOL",
-              "label": "Input bs",
-              "description": "True or False",
-              "class_name": "BOOL",
-              "module": "haywire.barn.builtin.types.specs",
-              "default": {
-                "value": true
-              },
-              "store_strategy": 14,
-              "color": "#4caf50",
-              "id": "input_bs",
-              "port_type": "inlet",
-              "parent_group": "input_as",
-              "order": 3,
-              "is_group": true,
-              "show_widget": "always"
-            },
-            "recipe": {
-              "registry_key": "haywire-core:type:BOOL"
-            },
-            "field_data": {
-              "value": true
             }
           },
           "b": {
@@ -1763,8 +1874,315 @@
               "widget_key": "haywire-core:widget:NumberWidget",
               "id": "b",
               "port_type": "inlet",
-              "parent_group": "input_bs",
+              "parent_group": "inputs",
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "advanced": {
+            "kwargs": {
+              "registry_id": "FOLD",
+              "registry_key": "haywire-core:type:FOLD",
+              "label": "Advanced",
+              "description": "Hides or shows the ports inside it",
+              "class_name": "FOLD",
+              "module": "haywire.barn.builtin.types.fold",
+              "flow_type": "data",
+              "default": {
+                "value": false
+              },
+              "store_strategy": 14,
+              "color": "#90a4ae",
+              "id": "advanced",
+              "port_type": "config",
+              "order": 6,
+              "is_group": true,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FOLD"
+            },
+            "field_data": {
+              "value": true
+            }
+          },
+          "epsilon": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 1e-06
+              },
+              "store_strategy": 14,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "epsilon",
+              "port_type": "config",
+              "parent_group": "advanced",
+              "order": 7,
+              "show_widget": "always"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 1e-06
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 4200.0,
+              "posY": 4000.0,
+              "width": 256,
+              "height": 318
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 4200.0,
+            "posY": 4000.0,
+            "width": 256,
+            "height": 318
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "FoldProbeNode",
+          "registry_key": "haybale-testing:node:FoldProbeNode",
+          "label": "Fold Probe",
+          "description": "Tests fold minting, lanes and open state",
+          "deprecation_warning": "",
+          "hidden": false,
+          "class_name": "FoldProbeNode",
+          "module": "haybale_testing.nodes.testbed.fold_probe",
+          "search_tags": [
+            "testing",
+            "fold",
+            "render"
+          ],
+          "menu": "testing/rendering",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": false
+        },
+        "library": {
+          "label": "Testing",
+          "version": "0.2.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/barn/haybale-testing/haybale_testing",
+          "module_name": "haybale_testing",
+          "name": "haybale-testing",
+          "linked_libraries": [
+            "haybale_core",
+            "haybale_graph_editor"
+          ],
+          "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "ReorderProbeNode_49b5db": {
+      "node_id": "ReorderProbeNode_49b5db",
+      "registry_key": "haybale-testing:node:ReorderProbeNode",
+      "position": [
+        4650,
+        3650
+      ],
+      "node_data": {
+        "node_id": "ReorderProbeNode_49b5db",
+        "ports": {
+          "a": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "a",
+              "port_type": "inlet",
+              "order": 2
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "b": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "b",
+              "port_type": "inlet",
               "order": 4
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "c": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "c",
+              "port_type": "inlet",
+              "order": 5
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "out": {
+            "kwargs": {
+              "registry_id": "STRING",
+              "registry_key": "haywire-core:type:STRING",
+              "label": "String",
+              "description": "Text data",
+              "class_name": "STRING",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": ""
+              },
+              "store_strategy": 14,
+              "color": "#ffc107",
+              "widget_key": "haywire-core:widget:TextWidget",
+              "id": "out",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 3,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:STRING"
+            },
+            "field_data": {
+              "value": ""
+            }
+          },
+          "dyn_a": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "dyn_a",
+              "port_type": "inlet",
+              "order": 6
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "dyn_b": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "dyn_b",
+              "port_type": "inlet",
+              "order": 7
+            },
+            "recipe": {
+              "registry_key": "haywire-core:type:FLOAT"
+            },
+            "field_data": {
+              "value": 0.0
+            }
+          },
+          "dyn_c": {
+            "kwargs": {
+              "registry_id": "FLOAT",
+              "registry_key": "haywire-core:type:FLOAT",
+              "label": "Float",
+              "description": "Decimal numberer",
+              "class_name": "FLOAT",
+              "module": "haywire.barn.builtin.types.specs",
+              "flow_type": "data",
+              "default": {
+                "value": 0.0
+              },
+              "store_strategy": 2,
+              "color": "#50b0ff",
+              "widget_key": "haywire-core:widget:NumberWidget",
+              "id": "dyn_c",
+              "port_type": "inlet",
+              "order": 8
             },
             "recipe": {
               "registry_key": "haywire-core:type:FLOAT"
@@ -1777,36 +2195,51 @@
         "settings": {
           "props": {
             "values": {
-              "posX": 4200.0,
-              "posY": 4000.0,
+              "layout_direction": "l2r",
+              "posX": 4650.0,
+              "posY": 3650.0,
               "width": 256,
-              "height": 206
+              "height": 369,
+              "size_adapt": "manual_height"
             },
-            "promoted": {}
+            "promoted": {
+              "props.collapsed": {
+                "direction": "inlet",
+                "order": 1
+              }
+            }
           }
         },
         "props": {
           "values": {
-            "posX": 4200.0,
-            "posY": 4000.0,
+            "layout_direction": "l2r",
+            "posX": 4650.0,
+            "posY": 3650.0,
             "width": 256,
-            "height": 206
+            "height": 369,
+            "size_adapt": "manual_height"
           },
-          "promoted": {}
+          "promoted": {
+            "props.collapsed": {
+              "direction": "inlet",
+              "order": 1
+            }
+          }
         },
         "store": {},
         "identity": {
-          "registry_id": "InletFoldNode",
-          "registry_key": "haybale-testing:node:InletFoldNode",
-          "label": "Inlet Fold",
-          "description": "Tests that a fold of only inlets is fine, and that folds nest inside it",
+          "registry_id": "ReorderProbeNode",
+          "registry_key": "haybale-testing:node:ReorderProbeNode",
+          "label": "Reorder Probe",
+          "description": "Tests user-driven port ordering",
           "deprecation_warning": "",
           "hidden": false,
-          "class_name": "InletFoldNode",
-          "module": "haybale_testing.nodes.testbed.inlet_fold",
+          "class_name": "ReorderProbeNode",
+          "module": "haybale_testing.nodes.testbed.reorder_probe",
           "search_tags": [
             "testing",
-            "fold"
+            "reorder",
+            "order"
           ],
           "menu": "testing/testbed",
           "help_md": null,
@@ -1826,6 +2259,123 @@
             "haybale_graph_editor"
           ],
           "file_watcher": true,
+          "on_reload": "none"
+        }
+      }
+    },
+    "RerouteNode_723a7f": {
+      "node_id": "RerouteNode_723a7f",
+      "registry_key": "haywire-core:node:RerouteNode",
+      "position": [
+        3250,
+        3750
+      ],
+      "node_data": {
+        "node_id": "RerouteNode_723a7f",
+        "ports": {
+          "in": {
+            "kwargs": {
+              "registry_id": "ArrayType",
+              "registry_key": "haybale-core:type:ArrayType",
+              "label": "",
+              "description": "Homogeneous typed array",
+              "class_name": "ArrayType",
+              "module": "haybale_core.types.array_type",
+              "flow_type": "data",
+              "default": {
+                "value": []
+              },
+              "store_strategy": 2,
+              "color": "#4caf50",
+              "id": "in",
+              "port_type": "inlet"
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:ArrayType",
+              "element_type": {
+                "registry_key": "haybale-testing:type:TEST_BOOL"
+              }
+            }
+          },
+          "out": {
+            "kwargs": {
+              "registry_id": "ArrayType",
+              "registry_key": "haybale-core:type:ArrayType",
+              "label": "",
+              "description": "Homogeneous typed array",
+              "class_name": "ArrayType",
+              "module": "haybale_core.types.array_type",
+              "flow_type": "data",
+              "default": {
+                "value": []
+              },
+              "store_strategy": 14,
+              "color": "#4caf50",
+              "id": "out",
+              "port_type": "outlet",
+              "allow_multiple_links": true,
+              "order": 1,
+              "show_widget": "never"
+            },
+            "recipe": {
+              "registry_key": "haybale-core:type:ArrayType",
+              "element_type": {
+                "registry_key": "haybale-testing:type:TEST_BOOL"
+              }
+            }
+          }
+        },
+        "settings": {
+          "props": {
+            "values": {
+              "posX": 3250.0,
+              "posY": 3750.0,
+              "width": 44,
+              "height": 26
+            },
+            "promoted": {}
+          }
+        },
+        "props": {
+          "values": {
+            "posX": 3250.0,
+            "posY": 3750.0,
+            "width": 44,
+            "height": 26
+          },
+          "promoted": {}
+        },
+        "store": {},
+        "identity": {
+          "registry_id": "RerouteNode",
+          "registry_key": "haywire-core:node:RerouteNode",
+          "label": "Reroute",
+          "description": "Pass-through node for bending wires. Supports DATA and CONTROL edges.",
+          "deprecation_warning": "",
+          "hidden": true,
+          "class_name": "RerouteNode",
+          "module": "haywire.barn.builtin.nodes.reroute",
+          "search_tags": [
+            "add",
+            "sub",
+            "math",
+            "vector"
+          ],
+          "menu": "misc/custom",
+          "help_md": null,
+          "help_url": "https://haywire.io/internals/node-help",
+          "_is_error": false,
+          "_error_priority": 0,
+          "_is_reroute": true
+        },
+        "library": {
+          "label": "Builtin",
+          "version": "0.2.0",
+          "folder_path": "/Volumes/Ddrive/06_open_tracking_tool/haywire/haywire-repo/packages/haywire-core/src/haywire/barn/builtin",
+          "module_name": "haywire.barn.builtin",
+          "name": "haywire-core",
+          "linked_libraries": [],
+          "file_watcher": false,
           "on_reload": "none"
         }
       }
@@ -1859,20 +2409,83 @@
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "PerformanceTester_9da7f8[float_outlet_1]->InletFoldNode_a63763[b]": {
+    "PerformanceTester_9da7f8[float_outlet_0]->FoldProbeNode_a90f81[b]": {
       "source_node_id": "PerformanceTester_9da7f8",
-      "outlet_port_id": "float_outlet_1",
-      "sink_node_id": "InletFoldNode_a63763",
+      "outlet_port_id": "float_outlet_0",
+      "sink_node_id": "FoldProbeNode_a90f81",
       "inlet_port_id": "b",
       "edge_type": "data",
       "chain_adapter_keys": [],
       "is_lazy": false
     },
-    "PerformanceTester_9da7f8[float_outlet_0]->InletFoldNode_a63763[a]": {
+    "PerformanceTester_9da7f8[float_outlet_1]->FoldProbeNode_a90f81[a]": {
       "source_node_id": "PerformanceTester_9da7f8",
-      "outlet_port_id": "float_outlet_0",
-      "sink_node_id": "InletFoldNode_a63763",
+      "outlet_port_id": "float_outlet_1",
+      "sink_node_id": "FoldProbeNode_a90f81",
       "inlet_port_id": "a",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "PerformanceTester_83bc9c[float_outlet_0]->ReorderProbeNode_49b5db[a]": {
+      "source_node_id": "PerformanceTester_83bc9c",
+      "outlet_port_id": "float_outlet_0",
+      "sink_node_id": "ReorderProbeNode_49b5db",
+      "inlet_port_id": "a",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "PerformanceTester_83bc9c[float_outlet_1]->ReorderProbeNode_49b5db[dyn_c]": {
+      "source_node_id": "PerformanceTester_83bc9c",
+      "outlet_port_id": "float_outlet_1",
+      "sink_node_id": "ReorderProbeNode_49b5db",
+      "inlet_port_id": "dyn_c",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "EdgeLinkTestNode_c57a95[bool_outlet]->AddPortTestNode_43a781[str_in_2]": {
+      "source_node_id": "EdgeLinkTestNode_c57a95",
+      "outlet_port_id": "bool_outlet",
+      "sink_node_id": "AddPortTestNode_43a781",
+      "inlet_port_id": "str_in_2",
+      "edge_type": "data",
+      "chain_adapter_keys": [
+        "haybale-testing:adapter:BoolToIntAdapter",
+        "haybale-testing:adapter:IntToFloatAdapter",
+        "haybale-testing:adapter:FloatToStringAdapter"
+      ],
+      "is_lazy": false
+    },
+    "EdgeLinkTestNode_c57a95[array_bool_outlet]->RerouteNode_723a7f[in]": {
+      "source_node_id": "EdgeLinkTestNode_c57a95",
+      "outlet_port_id": "array_bool_outlet",
+      "sink_node_id": "RerouteNode_723a7f",
+      "inlet_port_id": "in",
+      "edge_type": "data",
+      "chain_adapter_keys": [],
+      "is_lazy": false
+    },
+    "RerouteNode_723a7f[out]->AddPortTestNode_43a781[add_in_3]": {
+      "source_node_id": "RerouteNode_723a7f",
+      "outlet_port_id": "out",
+      "sink_node_id": "AddPortTestNode_43a781",
+      "inlet_port_id": "add_in_3",
+      "edge_type": "data",
+      "chain_adapter_keys": [
+        "haybale-core:adapter:ArrayArrayAdapter",
+        "haybale-testing:adapter:BoolToIntAdapter",
+        "haybale-testing:adapter:IntToFloatAdapter",
+        "haybale-testing:adapter:FloatToStringAdapter"
+      ],
+      "is_lazy": false
+    },
+    "RerouteNode_723a7f[out]->AddPortTestNode_43a781[add_in_2]": {
+      "source_node_id": "RerouteNode_723a7f",
+      "outlet_port_id": "out",
+      "sink_node_id": "AddPortTestNode_43a781",
+      "inlet_port_id": "add_in_2",
       "edge_type": "data",
       "chain_adapter_keys": [],
       "is_lazy": false
