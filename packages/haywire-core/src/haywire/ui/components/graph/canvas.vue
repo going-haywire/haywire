@@ -1221,6 +1221,12 @@ export default {
                 this._emitSelectionBounds();
             }
 
+            // The gadget is a sibling of the node's container, not a child —
+            // removing the node from the DOM doesn't take the gadget with it.
+            if (this.resizeGadget.visible && this.resizeGadget.nodeId === nodeId) {
+                this.resizeGadget.visible = false;
+            }
+
             console.log('🗑️ Vue node removed via sync:', nodeId);
         },
 
