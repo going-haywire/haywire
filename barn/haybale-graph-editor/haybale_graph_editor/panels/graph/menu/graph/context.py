@@ -49,7 +49,7 @@ class GraphContextPanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with ui.row().classes("items-center gap-1"):
+            with ui.row().classes("items-center justify-end gap-1 w-full"):
                 self.render_surface(GraphToolBar, ctx)
             with ui.column().classes("w-full"):
                 self.render_surface(GraphContextBody, ctx)
@@ -119,7 +119,7 @@ class GraphMorePanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.flyout("more_horiz", tooltip="More actions"):
+            with hui.dropdown("more_horiz", tooltip="More actions"):
                 self.render_surface(GraphMoreActions, ctx)
 
 

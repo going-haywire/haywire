@@ -174,5 +174,5 @@ class SelectionOverflowPanel(BasePanel):
 
     def draw(self, ctx: "SessionContext", layout: PanelLayout) -> None:
         with layout:
-            with hui.flyout("more_horiz", tooltip="More actions"):
+            with hui.dropdown("more_horiz", tooltip="More actions"):
                 self.render_surface(SelectionMenu, ctx)
