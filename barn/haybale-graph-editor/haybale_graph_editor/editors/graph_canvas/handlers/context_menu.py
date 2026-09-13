@@ -461,6 +461,40 @@ class SessionContextMenuProvider(IContextMenuProvider, BaseContextMenuProvider):
         x, y = self._open_ctx.canvas_pos
         self._emit(SplitEdgeWithRerouteEvent(edge_id=edge_id, position={"x": x, "y": y}))
 
+    def set_edge_lazy(self, edge_id: str, lazy: bool) -> None:
+        """Set an edge's propagation mode (eager/lazy) and redraw it.
+
+        A plain property write on the wrapper, not an event — mirrors
+        ``set_selection_collapsed``: the row rewrites itself from the return
+        value of ``toggle_edge_lazy`` rather than an event round-trip.
+        """
+        graph = self._context.data[EditState].active_graph
+        if graph is None:
+            return
+        wrapper = graph.get_edge_wrapper(edge_id)
+        if wrapper is None:
+            return
+        wrapper.is_lazy = lazy
+        wrapper.redraw()
+
+    def edge_is_lazy(self, edge_id: str) -> bool:
+        graph = self._context.data[EditState].active_graph
+        if graph is None:
+            return False
+        wrapper = graph.get_edge_wrapper(edge_id)
+        return wrapper is not None and wrapper.is_lazy
+
+    def toggle_edge_lazy(self, edge_id: str) -> bool:
+        """Flip an edge's propagation mode, and report the new state.
+
+        Decided here, on each click, for the same reason as
+        ``toggle_selection_collapsed``: the menu stays open after the row's
+        click, so a value captured at draw time would only ever apply once.
+        """
+        lazy = not self.edge_is_lazy(edge_id)
+        self.set_edge_lazy(edge_id, lazy)
+        return lazy
+
     # SelectionContextActions
 
     def copy_selection(self) -> None:

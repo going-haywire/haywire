@@ -174,7 +174,7 @@ class IAdapter(ABC):
 
     def get_test_repetitions(self) -> int:
         """method returns the number of repetitions the test needs to run"""
-        return 1
+        return 10
 
     @abstractmethod
     def test(self, value: Any) -> Any:

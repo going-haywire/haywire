@@ -26,6 +26,9 @@ class EdgeActions(Protocol):
     def delete_edge(self, edge_id: str) -> None: ...
     def reconnect_active_edge(self) -> None: ...
     def split_edge_with_reroute(self, edge_id: str) -> None: ...
+    def set_edge_lazy(self, edge_id: str, lazy: bool) -> None: ...
+    def edge_is_lazy(self, edge_id: str) -> bool: ...
+    def toggle_edge_lazy(self, edge_id: str) -> bool: ...
 
 
 class EdgeInspector(Surface):
@@ -53,3 +56,19 @@ class EdgeMenu(Surface):
         from haybale_graph_editor.state.edit_state import EditState
 
         return ctx.data[EditState].active_edge is not None
+
+
+class EdgeEditMenu(Surface):
+    """The "Edit…" submenu of ``EdgeMenu`` — the adapters behind this edge.
+
+    One row per adapter in the edge's chain, each opening that adapter's
+    source. Mirrors ``SelectionEditMenu``/``PinEditMenu``: same gesture,
+    different subject.
+
+    Declares no ``poll`` for the same reason those two don't — the hosting
+    panel already gates on the active edge, and a second copy of that
+    predicate would swallow the greyed rows.
+    """
+
+    id = "edge-edit"
+    provides = EdgeActions

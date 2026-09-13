@@ -105,6 +105,86 @@ class EdgeWarningsPanel(BasePanel):
 
 @panel(
     surface=EdgeInspector,
+    label="Propagation",
+    icon=hui.icon.edge_propagation,
+    order=10,
+)
+class EdgeLazyPanel(BasePanel):
+    """Switch the active edge between eager and lazy propagation.
+
+    Writes ``EdgeWrapper.is_lazy`` directly, like ``EdgeStatsPanel`` and
+    ``EdgePathPanel`` read it — ``EdgeInspector`` declares no ``provides``, so
+    its panels have no action host to route the write through.
+    """
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.data[EditState].active_edge is not None
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        edge_wrapper = ctx.data[EditState].active_edge
+        if edge_wrapper is None:
+            return
+
+        def _on_change(e) -> None:
+            edge_wrapper.is_lazy = e.value
+            edge_wrapper.redraw()
+
+        with layout:
+            with ui.row().classes("w-full items-center gap-1 py-0.5"):
+                ui.icon(hui.icon.edge_eager).classes("text-lg")
+                ui.switch(value=edge_wrapper.is_lazy, on_change=_on_change).props("dense")
+                ui.icon(hui.icon.edge_lazy).classes("text-lg")
+
+
+@panel(
+    surface=EdgeInspector,
+    label="Adapter Chain",
+    icon=hui.icon.adapter,
+    default_open=False,
+    order=45,
+)
+class EdgeAdapterChainPanel(BasePanel):
+    """List the adapters converting the source value to the sink type, in order.
+
+    Reads ``Edge.chain_adapter_keys`` — the registry keys ``_build_adapter_chain``
+    already resolved and ordered — rather than walking ``first_adapter._chain``
+    itself, so this shows exactly what the last successful build produced.
+    """
+
+    @classmethod
+    def poll(cls, ctx: "SessionContext") -> bool:
+        return ctx.data[EditState].active_edge is not None
+
+    def draw(
+        self,
+        ctx: "SessionContext",
+        layout: PanelLayout,
+    ) -> None:
+        edge_wrapper = ctx.data[EditState].active_edge
+        if edge_wrapper is None:
+            return
+        from haywire.core.di.context import get_adapter_factory
+
+        keys = edge_wrapper.edge.chain_adapter_keys
+        registry = get_adapter_factory().adapter_registry
+
+        with layout:
+            if not keys:
+                hui.info_row("Chain", "None (direct pass-through)")
+                return
+            for i, key in enumerate(keys):
+                adapter_cls = registry.get(key)
+                label = adapter_cls.class_identity.label if adapter_cls is not None else key
+                hui.info_row(f"{i + 1}.", label, copy_value=key)
+
+
+@panel(
+    surface=EdgeInspector,
     label="Execution Statistics",
     icon=hui.icon.edge_statistics,
     default_open=False,
@@ -136,7 +216,7 @@ class EdgeStatsPanel(BasePanel):
 @panel(
     surface=EdgeInspector,
     label="Connection Path",
-    icon=hui.icon.edge_statistics,
+    icon=hui.icon.edge,
     default_open=False,
     order=50,
 )

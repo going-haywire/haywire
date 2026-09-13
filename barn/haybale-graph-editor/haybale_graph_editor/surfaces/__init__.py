@@ -6,7 +6,7 @@ surface's Protocol is its demand on whatever hosts it, and nothing inherits
 one, so every surface states its own (docs/adr/0029-surface-model.md).
 """
 
-from .edge import EdgeActions, EdgeInspector, EdgeMenu
+from .edge import EdgeActions, EdgeEditMenu, EdgeInspector, EdgeMenu
 from .graph import GraphInspector
 from .graph_context import (
     GraphActions,
@@ -29,6 +29,7 @@ from .toolbar import NodeAppearance, SelectionToolbar
 
 __all__ = [
     "EdgeActions",
+    "EdgeEditMenu",
     "EdgeInspector",
     "EdgeMenu",
     "GraphActions",

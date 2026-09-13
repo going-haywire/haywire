@@ -124,8 +124,15 @@ class AppIcon:
     """Node source editor (source of the currently selected graph node)."""
 
     # ── Edge panels ───────────────────────────────────────────────────────────
-    edge_statistics: Final[str] = "linear_scale"
+    edge_statistics: Final[str] = "line_axis"
     """Edge execution statistics and connection path panels."""
+    edge_propagation: Final[str] = "keyboard_double_arrow_right"
+    """Edge propagation settings panel."""
+    edge_lazy: Final[str] = "beach_access"
+    """Lazy (pull-on-demand) edge propagation. The action, not the state — pairs
+    with ``edge_eager``, whichever of the two the row would switch to next."""
+    edge_eager: Final[str] = "bolt"
+    """Eager (push-on-write) edge propagation. Paired with ``edge_lazy``; see that entry."""
 
     # ── General actions and states ─────────────────────────────────────────────────
     debug: Final[str] = "bug_report"
