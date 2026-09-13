@@ -252,13 +252,14 @@ class StackedNodeSkin(NodeSkin):
 
             # Render based on port type
             if port.is_group:
-                self._render_group(port, ports, wrapper, port_type, layout)
+                self._render_group(port, ports, wrapper, port_type, layout, depth=0)
             else:
                 self.render_port(
                     port,
                     wrapper,
                     widget_classes="widget-container zoom-pan-lod2",
                     layout=layout,
+                    depth=0,
                 )
 
     def _render_group(
@@ -268,20 +269,22 @@ class StackedNodeSkin(NodeSkin):
         wrapper: NodeWrapper,
         port_type: PortType,
         layout: LayoutDirection | None = None,
+        depth: int = 0,
     ):
         """
         Render a collapsible group with visual hierarchy.
 
         Groups are rendered with:
-        - Indentation for visual hierarchy
+        - Children indented via their own content column, never the container
         - Group header with toggle widget
         - Child ports (if expanded)
 
         The toggle is always BUILT and unconditionally carries
         ``hw-detail-widget`` (2026-09 CSS-filter redesign) — canvas.vue's
         ``[data-node-props-detail]`` rule hides it below WIDGETS from the DOM
-        attribute directly, so a group then renders as its (still-indented)
-        children with no visible control, with nothing to consult here.
+        attribute directly, so a group then renders as its (still-indented, via
+        each row's content column) children with no visible control, with
+        nothing to consult here.
 
         Args:
             group_port: The group control port (boolean inlet)
@@ -289,13 +292,17 @@ class StackedNodeSkin(NodeSkin):
             wrapper: NodeWrapper containing the node
             port_type: Port Type
             layout: Resolved layout direction; looked up from the wrapper when omitted
+            depth: This group's own nesting level. Children render at
+                ``depth + 1``.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         node = wrapper.node
         is_expanded = node.value(group_port.id)
 
-        # Group container with visual hierarchy
-        with ui.column().classes("w-full pl-2 ml-1 gap-1"):
+        # No padding/margin here: a container inset moves the pin column too,
+        # taking a nested pin off the card border. Depth reaches the row's
+        # CONTENT column instead, via render_port(depth=...).
+        with ui.column().classes("w-full gap-1"):
             # Group header with toggle
             with ui.row().classes("w-full items-center gap-1"):
                 # Render group toggle widget
@@ -314,11 +321,14 @@ class StackedNodeSkin(NodeSkin):
                 for child_port in sorted(children, key=lambda p: p.order):
                     # Recursively handle nested groups
                     if child_port.is_group:
-                        self._render_group(child_port, all_ports, wrapper, port_type, layout)
+                        self._render_group(
+                            child_port, all_ports, wrapper, port_type, layout, depth=depth + 1
+                        )
                     else:
                         self.render_port(
                             child_port,
                             wrapper,
                             widget_classes="widget-container zoom-pan-lod2",
                             layout=layout,
+                            depth=depth + 1,
                         )

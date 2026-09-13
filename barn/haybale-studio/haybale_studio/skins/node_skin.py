@@ -71,6 +71,10 @@ class NodeSkin(BaseSkin, ABC):
         return self._ui_settings.content_gap
 
     @property
+    def FOLD_INDENT(self) -> int:  # noqa: N802
+        return self._ui_settings.fold_indent
+
+    @property
     def PIN_ROW_HEIGHT(self) -> int:  # noqa: N802
         return self._ui_settings.pin_row_height
 
@@ -93,6 +97,24 @@ class NodeSkin(BaseSkin, ABC):
         """
         v = self.CARD_V_PADDING
         return f"position: relative; padding-top: {v}px; padding-bottom: {v}px;"
+
+    def _content_inset(self, depth: int) -> int:
+        """Return the content column's left inset, in px, for a row at ``depth``.
+
+        Applied to the content column only. A pin's offset is computed from
+        ``card_padding`` and assumes its row starts at the card edge, so
+        indenting the pin column would move the pin off the card border once
+        per nesting level.
+        """
+        return self.CONTENT_GAP + max(0, depth) * self.FOLD_INDENT
+
+    def _config_indent(self, depth: int) -> int:
+        """Return a config row's left indent, in px, for a row at ``depth``.
+
+        A config port renders no pin, so the whole row may inset.
+        """
+        base = self.PIN_GUTTER + self.CONTENT_GAP
+        return max(0, base) + max(0, depth) * self.FOLD_INDENT
 
     def layout_of(self, wrapper: NodeWrapper) -> LayoutDirection:
         """This node's layout direction.
@@ -370,6 +392,7 @@ class NodeSkin(BaseSkin, ABC):
         wrapper: NodeWrapper,
         widget_classes: str = "",
         layout: LayoutDirection | None = None,
+        depth: int = 0,
     ):
         """Render a port according to its port type.
 
@@ -379,10 +402,19 @@ class NodeSkin(BaseSkin, ABC):
 
         ``layout`` resolves from the wrapper when omitted; pass it when
         rendering many ports so the chain resolves once per card.
+
+        Args:
+            depth: Fold nesting level, insetting the content column. The pin
+                column is never inset — see ``FOLD_INDENT``.
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         if port.is_config():
-            self._render_config(port, wrapper, widget_classes="widget-container zoom-pan-lod2")
+            self._render_config(
+                port,
+                wrapper,
+                widget_classes="widget-container zoom-pan-lod2",
+                depth=depth,
+            )
         elif port.is_inlet() or port.is_outlet():
             self._render_port_horizontal(
                 port,
@@ -390,6 +422,7 @@ class NodeSkin(BaseSkin, ABC):
                 side=layout.side_for(port),
                 layout=layout,
                 widget_classes="widget-container zoom-pan-lod2",
+                depth=depth,
             )
 
     def _render_port_horizontal(
@@ -400,6 +433,7 @@ class NodeSkin(BaseSkin, ABC):
         side: str,
         layout: LayoutDirection,
         widget_classes: str = "",
+        depth: int = 0,
     ):
         """Render a port as `pin column | content`, or the mirror of it.
 
@@ -412,15 +446,22 @@ class NodeSkin(BaseSkin, ABC):
         ``[data-node-props-detail]`` rule does the rank-based hiding from the
         DOM attribute directly, so nothing here needs to consult anything to
         decide what to build or which class to add.
+
+        ``depth`` insets the content column by one ``FOLD_INDENT`` per fold
+        nesting level. The pin column is never inset.
         """
-        g, gap, h = self.PIN_GUTTER, self.CONTENT_GAP, self.PIN_ROW_HEIGHT
+        g, h = self.PIN_GUTTER, self.PIN_ROW_HEIGHT
         pin_first = side == "left"
         columns = f"{g}px 1fr" if pin_first else f"1fr {g}px"
         pin_column, content_column = (1, 2) if pin_first else (2, 1)
+        # Depth insets the CONTENT side only. The pin side keeps the raw gutter,
+        # so the pin column's geometry — and with it the offset render_pin
+        # computes from card_padding — is unchanged at any depth.
+        inset = self._content_inset(depth)
         content_margins = (
-            f"margin-left: {gap}px; margin-right: {g}px;"
+            f"margin-left: {inset}px; margin-right: {g}px;"
             if pin_first
-            else f"margin-left: {g}px; margin-right: {gap}px;"
+            else f"margin-left: {g}px; margin-right: {inset}px;"
         )
         content_align = "" if pin_first else "align-items: flex-end;"
 
@@ -524,15 +565,21 @@ class NodeSkin(BaseSkin, ABC):
         port,
         wrapper: NodeWrapper,
         widget_classes: str = "",
+        depth: int = 0,
     ):
-        """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels."""
-        indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
+        """Render a config port — no pin, indented symmetrically to align with inlet/outlet labels.
+
+        Args:
+            depth: Fold nesting level, added to the left indent.
+        """
+        right_indent = max(0, self.PIN_GUTTER + self.CONTENT_GAP)
+        left_indent = self._config_indent(depth)
         with (
             ui.element("div")
             .classes("compact-fields")
             .style(
                 f"display: flex; flex-direction: column; width: 100%; "
-                f"padding-left: {indent}px; padding-right: {indent}px;"
+                f"padding-left: {left_indent}px; padding-right: {right_indent}px;"
             )
         ) as config_row:
             ui.label(port.label).classes("text-xs zoom-pan-lod2 hw-detail-label")

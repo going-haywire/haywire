@@ -31,6 +31,18 @@ class TestGroupAndSectionNode(BaseNode):
                 )
             )
 
+        with self.group(
+            GROUP.as_inlet("pin_switch", default=False, label="Use Custom Name", on_change="redraw")
+        ):
+            self.add(
+                STRING.as_inlet(
+                    "in_group_inlet",
+                    default="my_name",
+                    label="Name",
+                    widget=TextWidget.config(),
+                )
+            )
+
         self.add(
             BOOL.as_inlet(
                 "sequential_mode",

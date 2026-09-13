@@ -59,6 +59,15 @@ class NodeSkinSettings(LibrarySettings):
         min=-20,
         max=20,
     )
+    fold_indent = setting[INT](
+        12,
+        label="Fold Indent",
+        description="How far a folded port's label and widget step right per "
+        "nesting level (px). 0 renders a flat card. Pins never indent",
+        category="layout",
+        min=0,
+        max=40,
+    )
     pin_row_height = setting[INT](
         24,
         label="Pin Row Height",
