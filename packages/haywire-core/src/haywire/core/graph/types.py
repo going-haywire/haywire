@@ -31,6 +31,14 @@ class ChangeReason(Enum):
     # Node reason that changes no structure
     NODE_MOVED = "node_moved"
 
+    # Node reason that persists an arrangement without changing structure
+    NODE_LAYOUT_CHANGED = "node_layout_changed"
+    """A node's persisted arrangement changed — today, its port order.
+
+    Distinct from a ``layout_direction`` change, which reaches the card through
+    ``NodeProperties.REDRAW_FIELDS`` as ``NODE_REDRAW_REQUESTED``.
+    """
+
     # Edge reasons that rebuild or revalidate the edge
     EDGE_ADDED = "edge_added"
     EDGE_REMOVED = "edge_removed"
@@ -79,6 +87,7 @@ class ChangeReason(Enum):
             ChangeReason.NODE_HOT_RELOADED,
             ChangeReason.NODE_HOT_RELOAD_ERROR,
             ChangeReason.NODE_MOVED,
+            ChangeReason.NODE_LAYOUT_CHANGED,
             ChangeReason.NODE_REDRAW_REQUESTED,
             ChangeReason.NODE_VALIDATION_REQUESTED,
             ChangeReason.EDGE_ADAPTERS_RELOADED,
@@ -92,8 +101,9 @@ class ChangeReason(Enum):
         """Return whether this reason repaints the UI without changing data a save records.
 
         An app layer must not mark the file unsaved or announce a data
-        mutation for one. ``NODE_MOVED`` is not visual-only: a move repaints,
-        but position is persisted as ``props.posX``/``posY``.
+        mutation for one. ``NODE_MOVED`` and ``NODE_LAYOUT_CHANGED`` are not
+        visual-only: both repaint, and both persist — position as
+        ``props.posX``/``posY``, port order as ``DataPort.order``.
         """
         visual_reasons = {
             ChangeReason.NODE_REDRAW_REQUESTED,

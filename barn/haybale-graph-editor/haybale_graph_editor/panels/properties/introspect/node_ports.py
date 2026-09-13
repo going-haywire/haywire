@@ -5,9 +5,15 @@ NodePortsPanel — lists inlet, outlet, and config ports on the selected node.
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from nicegui import ui
+
+# Importing the class registers "nicegui-sortable" as an ESM module. A page's
+# importmap is written when the page is served, and `make_sortable` imports the
+# class only at render time — too late for a page already in the browser, whose
+# bare specifier then fails to resolve.
+from nicegui.elements.sortable.sortable import Sortable as _Sortable  # noqa: F401
 
 from haywire.core.signals import (
     ActiveGraphMoved,
@@ -24,6 +30,10 @@ from ....state.edit_state import EditState
 
 if TYPE_CHECKING:
     from haywire.core.session.context import SessionContext
+
+
+_DRAG_HANDLE_CLASS = "hw-port-drag-handle"
+"""Marks the grip element SortableJS accepts a drag from (its ``handle`` selector)."""
 
 
 def _type_name(port: object) -> str:
@@ -91,6 +101,106 @@ class NodePortsPanel(BasePanel):
         except Exception:
             hui.error_label(f"Error rendering port '{getattr(port, 'id', '?')}'")
 
+    def _render_lane(
+        self,
+        node,
+        ports: list,
+        lane: str,
+        node_id: str,
+        widget_factory,
+        parent_group: str | None = None,
+        depth: int = 0,
+    ) -> None:
+        """Render the ports whose fold is ``parent_group``, recursing into folds.
+
+        One sibling group per call — the ports a user may rearrange among
+        themselves. A fold's children follow its own row, indented one level
+        and in a sortable of their own.
+
+        Each row is dragged by its grip alone, so a row whose body is a widget
+        stays editable: a whole-row drag would swallow every click into the
+        field.
+
+        Args:
+            node: The ``BaseNode``, threaded rather than held on ``self``: the
+                panel is rebuilt on every redraw and owns no instance state.
+            ports: Every port of the lane, folded children included.
+            lane: ``"config"``, ``"inlet"`` or ``"outlet"``, supplied by the
+                section that owns this list. Never read off a port — a fold is
+                itself a CONFIG port and would misreport its lane.
+            depth: Fold nesting level, which sets this group's indentation.
+        """
+        siblings = [p for p in ports if p.parent_group == parent_group]
+        if not siblings:
+            return
+
+        sibling_ids = [p.id for p in siblings]
+
+        # One row per sibling, each paired with the block its children go in, so
+        # a fold's children sit directly under it. The rows all belong to this
+        # group's sortable; the child blocks sit outside it, which is what keeps
+        # a child from being dropped among its parent's siblings.
+        container = ui.column().classes("w-full gap-0").style(f"padding-left: {depth * 12}px;")
+        child_slots: list[tuple[Any, ui.column]] = []
+        with container:
+            for port in siblings:
+                with ui.column().classes("w-full gap-0"):
+                    with ui.row().classes("w-full items-start gap-0 flex-nowrap min-w-0"):
+                        ui.icon(hui.icon.drag_handle).classes(
+                            f"{_DRAG_HANDLE_CLASS} text-sm hw-text-dim shrink-0 mt-1 cursor-grab"
+                        )
+                        with ui.column().classes("flex-1 min-w-0 gap-0"):
+                            if port.is_group:
+                                ui.label(port.label).classes("text-xs hw-text-dim px-2 pt-1")
+                            else:
+                                self._render_port(port, node_id, widget_factory)
+                    if port.is_group:
+                        child_slots.append((port, ui.column().classes("w-full gap-0")))
+
+        container.make_sortable(
+            group=self._sortable_group(node_id, lane, parent_group),
+            handle=f".{_DRAG_HANDLE_CLASS}",
+            on_end=lambda e, n=node, ids=sibling_ids: self._on_reorder(n, ids, e),
+        )
+
+        for port, slot in child_slots:
+            with slot:
+                self._render_lane(node, ports, lane, node_id, widget_factory, port.id, depth + 1)
+
+    @staticmethod
+    def _sortable_group(node_id: str, lane: str, parent_group: str | None) -> str:
+        """Return the SortableJS group name for one sibling group.
+
+        Unique per (node, lane, fold), which is what makes a cross-lane or
+        cross-fold drop inexpressible rather than something to validate.
+        """
+        return f"hw-ports:{node_id}:{lane}:{parent_group or 'root'}"
+
+    def _on_reorder(self, node, sibling_ids: list[str], event) -> None:
+        """Apply a completed drop: move one id and hand the new order to the node.
+
+        NiceGUI's own ``on_end`` has already re-parented the element before this
+        runs, so the DOM is correct and this only writes the model to match. No
+        signal is published — this panel redraws on a data mutation and would
+        rebuild its own list mid-gesture. The node marks itself dirty as
+        ``NODE_LAYOUT_CHANGED``, which repaints the card and records the change
+        for the save.
+
+        Args:
+            sibling_ids: The group's ids in the order they were rendered.
+            event: A ``SortableEventArguments``, whose indices address
+                ``sibling_ids``.
+        """
+        old_index = event.old_index
+        new_index = event.new_index
+        if old_index == new_index:
+            return
+        if not (0 <= old_index < len(sibling_ids)) or not (0 <= new_index < len(sibling_ids)):
+            return
+        reordered = list(sibling_ids)
+        reordered.insert(new_index, reordered.pop(old_index))
+        node.reorder_ports(reordered)
+
     @classmethod
     def poll(cls, ctx: "SessionContext") -> bool:
         return ctx.data[EditState].active_node is not None
@@ -115,11 +225,14 @@ class NodePortsPanel(BasePanel):
 
                 # BaseNode stores every port in a single `ports` dict and exposes
                 # direction via is_inlet()/is_outlet()/is_config() — there is no
-                # `.inlets`/`.outlets` attribute. Mirror the node card by reading
-                # the same visible-port set the skins render (get_visible_ports),
-                # then classify each port the way render_port() does.
-                if hasattr(hw_node, "get_visible_ports"):
-                    visible_ports = hw_node.get_visible_ports()
+                # `.inlets`/`.outlets` attribute.
+                #
+                # get_all_ports, not get_visible_ports: the latter drops every
+                # port under a collapsed fold, which would make a closed fold's
+                # children unreorderable. The card and the panel legitimately
+                # show different sets.
+                if hasattr(hw_node, "get_all_ports"):
+                    visible_ports = hw_node.get_all_ports()
                 else:
                     visible_ports = list(getattr(hw_node, "ports", {}).values())
                 inlets = [p for p in visible_ports if p.is_inlet()]
@@ -142,8 +255,7 @@ class NodePortsPanel(BasePanel):
                         state=state_bag,
                         panel_key="node:ports:config",
                     ):
-                        for port in configs:
-                            self._render_port(port, node_id, widget_factory)
+                        self._render_lane(hw_node, configs, "config", node_id, widget_factory)
 
                 if inlets:
                     with hui.expansion_section(
@@ -152,8 +264,7 @@ class NodePortsPanel(BasePanel):
                         state=state_bag,
                         panel_key="node:ports:inlets",
                     ):
-                        for port in inlets:
-                            self._render_port(port, node_id, widget_factory)
+                        self._render_lane(hw_node, inlets, "inlet", node_id, widget_factory)
 
                 if outlets:
                     with hui.expansion_section(
@@ -162,8 +273,7 @@ class NodePortsPanel(BasePanel):
                         state=state_bag,
                         panel_key="node:ports:outlets",
                     ):
-                        for port in outlets:
-                            self._render_port(port, node_id, widget_factory)
+                        self._render_lane(hw_node, outlets, "outlet", node_id, widget_factory)
 
             except Exception:
                 # Structural backstop (Q11): a malformed node / port collection

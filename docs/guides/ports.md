@@ -194,6 +194,26 @@ deciding something.
 choosing a widget) and `section()` (which had no adopters in this repo).
 See [ADR 0035](../adr/0035-fold-replaces-group-and-section.md).
 
+### Ordering
+
+`DataPort.order` is the sort key every card and panel renders by. It defaults
+to the order `init()` adds the ports in, so a node's declaration is its
+starting arrangement.
+
+The graph user may override it by dragging a port in the **Properties → Ports**
+panel. Each direction lane, and each fold within it, is its own drag group: a
+port cannot be dragged into another lane or out of its fold. The new order is
+persisted with the graph, and a promoted port's order is stored on its
+promotion record rather than in the node's ports block.
+
+The user's order wins over the author's. A node that reconfigures itself
+through `rejig()` keeps whatever arrangement the user set, and a port added in
+a new version of a library appends rather than landing at its declared
+position — so reordering a node's `init()` calls does not move ports on graphs
+already saved.
+
+Reordering is not undoable. A bad drop is repaired by dragging back.
+
 ## 4. Live examples from the codebase
 
 ### Port shapes — declaration

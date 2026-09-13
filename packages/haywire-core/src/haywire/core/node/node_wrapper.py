@@ -597,6 +597,16 @@ class NodeWrapper:
             if self._graph:
                 self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_REDRAW_REQUESTED)
 
+    def mark_layout_changed(self) -> None:
+        """Mark the node's persisted arrangement dirty — its card rebuilds and the graph saves.
+
+        Distinct from ``redraw()``, whose ``NODE_REDRAW_REQUESTED`` is
+        visual-only and tells the app layer not to mark the file unsaved.
+        """
+        with self._lock:
+            if self._graph:
+                self._graph._validation.mark_node_dirty(self._node_id, ChangeReason.NODE_LAYOUT_CHANGED)
+
     def _subscribe_props_redraw(self) -> None:
         """Watch the instance's appearance-affecting props and redraw on change."""
         if self._node_instance is None:

@@ -193,6 +193,10 @@ class AppIcon:
     """A fold that is closed. Paired with ``fold_open``; see that entry."""
     open_external: Final[str] = "open_in_new"
     """Open in external editor or browser."""
+    drag_handle: Final[str] = "drag_indicator"
+    """The grip a row is dragged by to reorder it, such as a port in the Ports
+    panel. It is the only draggable part of its row, so a row carrying a widget
+    stays editable."""
 
     # ── Data types (haybale) ──────────────────────────────────────────────────
     database: Final[str] = "database"

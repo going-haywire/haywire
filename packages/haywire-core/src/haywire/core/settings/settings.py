@@ -60,10 +60,15 @@ class Promotion(NamedTuple):
     ``show_widget`` is ``None`` whenever the port uses its direction's default
     (``default_show_widget``), which is what every promotion starts as; only a
     user who changed it through the pin menu stores anything here.
+
+    ``order`` is the port's display position, ``None`` until the user drags it.
+    A promoted port is regenerated rather than serialized (ADR 0019), so its
+    order lives here for the same reason ``show_widget`` does.
     """
 
     direction: PortType
     show_widget: ShowWidgetStrategy | None = None
+    order: int | None = None
 
 
 @dataclass_transform(field_specifiers=(setting,))
@@ -183,19 +188,21 @@ class Settings:
         name: str,
         direction: PortType,
         show_widget: ShowWidgetStrategy | None = None,
+        order: int | None = None,
     ) -> None:
         """Record that field *name* is promoted to a port in *direction*.
 
         Purely a promotion record — does not touch the field's value cell.
         Unknown *name*: logs a warning and ignores. *show_widget* records the
         user's widget-visibility choice for the generated port; ``None`` means
-        "use the direction's default".
+        "use the direction's default". *order* is the port's display position;
+        ``None`` uses declaration order.
         """
         fields = type(self)._settings_descriptors()
         if name not in fields:
             logger.warning("set_promoted: unknown field %r on %s — ignored", name, type(self).__name__)
             return
-        self._promoted_keys[fields[name].storage_key] = Promotion(direction, show_widget)
+        self._promoted_keys[fields[name].storage_key] = Promotion(direction, show_widget, order)
 
     def _set_promoted_show_widget(self, name: str, strategy: ShowWidgetStrategy | None) -> None:
         """Record *name*'s widget-visibility choice, keeping its direction.
@@ -212,6 +219,20 @@ class Settings:
         if existing is None:
             return
         self._promoted_keys[storage_key] = existing._replace(show_widget=strategy)
+
+    def _set_promoted_order(self, storage_key: str, order: int | None) -> None:
+        """Record a promoted port's display order, keeping its direction and widget choice.
+
+        No-op when ``storage_key`` names no promotion record.
+
+        Args:
+            storage_key: The promoted field's storage key, which is also the
+                generated port's id.
+        """
+        existing = self._promoted_keys.get(storage_key)
+        if existing is None:
+            return
+        self._promoted_keys[storage_key] = existing._replace(order=order)
 
     def _get_promoted_show_widget(self, name: str) -> ShowWidgetStrategy | None:
         """*name*'s recorded widget-visibility choice, or None when it uses the
@@ -546,9 +567,10 @@ class Settings:
 
         ``promoted`` holds this bag's promotion records, ``storage_key → {...}``.
         Each record carries ``"direction"`` (``"inlet"``/``"outlet"``/
-        ``"config"``), and ``"show_widget"`` only when the user chose a strategy
-        other than the direction's default. A promoted port is regenerated from
-        this on load rather than persisted in the node's ports block.
+        ``"config"``), ``"show_widget"`` only when the user chose a strategy
+        other than the direction's default, and ``"order"`` only once the user
+        has dragged the port. A promoted port is regenerated from this on load
+        rather than persisted in the node's ports block.
         """
         fields = type(self)._settings_descriptors()
         values: dict = {}
@@ -560,13 +582,15 @@ class Settings:
                 values[name] = val
         promoted: dict[str, dict] = {}
         for key, record in self._promoted_keys.items():
-            entry: dict[str, str] = {"direction": record.direction.value}
+            entry: dict[str, str | int] = {"direction": record.direction.value}
             # A strategy that restates the direction default is omitted; the
             # reader re-derives it. Mirrors how `values` skips defaults.
             if record.show_widget is not None and record.show_widget is not default_show_widget(
                 record.direction
             ):
                 entry["show_widget"] = record.show_widget.value
+            if record.order is not None:
+                entry["order"] = record.order
             promoted[key] = entry
         return {"values": values, "promoted": promoted}
 
@@ -613,6 +637,7 @@ class Settings:
             self._promoted_keys[key] = Promotion(
                 direction,
                 ShowWidgetStrategy(raw_strategy) if raw_strategy is not None else None,
+                record.get("order"),
             )
 
     # -------------------------------------------------------------------------

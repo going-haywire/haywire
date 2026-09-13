@@ -375,6 +375,38 @@ class NodeData:
         finally:
             self._pop()
 
+    def reorder_ports(self, ordered_ids: list[str]) -> None:
+        """Set the display order of one sibling group from ``ordered_ids``.
+
+        Siblings are the ports sharing a direction lane and a fold — the group
+        the user can actually rearrange. Ports outside the list keep the order
+        they had, so reordering one lane leaves every other lane alone.
+
+        Ids naming no port are skipped, and an empty list changes nothing.
+
+        Args:
+            ordered_ids: Every sibling in the group, in the order they should
+                display.
+        """
+        known = [pid for pid in ordered_ids if pid in self.ports]
+        if not known:
+            return
+
+        # Reuse the slots the group already occupies, so only these ports move.
+        slots = sorted(self.ports[pid].order for pid in known)
+        for slot, pid in zip(slots, known, strict=True):
+            self.ports[pid].order = slot
+
+        from haywire.core.node.promotion import set_promoted_order
+
+        for pid in known:
+            port = self.ports[pid]
+            if port.promoted:
+                set_promoted_order(self, pid, port.order)
+
+        if self.wrapper:
+            self.wrapper.mark_layout_changed()
+
     # =========================================================================
     # Port Value Access
     # =========================================================================

@@ -155,7 +155,7 @@ def regenerate_promoted_ports(node: "NodeData") -> None:
                     accessor,
                 )
                 continue
-            promote_setting(node, accessor, field, record.direction, record.show_widget)
+            promote_setting(node, accessor, field, record.direction, record.show_widget, record.order)
 
 
 def promote_setting(
@@ -164,6 +164,7 @@ def promote_setting(
     field: str,
     direction: PortType = PortType.INLET,
     show_widget: "ShowWidgetStrategy | None" = None,
+    order: int | None = None,
 ) -> None:
     """Promote a setting field to a DATA port in *direction*. No-op if already promoted.
 
@@ -186,6 +187,7 @@ def promote_setting(
             direction's default, which is what an interactive promotion passes;
             a value arrives from ``regenerate_promoted_ports`` restoring a choice
             made through the pin menu (see ``DataPort.set_show_widget``).
+        order: The port's display position; ``None`` uses declaration order.
 
     Raises:
         ValueError: If *direction* is none of the three port types, or if
@@ -224,8 +226,11 @@ def promote_setting(
     # port with its group/section/order bookkeeping, leaving other ports alone.
     with node.rejig(include=[pid]):
         port = node.add(spec)
+    # add() stamps a fresh counter, so a restored order has to overwrite it.
+    if order is not None:
+        port.order = order
     _bind_port(port, bag, desc)
-    bag._set_promoted(field, direction, show_widget)
+    bag._set_promoted(field, direction, show_widget, order)
 
 
 def demote_setting(node: "NodeData", port_id: str) -> None:
@@ -296,3 +301,17 @@ def set_promoted_show_widget(
         return
     port.set_show_widget(strategy)
     bag._set_promoted_show_widget(desc._attr_name, strategy)
+
+
+def set_promoted_order(node: "NodeData", port_id: str, order: int) -> None:
+    """Record a promoted port's display position on its settings bag.
+
+    A promoted port is regenerated rather than serialized (ADR 0019), so its
+    order lives in the promotion record. No-op if ``port_id`` names no promoted
+    port.
+    """
+    try:
+        bag, _desc = _resolve_promoted(node, port_id)
+    except KeyError:
+        return
+    bag._set_promoted_order(port_id, order)

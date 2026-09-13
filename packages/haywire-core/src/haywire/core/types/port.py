@@ -504,12 +504,17 @@ class DataPort(DataTypeIdentity):
         self.show_widget = strategy
 
     def adopt_state_from(self, existing: "DataPort") -> None:
-        """Transplant edge state (and value, when types match) from a port being
-        replaced during reconfiguration. Called by ``BaseNode.add`` when a port id
-        is re-added in a push/rejig context.
+        """Transplant edge state, value (when types match) and display order from a
+        port being replaced during reconfiguration. Called by ``BaseNode.add`` when a
+        port id is re-added in a push/rejig context.
+
+        Order is user-owned: a graph user's arrangement outlives a node
+        reconfiguring itself, so a node re-adding a port does not move it. A port
+        the node adds for the first time takes a fresh order, and so appends.
         """
         self._linked_edges = existing._linked_edges.copy()
         self._all_edges = existing._all_edges.copy()
+        self.order = existing.order
 
         # Preserve the field instance only when the type is unchanged, so the
         # stored value (and its observers) survive the port swap.
