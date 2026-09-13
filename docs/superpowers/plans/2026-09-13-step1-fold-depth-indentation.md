@@ -83,7 +83,7 @@ automatically. And `test_node_skin_settings.py` enforces that every declared
 field is read somewhere under the skins directory by grepping for
 `self._ui_settings.<name>` — the `FOLD_INDENT` property body satisfies it.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/skin/test_port_row_depth_indent.py`:
 
@@ -180,14 +180,14 @@ def test_negative_depth_is_clamped(skin) -> None:
     assert skin._content_inset(-1) == skin.CONTENT_GAP
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py -v`
 Expected: FAIL. Most tests fail with `AttributeError` — `'StackedNodeSkin' object
 has no attribute '_content_inset'`, and `NodeSkin.FOLD_INDENT` missing;
 `test_fold_indent_is_a_declared_setting` fails with `AssertionError`.
 
-- [ ] **Step 3: Declare the setting**
+- [x] **Step 3: Declare the setting**
 
 In `barn/haybale-studio/haybale_studio/settings/node_skin_settings.py`, add to
 the "Pin geometry" block, beside `content_gap`:
@@ -204,7 +204,7 @@ the "Pin geometry" block, beside `content_gap`:
     )
 ```
 
-- [ ] **Step 4: Add the accessor and the inset helper**
+- [x] **Step 4: Add the accessor and the inset helper**
 
 In `barn/haybale-studio/haybale_studio/skins/node_skin.py`, add the property
 beside its six siblings (after `CONTENT_GAP`, around line 73):
@@ -230,12 +230,12 @@ Then add the helper as an **instance method** — every value it reads is a
         return self.CONTENT_GAP + max(0, depth) * self.FOLD_INDENT
 ```
 
-- [ ] **Step 5: Run test to verify it passes**
+- [x] **Step 5: Run test to verify it passes**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py -v`
 Expected: PASS (6 tests)
 
-- [ ] **Step 6: Thread `depth` through the two render methods**
+- [x] **Step 6: Thread `depth` through the two render methods**
 
 In `render_port`, change the signature and forward the value:
 
@@ -312,7 +312,7 @@ Add to that method's docstring, after the existing `side` paragraph:
         nesting level. The pin column is never inset.
 ```
 
-- [ ] **Step 7: Add the depth-invariance test**
+- [x] **Step 7: Add the depth-invariance test**
 
 Append to `tests/ui/skin/test_port_row_depth_indent.py`:
 
@@ -349,18 +349,18 @@ def test_render_port_accepts_depth() -> None:
     assert "depth" in inspect.signature(NodeSkin._render_port_horizontal).parameters
 ```
 
-- [ ] **Step 8: Run the tests**
+- [x] **Step 8: Run the tests**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py -v`
 Expected: PASS (8 tests)
 
-- [ ] **Step 9: Verify no regression in existing pin geometry**
+- [x] **Step 9: Verify no regression in existing pin geometry**
 
 Run: `uv run pytest tests/ui/skin/ -q`
 Expected: all pass. `test_pin_render_layout.py` must be untouched and green — it
 asserts the offset formula this plan deliberately does not change.
 
-- [ ] **Step 10: Commit**
+- [x] **Step 10: Commit**
 
 ```bash
 git add barn/haybale-studio/haybale_studio/skins/node_skin.py tests/ui/skin/test_port_row_depth_indent.py
@@ -391,7 +391,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 A config port renders no pin, so it can inset wholesale with no conflict. It
 already computes a symmetric `indent`; depth adds to the left side only.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/ui/skin/test_port_row_depth_indent.py`:
 
@@ -420,12 +420,12 @@ def test_config_indent_follows_the_live_settings(skin) -> None:
     assert skin._config_indent(0) == 36
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py::test_config_indent_grows_with_depth -v`
 Expected: FAIL with `AttributeError: 'StackedNodeSkin' object has no attribute '_config_indent'`
 
-- [ ] **Step 3: Add the helper and thread `depth`**
+- [x] **Step 3: Add the helper and thread `depth`**
 
 Add beside `_content_inset` in `node_skin.py`, as an **instance** method:
 
@@ -487,12 +487,12 @@ Replace with:
         ) as config_row:
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py -v`
 Expected: PASS (11 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add barn/haybale-studio/haybale_studio/skins/node_skin.py tests/ui/skin/test_port_row_depth_indent.py
@@ -517,7 +517,7 @@ This is the change that fixes the existing bug: `_render_group` currently wraps
 its children in `ui.column().classes("w-full pl-2 ml-1 gap-1")`, insetting the
 pin column along with everything else.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/ui/skin/test_port_row_depth_indent.py`:
 
@@ -545,12 +545,12 @@ def test_render_group_threads_depth() -> None:
     assert "depth" in inspect.signature(StackedNodeSkin._render_group).parameters
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py::test_group_container_does_not_indent_the_row -v`
 Expected: FAIL — `assert "pl-2" not in source`
 
-- [ ] **Step 3: Remove row indentation and thread `depth`**
+- [x] **Step 3: Remove row indentation and thread `depth`**
 
 In `stacked_skin.py`, change `_render_port_hierarchy` (line 224 — there is no
 `_render_ports`) to pass a depth of 0 at top level.
@@ -651,17 +651,17 @@ Then replace the child loop so depth increments:
                         )
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/ui/skin/test_port_row_depth_indent.py -v`
 Expected: PASS (13 tests)
 
-- [ ] **Step 5: Run the full skin suite**
+- [x] **Step 5: Run the full skin suite**
 
 Run: `uv run pytest tests/ui/skin/ -q`
 Expected: all pass.
 
-- [ ] **Step 6: Lint, format and type-check**
+- [x] **Step 6: Lint, format and type-check**
 
 ```sh
 uv run ruff check barn/haybale-studio/haybale_studio/skins/ tests/ui/skin/
@@ -672,7 +672,7 @@ uv run mypy barn/haybale-studio/haybale_studio/skins/
 Expected: clean. If `ruff format --check` reports drift, run
 `uv run ruff format barn/haybale-studio/haybale_studio/skins/ tests/ui/skin/` and re-commit.
 
-- [ ] **Step 7: Commit**
+- [x] **Step 7: Commit**
 
 ```bash
 git add barn/haybale-studio/haybale_studio/skins/stacked_skin.py tests/ui/skin/test_port_row_depth_indent.py
@@ -698,7 +698,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: the behaviour from Tasks 1-3.
 - Produces: nothing code-facing.
 
-- [ ] **Step 1: Verify in the real app**
+- [x] **Step 1: Verify in the real app**
 
 ```sh
 uv run haywire
@@ -709,7 +709,7 @@ Drop the `Group And Sections` node (menu: `testing/rendering`). Confirm:
 2. The child's label and widget are indented relative to ungrouped rows.
 3. Dragging an edge to the nested pin connects normally.
 
-- [ ] **Step 2: Write the insight file**
+- [x] **Step 2: Write the insight file**
 
 Create `.insights/project_pin_offset_vs_row_indent.md`:
 
@@ -743,7 +743,7 @@ port is nested, while edges still connect correctly. `render_pin` is not the bug
 — its precondition was broken upstream.
 ```
 
-- [ ] **Step 3: Add the CLAUDE.md entry**
+- [x] **Step 3: Add the CLAUDE.md entry**
 
 In `CLAUDE.md`, under "### Architecture traps", add:
 
@@ -751,7 +751,7 @@ In `CLAUDE.md`, under "### Architecture traps", add:
 - [project_pin_offset_vs_row_indent.md](.insights/project_pin_offset_vs_row_indent.md) — a pin's negative offset assumes its row starts at the card edge, so indenting a whole row insets the pin from the border (silently — edges follow via `getBoundingClientRect`). Depth insets the row's CONTENT column only.
 ```
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add .insights/project_pin_offset_vs_row_indent.md CLAUDE.md
@@ -764,8 +764,8 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ## Done When
 
-- [ ] `uv run pytest tests/ui/skin/ -q` passes.
-- [ ] `uv run pytest -m "not browser and not perf" -q` passes (exit 0).
-- [ ] `uv run ruff check .` and `uv run ruff format --check .` clean.
-- [ ] `uv run mypy` over the `CLAUDE.md` package list clean.
-- [ ] A grouped port's pin is visually flush with an ungrouped port's pin in the running app.
+- [x] `uv run pytest tests/ui/skin/ -q` passes.
+- [x] `uv run pytest -m "not browser and not perf" -q` passes (exit 0).
+- [x] `uv run ruff check .` and `uv run ruff format --check .` clean.
+- [x] `uv run mypy` over the `CLAUDE.md` package list clean.
+- [x] A grouped port's pin is visually flush with an ungrouped port's pin in the running app.

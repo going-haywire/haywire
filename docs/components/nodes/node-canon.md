@@ -100,10 +100,7 @@ with self.rejig(exclude=['exec', 'true', 'false', 'DataType']):
 
 `rejig()` accepts `include=` and `exclude=` (list of IDs or regex string). Static ports — those declared once in `init()` and never changing — should be excluded so the system doesn't tear them down.
 
-**Groups and sections.** Two ways to organise ports without changing the worker contract:
-
-- `with self.group(GROUP.as_inlet('advanced', label='Advanced'))` — collapsible UI container; child ports are hidden when collapsed but connections are preserved via ghost pins. Groups can nest.
-- `with self.section('validation')` — moves ports off the node body and into a property-panel section. Worker contract unchanged.
+**Folds.** `with self.fold('Advanced'):` organises ports into a collapsible UI container without changing the worker contract — the author supplies only a label; the framework mints the container port. Child ports are hidden when collapsed but connections are preserved via ghost pins. Folds can nest, and every port inside one takes the same direction. See [guides/ports](../../guides/ports.md) and [ADR 0035](../../adr/0035-fold-replaces-group-and-section.md).
 
 **Custom instance attributes — the `hb_*` convention.** Methods or attributes you add to a node class should start with `hb_`, `my_`, `custom_`, or `ext_` so they don't collide with future framework additions. The `hb_*` prefix is the project convention for "this is a node-author hook."
 

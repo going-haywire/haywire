@@ -14,15 +14,13 @@ class TestEmitCallbackNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING, FLOAT, BOOL
-        from haybale_core.types import EXEC, CALLBACK, GROUP
+        from haybale_core.types import EXEC, CALLBACK
         from haybale_core.types import PooledType
         from haywire.barn.builtin.widgets import SwitchWidget, TextWidget
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
 
-        with self.group(
-            GROUP.as_config("mode_switch", default=False, label="Use Custom Name", on_change="redraw")
-        ):
+        with self.fold("Custom Name", default=False, on_change="redraw"):
             self.add(
                 STRING.as_config(
                     "custom_callback_name",
@@ -60,14 +58,14 @@ class TestEmitCallbackNode(BaseNode):
     def worker(
         self,
         context: ExecutionContext,
-        mode_switch: bool,
+        custom_name: bool,
         sequential_mode: bool,
         edge_callbacks: dict,
         custom_callback_name: str,
         payload: float,
     ) -> str | None:
         payload_dict = {"value": payload}
-        if mode_switch:
+        if custom_name:
             context.emit_callback(event_name=custom_callback_name, payload=payload_dict)
         else:
             if sequential_mode:

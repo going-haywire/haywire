@@ -24,8 +24,8 @@ class NodeData:
 
     Every port — inlet, outlet and config — lives in one ``ports`` dict.
     ``rejig()`` reconfigures them while keeping the edges of those that come
-    back, ``group()`` nests them under a collapsible group port on the node
-    card, and ``section()`` groups them for the Properties panel.
+    back, and ``fold()`` nests them under a collapsible fold port on the node
+    card.
     """
 
     # Class-level attributes (set by @node decorator)
@@ -86,8 +86,11 @@ class NodeData:
         self._group_stack: List[str] = []
         """Stack of active group IDs for nested groups."""
 
-        self._section_stack: List[str] = []
-        """Stack of active section names for property organization."""
+        self._fold_direction: Dict[str, PortType] = {}
+        """The direction each open fold has committed to, by fold port id."""
+
+        self._pending_folds: set[str] = set()
+        """Ids of folds being declared, which have yet to take a direction."""
 
         self._port_order_counter: int = 0
         """Counter for assigning display order to ports."""
@@ -147,10 +150,10 @@ class NodeData:
     def add(self, spec: "dict[Any, Any] | PortSpec") -> DataPort:
         """Add an inlet or outlet from a port spec and return the built port.
 
-        The port joins the enclosing ``group()`` and ``section()`` blocks, if
-        any, and is ordered after the ports added before it. Inside ``rejig()``,
-        re-adding a port ID the block flagged replaces that port and keeps its
-        edges (see ``DataPort.adopt_state_from``); any other existing ID raises
+        The port joins the enclosing ``fold()`` block, if any, and is ordered
+        after the ports added before it. Inside ``rejig()``, re-adding a port
+        ID the block flagged replaces that port and keeps its edges (see
+        ``DataPort.adopt_state_from``); any other existing ID raises
         ``ValueError``::
 
             self.add(FLOAT.as_inlet("value"))
@@ -160,8 +163,12 @@ class NodeData:
         if self._group_stack:
             port.parent_group = self._group_stack[-1]
 
-        if self._section_stack:
-            port.section = self._section_stack[-1]
+        # A nested fold is spec'd as_config but has no direction of its own yet
+        # — it takes one from its children when its block closes, and votes in
+        # its parent's lane then (see fold()). Voting the CONFIG it is spec'd
+        # with here would reject it from any inlet or outlet parent.
+        if port.parent_group and port.id not in self._pending_folds:
+            self._commit_fold_direction(port.parent_group, port.id, port.port_type)
 
         port.order = self._port_order_counter
         self._port_order_counter += 1
@@ -186,69 +193,117 @@ class NodeData:
 
         return port
 
-    @contextmanager
-    def group(self, spec: "dict[Any, Any] | PortSpec"):
-        """Add a collapsible group port; every port added inside becomes its child.
+    @staticmethod
+    def _fold_id(label: str) -> str:
+        """Return the port id a fold takes from its ``label``."""
+        return re.sub(r"[^a-z0-9]+", "_", label.strip().lower()).strip("_")
 
-        The group is itself a boolean port on the node card, and its value is
-        the expanded state. While it is collapsed, child ports are hidden but
-        their edges are kept and drawn to a ghost pin. Groups nest.
+    def _commit_fold_direction(self, fold_id: str, port_id: str, port_type: PortType) -> None:
+        """Record ``port_id``'s direction as fold ``fold_id``'s, or raise.
+
+        A fold renders in one lane. Two lanes would need its header drawn
+        twice, so a mixed fold is an authoring error, not a layout to resolve
+        at render time.
 
         Raises:
-            ValueError: If the group port's ID already exists.
-
-        Examples:
-            # Simple group
-            with self.group(GROUP.as_inlet('advanced', label='Advanced Options')):
-                self.add(FLOAT.as_inlet('param1'))
-                self.add(FLOAT.as_inlet('param2'))
-
-            # Nested groups
-            with self.group(GROUP.as_inlet('input', label='Input Configuration')):
-                self.add(FLOAT.as_inlet('value'))
-
-                with self.group(GROUP.as_inlet('validation', label='Validation')):
-                    self.add(BOOL.as_inlet('validate'))
-                    self.add(FLOAT.as_inlet('tolerance'))
-
-            # Initially collapsed
-            with self.group(GROUP.as_inlet('expert', label='Expert Settings', default=False)):
-                self.add(FLOAT.as_inlet('epsilon'))
+            ValueError: If the fold already committed to another direction.
         """
-        group_port = self.add(spec)
-
-        group_port.is_group = True
-
-        self._group_stack.append(group_port.id)
-        try:
-            yield
-        finally:
-            self._group_stack.pop()
+        committed = self._fold_direction.setdefault(fold_id, port_type)
+        if committed is not port_type:
+            raise ValueError(
+                f"Fold {fold_id!r} holds {committed.value} ports; "
+                f"{port_id!r} is {port_type.value}. A fold holds one direction."
+            )
 
     @contextmanager
-    def section(self, name: str):
-        """Group the ports added inside under ``name`` in the Properties panel.
+    def fold(self, label: str, *, default: bool = True, **kwargs):
+        """Add a collapsible fold; every port added inside becomes its child.
 
-        A section creates no port of its own, and its ports are left out of the
-        node card unless a caller asks for them (see ``iter_visible_ports``).
+        The fold is a port with no pin and no widget: the disclosure triangle on
+        the node card is its only control, and its value is the open state. It
+        persists, so a node reopens as the user left it, and a node may read it
+        or pass ``on_change=`` to reconfigure itself when the user folds.
+
+        Its id is derived from ``label``. The fold takes the direction of the
+        ports inside it, so that it renders in their lane; mixing directions
+        inside one fold raises, and so does an empty one. Folds nest.
+
+        Label a fold as a section ("Custom Name"), not as an imperative
+        ("Use Custom Name") — it names what is inside, and the user opens it
+        rather than deciding something.
+
+        Args:
+            label: The header text, and the source of the fold's port id.
+            default: Whether the fold starts open.
+            **kwargs: Forwarded to the port spec — ``on_change``, ``description``
+                and the rest of ``as_config``'s keywords.
+
+        Raises:
+            ValueError: If the fold's id already exists on this node, if the
+                ports inside it disagree on direction, or if it holds none.
 
         Examples:
-            # Ports in validation section
-            with self.section('validation'):
-                self.add(FLOAT.as_inlet('min_value'))
-                self.add(FLOAT.as_inlet('max_value'))
-                self.add(BOOL.as_inlet('clamp'))
+            # A fold over two config ports
+            with self.fold('Solver'):
+                self.add(INT.as_config('substeps', default=10))
+                self.add(INT.as_config('iterations', default=1))
 
-            # Nested sections and groups
-            with self.group(GROUP.as_inlet('advanced')):
-                with self.section('performance'):
-                    self.add(INT.as_inlet('max_iterations'))
+            # Closed until the user opens it
+            with self.fold('Advanced', default=False):
+                self.add(FLOAT.as_config('epsilon', default=1e-6))
+
+            # Reconfigure the node when the user folds
+            with self.fold('Custom Name', on_change='hb_change'):
+                self.add(STRING.as_config('name', default='my_callback'))
         """
-        self._section_stack.append(name)
+        from haywire.barn.builtin.types import BOOL
+
+        fold_id = self._fold_id(label)
+        # widget_key=None: BOOL's identity declares SWITCH_WIDGET, and a fold
+        # whose state is reached by the disclosure triangle must not also render
+        # one. as_config resolves store_strategy to ALWAYS (BOOL sets none), so
+        # a widget-less fold still persists its open state.
+        spec = BOOL.as_config(
+            fold_id,
+            label=label,
+            default=default,
+            widget_key=None,
+            **kwargs,
+        )
+        # Announced before add() so it can tell this port is a container that
+        # has yet to learn its direction, rather than a config port.
+        self._pending_folds.add(fold_id)
+        parent_id = self._group_stack[-1] if self._group_stack else None
         try:
-            yield
+            fold_port = self.add(spec)
+            fold_port.is_group = True
+
+            self._group_stack.append(fold_port.id)
+            try:
+                yield fold_port
+            finally:
+                self._group_stack.pop()
+                committed = self._fold_direction.pop(fold_port.id, None)
         finally:
-            self._section_stack.pop()
+            self._pending_folds.discard(fold_id)
+
+        # Only on a clean exit: raising here on the exception path would mask
+        # whatever the body raised (the mixing ValueError above, most often).
+        if committed is None:
+            raise ValueError(
+                f"Fold {fold_port.id!r} holds no ports. A fold takes its direction "
+                f"from the ports inside it, so it must hold at least one."
+            )
+        # The fold renders in its children's lane, not in the config band its
+        # as_config() spec would otherwise put it in. It stays pinless through
+        # is_group — see DataPort.has_pin().
+        fold_port.adopt_port_type(committed)
+
+        # The vote add() deferred: a nested fold joins its parent's lane with
+        # the direction it just took, so a config fold inside an inlet fold is
+        # still rejected.
+        if parent_id is not None:
+            self._commit_fold_direction(parent_id, fold_port.id, committed)
 
     def _push(
         self, include: Optional[List[str] | str] = None, exclude: Optional[List[str] | str] = None
@@ -411,74 +466,31 @@ class NodeData:
         """All ports in display order. Single source of ordered iteration."""
         yield from sorted(self.ports.values(), key=lambda p: p.order)
 
-    def iter_visible_ports(self, include_sections: bool = False) -> Iterator[DataPort]:
+    def iter_visible_ports(self) -> Iterator[DataPort]:
         """Yield the ports drawn on the node card, in display order.
 
-        A port inside a collapsed group is skipped.
-
-        Args:
-            include_sections: When True, also yield ports assigned to a section;
-                by default those reach only the Properties panel.
+        A port inside a closed fold is skipped.
         """
         for port in self._iter_ports():
-            if not include_sections and port.section:
-                continue
             if port.parent_group and self._is_any_ancestor_collapsed(port):
                 continue
             yield port
 
-    def get_visible_ports(self, include_sections: bool = False) -> List[DataPort]:
+    def get_visible_ports(self) -> List[DataPort]:
         """The ports drawn on the node card, as a list. See ``iter_visible_ports``."""
-        return list(self.iter_visible_ports(include_sections=include_sections))
+        return list(self.iter_visible_ports())
 
     def get_all_ports(self) -> List[DataPort]:
-        """Every port in display order, ignoring group collapse and sections."""
+        """Every port in display order, ignoring fold collapse."""
         return list(self._iter_ports())
 
     def get_folded_ports(self) -> List[DataPort]:
-        """The ports a folded node card draws: every linked port, whatever its group state.
+        """The ports a folded node card draws: every linked port, whatever its fold state.
 
-        Group collapse is ignored so that an edge always finds its endpoint on a
-        folded card. Unlinked ports, sectioned ports and group control ports are
-        left out.
+        Fold collapse is ignored so that an edge always finds its endpoint on a
+        folded card. Unlinked ports and fold control ports are left out.
         """
-        return [
-            port
-            for port in self.get_all_ports()
-            if not port.section and not port.is_group and port.is_linked()
-        ]
-
-    def iter_section_ports(self, section: Optional[str] = None) -> Iterator[DataPort]:
-        """Yield the ports assigned to a section, in display order.
-
-        Args:
-            section: Section name to filter by, or ``None`` for every section.
-        """
-        for port in self._iter_ports():
-            if not port.section:
-                continue
-            if section is not None and port.section != section:
-                continue
-            yield port
-
-    def get_section_ports(self, section: Optional[str] = None) -> Dict[str, List[DataPort]]:
-        """Return the ports grouped by section name, each list in display order.
-
-        Args:
-            section: Section name to filter by, or ``None`` for every section.
-
-        Examples:
-            sections = self.get_section_ports()
-            for section_name, ports in sections.items():
-                render_section_header(section_name)
-                for port in ports:
-                    render_property(port)
-        """
-        sections: Dict[str, List[DataPort]] = {}
-        for port in self.iter_section_ports(section):
-            assert port.section is not None, "iter_section_ports yields only sectioned ports"
-            sections.setdefault(port.section, []).append(port)
-        return sections
+        return [port for port in self.get_all_ports() if not port.is_group and port.is_linked()]
 
     def iter_group_children(self, group_id: str) -> Iterator[DataPort]:
         """Yield the direct children of group ``group_id``, in display order."""
@@ -529,10 +541,10 @@ class NodeData:
         ]
 
     def iter_hidden_connected_ports(self, is_inlet: bool) -> Iterator[DataPort]:
-        """Yield linked ports that a collapsed ancestor group hides, in display order.
+        """Yield linked ports that a collapsed ancestor fold hides, in display order.
 
         Their pins are drawn near the node title so an edge keeps an endpoint.
-        Sectioned ports and group control ports are left out.
+        Fold control ports are left out.
 
         Args:
             is_inlet: Selects the opposite side: ``True`` yields the hidden ports
@@ -543,7 +555,7 @@ class NodeData:
         for port in self._iter_ports():
             if port.is_inlet() == is_inlet:
                 continue
-            if port.section or port.is_group:
+            if port.is_group:
                 continue
             if port.id not in visible_ids and port.is_linked():
                 yield port

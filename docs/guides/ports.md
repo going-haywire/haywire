@@ -21,7 +21,7 @@ Ports are how nodes declare what they consume and produce. Once declared, they s
 - **Inlets** receive data or control into the node.
 - **Outlets** emit data or control out of the node.
 - **Config ports** are inlets with no pin on the canvas; they configure the node from the property panel.
-- **Group / Section ports** organise other ports without affecting the worker contract.
+- **Folds** organise other ports into a collapsible container without affecting the worker contract.
 
 ## 2. How it fits
 
@@ -129,12 +129,59 @@ inlet.data.get_values_list()   # [v1, v2, v3]
 inlet.data.get_source_ids()    # ['node_a', 'node_b', 'node_c']
 ```
 
-**Port groups and sections.** Two ways to organise ports without touching the worker contract:
+**Folds.** `with self.fold(label, ...)` organises ports into a collapsible UI container without touching the worker contract — the author supplies only a name; the framework mints the container port itself. Explained further below and in [components/nodes](../components/nodes/node-canon.md) §3.
 
-- `with self.group(GROUP.as_inlet('advanced', label='Advanced'))` — a collapsible UI container; child ports are hidden when collapsed but connections survive via ghost pins. Groups can nest.
-- `with self.section('validation')` — moves child ports off the node body and into a property-panel section.
+### Folds
 
-Both are explained in [components/nodes](../components/nodes/node-canon.md) §3.
+A fold is a real port, as any inlet or outlet is: it holds the open/closed
+state, serializes with the graph, and parents its children through
+`parent_group`. Unlike a hand-declared port, the author supplies only a
+label — the framework mints a pin-less, widget-less `BOOL` config port whose
+disclosure triangle is the only affordance:
+
+```python
+with self.fold('Solver'):
+    self.add(INT.as_config('substeps', default=10))
+    self.add(INT.as_config('iterations', default=1))
+```
+
+While closed, child ports are hidden but their edges survive, drawn to a
+ghost pin near the node title (see `iter_hidden_connected_ports`). `default=`
+sets the starting open/closed state, and `on_change=` names a method to call
+when the user folds or unfolds — the same reconfigure hook a config port
+uses:
+
+```python
+with self.fold('Advanced', default=False):
+    self.add(FLOAT.as_config('epsilon', default=1e-6))
+
+with self.fold('Custom Name', on_change='hb_change'):
+    self.add(STRING.as_config('name', default='my_callback'))
+```
+
+**One direction per fold.** Every port added inside one fold must share the
+same `PortType` (inlet, outlet, or config) — a skin renders each direction in
+its own lane, so a fold spanning two would need its header drawn twice.
+Mixing raises `ValueError` at declaration time, from `init()`.
+
+**Folds nest to any depth**, each child fold rendering under its parent, and
+a closed ancestor hides every fold beneath it:
+
+```python
+with self.fold('Solver'):
+    self.add(FLOAT.as_config('substeps', default=10.0))
+    with self.fold('Interpolation Range'):
+        self.add(FLOAT.as_config('begin', default=0.0))
+        self.add(FLOAT.as_config('end', default=1.0))
+```
+
+Label a fold as a section name ("Custom Name"), not as an imperative ("Use
+Custom Name") — it names what is inside, and the user opens it rather than
+deciding something.
+
+`fold()` replaces the older `group()` (which required importing `GROUP` and
+choosing a widget) and `section()` (which had no adopters in this repo).
+See [ADR 0035](../adr/0035-fold-replaces-group-and-section.md).
 
 ## 4. Live examples from the codebase
 
@@ -166,10 +213,10 @@ What this example covers for port shapes:
 
 Source: `barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py`
 
-`TestEmitCallbackNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `GROUP.as_config` for a collapsible config section:
+`TestEmitCallbackNode` shows how a pooled inlet is consumed in a worker: the value arrives as a `dict`, iterated to dispatch to multiple listeners. It also demonstrates `on_change` on a pooled inlet, `post_init()` for non-serializable state, and `fold()` for a collapsible config section:
 
 ```python
---8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:5:84"
+--8<-- "barn/haybale-testing/haybale_testing/nodes/testbed/emit_callback_node.py:1:79"
 ```
 
 from: `TestEmitCallbackNode` — registry_key: `haybale-testing:node:TestEmitCallbackNode`
@@ -181,10 +228,10 @@ What this example covers for worker access:
 | `PooledType[CALLBACK].as_inlet(...)` | `edge_callback` — collects multiple listener IDs |
 | Pooled value arrives as `dict` in worker | `edge_callbacks` parameter, iterated with `.values()` |
 | `on_change='printout'` on a pooled inlet | called when connections change |
-| `GROUP.as_config(...)` collapsible config section | `mode_switch` group with `custom_callback_name` |
-| `STRING.as_config(...)` inside a group | `custom_callback_name` — panel-only, no canvas pin |
+| `fold(...)` collapsible config section | `Custom Name` fold with `custom_callback_name` |
+| `STRING.as_config(...)` inside a fold | `custom_callback_name` — panel-only, no canvas pin |
 | `post_init()` for non-serializable state | `self.callback_index = 0` |
-| Worker named parameter binding | `mode_switch`, `sequential_mode`, `edge_callbacks`, etc. |
+| Worker named parameter binding | `custom_name`, `sequential_mode`, `edge_callbacks`, etc. |
 | `context.emit_callback(event_name=..., payload=...)` | dispatches to all or one listener |
 
 For declarative settings instead of config ports, see [components/settings](../components/settings/setting-canon.md). For the lifecycle hooks that surround `worker()` (`init`, `post_init`, `on_validate`, etc.), see [components/nodes](../components/nodes/node-canon.md). For the dynamic `rejig()` pattern that adds and removes ports based on a config value, see [components/nodes §3](../components/nodes/node-canon.md#3-important-concepts).

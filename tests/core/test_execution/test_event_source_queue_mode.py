@@ -40,11 +40,11 @@ class TestEventNodeQueueMode:
         custom_callback = make_node(
             graph, CustomCallbackNode.class_identity.registry_key, position=(100, 100)
         )
-        # Set the name + queue mode first, then flip mode_switch last — its
+        # Set the name + queue mode first, then flip custom_name last — its
         # on_change="redraw" rebuilds the subscription and captures both.
         custom_callback.node.ports["custom_callback_name"].set_value(callback_name)
         custom_callback.node.ports["queue_mode"].set_value(queue_mode)
-        custom_callback.node.ports["mode_switch"].set_value(True)
+        custom_callback.node.ports["custom_name"].set_value(True)
 
         print_msg = make_node(graph, PrintNode.class_identity.registry_key, position=(300, 100))
         make_edge(graph, custom_callback.node_id, "triggered", print_msg.node_id, "exec")

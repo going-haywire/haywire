@@ -16,12 +16,10 @@ class TestCustomCallbackNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING, FLOAT
-        from haybale_core.types import GROUP, EXEC, CALLBACK
+        from haybale_core.types import EXEC, CALLBACK
         from haywire.barn.builtin.widgets import TextWidget, SelectWidget
 
-        with self.group(
-            GROUP.as_config("mode_switch", default=False, label="Use Custom Name", on_change="redraw")
-        ):
+        with self.fold("Custom Name", default=False, on_change="redraw"):
             self.add(
                 STRING.as_config(
                     "custom_callback_name",
@@ -74,7 +72,7 @@ class TestCustomCallbackNode(BaseNode):
         else:
             queue_mode, max_queue_size = QueueMode.BLOCK, 100
 
-        mode = self.value("mode_switch")
+        mode = self.value("custom_name")
         if mode:
             callback_name = self.value("custom_callback_name")
             self.event_subscription = CallbackEvent(

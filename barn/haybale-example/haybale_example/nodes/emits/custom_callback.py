@@ -25,13 +25,11 @@ class CustomCallbackNode(BaseNode):
 
     def init(self):
         from haywire.barn.builtin.types import STRING, FLOAT
-        from haybale_core.types import GROUP, EXEC, CALLBACK
+        from haybale_core.types import EXEC, CALLBACK
         from haywire.barn.builtin.widgets import TextWidget
 
         # Config for callback name
-        with self.group(
-            GROUP.as_config("mode_switch", default=False, label="Use Custom Name", on_change="redraw")
-        ):
+        with self.fold("Custom Name", default=False, on_change="redraw"):
             # Config for callback name
             self.add(
                 STRING.as_config(
@@ -76,7 +74,7 @@ class CustomCallbackNode(BaseNode):
 
     def _update_subscription(self, port, new_value):
         """Update event subscription when callback name changes"""
-        mode = self.value("mode_switch")
+        mode = self.value("custom_name")
         if mode:
             callback_name = self.value("custom_callback_name")
             self.event_subscription = CallbackEvent(event_name=callback_name)

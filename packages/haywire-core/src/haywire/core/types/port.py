@@ -41,8 +41,9 @@ class DataPort(DataTypeIdentity):
     """DataField instance storing port data (set in __post_init__)"""
 
     _is_inlet: bool = field(init=False, repr=False, metadata={"serialize": False})
-    """Cached ``port_type == INLET`` (port_type is immutable); lets the set_value
-    hot path branch on an attribute read instead of an ``is_inlet()`` method call."""
+    """Cached ``port_type == INLET``; lets the set_value hot path branch on an
+    attribute read instead of an ``is_inlet()`` method call. Re-type a port
+    through ``adopt_port_type()``, the one path that refreshes this."""
 
     _is_callback: bool = field(init=False, repr=False, metadata={"serialize": False})
     """Cache ``flow_type: FlowType = FlowType.CALLBACK (flow_type is immutable); 
@@ -92,6 +93,17 @@ class DataPort(DataTypeIdentity):
         """True for inlet, False for anything else"""
         return self.port_type == PortType.INLET
 
+    def adopt_port_type(self, port_type: PortType) -> None:
+        """Set this port's direction, refreshing the caches derived from it.
+
+        The only supported re-typing: a fold takes the direction of the ports
+        it holds once its block closes (``NodeData.fold``). Assigning
+        ``port_type`` directly instead leaves ``_is_inlet`` stale, and
+        ``set_value`` reads that cache rather than ``is_inlet()``.
+        """
+        self.port_type = port_type
+        self._is_inlet = port_type == PortType.INLET
+
     @property
     def promoted(self) -> bool:
         """True for a port promoted from a setting (``origin is PROMOTED``).
@@ -122,17 +134,15 @@ class DataPort(DataTypeIdentity):
     parent_group: Optional[str] = None
     """ID of parent group port, None if top-level"""
 
-    section: Optional[str] = None
-    """Section name for property panel grouping"""
-
     order: int = 0
     """Display order within parent"""
 
     is_group: bool = False
-    """True if this port is a group container"""
+    """True if this port is a fold container.
 
-    is_section: bool = False
-    """True if this is a section marker (not rendered in node)"""
+    A fold takes the ``port_type`` of the children it holds, so that it renders
+    in their lane. It draws no pin of its own — see ``has_pin()``.
+    """
 
     needs_loopback: bool = False
     """Set to True if the control flow from this outlet needs to loop back to the node"""
@@ -690,9 +700,12 @@ class DataPort(DataTypeIdentity):
     def has_pin(self) -> bool:
         """Whether this port renders a connection pin on the canvas.
 
-        Config ports are panel-only (no pin); every inlet/outlet renders one.
+        Config ports are panel-only (no pin), and a fold carries the
+        ``port_type`` of its children without being connectable itself — its
+        disclosure triangle is the whole control. Every other inlet/outlet
+        renders one.
         """
-        return not self.is_config()
+        return not self.is_config() and not self.is_group
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""

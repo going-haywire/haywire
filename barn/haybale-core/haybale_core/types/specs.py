@@ -17,7 +17,11 @@ from haywire.barn.builtin.types import STRING
     default={"value": False},
 )
 class GROUP(PrimitiveType[bool]):
-    """Group data type"""
+    """Group data type.
+
+    Superseded by ``NodeData.fold()``, which mints its own container port. Kept
+    for graphs saved before the change; new nodes use ``fold()``.
+    """
 
     def to_dict(self) -> dict:
         return {"value": bool(self._value)}

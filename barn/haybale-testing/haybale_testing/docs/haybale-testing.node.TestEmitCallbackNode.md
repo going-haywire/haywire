@@ -12,7 +12,7 @@ Test version of EmitCallback — emits a callback to trigger event nodes
 | sequential_mode | inlet | haywire-core:type:BOOL | Sequential Mode - if multiple callbacks, emit in sequence |
 | payload | inlet | haywire-core:type:FLOAT | Decimal numberer |
 | edge_callback | inlet | haybale-core:type:PooledType | Multi-source aggregation |
-| mode_switch | config | haybale-core:type:GROUP | Inlet group |
+| custom_name | config | haywire-core:type:BOOL | True or False |
 | custom_callback_name | config | haywire-core:type:STRING | Text data |
 | exec | outlet | haybale-core:type:EXEC | Signal for controlling execution flow between nodes |
 

@@ -8,7 +8,7 @@ Test version of CustomCallback — listens for named callbacks
 
 | id | direction | type | description |
 |---|---|---|---|
-| mode_switch | config | haybale-core:type:GROUP | Inlet group |
+| custom_name | config | haywire-core:type:BOOL | True or False |
 | custom_callback_name | config | haywire-core:type:STRING | Text data |
 | thread_mode | config | haywire-core:type:STRING | Text data |
 | queue_mode | config | haywire-core:type:STRING | Text data |

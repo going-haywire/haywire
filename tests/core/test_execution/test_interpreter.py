@@ -141,7 +141,7 @@ class TestInterpreter:
         emit_callback = make_node(graph, EmitCallbackNode.class_identity.registry_key, position=(300, 100))
 
         # Set mode to use custom callback name and set the callback name
-        emit_callback.node.ports["mode_switch"].set_value(True)
+        emit_callback.node.ports["custom_name"].set_value(True)
         emit_callback.node.ports["custom_callback_name"].set_value("test_callback")
 
         graph.create_edge_wrapper(begin_play.node_id, "exec", emit_callback.node_id, "execute")
@@ -152,7 +152,7 @@ class TestInterpreter:
         )
 
         # Set mode to use custom callback name and set the listener name
-        custom_callback.node.ports["mode_switch"].set_value(True)
+        custom_callback.node.ports["custom_name"].set_value(True)
         custom_callback.node.ports["custom_callback_name"].set_value("test_callback")
 
         print_msg = make_node(

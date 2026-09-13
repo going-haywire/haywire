@@ -3,25 +3,23 @@ from haywire.core.node import node, BaseNode, NodeType
 
 
 @node(
-    label="Group And Sections",
-    description="Tests Rendering for Group and Sections",
+    label="Fold",
+    description="Tests fold rendering",
     menu="testing/rendering",
-    search_tags=["test", "group", "section", "render"],
+    search_tags=["test", "fold", "render"],
     node_type=NodeType.CONTROL,
 )
-class TestGroupAndSectionNode(BaseNode):
+class TestFoldNode(BaseNode):
     """Test-only"""
 
     def init(self):
         from haywire.barn.builtin.types import STRING, FLOAT, BOOL
-        from haybale_core.types import EXEC, GROUP
+        from haybale_core.types import EXEC
         from haywire.barn.builtin.widgets import SwitchWidget, TextWidget
 
         self.add(EXEC.as_inlet("execute", label="Execute"))
 
-        with self.group(
-            GROUP.as_config("mode_switch", default=False, label="Use Custom Name", on_change="redraw")
-        ):
+        with self.fold("Custom Name", default=False, on_change="redraw"):
             self.add(
                 STRING.as_config(
                     "custom_callback_name",
@@ -31,9 +29,7 @@ class TestGroupAndSectionNode(BaseNode):
                 )
             )
 
-        with self.group(
-            GROUP.as_inlet("pin_switch", default=False, label="Use Custom Name", on_change="redraw")
-        ):
+        with self.fold("Custom Pin", default=False, on_change="redraw"):
             self.add(
                 STRING.as_inlet(
                     "in_group_inlet",

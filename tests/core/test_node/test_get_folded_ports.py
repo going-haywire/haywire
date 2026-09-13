@@ -17,10 +17,9 @@ pytestmark = pytest.mark.unit
 
 
 class _FakePort:
-    def __init__(self, pid, *, order=0, linked=False, section=None, is_group=False, visible=True):
+    def __init__(self, pid, *, order=0, linked=False, is_group=False, visible=True):
         self.id = pid
         self.order = order
-        self.section = section
         self.is_group = is_group
         self._linked = linked
         self._visible = visible
@@ -67,13 +66,11 @@ class TestGetFoldedPorts:
 
         assert _get_folded_ports(node) == [buried]
 
-    def test_drops_sections_and_group_controls(self):
-        """Matches get_hidden_connected_ports' filter. A group control port is
-        never linked anyway, so it falls out twice over."""
-        section = _FakePort("sect", order=1, linked=True, section="advanced")
+    def test_drops_group_controls(self):
+        """A group control port is never linked anyway, so it falls out twice over."""
         group = _FakePort("grp", order=2, linked=True, is_group=True)
         real = _FakePort("real", order=3, linked=True)
-        node = _fake_node([section, group, real])
+        node = _fake_node([group, real])
 
         assert _get_folded_ports(node) == [real]
 

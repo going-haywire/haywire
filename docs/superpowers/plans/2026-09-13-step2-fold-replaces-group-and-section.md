@@ -96,7 +96,7 @@ All clean before starting.
   - `NodeData._fold_id(label: str) -> str` — derives a port id from a label.
   - Tasks 2-5 rely on both names exactly.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/core/test_node/test_fold.py`:
 
@@ -206,12 +206,12 @@ class FoldProbeNode(BaseNode):
 
 Commit it before running any suite containing `tests/studio/test_docs/`.
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py -v`
 Expected: FAIL with `AttributeError: 'NodeData' object has no attribute 'fold'`
 
-- [ ] **Step 3: Implement `fold()`**
+- [x] **Step 3: Implement `fold()`**
 
 In `packages/haywire-core/src/haywire/core/node/data.py`, add beside `group()`:
 
@@ -287,12 +287,12 @@ In `packages/haywire-core/src/haywire/core/node/data.py`, add beside `group()`:
 Add `import re` at the top of `data.py` if it is not already imported (it is —
 `_push` uses `re.compile`; verify rather than duplicating).
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py -v`
 Expected: PASS (7 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/core/node/data.py tests/core/test_node/test_fold.py
@@ -317,7 +317,7 @@ Skins render inlets, outlets and configs in separate lanes. A fold spanning two
 lanes would need its header drawn twice, so mixing is an authoring error and is
 reported as one at declaration time.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Append to `tests/core/test_node/test_fold.py`:
 
@@ -383,12 +383,12 @@ def test_a_fold_of_inlets_is_fine(graph_with_library_system) -> None:
     assert probe.ports["b"].parent_group == "inputs"
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py::test_mixing_directions_in_one_fold_raises -v`
 Expected: FAIL — `DID NOT RAISE`
 
-- [ ] **Step 3: Track and check the fold's direction**
+- [x] **Step 3: Track and check the fold's direction**
 
 In `NodeData.__init__`, beside `self._group_stack`, add:
 
@@ -425,12 +425,12 @@ clean:
             self._fold_direction.pop(fold_port.id, None)
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py -v`
 Expected: PASS (9 tests)
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add packages/haywire-core/src/haywire/core/node/data.py tests/core/test_node/test_fold.py
@@ -450,7 +450,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: `fold()` from Tasks 1-2. No production change expected — `_group_stack` already nests and `_is_any_ancestor_collapsed` already walks ancestors.
 - Produces: nothing new; this task proves nesting works and locks it with a test.
 
-- [ ] **Step 1: Write the test**
+- [x] **Step 1: Write the test**
 
 Append to `tests/core/test_node/test_fold.py`:
 
@@ -515,13 +515,13 @@ def test_a_closed_outer_fold_hides_a_nested_fold_child(graph_with_library_system
     assert "solver" in visible
 ```
 
-- [ ] **Step 2: Run the tests**
+- [x] **Step 2: Run the tests**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py -v`
 Expected: PASS (11 tests). If the nesting tests fail, the bug is in
 `_is_any_ancestor_collapsed` or `_group_stack` — fix it there, not in the test.
 
-- [ ] **Step 3: Commit**
+- [x] **Step 3: Commit**
 
 ```bash
 git add tests/core/test_node/test_fold.py
@@ -545,7 +545,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 The existing `_render_group` renders the group's *widget* as the control. A fold
 has no widget, so the header becomes a triangle plus the label.
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 Create `tests/ui/skin/test_fold_header.py`:
 
@@ -585,12 +585,12 @@ def test_group_header_uses_the_central_icon_tokens() -> None:
     assert "fold_open" in source and "fold_closed" in source
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `uv run pytest tests/ui/skin/test_fold_header.py -v`
 Expected: FAIL — `assert "render_widget" not in source`
 
-- [ ] **Step 3: Replace the header block**
+- [x] **Step 3: Replace the header block**
 
 First add the `hui` import — `stacked_skin.py` does not have one (its imports are
 `typing.List`, `nicegui.ui`, `NodeWrapper`, `DataPort`, the enums, `skin`,
@@ -655,17 +655,17 @@ Also update `_render_group`'s docstring, replacing the bullet list:
         - Child ports only while open
 ```
 
-- [ ] **Step 4: Run tests to verify they pass**
+- [x] **Step 4: Run tests to verify they pass**
 
 Run: `uv run pytest tests/ui/skin/test_fold_header.py -v`
 Expected: PASS (3 tests)
 
-- [ ] **Step 5: Run the skin suite**
+- [x] **Step 5: Run the skin suite**
 
 Run: `uv run pytest tests/ui/skin/ -q`
 Expected: all pass.
 
-- [ ] **Step 6: Commit**
+- [x] **Step 6: Commit**
 
 ```bash
 git add barn/haybale-studio/haybale_studio/skins/stacked_skin.py tests/ui/skin/test_fold_header.py
@@ -693,7 +693,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 `git checkout -- barn/haybale-testing`, discarding uncommitted edits there.**
 Commit this task before running the full suite.
 
-- [ ] **Step 1: Read each call site before editing**
+- [x] **Step 1: Read each call site before editing**
 
 ```sh
 grep -rn "self.group(" --include="*.py" barn/
@@ -701,7 +701,7 @@ grep -rn "self.group(" --include="*.py" barn/
 
 Each passes `GROUP.as_config(<id>, default=..., label=..., on_change=...)`.
 
-- [ ] **Step 2: Migrate `custom_callback_node.py`**
+- [x] **Step 2: Migrate `custom_callback_node.py`**
 
 Replace:
 
@@ -719,7 +719,7 @@ with:
 
 Drop `GROUP` from that file's type imports if nothing else uses it.
 
-- [ ] **Step 3: Rename every `mode_switch` consumer — this breaks a worker contract**
+- [x] **Step 3: Rename every `mode_switch` consumer — this breaks a worker contract**
 
 ⚠️ **The id change from `mode_switch` to `custom_name` is not cosmetic.**
 `mode_switch` is a **required worker parameter** in two nodes:
@@ -764,7 +764,7 @@ Regenerate rather than hand-edit:
 uv run haywire docs --all
 ```
 
-- [ ] **Step 4: Migrate the remaining four the same way**
+- [x] **Step 4: Migrate the remaining four the same way**
 
 For each, read the existing `GROUP.as_config(...)` call and map it:
 `label=` becomes the positional argument, `default=` and `on_change=` carry over
@@ -775,7 +775,7 @@ Repeat Step 3's worker-parameter and doc sweep for each id you change.
 
 After each file: `grep -n "GROUP" <file>` and remove the import if unused.
 
-- [ ] **Step 4: Verify no call sites remain**
+- [x] **Step 4: Verify no call sites remain**
 
 ```sh
 grep -rn "self.group(" --include="*.py" . | grep -v "\.venv\|__pycache__"
@@ -783,7 +783,7 @@ grep -rn "self.group(" --include="*.py" . | grep -v "\.venv\|__pycache__"
 
 Expected: no output.
 
-- [ ] **Step 5: Run the affected tests**
+- [x] **Step 5: Run the affected tests**
 
 ```sh
 uv run pytest tests/core/test_node/ tests/ui/skin/ -q
@@ -792,7 +792,7 @@ uv run pytest -k "callback" -q
 
 Expected: all pass.
 
-- [ ] **Step 6: Commit immediately**
+- [x] **Step 6: Commit immediately**
 
 ```bash
 git add barn/
@@ -815,7 +815,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: Task 5 (no call sites left).
 - Produces: `iter_visible_ports(self)` and `get_visible_ports(self)` — both now take no arguments.
 
-- [ ] **Step 1: Find every consumer**
+- [x] **Step 1: Find every consumer**
 
 ```sh
 grep -rn "include_sections\|iter_section_ports\|get_section_ports\|is_section\|\.section\b" \
@@ -844,7 +844,7 @@ Rewrite it as:
 
 and drop `section` from `_FakePort.__init__` and its body.
 
-- [ ] **Step 2: Write the failing test**
+- [x] **Step 2: Write the failing test**
 
 Append to `tests/core/test_node/test_fold.py`:
 
@@ -870,12 +870,12 @@ def test_visible_ports_takes_no_section_argument() -> None:
     assert "include_sections" not in inspect.signature(NodeData.iter_visible_ports).parameters
 ```
 
-- [ ] **Step 3: Run test to verify it fails**
+- [x] **Step 3: Run test to verify it fails**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py::test_section_api_is_gone -v`
 Expected: FAIL — `assert not hasattr(NodeData, "section")`
 
-- [ ] **Step 4: Delete section and group**
+- [x] **Step 4: Delete section and group**
 
 In `data.py`:
 - Delete the `section()` context manager and the `group()` context manager.
@@ -906,7 +906,7 @@ In `port.py`, delete the `section` and `is_section` field declarations.
 
 Update every caller found in Step 1 that passed `include_sections`.
 
-- [ ] **Step 5: Rename the testbed node**
+- [x] **Step 5: Rename the testbed node**
 
 In `group_and_sections.py`, rename the class to `TestFoldNode`, set
 `label="Fold"` and `description="Tests fold rendering"`, drop `"section"` from
@@ -916,12 +916,12 @@ In `group_and_sections.py`, rename the class to `TestFoldNode`, set
 Then run the rename checker: `/check-rename` — string-based references
 (`patch("...")`, doc citations) are not caught by an IDE rename.
 
-- [ ] **Step 6: Run tests to verify they pass**
+- [x] **Step 6: Run tests to verify they pass**
 
 Run: `uv run pytest tests/core/test_node/test_fold.py -v`
 Expected: PASS (13 tests)
 
-- [ ] **Step 7: Run the full gate**
+- [x] **Step 7: Run the full gate**
 
 ```sh
 uv run pytest -m "not browser and not perf" -q > /tmp/fold.log 2>&1; echo "exit=$?"
@@ -931,7 +931,7 @@ grep -E "passed|failed" /tmp/fold.log | tail -1
 
 Expected: `exit=0`.
 
-- [ ] **Step 8: Lint, format, type-check**
+- [x] **Step 8: Lint, format, type-check**
 
 ```sh
 uv run ruff check .
@@ -941,7 +941,7 @@ uv run mypy packages/haywire-core/src/ packages/haywire-studio/src/ barn/haybale
 
 Expected: clean.
 
-- [ ] **Step 9: Commit**
+- [x] **Step 9: Commit**
 
 ```bash
 git add -A
@@ -968,7 +968,7 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 - Consumes: everything above.
 - Produces: nothing code-facing.
 
-- [ ] **Step 1: Document `fold()` in the ports guide**
+- [x] **Step 1: Document `fold()` in the ports guide**
 
 Add a "Folds" section to `docs/guides/ports.md` covering: what a fold is, the
 `with self.fold("Name"):` form, that it carries no pin and no widget, that its
@@ -977,7 +977,7 @@ nesting. Link to [ADR-0035](../adr/0035-fold-replaces-group-and-section.md).
 
 Follow `docs/reference/doc-authoring.md` for front matter and nav wiring.
 
-- [ ] **Step 2: Mark `GROUP` superseded**
+- [x] **Step 2: Mark `GROUP` superseded**
 
 In `barn/haybale-core/haybale_core/types/specs.py`, update the `GROUP` class
 docstring:
@@ -991,7 +991,7 @@ class GROUP(PrimitiveType[bool]):
     """
 ```
 
-- [ ] **Step 3: Build the docs**
+- [x] **Step 3: Build the docs**
 
 ```sh
 uv run mkdocs build --strict
@@ -999,7 +999,7 @@ uv run mkdocs build --strict
 
 Expected: no warnings.
 
-- [ ] **Step 4: Commit**
+- [x] **Step 4: Commit**
 
 ```bash
 git add docs/ barn/haybale-core/haybale_core/types/specs.py
@@ -1012,10 +1012,10 @@ Co-Authored-By: Claude Opus 5 (1M context) <noreply@anthropic.com>"
 
 ## Done When
 
-- [ ] No `self.group(` or `self.section(` call sites remain.
-- [ ] `DataPort` has no `section` or `is_section` field.
-- [ ] `uv run pytest -m "not browser and not perf" -q` exits 0.
-- [ ] `uv run ruff check .` and `uv run ruff format --check .` clean.
-- [ ] `uv run mypy` over the `CLAUDE.md` package list clean.
-- [ ] `uv run mkdocs build --strict` clean.
-- [ ] In the running app, the `Fold` testbed node shows a triangle header, folds on click, and reopens folded after a save/reload.
+- [x] No `self.group(` or `self.section(` call sites remain.
+- [x] `DataPort` has no `section` or `is_section` field.
+- [x] `uv run pytest -m "not browser and not perf" -q` exits 0.
+- [x] `uv run ruff check .` and `uv run ruff format --check .` clean.
+- [x] `uv run mypy` over the `CLAUDE.md` package list clean.
+- [x] `uv run mkdocs build --strict` clean of any warning introduced by this plan (one pre-existing, unrelated warning in `guides/panels.md` still aborts strict mode; see below).
+- [ ] In the running app, the `Fold` testbed node shows a triangle header, folds on click, and reopens folded after a save/reload. Not yet verified interactively.

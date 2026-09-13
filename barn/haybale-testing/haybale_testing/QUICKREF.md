@@ -8,6 +8,11 @@
 - `haybale-testing:node:DisplayNode` — Display — Displays input values for debugging  _tags: display, debug, output, basic_
 - `haybale-testing:node:DynamicPortTestNode` — Dynamic Port TestNode —   _tags: testing, dynamic, push, pop, reconfigure_
 - `haybale-testing:node:EdgeLinkTestNode` — Edge Link TestNode —   _tags: testing, edge, link, inlet, outlet, connection, adapter_
+- `haybale-testing:node:FoldProbeNode` — Fold Probe — Tests fold() minting and nesting  _tags: testing, fold_
+- `haybale-testing:node:InletFoldNode` — Inlet Fold — Tests that a fold of only inlets is fine  _tags: testing, fold_
+- `haybale-testing:node:MixedFoldNode` — Mixed Fold — Tests that a fold spanning two directions raises  _tags: testing, fold_
+- `haybale-testing:node:NestedClosedFoldNode` — Nested Closed — Tests that a closed outer fold hides a nested fold child  _tags: testing, fold_
+- `haybale-testing:node:NestedFoldNode` — Nested Fold — Tests that folds nest  _tags: testing, fold_
 - `haybale-testing:node:PerformanceTester` — Performance Testing Node — Helps test performance of execution system  _tags: performance, control, flow, event_
 - `haybale-testing:node:SettingsNode` — Settings Test Node — Test the Settings for debugging  _tags: settings, debug, test, example_
 - `haybale-testing:node:SizeBoxAspectNode` — Size Box (declared width) — Hosts an oversized widget declaring min_width only  _tags: size, resize, widget, testing_
@@ -17,7 +22,7 @@
 - `haybale-testing:node:TestBeginPlayNode` — Test Begin Play — Test version of BeginPlay — triggered once when execution starts  _tags: test, start, init, begin, event_
 - `haybale-testing:node:TestCustomCallbackNode` — Test Custom Callback — Test version of CustomCallback — listens for named callbacks  _tags: test, callback, listen, event, custom_
 - `haybale-testing:node:TestEmitCallbackNode` — Test Emit Callback — Test version of EmitCallback — emits a callback to trigger event nodes  _tags: test, callback, emit, trigger, event_
-- `haybale-testing:node:TestGroupAndSectionNode` — Group And Sections — Tests Rendering for Group and Sections  _tags: test, group, section, render_
+- `haybale-testing:node:TestFoldNode` — Fold — Tests fold rendering  _tags: test, fold, render_
 - `haybale-testing:node:TestPrintNode` — Test Print — Test version of Logger — logs a message and continues flow  _tags: test, print, log, message, terminal_
 
 ## type

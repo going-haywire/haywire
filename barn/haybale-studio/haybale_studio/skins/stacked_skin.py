@@ -11,6 +11,7 @@ from haywire.core.node.node_wrapper import NodeWrapper
 from haywire.core.types import DataPort
 
 from haywire.core.types.enums import LayoutDirection, PortType
+from haywire.ui import elements as hui
 from haywire.ui.skin.decorator import skin
 
 from .node_skin import NodeSkin
@@ -242,7 +243,8 @@ class StackedNodeSkin(NodeSkin):
         """
         layout = self.layout_of(wrapper) if layout is None else layout
         for port in ports:
-            # Skip ports of wrong direction
+            # Skip ports of wrong direction. A fold carries the direction of
+            # the ports it holds, so it lands in their lane.
             if port.port_type != port_type:
                 continue
 
@@ -274,17 +276,10 @@ class StackedNodeSkin(NodeSkin):
         """
         Render a collapsible group with visual hierarchy.
 
-        Groups are rendered with:
+        Folds are rendered with:
+        - A disclosure-triangle header (no widget — a fold carries none)
         - Children indented via their own content column, never the container
-        - Group header with toggle widget
-        - Child ports (if expanded)
-
-        The toggle is always BUILT and unconditionally carries
-        ``hw-detail-widget`` (2026-09 CSS-filter redesign) — canvas.vue's
-        ``[data-node-props-detail]`` rule hides it below WIDGETS from the DOM
-        attribute directly, so a group then renders as its (still-indented, via
-        each row's content column) children with no visible control, with
-        nothing to consult here.
+        - Child ports only while open
 
         Args:
             group_port: The group control port (boolean inlet)
@@ -303,11 +298,26 @@ class StackedNodeSkin(NodeSkin):
         # taking a nested pin off the card border. Depth reaches the row's
         # CONTENT column instead, via render_port(depth=...).
         with ui.column().classes("w-full gap-1"):
-            # Group header with toggle
-            with ui.row().classes("w-full items-center gap-1"):
-                # Render group toggle widget
-                if group_port.widget_key is not None and group_port.should_show_widget():
-                    self.render_widget(group_port, wrapper.node_id, classes="zoom-pan-lod2 hw-detail-widget")
+            # Fold header: a disclosure triangle and the label. A fold carries
+            # no widget — the triangle is the whole control — so nothing here
+            # consults widget_key.
+            # _config_indent, not _content_inset: a fold header has no pin
+            # column, so it indents like a config row. CONTENT_GAP is negative
+            # (it overlaps into the pin gutter), which on a pinless row pulls
+            # the header left of the card padding and swallows the per-level
+            # step.
+            header_indent = self._config_indent(depth)
+            with (
+                ui.row()
+                .classes("w-full items-center gap-1 cursor-pointer zoom-pan-lod2 hw-detail-label")
+                .style(f"padding-left: {header_indent}px;")
+                .props(
+                    f'data-hw-fold-id="{group_port.id}" data-hw-fold-open="{str(bool(is_expanded)).lower()}"'
+                )
+                .on("click", lambda pid=group_port.id: self._toggle_fold(wrapper, pid))
+            ):
+                ui.icon(hui.icon.fold_open if is_expanded else hui.icon.fold_closed).classes("text-sm")
+                ui.label(group_port.label).classes("text-xs")
 
             # Group children (if expanded)
             if is_expanded:
@@ -332,3 +342,14 @@ class StackedNodeSkin(NodeSkin):
                             layout=layout,
                             depth=depth + 1,
                         )
+
+    def _toggle_fold(self, wrapper: NodeWrapper, fold_id: str) -> None:
+        """Flip a fold's open state and redraw.
+
+        The redraw is unconditional: set_value() only fires a redraw through
+        the port's own on_change, and most folds declare none — the triangle
+        is the only affordance, so it cannot depend on the node opting in.
+        """
+        node = wrapper.node
+        node.ports[fold_id].set_value(not node.value(fold_id))
+        wrapper.redraw()
