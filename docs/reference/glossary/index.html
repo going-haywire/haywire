@@ -3947,8 +3947,8 @@
 </tr>
 <tr>
 <td><strong>Port</strong></td>
-<td>A typed, directional connection point on a node — either an inlet or an outlet. See <a href="../../guides/ports/">guides/ports</a></td>
-<td>Pin (avoid for data ports), socket</td>
+<td>A typed, directional connection point on a node — an inlet, an outlet, or a config port. See <a href="../../guides/ports/">guides/ports</a></td>
+<td>Socket</td>
 </tr>
 <tr>
 <td><strong>Inlet</strong></td>
@@ -3962,8 +3962,18 @@
 </tr>
 <tr>
 <td><strong>Pin</strong></td>
-<td>Acceptable synonym for an EXEC (control) port specifically</td>
-<td>—</td>
+<td>A port that carries an edge handle on the node card — every inlet and outlet, whatever its FlowType. A <strong>config port has no pin</strong>: it is never linked and never driven by an edge, so it renders a widget but no handle. The term names what the user can grab and drag from, which is why the canvas layer is spelled <code>PinMenu</code> / <code>data-pin-id</code> / <code>PinGlyph</code></td>
+<td>Socket; "pin" for a config port (there is no handle to mean)</td>
+</tr>
+<tr>
+<td><strong>Fold</strong></td>
+<td>A pin-less, widget-less boolean port that contains other ports and is opened or closed by a disclosure triangle. Declared with <code>with self.fold("Name"):</code>, which mints a <code>FOLD</code> port (a <code>BOOL</code> subtype carrying the no-widget and always-store rules) — the author chooses no type, widget, direction or pin. Its header shows the triangle, the label, and a checkbox stating the same boolean: checked while open. Hovering the triangle shows the label and <code>description=</code>. Its value is a <strong>disclosure state</strong>, not a decision, and it persists; a node may still read it or hook <code>on_change=</code> to reconfigure itself. Scoped to one direction: a fold renders in the lane its children belong to (config band, inlet lane, or outlet lane) and may not mix directions. <strong>One level deep</strong>: a fold holds ports, not other folds — nesting one raises. Depth indents a port row's <em>content column</em> only, never its pin column, so a pin stays on the card border. Replaces both <code>group()</code> and <code>section()</code></td>
+<td>Group (the superseded <code>GROUP</code>-port spelling), section (removed), collapsible, expander</td>
+</tr>
+<tr>
+<td><strong>Port order</strong></td>
+<td>A port's position among its siblings within one direction lane and one <strong>Fold</strong>, held in <code>DataPort.order</code> and the sort key for every card and panel rendering. Author-declared by <code>init()</code> call order; the graph user may override it by dragging in the <strong>Ports panel</strong>, and the user's order wins over a later author reordering</td>
+<td>Display index, sort order (ambiguous with a settings row's <code>order=</code>)</td>
 </tr>
 </tbody>
 </table>
@@ -5545,7 +5555,7 @@
 </tr>
 <tr>
 <td><strong>Node visibility</strong></td>
-<td>The resolved answer to "which ports does this card draw", returned by <code>NodeSkin.show_of(wrapper)</code>. Composes <strong>Node collapse</strong> and <strong>Group collapse</strong> into one value object exposing <code>show.collapsed</code> and a port filter (<code>show.ports(node)</code>). Does NOT carry <strong>NodeDetail</strong> (cut 2026-09, same day as NodeDetail's own CSS-filter redesign — see ADR 0032's "Superseded" section): it used to hold a <code>detail</code> field and four rank-derived properties a skin consulted to pick a <code>.hw-detail-*</code> class, but once every skin call site started writing that class unconditionally, nothing read them any more — <code>UINode._apply_detail_attr</code> already reads <code>props.detail</code> directly to stamp the DOM attribute canvas.vue's CSS keys off.</td>
+<td>The resolved answer to "which ports does this card draw", returned by <code>NodeSkin.show_of(wrapper)</code>. Composes <strong>Node collapse</strong> and <strong>Fold collapse</strong> into one value object exposing <code>show.collapsed</code> and a port filter (<code>show.ports(node)</code>). Does NOT carry <strong>NodeDetail</strong> (cut 2026-09, same day as NodeDetail's own CSS-filter redesign — see ADR 0032's "Superseded" section): it used to hold a <code>detail</code> field and four rank-derived properties a skin consulted to pick a <code>.hw-detail-*</code> class, but once every skin call site started writing that class unconditionally, nothing read them any more — <code>UINode._apply_detail_attr</code> already reads <code>props.detail</code> directly to stamp the DOM attribute canvas.vue's CSS keys off.</td>
 <td>show object, port filter</td>
 </tr>
 <tr>
@@ -5555,13 +5565,13 @@
 </tr>
 <tr>
 <td><strong>Node collapse</strong></td>
-<td>The per-node fold of the whole card down to its minimum — card, title, badges, pins of linked ports, and the root <strong>Ghost pins</strong>. Carried by <code>NodeProperties.collapsed</code>, resolved through <strong>graph &lt; node</strong> — two tiers, not three: a studio-wide fold would open every graph showing nothing, and the graph tier already persists the answer in the <code>.haywire</code> file. Contrast <strong>NodeDetail</strong>, which does carry a framework tier. A <strong>construction</strong> gate: a collapsed node does not build the omitted elements, it does not merely hide them. Distinct from <strong>Group collapse</strong>; never say "collapsed" unqualified when both are in scope.</td>
+<td>The per-node fold of the whole card down to its minimum — card, title, badges, pins of linked ports, and the root <strong>Ghost pins</strong>. Carried by <code>NodeProperties.collapsed</code>, resolved through <strong>graph &lt; node</strong> — two tiers, not three: a studio-wide fold would open every graph showing nothing, and the graph tier already persists the answer in the <code>.haywire</code> file. Contrast <strong>NodeDetail</strong>, which does carry a framework tier. A <strong>construction</strong> gate: a collapsed node does not build the omitted elements, it does not merely hide them. Distinct from <strong>Fold collapse</strong>; never say "collapsed" unqualified when both are in scope.</td>
 <td>node fold, minimize</td>
 </tr>
 <tr>
-<td><strong>Group collapse</strong></td>
-<td>The fold of one <strong>port group</strong> inside a node card, stored as the <code>expanded</code> boolean on the group's own control port and applied by <code>get_visible_ports()</code> via <code>_is_any_ancestor_collapsed</code>. Hides that group's child ports only; a hidden child that is linked still renders an ordinary Pin in the card header. Distinct from <strong>Node collapse</strong>.</td>
-<td>collapsed group (acceptable, but qualify it)</td>
+<td><strong>Fold collapse</strong></td>
+<td>The closing of one <strong>Fold</strong> inside a node card, held as that fold's own port value and applied by <code>get_visible_ports()</code> via <code>_is_any_ancestor_collapsed</code>. Hides that fold's child ports only; a hidden child that is linked still renders an ordinary Pin in the card header. Distinct from <strong>Node collapse</strong>.</td>
+<td>group collapse (the superseded <code>group()</code> spelling), collapsed fold (acceptable, but qualify it)</td>
 </tr>
 <tr>
 <td><strong>Ghost pin</strong></td>
