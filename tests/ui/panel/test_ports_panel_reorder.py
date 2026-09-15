@@ -25,8 +25,8 @@ class _FakePort:
 
     id: str
     label: str
-    parent_group: str | None = None
-    is_group: bool = False
+    parent_fold: str | None = None
+    is_fold: bool = False
     widget_key: str | None = None
 
     def should_show_widget(self) -> bool:
@@ -65,16 +65,16 @@ def test_panel_renders_lanes_recursively() -> None:
 
     assert hasattr(NodePortsPanel, "_render_lane")
     params = inspect.signature(NodePortsPanel._render_lane).parameters
-    assert "parent_group" in params
+    assert "parent_fold" in params
     assert "depth" in params
 
 
 def test_panel_is_fold_aware() -> None:
-    """A flat panel cannot express a legal drop; it must read parent_group."""
+    """A flat panel cannot express a legal drop; it must read parent_fold."""
     from haybale_graph_editor.panels.properties.introspect.node_ports import NodePortsPanel
 
     source = inspect.getsource(NodePortsPanel)
-    assert "parent_group" in source
+    assert "parent_fold" in source
 
 
 def test_sortable_group_name_is_scoped_per_sibling_group() -> None:
@@ -167,10 +167,10 @@ def _labels(anchor) -> list[str]:
 def _two_folds() -> list[_FakePort]:
     """Two sibling folds, one child each — the FoldProbe config lane."""
     return [
-        _FakePort("solver", "Solver", is_group=True),
-        _FakePort("substeps", "Substeps", parent_group="solver"),
-        _FakePort("advanced", "Advanced", is_group=True),
-        _FakePort("epsilon", "Epsilon", parent_group="advanced"),
+        _FakePort("solver", "Solver", is_fold=True),
+        _FakePort("substeps", "Substeps", parent_fold="solver"),
+        _FakePort("advanced", "Advanced", is_fold=True),
+        _FakePort("epsilon", "Epsilon", parent_fold="advanced"),
     ]
 
 
@@ -206,8 +206,8 @@ def test_a_fold_child_is_indented_below_its_fold() -> None:
 def test_a_fold_child_renders_in_its_own_sortable() -> None:
     """A shared sortable is what would let a child be dropped out of its fold."""
     ports = [
-        _FakePort("solver", "Solver", is_group=True),
-        _FakePort("substeps", "Substeps", parent_group="solver"),
+        _FakePort("solver", "Solver", is_fold=True),
+        _FakePort("substeps", "Substeps", parent_fold="solver"),
         _FakePort("a", "A"),
     ]
     anchor = _render_lane(ports)

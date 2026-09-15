@@ -16,9 +16,10 @@ from .upgrader import GraphDict, UnknownGraphFormat, Upgrader, UpgradeAncient
 from .v1 import UpgradeVersionOne
 from .v2 import UpgradeVersionTwo
 from .v3 import UpgradeVersionThree
+from .v4 import UpgradeVersionFour
 
 #: Head of the chain — the newest version. Adding a version repoints this.
-_HEAD: Upgrader = UpgradeVersionThree()
+_HEAD: Upgrader = UpgradeVersionFour()
 
 #: Derived from the chain head, never written by hand, so the two cannot drift.
 CURRENT_FORMAT_VERSION: int = _HEAD.to_version
@@ -28,6 +29,7 @@ __all__ = [
     "GraphDict",
     "UnknownGraphFormat",
     "UpgradeAncient",
+    "UpgradeVersionFour",
     "UpgradeVersionOne",
     "UpgradeVersionThree",
     "UpgradeVersionTwo",

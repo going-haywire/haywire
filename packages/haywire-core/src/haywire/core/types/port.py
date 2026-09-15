@@ -131,13 +131,13 @@ class DataPort(DataTypeIdentity):
     # HIERARCHY & ORGANIZATION
     # ========================================================================
 
-    parent_group: Optional[str] = None
+    parent_fold: Optional[str] = None
     """ID of parent group port, None if top-level"""
 
     order: int = 0
     """Display order within parent"""
 
-    is_group: bool = False
+    is_fold: bool = False
     """True if this port is a fold container.
 
     A fold takes the ``port_type`` of the children it holds, so that it renders
@@ -710,7 +710,7 @@ class DataPort(DataTypeIdentity):
         disclosure triangle is the whole control. Every other inlet/outlet
         renders one.
         """
-        return not self.is_config() and not self.is_group
+        return not self.is_config() and not self.is_fold
 
     def is_callback_pin(self) -> bool:
         """Check if this is a callback pin"""

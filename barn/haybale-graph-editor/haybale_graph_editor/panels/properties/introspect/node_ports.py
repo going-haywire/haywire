@@ -108,10 +108,10 @@ class NodePortsPanel(BasePanel):
         lane: str,
         node_id: str,
         widget_factory,
-        parent_group: str | None = None,
+        parent_fold: str | None = None,
         depth: int = 0,
     ) -> None:
-        """Render the ports whose fold is ``parent_group``, recursing into folds.
+        """Render the ports whose fold is ``parent_fold``, recursing into folds.
 
         One sibling group per call — the ports a user may rearrange among
         themselves. A fold's children follow its own row, indented one level
@@ -130,7 +130,7 @@ class NodePortsPanel(BasePanel):
                 itself a CONFIG port and would misreport its lane.
             depth: Fold nesting level, which sets this group's indentation.
         """
-        siblings = [p for p in ports if p.parent_group == parent_group]
+        siblings = [p for p in ports if p.parent_fold == parent_fold]
         if not siblings:
             return
 
@@ -150,15 +150,15 @@ class NodePortsPanel(BasePanel):
                             f"{_DRAG_HANDLE_CLASS} text-sm hw-text-dim shrink-0 mt-1 cursor-grab"
                         )
                         with ui.column().classes("flex-1 min-w-0 gap-0"):
-                            if port.is_group:
+                            if port.is_fold:
                                 ui.label(port.label).classes("text-xs hw-text-dim px-2 pt-1")
                             else:
                                 self._render_port(port, node_id, widget_factory)
-                    if port.is_group:
+                    if port.is_fold:
                         child_slots.append((port, ui.column().classes("w-full gap-0")))
 
         container.make_sortable(
-            group=self._sortable_group(node_id, lane, parent_group),
+            group=self._sortable_group(node_id, lane, parent_fold),
             handle=f".{_DRAG_HANDLE_CLASS}",
             on_end=lambda e, n=node, ids=sibling_ids: self._on_reorder(n, ids, e),
         )
@@ -168,13 +168,13 @@ class NodePortsPanel(BasePanel):
                 self._render_lane(node, ports, lane, node_id, widget_factory, port.id, depth + 1)
 
     @staticmethod
-    def _sortable_group(node_id: str, lane: str, parent_group: str | None) -> str:
+    def _sortable_group(node_id: str, lane: str, parent_fold: str | None) -> str:
         """Return the SortableJS group name for one sibling group.
 
         Unique per (node, lane, fold), which is what makes a cross-lane or
         cross-fold drop inexpressible rather than something to validate.
         """
-        return f"hw-ports:{node_id}:{lane}:{parent_group or 'root'}"
+        return f"hw-ports:{node_id}:{lane}:{parent_fold or 'root'}"
 
     def _on_reorder(self, node, sibling_ids: list[str], event) -> None:
         """Apply a completed drop: move one id and hand the new order to the node.

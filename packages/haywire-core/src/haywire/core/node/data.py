@@ -83,7 +83,7 @@ class NodeData:
         self._push_stack: List[set[str]] = []
         """Stack of port ID sets for rejig operations."""
 
-        self._group_stack: List[str] = []
+        self._fold_stack: List[str] = []
         """Stack of active group IDs for nested groups."""
 
         self._fold_direction: Dict[str, PortType] = {}
@@ -157,11 +157,11 @@ class NodeData:
         """
         port = DataPort.from_spec(cast(dict, spec), self._type_registry, self.wrapper, self)
 
-        if self._group_stack:
-            port.parent_group = self._group_stack[-1]
+        if self._fold_stack:
+            port.parent_fold = self._fold_stack[-1]
 
-        if port.parent_group:
-            self._commit_fold_direction(port.parent_group, port.id, port.port_type)
+        if port.parent_fold:
+            self._commit_fold_direction(port.parent_fold, port.id, port.port_type)
 
         port.order = self._port_order_counter
         self._port_order_counter += 1
@@ -256,20 +256,20 @@ class NodeData:
 
         fold_id = self._fold_id(label)
         spec = FOLD.as_config(fold_id, label=label, default=default, **kwargs)
-        if self._group_stack:
+        if self._fold_stack:
             raise ValueError(
-                f"Fold {fold_id!r} is declared inside fold {self._group_stack[-1]!r}. "
+                f"Fold {fold_id!r} is declared inside fold {self._fold_stack[-1]!r}. "
                 f"A fold holds ports, not other folds."
             )
 
         fold_port = self.add(spec)
-        fold_port.is_group = True
+        fold_port.is_fold = True
 
-        self._group_stack.append(fold_port.id)
+        self._fold_stack.append(fold_port.id)
         try:
             yield fold_port
         finally:
-            self._group_stack.pop()
+            self._fold_stack.pop()
             committed = self._fold_direction.pop(fold_port.id, None)
 
         # Only on a clean exit: raising here on the exception path would mask
@@ -281,7 +281,7 @@ class NodeData:
             )
         # The fold renders in its children's lane, not in the config band its
         # as_config() spec would otherwise put it in. It stays pinless through
-        # is_group — see DataPort.has_pin().
+        # is_fold — see DataPort.has_pin().
         fold_port.adopt_port_type(committed)
 
     def _push(
@@ -483,7 +483,7 @@ class NodeData:
         A port inside a closed fold is skipped.
         """
         for port in self._iter_ports():
-            if port.parent_group and self._is_any_ancestor_collapsed(port):
+            if port.parent_fold and self._is_any_ancestor_collapsed(port):
                 continue
             yield port
 
@@ -501,7 +501,7 @@ class NodeData:
         Fold collapse is ignored so that an edge always finds its endpoint on a
         folded card. Unlinked ports and fold control ports are left out.
         """
-        return [port for port in self.get_all_ports() if not port.is_group and port.is_linked()]
+        return [port for port in self.get_all_ports() if not port.is_fold and port.is_linked()]
 
     def get_ports(
         self,
@@ -545,7 +545,7 @@ class NodeData:
         for port in self._iter_ports():
             if port.is_inlet() == is_inlet:
                 continue
-            if port.is_group:
+            if port.is_fold:
                 continue
             if port.id not in visible_ids and port.is_linked():
                 yield port
@@ -555,20 +555,20 @@ class NodeData:
         return list(self.iter_hidden_connected_ports(is_inlet))
 
     def _is_any_ancestor_collapsed(self, port: DataPort) -> bool:
-        """Return whether any ancestor group of *port* is collapsed."""
-        current_group_id = port.parent_group
+        """Return whether any ancestor fold of *port* is collapsed."""
+        current_fold_id = port.parent_fold
 
-        while current_group_id is not None:
-            group_port = self.ports.get(current_group_id)
-            if not group_port:
+        while current_fold_id is not None:
+            fold_port = self.ports.get(current_fold_id)
+            if not fold_port:
                 # Broken hierarchy - assume visible
                 break
 
-            # group_port is in self.ports (checked above), so value() cannot KeyError.
-            if not self.value(current_group_id):
+            # fold_port is in self.ports (checked above), so value() cannot KeyError.
+            if not self.value(current_fold_id):
                 return True
 
-            current_group_id = group_port.parent_group
+            current_fold_id = fold_port.parent_fold
 
         return False
 

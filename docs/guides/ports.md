@@ -135,7 +135,7 @@ inlet.data.get_source_ids()    # ['node_a', 'node_b', 'node_c']
 
 A fold is a real port, as any inlet or outlet is: it holds the open/closed
 state, serializes with the graph, and parents its children through
-`parent_group`. Unlike a hand-declared port, the author supplies only a
+`parent_fold`. Unlike a hand-declared port, the author supplies only a
 label — the framework mints a pin-less, widget-less `FOLD` port, whose header
 carries a disclosure triangle, the label, and a checkbox showing the same
 open/closed boolean:

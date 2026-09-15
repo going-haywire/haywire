@@ -213,7 +213,7 @@ class StackedNodeSkin(NodeSkin):
         ports = [
             port
             for port in node.get_visible_ports()
-            if port.port_type == port_type and not port.is_group and not port.parent_group
+            if port.port_type == port_type and not port.is_fold and not port.parent_fold
         ]
         hidden = node.get_hidden_connected_ports(is_inlet=port_type == PortType.INLET)
         self.render_pin_strip(
@@ -250,11 +250,11 @@ class StackedNodeSkin(NodeSkin):
                 continue
 
             # Skip child ports (they're rendered inside their parent groups)
-            if port.parent_group:
+            if port.parent_fold:
                 continue
 
             # Render based on port type
-            if port.is_group:
+            if port.is_fold:
                 self._render_group(port, ports, wrapper, port_type, layout, depth=0)
             else:
                 self.render_port(
@@ -335,7 +335,7 @@ class StackedNodeSkin(NodeSkin):
                 children = [
                     port
                     for port in all_ports
-                    if port.parent_group == group_port.id and port.port_type == port_type
+                    if port.parent_fold == group_port.id and port.port_type == port_type
                 ]
 
                 for child_port in sorted(children, key=lambda p: p.order):

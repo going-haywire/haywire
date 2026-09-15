@@ -202,7 +202,7 @@ def test_validate_checks_presence_not_truthiness():
 
 @pytest.mark.parametrize(
     "name",
-    ["empty", "webcam", "loop", "settings", "oakNwebCam", "10x200nodes"],
+    ["empty", "webcam", "loop", "settings", "oakNwebCam", "10x200nodes", "any_and_nonde"],
 )
 def test_shipped_fixture_upgrades(name: str):
     """Every graph in graphs/ migrates cleanly to the current format."""
@@ -215,3 +215,83 @@ def test_shipped_fixture_upgrades(name: str):
     assert isinstance(out["meta"], dict)
     assert out["nodes"] is not None
     assert out["edges"] is not None
+
+
+# ---------------------------------------------------------------------------
+# v4 — the fold key rename
+# ---------------------------------------------------------------------------
+
+
+def _port_kwargs(data, node_id: str, port_id: str) -> dict:
+    return data["nodes"][node_id]["node_data"]["ports"][port_id]["kwargs"]
+
+
+def test_v4_renames_the_fold_keys():
+    """A pre-v4 port's ``parent_group``/``is_group`` become ``parent_fold``/``is_fold``."""
+    out = prehydrate(
+        _base(
+            format_version=3,
+            nodes={
+                "n1": {
+                    "registry_key": "lib:node:Probe",
+                    "node_data": {
+                        "ports": {
+                            "solver": {"kwargs": {"is_group": True}},
+                            "substeps": {"kwargs": {"parent_group": "solver"}},
+                        }
+                    },
+                }
+            },
+        )
+    )
+
+    assert _port_kwargs(out, "n1", "solver") == {"is_fold": True}
+    assert _port_kwargs(out, "n1", "substeps") == {"parent_fold": "solver"}
+
+
+def test_v4_leaves_other_port_kwargs_alone():
+    out = prehydrate(
+        _base(
+            format_version=3,
+            nodes={
+                "n1": {
+                    "registry_key": "lib:node:Probe",
+                    "node_data": {"ports": {"a": {"kwargs": {"order": 3, "is_group": False}}}},
+                }
+            },
+        )
+    )
+
+    assert _port_kwargs(out, "n1", "a") == {"order": 3, "is_fold": False}
+
+
+def test_v4_tolerates_a_node_without_ports():
+    out = prehydrate(
+        _base(
+            format_version=3,
+            nodes={"n1": {"registry_key": "lib:node:Probe"}, "n2": {"registry_key": "x", "node_data": {}}},
+        )
+    )
+
+    assert out["format_version"] == CURRENT_FORMAT_VERSION
+
+
+def test_the_fixture_that_carries_fold_keys_migrates_them():
+    """``graphs/any_and_nonde.haywire`` is written with the pre-v4 keys."""
+    raw = (FIXTURES / "any_and_nonde.haywire").read_text()
+    assert '"is_group"' in raw, "fixture no longer exercises the v4 rename"
+
+    out = prehydrate(json.loads(raw))
+
+    folds = 0
+    parented = 0
+    for node in out["nodes"].values():
+        for port in ((node.get("node_data") or {}).get("ports") or {}).values():
+            kwargs = port.get("kwargs") or {}
+            assert "is_group" not in kwargs
+            assert "parent_group" not in kwargs
+            folds += bool(kwargs.get("is_fold"))
+            parented += bool(kwargs.get("parent_fold"))
+
+    assert folds == 3
+    assert parented == 4

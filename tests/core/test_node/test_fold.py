@@ -72,7 +72,7 @@ def test_an_inherited_direction_refreshes_the_is_inlet_cache(graph_with_library_
 
 
 def test_an_inlet_fold_still_draws_no_pin(graph_with_library_system) -> None:
-    """is_group, not is_config, is what keeps a fold pinless — otherwise a fold
+    """is_fold, not is_config, is what keeps a fold pinless — otherwise a fold
     that inherits INLET would sprout a connectable pin of its own."""
     probe = _make_probe(graph_with_library_system)
     fold = probe.ports["inputs"]
@@ -111,14 +111,14 @@ def test_fold_persists_its_open_state(graph_with_library_system) -> None:
 
 def test_fold_parents_its_children(graph_with_library_system) -> None:
     probe = _make_probe(graph_with_library_system)
-    assert probe.ports["substeps"].parent_group == "solver"
-    assert probe.ports["a"].parent_group == "inputs"
-    assert probe.ports["out"].parent_group is None
+    assert probe.ports["substeps"].parent_fold == "solver"
+    assert probe.ports["a"].parent_fold == "inputs"
+    assert probe.ports["out"].parent_fold is None
 
 
 def test_fold_is_marked_as_a_group(graph_with_library_system) -> None:
     probe = _make_probe(graph_with_library_system)
-    assert probe.ports["solver"].is_group is True
+    assert probe.ports["solver"].is_fold is True
 
 
 def test_fold_defaults_to_open(graph_with_library_system) -> None:
